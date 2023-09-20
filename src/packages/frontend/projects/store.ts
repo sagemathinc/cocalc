@@ -28,12 +28,15 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 
+export type UserGroup = "admin" | "owner" | "collaborator" | "public";
+
 const openAICache = new LRU<string, boolean>({ max: 50, ttl: 1000 * 60 });
 
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
 );
 
+// TODO fix this "Project" type, shouldn't this be ./project/settings/types::Project ?
 export type Project = Map<string, any>;
 export type ProjectMap = Map<string, Project>;
 
@@ -212,9 +215,7 @@ export class ProjectsStore extends Store<ProjectsState> {
        admin and not on the project at all
   'admin' - user is not owner/collaborator but is an admin, hence has rights.
   */
-  public get_my_group(
-    project_id: string
-  ): undefined | "admin" | "owner" | "collaborator" | "public" {
+  public get_my_group(project_id: string): UserGroup | undefined {
     const account_store = redux.getStore("account");
     if (account_store == null) {
       return;
@@ -301,9 +302,9 @@ export class ProjectsStore extends Store<ProjectsState> {
     }
     let total: Upgrades = {};
     this.get("project_map")?.map((project) => {
-      const upgrades = project
-        .getIn(["users", webapp_client.account_id, "upgrades"])
-        ?.toJS();
+      const upgrades = (
+        project.getIn(["users", webapp_client.account_id, "upgrades"]) as any
+      )?.toJS();
       if (upgrades == null) return;
       total = map_sum(total as any, upgrades);
     });
@@ -618,7 +619,9 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (account_id == null) return {};
     const v: { [project_id: string]: Upgrades } = {};
     this.get("project_map")?.map((project, project_id) => {
-      const upgrades = project.getIn(["users", account_id, "upgrades"])?.toJS();
+      const upgrades = (
+        project.getIn(["users", account_id, "upgrades"]) as any
+      )?.toJS();
       if (upgrades == null) return;
       for (let upgrade in upgrades) {
         const val = upgrades[upgrade];
@@ -731,18 +734,31 @@ export class ProjectsStore extends Store<ProjectsState> {
     openAICache.clear();
   }
 
-  hasOpenAI(project_id?: string): boolean {
+  hasOpenAI(project_id?: string, tag?: string): boolean {
     // cache answer for a few seconds, in case this gets called a lot:
-    const key = project_id ?? "global";
+
+    let courseLimited = false;
+    if (
+      tag &&
+      (tag.includes("explain") ||
+        tag.includes("help-me-fix") ||
+        tag.includes("reply"))
+    ) {
+      // We only care about 'explain' or 'help-me-fix' or 'reply' for the tags
+      // right now regarding disabling chatgpt, hence to make our cache
+      // better we base the key only on those possibilities.
+      courseLimited = true;
+    }
+    const key = `${project_id ?? "global"}-${courseLimited}`;
     if (openAICache.has(key)) {
       return !!openAICache.get(key);
     }
-    const value = this._hasOpenAI(project_id);
+    const value = this._hasOpenAI(project_id, courseLimited);
     openAICache.set(key, value);
     return value;
   }
 
-  private _hasOpenAI(project_id?: string): boolean {
+  private _hasOpenAI(project_id?: string, courseLimited?: boolean): boolean {
     if (!redux.getStore("customize").get("openai_enabled")) {
       return false;
     }
@@ -752,16 +768,21 @@ export class ProjectsStore extends Store<ProjectsState> {
       return false;
     }
     if (project_id != null) {
-      if (
-        this.getIn([
-          "project_map",
-          project_id,
-          "course",
-          "student_project_functionality",
-          "disableChatGPT",
-        ])
-      ) {
+      const s = this.getIn([
+        "project_map",
+        project_id,
+        "course",
+        "student_project_functionality",
+      ]);
+      if (s?.get("disableChatGPT")) {
         return false;
+      }
+      if (s?.get("disableSomeChatGPT")) {
+        if (courseLimited) {
+          return true;
+        } else {
+          return false;
+        }
       }
     }
     return true;

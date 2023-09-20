@@ -3,16 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux } from "@cocalc/frontend/app-framework";
 import {
   endswith,
   path_split,
   separate_file_extension,
-  should_open_in_foreground,
   trunc_middle,
 } from "@cocalc/util/misc";
-import { Tip } from "./tip";
 import { COLORS } from "@cocalc/util/theme";
+import { handle_log_click } from "../project/history/utils";
+import { Tip } from "./tip";
 
 interface Props {
   path: string;
@@ -22,20 +21,20 @@ interface Props {
   trunc?: number; // truncate longer names and show a tooltip with the full name
   style?: React.CSSProperties;
   link?: boolean; // set to false to make it not be a link
+  onOpen?: () => void; // called if link is clicked on to open it.
 }
 
 // Component to attempt opening a cocalc path in a project
-export const PathLink: React.FC<Props> = (props: Props) => {
-  const {
-    path,
-    project_id,
-    full = false,
-    trunc,
-    display_name,
-    style = {},
-    link = true,
-  } = props;
-
+export const PathLink: React.FC<Props> = ({
+  path,
+  project_id,
+  full = false,
+  trunc,
+  display_name,
+  style = {},
+  link = true,
+  onOpen,
+}: Props) => {
   function render_link(text): JSX.Element {
     let s;
     if (!endswith(text, "/")) {
@@ -56,7 +55,10 @@ export const PathLink: React.FC<Props> = (props: Props) => {
     if (link) {
       return (
         <a
-          onClick={(e) => handle_log_click(e, path, project_id)}
+          onClick={(e) => {
+            onOpen?.();
+            handle_log_click(e, path, project_id);
+          }}
           style={{ color: COLORS.GRAY_D, fontWeight: "bold", ...style }}
         >
           {s}
@@ -87,13 +89,3 @@ export const PathLink: React.FC<Props> = (props: Props) => {
     return render_link(name);
   }
 };
-
-export function handle_log_click(e, path, project_id): void {
-  e.preventDefault();
-  const switch_to = should_open_in_foreground(e);
-  redux.getProjectActions(project_id).open_file({
-    path,
-    foreground: switch_to,
-    foreground_project: switch_to,
-  });
-}

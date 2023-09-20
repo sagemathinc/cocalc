@@ -8,43 +8,53 @@ setting for this, but an env variable is very fast to implement.
 */
 
 import getLogger from "@cocalc/backend/logger";
-import { callback2 } from "@cocalc/util/async-utils";
-import { db } from "@cocalc/database";
-import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 import { BaseProject as Project } from "./base";
+import getPool from "@cocalc/database/pool";
 
 const logger = getLogger("stop-idle-projects");
+
+// Any project that is started will run at least this long, even if
+// last_edited is not touched.  This matters, e.g., when an instructor
+// pushes out assignments to their class, or starts all projects in
+// their course.  This uses the last_started field in the database.
+const MINRUN_S = 10 * 60; // 10 minutes
+// exported so it can be used by kucalc's standalone microservice manage-idle as well...
+export const QUERY = `
+SELECT project_id FROM projects
+WHERE state ->> 'state' = 'running'
+  AND (run_quota ->> 'always_running' IS NULL OR NOT (run_quota ->> 'always_running')::BOOLEAN)
+  AND (last_edited  IS NULL OR (EXTRACT(EPOCH FROM NOW() - last_edited))::FLOAT > (run_quota ->> 'idle_timeout')::BIGINT)
+  AND (last_started IS NULL OR (EXTRACT(EPOCH FROM NOW() - last_started))::FLOAT > ${MINRUN_S});
+`;
+// ::float cast necessary for Postgres 14. See @cocalc/database/pool/util.ts timeInSeconds for more info
+// - See https://stackoverflow.com/questions/14020919/find-difference-between-timestamps-in-seconds-in-postgresql
+// - There was a massive complicated previous version of the above query that accomplished the same goal.
 
 async function stopIdleProjects(stopProject: (string) => Promise<void>) {
   logger.info("stopping all idle projects");
 
   logger.debug("query database for all running projects");
-  const runningProjects = (
-    await callback2(db()._query, {
-      // ::float necessary for Postgres 14, see @cocalc/database/pool/util.ts timeInSeconds for more info
-      query: `SELECT project_id, (EXTRACT(EPOCH FROM NOW() - last_edited))::FLOAT as idle_time, settings, run_quota
-         FROM projects
-         WHERE state ->> 'state' = 'running'`,
-    })
-  ).rows;
-  logger.debug("got ", runningProjects);
-  for (const project of runningProjects) {
-    const { project_id, idle_time, settings, run_quota } = project;
-    // take the run_quota or the admin setting into account (if nothing, then the default)
-    // and in any case, at lesat 10 mintues
-    const mintime = Math.max(
-      10 * 60,
-      run_quota?.idle_timeout ?? settings?.mintime ?? DEFAULT_QUOTAS.mintime
-    );
-    const always_running = settings?.always_running ?? false;
-    if (!always_running && idle_time > mintime) {
-      // stopProject is async, but we don't await it (and it doesn't raise),
-      // since we want to immediately stop all of them, rather than waiting
-      // and stopping based on outdated information.
-      stopProject(project_id);
+  const pool = getPool();
+  const { rows } = await pool.query(QUERY);
+  //console.log(rows, QUERY.replace(/\n/g, " "));
+  logger.debug("got ", rows.length, " running projects that must be stopped");
+  const projectsToStop = rows.map(({ project_id }) => project_id);
+  const stop = async (project_id) => {
+    try {
+      await stopProject(project_id);
+    } catch (err) {
+      logger.debug("WARNING -- nonfatal error stopping ", project_id, err);
     }
-  }
+  };
+
+  // Stop them all at once, since each individual stop could take a while.
+  // If anything goes wrong calling the async function stopProject call logger.debug
+  // and display a warning, but do not throw an exception, since we want to run every single
+  // stopProject call.
+  await Promise.all(projectsToStop.map(stop));
 }
+
+export const test = { stopIdleProjects };
 
 export default function init(getProject: (string) => Project) {
   if (process.env.COCALC_NO_IDLE_TIMEOUT) {

@@ -4,6 +4,8 @@
  */
 
 /*
+DEPRECATED!
+
 Compute sales tax for a given customer in WA state.
 */
 
@@ -14,7 +16,9 @@ const log = getLogger("stripe:sales-tax");
 
 export default async function salesTax(customer_id: string): Promise<number> {
   const conn = await getConn();
-  const customer = await conn.customers.retrieve(customer_id);
+  const customer = await conn.customers.retrieve(customer_id, {
+    expand: ["sources"],
+  });
   if (customer.deleted) {
     // mainly have this check so Typescript is happy
     log.debug("customer was deleted");

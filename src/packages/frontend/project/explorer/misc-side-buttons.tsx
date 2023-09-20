@@ -16,6 +16,9 @@ import { ProjectActions } from "@cocalc/frontend/project_store";
 import { join } from "path";
 import React from "react";
 import { serverURL, SPEC } from "../named-server-panel";
+import track from "@cocalc/frontend/user-tracking";
+import TourButton from "./tour/button";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 interface Props {
   actions: ProjectActions;
@@ -58,6 +61,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   const handle_backup = (e: React.MouseEvent): void => {
     e.preventDefault();
     actions.open_directory(".snapshots");
+    track("snapshots", { action: "open", where: "explorer" });
   };
 
   function render_hidden_toggle(): JSX.Element {
@@ -91,7 +95,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   function render_backup(): JSX.Element | undefined {
     // NOTE -- snapshots aren't available except in "kucalc" version
     // -- they are complicated nontrivial thing that isn't usually setup...
-    if (kucalc !== "yes") {
+    if (kucalc !== KUCALC_COCALC_COM) {
       return;
     }
     return (
@@ -105,6 +109,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   const handle_library_click = (_e: React.MouseEvent): void => {
+    track("library", { action: "open" });
     actions.toggle_library();
   };
 
@@ -175,6 +180,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       className="pull-right"
     >
       <ButtonGroup>
+        <TourButton project_id={project_id} />
         {render_library_button()}
         {render_upload_button()}
         {render_jupyterlab_button()}

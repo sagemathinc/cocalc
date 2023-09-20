@@ -18,12 +18,15 @@ import { url_href } from "../../utils";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
+import track from "@cocalc/frontend/user-tracking";
 
-const VIEWABLE_FILE_EXT: Readonly<string[]> = [
+export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "md",
   "txt",
   "html",
   "pdf",
+  "png",
+  "jpeg",
 ] as const;
 
 interface Props {
@@ -186,8 +189,14 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       props.actions.set_file_search("");
     } else {
       const foreground = misc.should_open_in_foreground(e);
+      const path = full_path();
+      track("open-file", {
+        project_id: props.actions.project_id,
+        path,
+        how: "click-on-listing",
+      });
       props.actions.open_file({
-        path: full_path(),
+        path,
         foreground,
       });
       if (foreground) {
@@ -336,7 +345,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           />
         )}
       </Col>
-      <Col sm={1} xs={1}>
+      <Col sm={1} xs={1} style={{ textAlign: "center" }}>
         {render_public_file_info()}
       </Col>
       <Col sm={1} xs={3} onClick={handle_click}>

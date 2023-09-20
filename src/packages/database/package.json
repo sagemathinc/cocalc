@@ -7,6 +7,7 @@
     "./accounts/*": "./dist/accounts/*.js",
     "./pool": "./dist/pool/index.js",
     "./pool/*": "./dist/pool/*.js",
+    "./qdrant": "./dist/qdrant/index.js",
     "./postgres/*": "./dist/postgres/*.js",
     "./postgres/schema": "./dist/postgres/schema/index.js",
     "./postgres/schema/*": "./dist/postgres/schema/*.js",
@@ -19,16 +20,20 @@
     "@cocalc/database": "workspace:*",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@qdrant/js-client-rest": "^1.1.5",
     "@types/lodash": "^4.14.176",
     "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
+    "better-sqlite3": "^8.3.0",
     "debug": "^4.3.2",
-    "immutable": "^3.8.2",
+    "immutable": "^4.3.0",
+    "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
+    "node-fetch": "2.6.7",
     "pg": "^8.7.1",
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
@@ -38,7 +43,7 @@
     "validator": "^13.6.0"
   },
   "devDependencies": {
-    "@types/node": "^18.11.18",
+    "@types/node": "^18.16.14",
     "coffeescript": "^2.5.1"
   },
   "scripts": {
@@ -54,7 +59,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": ["postgresql", "cocalc"],
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

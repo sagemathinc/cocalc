@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { blue as ANTD_BLUE } from "@ant-design/colors";
 import { Badge } from "antd";
 
 import {
@@ -16,12 +17,12 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { user_tracking } from "../user-tracking";
+import track from "@cocalc/frontend/user-tracking";
 import { PageStyle, TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 import { blur_active_element } from "./util";
 
 interface Props {
-  type: "bell" | "mentions";
+  type: "bell" | "notifications";
   active: boolean;
   pageStyle: PageStyle;
 }
@@ -29,17 +30,19 @@ interface Props {
 export const Notification: React.FC<Props> = React.memo((props: Props) => {
   const { active, type, pageStyle } = props;
   const { topPaddingIcons, sidePaddingIcons, fontSizeIcons } = pageStyle;
+  const newsBadgeOffset = `-${fontSizeIcons}`;
   const page_actions = useActions("page");
 
   const mentions_store = redux.getStore("mentions");
   const mentions = useTypedRedux("mentions", "mentions");
   const notify_count = useTypedRedux("file_use", "notify_count");
+  const news_unread = useTypedRedux("news", "unread");
 
   const count = useMemo(() => {
     switch (type) {
       case "bell":
         return notify_count ?? 0;
-      case "mentions":
+      case "notifications":
         return mentions_store.get_unseen_size(mentions) ?? 0;
       default:
         unreachable(type);
@@ -56,7 +59,7 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
   const inner_style: CSS = {
     cursor: "pointer",
     position: "relative",
-    ...(type === "mentions"
+    ...(type === "notifications"
       ? { top: Math.floor(pageStyle.height / 10) + 1 } // bit offset to make room for the badge
       : { top: 1 }),
   };
@@ -70,14 +73,24 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         page_actions.toggle_show_file_use();
         blur_active_element();
         if (!active) {
-          user_tracking("top_nav", { name: "file_use" });
+          track("top_nav", { name: "file_use" });
         }
         break;
 
-      case "mentions":
+      case "notifications":
         page_actions.set_active_tab("notifications");
+
+        // the idea of the following is to make sure the user sees immediately the most important notifications
+        if (count > 0) {
+          // mentions are more important, and this makes them shown to the user
+          redux.getActions("mentions").set_filter("unread");
+        } else if (news_unread > 0) {
+          // similar to the above, guide user towards seeing the news (if there are no mentions)
+          redux.getActions("mentions").set_filter("allNews");
+        }
+
         if (!active) {
-          user_tracking("top_nav", { name: "mentions" });
+          track("top_nav", { name: "mentions" });
         }
         break;
 
@@ -92,20 +105,35 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         return (
           <Badge
             showZero
-            color={count == 0 ? COLORS.GRAY : COLORS.GRAY_M}
+            color={count == 0 ? COLORS.GRAY : undefined}
             count={count}
             className={count > 0 ? "smc-bell-notification" : ""}
           />
         );
 
-      case "mentions":
+      case "notifications":
+        // only wiggle, if there are unread news – because they clear out automatically.
+        // mentions can be more long term, i.e. keep them unread until you mark them done.
+        const wiggle = news_unread > 0;
         return (
           <Badge
             color={count == 0 ? COLORS.GRAY : undefined}
             count={count}
             size="small"
           >
-            <Icon style={{ fontSize: fontSizeIcons }} name="mail" />
+            <Badge
+              color={news_unread == 0 ? COLORS.GRAY : ANTD_BLUE.primary}
+              count={news_unread}
+              showZero={false}
+              size="small"
+              offset={[newsBadgeOffset, 0]}
+            >
+              <Icon
+                style={{ fontSize: fontSizeIcons }}
+                className={wiggle ? "smc-bell-notification" : ""}
+                name="mail"
+              />{" "}
+            </Badge>
           </Badge>
         );
 

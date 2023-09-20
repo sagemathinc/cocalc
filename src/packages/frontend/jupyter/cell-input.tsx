@@ -6,9 +6,8 @@
 /*
 React component that describes the input of a cell
 */
-import { fromJS, Map } from "immutable";
+import { Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import { Button, Tooltip } from "antd";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -26,10 +25,10 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
-import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
 import { delay } from "awaiting";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -40,7 +39,7 @@ function attachmentTransform(
     return;
   }
   const name = href.slice("attachment:".length);
-  const data = cell.getIn(["attachments", name]);
+  const data = cell.getIn(["attachments", name]) as any;
   let ext = filename_extension(name);
   switch (data?.get("type")) {
     case "sha1":
@@ -85,16 +84,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     const frameActions = useNotebookFrameActions();
     function render_input_prompt(type: string): Rendered {
       return (
-        <InputPrompt
-          type={type}
-          state={props.cell.get("state")}
-          exec_count={props.cell.get("exec_count")}
-          kernel={props.cell.get("kernel")}
-          start={props.cell.get("start")}
-          end={props.cell.get("end")}
-          actions={props.actions}
-          id={props.id}
-        />
+        <HiddenXS>
+          <InputPrompt
+            type={type}
+            state={props.cell.get("state")}
+            exec_count={props.cell.get("exec_count")}
+            kernel={props.cell.get("kernel")}
+            start={props.cell.get("start")}
+            end={props.cell.get("end")}
+            actions={props.actions}
+            id={props.id}
+          />
+        </HiddenXS>
       );
     }
 
@@ -144,6 +145,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
       return (
         <CodeMirror
+          complete={props.complete}
           getValueRef={getValueRef}
           value={value}
           options={options(type)}
@@ -320,10 +322,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             }
           }}
           registerEditor={(editor) => {
-            frameActions.current?.register_input_editor(
-              props.cell.get("id"),
-              editor
-            );
+            frameActions.current?.register_input_editor(props.cell.get("id"), {
+              set_cursor: editor.set_cursor,
+              get_cursor: () => {
+                const cur = editor.get_cursor();
+                if (cur == null) return cur;
+                return { line: cur.y, ch: cur.x };
+              },
+            });
           }}
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
@@ -352,22 +358,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           }
         default:
           return render_unsupported(type);
-      }
-    }
-
-    function render_complete(): Rendered {
-      if (
-        props.actions != null &&
-        props.complete &&
-        props.complete.get("matches", fromJS([])).size > 0
-      ) {
-        return (
-          <Complete
-            complete={props.complete}
-            actions={props.actions}
-            id={props.id}
-          />
-        );
       }
     }
 
@@ -508,7 +498,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             cocalc-test="cell-input"
           >
             {render_input_prompt(type)}
-            {render_complete()}
             {render_input_value(type)}
             {type == "code" && renderCodeBar()}
           </div>

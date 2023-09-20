@@ -6,6 +6,7 @@
 import { Table } from "./types";
 import { checkAccountName } from "./name-rules";
 import { SCHEMA as schema } from "./index";
+import { NOTES } from "./crm";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -38,7 +39,7 @@ Table({
     password_hash: {
       type: "string",
       pg_type: "VARCHAR(173)",
-      desc: "hash of the password",
+      desc: "Hash of the password. This is 1000 iterations of sha512 with salt of length 32.",
     },
     deleted: {
       type: "boolean",
@@ -130,7 +131,7 @@ Table({
     },
     stripe_customer: {
       type: "map",
-      desc: "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).",
+      desc: "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve)   ALMOST DEPRECATED -- THIS IS ONLY USED FOR OLD LEGACY UPGRADES.",
     },
     coupon_history: {
       type: "map",
@@ -175,6 +176,68 @@ Table({
         editable: true,
       },
     },
+    tags: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "Tags expressing what this user is most interested in doing.",
+      render: { type: "string-tags", editable: true },
+    },
+    tours: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "Tours that user has seen, so once they are here they are hidden from the UI.  The special tour 'all' means to disable all tour buttons.",
+      render: { type: "string-tags" },
+    },
+    notes: NOTES,
+    salesloft_id: {
+      type: "integer",
+      desc: "The id of corresponding person in salesloft, if they exist there.",
+      render: {
+        type: "number",
+        integer: true,
+        editable: true,
+        min: 1,
+      },
+    },
+    purchase_closing_day: {
+      type: "integer",
+      desc: "Day of the month when pay-as-you-go purchases are cutoff and charged for this user. It happens at midnight UTC on this day.  This should be an integer between 1 and 28.",
+      render: {
+        type: "number",
+        editable: false, // Do NOT change this without going through the reset-closing-date api call...
+        min: 1,
+        max: 28,
+      },
+    },
+    min_balance: {
+      type: "number",
+      pg_type: "REAL",
+      desc: "The minimum allowed balance for this user. This is a quota we impose for safety, not something they set. Admins may change this in response to a support request.  For most users this is not set at all hence 0, but for some special enterprise-style customers to whom we extend 'credit', it will be set.",
+      render: {
+        title: "Minimum Allowed Balance (USD)",
+        type: "number",
+        integer: false,
+        editable: true,
+        max: 0,
+      },
+    },
+    stripe_checkout_session: {
+      type: "map",
+      desc: "Part of the current open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
+    },
+    stripe_usage_subscription: {
+      type: "string",
+      pg_type: "varchar(256)",
+      desc: "Id of this user's stripe metered usage subscription, if they have one.",
+    },
+    email_daily_statements: {
+      type: "boolean",
+      desc: "If true (or not set), try to email daily statements to user showing all of their purchases.  NOTE: we always try to email monthly statements to users.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -209,15 +272,18 @@ Table({
         throttle_changes: 500,
         pg_where: [{ "account_id = $::UUID": "account_id" }],
         fields: {
+          // Exactly what from the below is sync'd by default with the frontend app client is explicitly
+          // listed in frontend/account/table.ts
           account_id: null,
           email_address: null,
           lti_id: null,
+          stripe_checkout_session: null,
           email_address_verified: null,
           email_address_problem: null,
           editor_settings: {
             /* NOTE: there is a editor_settings.jupyter = { kernel...} that isn't documented here. */
             strip_trailing_whitespace: false,
-            show_trailing_whitespace: true,
+            show_trailing_whitespace: false,
             line_wrapping: true,
             line_numbers: true,
             jupyter_line_numbers: false,
@@ -255,7 +321,7 @@ Table({
             mask_files: true,
             page_size: 500,
             standby_timeout_m: 5,
-            default_file_sort: "time",
+            default_file_sort: "name",
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             show_global_info2: null,
             first_steps: true,
@@ -269,6 +335,10 @@ Table({
             dark_mode_contrast: 90,
             dark_mode_sepia: 0,
             dark_mode_grayscale: 0,
+            news_read_until: 0,
+            hide_project_popovers: false,
+            hide_file_popovers: false,
+            hide_button_tooltips: false,
           },
           name: null,
           first_name: "",
@@ -293,6 +363,12 @@ Table({
           ssh_keys: {},
           created: null,
           unlisted: false,
+          tags: null,
+          tours: null,
+          min_balance: null,
+          purchase_closing_day: null,
+          stripe_usage_subscription: null,
+          email_daily_statements: null,
         },
       },
       set: {
@@ -311,6 +387,10 @@ Table({
           ssh_keys: true,
           sign_up_usage_intent: true,
           unlisted: true,
+          tags: true,
+          tours: true,
+          email_daily_statements: true,
+          // obviously min_balance can't be set!
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
@@ -428,6 +508,8 @@ Table({
           ...schema.accounts.user_query?.get?.fields,
           banned: null,
           groups: null,
+          notes: null,
+          salesloft_id: null,
         },
       },
       set: {
@@ -441,6 +523,10 @@ Table({
           font_size: true,
           banned: true,
           unlisted: true,
+          notes: true,
+          salesloft_id: true,
+          purchase_closing_day: true,
+          min_balance: true, // admins can set this
         },
       },
     },
@@ -465,3 +551,103 @@ Table({
   },
   fields: schema.accounts.fields,
 });
+
+interface Tag {
+  label: string;
+  tag: string;
+  language?: string; // language of jupyter kernel
+  icon?: any; // I'm not going to import the IconName type from @cocalc/frontend
+  welcome?: string; // a simple "welcome" of this type
+  jupyterExtra?: string;
+  torun?: string; // how to run this in a terminal (e.g., for a .py file).
+}
+
+export const TAGS: Tag[] = [
+  { label: "Jupyter", tag: "ipynb" },
+  {
+    label: "Python",
+    tag: "py",
+    language: "python",
+    welcome: 'print("Welcome to CoCalc from Python!")',
+    torun: "# Click Terminal, then type 'python3 welcome.py'",
+  },
+  {
+    label: "R Stats",
+    tag: "R",
+    language: "r",
+    welcome: 'print("Welcome to CoCalc from R!")',
+    torun: "# Click Terminal, then type 'Rscript welcome.R'",
+  },
+  {
+    label: "SageMath",
+    tag: "sage",
+    language: "sagemath",
+    welcome: "print('Welcome to CoCalc from Sage!', factor(2023))",
+    torun: "# Click Terminal, then type 'sage welcome.sage'",
+  },
+  {
+    label: "Octave",
+    tag: "m",
+    language: "octave",
+    welcome: `disp("Welcome to CoCalc from Octave!")`,
+    torun: "% Click Terminal, then type 'octave --no-window-system welcome.m'",
+  },
+  {
+    label: "Linux",
+    tag: "term",
+    language: "bash",
+    welcome: "echo 'Welcome to CoCalc from Linux/BASH!'",
+  },
+  {
+    label: "LaTeX",
+    tag: "tex",
+    welcome: `\\documentclass{article}
+\\title{Welcome to CoCalc from \\LaTeX{}!}
+\\begin{document}
+\\maketitle
+\\end{document}`,
+  },
+  {
+    label: "C/C++",
+    tag: "c",
+    language: "C++17",
+    welcome: `
+#include <stdio.h>
+int main() {
+    printf("Welcome to CoCalc from C!\\n");
+    return 0;
+}`,
+    jupyterExtra: "\nmain();\n",
+    torun: "/* Click Terminal, then type 'gcc welcome.c && ./a.out' */",
+  },
+  {
+    label: "Julia",
+    language: "julia",
+    tag: "jl",
+    welcome: 'println("Welcome to CoCalc from Julia!")',
+    torun: "# Click Terminal, then type 'julia welcome.jl' */",
+  },
+  {
+    label: "Markdown",
+    tag: "md",
+    welcome:
+      "# Welcome to CoCalc from Markdown!\n\nYou can directly edit the rendered markdown -- try it!\n\nAnd run code:\n\n```py\n2+3\n```\n",
+  },
+  {
+    label: "Whiteboard",
+    tag: "board",
+    welcome: `{"data":{"color":"#252937"},"h":96,"id":"1244fb1f","page":"b7cda7e9","str":"# Welcome to CoCalc from a Whiteboard!\\n\\n","type":"text","w":779,"x":-305,"y":-291,"z":1}
+{"data":{"pos":0},"id":"b7cda7e9","type":"page","z":0}`,
+  },
+  { label: "Teaching", tag: "course" },
+  {
+    label: "Chat",
+    tag: "sage-chat",
+    welcome: `{"date":"2023-04-26T18:27:39.842Z","event":"chat","history":[{"content":"Welcome to CoCalc!","date":"2023-04-26T18:27:39.842Z"}]}`,
+  },
+];
+
+export const TAGS_MAP: { [key: string]: Tag } = {};
+for (const x of TAGS) {
+  TAGS_MAP[x.tag] = x;
+}

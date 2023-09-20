@@ -8,6 +8,10 @@ import {
 } from "@cocalc/frontend/jupyter/nbgrader/api";
 import { Options } from "@cocalc/project/formatters";
 import { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
+import { Channel } from "@cocalc/sync/client/types";
+
+export type { Channel };
+
 export interface NbconvertParams {
   args: string[];
   directory?: string;
@@ -149,6 +153,11 @@ interface MesgProjectInfo {
   cmd: "project_info";
 }
 
+interface MesgQuery {
+  cmd: "query",
+  opts: any;
+}
+
 export type Mesg =
   | MesgExec
   | MesgDeleteFiles
@@ -165,6 +174,7 @@ export type Mesg =
   | MesgTerminal
   | MesgLean
   | MesgLeanChannel
+  | MesgQuery
   | MesgX11Channel
   | MesgSynctableChannel
   | MesgSyncdocCall
@@ -174,17 +184,3 @@ export type Mesg =
   | MesgJupyterNbconvert
   | MesgJupyterRunNotebook
   | MesgProjectInfo;
-
-export interface Channel {
-  OPEN: number;
-  CLOSE: number;
-  readyState: number;
-  write(x: any): boolean;
-  on(event: string, f: Function): void;
-  removeAllListeners(): void;
-  end(): void;
-  close(): void;
-  connect(): void;
-  conn: any;
-  channel: string;
-}

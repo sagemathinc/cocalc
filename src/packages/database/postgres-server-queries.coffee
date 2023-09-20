@@ -53,8 +53,6 @@ collab = require('./postgres/collab')
 {site_license_public_info} = require('./postgres/site-license/public')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
-{sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
-{add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
 {checkEmailExclusiveSSO} = require("./postgres/check-email-exclusive-sso")
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
@@ -1439,6 +1437,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             lti_id      : undefined   # array of strings
             image       : DEFAULT_COMPUTE_IMAGE   # probably ok to leave it undefined
             license     : undefined   # string -- "license_id1,license_id2,..."
+            noPool      : undefined   # if true, don't use pool
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
         try
@@ -1594,17 +1593,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query : "UPDATE projects"
             set   : {"status::JSONB"   : opts.status}
             where : {"project_id = $::UUID": opts.project_id}
-            cb    : opts.cb
-
-    set_compute_server_status: (opts) =>
-        opts = defaults opts,
-            host   : required
-            status : required
-            cb     : undefined
-        @_query
-            query : "UPDATE compute_servers"
-            set   : {"status::JSONB": opts.status}
-            where : {"host = $::TEXT" : opts.host}
             cb    : opts.cb
 
 
@@ -2185,14 +2173,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 async.mapLimit(locals.account_ids, opts.limit, f, cb)
         ], opts.cb)
 
-    # Ensure all (or just for given account_id) site license subscriptions
-    # are non-expired iff subscription in stripe is "active" or "trialing"
-    # account_id is optional; if not given iterates over all users
-    # with stripe_customer field set.
-    # async/await:
-    sync_site_license_subscriptions: (account_id, test_mode) =>
-        return await sync_site_license_subscriptions(@, account_id, test_mode)
-
     # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>
         opts = defaults opts,
@@ -2546,78 +2526,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         )
 
 
-    ###
-    Compute servers
-    ###
-    save_compute_server: (opts) =>
-        opts = defaults opts,
-            host         : required
-            dc           : required
-            port         : required
-            secret       : required
-            experimental : false
-            member_host  : false
-            cb           : required
-        @_query
-            query    : "INSERT INTO compute_servers"
-            values   :
-                'host         :: TEXT    ' : opts.host
-                'dc           :: TEXT    ' : opts.dc
-                'port         :: INTEGER ' : opts.port
-                'secret       :: TEXT    ' : opts.secret
-                'experimental :: BOOLEAN ' : opts.experimental
-                'member_host  :: BOOLEAN ' : opts.member_host
-            conflict : 'host'
-            cb : opts.cb
-
-    get_compute_server: (opts) =>
-        opts = defaults opts,
-            host         : required
-            cb           : required
-        @_query
-            query : "SELECT * FROM compute_servers"
-            where :
-                "host = $::TEXT" : opts.host
-            cb    : one_result(opts.cb)
-
-    get_all_compute_servers: (opts) =>
-        opts = defaults opts,
-            experimental : undefined
-            cb           : required
-        @_query
-            query : "SELECT * FROM compute_servers"
-            where : "host = $::TEXT" : opts.host
-            cb    : all_results (err, servers) =>
-                if err
-                    opts.cb(err)
-                else
-                    if opts.experimental?
-                        is_experimental = !!opts.experimental
-                        # just filter experimental client side, since so few servers...
-                        servers = (server for server in servers when !!server.experimental == is_experimental)
-                    opts.cb(undefined, servers)
-
-    get_projects_on_compute_server: (opts) =>
-        opts = defaults opts,
-            compute_server : required    # hostname of the compute server
-            columns        : ['project_id']
-            cb             : required
-        @_query
-            query : "SELECT #{opts.columns.join(',')} FROM projects"
-            where :
-                "host @> $::JSONB" : {host:opts.compute_server}
-            cb    : all_results(opts.cb)
-
-    is_member_host_compute_server: (opts) =>
-        opts = defaults opts,
-            host : required   # hostname of the compute server
-            cb   : required
-        @_query
-            query : "SELECT member_host FROM compute_servers"
-            where : "host = $::TEXT" : opts.host
-            cache : true   # cache result (for a few seconds), since this is very unlikely to change.
-            cb    : one_result 'member_host', (err, member_host) =>
-                opts.cb(err, !!member_host)
 
     # Delete all patches, the blobs if archived, and the syncstring object itself
     # Basically this erases everything from cocalc related to the file edit history
@@ -2720,14 +2628,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     manager_site_licenses: (...args) =>
         return await manager_site_licenses(@, ...args)
-
-    # async function
-    add_license_to_project: (...args) =>
-        return await add_license_to_project(@, ...args)
-
-    # async function
-    remove_license_from_project: (...args) =>
-        return await remove_license_from_project(@, ...args)
 
     # async function
     project_datastore_set: (...args) =>

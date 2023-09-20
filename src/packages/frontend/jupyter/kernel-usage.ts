@@ -7,8 +7,8 @@ use this hook elsewhere.
 
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
-import { Usage, BackendState } from "./types";
+import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
+import { Usage, BackendState } from "@cocalc/jupyter/types";
 import { Map as immutableMap } from "immutable";
 import { compute_usage } from "./usage";
 
@@ -102,7 +102,7 @@ function calc_cell_timings(cells?: immutableMap<string, any>): number[] {
     })
     .filter((v) => v != null)
     .sort()
-    .toJS();
+    .toJS() as number[];
 }
 
 // for the sorted list of cell timing, get the median or quantile.

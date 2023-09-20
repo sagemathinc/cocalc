@@ -6,11 +6,13 @@ EXAMPLE:
 curl -u `cat .smc/secret_token`: -d path=a.txt -d content="bar" http://localhost:`cat .smc/api-server.port`/api/v1/write-text-file
 */
 
-import { promisify } from "util";
-import { writeFile } from "fs";
+import { writeFile } from "node:fs/promises";
+
 import { client } from "./server";
 
 export default async function writeTextFile({ path, content }): Promise<void> {
+  if (client == null) throw Error("client must be defined");
+
   const dbg = client.dbg("write-text-file");
   dbg(`path="${path}"`);
   if (typeof path != "string") {
@@ -22,5 +24,5 @@ export default async function writeTextFile({ path, content }): Promise<void> {
     );
   }
 
-  return await promisify(writeFile)(path, content);
+  return await writeFile(path, content);
 }

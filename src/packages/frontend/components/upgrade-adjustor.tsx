@@ -10,33 +10,38 @@ javascript object in the same format as quota_params cancel_upgrading takes no
 arguments and is called when the cancel button is hit.
 */
 
-import { CSS, React, redux, useForceUpdate, useState } from "../app-framework";
+import { Button as AntdButton, Checkbox, Alert } from "antd";
+
+import {
+  Button,
+  ButtonToolbar,
+  Col,
+  FormControl,
+  FormGroup,
+  InputGroup,
+  Row,
+} from "@cocalc/frontend/antd-bootstrap";
+import {
+  CSS,
+  React,
+  redux,
+  useForceUpdate,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { UpgradeRestartWarning } from "@cocalc/frontend/upgrade-restart-warning";
 import {
   is_zero_map,
   map_diff,
   map_limit,
   map_max,
   map_sum,
-  plural,
   parse_number_input,
+  plural,
   round2,
 } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import {
-  Alert,
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  InputGroup,
-  Row,
-  Col,
-} from "../antd-bootstrap";
-import { Button as AntdButton } from "antd";
-import { UpgradeRestartWarning } from "../upgrade-restart-warning";
-import { Tip } from "./tip";
-import { Checkbox } from "antd";
 import { Icon } from "./icon";
+import { Tip } from "./tip";
 
 export const UPGRADE_ERROR_STYLE = {
   color: "white",
@@ -142,9 +147,9 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     set_upgrades("min");
   }
 
-//   function max_upgrades() {
-//     set_upgrades("max");
-//   }
+  //   function max_upgrades() {
+  //     set_upgrades("max");
+  //   }
 
   function set_upgrades(description) {
     const info = get_quota_info();
@@ -430,7 +435,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
 
   if (is_zero_map(props.upgrades_you_can_use)) {
     // user has no upgrades on their account
-    return <span></span>;
+    return <Button onClick={props.cancel_upgrading}>Close</Button>;
   } else {
     const { limits, remaining, current, totals, proj_remainder } =
       get_quota_info();
@@ -451,62 +456,73 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     );
 
     return (
-      <Alert bsStyle="warning" style={{ ...{ width: "100%" }, ...props.style }}>
-        {!props.omit_header && (
-          <div>
-            <h3>
-              <Icon name="arrow-circle-up" /> Adjust your upgrade contributions
-              to this project
-            </h3>
+      <Alert
+        type="warning"
+        banner
+        showIcon={false}
+        style={props.style}
+        message={
+          <>
+            {!props.omit_header && (
+              <div>
+                <h3>
+                  <Icon name="arrow-circle-up" /> Adjust your upgrade
+                  contributions to this project
+                </h3>
 
-            <div style={{ color: "#666" }}>
-              Adjust <i>your</i> contributions to the quotas on this project
-              (disk space, memory, cores, etc.). The total quotas for this
-              project are the sum of the contributions of all collaborators and
-              the free base quotas.{" "}
-              <a onClick={show_account_upgrades} style={{ cursor: "pointer" }}>
-                See your current upgrade allocations...
-              </a>
-            </div>
-          </div>
-        )}
-        <div style={{ marginTop: "10px" }}>
-          {/* <Button onClick={max_upgrades}>
+                <div style={{ color: "#666" }}>
+                  Adjust <i>your</i> contributions to the quotas on this project
+                  (disk space, memory, cores, etc.). The total quotas for this
+                  project are the sum of the contributions of all collaborators
+                  and the free base quotas.{" "}
+                  <a
+                    onClick={show_account_upgrades}
+                    style={{ cursor: "pointer" }}
+                  >
+                    See your current upgrade allocations...
+                  </a>
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: "10px" }}>
+              {/* <Button onClick={max_upgrades}>
             Apply maximum available upgrades to this project...
           </Button>{" "}*/}
-          <Button onClick={clear_upgrades}>
-            Remove all your upgrades from this project...
-          </Button>
-          {buttons}
-        </div>
-        <hr />
-        <Row>
-          <Col md={6}>
-            <b style={{ fontSize: "14pt" }}>Quota</b>
-          </Col>
-          <Col md={6}>
-            <b style={{ fontSize: "14pt", float: "right" }}>
-              Your contribution
-            </b>
-          </Col>
-        </Row>
-        <hr />
+              <Button onClick={clear_upgrades}>
+                Remove all your upgrades from this project...
+              </Button>
+              {buttons}
+            </div>
+            <hr />
+            <Row>
+              <Col md={6}>
+                <b style={{ fontSize: "14pt" }}>Quota</b>
+              </Col>
+              <Col md={6}>
+                <b style={{ fontSize: "14pt", float: "right" }}>
+                  Your contribution
+                </b>
+              </Col>
+            </Row>
+            <hr />
 
-        {PROJECT_UPGRADES.field_order.map((name) => {
-          return render_upgrade_row(
-            name,
-            props.quota_params[name] ?? 0,
-            remaining[name] ?? 0,
-            current[name] ?? 0,
-            limits[name] ?? 0,
-            totals[name] ?? 0,
-            proj_remainder[name] ?? 0
-          );
-        })}
-        <UpgradeRestartWarning style={{ marginTop: "15px" }} />
-        {props.children}
-        {buttons}
-      </Alert>
+            {PROJECT_UPGRADES.field_order.map((name) => {
+              return render_upgrade_row(
+                name,
+                props.quota_params[name] ?? 0,
+                remaining[name] ?? 0,
+                current[name] ?? 0,
+                limits[name] ?? 0,
+                totals[name] ?? 0,
+                proj_remainder[name] ?? 0
+              );
+            })}
+            <UpgradeRestartWarning style={{ marginTop: "15px" }} />
+            {props.children}
+            {buttons}
+          </>
+        }
+      />
     );
   }
 };

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon, Space } from "../components";
+import { Icon, Gap } from "../components";
 import { plural } from "@cocalc/util/misc";
 import { Button } from "antd";
 import { Alert, ButtonGroup, ButtonToolbar } from "../antd-bootstrap";
@@ -74,8 +74,8 @@ export const ProjectsListingDescription: React.FC<Props> = ({
         whose title, description, state or users match{" "}
         <strong>{query.trim() ? `'${query}'` : "anything"}</strong>
         {query.trim() && <> (use a space to select everything)</>}.
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
         <Button
           onClick={() => {
             set_show_alert("none");
@@ -144,12 +144,12 @@ export const ProjectsListingDescription: React.FC<Props> = ({
       return (
         <Alert bsStyle="warning" style={{ fontSize: "1.3em" }}>
           Only showing the {visible_projects.length}
-          <Space />
+          <Gap />
           <strong>{`${deleted ? "deleted " : ""}${
             hidden ? "hidden " : ""
           }`}</strong>
           {plural(visible_projects.length, "project")}
-          <Space />
+          <Gap />
           {query !== "" ? render_span(query) : undefined}
           {render_projects_actions_toolbar()}
           {render_projects_actions_alert()}

@@ -1,4 +1,4 @@
-import { Button, Alert, Input } from "antd";
+import { Button, Alert, Input, Row, Col } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { CSSProperties, useRef, useState } from "react";
 import apiPost from "lib/api/post";
@@ -8,6 +8,8 @@ import Loading from "components/share/loading";
 import A from "components/misc/A";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import { useRouter } from "next/router";
 
 type State = "input" | "wait";
 
@@ -15,6 +17,7 @@ const PROMPT = [
   "ASSUME I HAVE FULL ACCESS TO COCALC.", // otherwise it says things like "as a large language model I don't have access to cocalc."
   "ENCLOSE MATH IN $.", // so math gets typeset nicely
   "INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.", // otherwise often we can't evaluate code.
+  "BE BRIEF.", // since it's slow.
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
@@ -36,8 +39,10 @@ export default function ChatGPTHelp({
   const [output, setOutput] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const router = useRouter();
+
   const counterRef = useRef<number>(0);
-  const { jupyterApiEnabled, siteName } = useCustomize();
+  const { account, jupyterApiEnabled, siteName } = useCustomize();
 
   const chatgpt = async (value?) => {
     if (value == null) {
@@ -72,19 +77,23 @@ export default function ChatGPTHelp({
 
   return (
     <FileContext.Provider value={{ jupyterApiEnabled }}>
-      <div style={style}>
-        <div style={{ width: "100%", display: "flex" }}>
+      <Row style={{ margin: "5px 0", ...style }}>
+        <Col
+          xs={{ span: 24 }}
+          md={{ span: 17 }}
+          style={{ marginBottom: "5px" }}
+        >
           <Input.TextArea
             value={input}
+            maxLength={account?.account_id == null ? 10 : 2000}
             onChange={(e) => setInput(e.target.value)}
-            style={{ flex: 1 }}
             size={size}
             autoSize={{ minRows: focus ? 2 : 1, maxRows: 5 }}
             disabled={state == "wait"}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
             placeholder={
-              placeholder ?? `What do you want to do on ${siteName}?`
+              placeholder ?? `Ask ChatGPT: how can I do this on ${siteName}?`
             }
             allowClear
             onPressEnter={(e) => {
@@ -93,85 +102,103 @@ export default function ChatGPTHelp({
               }
             }}
           />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              textAlign: "center",
+          {input.trim() && account?.account_id == null && (
+            <InPlaceSignInOrUp
+              title="ChatGPT"
+              why={"to use ChatGPT on " + siteName}
+              onSuccess={() => {
+                router.reload();
+              }}
+            />
+          )}
+        </Col>
+        <Col
+          xs={{ span: 24, offset: 0 }}
+          md={{ span: 6, offset: 1 }}
+          style={{
+            marginBottom: "5px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            disabled={account?.account_id == null}
+            size={size}
+            type="primary"
+            onClick={() => {
+              if (input?.trim()) {
+                chatgpt();
+              }
             }}
           >
-            <Button
-              disabled={!input?.trim()}
-              size={size}
-              type="primary"
-              style={{
-                marginLeft: "5px",
-                height: size == "large" ? "39px" : undefined,
-              }}
-            >
-              <OpenAIAvatar
-                size={size == "large" ? 24 : 18}
-                backgroundColor="transparent"
-                style={{ marginRight: "5px", marginTop: "-4px" }}
-              />
-              Ask ChatGPT
-            </Button>
-            <span style={{ color: "#666" }}>
-              {focus && input.trim() && "Shift + Enter"}
-            </span>
-          </div>
-        </div>
-        {error && (
-          <Alert
-            style={{ margin: "15px 0" }}
-            type="error"
-            message="Error"
-            showIcon
-            closable
-            onClose={() => setError("")}
-            description={
-              <>
-                {error}
-                <hr />
-                OpenAI <A href="https://status.openai.com/">status</A> and{" "}
-                <A href="https://downdetector.com/status/openai/">
-                  downdetector
-                </A>
-                .
-              </>
-            }
-          />
-        )}
-        {state == "wait" && (
-          <div style={{ textAlign: "center", margin: "15px 0" }}>
-            <OpenAIAvatar size={18} /> ChatGPT is figuring out how to do this
-            using {siteName}...{" "}
-            <Button
-              style={{ float: "right" }}
-              onClick={() => {
-                counterRef.current += 1; // so result of outstanding request is totally ignored
-                setState("input");
-              }}
-            >
-              <Loading delay={0}>Cancel...</Loading>
-            </Button>
-            <ProgressEstimate seconds={30} />
-          </div>
-        )}
-        {output != null && (
-          <Alert
-            type="success"
-            closable
-            onClose={() => setOutput("")}
-            style={{ margin: "15px 0" }}
-            description={
-              <div>
-                <Markdown value={output} />
-              </div>
-            }
-          />
-        )}
-      </div>
+            <OpenAIAvatar
+              size={size == "large" ? 24 : 18}
+              backgroundColor="transparent"
+              style={{ marginRight: "5px", marginTop: "-4px" }}
+            />
+            {input?.trim() && focus
+              ? "Shift+Enter"
+              : size == "large"
+              ? "Ask ChatGPT"
+              : "ChatGPT"}
+          </Button>
+        </Col>
+        <Col xs={{ span: 24 }} md={{ span: 24 }}>
+          {error && (
+            <Alert
+              style={{ margin: "15px 0" }}
+              type="error"
+              message="Error"
+              showIcon
+              closable
+              onClose={() => setError("")}
+              description={
+                <>
+                  {error}
+                  <hr />
+                  OpenAI <A href="https://status.openai.com/">
+                    status
+                  </A> and{" "}
+                  <A href="https://downdetector.com/status/openai/">
+                    downdetector
+                  </A>
+                  .
+                </>
+              }
+            />
+          )}
+          {state == "wait" && (
+            <div style={{ textAlign: "center", margin: "15px 0" }}>
+              <OpenAIAvatar size={18} /> ChatGPT is figuring out how to do this
+              using {siteName}...{" "}
+              <Button
+                style={{ float: "right" }}
+                onClick={() => {
+                  counterRef.current += 1; // so result of outstanding request is totally ignored
+                  setState("input");
+                }}
+              >
+                <Loading delay={0}>Cancel...</Loading>
+              </Button>
+              <ProgressEstimate seconds={30} />
+            </div>
+          )}
+          {output != null && (
+            <Alert
+              type="success"
+              closable
+              onClose={() => setOutput("")}
+              style={{ margin: "15px 0" }}
+              description={
+                <div>
+                  <Markdown value={output} />
+                </div>
+              }
+            />
+          )}
+        </Col>
+      </Row>
     </FileContext.Provider>
   );
 }

@@ -167,33 +167,6 @@ const API = (obj) =>
   (exports.api_messages[obj.event] = true);
 
 //###########################################
-// Compute server messages
-//############################################
-
-message({
-  event: "compute_server_status",
-  status: undefined,
-});
-
-// Message for actions using a compute server
-message({
-  event: "compute",
-  project_id: undefined,
-  action: required, // open, save, ...
-  args: undefined,
-  param: undefined, // deprecate
-  id: undefined,
-});
-
-message({
-  event: "project_state_update",
-  project_id: required,
-  state: required,
-  time: required,
-  state_error: undefined,
-}); // error if there was one transitioning to this state
-
-//###########################################
 // Sage session management; executing code
 //############################################
 
@@ -1012,14 +985,7 @@ message({
   event: "file_read_from_project",
   id: required,
   data_uuid: required, // The project_server will send the raw data of the file as a blob with this uuid.
-  archive: undefined,
-}); // if defined, means that file (or directory) was archived (tarred up) and this string was added to end of filename.
-
-// hub --> client
-message({
-  event: "temporary_link_to_file_read_from_project",
-  id: required,
-  url: required,
+  archive: undefined, // if defined, means that file (or directory) was archived (tarred up) and this string was added to end of filename.
 });
 
 // The client sends this message to the hub in order to read
@@ -1086,7 +1052,7 @@ message({
 // project_server to tell the project_server to write a file to a
 // project.  If the path includes directories that don't exists,
 // they are automatically created (this is in fact the only way
-// to make a new directory).
+// to make a new directory except of course project_exec).
 // hub --> project_server
 message({
   event: "write_file_to_project",
@@ -1184,6 +1150,10 @@ API(
       start: {
         init: false,
         desc: "start running the moment the project is created -- uses more resources, but possibly better user experience",
+      },
+      noPool: {
+        init: false,
+        desc: "if true, never get project from pool, e.g., useful when creating hundreds of projects for students in a class, since they aren't immediately going to use their project",
       },
     },
     desc: `\
@@ -2717,7 +2687,7 @@ message({
   event: "api_key",
   id: undefined,
   action: required, // 'get', 'delete', 'regenerate'
-  password: required,
+  password: undefined,
 });
 
 // hub --> client
@@ -2725,6 +2695,23 @@ message({
   event: "api_key_info",
   id: undefined,
   api_key: required,
+});
+
+// client --> hub
+message({
+  event: "api_keys",
+  id: undefined,
+  action: required, // 'get', 'delete', 'edit', 'create'
+  project_id: undefined, // optional - if given then refers to api_key(s) for a project
+  key_id: undefined, // integer id of the key
+  expire: undefined, // used for setting or changing expiration date
+  name: undefined,
+});
+
+message({
+  event: "api_keys_response",
+  id: undefined,
+  response: undefined,
 });
 
 // client --> hub
@@ -2924,14 +2911,6 @@ message({
   id: undefined,
 });
 
-// Ensures the expire date on licenses paid by subscriptions matches stripe customer field.
-// Call this to ensure expire gets set when it should be, but also gets unset when customer
-// has paid.
-message({
-  event: "stripe_sync_site_license_subscriptions",
-  id: undefined,
-});
-
 /*
 Sage Worksheet Support, v2
 */
@@ -3057,13 +3036,69 @@ API(
     path: undefined,
     model: undefined,
     tag: undefined,
+    stream: undefined, // if true, instead sends many little chatgpt_response messages with the last text value undefined.
   })
 );
 
 message({
   event: "chatgpt_response",
   id: undefined,
-  text: required, // text of the response
+  text: undefined, // text of the response
+  multi_response: undefined, // used for streaming
+});
+
+API(
+  // Read
+  message({
+    event: "openai_embeddings_search",
+    scope: required,
+    id: undefined,
+    text: undefined, // at least one of text or filter must be specified; if text given, does vector search
+    filter: undefined,
+    limit: required,
+    selector: undefined,
+    offset: undefined,
+  })
+);
+
+message({
+  event: "openai_embeddings_search_response",
+  id: undefined,
+  matches: required, // matching points
+});
+
+API(
+  // Create/Update
+  message({
+    event: "openai_embeddings_save",
+    project_id: required,
+    path: required,
+    data: required,
+    id: undefined,
+  })
+);
+
+message({
+  event: "openai_embeddings_save_response",
+  id: undefined,
+  ids: required, // uuid's of saved data
+});
+
+API(
+  // Delete
+  message({
+    event: "openai_embeddings_remove",
+    id: undefined,
+    project_id: required,
+    path: required,
+    data: required,
+  })
+);
+
+message({
+  event: "openai_embeddings_remove_response",
+  id: undefined,
+  ids: required, // uuid's of removed data
 });
 
 API(
@@ -3078,7 +3113,7 @@ API(
     path: undefined, // optional path where execution happens
     tag: undefined,
     pool: undefined, // {size?: number; timeout_s?: number;}
-    limits: undefined, // see packages/project/nbgrader/jupyter-run.ts
+    limits: undefined, // see packages/jupyter/nbgrader/jupyter-run.ts
   })
 );
 
@@ -3093,6 +3128,15 @@ message({
 API(
   message({
     event: "jupyter_kernels",
+    id: undefined,
+    project_id: undefined,
+    kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
+  })
+);
+
+API(
+  message({
+    event: "jupyter_start_pool",
     id: undefined,
     project_id: undefined,
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels

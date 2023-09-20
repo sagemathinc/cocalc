@@ -4,6 +4,7 @@ import { useEditableContext } from "./context";
 import { render, RenderProps } from "./register";
 import type { Text } from "@cocalc/util/db-schema/render-types";
 import { Tag } from "./tags";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props extends RenderProps {
   spec: Text;
@@ -13,6 +14,9 @@ interface Props extends RenderProps {
 function Static({ field, obj, spec, value }: Props) {
   if (value == null) {
     value = obj[field];
+  }
+  if (value != null && typeof value != "string") {
+    value = JSON.stringify(value);
   }
   if (!value?.trim()) return null;
   if (spec?.tag) {
@@ -71,6 +75,7 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
   } else {
     return (
       <ClickToEdit empty={!value?.trim()}>
+        <Icon name="pencil" style={{ marginRight: "8px", color:"#666" }} />
         <Static field={field} obj={obj} spec={spec} value={value} />
       </ClickToEdit>
     );

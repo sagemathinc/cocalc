@@ -1,14 +1,16 @@
 import { render } from "./register";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import detectLanguage from "@cocalc/frontend/misc/detect-language";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 
 render({ type: "code" }, ({ field, obj }) => {
   const code = obj[field];
   if (!code) return null;
   return (
-    <StaticMarkdown
-      style={{ maxHeight: "10em", overflow: "auto" }}
-      value={"```" + `${detectLanguage(code)}\n${code}` + "\n```"}
+    <CodeMirrorStatic
+      value={code}
+      options={{
+        mode: infoToMode("", { value: code }),
+      }}
     />
   );
 });

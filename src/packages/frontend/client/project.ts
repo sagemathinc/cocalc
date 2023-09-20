@@ -34,6 +34,7 @@ import { Configuration, ConfigurationAspect } from "../project_configuration";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
+import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 
 export interface ExecOpts {
   project_id: string;
@@ -380,7 +381,7 @@ export class ProjectClient {
     const state = redux.getStore("projects")?.get_state(project_id);
     if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
       // not trying to view project as admin so do some checks
-      if (!await allow_project_to_run(project_id)) return;
+      if (!(await allow_project_to_run(project_id))) return;
       if (!this.client.is_signed_in()) {
         // silently ignore if not signed in
         return;
@@ -447,6 +448,7 @@ export class ProjectClient {
     image?: string;
     start?: boolean;
     license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
+    noPool?: boolean; // never use pool
   }): Promise<string> {
     const { project_id } = await this.client.async_call({
       allow_post: false, // since gets called for anonymous and cookie not yet set.
@@ -514,5 +516,30 @@ export class ProjectClient {
   ): Promise<ArrayBuffer> {
     const url = ipywidgetsGetBufferUrl(project_id, path, model_id, buffer_path);
     return await (await fetch(url)).arrayBuffer();
+  }
+
+  // getting, setting, editing, deleting, etc., the  api keys for a project
+  public async api_keys(opts: {
+    project_id: string;
+    action: "get" | "delete" | "create" | "edit";
+    password?: string;
+    name?: string;
+    id?: number;
+    expire?: Date;
+  }): Promise<ApiKey[] | undefined> {
+    if (this.client.account_id == null) {
+      throw Error("must be logged in");
+    }
+    if (!is_valid_uuid_string(opts.project_id)) {
+      throw Error("project_id must be a valid uuid");
+    }
+    if (opts.project_id == null && !opts.password) {
+      throw Error("must provide password for non-project api key");
+    }
+    // because message always uses id, so we have to use something else!
+    const opts2 : any = { ...opts };
+    delete opts2.id;
+    opts2.key_id = opts.id;
+    return (await this.call(message.api_keys(opts2))).response;
   }
 }

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
@@ -11,7 +11,7 @@ import { kernel as jupyter_kernel } from "../jupyter";
 import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
 export type JupyterKernel = JupyterKernelInterface;
 
-const json = require("json-stable-stringify");
+import json from "json-stable-stringify";
 
 const DEBUG = !!process.env["DEBUG"];
 if (DEBUG) {

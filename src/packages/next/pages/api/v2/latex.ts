@@ -5,14 +5,20 @@ You must call this via POST.
 The parameters are:
 
 - project_id: *optional* project in which to run latex.  If not given, your most recent project is used, or if you have no projects, one is created.
-- content: *optional* textual content of the .tex file you want to latex.  If not given, path must refer to an actual file already in the project.
 - path: required path to a .tex file.  If the file doesn't exist, it is created with the given content.  Also, if the directory containing path
   doesn't exist, it is created.
+- content: *optional* textual content of the .tex file you want to latex.  If not given, path must refer to an actual file already in the project.
 - command: *optional* latex build command.  This will be run from the directory containing path and should produce the output pdf file.
   If not given, we use latexmk.
-- timeout: if given, this is a timeout on how long the latex build command can run before it is killed.
-- ttl: how long the resulting PDF url is valid (default: 1 hour)
-
+- timeout: *optional* if given, this is a timeout in seconds on how long the latex build command can run before it is killed. The defult is 30s,
+  and you should definitely increase this if you're building large documents.  See also the only_read_pdf option below.
+- ttl: *optional* how long the resulting PDF url is valid (default: 1 hour)
+- only_read_pdf: *optional* - if set, then instead of running latex, ONLY tries to grab the output pdf if it exists.
+                 Currently, you must also specify the project_id if you use this option, since we haven't implemented
+                 a way to know in which project the latex command was run.  When set only_read_pdf is the same
+                 as without, except only the step involving reading the pdf happens.  Use this if compiling times out
+                 for some reason due to network timeout requirements.
+                 NOTE: only_read_pdf doesn't currently get the compilation output log.
 
 When you call this API the project is started if it isn't already running.  Then the path .tex file
 is created, if content is specified.  Next the command is run which should hopefully produce a pdf file.
@@ -58,6 +64,17 @@ export default async function handle(req, res) {
       throw Error("path must be specified and end in .tex");
     }
     const { head: dir, tail: filename } = path_split(params.path);
+    if (params.only_read_pdf) {
+      if (params.project_id == null) {
+        throw Error("if only_read_pdf is set then project_id must also be set");
+      }
+      if (params.path.startsWith("/tmp")) {
+        throw Error(
+          "if only_read_pdf is set then path must not start with /tmp (otherwise the pdf would be removed)"
+        );
+      }
+    }
+
     let project_id;
     if (params.project_id != null) {
       project_id = params.project_id;
@@ -70,51 +87,62 @@ export default async function handle(req, res) {
     }
 
     let result: any = undefined;
+    let compile: any = undefined;
+    let pdf: any = undefined;
+    let url: string | undefined = undefined;
     try {
       // ensure the project is running.
       const project = getProject(project_id);
       await project.start();
 
-      if (params.content != null) {
-        // write content to the project as the file path
-        await callProject({
+      if (!params.only_read_pdf) {
+        if (params.content != null) {
+          // write content to the project as the file path
+          await callProject({
+            account_id,
+            project_id,
+            mesg: {
+              event: "write_text_file_to_project",
+              path: params.path,
+              content: params.content,
+            },
+          });
+        }
+        compile = await callProject({
           account_id,
           project_id,
           mesg: {
-            event: "write_text_file_to_project",
-            path: params.path,
-            content: params.content,
+            event: "project_exec",
+            timeout: params.timeout ?? 30,
+            path: dir,
+            command:
+              params.command ??
+              `latexmk -pdf -f -g -bibtex -deps -interaction=nonstopmode ${filename}`,
           },
         });
       }
-      const compile = await callProject({
-        account_id,
-        project_id,
-        mesg: {
-          event: "project_exec",
-          timeout: params.timeout,
-          path: dir,
-          command:
-            params.command ??
-            `latexmk -pdf -f -g -bibtex -deps -interaction=nonstopmode ${filename}`,
-        },
-      });
-      // check for errors in compie before trying to read pdf. here...
+      // TODO: should we check for errors in compile before trying to read pdf?
       const ttlSeconds = params.ttl ?? 3600;
-      const pdf = await callProject({
-        account_id,
-        project_id,
-        mesg: {
-          event: "read_file_from_project",
-          path: pdfFile(params.path),
-          ttlSeconds,
-        },
-      });
-      const { siteURL } = await getCustomize();
-      const url = pdf.data_uuid
-        ? siteURL + `/blobs/${pdfFile(params.path)}?uuid=${pdf.data_uuid}`
-        : undefined;
-      result = { compile, url, pdf };
+      try {
+        pdf = await callProject({
+          account_id,
+          project_id,
+          mesg: {
+            event: "read_file_from_project",
+            path: pdfFile(params.path),
+            ttlSeconds,
+          },
+        });
+        const { siteURL } = await getCustomize();
+        if (pdf != null) {
+          url = pdf.data_uuid
+            ? siteURL + `/blobs/${pdfFile(params.path)}?uuid=${pdf.data_uuid}`
+            : undefined;
+        }
+        result = { compile, url, pdf };
+      } catch (err) {
+        result = { compile, error: err.message };
+      }
     } finally {
       if (params.path.startsWith("/tmp")) {
         await callProject({

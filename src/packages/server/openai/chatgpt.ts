@@ -4,33 +4,18 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { Configuration, OpenAIApi } from "openai";
 import { checkForAbuse } from "./abuse";
+import { GPTModel, getCost, isValidModel } from "@cocalc/util/db-schema/openai";
+import { delay } from "awaiting";
+import getClient from "./client";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
-import type { Model } from "@cocalc/util/db-schema/openai";
-import { delay } from "awaiting";
+import GPT3Tokenizer from "gpt3-tokenizer";
+import { EventEmitter } from "events";
+import { once } from "@cocalc/util/async-utils";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
 
 const log = getLogger("chatgpt");
-
-async function getConfig(): Promise<{
-  apiKey: string;
-  expire: Date | undefined;
-}> {
-  log.debug("get API key");
-  const server_settings = await getServerSettings();
-  const { openai_api_key, pii_retention } = server_settings;
-
-  if (!openai_api_key) {
-    log.debug("NO API key");
-    throw Error("You must provide an OpenAI API Key.");
-  }
-  log.debug("got API key");
-  return {
-    apiKey: openai_api_key,
-    expire: pii_retention_to_future(pii_retention),
-  };
-}
 
 interface ChatOptions {
   input: string; // new input that user types
@@ -40,8 +25,15 @@ interface ChatOptions {
   path?: string;
   analytics_cookie?: string;
   history?: { role: "assistant" | "user" | "system"; content: string }[];
-  model?: Model; // default is gpt-3.5-turbo
+  model?: GPTModel; // default is gpt-3.5-turbo
   tag?: string;
+  // If stream is set, then everything works as normal with two exceptions:
+  // - The stream function is called with bits of the output as they are produced,
+  //   until the output is done and then it is called with undefined.
+  // - Maybe the total_tokens, which is stored in the database for analytics,
+  //   might be off: https://community.openai.com/t/openai-api-get-usage-tokens-in-response-when-set-stream-true/141866
+  stream?: (output?: string) => void;
+  maxTokens?: number;
 }
 
 export async function evaluate({
@@ -54,6 +46,8 @@ export async function evaluate({
   history,
   model = "gpt-3.5-turbo",
   tag,
+  stream,
+  maxTokens,
 }: ChatOptions): Promise<string> {
   log.debug("evaluate", {
     input,
@@ -65,13 +59,16 @@ export async function evaluate({
     path,
     model,
     tag,
+    stream: stream != null,
+    maxTokens,
   });
+  if (!isValidModel(model) || !model.startsWith("gpt")) {
+    throw Error(`unsupported model "${model}"`);
+  }
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
-  const { apiKey, expire } = await getConfig();
+  const openai = await getClient();
 
-  const configuration = new Configuration({ apiKey });
-  const openai = new OpenAIApi(configuration);
   const messages: { role: "system" | "user" | "assistant"; content: string }[] =
     [];
   if (system) {
@@ -83,18 +80,64 @@ export async function evaluate({
     }
   }
   messages.push({ role: "user", content: input });
-  const completion = await callOpenaiAPI({
-    openai,
-    model,
-    messages,
-    maxAttempts: 3,
-  });
-  log.debug("response: ", completion.data);
-  const output = (
-    completion.data.choices[0].message?.content ?? "No Output"
-  ).trim();
-  const total_tokens = completion.data.usage?.total_tokens;
+  const { output, total_tokens, prompt_tokens, completion_tokens } =
+    await callOpenaiAPI({
+      openai,
+      model,
+      messages,
+      maxAttempts: 3,
+      maxTokens,
+      stream,
+    });
+  log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
+
+  if (account_id) {
+    if (model == "gpt-3.5-turbo") {
+      // no charge for now...
+    } else {
+      // charge for ALL other models.
+      const { pay_as_you_go_openai_markup_percentage } =
+        await getServerSettings();
+      const c = getCost(model, pay_as_you_go_openai_markup_percentage);
+      const cost =
+        c.prompt_tokens * prompt_tokens +
+        c.completion_tokens * completion_tokens;
+
+      try {
+        await createPurchase({
+          account_id,
+          project_id,
+          cost,
+          service: `openai-${model}`,
+          description: {
+            type: `openai-${model}`,
+            prompt_tokens,
+            completion_tokens,
+          },
+          tag: `openai:${tag ?? ""}`,
+          client: null,
+        });
+      } catch (err) {
+        // we maybe just lost some money?!
+        log.error(
+          `FAILED to CREATE a purchase for something the user just got: cost=${cost}, account_id=${account_id}`
+        );
+        // we might send an email or something...?
+      }
+    }
+  }
+
+  let expire;
+  if (account_id == null) {
+    // this never happens right now since it's disabled; we may
+    // bring this back with captcha
+    const { pii_retention } = await getServerSettings();
+    expire = pii_retention_to_future(pii_retention);
+  } else {
+    expire = undefined;
+  }
+
   saveResponse({
     input,
     system,
@@ -105,10 +148,11 @@ export async function evaluate({
     project_id,
     path,
     total_tokens,
+    prompt_tokens,
     total_time_s,
-    expire: account_id == null ? expire : undefined,
     model,
     tag,
+    expire,
   });
 
   // NOTE about expire: If the admin setting for "PII Retention" is set *and*
@@ -141,6 +185,7 @@ async function saveResponse({
   project_id,
   path,
   total_tokens,
+  prompt_tokens,
   total_time_s,
   expire,
   model,
@@ -149,7 +194,7 @@ async function saveResponse({
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s,expire,model,tag) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,prompt_tokens,total_time_s,expire,model,tag) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
       [
         input,
         system,
@@ -160,6 +205,7 @@ async function saveResponse({
         project_id,
         path,
         total_tokens,
+        prompt_tokens,
         total_time_s,
         expire,
         model,
@@ -177,13 +223,100 @@ async function saveResponse({
 // list of messages, and number maxAttempts, this will try to make the
 // call up to maxAttempts times, then throw an error if it fails
 // maxAttempts times.
-async function callOpenaiAPI({ openai, model, messages, maxAttempts }) {
+
+class GatherOutput extends EventEmitter {
+  private output: string = "";
+  private total_tokens: number;
+  private prompt_tokens: number;
+  private completion_tokens: number;
+  private stream: (text?: string) => void;
+
+  constructor(messages, stream) {
+    super();
+    this.prompt_tokens = this.total_tokens = totalNumTokens(messages);
+    this.completion_tokens = 0;
+    this.stream = stream;
+  }
+
+  process(data: Buffer) {
+    const text = data.toString();
+    const lines = text.split("\n");
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) {
+        continue;
+      }
+      const s = line.slice(6);
+      if (s == "[DONE]") {
+        this.emit("done", {
+          output: this.output,
+          total_tokens: this.total_tokens,
+          prompt_tokens: this.prompt_tokens,
+          completion_tokens: this.completion_tokens,
+        });
+        this.stream();
+      } else {
+        let mesg;
+        try {
+          mesg = JSON.parse(s);
+        } catch (err) {
+          log.error(`chatgpt -- could not parse s='${s}'`, { text });
+        }
+        const token = mesg?.choices[0].delta.content;
+        if (token != null) {
+          this.output += token;
+          this.stream(token);
+          this.total_tokens += 1;
+          this.completion_tokens += 1;
+        }
+      }
+    }
+  }
+}
+
+async function callOpenaiAPI({
+  openai,
+  model,
+  messages,
+  maxAttempts,
+  stream,
+  maxTokens,
+}): Promise<{
+  output: string;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}> {
+  const doStream = stream != null;
+  const gather = doStream ? new GatherOutput(messages, stream) : undefined;
+  const axiosOptions = doStream ? { responseType: "stream" } : {};
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      return await openai.createChatCompletion({
-        model,
-        messages,
-      });
+      const completion = await openai.createChatCompletion(
+        {
+          max_tokens: maxTokens,
+          model,
+          messages,
+          stream: doStream,
+        },
+        axiosOptions
+      );
+      if (!doStream) {
+        const output = (
+          completion.data.choices[0].message?.content ?? "No Output"
+        ).trim();
+        const total_tokens = completion.data.usage?.total_tokens;
+        const prompt_tokens = completion.data.usage?.prompt_tokens;
+        const completion_tokens = completion.data.usage?.completion_tokens;
+        return { output, total_tokens, prompt_tokens, completion_tokens };
+      } else {
+        if (gather == null) {
+          throw Error("bug");
+        }
+        completion.data.on("data", gather.process.bind(gather));
+        // collect up the results and return result.
+        const x = await once(gather, "done");
+        return x[0];
+      }
     } catch (err) {
       const retry = i < maxAttempts - 1;
       log.debug(
@@ -199,4 +332,22 @@ async function callOpenaiAPI({ openai, model, messages, maxAttempts }) {
       await delay(1000);
     }
   }
+  throw Error("chatgpt api called failed"); // this should never get reached.
+}
+
+// a little bit of this code is replicated in
+// packages/frontend/misc/openai.ts
+const APPROX_CHARACTERS_PER_TOKEN = 8;
+const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+function numTokens(content: string): number {
+  // slice to avoid extreme slowdown "attack".
+  return tokenizer.encode(content.slice(0, 8000 * APPROX_CHARACTERS_PER_TOKEN))
+    .text.length;
+}
+function totalNumTokens(messages: { content: string }[]): number {
+  let s = 0;
+  for (const { content } of messages) {
+    s += numTokens(content);
+  }
+  return s;
 }

@@ -11,6 +11,7 @@ import {
   Alert,
   Button,
   Card,
+  Divider,
   Layout,
   Modal,
   Space,
@@ -25,7 +26,6 @@ import TimeAgo from "timeago-react";
 import apiPost from "lib/api/post";
 import Avatar from "components/account/avatar";
 import type { VoucherCode } from "@cocalc/util/db-schema/vouchers";
-import Copyable from "components/misc/copyable";
 import { stringify as csvStringify } from "csv-stringify/sync";
 import { human_readable_size } from "@cocalc/util/misc";
 import CodeMirror from "components/share/codemirror";
@@ -33,10 +33,38 @@ import { trunc } from "lib/share/util";
 import useDatabase from "lib/hooks/database";
 import Notes from "./notes";
 import Help from "components/vouchers/help";
+import Copyable from "components/misc/copyable";
+import { DescriptionColumn } from "components/store/cart";
+
+function RedeemURL({ code }) {
+  const [url, setUrl] = useState<string>("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      let i = window.location.href.lastIndexOf("/");
+      i = window.location.href.lastIndexOf("/", i - 1);
+      setUrl(`${window.location.href.slice(0, i)}/redeem/${code}`);
+    }
+  }, []);
+
+  return (
+    <Space>
+      <A href={url}>
+        <Icon name="external-link" />
+      </A>{" "}
+      <Copyable display={`...${code}`} value={url} />
+    </Space>
+  );
+}
 
 const COLUMNS = [
   {
-    title: "Voucher Code",
+    title: "Redeem URL (share this)",
+    dataIndex: "code",
+    key: "redeem",
+    render: (code) => <RedeemURL code={code} />,
+  },
+  {
+    title: "Code",
     dataIndex: "code",
     key: "code",
   },
@@ -75,9 +103,8 @@ const COLUMNS = [
     align: "center",
     render: (_, { canceled }) => (canceled ? "Yes" : "-"),
   },
-
   {
-    title: "Private Notes",
+    title: "Your Private Notes",
     dataIndex: "notes",
     key: "notes",
     render: (_, { notes, code }) => <Notes notes={notes} code={code} />,
@@ -87,7 +114,7 @@ const COLUMNS = [
 type DownloadType = "csv" | "json";
 
 export default function VoucherCodes({ customize, id }) {
-  const database = useDatabase({ vouchers: { id, title: null } });
+  const database = useDatabase({ vouchers: { id, title: null, cart: null } });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<VoucherCode[] | null>(null);
@@ -151,6 +178,19 @@ export default function VoucherCodes({ customize, id }) {
                 {database.value?.vouchers?.title && (
                   <h3>Title: {database.value.vouchers.title}</h3>
                 )}
+                <div
+                  style={{
+                    width: "min(600px, 100vw)",
+                    margin: "auto",
+                    padding: "15px",
+                  }}
+                >
+                  {database.value?.vouchers?.cart?.map((item, n) => (
+                    <DescriptionColumn key={n} {...item} readOnly />
+                  ))}
+                </div>
+                <Divider />
+
                 {error && (
                   <Alert
                     type="error"
@@ -254,7 +294,7 @@ function DownloadModal({ type, data, id, onClose }) {
     if (!type) return "";
     if (type == "csv") {
       const x = [COLUMNS.map((x) => x.title)].concat(
-        data.map((x) => COLUMNS.map((c) => x[c.dataIndex]))
+        data.map((x) => COLUMNS.map((c) => x[c.dataIndex])),
       );
       return csvStringify(x);
     } else if (type == "json") {
@@ -272,7 +312,7 @@ function DownloadModal({ type, data, id, onClose }) {
         <div style={{ margin: "30px", fontSize: "13pt", textAlign: "center" }}>
           <a
             href={URL.createObjectURL(
-              new Blob([content], { type: "text/plain" })
+              new Blob([content], { type: "text/plain" }),
             )}
             download={path}
           >

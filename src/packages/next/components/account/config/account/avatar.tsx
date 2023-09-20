@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { InboxOutlined } from "@ant-design/icons";
-import ImgCrop from "@cocalc/antd-img-crop";
+import ImgCrop from "antd-img-crop";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
 import { ColorPicker } from "@cocalc/frontend/colorpicker";
@@ -220,8 +220,8 @@ function EditImage({ value, email_address, onChange }) {
       {value == "image" && (
         <ImgCrop
           modalTitle={"Edit Profile Image"}
-          shape="round"
-          rotate
+          cropShape="rect"
+          rotationSlider
           maxZoom={5}
           onModalOk={(file) => {
             const reader = new FileReader();
@@ -251,7 +251,7 @@ function EditImage({ value, email_address, onChange }) {
               );
               return;
             }
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(file as any);
           }}
         >
           <Upload.Dragger name="file">

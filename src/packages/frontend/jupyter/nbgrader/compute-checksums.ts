@@ -25,7 +25,7 @@ function compute_checksum(cell: Map<string, any>): string {
   m += cell.get("input", "");
   m += cell.get("cell_type", "code");
 
-  const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+  const nbgrader = cell.getIn(["metadata", "nbgrader"]) as any;
   if (nbgrader == null)
     throw Error(
       "bug -- compute_checksum should only be called on nbgrader cells"
@@ -50,7 +50,7 @@ function compute_checksum(cell: Map<string, any>): string {
 }
 
 export function set_checksum(cell: Map<string, any>): Map<string, any> {
-  let nbgrader = cell.getIn(["metadata", "nbgrader"]);
+  let nbgrader = cell.getIn(["metadata", "nbgrader"]) as any;
   if (
     nbgrader != null &&
     (nbgrader.get("grade") ||

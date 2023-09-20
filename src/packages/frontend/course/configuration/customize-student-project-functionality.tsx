@@ -14,21 +14,8 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
-
-export interface StudentProjectFunctionality {
-  disableActions?: boolean;
-  disableJupyterToggleReadonly?: boolean;
-  disableJupyterClassicServer?: boolean;
-  disableJupyterClassicMode?: boolean;
-  disableJupyterLabServer?: boolean;
-  disableTerminals?: boolean;
-  disableUploads?: boolean;
-  disableNetwork?: boolean;
-  disableSSH?: boolean;
-  disableCollaborators?: boolean;
-  disableChatGPT?: boolean;
-  disableSharing?: boolean;
-}
+import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+export type { StudentProjectFunctionality };
 
 interface Option {
   name: string;
@@ -70,6 +57,18 @@ const OPTIONS: Option[] = [
       "Disable the user interface for running a JupyterLab server in student projects.  This is important, since JupyterLab it provides its own extensive download and edit functionality; moreover, you may want to disable JupyterLab to reduce confusion if you don't plan to use it.",
   },
   {
+    name: "disableVSCodeServer",
+    title: "VS Code IDE Server",
+    description:
+      "Disable the VS Code IDE Server, which lets you run VS Code in a project with one click.",
+  },
+  {
+    name: "disablePlutoServer",
+    title: "Pluto Julia notebook server",
+    description:
+      "Disable the user interface for running a pluto server in student projects.  Pluto lets you run Julia notebooks from a project.",
+  },
+  {
     name: "disableTerminals",
     title: "command line terminal",
     description:
@@ -109,9 +108,15 @@ const OPTIONS: Option[] = [
   },
   {
     name: "disableChatGPT",
-    title: "ChatGPT integration",
+    title: "all ChatGPT integration",
     description:
-      "Remove all ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+      "Remove *all* ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+  },
+  {
+    name: "disableSomeChatGPT",
+    title: "some ChatGPT integration",
+    description:
+      "Disable ChatGPT integration except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to  use ChatGPT to get unstuck.",
   },
   {
     name: "disableSharing",
@@ -129,24 +134,17 @@ interface Props {
 export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
   ({ functionality, onChange }) => {
     const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-    const [changed, setChanged] = useState<boolean>(false);
     const [state, setState] =
       useState<StudentProjectFunctionality>(functionality);
     const [saving, setSaving] = useState<boolean>(false);
     function onChangeState(obj: StudentProjectFunctionality) {
       const newState = { ...state };
-      setChanged(true);
       for (const key in obj) {
         newState[key] = obj[key];
       }
       setState(newState);
     }
     const isMountedRef = useIsMountedRef();
-
-    useEffect(() => {
-      // upstream change (e.g., another user editing these)
-      setState(functionality);
-    }, [functionality]);
 
     function renderOption(option) {
       let { title } = option;
@@ -157,14 +155,14 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
         <Tip key={title} title={`Disable ${title}`} tip={option.description}>
           <Checkbox
             disabled={saving}
-            checked={state[option.name]}
+            defaultChecked={state[option.name]}
             onChange={(e) =>
               onChangeState({
                 [option.name]: (e.target as any).checked,
               })
             }
           >
-            <span style={{ fontWeight: 500 }}>Disable {title}</span>
+            Disable {title}
           </Checkbox>
           <br />
         </Tip>
@@ -181,7 +179,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
       <Card
         title={
           <>
-            <Icon name="lock" /> Restrict student projects
+            <Icon name="lock" /> Restrict Student Projects
           </>
         }
       >
@@ -204,24 +202,21 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           }}
         >
           {options}
-          {(changed || !isEqual(functionality, state)) && (
-            <div>
-              <br />
-              <Button
-                type="primary"
-                disabled={saving || isEqual(functionality, state)}
-                onClick={async () => {
-                  setSaving(true);
-                  await onChange(state);
-                  if (isMountedRef.current) {
-                    setSaving(false);
-                  }
-                }}
-              >
-                Save changes
-              </Button>
-            </div>
-          )}
+          <div style={{ marginTop: "8px" }}>
+            <Button
+              type="primary"
+              disabled={saving || isEqual(functionality, state)}
+              onClick={async () => {
+                setSaving(true);
+                await onChange(state);
+                if (isMountedRef.current) {
+                  setSaving(false);
+                }
+              }}
+            >
+              Save changes
+            </Button>
+          </div>
         </div>
       </Card>
     );
@@ -232,7 +227,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
 // were written with that unlikely assumption on their knowledge of project_id.
 type Hook = (project_id?: string) => StudentProjectFunctionality;
 export const useStudentProjectFunctionality: Hook = (project_id?: string) => {
-  const project_map = useTypedRedux("projects", "project_map");
+  const project_map = useTypedRedux("projects", "project_map") as any;
   const [state, setState] = useState<StudentProjectFunctionality>(
     project_map
       ?.getIn([project_id ?? "", "course", "student_project_functionality"])

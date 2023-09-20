@@ -19,7 +19,7 @@ and they include:
 - write_file_to_project: write abitrary file to disk in project (goes via a blob)
 - write_text_file_to_project: write a text file, whose contents is in the message, to the project.
 - print_to_pdf: tells sage worksheet to print
-- send_signal: send a signal to a process
+- send_signal: send a signal to a process -- seems maybe broken?; use project_exec instead!
 - jupyter_execute: { input, history, kernel } ==> {output:object[]} or {error?:string}
 */
 

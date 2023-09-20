@@ -32,6 +32,7 @@ import { Icon } from "@cocalc/frontend/components";
 
 export interface EditorFunctions {
   set_cursor: (pos: { x?: number; y?: number }) => void;
+  get_cursor: () => { x: number; y: number };
 }
 
 interface MultimodeState {

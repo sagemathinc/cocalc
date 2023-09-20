@@ -8,9 +8,12 @@ import { keys, map, sortBy, zipObject } from "lodash";
 import { promises } from "node:fs";
 import { basename } from "node:path";
 
+import {
+  SOFTWARE_ENV_NAMES,
+  SoftwareEnvNames,
+} from "@cocalc/util/consts/software-envs";
 import { hours_ago } from "@cocalc/util/relative-time";
 import withCustomize from "lib/with-customize";
-import { SoftwareEnvNames, SOFTWARE_ENV_NAMES } from "./consts";
 import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import {
   ComputeComponents,

@@ -22,14 +22,17 @@ fine, since this would only be a problem when they change the name
 of multiple projects.
 */
 
-import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
-import getPool from "./pool";
+import LRU from "lru-cache";
 import { Pool } from "pg";
+
 import getLogger from "@cocalc/backend/logger";
+import getPool from "./pool";
+
 const L = getLogger("db:pool:cached");
 
 const MAX_AGE_S = {
+  "": 0, // no cache at all
   short: 5, // just to avoid a very rapid fire sequence of re-requests
   medium: 15, // usually use this.
   long: 30,
@@ -37,21 +40,22 @@ const MAX_AGE_S = {
   infinite: 60 * 60 * 24 * 365, // effectively forever; e.g., getting path from share id is really just a reversed sha1 hash, so can't change.
 } as const;
 
-export type Length = keyof typeof MAX_AGE_S;
+export type CacheTime = keyof typeof MAX_AGE_S;
 
-const caches: Map<Length, LRU<string, any>> = new Map();
+const caches = new Map<CacheTime, LRU<string, any>>();
 
-for (const length in MAX_AGE_S) {
-  caches[length] = new LRU<string, any>({
+for (const cacheTime in MAX_AGE_S) {
+  if (!cacheTime) continue;
+  caches[cacheTime] = new LRU<string, any>({
     max: 1000,
-    ttl: 1000 * MAX_AGE_S[length],
+    ttl: 1000 * MAX_AGE_S[cacheTime],
   });
 }
 
-const cachedQuery = reuseInFlight(async (length: Length, ...args) => {
-  const cache = caches[length];
+const cachedQuery = reuseInFlight(async (cacheTime: CacheTime, ...args) => {
+  const cache = caches[cacheTime];
   if (cache == null) {
-    throw Error(`invalid cache "${length}"`);
+    throw Error(`invalid cache "${cacheTime}"`);
   }
   const key = JSON.stringify(args);
   if (cache.has(key)) {
@@ -75,8 +79,11 @@ const cachedQuery = reuseInFlight(async (length: Length, ...args) => {
   }
 });
 
-export default function getCachedPool(length: Length) {
+export default function getCachedPool(cacheTime: CacheTime) {
+  if (!cacheTime) {
+    return getPool();
+  }
   return {
-    query: async (...args) => await cachedQuery(length, ...args),
+    query: async (...args) => await cachedQuery(cacheTime, ...args),
   } as any as Pool; // obviously not really a Pool, but is enough for what we're doing.
 }

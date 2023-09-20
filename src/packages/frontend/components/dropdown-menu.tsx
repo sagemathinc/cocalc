@@ -35,11 +35,12 @@ interface Props {
   style?: CSS;
   title?: JSX.Element | string;
   size?;
+  mode?: "vertical" | "inline";
 }
 
 const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
 
-export const DropdownMenu: React.FC<Props> = (props: Props) => {
+export const DropdownMenu: React.FC<Props> = (_: Readonly<Props>) => {
   const {
     button,
     disabled,
@@ -50,7 +51,8 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
     style,
     title,
     size,
-  } = props;
+    mode,
+  } = _;
 
   function render_title() {
     if (title !== "") {
@@ -114,7 +116,7 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
     <Dropdown
       trigger={["click"]}
       placement={"bottomLeft"}
-      menu={{ items, style: menuStyle }}
+      menu={{ items, style: menuStyle, mode }}
       disabled={disabled}
     >
       {body}

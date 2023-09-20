@@ -4,13 +4,7 @@
  */
 
 import { Map } from "immutable";
-import {
-  React,
-  Component,
-  Rendered,
-  rtypes,
-  rclass,
-} from "../../app-framework";
+import { Component, Rendered, rtypes, rclass } from "../../app-framework";
 
 import { InputCell } from "./input-cell";
 import { OutputCell } from "./output-cell";
@@ -41,7 +35,7 @@ class Print extends Component<Props, {}> {
           <div>
             <OutputCell output={cell.get("output", Map())} id={id} />
           </div>
-        </div>
+        </div>,
       );
     });
     return v;

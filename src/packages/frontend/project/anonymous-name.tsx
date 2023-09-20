@@ -16,7 +16,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "../app-framework";
-import { Icon, Space } from "../components";
+import { Icon, Gap } from "../components";
 const { SiteName } = require("../customize");
 
 interface Props {
@@ -64,7 +64,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
         <a onClick={() => redux.getActions("page").set_active_tab("account")}>
           sign up
         </a>{" "}
-        to avoid losing your work.
+        to avoid losing access to your work.
       </div>
     );
   } else {
@@ -84,7 +84,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
           Sign Up
         </a>
         Thank you {anonName ? "" : ` ${first_name} ${last_name} `} for using{" "}
-        <SiteName />!<Space />
+        <SiteName />!<Gap />
         {anonName && (
           <>
             Set your name:{" "}

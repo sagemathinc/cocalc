@@ -32,6 +32,7 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
   if (!show) return null;
 
   function renderInfoBarContent() {
+    if (cost?.input.type == "cash-voucher") return null;
     // if any of the fields in cost that start with the string "cost" are NaN, return null
     const disabled =
       !cost ||

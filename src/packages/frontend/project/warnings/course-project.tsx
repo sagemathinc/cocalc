@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
-
 export const CourseProjectExtraHelp: React.FC = () => {
   return (
     <div style={{ marginTop: "10px" }}>
@@ -16,5 +14,3 @@ export const CourseProjectExtraHelp: React.FC = () => {
     </div>
   );
 };
-
-

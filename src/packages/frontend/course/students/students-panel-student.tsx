@@ -14,7 +14,7 @@ import { Rendered } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   MarkdownInput,
-  Space,
+  Gap,
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
@@ -398,7 +398,7 @@ export const Student: React.FC<StudentProps> = React.memo(
         return (
           <div>
             Are you sure you want to delete this student?
-            <Space />
+            <Gap />
             <ButtonGroup>
               <Button onClick={delete_student} bsStyle="danger" bsSize={bsSize}>
                 <Icon name="trash" /> YES, Delete
@@ -602,7 +602,9 @@ export const Student: React.FC<StudentProps> = React.memo(
             </h6>
           </Col>
           <Col md={4}>
-            <h6 style={{ color: "#666" }}>{render_student_email()}</h6>
+            <h6 style={{ color: "#666", overflow: "auto" }}>
+              {render_student_email()}
+            </h6>
           </Col>
           <Col md={8} style={{ paddingTop: "10px" }}>
             {render_last_active()}

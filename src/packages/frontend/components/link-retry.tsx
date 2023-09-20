@@ -10,7 +10,7 @@ import {
   useIsMountedRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { Icon, Loading, Gap } from "@cocalc/frontend/components";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { COLORS } from "@cocalc/util/theme";
@@ -21,10 +21,11 @@ interface Props {
   children?;
   size?: "small" | undefined; // antd button size
   loadingText?: string;
+  onClick?: () => void;
 }
 
-const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
-  const { href, size, mode = "link", children } = props;
+const LinkRetry: React.FC<Props> = (props: Props) => {
+  const { href, size, mode = "link", children, onClick } = props;
   const isMountedRef = useIsMountedRef();
   const [working, setWorking] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -42,6 +43,7 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
   }
 
   async function start(): Promise<void> {
+    onClick?.();
     setLoading(true);
     setError(false);
     const f = async (): Promise<void> => {
@@ -95,13 +97,13 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
           </a>
           {mode === "link" && loading && (
             <span>
-              <Space /> <Loading text={props.loadingText} />
+              <Gap /> <Loading text={props.loadingText} />
             </span>
           )}
           {error && (
             <>
               <span style={{ color: COLORS.ANTD_RED_WARN }}>
-                <Space /> (failed to load)
+                <Gap /> (failed to load)
               </span>
             </>
           )}
@@ -127,4 +129,4 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
   }
 };
 
-export default LinkRetryUntilSuccess;
+export default LinkRetry;

@@ -5,6 +5,9 @@ import { pgType } from "./pg-type";
 import { createIndexesQueries } from "./indexes";
 import { createTable } from "./table";
 import getLogger from "@cocalc/backend/logger";
+import { SCHEMA } from "@cocalc/util/schema";
+import { dropDeprecatedTables } from "./drop-deprecated-tables";
+
 const log = getLogger("db:schema:sync");
 
 async function syncTableSchema(db: Client, schema: TableSchema): Promise<void> {
@@ -20,14 +23,14 @@ async function syncTableSchema(db: Client, schema: TableSchema): Promise<void> {
 
 async function getColumnTypeInfo(
   db: Client,
-  table: string
+  table: string,
 ): Promise<{ [column_name: string]: string }> {
   // may from column to type info
   const columns: { [column_name: string]: string } = {};
 
   const { rows } = await db.query(
     "SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name=$1",
-    [table]
+    [table],
   );
 
   for (const y of rows) {
@@ -45,7 +48,7 @@ async function alterColumnOfTable(
   db: Client,
   schema: TableSchema,
   action: "alter" | "add",
-  column: string
+  column: string,
 ): Promise<void> {
   // Note: changing column ordering is NOT supported in PostgreSQL, so
   // it's critical to not depend on it!
@@ -68,10 +71,10 @@ async function alterColumnOfTable(
       "alterColumnOfTable",
       schema.name,
       "alter this column's type:",
-      col
+      col,
     );
     await db.query(
-      `ALTER TABLE ${qTable} ALTER COLUMN ${col} TYPE ${desc} USING ${col}::${type}`
+      `ALTER TABLE ${qTable} ALTER COLUMN ${col} TYPE ${desc} USING ${col}::${type}`,
     );
   } else if (action == "add") {
     log.debug("alterColumnOfTable", schema.name, "add this column:", col);
@@ -83,7 +86,7 @@ async function alterColumnOfTable(
 
 async function syncTableSchemaColumns(
   db: Client,
-  schema: TableSchema
+  schema: TableSchema,
 ): Promise<void> {
   log.debug("syncTableSchemaColumns", "table = ", schema.name);
   const columnTypeInfo = await getColumnTypeInfo(db, schema.name);
@@ -118,11 +121,11 @@ async function syncTableSchemaColumns(
 
 async function getCurrentIndexes(
   db: Client,
-  table: string
+  table: string,
 ): Promise<Set<string>> {
   const { rows } = await db.query(
     "SELECT c.relname AS name FROM pg_class AS a JOIN pg_index AS b ON (a.oid = b.indrelid) JOIN pg_class AS c ON (c.oid = b.indexrelid) WHERE a.relname=$1",
-    [table]
+    [table],
   );
 
   const curIndexes = new Set<string>([]);
@@ -138,7 +141,7 @@ async function updateIndex(
   table: string,
   action: "create" | "delete",
   name: string,
-  query?: string
+  query?: string,
 ): Promise<void> {
   log.debug("updateIndex", { table, action, name });
   if (action == "create") {
@@ -154,7 +157,7 @@ async function updateIndex(
 
 async function syncTableSchemaIndexes(
   db: Client,
-  schema: TableSchema
+  schema: TableSchema,
 ): Promise<void> {
   const dbg = (...args) =>
     log.debug("syncTableSchemaIndexes", "table = ", schema.name, ...args);
@@ -185,7 +188,7 @@ async function syncTableSchemaIndexes(
 // Names of all tables owned by the current user.
 async function getAllTables(db: Client): Promise<Set<string>> {
   const { rows } = await db.query(
-    "SELECT tablename FROM pg_tables WHERE tableowner = current_user"
+    "SELECT tablename FROM pg_tables WHERE tableowner = current_user",
   );
   const v = new Set<string>();
   for (const { tablename } of rows) {
@@ -198,7 +201,7 @@ async function getAllTables(db: Client): Promise<Set<string>> {
 // actual database.
 function getMissingTables(
   dbSchema: DBSchema,
-  allTables: Set<string>
+  allTables: Set<string>,
 ): Set<string> {
   const missing = new Set<string>();
   for (const table in dbSchema) {
@@ -216,8 +219,8 @@ function getMissingTables(
 }
 
 export async function syncSchema(
-  dbSchema: DBSchema,
-  role?: string
+  dbSchema: DBSchema = SCHEMA,
+  role?: string,
 ): Promise<void> {
   const dbg = (...args) => log.debug("syncSchema", { role }, ...args);
   dbg();
@@ -232,12 +235,16 @@ export async function syncSchema(
       // change to that user for the rest of this connection.
       await db.query(`SET ROLE ${role}`);
     }
+    dbg("dropping any deprecated tables");
+    await dropDeprecatedTables(db);
 
     const allTables = await getAllTables(db);
+    dbg("allTables", allTables);
 
     // Create from scratch any missing tables -- usually this creates all tables and
     // indexes the first time around.
     const missingTables = await getMissingTables(dbSchema, allTables);
+    dbg("missingTables", missingTables);
     for (const table of missingTables) {
       dbg("create missing table", table);
       const schema = dbSchema[table];

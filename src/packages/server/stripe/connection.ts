@@ -18,7 +18,7 @@ import Stripe from "stripe";
 import { getServerSettings } from "@cocalc/server/settings";
 
 // See https://stripe.com/docs/api/versioning
-const apiVersion = "2020-03-02";
+const apiVersion = "2022-11-15";
 
 interface StripeWithPublishableKey extends Stripe {
   publishable_key: string;

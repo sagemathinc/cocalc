@@ -121,12 +121,12 @@ export const Handout: React.FC<HandoutProps> = React.memo(
 
     function render_more_header() {
       return (
-        <div>
-          <div style={{ fontSize: "15pt", marginBottom: "5px" }}>
+        <div style={{ display: "flex" }}>
+          <div style={{ fontSize: "15pt", marginBottom: "5px", marginRight:'30px' }}>
             {handout.get("path")}
           </div>
           <Button onClick={open_handout_path}>
-            <Icon name="folder-open" /> Edit Handout
+            <Icon name="folder-open" /> Open
           </Button>
         </div>
       );

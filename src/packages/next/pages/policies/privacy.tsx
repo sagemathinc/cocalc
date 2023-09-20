@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: September 15, 2022</h2>
+              <h2>Last Updated: August 23, 2023</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -83,29 +83,27 @@ export default function Privacy({ customize }) {
                   protect that data by adherence to this Privacy Policy.
                 </p>
                 <p>
-                  Sagemath complies with the requirements of the EU-U.S. Privacy
-                  Shield Framework and the Swiss-U.S. Privacy Shield Framework
-                  (collectively <strong>“Privacy Shield”</strong>), as set forth
-                  by the U.S. Department of Commerce regarding the collection,
-                  use, and retention of Personal Information transferred from
-                  the European Economic Area and Switzerland to the United
-                  States. Sagemath commits to cooperate with EU data protection
-                  authorities (DPAs) and the Swiss Federal Data Protection and
-                  Information Commissioner (FDPIC) and comply with the advice
-                  given by such authorities with regard to human resources data
-                  transferred from the EU and Switzerland in the context of the
-                  employment relationship. Sagemath has certified to the
-                  Department of Commerce that it adheres to the Privacy Shield
-                  Principles and Supplemental Principles. If there is any
-                  conflict between the terms in this Policy and the Privacy
-                  Shield Principles, the Privacy Shield Principles shall govern.
-                  To learn more about the Privacy Shield program, and to view{" "}
-                  <A href="https://www.privacyshield.gov/participant?id=a2zt0000000TUtjAAG">
-                    Sagemath’s certification
-                  </A>
-                  , please visit{" "}
-                  <A href="https://www.privacyshield.gov">
-                    www.privacyshield.gov
+                  Sagemath complies with the EU-U.S. Data Privacy Framework
+                  (EU-U.S. DPF), the UK Extension to the EU-U.S. DPF, and the
+                  Swiss-U.S. Data Privacy Framework (Swiss-U.S. DPF) as set
+                  forth by the U.S. Department of Commerce. Sagemath has
+                  certified to the U.S. Department of Commerce that it adheres
+                  to the EU-U.S. Data Privacy Framework Principles (EU-U.S. DPF
+                  Principles) with regard to the processing of personal data
+                  received from the European Union in reliance on the EU-U.S.
+                  DPF and from the United Kingdom (and Gibraltar) in reliance on
+                  the UK Extension to the EU-U.S. DPF. Sagemath has certified to
+                  the U.S. Department of Commerce that it adheres to the
+                  Swiss-U.S. Data Privacy Framework Principles (Swiss-U.S. DPF
+                  Principles) with regard to the processing of personal data
+                  received from Switzerland in reliance on the Swiss-U.S. DPF.
+                  If there is any conflict between the terms in this privacy
+                  policy and the EU-U.S. DPF Principles and/or the Swiss-U.S.
+                  DPF Principles, the Principles shall govern. To learn more
+                  about the Data Privacy Framework (DPF) program, and to view
+                  our certification, please visit{" "}
+                  <A href="https://www.dataprivacyframework.gov/">
+                    www.dataprivacyframework.gov
                   </A>
                   . Additionally, Sagemath may protect information through other
                   legally valid methods, including international data transfer
@@ -115,16 +113,9 @@ export default function Privacy({ customize }) {
                   {" "}
                   This Policy applies to all Sagemath’s operating divisions,
                   subsidiaries, affiliates, and branches, including its U.S.
-                  affiliates certified under the Privacy Shield and any
-                  additional subsidiary, affiliate, or branch of Sagemath that
-                  we may subsequently form.{" "}
-                </p>{" "}
-                <p>
-                  {" "}
-                  NOTE: Regarding the United Kingdom, EU law (including EU data
-                  protection law) will continue to apply to and in the UK during
-                  the Transition Period from January 31, 2020, until December
-                  31, 2020.{" "}
+                  affiliates certified under the DPF program and any additional
+                  subsidiary, affiliate, or branch of Sagemath that we may
+                  subsequently form.{" "}
                 </p>{" "}
               </div>{" "}
               <div id="transparencynoticetypes-of-personal-information-we-collect-and-how-we-use-it">
@@ -702,11 +693,10 @@ export default function Privacy({ customize }) {
                       {" "}
                       <p>
                         {" "}
-                        <strong>Privacy Shield.</strong> With respect to onward
-                        transfers to Agents under Privacy Shield, Privacy Shield
-                        requires that Sagemath remain liable should its Agents
-                        Process Personal Information in a manner inconsistent
-                        with the Privacy Shield Principles.{" "}
+                        <strong>DPF.</strong> With respect to onward transfers
+                        to Agents under DPF, DPF requires that Sagemath remain
+                        liable should its Agents Process Personal Information in
+                        a manner inconsistent with the DPF Principles.{" "}
                       </p>{" "}
                     </li>{" "}
                     <li>
@@ -1066,30 +1056,28 @@ export default function Privacy({ customize }) {
                 </p>{" "}
                 <p>
                   {" "}
-                  If you are an EU or Swiss citizen and feel that Sagemath is
-                  not abiding by the terms of this Policy, or is not in
-                  compliance with the Privacy Shield Principles, please contact
-                  Sagemath at the contact information provided above.{" "}
+                  In compliance with the EU-U.S. DPF, the UK Extension to the
+                  EU-U.S. DPF, and the Swiss-U.S. DPF, Sagemath commits to
+                  resolve DPF Principles-related complaints about our collection
+                  and use of your personal information. EU, UK, and Swiss
+                  individuals with inquiries or complaints regarding our
+                  handling of personal data received in reliance on the EU-U.S.
+                  DPF, the UK Extension to the EU-U.S. DPF, and the Swiss-U.S.
+                  DPF should first contact Sagemath at the contact information
+                  provided above.{" "}
                 </p>{" "}
                 <p>
                   {" "}
-                  In addition, Sagemath has agreed to refer unresolved
-                  complaints related to Personal Information to JAMS Privacy
-                  Shield Dispute Resolution Program and, with respect to
-                  Employee and human resources data, has committed to cooperate
-                  with the panel established by local data protection
-                  authorities and comply with the advice given by the panel for
-                  EU citizens and with the Swiss Federal Data Protection and
-                  Information Commissioner’s authority and advice for such data
-                  of Swiss citizens. For more information and to submit a
-                  complaint regarding Individual data to JAMS, a dispute
-                  resolution provider which has locations in the United States
-                  and EU, visit{" "}
-                  <A href="https://www.jamsadr.com/eu-us-privacy-shield">
-                    {" "}
-                    www.jamsadr.com/eu-us-privacy-shield
-                  </A>
-                  .{" "}
+                  In compliance with the EU-U.S. DPF, the UK Extension to the
+                  EU-U.S. DPF, and the Swiss-U.S. DPF, Sagemath commits to
+                  cooperate and comply respectively with the advice of the panel
+                  established by the EU data protection authorities (DPAs), the
+                  UK Information Commissioner’s Office (ICO) and the Gibraltar
+                  Regulatory Authority (GRA), and the Swiss Federal Data
+                  Protection and Information Commissioner (FDPIC) with regard to
+                  unresolved complaints concerning our handling of personal data
+                  received in reliance on the EU-U.S. DPF, the UK Extension to
+                  the EU-U.S. DPF, and the Swiss-U.S. DPF.{" "}
                 </p>{" "}
                 <p>
                   {" "}
@@ -1101,13 +1089,15 @@ export default function Privacy({ customize }) {
                 <p>
                   {" "}
                   You may also have a right, under certain conditions, to invoke
-                  binding arbitration under Privacy Shield; for additional
-                  information, see{" "}
-                  <A href="https://www.privacyshield.gov/article?id=ANNEX-I-introduction">
-                    www.privacyshield.gov/article?id=ANNEX-I-introduction
+                  binding arbitration for complaints regarding DPF compliance
+                  not resolved by any of the other DPF mechanisms; for
+                  additional information, see{" "}
+                  <A href="https://www.dataprivacyframework.gov/s/article/ANNEX-I-introduction-dpf?tabset-35584=2">
+                    www.dataprivacyframework.gov/s/article/ANNEX-I-introduction-dpf?tabset-35584=2
                   </A>
-                  . The FTC has jurisdiction over Sagemath’s compliance with the
-                  Privacy Shield.{" "}
+                  . The Federal Trade Commission has jurisdiction over
+                  Sagemath’s compliance with the EU-U.S. DPF, the UK Extension
+                  to the EU-U.S. DPF, and the Swiss-U.S. DPF.{" "}
                 </p>{" "}
               </div>{" "}
               <div id="other-rights-and-important-information">
@@ -1176,8 +1166,8 @@ export default function Privacy({ customize }) {
                     This Policy shall be implemented by Sagemath and all its
                     operating divisions, subsidiaries and affiliates. Sagemath
                     has put in place mechanisms to verify ongoing compliance
-                    with Privacy Shield Principles and this Policy. Any Employee
-                    that violates these privacy principles will be subject to
+                    with DPF Principles and this Policy. Any Employee that
+                    violates these privacy principles will be subject to
                     disciplinary procedures.{" "}
                   </p>{" "}
                 </div>{" "}
@@ -1229,14 +1219,14 @@ export default function Privacy({ customize }) {
                     {" "}
                     <p>
                       {" "}
-                      <strong>“Privacy Shield”</strong> means the seven (7)
-                      principles of the Privacy Shield Framework: (1) notice,
-                      (2), choice, (3) accountability for onward transfer, (4)
+                      <strong>“DPF Principles”</strong> means the seven (7)
+                      principles of the Data Privacy Framework: (1) notice, (2)
+                      choice, (3) accountability for onward transfer, (4)
                       security, (5) data integrity and purpose limitation, (6)
                       access, and (7) recourse, enforcement, and liability.
                       Additionally, it includes the sixteen (16) supplemental
-                      principles described in the Privacy Shield: (1) sensitive
-                      data, (2) journalistic exceptions, (3) secondary
+                      principles described in the Data Privacy Framework: (1)
+                      sensitive data, (2) journalistic exceptions, (3) secondary
                       liability, (4) performing due diligence and conducting
                       audits, (5) the role of the data protection authorities,
                       (6) self-certification, (7) verification, (8) access, (9)
@@ -1346,6 +1336,13 @@ export default function Privacy({ customize }) {
                         Updated Sagemath Privacy Policy - revise JAMS link
                       </td>
                       <td> 2022-09-15 </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Updated Sagemath Privacy Policy - Data Privacy Framework
+                        instead of Privacy Shield
+                      </td>
+                      <td> 2023-08-23 </td>
                     </tr>
                   </tbody>
                 </table>

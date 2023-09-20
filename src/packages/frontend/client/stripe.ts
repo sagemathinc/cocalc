@@ -177,8 +177,4 @@ export class StripeClient {
     return (await this.call(message.purchase_license({ info }))).resp;
   }
 
-  // Purchase a license (technically this may or may not involve "stripe").
-  public async sync_site_license_subscriptions(): Promise<void> {
-    await this.call(message.stripe_sync_site_license_subscriptions());
-  }
 }

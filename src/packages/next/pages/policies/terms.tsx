@@ -33,7 +33,7 @@ export default function TermsOfService({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Terms of Service</h1>
-              <h2>Last Updated: September 15, 2021</h2>
+              <h2>Last Updated: May 5, 2023</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -61,15 +61,19 @@ export default function TermsOfService({ customize }) {
                 we do so, we’ll let you know either by posting the modified
                 Terms on the Site at{" "}
                 <A href="/policies/terms">https://cocalc.com/policies/terms</A>{" "}
-                or through other communications. It’s important that you review
-                the Terms whenever we modify them because if you continue to use
-                the Services after we have posted modified Terms on the Site,
-                you are indicating to us that you agree to be bound by the
-                modified Terms. If you don’t agree to be bound by the modified
-                Terms, then you may not use the Services anymore. Because our
-                Services are evolving over time we may change or discontinue all
-                or any part of the Services, at any time and without notice, at
-                our sole discretion.{" "}
+                or through other communications. You track complete details
+                regarding every change{" "}
+                <A href="https://github.com/sagemathinc/cocalc/tree/master/src/packages/next/pages/policies">
+                  on GitHub
+                </A>
+                . It’s important that you review the Terms whenever we modify
+                them because if you continue to use the Services after we have
+                posted modified Terms on the Site, you are indicating to us that
+                you agree to be bound by the modified Terms. If you don’t agree
+                to be bound by the modified Terms, then you may not use the
+                Services anymore. Because our Services are evolving over time we
+                may change or discontinue all or any part of the Services, at
+                any time and without notice, at our sole discretion.{" "}
               </p>
               <h1>Beta Testing Disclaimer</h1>
               <p>
@@ -204,6 +208,11 @@ export default function TermsOfService({ customize }) {
                   SMI reserves the right at any time to modify or discontinue,
                   temporarily or permanently, your access to the API (or any
                   part thereof) with or without notice.{" "}
+                </li>
+                <li>
+                  Unauthorized access to the API is not allowed from third party
+                  software. You must create your own account and provision an
+                  API key in order to use the API.
                 </li>
               </ul>
               <h1>Payment, Refunds, Upgrading and Downgrading Accounts</h1>

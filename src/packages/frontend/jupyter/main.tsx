@@ -22,7 +22,7 @@ import {
 import "./output-messages/mime-types/init-frontend";
 
 // React components that implement parts of the Jupyter notebook.
-import { A, ErrorDisplay } from "@cocalc/frontend/components";
+import { ErrorDisplay } from "@cocalc/frontend/components";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
@@ -42,9 +42,10 @@ import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
 import { TopButtonbar } from "./top-buttonbar";
 import { TopMenubar } from "./top-menubar";
-import { NotebookMode, Scroll } from "./types";
-import { Kernels as KernelsType } from "./util";
+import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import * as chatgpt from "./chatgpt";
+import KernelWarning from "./kernel-warning";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -181,8 +182,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "check_select_kernel_init",
   ]);
 
-  const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
-
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
   // what comes up with Jupyter notebooks.
@@ -202,25 +201,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   );
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
-
-  function render_kernel_error() {
-    if (!kernel_error) return;
-    // We use "warning" since this isn't necessarily an error.  It really is just
-    // explaining why the kernel stopped.
-    return (
-      <ErrorDisplay
-        bsStyle="warning"
-        banner={true}
-        error_component={
-          <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
-            {kernel_error}
-          </A>
-        }
-        style={ERROR_STYLE}
-        onClose={() => actions.setState({ kernel_error: "" })}
-      />
-    );
-  }
 
   function render_error() {
     if (error) {
@@ -361,11 +341,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        chatgpt={
-          actions?.redux?.getStore("projects").hasOpenAI(project_id)
-            ? chatgpt
-            : undefined
-        }
+        chatgpt={chatgpt}
       />
     );
   }
@@ -508,7 +484,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           overflowY: "hidden",
         }}
       >
-        {render_kernel_error()}
+        <KernelWarning name={name} />
         {render_error()}
         {render_modals()}
         {render_heading()}

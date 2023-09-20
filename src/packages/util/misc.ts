@@ -9,72 +9,72 @@ export * from "./misc-path";
 
 import {
   is_array,
+  is_date,
   is_integer,
   is_object,
-  is_string,
-  is_date,
   is_set,
+  is_string,
 } from "./type-checking";
 
-export { is_array, is_integer, is_object, is_string, is_date, is_set };
+export { is_array, is_date, is_integer, is_object, is_set, is_string };
 
 export {
+  is_zero_map,
   map_limit,
   map_max,
   map_min,
-  sum,
-  is_zero_map,
-  map_without_undefined_and_null,
   map_mutate_out_undefined_and_null,
+  map_without_undefined_and_null,
+  sum,
 } from "./maps";
 
 export { done, done1, done2 } from "./done";
 
 export {
+  all_fields_equal,
   cmp,
   cmp_Date,
+  cmp_array,
   cmp_dayjs,
   cmp_moment,
-  cmp_array,
-  timestamp_cmp,
   field_cmp,
   is_different,
   is_different_array,
   shallowCompare,
-  all_fields_equal,
+  timestamp_cmp,
 } from "./cmp";
 
 export {
-  server_time,
-  server_milliseconds_ago,
-  server_seconds_ago,
-  server_minutes_ago,
-  server_hours_ago,
-  server_days_ago,
-  server_weeks_ago,
-  server_months_ago,
-  milliseconds_before,
-  seconds_before,
-  minutes_before,
-  hours_before,
-  days_before,
-  weeks_before,
-  months_before,
-  expire_time,
   YEAR,
+  days_before,
+  expire_time,
+  hours_before,
+  milliseconds_before,
+  minutes_before,
+  months_before,
+  seconds_before,
+  server_days_ago,
+  server_hours_ago,
+  server_milliseconds_ago,
+  server_minutes_ago,
+  server_months_ago,
+  server_seconds_ago,
+  server_time,
+  server_weeks_ago,
+  weeks_before,
 } from "./relative-time";
 
 import sha1 from "sha1";
 export { sha1 };
 
 import getRandomValues from "get-random-values";
-import * as lodash from "lodash";
 import * as immutable from "immutable";
+import * as lodash from "lodash";
 
 export const keys: (any) => string[] = lodash.keys;
 
-import { required, defaults, types } from "./opts";
-export { required, defaults, types };
+import { defaults, required, types } from "./opts";
+export { defaults, required, types };
 
 interface SplittedPath {
   head: string;
@@ -331,7 +331,7 @@ export function len(obj: object | undefined | null): number {
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
 export function milliseconds_ago(ms: number): Date {
-  return new Date(new Date().valueOf() - ms);
+  return new Date(Date.now() - ms);
 }
 export function seconds_ago(s: number) {
   return milliseconds_ago(1000 * s);
@@ -355,7 +355,7 @@ export function months_ago(m: number) {
 // Here, we want to know how long ago a certain timestamp was
 export function how_long_ago_ms(ts: Date | number): number {
   const ts_ms = typeof ts === "number" ? ts : ts.getTime();
-  return new Date().getTime() - ts_ms;
+  return Date.now() - ts_ms;
 }
 export function how_long_ago_s(ts: Date | number): number {
   return how_long_ago_ms(ts) / 1000;
@@ -366,7 +366,7 @@ export function how_long_ago_m(ts: Date | number): number {
 
 // Current time in milliseconds since epoch or t.
 export function mswalltime(t?: number): number {
-  return new Date().getTime() - (t ?? 0);
+  return Date.now() - (t ?? 0);
 }
 
 // Current time in seconds since epoch, as a floating point
@@ -433,7 +433,7 @@ export function plural(number, singular, plural = `${singular}s`) {
 
 const ELLIPSIS = "…";
 // "foobar" --> "foo…"
-export function trunc(s, max_length = 1024) {
+export function trunc(s, max_length = 1024, ellipsis = ELLIPSIS) {
   if (s == null) {
     return s;
   }
@@ -444,14 +444,14 @@ export function trunc(s, max_length = 1024) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return s.slice(0, max_length - 1) + ELLIPSIS;
+    return s.slice(0, max_length - 1) + ellipsis;
   } else {
     return s;
   }
 }
 
 // "foobar" --> "fo…ar"
-export function trunc_middle(s, max_length = 1024) {
+export function trunc_middle(s, max_length = 1024, ellipsis = ELLIPSIS) {
   if (s == null) {
     return s;
   }
@@ -467,13 +467,13 @@ export function trunc_middle(s, max_length = 1024) {
   const n = Math.floor(max_length / 2);
   return (
     s.slice(0, n - 1 + (max_length % 2 ? 1 : 0)) +
-    ELLIPSIS +
+    ellipsis +
     s.slice(s.length - n)
   );
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024): string | undefined {
+export function trunc_left(s, max_length = 1024, ellipsis = ELLIPSIS) {
   if (s == null) {
     return s;
   }
@@ -484,7 +484,7 @@ export function trunc_left(s, max_length = 1024): string | undefined {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return ELLIPSIS + s.slice(s.length - max_length + 1);
+    return ellipsis + s.slice(s.length - max_length + 1);
   } else {
     return s;
   }
@@ -633,23 +633,26 @@ export function bind_methods<T extends object>(
   return obj;
 }
 
-export function human_readable_size(bytes: number | null | undefined): string {
+export function human_readable_size(
+  bytes: number | null | undefined,
+  short = false
+): string {
   if (bytes == null) {
     return "?";
   }
   if (bytes < 1000) {
-    return `${bytes} bytes`;
+    return `${bytes} ${short ? "b" : "bytes"}`;
   }
   if (bytes < 1000000) {
     const b = Math.floor(bytes / 100);
-    return `${b / 10} KB`;
+    return `${b / 10} ${short ? "K" : "KB"}`;
   }
   if (bytes < 1000000000) {
     const b = Math.floor(bytes / 100000);
-    return `${b / 10} MB`;
+    return `${b / 10} ${short ? "M" : "MB"}`;
   }
   const b = Math.floor(bytes / 100000000);
-  return `${b / 10} GB`;
+  return `${b / 10} ${short ? "G" : "GB"}`;
 }
 
 // Regexp used to test for URLs in a string.
@@ -781,6 +784,11 @@ export function round1(num: number): number {
 export function round2(num: number): number {
   // padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
   return Math.round((num + 0.00001) * 100) / 100;
+}
+
+// Round given number up to 2 decimal places
+export function round2up(num: number): number {
+  return Math.ceil(num * 100) / 100;
 }
 
 // returns the number parsed from the input text, or undefined if invalid
@@ -1388,7 +1396,7 @@ export function retry_until_success(opts: {
       if (opts.max_time != null) {
         opts.log(
           `retry_until_success(${opts.name}) -- try ${tries} (started ${
-            new Date().valueOf() - start_time
+            Date.now() - start_time
           }ms ago; will stop before ${opts.max_time}ms max time)`
         );
       }
@@ -1427,7 +1435,7 @@ export function retry_until_success(opts: {
         );
         if (
           opts.max_time != null &&
-          new Date().valueOf() - start_time + delta > opts.max_time
+          Date.now() - start_time + delta > opts.max_time
         ) {
           opts.cb?.(
             `maximum time (=${
@@ -1709,10 +1717,20 @@ export function stripeDate(d: number): string {
   });
 }
 
-export function to_money(n: number): string {
+export function to_money(n: number, d = 2): string {
   // see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
   // TODO: replace by using react-intl...
-  return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
+  return n.toFixed(d).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
+}
+
+// Display currency with a dollar sign, rounded to *nearest*, and
+// if d is not given and n is less than 10 cents, will show 3 digits
+// instead of 2.
+export function currency(n: number, d?: number) {
+  if (n == 0) {
+    return `$0.00`;
+  }
+  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.1 ? 3 : 2))}`;
 }
 
 export function stripeAmount(
@@ -1722,10 +1740,12 @@ export function stripeAmount(
 ): string {
   // input is in pennies
   if (currency !== "usd") {
-    throw Error(`not-implemented currency ${currency}`);
+    // TODO: need to make this look nice with symbols for other currencies...
+    return `${currency == "eur" ? "€" : ""}${to_money(
+      (units * unitPrice) / 100
+    )} ${currency.toUpperCase()}`;
   }
-  let s = `$${to_money((units * unitPrice) / 100)} USD`;
-  return s;
+  return `$${to_money((units * unitPrice) / 100)} USD`;
 }
 
 export function planInterval(
@@ -1946,16 +1966,18 @@ export function ensure_bound(x: number, min: number, max: number): number {
   return x < min ? min : x > max ? max : x;
 }
 
+export const EDITOR_PREFIX = "editor-";
+
 // convert a file path to the "name" of the underlying editor tab.
 // needed because otherwise filenames like 'log' would cause problems
 export function path_to_tab(name: string): string {
-  return `editor-${name}`;
+  return `${EDITOR_PREFIX}${name}`;
 }
 
 // assumes a valid editor tab name...
 // If invalid or undefined, returns undefined
 export function tab_to_path(name: string): string | undefined {
-  if (name?.substring(0, 7) === "editor-") {
+  if (name?.substring(0, 7) === EDITOR_PREFIX) {
     return name.substring(7);
   }
   return;
@@ -2209,7 +2231,8 @@ export function closest_kernel_match(
     }
     // filter out kernels with negative priority (using the priority
     // would be great, though)
-    if (k.getIn(["metadata", "cocalc", "priority"], 0) < 0) continue;
+    if ((k.getIn(["metadata", "cocalc", "priority"], 0) as number) < 0)
+      continue;
     const kernel_name = k.get("name")?.toLowerCase();
     if (!kernel_name) continue;
     let v = 0;
@@ -2407,4 +2430,40 @@ export function sanitizeObject(obj: object, recursive = 2): any {
     ret[key_san] = val_san;
   }
   return ret;
+}
+
+/**
+ * For a given string s, return a random bright color, but not too bright.
+ * Use a hash to make this random, but deterministic.
+ */
+export function getRandomColor(
+  s: string,
+  opts?: { min: number; max: number }
+): string {
+  const { min = 120, max = 220 } = opts ?? {};
+  const mod = max - min;
+
+  const hash = sha1(s)
+    .split("")
+    .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
+  const r = (((hash >> 0) & 0xff) % mod) + min;
+  const g = (((hash >> 8) & 0xff) % mod) + min;
+  const b = (((hash >> 16) & 0xff) % mod) + min;
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+export function hexColorToRGBA(col: string, opacity?: number): string {
+  const r = parseInt(col.slice(1, 3), 16);
+  const g = parseInt(col.slice(3, 5), 16);
+  const b = parseInt(col.slice(5, 7), 16);
+
+  if (opacity && opacity <= 1 && opacity >= 0) {
+    return `rgba(${r},${g},${b},${opacity})`;
+  } else {
+    return `rgb(${r},${g},${b})`;
+  }
+}
+
+export function strictMod(a: number, b: number): number {
+  return ((a % b) + b) % b;
 }

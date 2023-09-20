@@ -156,3 +156,55 @@ test("sanitizeObject", () => {
   };
   expect(misc.sanitizeObject(o1)).toEqual(o2);
 });
+
+test("hexColorToRGBA", () => {
+  const c1 = misc.hexColorToRGBA("#000000");
+  expect(c1).toEqual("rgb(0,0,0)");
+  const c2 = misc.hexColorToRGBA("#ffffff", 0.5);
+  expect(c2).toEqual("rgba(255,255,255,0.5)");
+});
+
+test("strictMod", () => {
+  const mod = misc.strictMod;
+  expect(mod(0, 3)).toBe(0);
+  expect(mod(1, 3)).toBe(1);
+  expect(mod(-2, 3)).toBe(1);
+  expect(mod(-3, 3)).toBe(0);
+  expect(mod(-1, 10)).toBe(9);
+});
+
+test("EDITOR_PREFIX", () => {
+  // don't change it, because codebase is not using the global variable everywhere
+  expect(misc.EDITOR_PREFIX).toBe("editor-");
+});
+
+describe("test code for displaying numbers as currency with 2 or sometimes 3 decimals of precision", () => {
+  const { currency } = misc;
+  it("displays 1.23", () => {
+    expect(currency(1.23)).toBe("$1.23");
+  });
+
+  it("displays 0.0941 with 3 digits (not 2), but only because n is less than 0.10", () => {
+    expect(currency(0.0941)).toBe("$0.094");
+  });
+
+  it("displays 0.1941 with 2, because n is not less than 0.10", () => {
+    expect(currency(0.1941)).toBe("$0.19");
+  });
+
+  it("displays 0.0941 with 2 digits if second argument specifies that", () => {
+    expect(currency(0.0941, 2)).toBe("$0.09");
+  });
+
+  it("displays 0.086 with 2 digits if second argument specifies that, and it is rounded to nearest", () => {
+    expect(currency(0.086, 2)).toBe("$0.09");
+  });
+
+  it("displays 0.083 with 2 digits if second argument specifies that, and it is rounded to nearest (NOT up)", () => {
+    expect(currency(0.083, 2)).toBe("$0.08");
+  });
+
+  it("always includes at least 2 decimals", () => {
+    expect(currency(10)).toBe("$10.00");
+  });
+});

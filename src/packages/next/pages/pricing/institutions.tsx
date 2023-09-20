@@ -329,24 +329,6 @@ function Body(): JSX.Element {
                   <span style={{ color: COLORS.GRAY_L }}>/year</span>
                 </span>
               </div>
-              {item.retail ? (
-                <div style={{ color: COLORS.GRAY }}>
-                  (
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: "14pt",
-                    }}
-                  >
-                    {money(item.retail, true)}
-                  </span>{" "}
-                  via purchase order)
-                </div>
-              ) : (
-                <div>
-                  <span style={{ fontSize: "14pt" }}>&nbsp;</span>
-                </div>
-              )}
               <LinkToStore conf={item.conf} />
               <div style={{ textAlign: "center", marginTop: "10px" }}>
                 (${round2(item.online / item.conf.run_limit)} / {item.name} /

@@ -7,9 +7,7 @@ import {
   delete_local_storage,
   get_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
-import { LicenseType } from "@cocalc/util/upgrades/shopping";
 import apiPost from "lib/api/post";
 import { LS_KEY_LICENSE_PROJECT } from "./util";
 import { ALL_FIELDS } from "./quota-query-params";
@@ -31,9 +29,7 @@ export async function addToCart(props: Props) {
   const { form, setCartError, router } = props;
 
   // we make a copy, because otherwise this actually modifies the fields (user sees brief red errors)
-  const description: ProductDescription & {
-    type?: LicenseTypeInForms | LicenseType;
-  } = {
+  const description = {
     ...form.getFieldsValue(true),
   };
 

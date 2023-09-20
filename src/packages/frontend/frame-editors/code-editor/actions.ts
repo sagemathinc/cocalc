@@ -20,69 +20,83 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
+import type { TourProps } from "antd";
 import { reuseInFlight } from "async-await-utils/hof";
-import { fromJS, List, Map, Set } from "immutable";
-import { debounce } from "underscore";
 import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+import { List, Map, fromJS, Set as iSet } from "immutable";
+import { debounce } from "lodash";
+
 import {
-  get_default_font_size,
-  log_error,
-  formatter,
-  syncstring,
-  syncdb2,
-  syncstring2,
-} from "../generic/client";
-import { SyncDB } from "@cocalc/sync/editor/db";
-import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
-import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
+  Actions as BaseActions,
+  Rendered,
+  Store,
+  TypedMap,
+  createTypedMap,
+} from "@cocalc/frontend/app-framework";
+import type { PageActions } from "@cocalc/frontend/app/actions";
+import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
+import { Config as FormatterConfig } from "@cocalc/project/formatters";
+import { SyncDB } from "@cocalc/sync/editor/db";
+import { apply_patch } from "@cocalc/sync/editor/generic/util";
+import { SyncString } from "@cocalc/sync/editor/string";
+import { once } from "@cocalc/util/async-utils";
+import {
+  Exts as FormatterExts,
+  Syntax as FormatterSyntax,
+  Tool as FormatterTool,
+  ext2syntax,
+  syntax2tool,
+} from "@cocalc/util/code-formatter";
+import {
+  aux_file,
+  filename_extension,
+  history_path,
+  len,
+  uuid,
+} from "@cocalc/util/misc";
+import chatgptCreatechat from "../chatgpt/create-chat";
+import type { Scope as ChatGPTScope } from "../chatgpt/types";
+import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
+import * as tree_ops from "../frame-tree/tree-ops";
 import {
   ConnectionStatus,
+  ErrorStyles,
   FrameDirection,
   FrameTree,
   ImmutableFrameTree,
   SetMap,
-  ErrorStyles,
 } from "../frame-tree/types";
-import { SettingsObject } from "../settings/types";
-import { misspelled_words } from "./spell-check";
-import * as cm_doc_cache from "./doc";
-import { test_line } from "./simulate_typing";
-import { Rendered } from "../../app-framework";
-import * as CodeMirror from "codemirror";
+import {
+  formatter,
+  get_default_font_size,
+  log_error,
+  syncdb2,
+  syncstring,
+  syncstring2,
+} from "../generic/client";
 import "../generic/codemirror-plugins";
-import * as tree_ops from "../frame-tree/tree-ops";
-import { Actions as BaseActions, Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework";
+import { SettingsObject } from "../settings/types";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
-import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
-import { AvailableFeatures } from "../../project_configuration";
-import { apply_patch } from "@cocalc/sync/editor/generic/util";
-import { default_opts } from "../codemirror/cm-options";
-import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-import { open_new_tab } from "../../misc";
-import {
-  set_local_storage,
-  get_local_storage,
-  delete_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
-import Fragment from "@cocalc/frontend/misc/fragment-id";
-import {
-  ext2syntax,
-  syntax2tool,
-  Syntax as FormatterSyntax,
-  Exts as FormatterExts,
-  Tool as FormatterTool,
-} from "@cocalc/util/code-formatter";
-import { Config as FormatterConfig } from "@cocalc/project/formatters";
-import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
-import chatgptCreatechat from "../chatgpt/create-chat";
-import type { PageActions } from "@cocalc/frontend/app/actions";
+import { CodeEditor, CodeEditorManager } from "./code-editor-manager";
+import { DEFAULT_TERM_ENV } from "./const";
+import * as cm_doc_cache from "./doc";
+import { SHELLS } from "./editor";
+import { test_line } from "./simulate_typing";
+import { misspelled_words } from "./spell-check";
 
 interface gutterMarkerParams {
   line: number;
@@ -112,7 +126,7 @@ export interface CodeEditorState {
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
-  misspelled_words: Set<string> | string;
+  misspelled_words: iSet<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   show_uncommitted_changes: boolean;
@@ -130,13 +144,13 @@ export interface CodeEditorState {
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
   complete: Map<string, any>;
-  derived_file_types: Set<string>;
+  derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
 }
 
 export class Actions<
-  T extends CodeEditorState = CodeEditorState
+  T extends CodeEditorState = CodeEditorState,
 > extends BaseActions<T | CodeEditorState> {
   protected _state: "closed" | undefined;
   public _syncstring: SyncString;
@@ -150,9 +164,20 @@ export class Actions<
   private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
+
+  ////////
+  // these are for doctype "syncdb":
   protected primary_keys: string[] = [];
   protected string_cols: string[] = [];
   protected disable_cursors: boolean = false;
+  // If this is set, then we get automatic computation of
+  // search embeddings
+  protected searchEmbeddings?: {
+    primaryKey: string;
+    textColumn: string;
+    metaColumns?: string[];
+  };
+  ////////
 
   public project_id: string;
   public path: string;
@@ -176,11 +201,11 @@ export class Actions<
     project_id: string,
     path: string,
     is_public: boolean,
-    store: any
+    store: any,
   ): void {
     this._save_local_view_state = debounce(
       () => this.__save_local_view_state(),
-      1500
+      1500,
     );
 
     this.project_id = project_id;
@@ -188,16 +213,18 @@ export class Actions<
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
-      this as unknown as Actions<CodeEditorState>
+      this as unknown as Actions<CodeEditorState>,
     );
     this.code_editors = new CodeEditorManager<CodeEditorState>(
-      this as unknown as Actions<CodeEditorState>
+      this as unknown as Actions<CodeEditorState>,
     );
 
     this.format = reuseInFlight(this.format);
 
-    this.set_resize = this.set_resize.bind(this);
-    window.addEventListener("resize", this.set_resize);
+    this.set_resize = debounce(this.set_resize.bind(this), 20, {
+      leading: false,
+      trailing: true,
+    });
 
     if (is_public) {
       this._init_value();
@@ -211,7 +238,7 @@ export class Actions<
       local_view_state: this._load_local_view_state(),
       reload: Map(),
       resize: 0,
-      misspelled_words: Set(),
+      misspelled_words: iSet(),
       has_unsaved_changes: false,
       has_uncommitted_changes: false,
       show_uncommitted_changes: false,
@@ -246,7 +273,7 @@ export class Actions<
       "save-to-disk",
       reuseInFlight(async (time) => {
         await this.update_misspelled_words(time);
-      })
+      }),
     );
   }
 
@@ -282,6 +309,28 @@ export class Actions<
         string_cols: this.string_cols,
         cursors: !this.disable_cursors,
       });
+      if (this.searchEmbeddings != null) {
+        if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
+          throw Error(
+            `search embedding primaryKey must be in ${JSON.stringify(
+              this.primary_keys,
+            )}`,
+          );
+        }
+        if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
+          throw Error(
+            `search embedding textColumn must be in ${JSON.stringify(
+              this.string_cols,
+            )}`,
+          );
+        }
+        enableSearchEmbeddings({
+          project_id: this.project_id,
+          path: this.path,
+          syncdb: this._syncstring,
+          ...this.searchEmbeddings,
+        });
+      }
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
     }
@@ -289,7 +338,7 @@ export class Actions<
     this._syncstring.once("ready", (err) => {
       if (err) {
         this.set_error(
-          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`
+          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`,
         );
         return;
       }
@@ -309,20 +358,20 @@ export class Actions<
 
       this._syncstring.on(
         "metadata-change",
-        this._syncstring_metadata.bind(this)
+        this._syncstring_metadata.bind(this),
       );
       this._syncstring.on(
         "cursor_activity",
-        this._syncstring_cursor_activity.bind(this)
+        this._syncstring_cursor_activity.bind(this),
       );
     });
 
     this._syncstring.on("before-change", () =>
-      this.set_syncstring_to_codemirror(undefined, true)
+      this.set_syncstring_to_codemirror(undefined, true),
     );
     this._syncstring.on(
       "after-change",
-      this.set_codemirror_to_syncstring.bind(this)
+      this.set_codemirror_to_syncstring.bind(this),
     );
     this._syncstring.once("load-time-estimate", (est) => {
       return this.setState({ load_time_estimate: est });
@@ -336,7 +385,7 @@ export class Actions<
 
     this._syncstring.once("error", (err) => {
       this.set_error(
-        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
+        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`,
       );
     });
 
@@ -351,7 +400,7 @@ export class Actions<
         if (!has_uncommitted_changes) {
           this.set_show_uncommitted_changes(false);
         }
-      }
+      },
     );
 
     this._syncstring.on("has-unsaved-changes", (has_unsaved_changes) => {
@@ -382,7 +431,7 @@ export class Actions<
   _init_syncdb(
     primary_keys: string[],
     string_cols?: string[],
-    path?: string
+    path?: string,
   ): void {
     if (primary_keys.length <= 0) {
       throw Error("primary_keys must be array of positive length");
@@ -397,7 +446,7 @@ export class Actions<
     });
     this._syncdb.once("error", (err) => {
       this.set_error(
-        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`
+        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`,
       );
     });
 
@@ -492,7 +541,7 @@ export class Actions<
     this._save_local_view_state = this.__save_local_view_state;
     if (this._key_handler != null) {
       (this.redux.getActions("page") as any).erase_active_key_handler(
-        this._key_handler
+        this._key_handler,
       );
       delete this._key_handler;
     }
@@ -529,7 +578,7 @@ export class Actions<
     if (!this.store?.get("local_view_state")) return;
     set_local_storage(
       this.name,
-      JSON.stringify(this.store.get("local_view_state"))
+      JSON.stringify(this.store.get("local_view_state")),
     );
   }
 
@@ -555,7 +604,7 @@ export class Actions<
     if (!local_view_state.has("font_size")) {
       local_view_state = local_view_state.set(
         "font_size",
-        get_default_font_size()
+        get_default_font_size(),
       );
     }
 
@@ -572,7 +621,7 @@ export class Actions<
     if (active_id == null || !tree_ops.is_leaf_id(frame_tree, active_id)) {
       local_view_state = local_view_state.set(
         "active_id",
-        tree_ops.get_some_leaf_id(frame_tree)
+        tree_ops.get_some_leaf_id(frame_tree),
       );
     }
 
@@ -605,7 +654,7 @@ export class Actions<
   _is_leaf_id(id: string): boolean {
     return tree_ops.is_leaf_id(
       this.store.getIn(["local_view_state", "frame_tree"]) as any,
-      id
+      id,
     );
   }
 
@@ -621,8 +670,10 @@ export class Actions<
   // leaf with that id.  If ignore_if_missing is true, then don't write warning.
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
+    if (this._state === "closed" || this.store == null) return;
     // Set the active_id, if necessary.
     const local = this.store.get("local_view_state");
+    if (local == null) return;
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
@@ -638,7 +689,7 @@ export class Actions<
     this._active_id_history.push(active_id);
     if (this._active_id_history.length > 100) {
       this._active_id_history = this._active_id_history.slice(
-        this._active_id_history.length - 100
+        this._active_id_history.length - 100,
       );
     }
 
@@ -730,7 +781,7 @@ export class Actions<
   }
 
   _default_frame_tree(): Map<string, any> {
-    let frame_tree = fromJS(this._raw_default_frame_tree());
+    let frame_tree = fromJS(this._raw_default_frame_tree()) as Map<string, any>;
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     return frame_tree;
@@ -931,7 +982,7 @@ export class Actions<
     type?: string, // type of new frame
     extra?: object, // set this data in the new frame immediately.
     first?: boolean, // if true, new frame is left or top instead of right or bottom.
-    no_focus?: boolean // do not change active frame
+    no_focus?: boolean, // do not change active frame
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
@@ -970,7 +1021,7 @@ export class Actions<
   public new_frame(
     type: string, // type of new frame
     direction?: FrameDirection, // default "col"
-    first?: boolean // if true, new frame is left or top instead of right or bottom.
+    first?: boolean, // if true, new frame is left or top instead of right or bottom.
   ): string {
     const before = this._get_leaf_ids();
     this._tree_op("new_frame", type, direction ?? "col", first ?? false);
@@ -1065,7 +1116,7 @@ export class Actions<
       info.get("locs").forEach((loc) => {
         loc = loc.set("time", info.get("time"));
         const locs = cursors.get(account_id, List()).push(loc);
-        cursors = cursors.set(account_id, locs);
+        cursors = cursors.set(account_id, locs as any);
       });
     });
     if (!cursors.equals(this.store.get("cursors"))) {
@@ -1078,7 +1129,6 @@ export class Actions<
   //  -- setting uri fragment page= at top of browser, so URL link is useful
   //  -- don't delete trailing whitespace in lines with cursors
   set_cursor_locs(locs: any[]): void {
-    // console.log("set_cursor_locs", JSON.stringify(locs));
     if (!this._syncstring) {
       return; // not currently valid.
     }
@@ -1335,13 +1385,13 @@ export class Actions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type").slice(0, 2) == "cm"
+      (node) => node.get("type").slice(0, 2) == "cm",
     );
   }
 
   _get_most_recent_terminal_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type").slice(0, 8) == "terminal"
+      (node) => node.get("type").slice(0, 8) == "terminal",
     );
   }
 
@@ -1350,7 +1400,7 @@ export class Actions<
     return this._get_most_recent_active_frame_id(
       (node) =>
         node.get("type").slice(0, 8) == "terminal" &&
-        node.get("command") == command
+        node.get("command") == command,
     );
   }
 
@@ -1364,7 +1414,7 @@ export class Actions<
 
   public _get_terminal(
     id: string,
-    parent: HTMLElement
+    parent: HTMLElement,
   ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
@@ -1457,7 +1507,7 @@ export class Actions<
 
   set_syncstring_to_codemirror(
     id?: string,
-    do_not_exit_undo_mode?: boolean
+    do_not_exit_undo_mode?: boolean,
   ): void {
     const cm = this._get_cm(id);
     if (!cm) {
@@ -1466,6 +1516,8 @@ export class Actions<
     this.set_syncstring(cm.getValue(), do_not_exit_undo_mode);
   }
 
+  // Do NOT call this outside of this class to set the value - instead call
+  // the public set_value method!
   private set_syncstring(value: string, do_not_exit_undo_mode?: boolean): void {
     // note -- we don't try to set the syncstring if actions are closed
     // or the syncstring isn't initialized yet.  The latter case happens when
@@ -1641,7 +1693,7 @@ export class Actions<
     cursor?: boolean,
     focus?: boolean,
     frameId?: string, // if given scroll the frame with this id
-    ch?: number // specific character in line
+    ch?: number, // specific character in line
   ): Promise<void> {
     if (!(await this.wait_until_syncdoc_ready())) {
       return;
@@ -1770,7 +1822,7 @@ export class Actions<
   public set_error(
     error?: object | string,
     style?: ErrorStyles,
-    id?: string
+    id?: string,
   ): void {
     id = id; // id - not currently used, but would be for frame-specific error.
     if (error === undefined) {
@@ -1892,7 +1944,7 @@ export class Actions<
       if (typeof words == "string") {
         this.setState({ misspelled_words: words });
       } else {
-        const x = Set(words);
+        const x = iSet(words);
         if (!x.equals(this.store.get("misspelled_words"))) {
           this.setState({ misspelled_words: x });
         }
@@ -1946,7 +1998,7 @@ export class Actions<
     }
     const gutter_markers: GutterMarkers = this.store.get(
       "gutter_markers",
-      Map()
+      Map(),
     );
     const info = new GutterMarker({
       line: opts.line,
@@ -1959,7 +2011,7 @@ export class Actions<
   delete_gutter_marker(id: string): void {
     const gutter_markers: GutterMarkers = this.store.get(
       "gutter_markers",
-      Map()
+      Map(),
     );
     if (gutter_markers.has(id)) {
       this.setState({ gutter_markers: gutter_markers.delete(id) });
@@ -2020,7 +2072,7 @@ export class Actions<
 
   public format_support_for_syntax(
     available_features: AvailableFeatures,
-    syntax: FormatterSyntax
+    syntax: FormatterSyntax,
   ): false | FormatterTool {
     if (syntax == null) return false;
     // first, check if there exists a tool for that syntax
@@ -2036,7 +2088,7 @@ export class Actions<
 
   public format_support_for_extension(
     available_features: AvailableFeatures,
-    ext: string
+    ext: string,
   ): false | FormatterTool {
     const syntax = ext2syntax[ext];
     return this.format_support_for_syntax(available_features, syntax);
@@ -2045,7 +2097,7 @@ export class Actions<
   // Not an action, but works to make code clean
   has_format_support(
     id: string,
-    available_features?: AvailableFeatures // is in project store
+    available_features?: AvailableFeatures, // is in project store
   ): false | string {
     if (available_features == null) return false;
     const leaf = this._get_frame_node(id);
@@ -2159,7 +2211,7 @@ export class Actions<
 
   _get_most_recent_active_frame_id_of_type(type: string): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type") == type
+      (node) => node.get("type") == type,
     );
   }
 
@@ -2329,9 +2381,7 @@ export class Actions<
   // Override in derived class to set a special env for
   // any launched terminals.
   get_term_env(): { [envvar: string]: string } {
-    // https://github.com/sagemathinc/cocalc/issues/4120
-    const MPLBACKEND = "Agg";
-    return { MPLBACKEND };
+    return DEFAULT_TERM_ENV;
   }
 
   // If you override show, make sure to still call this
@@ -2397,7 +2447,7 @@ export class Actions<
 
   // Overload this in a derived class to have a possibly more complicated spec.
   protected async get_shell_spec(
-    id: string
+    id: string,
   ): Promise<undefined | string | { command: string; args: string[] }> {
     id = id; // not used.
     return SHELLS[filename_extension(this.path)];
@@ -2472,20 +2522,27 @@ export class Actions<
   }
 
   public clear_terminal_command(id: string): void {
-    this.set_frame_tree({ id, command: undefined, args: undefined });
-    // also, restart that terminal...
-    this.terminals.set_command(id, undefined, undefined);
     this.terminals.kill(id);
   }
 
   public async clear(id: string) {
     // this is for terminals only
-    const type = this._get_frame_node(id)?.get("type");
+    const node = this._get_frame_node(id);
+    if (node == null) return;
+    const type = node.get("type");
     if (type == "terminal") {
       this.clear_terminal_command(id);
+      if (node.get("command") == "jupyter") {
+        // not reseting jupyter
+        return;
+      }
+      // we also wait until it is "back again with a prompt"
+      // and issue the reset command, but that doesn't
+      // make sense for Jupyter.
       const t = this.terminals.get(id);
-      // we also wait until it is "back again with a prompt" and issue the reset command
-      if (t == null) return;
+      if (t == null) {
+        return;
+      }
       await t.wait_for_next_render();
       await delay(1); // also wait a little bit
       t.conn_write("reset\n");
@@ -2498,14 +2555,14 @@ export class Actions<
     (this.redux.getActions("page") as PageActions).set_active_key_handler(
       key_handler,
       this.project_id,
-      this.path
+      this.path,
     );
     this._key_handler = key_handler;
   }
 
   public erase_active_key_handler(key_handler: (e: any) => void): void {
     (this.redux.getActions("page") as PageActions).erase_active_key_handler(
-      key_handler
+      key_handler,
     );
   }
 
@@ -2522,7 +2579,7 @@ export class Actions<
     type: string,
     dir: FrameDirection = "col",
     first?: boolean,
-    pos?: number
+    pos?: number,
   ): string {
     let id: string | undefined =
       this._get_most_recent_active_frame_id_of_type(type);
@@ -2553,7 +2610,7 @@ export class Actions<
     type: string,
     dir: FrameDirection = "col",
     first: boolean = false,
-    pos: number | undefined = undefined
+    pos: number | undefined = undefined,
   ): string {
     const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
@@ -2568,7 +2625,7 @@ export class Actions<
   }
 
   public async show_overview(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type("overview", "col", true, 0.3);
     await delay(0);
@@ -2577,7 +2634,7 @@ export class Actions<
   }
 
   public async show_slideshow(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type("slideshow", "col", true, 0.3);
     await delay(0);
@@ -2586,13 +2643,13 @@ export class Actions<
   }
 
   public async show_speaker_notes(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "speaker_notes",
       "row",
       false,
-      0.8
+      0.8,
     );
     await delay(0);
     if (this._state === "closed") return;
@@ -2609,7 +2666,7 @@ export class Actions<
 
   // Closes the most recently focused frame of the given type.
   public close_recently_focused_frame_of_type(
-    type: string
+    type: string,
   ): string | undefined {
     const id: string | undefined =
       this._get_most_recent_active_frame_id_of_type(type);
@@ -2634,7 +2691,7 @@ export class Actions<
     path: string,
     dir: FrameDirection = "col",
     first: boolean = false,
-    pos: number | undefined = undefined
+    pos: number | undefined = undefined,
   ): string {
     // See if there is already a frame for path, and if so show
     // display and focus it.
@@ -2709,7 +2766,7 @@ export class Actions<
   // Init actions and set our new cm frame to the given path.
   private async set_frame_to_code_editor(
     id: string,
-    path: string
+    path: string,
   ): Promise<void> {
     const node = this._get_frame_node(id);
     if (node == null) throw Error(`no frame with id ${id}`);
@@ -2838,20 +2895,27 @@ export class Actions<
   // This is used by the chatgpt function.
   protected chatgptGetText(
     frameId: string,
-    scope: "selection" | "cell" | "all" = "all"
+    scope: ChatGPTScope = "all",
   ): string {
     switch (scope) {
       case "selection":
-        return this._get_cm(frameId)?.getSelection()?.trim() ?? "";
+        return this._get_cm(frameId)?.getSelection() ?? "";
       default:
-        return this._get_cm(frameId)?.getValue()?.trim() ?? "";
+        return this._get_cm(frameId)?.getValue() ?? "";
     }
   }
 
-  public chatgptGetContext(frameId: string): string {
+  public chatgptGetContext(frameId: string, scope?): string {
+    if (scope) {
+      return this.chatgptGetText(frameId, scope);
+    }
     let input = this.chatgptGetText(frameId, "selection");
     if (input) return input;
     input = this.chatgptGetText(frameId, "cell");
+    if (input) return input;
+    input = this.chatgptGetText(frameId, "section");
+    if (input) return input;
+    input = this.chatgptGetText(frameId, "page");
     if (input) return input;
     return this.chatgptGetText(frameId, "all");
   }
@@ -2867,7 +2931,17 @@ export class Actions<
     return filename_extension(this.path);
   }
 
+  // return the suppoted scopes for this document type.
+  // do not have to include "none" and "all", since they are always supported.
+  chatgptGetScopes(): Set<ChatGPTScope> {
+    return new Set(["selection"]);
+  }
+
   async chatgpt(frameId: string, options, input: string) {
     await chatgptCreatechat({ actions: this, frameId, options, input });
+  }
+
+  tour(_id: string, _refs: any): TourProps["steps"] {
+    return [];
   }
 }

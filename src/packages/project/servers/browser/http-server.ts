@@ -10,25 +10,26 @@ this projects.  It serves both HTTP and websocket connections, which
 should be proxied through some hub.
 */
 
+import bodyParser from "body-parser";
+import compression from "compression";
 import express from "express";
 import { createServer } from "http";
-import { callback } from "awaiting";
-import compression from "compression";
-import bodyParser from "body-parser";
-import { join } from "path";
-import { writeFile } from "fs";
-import { once } from "@cocalc/util/async-utils";
-import { options } from "@cocalc/project/init-program";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import basePath from "@cocalc/backend/base-path";
-import { getLogger } from "@cocalc/project/logger";
+import initWebsocket from "@cocalc/project/browser-websocket/server";
+import initWebsocketFs from "../websocketfs";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";
+import { getOptions } from "@cocalc/project/init-program";
 import initJupyter from "@cocalc/project/jupyter/http-server";
-import initWebsocket from "@cocalc/project/browser-websocket/server";
+import * as kucalc from "@cocalc/project/kucalc";
+import { getLogger } from "@cocalc/project/logger";
 import initUpload from "@cocalc/project/upload";
-import initStaticServer from "./static";
+import { once } from "@cocalc/util/async-utils";
 import initRootSymbolicLink from "./root-symlink";
-const kucalc = require("@cocalc/project/kucalc");
+import initStaticServer from "./static";
 
 const winston = getLogger("browser-http-server");
 
@@ -55,7 +56,7 @@ export default async function init(): Promise<void> {
   const base = join(basePath, project_id, "raw") + "/";
 
   if (kucalc.IN_KUCALC) {
-    // Add a /health handler, which is used as a health check for Kubernetes.
+    // Add /health (used as a health check for Kubernetes) and /metrics (Prometheus)
     winston.info("initializing KuCalc only health metrics server");
     kucalc.init_health_metrics(app, project_id);
   }
@@ -89,6 +90,7 @@ export default async function init(): Promise<void> {
   winston.info("initializing static server");
   initStaticServer(app, base);
 
+  const options = getOptions();
   server.listen(options.browserPort, options.hostname);
   await once(server, "listening");
   const address = server.address();
@@ -100,9 +102,11 @@ export default async function init(): Promise<void> {
   }
   const assignedPort = address.port; // may be a server assigned random port.
   winston.info(
-    `Started -- port=${assignedPort}, host='${options.hostname}', base='${base}'`
+    `Started -- port=${assignedPort}, host='${options.hostname}', base='${base}'`,
   );
 
+  initWebsocketFs(server, base, { port: assignedPort, host: options.hostname });
+
   winston.info(`Writing port to ${browserPortFile}`);
-  await callback(writeFile, browserPortFile, `${assignedPort}`);
+  await writeFile(browserPortFile, `${assignedPort}`);
 }

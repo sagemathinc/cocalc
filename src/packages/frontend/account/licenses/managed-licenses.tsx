@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Checkbox } from "antd";
-
+import { Alert, Checkbox, Spin } from "antd";
+import { load_target } from "@cocalc/frontend/history";
 import {
   CSS,
   React,
@@ -15,14 +15,9 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  ErrorDisplay,
-  Icon,
-  Loading,
-  Space,
-} from "@cocalc/frontend/components";
+import { ErrorDisplay, Title } from "@cocalc/frontend/components";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
-import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import type { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 
 export const LICENSES_STYLE: CSS = {
   margin: "30px 0",
@@ -30,7 +25,7 @@ export const LICENSES_STYLE: CSS = {
 } as const;
 
 export const ManagedLicenses: React.FC = () => {
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
   const [show_all, set_show_all] = useState<boolean>(false);
   const actions = useActions("billing");
@@ -65,13 +60,15 @@ export const ManagedLicenses: React.FC = () => {
 
   function render_error() {
     if (!error) return;
-    return <ErrorDisplay error={error} onClose={() => setError(undefined)} />;
+    return (
+      <ErrorDisplay banner error={error} onClose={() => setError(undefined)} />
+    );
   }
 
   function render_managed() {
     if (error) return;
     if (licenses == null) {
-      return <Loading theme={"medium"} />;
+      return <Spin />;
     }
     if (licenses.size == 0) {
       return <div>You are not the manager of any licenses yet.</div>;
@@ -118,19 +115,39 @@ export const ManagedLicenses: React.FC = () => {
   }
 
   return (
-    <div>
-      <h3>
+    <>
+      <Title level={3}>
         Licenses that you manage {render_count()}
-        <div style={{ float: "right" }}>
-          {render_show_all()}
-          <Button onClick={reload} disabled={loading}>
-            <Icon name="redo" />
-            <Space /> <Space /> {loading ? "Loading..." : "Refresh all"}
-          </Button>
-        </div>
-      </h3>
+        <div style={{ float: "right" }}>{render_show_all()}</div>
+        {loading && <Spin />}
+      </Title>
+      <CancelSubscriptionBanner />
       {render_error()}
       {render_managed()}
-    </div>
+    </>
   );
 };
+
+// TODO: obviously this should only be shown if the user *has* a subscription!
+function CancelSubscriptionBanner() {
+  return (
+    <Alert
+      banner
+      type="info"
+      message={
+        <>
+          To cancel a subscription,{" "}
+          <a
+            onClick={() => {
+              load_target("settings/subscriptions");
+            }}
+          >
+            visit the Subscription tab above
+          </a>
+          . To edit a license <i>that you purchased</i> expand the license
+          below, then click on the "Edit License..." button.
+        </>
+      }
+    />
+  );
+}

@@ -3,11 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PostgreSQL } from "./types";
-
-import { is_valid_uuid_string } from "@cocalc/util/misc";
-
 import { callback2 } from "@cocalc/util/async-utils";
+import { expire_time, is_valid_uuid_string } from "@cocalc/util/misc";
+import { PostgreSQL } from "./types";
 
 export async function record_user_tracking(
   db: PostgreSQL,
@@ -38,6 +36,7 @@ export async function record_user_tracking(
       "time       :: TIMESTAMP": "NOW()",
       "event      :: TEXT": event,
       "value      :: JSONB": value,
+      "expire     :: TIMESTAMP": expire_time(30 * 24 * 60 * 60),
     },
   });
 }

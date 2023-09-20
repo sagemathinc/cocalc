@@ -3,8 +3,8 @@ import { dirname, join, resolve } from "path";
 import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
-
-import { projects, root } from "@cocalc/backend/data";
+import { writeFile } from "fs/promises";
+import { projects, root, blobstore } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
@@ -78,14 +78,34 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   }
 }
 
+async function logLaunchParams(params): Promise<void> {
+  const data = dataPath(params.env.HOME);
+  const path = join(data, "launch-params.json");
+  try {
+    await writeFile(path, JSON.stringify(params, undefined, 2));
+  } catch (err) {
+    winston.debug(
+      `WARNING: failed to write ${path}, which is ONLY used for debugging -- ${err}`
+    );
+  }
+}
+
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
-  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
+  const args = [
+    "cocalc-project",
+    "--daemon",
+    "--init",
+    "project_init.sh",
+    "--blobstore",
+    blobstore,
+  ];
   winston.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`
   );
+  logLaunchParams({ cwd, env, cmd, args, uid });
   await promisify((cb: Function) => {
     const child = spawn(cmd, args, {
       env,
@@ -145,16 +165,14 @@ export async function createUser(project_id: string): Promise<void> {
   );
 }
 
-
 export async function stopProjectProcesses(project_id: string): Promise<void> {
-    const uid = `${getUid(project_id)}`;
-    const scmd = `pkill -9 -u ${uid} | true `; // | true since pkill exit 1 if nothing killed.
-    await exec(scmd); 
+  const uid = `${getUid(project_id)}`;
+  const scmd = `pkill -9 -u ${uid} | true `; // | true since pkill exit 1 if nothing killed.
+  await exec(scmd);
 }
- 
 
 export async function deleteUser(project_id: string): Promise<void> {
-  await stopProjectProcesses(project_id);  
+  await stopProjectProcesses(project_id);
   const username = getUsername(project_id);
   try {
     await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
@@ -228,7 +246,7 @@ export async function getEnvironment(
       BASE_PATH: base_path,
       DATA,
       LOGS: join(DATA, "logs"),
-      DEBUG: "*", // so interesting stuff gets logged.
+      DEBUG: "cocalc:*,-cocalc:silly:*", // so interesting stuff gets logged, but not too much unless we really need it.
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
       COCALC_USERNAME: USER,
@@ -481,6 +499,9 @@ export async function restartProjectIfRunning(project_id: string) {
   const project = getProject(project_id);
   const { state } = await project.state();
   if (state == "starting" || state == "running") {
-    project.restart(); // don't await this -- it could take a long time and isn't necessary to wait for.
+    // don't await this -- it could take a long time and isn't necessary to wait for.
+    (async () => {
+      await project.restart();
+    })();
   }
 }

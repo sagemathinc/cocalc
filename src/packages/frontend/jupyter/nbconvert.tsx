@@ -183,9 +183,12 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       // --to script converts to probably a .py file
       if (to === "script" && backend_kernel_info != null) {
         // special case where extension may be different
-        ext = backend_kernel_info
-          .getIn(["language_info", "file_extension"], "")
-          .slice(1);
+        ext = (
+          backend_kernel_info.getIn(
+            ["language_info", "file_extension"],
+            ""
+          ) as string
+        ).slice(1);
         if (ext === "") {
           ext = "py";
         }
@@ -319,7 +322,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
                 text="Exporting..."
               />{" "}
               <ProgressEstimate
-                seconds={NAMES[nbconvert_dialog.get("to")]?.estimate ?? 30}
+                seconds={NAMES[nbconvert_dialog.get("to")]?.estimate ?? 60}
               />
               {render_started()}
             </div>
@@ -379,7 +382,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       // workaround until #2569 is fixed.
       return (
         <Modal
-          visible={nbconvert_dialog != null}
+          open={nbconvert_dialog != null}
           onOk={close}
           onCancel={close}
           footer={null}
@@ -414,7 +417,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
     }
     return (
       <Modal
-        visible={nbconvert_dialog != null}
+        open={nbconvert_dialog != null}
         onOk={close}
         onCancel={close}
         title={

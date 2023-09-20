@@ -1,15 +1,19 @@
-import { Alert, Button, Input, Modal } from "antd";
-import { Set } from "immutable";
-import { path_split, plural } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { human_readable_size, replace_all } from "@cocalc/util/misc";
-import { useCallback, useMemo, useState } from "react";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { join } from "path";
-import { Loading } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { redux } from "@cocalc/frontend/app-framework";
+import { Alert, Button, Input, Modal, Space } from "antd";
 import { stringify as csvStringify } from "csv-stringify/sync";
+import { Set } from "immutable";
+import { join } from "path";
+import { useCallback, useMemo, useState } from "react";
+import { redux } from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import {
+  human_readable_size,
+  path_split,
+  plural,
+  replace_all,
+} from "@cocalc/util/misc";
 import type { ColumnsType } from "../../fields";
 
 // sort of arbitrary; I know 10MB will blow up, since there is a tight message size limit.
@@ -108,7 +112,7 @@ export default function Export({
       onCancel={onClose}
     >
       <div style={{ margin: "30px 15px" }}>
-        <Input.Group compact style={{ margin: "15px 0" }}>
+        <Space.Compact style={{ margin: "15px 0", width: "100%" }}>
           <Input
             disabled={state != "input"}
             style={{ width: "calc(100% - 150px)" }}
@@ -123,7 +127,7 @@ export default function Export({
           >
             Save to project
           </Button>
-        </Input.Group>
+        </Space.Compact>
         {state == "done" && !error && (
           <div style={{ margin: "30px 0", width: "100%", fontSize: "12pt" }}>
             <a

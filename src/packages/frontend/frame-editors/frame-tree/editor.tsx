@@ -3,12 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Map, Set } from "immutable";
+import { clone } from "lodash";
+
 import {
-  React,
   CSS,
+  React,
   Rendered,
   project_redux_name,
+  useEffect,
   useRedux,
+  useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
@@ -16,17 +21,14 @@ import {
   Loading,
   LoadingEstimate,
 } from "@cocalc/frontend/components";
-import { FormatBar } from "./format-bar";
-import StatusBar from "./status-bar";
-import { FrameTree } from "./frame-tree";
-import { EditorSpec, ErrorStyles } from "./types";
-import { is_different, filename_extension } from "@cocalc/util/misc";
-import { SetMap } from "./types";
-import { AvailableFeatures } from "../../project_configuration";
-import { Map, Set } from "immutable";
-import { clone } from "lodash";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import { filename_extension, is_different } from "@cocalc/util/misc";
 import { chat } from "../generic/chat";
+import { FormatBar } from "./format-bar";
 import FormatError from "./format-error";
+import { FrameTree } from "./frame-tree";
+import StatusBar from "./status-bar";
+import { EditorSpec, ErrorStyles, SetMap } from "./types";
 
 interface FrameTreeEditorProps {
   name: string;
@@ -54,7 +56,7 @@ function shouldMemoize(prev, next): boolean {
 }
 
 const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
-  (props: FrameTreeEditorProps) => {
+  (props: Readonly<FrameTreeEditorProps>) => {
     const {
       name,
       actions,
@@ -64,6 +66,8 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       format_bar_exclude,
       tab_is_visible,
     } = props;
+
+    const frameRootRef = useRef<HTMLDivElement>(null);
 
     // Copy the editor spec we will use for all future rendering
     // into our private state variable
@@ -116,6 +120,16 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       "derived_file_types"
     );
     const visible: boolean | undefined = useRedux(name, "visible");
+
+    // if frameRootRef resizes, call actions.set_resize()
+    useEffect(() => {
+      if (!frameRootRef.current) return;
+      const observer = new ResizeObserver(() => {
+        actions.set_resize();
+      });
+      observer.observe(frameRootRef.current);
+      return () => observer.disconnect();
+    }, [frameRootRef.current]);
 
     function render_format_bar(): Rendered {
       if (
@@ -212,7 +226,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     }
 
     return (
-      <div className="smc-vfill cc-frame-tree-editor">
+      <div className="smc-vfill cc-frame-tree-editor" ref={frameRootRef}>
         {formatError && (
           <FormatError formatError={formatError} formatInput={formatInput} />
         )}
@@ -234,7 +248,7 @@ interface Options {
   editor_spec: EditorSpec;
 }
 
-interface EditorProps {
+export interface EditorProps {
   actions: any;
   name: string;
   path: string;

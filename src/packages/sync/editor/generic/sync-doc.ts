@@ -40,7 +40,7 @@ const LOCAL_HUB_AUTOSAVE_S = 45;
 // const LOCAL_HUB_AUTOSAVE_S = 5;
 
 // How big of files we allow users to open using syncstrings.
-const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_MB = 8;
 
 // This parameter determines throttling when broadcasting cursor position
 // updates.   Make this larger to reduce bandwidth at the expense of making
@@ -49,10 +49,7 @@ const CURSOR_THROTTLE_MS = 750;
 
 type XPatch = any;
 
-import { EventEmitter } from "events";
-import { debounce, throttle } from "lodash";
-import { Map, fromJS } from "immutable";
-import { delay } from "awaiting";
+import { SyncTable } from "@cocalc/sync/table/synctable";
 import {
   callback2,
   cancel_scheduled,
@@ -62,34 +59,37 @@ import {
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
+  ISO_to_Date,
   assertDefined,
   close,
   cmp_Date,
   endswith,
   filename_extension,
-  keys,
-  uuid,
   hash_string,
   is_date,
-  ISO_to_Date,
+  keys,
   minutes_ago,
   server_minutes_ago,
+  uuid,
 } from "@cocalc/util/misc";
-import { Evaluator } from "./evaluator";
-import { IpywidgetsState } from "./ipywidgets-state";
 import * as schema from "@cocalc/util/schema";
-import { SyncTable } from "@cocalc/sync/table/synctable";
+import { delay } from "awaiting";
+import { EventEmitter } from "events";
+import { Map, fromJS } from "immutable";
+import { debounce, throttle } from "lodash";
+import { Evaluator } from "./evaluator";
+import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
+import { IpywidgetsState } from "./ipywidgets-state";
+import { SortedPatchList } from "./sorted-patch-list";
 import {
   Client,
   CompressedPatch,
   DocType,
   Document,
-  Patch,
   FileWatcher,
+  Patch,
 } from "./types";
-import { SortedPatchList } from "./sorted-patch-list";
 import { patch_cmp } from "./util";
-import { export_history, HistoryEntry, HistoryExportOptions } from "./export";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -344,7 +344,7 @@ export class SyncDoc extends EventEmitter {
       this.file_use_interval = 60 * 1000;
     }
 
-    if (!this.file_use_interval || !this.client.is_user()) {
+    if (!this.file_use_interval || this.client.is_project()) {
       // file_use_interval has to be nonzero, and we only do
       // this for browser user.
       return;
@@ -775,10 +775,12 @@ export class SyncDoc extends EventEmitter {
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
   public async close(): Promise<void> {
+    const dbg = this.dbg("close");
+    dbg("close");
     if (this.state == "closed") {
       return;
     }
-    if (this.client.is_user() && this.state == "ready") {
+    if (!this.client.is_project() && this.state == "ready") {
       try {
         await this.save_to_disk();
       } catch (err) {
@@ -787,6 +789,10 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
+    //
+    // SYNC STUFF
+    //
+
     // WARNING: that 'closed' is emitted at the beginning of the
     // close function (before anything async) for the project is
     // assumed in src/packages/project/sync/sync-doc.ts, because
@@ -819,36 +825,67 @@ export class SyncDoc extends EventEmitter {
 
     this.patch_update_queue = [];
 
-    if (this.syncstring_table != null) {
-      await this.syncstring_table.close();
-    }
-
-    if (this.patches_table != null) {
-      await this.patches_table.close();
-    }
-
-    if (this.patch_list != null) {
-      await this.patch_list.close();
-    }
-
-    if (this.cursors_table != null) {
-      await this.cursors_table.close();
-    }
-
+    // Stop watching for file changes.  It's important to
+    // do this *before* all the await's below, since
+    // this syncdoc can't do anything in response to a
+    // a file change in its current state.
     if (this.client.is_project()) {
       this.update_watch_path(); // no input = closes it
     }
 
+    if (this.patch_list != null) {
+      // not async -- just a data structure in memory
+      this.patch_list.close();
+    }
+
+    //
+    // ASYNC STUFF - in particular, these may all
+    // attempt to do some last attempt to send changes
+    // to the database.
+    //
+    try {
+      await this.async_close();
+      dbg("async_close -- successfully saved all data to database");
+    } catch (err) {
+      dbg("async_close -- ERROR -- ", err);
+    }
+    // this avoids memory leaks:
+    close(this);
+
+    // after doing that close, we need to keep the state (which just got deleted) as 'closed'
+    this.set_state("closed");
+  }
+
+  private async async_close() {
+    const promises: Promise<any>[] = [];
+
+    if (this.syncstring_table != null) {
+      promises.push(this.syncstring_table.close());
+    }
+
+    if (this.patches_table != null) {
+      promises.push(this.patches_table.close());
+    }
+
+    if (this.cursors_table != null) {
+      promises.push(this.cursors_table.close());
+    }
+
     if (this.evaluator != null) {
-      await this.evaluator.close();
+      promises.push(this.evaluator.close());
     }
 
     if (this.ipywidgets_state != null) {
-      await this.ipywidgets_state.close();
+      promises.push(this.ipywidgets_state.close());
     }
 
-    close(this);
-    this.set_state("closed");
+    const results = await Promise.allSettled(promises);
+
+    results.forEach((result) => {
+      if (result.status === "rejected") {
+        throw Error(result.reason);
+      }
+    });
   }
 
   // TODO: We **have** to do this on the client, since the backend
@@ -882,7 +919,7 @@ export class SyncDoc extends EventEmitter {
       await once(this.client, "connected");
     }
 
-    if (this.client.is_user() && !this.client.is_signed_in()) {
+    if (!this.client.is_project() && !this.client.is_signed_in()) {
       await once(this.client, "signed_in");
     }
 
@@ -908,28 +945,37 @@ export class SyncDoc extends EventEmitter {
     options: any[],
     throttle_changes?: undefined | number
   ): Promise<SyncTable> {
+    const dbg = this.dbg("synctable");
     this.assert_not_closed("synctable");
     if (this.persistent && this.data_server == "project") {
       options = options.concat([{ persistent: true }]);
     }
+    let synctable;
     switch (this.data_server) {
       case "project":
-        return await this.client.synctable_project(
+        synctable = await this.client.synctable_project(
           this.project_id,
           query,
           options,
           throttle_changes,
           this.id
         );
+        break;
       case "database":
-        return await this.client.synctable_database(
+        synctable = await this.client.synctable_database(
           query,
           options,
           throttle_changes
         );
+        break;
       default:
         throw Error(`uknown server ${this.data_server}`);
     }
+    // We listen and log error events.  This is useful because in some settings, e.g.,
+    // in the project, an eventemitter with no listener for errors, which has an error,
+    // will crash the entire process.
+    synctable.on("error", (error) => dbg("ERROR", error));
+    return synctable;
   }
 
   private async init_syncstring_table(): Promise<void> {
@@ -992,11 +1038,11 @@ export class SyncDoc extends EventEmitter {
   }
 
   // Used for internal debug logging
-  private dbg(_f: string = ""): Function {
+  private dbg(f: string = ""): Function {
     if (!this.client?.is_project() || this.state == "closed") {
       return (..._) => {};
     }
-    return this.client.dbg(`sync-doc("${this.path}").${_f}`);
+    return this.client.dbg(`sync-doc("${this.path}").${f}`);
   }
 
   private async init_all(): Promise<void> {
@@ -1079,7 +1125,7 @@ export class SyncDoc extends EventEmitter {
     dbg();
     this.assert_not_closed("wait_until_fully_ready");
 
-    if (this.client.is_user() && this.init_error()) {
+    if (!this.client.is_project() && this.init_error()) {
       // init is set and is in error state.  Give the backend a few seconds
       // to try to fix this error before giving up.  The browser client
       // can close and open the file to retry this (as instructed).
@@ -1119,7 +1165,11 @@ export class SyncDoc extends EventEmitter {
     }
 
     assertDefined(this.patch_list);
-    if (this.client.is_user() && this.patch_list.count() === 0 && init.size) {
+    if (
+      !this.client.is_project() &&
+      this.patch_list.count() === 0 &&
+      init.size
+    ) {
       dbg("waiting for patches for nontrivial file");
       // normally this only happens in a later event loop,
       // so force it now.
@@ -1420,7 +1470,7 @@ export class SyncDoc extends EventEmitter {
 
   private async init_cursors(): Promise<void> {
     const dbg = this.dbg("init_cursors");
-    if (!this.client.is_user()) {
+    if (this.client.is_project()) {
       dbg("done -- only users care about cursors.");
       return;
     }
@@ -1519,7 +1569,8 @@ export class SyncDoc extends EventEmitter {
     let map = this.cursor_map;
     if (
       map.has(account_id) &&
-      this.cursor_last_time >= map.getIn([account_id, "time"])
+      this.cursor_last_time >=
+        (map.getIn([account_id, "time"], new Date(0)) as Date)
     ) {
       map = map.delete(account_id);
     }
@@ -1527,7 +1578,7 @@ export class SyncDoc extends EventEmitter {
       // Remove any old cursors, where "old" is by default more than 1 minute old; this is never useful.
       const cutoff = server_minutes_ago(oldMinutes);
       for (const [a] of map as any) {
-        if (map.getIn([a, "time"]) < cutoff) {
+        if ((map.getIn([a, "time"], new Date(0)) as Date) < cutoff) {
           map = map.delete(a);
         }
       }
@@ -1616,6 +1667,10 @@ export class SyncDoc extends EventEmitter {
         dbg("no change during loop -- done!");
         break;
       }
+    }
+    if (this.state != "ready") {
+      // above async waits could have resulted in state change.
+      return;
     }
     // Ensure all patches are saved to backend.
     // We do this after the above, so that creating the newest patch
@@ -1741,6 +1796,7 @@ export class SyncDoc extends EventEmitter {
       let success: boolean = false;
       for (let i = 0; i < 6; i++) {
         const x = await callback2(this.client.query, {
+          project_id: this.project_id,
           query: {
             patches: {
               string_id: this.string_id,
@@ -1758,18 +1814,22 @@ export class SyncDoc extends EventEmitter {
         }
       }
       if (!success) {
-        throw Error(
-          "unable to confirm that snapshot was saved to the database"
-        );
+        // We make this non-fatal to not crash the entire project
+        //         throw Error(
+        //           "unable to confirm that snapshot was saved to the database"
+        //         );
 
-        /* Should this be non-fatal?
-        // We make this non-fatal, because throwing an exception could break
-        // other things.
+        // We make this non-fatal, because throwing an exception here WOULD
+        // DEFINITELY break other things.  Everything is saved to a filesystem
+        // after all, so there's no major data loss potential at present.
         console.warn(
-          "WARNING: unable to confirm that snapshot was saved to the database"
+          "ERROR: (nonfatal) unable to confirm that snapshot was saved to the database"
+        );
+        const dbg = this.dbg("snapshot");
+        dbg(
+          "ERROR: (nonfatal) unable to confirm that snapshot was saved to the database"
         );
         return;
-        */
       }
     }
 
@@ -1926,7 +1986,7 @@ export class SyncDoc extends EventEmitter {
     }
     const query = this.patch_table_query();
     const result = await callback2(this.client.query, {
-      query: { patches: [query] },
+      query: { patches: [query], project_id:this.project_id },
     });
     const v: Patch[] = [];
     // process_patch assumes immutable objects
@@ -2243,7 +2303,7 @@ export class SyncDoc extends EventEmitter {
     this.file_watcher.on("delete", this.handle_file_watcher_delete.bind(this));
   }
 
-  private handle_file_watcher_change(ctime: Date): void {
+  private async handle_file_watcher_change(ctime: Date): Promise<void> {
     const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
@@ -2258,7 +2318,7 @@ export class SyncDoc extends EventEmitter {
       // to save was at least 7s ago, and it finished,
       // so definitely this change event was not caused by it.
       dbg("load_from_disk since no recent save to disk");
-      this.load_from_disk();
+      await this.load_from_disk();
       return;
     }
   }
@@ -2284,10 +2344,12 @@ export class SyncDoc extends EventEmitter {
     } else {
       dbg("file exists");
       await this.update_if_file_is_read_only();
-      const data = await callback2(this.client.path_read, {
+
+      const data = await callback2<string>(this.client.path_read, {
         path,
         maxsize_MB: MAX_FILE_SIZE_MB,
       });
+
       size = data.length;
       dbg(`got it -- length=${size}`);
       this.from_str(data);
@@ -2299,7 +2361,7 @@ export class SyncDoc extends EventEmitter {
         hash: hash_string(data),
       });
     }
-    // save new version (just set via from_str) to database.
+    // save new version to database, which we just set via from_str.
     await this.save();
     return size;
   }
@@ -2372,7 +2434,9 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
-    return this.syncstring_table_get_one().getIn(["save", "hash"]);
+    return this.syncstring_table_get_one().getIn(["save", "hash"]) as
+      | number
+      | undefined;
   }
 
   /* Return hash of the live version of the document,
@@ -2408,6 +2472,7 @@ export class SyncDoc extends EventEmitter {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
     }
+    // console.trace('commit');
 
     if (emitChangeImmediately) {
       // used for local clients.   NOTE: don't do this without explicit
@@ -2472,7 +2537,7 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    if (this.client.is_user()) {
+    if (!this.client.is_project()) {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
@@ -2489,7 +2554,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
-    if (this.client.is_user()) {
+    if (!this.client.is_project()) {
       dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
@@ -2534,7 +2599,7 @@ export class SyncDoc extends EventEmitter {
       return done;
     }
 
-    let last_err = undefined;
+    let last_err: string | undefined = undefined;
     const f = async () => {
       dbg("f");
       if (
@@ -2558,7 +2623,9 @@ export class SyncDoc extends EventEmitter {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
-      const err = this.syncstring_table_get_one().getIn(["save", "error"]);
+      const err = this.syncstring_table_get_one().getIn(["save", "error"]) as
+        | string
+        | undefined;
       if (err) {
         dbg("error", err);
         last_err = err;
@@ -2599,7 +2666,7 @@ export class SyncDoc extends EventEmitter {
   private async save_to_disk_aux(): Promise<void> {
     this.assert_is_ready("save_to_disk_aux");
 
-    if (this.client.is_user()) {
+    if (!this.client.is_project()) {
       return await this.save_to_disk_user();
     }
 
@@ -2669,7 +2736,7 @@ export class SyncDoc extends EventEmitter {
     // imprecision.
     // Over an sshfs mount, all stats info is **rounded down
     // to the nearest second**, which this also takes care of.
-    this.save_to_disk_start_ctime = new Date().valueOf() - 1500;
+    this.save_to_disk_start_ctime = Date.now() - 1500;
     this.save_to_disk_end_ctime = undefined;
     try {
       await callback2(this.client.write_file, { path, data });

@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Set } from "immutable";
+import { isEqual } from "lodash";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
-import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
@@ -25,18 +26,20 @@ import {
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
-import { Set } from "immutable";
-import json_stable from "json-stable-stringify";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import api from "@cocalc/frontend/client/api";
+import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+import startProjectPayg from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 
-export type Datastore = boolean | string[] | undefined;
-
-// in the future, we might want to extend this to include custom environmment variables
-export interface EnvVarsRecord {
-  inherit?: boolean;
-}
-export type EnvVars = EnvVarsRecord | undefined;
+import type {
+  CourseInfo,
+  Datastore,
+  EnvVars,
+  EnvVarsRecord,
+} from "@cocalc/util/db-schema/projects";
+export type { Datastore, EnvVars, EnvVarsRecord };
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
@@ -288,23 +291,25 @@ export class ProjectsActions extends Actions<ProjectsState> {
     course_project_id: string,
     path: string,
     pay: Date | "",
+    payInfo: PurchaseInfo | null | undefined,
     account_id: string | null,
     email_address: string | null,
     datastore: Datastore,
     type: "student" | "shared" | "nbgrader",
     student_project_functionality?: StudentProjectFunctionality,
     envvars?: EnvVars
-  ): Promise<void> {
+  ): Promise<void | { course: null | CourseInfo }> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
       console.warn(msg);
       return;
     }
     const course_info = store.get_course_info(project_id)?.toJS();
-    const course: any = {
+    const course: CourseInfo = {
       project_id: course_project_id,
       path,
-      pay,
+      pay: typeof pay != "string" ? pay.toISOString() : pay,
+      payInfo: payInfo ?? undefined,
       datastore,
       type,
     };
@@ -314,17 +319,21 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (typeof envvars?.inherit === "boolean") {
       course.envvars = envvars;
     }
-    // null for shared/nbgrader project, otherwise student project
-    if (account_id != null && email_address != null) {
+    // account_id and email is null for shared/nbgrader project, otherwise student project
+    // the corresponding check of the two fields below is the
+    // is_student = ... or-test in ProjectsStore::date_when_course_payment_required
+    if (account_id != null) {
       course.account_id = account_id;
+    }
+    if (email_address != null) {
       course.email_address = email_address;
     }
-    // json_stable -- I'm tired and this needs to just work for comparing.
-    if (json_stable(course_info) === json_stable(course)) {
+    // lodash.isEqual: deep comparison of two objects
+    if (isEqual(course_info, course)) {
       // already set as required; do nothing
       return;
     }
-    await this.projects_table_set({ project_id, course });
+    return await api("projects/course/set-course-info", { project_id, course });
   }
 
   // Create a new project; returns the project_id of the new project.
@@ -333,6 +342,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     description?: string;
     image?: string; // if given, sets the compute image (the ID string)
     start?: boolean; // immediately start on create
+    noPool?: boolean; // never use the pool
   }): Promise<string> {
     const image = await redux.getStore("customize").getDefaultComputeImage();
 
@@ -341,11 +351,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
       description: string;
       image?: string;
       start: boolean;
+      noPool?: boolean;
     } = defaults(opts, {
       title: "No Title",
       description: "No Description",
       image,
       start: false,
+      noPool: undefined,
     });
     if (!opts2.image) {
       // make falseish same as not specified.
@@ -895,7 +907,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   // return true, if it actually started the project
-  public async start_project(project_id: string): Promise<boolean> {
+  public async start_project(
+    project_id: string,
+    options: { disablePayAsYouGo?: boolean } = {}
+  ): Promise<boolean> {
     if (!(await allow_project_to_run(project_id))) {
       return false;
     }
@@ -903,6 +918,20 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (state == "starting" || state == "running" || state == "stopping") {
       return false;
     }
+    if (!options.disablePayAsYouGo) {
+      const quota = store
+        .getIn([
+          "project_map",
+          project_id,
+          "pay_as_you_go_quotas",
+          webapp_client.account_id ?? "",
+        ])
+        ?.toJS();
+      if (quota?.enabled) {
+        return await startProjectPayg({ project_id, quota });
+      }
+    }
+
     let did_start = false;
     const t0 = webapp_client.server_time().getTime();
     const action_request = this.current_action_request(project_id);
@@ -913,7 +942,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
       await this.projects_table_set({
         project_id,
-        action_request: { action: "start", time: webapp_client.server_time() },
+        action_request: {
+          action: "start",
+          time: webapp_client.server_time(),
+        },
       });
       did_start = true;
     }
@@ -972,7 +1004,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return did_stop;
   }
 
-  public async restart_project(project_id: string): Promise<void> {
+  public async restart_project(project_id: string, options?): Promise<void> {
     if (!(await allow_project_to_run(project_id))) {
       return;
     }
@@ -983,7 +1015,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (state == "running") {
       await this.stop_project(project_id);
     }
-    await this.start_project(project_id);
+    await this.start_project(project_id, options);
   }
 
   // Explcitly set whether or not project is hidden for the given account

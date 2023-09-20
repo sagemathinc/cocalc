@@ -40,7 +40,7 @@ export function compute_cursor_offset_position(
 ) {
   let index_offset = 0;
   let usuable_cursor_index = cursor_plain_text_index;
-  const mention_array = mentions.toJS();
+  const mention_array = mentions.toJS() as any;
 
   for (let i = 0; i < mention_array.length; i++) {
     const current_mention = mention_array[i];

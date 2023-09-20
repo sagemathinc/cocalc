@@ -2,7 +2,8 @@ type ProxyType = "port" | "raw" | "server";
 
 export function parseReq(
   url: string, // with base_path removed (url does start with /)
-  remember_me?: string // only impacts the key that is returned
+  remember_me?: string, // only impacts the key that is returned
+  api_key?: string // only impacts key
 ): {
   key: string; // used for caching
   type: ProxyType;
@@ -33,6 +34,6 @@ export function parseReq(
   } else {
     throw Error(`unknown type "${type}"`);
   }
-  let key: string = (remember_me ?? "") + project_id + type + port_desc + internal_url;
+  const key = `${remember_me}-${api_key}-${project_id}-${type}-${port_desc}-${internal_url}`;
   return { key, type, project_id, port_desc, internal_url };
 }

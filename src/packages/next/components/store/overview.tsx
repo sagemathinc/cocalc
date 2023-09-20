@@ -36,12 +36,12 @@ export default function Overview() {
         <A href="/vouchers">explore vouchers</A>.
       </div>
       <OverviewRow>
-        <Product icon="key" title="Upgrade" href="/store/site-license">
-          Upgrade your projects, remove the warning banner, get internet access,
-          more CPU and memory, etc.
+        <Product icon="key" title="License" href="/store/site-license">
+          Buy a license to upgrade projects, remove the warning banner, get
+          internet access, more CPU and memory, etc.
         </Product>
         <Product icon="rocket" title="License Booster" href="/store/boost">
-          Add additional upgrades to an existing license.
+          Add additional upgrades to an existing upgrade license.
         </Product>
         <Product
           href={"/store/dedicated?type=disk"}

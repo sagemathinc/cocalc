@@ -8,10 +8,7 @@ API for direct connection to a project; implemented using the websocket.
 */
 
 import { redux } from "@cocalc/frontend/app-framework";
-import {
-  NBGraderAPIOptions,
-  RunNotebookOptions,
-} from "@cocalc/frontend/jupyter/nbgrader/api";
+import { RunNotebookOptions } from "@cocalc/frontend/jupyter/nbgrader/api";
 import {
   Capabilities,
   Configuration,
@@ -26,8 +23,8 @@ import {
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { reuseInFlight } from "async-await-utils/hof";
-import { callback } from "awaiting";
 import { Channel, Mesg, NbconvertParams } from "./types";
+import call from "@cocalc/sync/client/call";
 
 export class API {
   private conn: any;
@@ -40,11 +37,7 @@ export class API {
   }
 
   async call(mesg: Mesg, timeout_ms: number): Promise<any> {
-    const resp = await callback(call, this.conn, mesg, timeout_ms);
-    if (resp != null && resp.status === "error") {
-      throw Error(resp.error);
-    }
-    return resp;
+    return await call(this.conn, mesg, timeout_ms);
   }
 
   async delete_files(paths: string[]): Promise<void> {
@@ -146,7 +139,11 @@ export class API {
     return await this.call({ cmd: "prettier", path: path, options }, 15000);
   }
 
-  async formatter_string(str: string, config: FormatterConfig): Promise<any> {
+  async formatter_string(
+    str: string,
+    config: FormatterConfig,
+    timeout_ms: number = 15000
+  ): Promise<any> {
     const options: FormatterOptions = this.check_formatter_available(config);
     // TODO change this to "formatter_string" at some point in the future (Sep 2020)
     return await this.call(
@@ -155,7 +152,7 @@ export class API {
         str,
         options,
       },
-      15000
+      timeout_ms
     );
   }
 
@@ -266,18 +263,13 @@ export class API {
     return await this.call({ cmd: "lean", opts }, timeout_ms);
   }
 
-  // Use the nbgrader "protocol" to autograde a notebook
-  async nbgrader(opts: NBGraderAPIOptions): Promise<any> {
-    return await this.call({ cmd: "nbgrader", opts }, opts.timeout_ms + 5000);
-  }
-
   // Convert a notebook to some other format.
   // --to options are listed in packages/frontend/jupyter/nbconvert.tsx
   // and implemented in packages/project/jupyter/convert/index.ts
   async jupyter_nbconvert(opts: NbconvertParams): Promise<any> {
     return await this.call(
       { cmd: "jupyter_nbconvert", opts },
-      (opts.timeout ?? 30) * 1000 + 5000
+      (opts.timeout ?? 60) * 1000 + 5000
     );
   }
 
@@ -318,31 +310,17 @@ export class API {
     );
     return this.conn.channel(channel_name);
   }
-}
 
-function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
-  let done: boolean = false;
-  let timer: any = 0;
-  if (timeout_ms) {
-    timer = setTimeout(function () {
-      if (done) return;
-      done = true;
-      cb("timeout");
-    }, timeout_ms);
+  // Do a database query, but via the project.  This has the project
+  // do the query, so the identity used to access the database is that
+  // of the project.  This isn't useful in the browser, where the user
+  // always has more power to directly use the database.  It is *is*
+  // very useful when using a project-specific api key.
+  async query(opts: any): Promise<any> {
+    if (opts.timeout == null) {
+      opts.timeout = 30000;
+    }
+    const timeout_ms = opts.timeout * 1000 + 2000;
+    return await this.call({ cmd: "query", opts }, timeout_ms);
   }
-
-  const t = new Date().valueOf();
-  conn.writeAndWait(mesg, function (resp) {
-    if (conn.verbose) {
-      console.log(`call finished ${new Date().valueOf() - t}ms`, mesg, resp);
-    }
-    if (done) {
-      return;
-    }
-    done = true;
-    if (timer) {
-      clearTimeout(timer);
-    }
-    cb(undefined, resp);
-  });
 }

@@ -35,6 +35,7 @@ export interface Customize {
   siteURL?: string;
   googleAnalytics?: string;
   anonymousSignup?: boolean;
+  anonymousSignupLicensedShares?: boolean;
   emailSignup?: boolean;
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
@@ -43,6 +44,7 @@ export interface Customize {
   imprint_html?: string;
   policies_html?: string;
   reCaptchaKey?: string;
+  sandboxProjectsEnabled?: boolean;
   sandboxProjectId?: string;
   verifyEmailAddresses?: boolean;
   strategies: Strategy[];
@@ -74,7 +76,7 @@ export default async function getCustomize(): Promise<Customize> {
     siteName: fallback(settings.site_name, "On Premises CoCalc"),
     siteDescription: fallback(
       settings.site_description,
-      "Collaborative Calculation using Python, Sage, R, Julia, and more."
+      "Collaborative Calculation using Python, Sage, R, Julia, and more.",
     ),
 
     organizationName: settings.organization_name,
@@ -92,6 +94,7 @@ export default async function getCustomize(): Promise<Customize> {
     sshGatewayDNS: settings.ssh_gateway_dns,
 
     anonymousSignup: settings.anonymous_signup,
+    anonymousSignupLicensedShares: settings.anonymous_signup_licensed_shares,
     emailSignup: settings.email_signup,
     accountCreationInstructions: settings.account_creation_email_instructions,
 
@@ -133,10 +136,12 @@ export default async function getCustomize(): Promise<Customize> {
 
     // a sandbox project
     sandboxProjectId: settings.sandbox_project_id,
+    sandboxProjectsEnabled: settings.sandbox_projects_enabled,
 
     // true if openai integration is enabled -- this impacts the UI only, and can be
     // turned on and off independently of whether there is an api key set.
     openaiEnabled: settings.openai_enabled,
+    neuralSearchEnabled: settings.neural_search_enabled,
 
     // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.
     jupyterApiEnabled: settings.jupyter_api_enabled,

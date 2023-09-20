@@ -12,12 +12,41 @@ process.env.DEBUG_HIDE_DATE = "yes"; // since we supply it ourselves
 // otherwise, maybe stuff like this works: (debug as any).inspectOpts["hideDate"] = true;
 
 import debug, { Debugger } from "debug";
-import { mkdirSync, createWriteStream } from "fs";
+import { mkdirSync, createWriteStream, statSync, ftruncate } from "fs";
 import { format } from "util";
 import { dirname, join } from "path";
 import { logs } from "./data";
 
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
+
 const COCALC = debug("cocalc");
+
+let _trimLogFileSizePath = "";
+export function trimLogFileSize() {
+  // THIS JUST DOESN'T REALLY WORK!
+  return;
+  
+  if (!_trimLogFileSizePath) return;
+  let stats;
+  try {
+    stats = statSync(_trimLogFileSizePath);
+  } catch(_) {
+    // this happens if the file doesn't exist, which is fine since "trimming" it would be a no-op
+    return;
+  }
+  if (stats.size > MAX_FILE_SIZE_BYTES) {
+    const fileStream = createWriteStream(_trimLogFileSizePath, { flags: "r+" });
+    fileStream.on("open", (fd) => {
+      ftruncate(fd, MAX_FILE_SIZE_BYTES, (truncateErr) => {
+        if (truncateErr) {
+          console.error(truncateErr);
+          return;
+        }
+        fileStream.close();
+      });
+    });
+  }
+}
 
 function myFormat(...args): string {
   if (args.length > 1 && typeof args[0] == "string" && !args[0].includes("%")) {
@@ -51,7 +80,7 @@ function defaultTransports(): { console?: boolean; file?: string } {
 
 function initTransports() {
   if (!process.env.DEBUG) {
-    console.log("DEBUG is not set, so not setting up debug logging transport");
+    // console.log("DEBUG is not set, so not setting up debug logging transport");
     return;
   }
   const transports = defaultTransports();
@@ -64,24 +93,34 @@ function initTransports() {
   }
   let fileStream;
   if (transports.file) {
+    const { file } = transports;
     // ensure directory exists
-    mkdirSync(dirname(transports.file), { recursive: true });
+    mkdirSync(dirname(file), { recursive: true });
     // create the file stream; using a stream ensures
     // that everything is written in the right order with
     // no corruption/collision between different logging.
-    fileStream = createWriteStream(transports.file);
+    // We use append mode because we mainly watch the file log
+    // when doing dev, and nextjs constantly restarts the process.
+    fileStream = createWriteStream(file, {
+      flags: "a",
+    });
+    _trimLogFileSizePath = file;
+    trimLogFileSize();
   }
   let firstLog: boolean = true;
   COCALC.log = (...args) => {
     if (!transports.file && !transports.console) return;
     if (firstLog && transports.file) {
-      console.error(
-        `***\n\nLogging to "${transports.file}"${
-          transports.console ? " and console.log" : ""
-        } via the debug module\nwith  DEBUG='${
-          process.env.DEBUG
-        }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`
-      );
+      const announce = `***\n\nLogging to "${transports.file}"${
+        transports.console ? " and console.log" : ""
+      } via the debug module\nwith  DEBUG='${
+        process.env.DEBUG
+      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
+      console.log(announce);
+      if (transports.file) {
+        // the file transport
+        fileStream.write(announce);
+      }
       firstLog = false;
     }
     // Similar as in debug source code, except I stuck a timestamp

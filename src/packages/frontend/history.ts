@@ -42,11 +42,13 @@ The URI schema handled by the single page app is as follows:
        https://cocalc.com/projects/project-id/port/<number>/.
 */
 
-import { redux } from "./app-framework";
 import { join } from "path";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
-import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
+import { getNotificationFilterFromFragment } from "./notifications/fragment";
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -135,10 +137,6 @@ export function load_target(
       }
       redux.getActions("page").set_active_tab("account", false);
 
-      if (segments[1] === "account") {
-        redux.getActions("account").set_active_tab("account");
-      }
-
       if (segments[1] === "billing") {
         const actions = redux.getActions("billing");
         actions?.update_customer();
@@ -149,34 +147,20 @@ export function load_target(
             redux.getActions("billing")?.update_customer();
           }, 5000);
         }
+        return;
       }
 
-      if (segments[1] === "upgrades") {
-        redux.getActions("account").set_active_tab("upgrades");
-      }
+      redux.getActions("account").set_active_tab(segments[1]);
 
-      if (segments[1] === "licenses") {
-        redux.getActions("account").set_active_tab("licenses");
-      }
-
-      if (segments[1] === "support") {
-        redux.getActions("account").set_active_tab("support");
-      }
-
-      if (segments[1] === "ssh-keys") {
-        redux.getActions("account").set_active_tab("ssh-keys");
-      }
       break;
 
     case "notifications":
-      if (!logged_in) {
-        return;
+      if (!logged_in) return;
+      const filter = getNotificationFilterFromFragment();
+      if (filter) {
+        redux.getActions("mentions").set_filter(filter);
       }
       redux.getActions("page").set_active_tab("notifications", change_history);
-
-      if (segments[1] === "mentions") {
-        redux.getActions("page").set_active_tab("mentions");
-      }
       break;
 
     case "file-use":

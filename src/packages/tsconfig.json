@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "composite": true,
     "declaration": true,
     "downlevelIteration": true,
     "esModuleInterop": true,

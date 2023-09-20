@@ -85,7 +85,7 @@ import {
   getPassportCache,
 } from "@cocalc/database/postgres/passport-store";
 import {
-  API_KEY_COOKIE_NAME,
+  SSO_API_KEY_COOKIE_NAME,
   BLACKLISTED_STRATEGIES,
   DEFAULT_LOGIN_INFO,
 } from "@cocalc/server/auth/sso/consts";
@@ -220,7 +220,7 @@ export class PassportManager {
       logger.debug("handle_get_api_key");
       const cookies = new Cookies(req, res);
       // maxAge: User gets up to 60 minutes to go through the SSO process...
-      cookies.set(API_KEY_COOKIE_NAME, req.query.get_api_key, {
+      cookies.set(SSO_API_KEY_COOKIE_NAME, req.query.get_api_key, {
         maxAge: 30 * 60 * 1000,
       });
     }
@@ -388,7 +388,7 @@ export class PassportManager {
 
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
-          secure: secure,
+          secure,
           overwrite: true,
           httpOnly: false,
         });
@@ -754,7 +754,8 @@ export class PassportManager {
     if (type === "saml") {
       this.router.post(
         returnUrl,
-        // the body-parser package is deprecated, using express directly
+        // External use of the body-parser package is deprecated, so we are using express directly.
+        // More precisely, body-parser is superseded by the version included inside express.
         express.urlencoded({ extended: false }),
         express.json(),
         passport.authenticate(name),

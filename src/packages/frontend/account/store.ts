@@ -6,7 +6,7 @@
 import { List, Map } from "immutable";
 import { reduce } from "lodash";
 
-import { Store } from "@cocalc/frontend/app-framework/Store";
+import { Store } from "@cocalc/util/redux/Store";
 import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
 import { get_total_upgrades } from "@cocalc/util/upgrades";
@@ -124,6 +124,12 @@ export class AccountStore extends Store<AccountState> {
 
   get_page_size(): number {
     return this.getIn(["other_settings", "page_size"], 500);
+  }
+
+  isTourDone(tour: string): boolean {
+    const tours = this.get("tours");
+    if (!tours) return false;
+    return tours.includes(tour) || tours.includes("all");
   }
 }
 

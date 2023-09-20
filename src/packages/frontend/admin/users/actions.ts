@@ -51,7 +51,7 @@ export class AdminUsersActions extends Actions<StoreState> {
     this.set_status("");
 
     this.setState({
-      result: fromJS(result_sorted) as List<ImmutableUser>,
+      result: fromJS(result_sorted) as unknown as List<ImmutableUser>,
     });
   }
 
@@ -60,4 +60,5 @@ export class AdminUsersActions extends Actions<StoreState> {
   }
 }
 
-export const actions = redux.createActions("admin-users", AdminUsersActions);
+// The ?? is just to support hot module reload.
+export const actions = redux.getActions('admin-users') ?? redux.createActions("admin-users", AdminUsersActions);

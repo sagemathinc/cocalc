@@ -213,7 +213,7 @@ export class BillingActions extends Actions<BillingStoreState> {
     // delete payment methods
     const payment_methods = this.store.getIn(["customer", "sources", "data"]);
     if (payment_methods != null) {
-      for (const x of payment_methods.toJS()) {
+      for (const x of payment_methods.toJS() as any) {
         await this.delete_payment_method(x.id);
       }
     }
@@ -223,7 +223,7 @@ export class BillingActions extends Actions<BillingStoreState> {
       "data",
     ]);
     if (subscriptions != null) {
-      for (const x of subscriptions.toJS()) {
+      for (const x of subscriptions.toJS() as any) {
         await this.cancel_subscription(x.id);
       }
     }
@@ -257,25 +257,22 @@ export class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_managed_licenses(): Promise<void> {
-    // Make sure the license subscriptions in the backend are sync'd
-    // with stripe subscriptions (e.g., expire state).
-    await webapp_client.stripe.sync_site_license_subscriptions();
     // Update the license state in the frontend
     const v = await getManagedLicenses();
-    const all_managed_license_ids = fromJS(v.map((x) => x.id));
+    const all_managed_license_ids = fromJS(v.map((x) => x.id)) as any;
 
     const day_ago = server_days_ago(1);
     const managed_license_ids = fromJS(
       v
         .filter((x) => x.expires == null || x.expires >= day_ago)
         .map((x) => x.id)
-    );
+    ) as any;
 
     const x: { [license_id: string]: object } = {};
     for (const license of v) {
       x[license.id] = license;
     }
-    const managed_licenses = fromJS(x);
+    const managed_licenses = fromJS(x) as any;
     this.setState({
       managed_licenses,
       managed_license_ids,

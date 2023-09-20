@@ -5,6 +5,7 @@
 
 // parses command line arguments -- https://github.com/visionmedia/commander.js/
 import { program } from "commander";
+import { blobstore } from "@cocalc/backend/data";
 
 interface Options {
   hubPort: number;
@@ -15,20 +16,27 @@ interface Options {
   daemon: boolean;
   sshd: boolean;
   init: string;
+  blobstore: typeof blobstore;
 }
 
-let options = {
+const DEFAULTS: Options = {
   hubPort: 0,
   browserPort: 0,
-  hostname: "127.0.0.1",
+  // It's important to make the hostname 'localhost' instead of '127.0.0.1',
+  // since we use 'localhost' in packages/server/projects/control/util.ts
+  // The distinction can of course matter, e.g,. using '127.0.0.1' causes
+  // our server to ONLY listen on ipv4, but the client will try 'localhost'
+  // which on some hosts will resolve to an ipv6 address ::1 first and that
+  // fails.  By listening on localhost, I think our project will listen on
+  // both ipv4 and ipv6 if they are available.
+  hostname: "localhost",
   testFirewall: false,
   kucalc: false,
   daemon: false,
   sshd: false,
   init: "",
-} as Options;
-
-export { options };
+  blobstore,
+};
 
 program
   .name("cocalc-project")
@@ -37,18 +45,18 @@ program
     "--hub-port <n>",
     "TCP server port to listen on (default: 0 = random OS assigned); hub connects to this",
     (n) => parseInt(n),
-    options.hubPort
+    DEFAULTS.hubPort
   )
   .option(
     "--browser-port <n>",
     "HTTP server port to listen on (default: 0 = random OS assigned); browser clients connect to this",
     (n) => parseInt(n),
-    options.browserPort
+    DEFAULTS.browserPort
   )
   .option(
     "--hostname [string]",
     'hostname of interface to bind to (default: "127.0.0.1")',
-    options.hostname
+    DEFAULTS.hostname
   )
   .option("--kucalc", "Running in the kucalc environment")
   .option(
@@ -63,13 +71,20 @@ program
     "--test-firewall",
     "Abort and exit w/ code 99 if internal GCE information *is* accessible"
   )
+  .option("--blobstore [string]", "Blobstore type (sqlite or disk)")
   .option("--daemon", "Run as a daemon")
   .parse(process.argv);
 
-export default function init(): Options {
+function init(): Options {
   const opts = program.opts();
   for (const key in opts) {
-    options[key] = opts[key];
+    DEFAULTS[key] = opts[key];
   }
-  return options;
+  return DEFAULTS;
+}
+
+const OPTIONS = init();
+
+export function getOptions() {
+  return OPTIONS;
 }

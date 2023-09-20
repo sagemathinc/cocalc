@@ -3,21 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-Manage tokens that can be used to add new users who
-know the token to a project.
-
-TODO:
-- we don't allow adjusting the usage_limit, so hide that for now.
-- the default expire time is "2 weeks" and user can't edit that yet, except to set expire to now.
-
-*/
-
-// Load the code that checks for the PROJECT_INVITE_QUERY_PARAM
-// when user gets signed in, and handles it.
-
 import { useState } from "react";
-import { Checkbox, Popconfirm } from "antd";
+import { Alert, Checkbox, Popconfirm } from "antd";
 import { CopyToClipBoard, Icon } from "../components";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -32,14 +19,18 @@ interface Props {
 export default function Sandbox({ project }: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
 
+  if (!redux.getStore("customize")?.get("sandbox_projects_enabled")) {
+    return null;
+  }
+
   if (
     project == null ||
     project.getIn(["users", webapp_client.account_id, "group"]) != "owner"
   ) {
     // only owners can configure this settings.
     // TODO: right now we are only enforcing this via the UI on the frontend.
-    // This isn't a huge issue, since a sandbox project is a free-for-all afterall.
-    return <></>;
+    // This isn't a huge issue, since a sandbox project is a free-for-all after all.
+    return null;
   }
 
   const heading = (
@@ -80,8 +71,10 @@ export default function Sandbox({ project }: Props) {
             banners are also not visible.
           </p>
           <p>
-            Only do this if you have <b>very minimal security requirements</b>{" "}
-            for the content of this project.
+            Only do this if you have very minimal security requirements for the
+            content of this project, and have no concern about potential cross
+            site scripting attacks, e.g., you are running cocalc on a private
+            network, or only share this URL with trusted people.
           </p>
         </div>
       );
@@ -92,7 +85,7 @@ export default function Sandbox({ project }: Props) {
         <CopyToClipBoard
           value={`${document.location.origin}${join(
             appBasePath,
-            "projects"
+            "projects",
           )}/${project?.get("project_id")}`}
           style={{ width: "100%", marginBottom: "15px" }}
         />
@@ -129,10 +122,19 @@ export default function Sandbox({ project }: Props) {
         ) : (
           <Popconfirm
             title={
-              <div style={{ maxWidth: "350px" }}>
-                Are you absolutely sure? Only do this if you have very minimal
-                security requirements for the content of this project.
-                <br />
+              <div style={{ maxWidth: "450px" }}>
+                Are you absolutely sure?
+                <Alert
+                  style={{ margin: "15px" }}
+                  showIcon
+                  type="warning"
+                  message="SECURITY WARNING"
+                  description="Only do this if you have very minimal
+                security requirements for the content of this project, and have
+                no concern about potential cross site scripting attacks, e.g.,
+                you are running cocalc on a private network, or only share this
+                URL with trusted people."
+                />
                 NOTE: You can always disable sandbox mode later, remove any
                 collaborators that were added, and collaborators can't delete
                 backups or TimeTravel history.

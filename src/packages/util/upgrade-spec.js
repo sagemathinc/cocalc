@@ -65,6 +65,7 @@ exports.ON_PREM_DEFAULT_QUOTAS = {
 upgrades.params = {
   disk_quota: {
     display: "Disk space",
+    display_short: "Disk",
     unit: "MB",
     display_unit: "MB",
     display_factor: 1,
@@ -115,6 +116,7 @@ upgrades.params = {
   },
   mintime: {
     display: "Idle timeout",
+    display_short: "Timeout",
     unit: "second",
     display_unit: "hour",
     display_factor: 1 / 3600, // multiply internal by this to get what should be displayed
@@ -125,26 +127,29 @@ upgrades.params = {
   },
   network: {
     display: "Internet access",
+    display_short: "Internet",
     unit: "internet upgrade",
     display_unit: "internet upgrade",
     display_factor: 1,
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: "Full internet access enables a project to connect to the computers outside of CoCalc, download data, software packages, etc.",
+    desc: "Full internet access enables a project to connect to the computers outside of CoCalc, download data, install software packages, etc.",
   },
   member_host: {
     display: "Member hosting",
+    display_short: "Hosting",
     unit: "hosting upgrade",
     display_unit: "hosting upgrade",
     display_factor: 1,
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: "Runs this project on a machine hosting less projects, without no free trial projects and random reboots.",
+    desc: "Runs this project on a machine that hosts less projects, has no free trial projects, and is not randomly rebooted.",
   },
   always_running: {
     display: "Always running",
+    display_short: "Always Up",
     unit: "always running upgrade",
     display_unit: "always running upgrade",
     display_factor: 1,
@@ -191,7 +196,7 @@ upgrades.params = {
     pricing_factor: 1,
     input_type: "string",
     desc: "Modifies the project's specification how it runs in the cluster.",
-  }
+  },
 };
 
 upgrades.field_order = [

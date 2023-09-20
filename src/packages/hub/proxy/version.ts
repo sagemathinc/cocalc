@@ -8,7 +8,7 @@ import getLogger from "../logger";
 
 let minVersion: number = 0;
 
-const winston = getLogger("proxy: version");
+const logger = getLogger("proxy:version");
 
 // Import to wait until we know the valid min_version before serving.
 export async function init(): Promise<void> {
@@ -23,14 +23,22 @@ export async function init(): Promise<void> {
 // If res is not null, sends a message. If it is
 // null, just returns true but doesn't send a response.
 export function versionCheckFails(req, res?): boolean {
+  if (minVersion == 0) {
+    // If no minimal version is set, no need to do further work,
+    // since we'll pass it.
+    return false;
+  }
   const cookies = new Cookies(req);
   /* NOTE: The name of the cookie $VERSION_COOKIE_NAME is
      also used in the frontend code file @cocalc/frontend/set-version-cookie.js
      but everybody imports it from @cocalc/util/consts.
   */
   const rawVal = cookies.get(versionCookieName(base_path));
+  if (rawVal == null) {
+    return true;
+  }
   const version = parseInt(rawVal);
-  winston.debug(`version check version=${version}, minVersion=${minVersion}`);
+  logger.debug("version check", { version, minVersion });
   if (isNaN(version) || version < minVersion) {
     if (res != null) {
       // status code 4xx to indicate this is a client problem and not

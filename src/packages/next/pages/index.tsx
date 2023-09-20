@@ -7,8 +7,10 @@ import { Layout } from "antd";
 import { join } from "path";
 
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
+import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { COLORS } from "@cocalc/util/theme";
+import { RecentHeadline } from "@cocalc/util/types/news";
 import CoCalcComFeatures, {
   Hero,
 } from "components/landing/cocalc-com-features";
@@ -16,27 +18,30 @@ import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
-import BannerWithLinks from "components/landing/banner-with-links";
-import ChatGPTHelp from "components/openai/chatgpt-help";
+import DemoCell from "components/demo-cell";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
 interface Props {
   customize: CustomizeType;
   publicPaths: PublicPathType[];
+  recentHeadlines: RecentHeadline[] | null;
+  headlineIndex: number;
 }
 
 export default function Home(props: Props) {
-  const { customize, publicPaths } = props;
+  const { customize, publicPaths, recentHeadlines, headlineIndex } = props;
   const {
     shareServer,
     siteName,
@@ -48,6 +53,7 @@ export default function Home(props: Props) {
     sandboxProjectId,
     onCoCalcCom,
     openaiEnabled,
+    jupyterApiEnabled,
   } = customize;
 
   function contentDescription() {
@@ -96,20 +102,26 @@ export default function Home(props: Props) {
                 <A href="/store" style={topLinkStyle}>
                   Store
                 </A>{" "}
-                <A href={"/licenses"} style={topLinkStyle}>
+                <a
+                  href={join(basePath, "settings/licenses")}
+                  style={topLinkStyle}
+                >
                   Licenses
-                </A>{" "}
-                <A href={"/billing"} style={topLinkStyle}>
-                  Billing
-                </A>{" "}
+                </a>{" "}
+                <a
+                  href={join(basePath, "settings/purchases")}
+                  style={topLinkStyle}
+                >
+                  Purchases
+                </a>{" "}
                 <A href={"/vouchers"} style={topLinkStyle}>
                   Vouchers
                 </A>{" "}
               </>
             )}
-          <A href={join(basePath, "projects")} external style={topLinkStyle}>
+          <a href={join(basePath, "projects")} style={topLinkStyle}>
             Projects
-          </A>{" "}
+          </a>{" "}
           {customize.landingPages && (
             <>
               <A href="/features/" style={topLinkStyle}>
@@ -201,7 +213,12 @@ export default function Home(props: Props) {
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
-          {shareServer && onCoCalcCom && <BannerWithLinks />}
+          {recentHeadlines != null ? (
+            <NewsBanner
+              recentHeadlines={recentHeadlines}
+              headlineIndex={headlineIndex}
+            />
+          ) : null}
           {openaiEnabled && (
             <div
               style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
@@ -219,6 +236,7 @@ export default function Home(props: Props) {
             alt={"Screenshot showing CoCalc in action!"}
             imageAlternative={imageAlternative()}
           />
+          {jupyterApiEnabled && onCoCalcCom && <DemoCell tag={"sage"} />}
           <Hero />
           {renderCoCalcComFeatures()}
           <Footer />
@@ -242,15 +260,23 @@ export async function getServerSideProps(context) {
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
     ORDER BY last_edited DESC LIMIT $2`,
-      [isAuthenticated, 150]
+      [isAuthenticated, 150],
     );
     publicPaths = rows;
   } else {
     publicPaths = null;
   }
 
+  // get most recent headlines
+  const recentHeadlines = await getRecentHeadlines(5);
+  // we want not always show the same at the start
+  const headlineIndex =
+    recentHeadlines != null
+      ? Math.floor(Date.now() % recentHeadlines.length)
+      : 0;
+
   return await withCustomize(
-    { context, props: { publicPaths } },
-    { name: true }
+    { context, props: { publicPaths, recentHeadlines, headlineIndex } },
+    { name: true },
   );
 }

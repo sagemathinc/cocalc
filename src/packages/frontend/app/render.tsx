@@ -3,19 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Redux } from "../app-framework";
 import { createRoot } from "react-dom/client";
+
+import { Redux } from "@cocalc/frontend/app-framework";
+import { AppContext, useAppStateProvider } from "./context";
+
+function Root({ Page }) {
+  const appState = useAppStateProvider();
+
+  return (
+    <Redux>
+      <AppContext.Provider value={appState}>
+        <Page />
+      </AppContext.Provider>
+    </Redux>
+  );
+}
 
 export async function render(): Promise<void> {
   finishedLoading(); // comment this out to leave the loading/startup banner visible so you can use the Chrome dev tools with it.
-  const { Page } = await import("./page");
   const container = document.getElementById("cocalc-webapp-container");
   const root = createRoot(container!);
-  root.render(
-    <Redux>
-      <Page />
-    </Redux>
-  );
+  const { Page } = await import("./page");
+  root.render(<Root Page={Page} />);
 }
 
 import ReactDOM from "react-dom";
@@ -23,9 +33,7 @@ export async function xxx_render(): Promise<void> {
   finishedLoading(); // comment this out to leave the loading/startup banner visible
   const { Page } = await import("./page");
   ReactDOM.render(
-    <Redux>
-      <Page />
-    </Redux>,
+    <Root Page={Page} />,
     document.getElementById("cocalc-webapp-container")
   );
 }

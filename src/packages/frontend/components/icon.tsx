@@ -6,7 +6,8 @@
 declare var DEBUG: boolean; // comes from static webpack; not defined in other contexts.
 
 import React from "react";
-import { CSS } from "../app-framework";
+
+import { CSS } from "@cocalc/frontend/app-framework";
 import useOnFrontend from "./use-on-frontend";
 
 import {
@@ -21,6 +22,7 @@ import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
   ArrowUpOutlined,
+  ArrowsAltOutlined,
   AudioOutlined,
   BackwardOutlined,
   BellFilled,
@@ -43,6 +45,7 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   CloseCircleTwoTone,
+  CloseCircleFilled,
   CloseOutlined,
   CloudDownloadOutlined,
   CloudFilled,
@@ -66,8 +69,9 @@ import {
   DoubleLeftOutlined,
   DoubleRightOutlined,
   DownCircleOutlined,
-  DownloadOutlined,
   DownOutlined,
+  DownloadOutlined,
+  EditFilled,
   EditOutlined,
   EllipsisOutlined,
   ExclamationCircleFilled,
@@ -84,8 +88,8 @@ import {
   FileZipOutlined,
   FireOutlined,
   FolderOpenOutlined,
-  FontSizeOutlined,
   FolderOutlined,
+  FontSizeOutlined,
   ForwardOutlined,
   FrownOutlined,
   FundProjectionScreenOutlined,
@@ -95,6 +99,7 @@ import {
   GlobalOutlined,
   GoogleOutlined,
   HddOutlined,
+  HighlightOutlined,
   HistoryOutlined,
   HomeOutlined,
   HourglassOutlined,
@@ -115,7 +120,10 @@ import {
   LockFilled,
   LoginOutlined,
   LogoutOutlined,
+  MailOutlined,
   MedicineBoxOutlined,
+  MehOutlined,
+  MenuOutlined,
   MinusCircleOutlined,
   MinusOutlined,
   MinusSquareOutlined,
@@ -126,8 +134,8 @@ import {
   PlayCircleFilled,
   PlayCircleOutlined,
   PlaySquareOutlined,
-  PlusCircleOutlined,
   PlusCircleFilled,
+  PlusCircleOutlined,
   PlusOutlined,
   PlusSquareOutlined,
   PoweroffOutlined,
@@ -145,12 +153,14 @@ import {
   ScissorOutlined,
   SearchOutlined,
   SelectOutlined,
-  SolutionOutlined,
   SendOutlined,
+  SettingOutlined,
   ShareAltOutlined,
   ShoppingCartOutlined,
   ShrinkOutlined,
+  SlidersOutlined,
   SmileOutlined,
+  SolutionOutlined,
   StarFilled,
   StarOutlined,
   StepBackwardOutlined,
@@ -160,12 +170,13 @@ import {
   SwapOutlined,
   SyncOutlined,
   TableOutlined,
-  TagOutlined,
-  TagsOutlined,
   TagFilled,
-  TagsFilled,
+  TagOutlined,
   TagTwoTone,
+  TagsFilled,
+  TagsOutlined,
   TagsTwoTone,
+  TeamOutlined,
   ThunderboltOutlined,
   ToolOutlined,
   TwitterOutlined,
@@ -174,23 +185,23 @@ import {
   UnlockFilled,
   UnorderedListOutlined,
   UpCircleOutlined,
-  UploadOutlined,
   UpOutlined,
+  UploadOutlined,
   UserAddOutlined,
   UserDeleteOutlined,
-  UsergroupAddOutlined,
   UserOutlined,
+  UsergroupAddOutlined,
+  VerticalAlignMiddleOutlined,
+  VerticalRightOutlined,
   VideoCameraOutlined,
+  WalletOutlined,
   WarningOutlined,
   WifiOutlined,
-  MailOutlined,
-  WalletOutlined,
-  MehOutlined,
-  SettingOutlined,
-  HighlightOutlined,
 } from "@ant-design/icons";
 
-const IconSpec = {
+// Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
+// compiler will serialize. An explicit type annotation is needed."
+const IconSpec: { [name: string]: any } = {
   "address-card": IdcardOutlined,
   aim: AimOutlined,
   "align-left": AlignLeftOutlined,
@@ -261,6 +272,7 @@ const IconSpec = {
   "clipboard-check": { IconFont: "clipboard-check" },
   clock: ClockCircleOutlined,
   "close-circle-two-tone": CloseCircleTwoTone,
+  "close-circle-filled": CloseCircleFilled,
   clone: { IconFont: "clone" },
   cloud: CloudFilled,
   "cloud-download": CloudDownloadOutlined,
@@ -294,6 +306,7 @@ const IconSpec = {
   download: DownloadOutlined,
   "dot-circle": { IconFont: "dot-circle" },
   edit: EditOutlined,
+  "edit-filled": EditFilled,
   eraser: { IconFont: "Eraser-Tool" },
   ellipsis: EllipsisOutlined,
   envelope: { IconFont: "envelope" },
@@ -301,6 +314,7 @@ const IconSpec = {
   "exclamation-circle": ExclamationCircleFilled,
   "exclamation-triangle": WarningOutlined,
   expand: ExpandOutlined,
+  "expand-arrows": ArrowsAltOutlined,
   "external-link": { IconFont: "external-link-alt" },
   eye: EyeOutlined,
   "eye-slash": EyeInvisibleOutlined,
@@ -387,6 +401,7 @@ const IconSpec = {
   markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
+  "menu-outlined": MenuOutlined,
   meh: MehOutlined,
   microchip: { IconFont: "microchip" },
   "minus-circle": MinusCircleOutlined,
@@ -416,6 +431,7 @@ const IconSpec = {
   "play-circle": PlayCircleFilled,
   "play-square": PlaySquareOutlined,
   plus: PlusOutlined,
+  minus: MinusOutlined,
   "plus-circle": PlusCircleOutlined,
   "plus-circle-o": PlusCircleOutlined,
   "plus-circle-filled": PlusCircleFilled,
@@ -458,6 +474,7 @@ const IconSpec = {
   sitemap: ClusterOutlined,
   "share-square": ShareAltOutlined,
   "shopping-cart": ShoppingCartOutlined,
+  sliders: SlidersOutlined,
   smile: SmileOutlined,
   "sort-amount-up": { IconFont: "sort-amount-up" },
   spinner: { IconFont: "cocalc-ring" },
@@ -489,6 +506,7 @@ const IconSpec = {
   "tags-filled": TagsFilled,
   "tag-two-tone": TagTwoTone,
   "tags-two-tone": TagsTwoTone,
+  "team-outlined": TeamOutlined,
   terminal: CodeOutlined,
   tex: { IconFont: "tex" },
   text: { IconFont: "text" },
@@ -520,7 +538,9 @@ const IconSpec = {
   "user-times": UserDeleteOutlined,
   users: UsergroupAddOutlined,
   "vertical-split": { IconFont: "vertical-split" },
+  "vertical-right-outlined": VerticalRightOutlined,
   "video-camera": VideoCameraOutlined,
+  "vertical-align-middle": VerticalAlignMiddleOutlined,
   vim: { IconFont: "vim" },
   vscode: { IconFont: "vscode" },
   wallet: WalletOutlined,
@@ -566,7 +586,7 @@ try {
             const id = `icon-${x}`;
             if (document.getElementById(id) == null) {
               console.error(
-                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`
+                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`,
               );
             }
           }
@@ -580,7 +600,9 @@ try {
   console.log(`IconFont not available -- ${err}`);
 }
 
-export type IconName = keyof typeof IconSpec;
+// This was nice but unfortunately it exceeds typescript limits.
+//export type IconName = keyof typeof IconSpec;
+export type IconName = string;
 export const IconName = undefined; // Javascript needs this, though we are only using IconName for the type
 
 // Typeguard so can tell if a string is name of an icon and also
@@ -659,7 +681,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
     if (missing[props.name ?? ""] == null) {
       missing[props.name ?? ""] = true;
       console.warn(
-        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`
+        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`,
       );
     }
     // make it hopefully clear to devs that this icon is broken

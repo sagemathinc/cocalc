@@ -7,40 +7,44 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
-import { spawn } from "child_process";
-import { COCALC_MODES } from "@cocalc/server/projects/control";
-import blocked from "blocked";
-import { program as commander, Option } from "commander";
-import { callback2 } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
-import { getLogger } from "./logger";
+import blocked from "blocked";
+import { spawn } from "child_process";
+import { program as commander, Option } from "commander";
+
 import basePath from "@cocalc/backend/base-path";
-import { retry_until_success } from "@cocalc/util/async-utils";
-const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
-import { init_passport } from "./auth";
-import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
-import { set_agent_endpoint } from "./health-checks";
-import initHandleMentions from "@cocalc/server/mentions/handle";
-const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
-import { start as startHubRegister } from "./hub_register";
-import { getClients } from "./clients";
-import { stripe_sync } from "@cocalc/server/stripe/sync";
-import port from "@cocalc/backend/port";
-import { database } from "./servers/database";
-import initExpressApp from "./servers/express-app";
-import initHttpRedirect from "./servers/http-redirect";
-import initDatabase from "./servers/database";
-import initProjectControl from "@cocalc/server/projects/control";
-import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
-import initVersionServer from "./servers/version";
-import initPrimus from "./servers/primus";
-import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
-import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import {
-  pguser as DEFAULT_DB_USER,
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
+  pguser as DEFAULT_DB_USER,
 } from "@cocalc/backend/data";
+import port from "@cocalc/backend/port";
+import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
+import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
+import initHandleMentions from "@cocalc/server/mentions/handle";
+import initProjectControl, {
+  COCALC_MODES,
+} from "@cocalc/server/projects/control";
+import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
+import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
+import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
+import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
+import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
+import { stripe_sync } from "@cocalc/server/stripe/sync";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import { init_passport } from "./auth";
+import { getClients } from "./clients";
+import { set_agent_endpoint } from "./health-checks";
+import { start as startHubRegister } from "./hub_register";
+import { getLogger } from "./logger";
+import { trimLogFileSize } from "@cocalc/backend/logger";
+import initDatabase, { database } from "./servers/database";
+import initExpressApp from "./servers/express-app";
+import initHttpRedirect from "./servers/http-redirect";
+import initPrimus from "./servers/primus";
+import initVersionServer from "./servers/version";
+const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
+const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -93,11 +97,11 @@ async function initMetrics() {
   return {
     metric_blocked: MetricsRecorder.new_counter(
       "blocked_ms_total",
-      'accumulates the "blocked" time in the hub [ms]'
+      'accumulates the "blocked" time in the hub [ms]',
     ),
     uncaught_exception_total: MetricsRecorder.new_counter(
       "uncaught_exception_total",
-      'counts "BUG"s'
+      'counts "BUG"s',
     ),
   };
 }
@@ -112,18 +116,20 @@ async function startServer(): Promise<void> {
 
   winston.info(`basePath='${basePath}'`);
   winston.info(
-    `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`
+    `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`,
   );
 
   const { metric_blocked, uncaught_exception_total } = await initMetrics();
 
-  // Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
+  // Log anything that blocks the CPU for more than ~100ms -- see https://github.com/tj/node-blocked
   blocked((ms: number) => {
-    if (ms > 0) {
+    if (ms > 100) {
       metric_blocked.inc(ms);
     }
     // record that something blocked:
-    winston.debug(`BLOCKED for ${ms}ms`);
+    if (ms > 100) {
+      winston.debug(`BLOCKED for ${ms}ms`);
+    }
   });
 
   // Wait for database connection to work.  Everything requires this.
@@ -248,7 +254,7 @@ async function startServer(): Promise<void> {
 
   if (program.websocketServer || program.proxyServer || program.nextServer) {
     winston.info(
-      "Starting registering periodically with the database and updating a health check..."
+      "Starting registering periodically with the database and updating a health check...",
     );
 
     // register the hub with the database periodically, and
@@ -276,6 +282,19 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
+  if (program.all || program.mentions) {
+    // kucalc: for now we just have the hub-mentions servers
+    // do the new project pool maintenance, since there is only
+    // one hub-stats.
+    // On non-cocalc it'll get done by *the* hub because of program.all.
+    initNewProjectPoolMaintenanceLoop();
+    // Starts periodic maintenance on pay-as-you-go purchases, e.g., quota
+    // upgrades of projects.
+    initPurchasesMaintenanceLoop();
+    initSalesloftMaintenance();
+    setInterval(trimLogFileSize, 1000 * 60 * 3);
+  }
+
   addErrorListeners(uncaught_exception_total);
 }
 
@@ -285,13 +304,13 @@ async function startServer(): Promise<void> {
 function addErrorListeners(uncaught_exception_total) {
   process.addListener("uncaughtException", function (err) {
     winston.error(
-      "BUG ****************************************************************************"
+      "BUG ****************************************************************************",
     );
     winston.error("Uncaught exception: " + err);
     console.error(err.stack);
     winston.error(err.stack);
     winston.error(
-      "BUG ****************************************************************************"
+      "BUG ****************************************************************************",
     );
     database?.uncaught_exception(err);
     uncaught_exception_total.inc(1);
@@ -299,12 +318,12 @@ function addErrorListeners(uncaught_exception_total) {
 
   return process.on("unhandledRejection", function (reason, p) {
     winston.error(
-      "BUG UNHANDLED REJECTION *********************************************************"
+      "BUG UNHANDLED REJECTION *********************************************************",
     );
     console.error(p, reason); // strangely sometimes winston.error can't actually show the traceback...
     winston.error("Unhandled Rejection at:", p, "reason:", reason);
     winston.error(
-      "BUG UNHANDLED REJECTION *********************************************************"
+      "BUG UNHANDLED REJECTION *********************************************************",
     );
     database?.uncaught_exception(reason);
     uncaught_exception_total.inc(1);
@@ -322,91 +341,92 @@ async function main(): Promise<void> {
       new Option(
         "--mode [string]",
         `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(
-          ", "
-        )}) - or set COCALC_MODE env var`
-      ).choices(COCALC_MODES)
+          ", ",
+        )}) - or set COCALC_MODE env var`,
+      ).choices(COCALC_MODES as any as string[]),
     )
     .option(
       "--all",
-      "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)"
+      "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)",
     )
     .option("--websocket-server", "run the websocket server")
     .option("--proxy-server", "run the proxy server")
     .option(
       "--next-server",
-      "run the nextjs server (landing pages, share server, etc.)"
+      "run the nextjs server (landing pages, share server, etc.)",
     )
-    .option("--noco-db", "run the NocoDB database server (for admins)")
-    /*.option("--https", "if specified will use (or create selfsigned) data/https/key.pem and data/https/cert.pem and serve https on the port specified by the PORT env variable. Do not combine this with --https-key/--htps-cert options below.")*/
     .option(
       "--https-key [string]",
-      "serve over https.  argument should be a key filename (both https-key and https-cert must be specified)"
+      "serve over https.  argument should be a key filename (both https-key and https-cert must be specified)",
     )
     .option(
       "--https-cert [string]",
-      "serve over https.  argument should be a cert filename (both https-key and https-cert must be specified)"
+      "serve over https.  argument should be a cert filename (both https-key and https-cert must be specified)",
     )
     .option(
       "--agent-port <n>",
       "port for HAProxy agent-check (default: 0 -- do not start)",
       (n) => parseInt(n),
-      0
+      0,
     )
     .option(
       "--hostname [string]",
       'host of interface to bind to (default: "127.0.0.1")',
-      "127.0.0.1"
+      "127.0.0.1",
     )
     .option(
       "--database-nodes <string,string,...>",
       `database address (default: '${DEFAULT_DB_HOST}')`,
-      DEFAULT_DB_HOST
+      DEFAULT_DB_HOST,
     )
     .option(
       "--database-name [string]",
       `Database name to use (default: "${DEFAULT_DB_NAME}")`,
-      DEFAULT_DB_NAME
+      DEFAULT_DB_NAME,
     )
     .option(
       "--database-user [string]",
       `Database username to use (default: "${DEFAULT_DB_USER}")`,
-      DEFAULT_DB_USER
+      DEFAULT_DB_USER,
     )
     .option("--passwd [email_address]", "Reset password of given user", "")
     .option(
       "--update-database-schema",
-      "If specified, updates database schema on startup (always happens when mode is not kucalc)."
+      "If specified, updates database schema on startup (always happens when mode is not kucalc).",
     )
     .option(
       "--stripe-sync",
       "Sync stripe subscriptions to database for all users with stripe id",
-      "yes"
+      "yes",
     )
     .option(
       "--update-stats",
       "Calculates the statistics for the /stats endpoint and stores them in the database",
-      "yes"
+      "yes",
     )
     .option("--delete-expired", "Delete expired data from the database", "yes")
     .option(
       "--blob-maintenance",
       "Do blob-related maintenance (dump to tarballs, offload to gcloud)",
-      "yes"
+      "yes",
     )
-    .option("--mentions", "if given, periodically handle mentions")
+    .option(
+      "--mentions",
+      "if given, periodically handle mentions; on kucalc there is only one of these.  It also managed the new project pool.  Maybe this should be renamed --singleton!",
+    )
     .option(
       "--test",
-      "terminate after setting up the hub -- used to test if it starts up properly"
+      "terminate after setting up the hub -- used to test if it starts up properly",
     )
     .option(
       "--db-concurrent-warn <n>",
       "be very unhappy if number of concurrent db requests exceeds this (default: 300)",
       (n) => parseInt(n),
-      300
+      300,
     )
     .option(
       "--personal",
-      "run VERY UNSAFE: there is only one user and no authentication"
+      "run VERY UNSAFE: there is only one user and no authentication",
     )
     .parse(process.argv);
   // Everywhere else in our code, we just refer to program.[options] since we
@@ -420,8 +440,8 @@ async function main(): Promise<void> {
     if (!program.mode) {
       throw Error(
         `the --mode option must be specified or the COCALC_MODE env var set to one of ${COCALC_MODES.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
       process.exit(1);
     }

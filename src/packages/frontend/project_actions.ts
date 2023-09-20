@@ -6,54 +6,64 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
-import { join } from "path";
 import * as async from "async";
+import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
-import { Set, List, fromJS, Map } from "immutable";
+import { join } from "path";
 
-import { client_db } from "@cocalc/util/schema";
-import {
-  ConfigurationAspect,
-  Configuration,
-  ProjectConfiguration,
-  get_configuration,
-  LIBRARY_INDEX_FILE,
-  is_available as feature_is_available,
-} from "./project_configuration";
-import { query as client_query } from "./frame-editors/generic/client";
-import { callback } from "awaiting";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
+import { init as initChat } from "@cocalc/frontend/chat/register";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import track from "@cocalc/frontend/user-tracking";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import { exec } from "./frame-editors/generic/client";
-import { API } from "./project/websocket/api";
-import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
-import { transform_get_url } from "./project/transform-get-url";
-import { OpenFiles } from "./project/open-files";
-import { log_opened_time, open_file, log_file_open } from "./project/open-file";
-import * as project_file from "./project-file";
-import { get_editor } from "./editors/react-wrapper";
 import * as misc from "@cocalc/util/misc";
 import { MARKERS } from "@cocalc/util/sagews";
+import { client_db } from "@cocalc/util/schema";
+import { callback } from "awaiting";
+import { default_filename } from "./account";
 import { alert_message } from "./alerts";
-import { webapp_client } from "./webapp-client";
-const { defaults, required } = misc;
+import { Actions, project_redux_name, redux } from "./app-framework";
+import { IconName } from "./components";
+import { local_storage } from "./editor-local-storage";
+import { get_editor } from "./editors/react-wrapper";
+import { query as client_query, exec } from "./frame-editors/generic/client";
 import { set_url } from "./history";
+import { download_file, open_new_tab, open_popup_window } from "./misc";
+import * as project_file from "./project-file";
 import { delete_files } from "./project/delete-files";
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
-import { Actions, project_redux_name, redux } from "./app-framework";
-import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
-import { ProjectEvent } from "./project/history/types";
-import { download_href, url_href } from "./project/utils";
-import { ensure_project_running } from "./project/project-start-warning";
-import { download_file, open_new_tab, open_popup_window } from "./misc";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { IconName } from "./components";
-import { default_filename } from "./account";
-import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import {
+  ProjectEvent,
+  SoftwareEnvironmentEvent,
+} from "./project/history/types";
+import { log_file_open, log_opened_time, open_file } from "./project/open-file";
+import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
-import { init as initChat } from "@cocalc/frontend/chat/register";
-import { local_storage } from "./editor-local-storage";
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
+import { FlyoutLogMode, storeFlyoutState } from "./project/page/flyouts/state";
+import { ensure_project_running } from "./project/project-start-warning";
+import { transform_get_url } from "./project/transform-get-url";
+import {
+  NewFilenames,
+  download_href,
+  in_snapshot_path,
+  normalize,
+  url_href,
+} from "./project/utils";
+import { API } from "./project/websocket/api";
+import {
+  Configuration,
+  ConfigurationAspect,
+  LIBRARY_INDEX_FILE,
+  ProjectConfiguration,
+  is_available as feature_is_available,
+  get_configuration,
+} from "./project_configuration";
+import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
+import { webapp_client } from "./webapp-client";
+import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
+const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -98,6 +108,7 @@ export const QUERIES = {
       last_saved: null,
       counter: null,
       compute_image: null,
+      site_license_id: null,
     },
   },
 };
@@ -127,7 +138,14 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-export const FILE_ACTIONS = {
+interface FileAction {
+  name: string;
+  icon: IconName;
+  allows_multiple_files?: boolean;
+  hideFlyout?: boolean;
+}
+
+export const FILE_ACTIONS: { [key: string]: FileAction } = {
   compress: {
     name: "Compress",
     icon: "compress" as IconName,
@@ -171,10 +189,12 @@ export const FILE_ACTIONS = {
   upload: {
     name: "Upload",
     icon: "upload" as IconName,
+    hideFlyout: true,
   },
   create: {
     name: "Create",
     icon: "plus-circle" as IconName,
+    hideFlyout: true,
   },
 } as const;
 
@@ -359,7 +379,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (misc.path_to_tab(path) === active_project_tab) {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
-        next_active_tab = "files";
+        const account_store = this.redux.getStore("account") as any;
+        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
+        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
+        next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
 
@@ -428,6 +451,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.fetch_directory_listing();
         }
         break;
+
       case "new":
         change.file_creation_error = undefined;
         if (opts.change_history) {
@@ -436,36 +460,55 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
         break;
+
       case "log":
         if (opts.change_history) {
           this.push_state("log", "");
         }
         break;
+
       case "search":
         if (opts.change_history) {
           this.push_state(`search/${store.get("current_path")}`, "");
         }
         break;
+
       case "servers":
         if (opts.change_history) {
           this.push_state("servers", "");
         }
         break;
+
       case "settings":
         if (opts.change_history) {
           this.push_state("settings", "");
         }
         break;
+
       case "info":
         if (opts.change_history) {
           this.push_state("info", "");
         }
         break;
+
       case "home":
         if (opts.change_history) {
           this.push_state("home", "");
         }
         break;
+
+      case "users":
+        if (opts.change_history) {
+          this.push_state("users", "");
+        }
+        break;
+
+      case "upgrades":
+        if (opts.change_history) {
+          this.push_state("upgrades", "");
+        }
+        break;
+
       default:
         // editor...
         const path = misc.tab_to_path(key);
@@ -485,7 +528,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           (redux.getStore("projects") as any).get_my_group(this.project_id) ===
           "public";
 
-        const info = store.get("open_files").getIn([path, "component"]);
+        const info = store.get("open_files").getIn([path, "component"]) as any;
         if (info == null) {
           // shouldn't happen...
           return;
@@ -531,7 +574,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // If a fragment identifier is set, we also jump there.
             const fragmentId = store
               .get("open_files")
-              .getIn([path, "fragmentId"]);
+              .getIn([path, "fragmentId"]) as any;
             if (fragmentId) {
               this.gotoFragment(path, fragmentId);
             }
@@ -544,6 +587,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
     }
     this.setState(change);
+  }
+
+  public toggleFlyout(name: FixedTab): void {
+    const store = this.get_store();
+    if (store == undefined) return;
+    const flyout = name === store.get("flyout") ? null : name;
+    this.setState({ flyout });
+    // also store this in local storage
+    storeFlyoutState(this.project_id, name, { expanded: flyout != null });
+    if (flyout != null) {
+      track("flyout", { name: flyout, project_id: this.project_id });
+    }
+  }
+
+  public setFlyoutExpanded(name: FixedTab, state: boolean, save = true): void {
+    this.setState({ flyout: state ? name : null });
+    // also store this in local storage
+    if (save) {
+      storeFlyoutState(this.project_id, name, { expanded: name != null });
+    }
+  }
+
+  public setFlyoutLogMode(mode: FlyoutLogMode): void {
+    this.setState({ flyout_log_mode: mode });
+    storeFlyoutState(this.project_id, "log", { mode });
   }
 
   add_a_ghost_file_tab(): void {
@@ -708,7 +776,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const path_data = store.get("open_files").getIn([opts.path, "component"]);
+    const path_data = store
+      .get("open_files")
+      .getIn([opts.path, "component"]) as any;
     const is_public = path_data ? path_data.is_public : false;
 
     project_file.save(opts.path, this.redux, this.project_id, is_public);
@@ -837,7 +907,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           return;
         }
         // WARNING: Saving scroll position does NOT trigger a rerender. This is intentional.
-        const info = store!.get("open_files").getIn([path, "component"]);
+        const info = store!.get("open_files").getIn([path, "component"]) as any;
         info.scroll_position = scroll_position; // Yes, this mutates the store silently.
         return scroll_position;
       };
@@ -964,7 +1034,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
   open_chat({ path, width = 0.7 }: { path: string; width?: number }): void {
-    const info = this.get_store()?.get("open_files").getIn([path, "component"]);
+    const info = this.get_store()
+      ?.get("open_files")
+      .getIn([path, "component"]) as any;
     if (info?.Editor == null) {
       // not opened in the foreground yet.
       this.set_chat_state(path, "pending");
@@ -1082,7 +1154,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const file_paths = store.get("open_files");
     file_paths.map((obj, path) => {
-      const component_data = obj.getIn(["component"]);
+      const component_data = obj.get("component");
       const is_public = component_data ? component_data.is_public : undefined;
       project_file.remove(path, this.redux, this.project_id, is_public);
     });
@@ -1099,7 +1171,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const open_files = store.get("open_files");
-    const component_data = open_files.getIn([path, "component"]);
+    const component_data = open_files.getIn([path, "component"]) as any;
     if (component_data == null) return; // nothing to do since already closed.
     this.open_files?.delete(path);
     project_file.remove(
@@ -1154,8 +1226,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (show_files) {
           this.set_active_tab("files", {
             update_file_listing: false,
-            change_history: change_history,
+            change_history: false, // see "if" below
           });
+        }
+        if (change_history) {
+          // i.e. regardless of show_files is true or false, we might want to record this in the history
+          this.set_url_to_path(store.get("current_path") ?? "", "");
         }
         this.set_all_files_unchecked();
       }
@@ -1836,7 +1912,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         configuration: next,
         available_features: feature_is_available(next),
         configuration_loading: false,
-      })
+      } as any)
     );
 
     return next.get(aspect) as Configuration;
@@ -2229,8 +2305,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           type: "error",
           message,
         });
+        return true;
       }
-      return true;
     }
     return false;
   }
@@ -2539,6 +2615,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       license?: string;
       disabled?: boolean;
       authenticated?: boolean;
+      site_license_id?: string | null;
     }
   ) {
     if (
@@ -2546,11 +2623,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
       )
     ) {
+      console.warn("set_public_path: sandbox");
       return;
     }
 
     const store = this.get_store();
     if (!store) {
+      console.warn("set_public_path: no store");
       return;
     }
 
@@ -2580,7 +2659,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         compute_image,
       });
     }
-    if (obj == null) return; // make typescript happy
+    if (obj == null) {
+      // make typescript happy
+      console.warn("set_public_path: BUG -- obj can't be null");
+      return;
+    }
 
     // not allowed to write these back
     obj = obj.delete("last_saved");
@@ -2590,7 +2673,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     obj = obj.set("compute_image", compute_image);
 
     for (const k in opts) {
-      if (opts[k] != null) {
+      if (opts[k] !== undefined) {
         const will_change = opts[k] != obj.get(k);
         if (!log) {
           if (k === "disabled" && will_change) {
@@ -2600,6 +2683,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // changing unlisted state
             log = true;
           } else if (k === "authenticated" && will_change) {
+            log = true;
+          } else if (k === "site_license_id" && will_change) {
             log = true;
           }
         }
@@ -2614,12 +2699,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     table.set(obj);
 
     if (log) {
+      // can't just change always since we frequently update last_edited to get the share to get copied over.
       this.log({
         event: "public_path",
         path: path + ((await this.isdir(path)) ? "/" : ""),
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
+        site_license_id: obj.get("site_license_id")?.slice(-8),
       });
     }
   }
@@ -2756,6 +2843,38 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  private async neuralSearch(text, path) {
+    try {
+      const scope = `projects/${this.project_id}/files/${path}`;
+      const results = await webapp_client.openai_client.embeddings_search({
+        text,
+        limit: 25,
+        scope,
+      });
+      const search_results: {
+        filename: string;
+        description: string;
+        fragment_id?: FragmentId;
+      }[] = [];
+      for (const result of results) {
+        const url = result.payload["url"] as string | undefined;
+        if (!url) continue;
+        const [filename, fragment_id] = url.slice(scope.length + 1).split("#");
+        const description = result.payload["text"] ?? "";
+        search_results.push({
+          filename: filename[0] == "/" ? filename.slice(1) : filename,
+          description,
+          fragment_id: Fragment.decode(fragment_id),
+        });
+      }
+      this.setState({ search_results });
+    } catch (err) {
+      this.setState({
+        search_error: `${err}`,
+      });
+    }
+  }
+
   search() {
     let cmd, ins;
     const store = this.get_store();
@@ -2768,6 +2887,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const search_query = `"${query}"`;
+    this.setState({
+      search_results: undefined,
+      search_error: undefined,
+      most_recent_search: query,
+      most_recent_path: store.get("current_path"),
+      too_many_results: false,
+    });
+    const path = store.get("current_path");
+
+    track("search", {
+      project_id: this.project_id,
+      path,
+      query,
+      neural_search: store.get("neural_search"),
+      subdirectories: store.get("subdirectories"),
+      hidden_files: store.get("hidden_files"),
+      git_grep: store.get("git_grep"),
+    });
+
+    if (store.get("neural_search")) {
+      this.neuralSearch(query, path);
+      return;
+    }
 
     // generate the grep command for the given query with the given flags
     if (store.get("case_sensitive")) {
@@ -2810,11 +2952,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const max_output = 110 * max_results; // just in case
 
     this.setState({
-      search_results: undefined,
-      search_error: undefined,
       command: cmd,
-      most_recent_search: query,
-      most_recent_path: store.get("current_path"),
     });
 
     webapp_client.exec({
@@ -2939,6 +3077,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_active_tab("info", { change_history: change_history });
         break;
 
+      case "users":
+        this.set_active_tab("users", {
+          change_history: change_history,
+        });
+        break;
+
+      case "upgrades":
+        this.set_active_tab("upgrades", { change_history: change_history });
+        break;
+
       default:
         misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);
@@ -2950,6 +3098,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   async set_compute_image(compute_image: string): Promise<void> {
+    const projects_store = this.redux.getStore("projects");
+    const previous: string =
+      projects_store.getIn(["project_map", this.project_id, "compute_image"]) ??
+      "";
+
     await client_query({
       query: {
         projects: {
@@ -2958,6 +3111,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         },
       },
     });
+
+    // if the above is successful, we log it
+    const event: SoftwareEnvironmentEvent = {
+      event: "software_environment",
+      previous,
+      next: compute_image,
+    };
+    this.log(event);
   }
 
   async set_environment(env: object): Promise<void> {
@@ -2981,9 +3142,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == null) return; // no store
     if (store.get("project_log_all") != null) return; // already done
-    this.setState({ project_log: undefined });
+    // Dear future dev: don't delete the project_log table
+    // https://github.com/sagemathinc/cocalc/issues/6765
     store.init_table("project_log_all");
-    this.remove_table("project_log");
   }
 
   // called when project page is shown
@@ -3050,7 +3211,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       content,
       onOk: () => (response = "ok"),
       onCancel: () => (response = "cancel"),
-    });
+    }) as any;
     this.modal = modal;
     this.setState({
       modal,

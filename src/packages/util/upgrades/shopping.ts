@@ -34,7 +34,12 @@ export type ComputeCostProps =
       range: DateRange;
       dedicated_vm: DedicatedVM;
     }
-  | { type: "disk"; dedicated_disk: DedicatedDisk; period: Period };
+  | {
+      type: "disk";
+      dedicated_disk: DedicatedDisk;
+      period: Period;
+    }
+  | { type: "cash-voucher"; amount: number };
 
 export type ComputeCostPropsTypes = ComputeCostProps["type"];
 
@@ -51,11 +56,11 @@ export type SiteLicenseDescriptionDB =
       user: User;
       run_limit: number;
       period: Period;
-      range?: [string, string]; // should be converted to [Date, Date]
+      range?: readonly [string, string]; // should be converted to [Date, Date]
       ram: number;
       cpu: number;
       disk: number;
-      always_running: boolean;
+      always_running?: boolean;
       member: boolean;
       uptime: keyof typeof LicenseIdleTimeouts | "always_running";
       boost?: boolean;

@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 /*
 Tabs for the open files in a project.
 */
@@ -18,7 +17,7 @@ import {
   useItemContext,
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
-import { path_to_tab } from "@cocalc/util/misc";
+import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { file_tab_labels } from "../file-tab-labels";
 import { FileTab } from "./file-tab";
 
@@ -112,8 +111,8 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     });
   }
 
-  const activeKey = activeTab.startsWith("editor-")
-    ? pathToKey(activeTab.slice("editor-".length))
+  const activeKey = activeTab.startsWith(EDITOR_PREFIX)
+    ? pathToKey(activeTab.slice(EDITOR_PREFIX.length))
     : "";
 
   function onDragStart(event) {

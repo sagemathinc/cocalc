@@ -3,24 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
+// take special care if you do this in the front-end, because if server-time is off by a significant amount,
+// it might count one day too many or too little.
+// use the rounding functions below to fix this, but maybe you have to use the "store/util::useTimeFixer" hook.
+
 import { StartEndDatesWithStrings } from "@cocalc/util/licenses/purchase/types";
 import { DateRangeOptional } from "@cocalc/util/types/store";
 import dayjs, { Dayjs } from "dayjs";
 
 // this does NOT round to start/end of the day.
-// take special care if you do this in the front-end, because if server-time is off by a significant amount,
-// it might count one day too many or too little.
-// use the rounding functions below to fix this, but maybe you have to use the "store/util::useTimeFixer" hook.
+
 export function getDays({ start, end }: StartEndDatesWithStrings): number {
   if (start == null || end == null) {
     throw Error("bug");
   }
-
-  const t0 = new Date(start).valueOf();
-  const t1 = new Date(end).valueOf();
-
-  return Math.round((t1 - t0) / ONE_DAY_MS);
+  return dayjs(end).diff(dayjs(start), "day", true);
 }
 
 // round date to start of day (local user time)

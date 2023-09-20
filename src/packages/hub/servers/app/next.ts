@@ -22,7 +22,17 @@ export default async function init(app: Application) {
   const winston = getLogger("nextjs");
 
   winston.info("Initializing the nextjs server...");
+
+  // the Hot module reloader triggers some annoying "fetch" warnings, so
+  // we temporarily disable all warnings, then re-enable them immediately below.
+  // https://www.phind.com/search?cache=3a6edffa-ce34-4d0d-b448-6ea45f325783
+  const originalWarningListeners = process.listeners("warning").slice();
+  process.removeAllListeners("warning");
   const handler = await initNextServer({ basePath });
+  originalWarningListeners.forEach((listener) => {
+    process.on("warning", listener);
+  });
+
   winston.info("Initializing the nextjs share server...");
   const shareServer = await runShareServer();
   const shareBasePath = join(basePath, "share");

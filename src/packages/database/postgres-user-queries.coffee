@@ -30,6 +30,7 @@ required = defaults.required
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {file_use_times} = require('./postgres/file-use-times')
+{updateRetentionData} = require('./postgres/retention')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
 {callback2} = require('@cocalc/util/async-utils')
@@ -864,7 +865,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 dbg("get project")
                 try
-                    project = await @compute_server(opts.project_id)
+                    project = await @projectControl(opts.project_id)
                     cb()
                 catch err
                     cb(err)
@@ -984,12 +985,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         account_id : account_id
                         cb         : cb
                 (cb) =>
-                    if not @compute_server?
+                    if not @projectControl?
                         cb()
                     else
                         dbg("get project")
                         try
-                            project = await @compute_server(new_val.project_id)
+                            project = await @projectControl(new_val.project_id)
                             cb()
                         catch err
                             cb(err)
@@ -1385,6 +1386,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             tracker.removeListener("remove_user_from_project-#{account_id}", tracker_remove)
 
 
+                else if pg_changefeed == 'news'
+                    pg_changefeed = ->
+                        where : (obj) ->
+                            if obj.date?
+                                date_obj = new Date(obj.date)
+                                # we send future news items to the frontend, but filter it based on the server time
+                                return date_obj >= misc.months_ago(3)
+                            else
+                                return true
+                        select : {id: 'SERIAL UNIQUE', date: 'TIMESTAMP'}
+
                 else if pg_changefeed == 'one-hour'
                     pg_changefeed = ->
                         where : (obj) ->
@@ -1716,6 +1728,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     file_use_times: (opts) =>  # for docs, see where this is imported from.
         return await file_use_times(@, opts)
 
+    updateRetentionData: (opts) =>
+        return await updateRetentionData(opts)
+
 _last_awaken_time = {}
 awaken_project = (db, project_id, cb) ->
     # throttle so that this gets called *for a given project* at most once every 30s.
@@ -1724,14 +1739,14 @@ awaken_project = (db, project_id, cb) ->
         return
     _last_awaken_time[project_id] = now
     dbg = db._dbg("_awaken_project(project_id=#{project_id})")
-    if not db.compute_server?
-        dbg("skipping since no compute_server defined")
+    if not db.projectControl?
+        dbg("skipping since no projectControl defined")
         return
     dbg("doing it...")
     async.series([
         (cb) ->
             try
-                project = db.compute_server(project_id)
+                project = db.projectControl(project_id)
                 await project.start()
                 cb()
             catch err

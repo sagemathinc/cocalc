@@ -6,23 +6,35 @@
 /*
 Tabs in a particular project.
 */
-import { Switch, Tooltip } from "antd";
 
-import { throttle } from "lodash";
-import { ReactNode, useLayoutEffect, useRef, useState } from "react";
+import type { MenuProps } from "antd";
+import { Button, Dropdown, Modal, Switch, Tooltip } from "antd";
+import { debounce, throttle } from "lodash";
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
+import { Icon } from "@cocalc/frontend/components";
+import track from "@cocalc/frontend/user-tracking";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { FileTab, FixedTab, FIXED_PROJECT_TABS } from "./file-tab";
+import { useProjectContext } from "../context";
+import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
+import {
+  VBAR_EXPLANATION,
+  VBAR_KEY,
+  VBAR_OPTIONS,
+  getValidVBAROption,
+} from "./vbar";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "5px",
 } as const;
+
+export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
 
 interface PTProps {
   project_id: string;
@@ -74,13 +86,20 @@ export default function ProjectTabs(props: PTProps) {
 }
 
 interface FVTProps {
-  project_id: string;
-  activeTab: string;
+  setHomePageButtonWidth: (width: number) => void;
 }
 
-export function VerticalFixedTabs(props: FVTProps) {
-  const { project_id, activeTab } = props;
-  const actions = useActions({ project_id });
+export function VerticalFixedTabs(props: Readonly<FVTProps>) {
+  const { setHomePageButtonWidth } = props;
+  const {
+    actions,
+    project_id,
+    active_project_tab: activeTab,
+  } = useProjectContext();
+  const account_settings = useActions("account");
+  const active_flyout = useTypedRedux({ project_id }, "flyout");
+  const other_settings = useTypedRedux("account", "other_settings");
+  const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
   const tabs = useRef<HTMLDivElement>(null);
@@ -124,8 +143,31 @@ export function VerticalFixedTabs(props: FVTProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (parent.current == null) return;
+
+    const observer = new ResizeObserver(
+      debounce(
+        () => {
+          const width = parent.current?.offsetWidth;
+          // we ignore zero width, which happens when not visible
+          if (width == null || width == 0) return;
+          setHomePageButtonWidth(width);
+        },
+        50,
+        { trailing: true, leading: false }
+      )
+    );
+    observer.observe(parent.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [condensed, parent.current]);
+
   const items: ReactNode[] = [];
-  for (const name in FIXED_PROJECT_TABS) {
+  for (const nameStr in FIXED_PROJECT_TABS) {
+    const name: FixedTab = nameStr as FixedTab; // helping TS a little bit
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {
       continue;
@@ -135,20 +177,23 @@ export function VerticalFixedTabs(props: FVTProps) {
         ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
         : undefined;
 
-    // uncomment this to move the processes and settings to the bottom like in vscode.
-    // some of us do NOT like that.
-    // if (name == "info") {
-    //   items.push(<div style={{ flex: 1 }}></div>);
-    // }
+    const isActive = (vbar === "flyout" ? active_flyout : activeTab) === name;
+
+    const style: CSS = {
+      padding: "0",
+      ...color,
+      borderLeft: `4px solid ${
+        isActive ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
+      }`,
+      // highlight active flyout in flyout-only mode more -- see https://github.com/sagemathinc/cocalc/issues/6855
+      ...(isActive && vbar === "flyout"
+        ? { backgroundColor: COLORS.BLUE_LLLL }
+        : undefined),
+    };
+
     items.push(
       <FileTab
-        style={{
-          margin: "5px 0px",
-          ...color,
-          borderLeft: `4px solid ${
-            activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
-          }`,
-        }}
+        style={style}
         placement={"right"}
         key={name}
         project_id={project_id}
@@ -157,12 +202,77 @@ export function VerticalFixedTabs(props: FVTProps) {
         isFixedTab={true}
         iconStyle={{
           fontSize: "24px",
-          margin: "0px 6px",
+          margin: "0",
+          padding: "5px 0px",
           ...color,
         }}
+        flyout={name}
       />
     );
   }
+
+  function renderLayoutSelector() {
+    const title = "Vertical bar layout";
+
+    const items: NonNullable<MenuProps["items"]> = Object.entries(
+      VBAR_OPTIONS
+    ).map(([key, label]) => ({
+      key,
+      onClick: () => {
+        account_settings.set_other_settings(VBAR_KEY, key);
+        track("flyout", {
+          aspect: "layout",
+          value: key,
+          how: "button",
+          project_id,
+        });
+      },
+      label: (
+        <>
+          <Icon
+            name="check"
+            style={key === vbar ? undefined : { visibility: "hidden" }}
+          />{" "}
+          {label}
+        </>
+      ),
+    }));
+
+    items.unshift({ key: "delim-top", type: "divider" });
+    items.unshift({
+      key: "title",
+      label: (
+        <>
+          <Icon name="layout" /> {title}{" "}
+        </>
+      ),
+    });
+
+    items.push({ key: "delimiter", type: "divider" });
+    items.push({
+      key: "info",
+      label: (
+        <>
+          <Icon name="question-circle" /> More info
+        </>
+      ),
+      onClick: () => {
+        Modal.info({
+          title: title,
+          content: VBAR_EXPLANATION,
+        });
+      },
+    });
+
+    return (
+      <div style={{ textAlign: "center" }}>
+        <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
+          <Button icon={<Icon name="layout" />} style={{ margin: "5px" }} />
+        </Dropdown>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={parent}
@@ -181,6 +291,8 @@ export function VerticalFixedTabs(props: FVTProps) {
         style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
       >
         {items}
+        <div style={{ flex: 1 }}></div> {/* moves hide switch to the bottom */}
+        {renderLayoutSelector()}
         <Tooltip title="Hide the action bar" placement="right">
           <Switch
             style={{ margin: "10px" }}
@@ -188,6 +300,7 @@ export function VerticalFixedTabs(props: FVTProps) {
             checked
             onChange={() => {
               actions?.toggleActionButtons();
+              track("action-bar", { action: "hide" });
             }}
           />
         </Tooltip>
@@ -208,7 +321,7 @@ function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
     // bug -- tab is not a file tab.
     return null;
   }
-  const chatState = openFileInfo.getIn([path, "chatState"]);
+  const chatState = openFileInfo.getIn([path, "chatState"]) as any;
   return (
     <div style={INDICATOR_STYLE}>
       <ChatIndicator

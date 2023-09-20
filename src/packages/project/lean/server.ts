@@ -11,7 +11,7 @@ const lean_files = {};
 
 import { lean_server, Lean } from "./lean";
 import { init_global_packages } from "./global-packages";
-import { isEqual } from "underscore";
+import { isEqual } from "lodash";
 
 let the_lean_server: Lean | undefined = undefined;
 

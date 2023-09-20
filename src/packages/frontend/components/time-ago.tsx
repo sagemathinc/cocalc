@@ -10,7 +10,6 @@
 
 import React, { CSSProperties as CSS } from "react";
 import { default as UpstreamTimeAgo } from "react-timeago";
-
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
 import { Popover, Radio } from "antd";
@@ -54,7 +53,7 @@ interface TimeAgoElementProps {
   placement?;
   tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
-  date: string | Date | number;
+  date;
   time_ago_absolute?: boolean;
   style?: CSS;
   minPeriod?: number;
@@ -170,7 +169,7 @@ interface TimeAgoProps {
   tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   style?: CSS;
-  date: string | Date | number | undefined;
+  date?;
   minPeriod?: number;
   time_ago_absolute?: boolean;
 }

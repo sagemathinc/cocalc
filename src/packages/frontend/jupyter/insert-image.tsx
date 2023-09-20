@@ -39,7 +39,7 @@ export const InsertImage: React.FC<InsertImageProps> = React.memo(
 
     return (
       <Modal
-        visible={insert_image != null}
+        open={insert_image != null}
         width={900}
         onCancel={close}
         onOk={close}

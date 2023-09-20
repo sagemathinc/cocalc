@@ -40,6 +40,7 @@ export const slidesButtons = set([
   "show_slideshow",
   "show_speaker_notes",
   "help",
+  "chatgpt",
 ]);
 
 export const EDITOR_SPEC = {

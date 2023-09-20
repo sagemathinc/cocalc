@@ -14,9 +14,10 @@ and it displays the file as an editor associated with that path in the project,
 or Loading... if the file is still being loaded.
 */
 
-import { useEffect, useMemo, useRef } from "react";
 import { Map } from "immutable";
+import { useEffect, useMemo, useRef } from "react";
 import Draggable from "react-draggable";
+
 import {
   React,
   ReactDOM,
@@ -25,6 +26,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
@@ -46,10 +48,12 @@ import { ProjectSettings } from "@cocalc/frontend/project/settings";
 import { editor_id } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { hidden_meta_file } from "@cocalc/util/misc";
+import { useProjectContext } from "../context";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
+import { ProjectCollaboratorsPage } from "./project-collaborators";
+import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -63,13 +67,12 @@ const MAIN_STYLE: React.CSSProperties = {
 } as const;
 
 interface Props {
-  project_id: string; // the project
   tab_name: string; // e.g., 'files', 'new', 'log', 'search', 'settings', or 'editor-<path>'
   is_visible: boolean; // if false, editor is in the DOM (so all subtle DOM state preserved) but it is not visible on screen.
 }
 
 export const Content: React.FC<Props> = (props: Props) => {
-  const { project_id, tab_name, is_visible } = props;
+  const { tab_name, is_visible } = props;
   // The className below is so we always make this div the remaining height.
   // The overflowY is hidden for editors (which don't scroll), but auto
   // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
@@ -83,23 +86,19 @@ export const Content: React.FC<Props> = (props: Props) => {
       }}
       className={"smc-vfill"}
     >
-      <TabContent
-        project_id={project_id}
-        tab_name={tab_name}
-        is_visible={is_visible}
-      />
+      <TabContent tab_name={tab_name} is_visible={is_visible} />
     </div>
   );
 };
 
 interface TabContentProps {
-  project_id: string;
   tab_name: string;
   is_visible: boolean;
 }
 
 const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
-  const { project_id, tab_name, is_visible } = props;
+  const { tab_name, is_visible } = props;
+  const { project_id } = useProjectContext();
 
   const open_files =
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
@@ -134,9 +133,9 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
 
   switch (tab_name) {
     case "home":
-      return <HomePage project_id={project_id} />;
+      return <HomePage  />;
     case "files":
-      return <Explorer project_id={project_id} />;
+      return <Explorer />;
     case "new":
       return <ProjectNew project_id={project_id} />;
     case "log":
@@ -149,6 +148,10 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
       return <ProjectSettings project_id={project_id} />;
     case "info":
       return <ProjectInfo project_id={project_id} />;
+    case "users":
+      return <ProjectCollaboratorsPage project_id={project_id} />;
+    case "upgrades":
+      return <ProjectLicenses project_id={project_id} />;
     default:
       // check for "editor-[filename]"
       if (!tab_name.startsWith("editor-")) {
@@ -175,9 +178,10 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
               project_id={project_id}
               path={path}
               is_visible={is_visible}
-              chatState={open_files.getIn([path, "chatState"])}
+              chatState={open_files.getIn([path, "chatState"]) as any}
               chat_width={
-                open_files.getIn([path, "chat_width"]) ?? DEFAULT_CHAT_WIDTH
+                (open_files.getIn([path, "chat_width"]) as any) ??
+                DEFAULT_CHAT_WIDTH
               }
               component={open_files.getIn([path, "component"]) ?? {}}
             />

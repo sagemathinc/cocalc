@@ -14,7 +14,7 @@ import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 
 import { JupyterActions } from "./browser-actions";
-import { NotebookMode } from "./types";
+import { NotebookMode } from "@cocalc/jupyter/types";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;

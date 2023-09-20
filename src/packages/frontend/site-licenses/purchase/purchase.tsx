@@ -3,7 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* Purchasing a license */
+/* 
+
+Purchasing a license in the frontend app. 
+
+DEPRECATED -- this is no longer used anywhere in the frontend code base.
+Instead, use the nextjs app... unless we want to bring back frontend 
+purchases of licenses (maybe we do!) and then maybe this will be useful.
+
+*/
 
 import { DownOutlined } from "@ant-design/icons";
 import {
@@ -20,7 +28,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
-  Space,
+  Gap,
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { supportURL } from "@cocalc/frontend/support/url";
@@ -438,9 +446,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             set_end(value[1].toDate());
           }}
         />
-        <Space />
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
+        <Gap />
         <Dropdown overlay={menu}>
           <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
             End after... <DownOutlined />
@@ -610,7 +618,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       upgrade,
       subscription,
       start,
-      end: subscription == "no" ? end : undefined,
+      end,
       quote,
       quote_info,
       payment_method,
@@ -680,8 +688,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           type="primary"
         >
           <Icon name="envelope" />
-          <Space />
-          <Space /> Copy information to support ticket...
+          <Gap />
+          <Gap /> Copy information to support ticket...
         </Button>
       </div>
     );

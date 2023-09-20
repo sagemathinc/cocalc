@@ -19,19 +19,19 @@ may be used to enhance the experience of document editing.
 
 const stringify = require("json-stable-stringify");
 
-import { callback } from "awaiting";
-import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { to_key } from "@cocalc/sync/table/util";
-import { Client } from "./types";
-import { sagews, MARKERS, FLAGS } from "@cocalc/util/sagews";
 import {
   close,
+  copy_with,
+  copy_without,
   from_json,
   to_json,
-  copy_without,
-  copy_with,
 } from "@cocalc/util/misc";
+import { FLAGS, MARKERS, sagews } from "@cocalc/util/sagews";
+import { ISageSession, SageCallOpts } from "@cocalc/util/types/sage";
+import { SyncDoc } from "./sync-doc";
+import { Client } from "./types";
 
 type State = "init" | "ready" | "closed";
 
@@ -41,19 +41,12 @@ type Program = "sage" | "bash";
 // Object whose meaning depends on the program
 type Input = any;
 
-interface SageSession {
-  close: () => void;
-  is_running: () => boolean;
-  init_socket: (cb: Function) => void;
-  call: (obj: { input: object; cb: Function }) => void;
-}
-
 export class Evaluator {
   private syncdoc: SyncDoc;
   private client: Client;
   private inputs_table: SyncTable;
   private outputs_table: SyncTable;
-  private sage_session: SageSession;
+  private sage_session: ISageSession;
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
@@ -77,7 +70,7 @@ export class Evaluator {
     await Promise.all([i, o]);
 
     if (this.client.is_project()) {
-      this.init_project_evaluator();
+      await this.init_project_evaluator();
     }
     this.set_state("ready");
   }
@@ -428,7 +421,9 @@ export class Evaluator {
     }
 
     f(x.input, (output) => {
-      this.assert_not_closed();
+      if (this.state == "closed") {
+        return;
+      }
 
       dbg(`got output='${to_json(output)}'; id=${to_json(id)}`);
       hook(output);
@@ -439,14 +434,14 @@ export class Evaluator {
   }
 
   // Runs only in the project
-  private init_project_evaluator(): void {
+  private async init_project_evaluator(): Promise<void> {
     this.assert_is_project();
 
     const dbg = this.dbg("init_project_evaluator");
     dbg("init");
-    this.inputs_table.on("change", (keys) => {
+    this.inputs_table.on("change", async (keys) => {
       for (const key of keys) {
-        this.handle_input_change(key);
+        await this.handle_input_change(key);
       }
     });
     /* CRITICAL: it's very important to handle all the inputs
@@ -461,11 +456,11 @@ export class Evaluator {
     const v = this.inputs_table.get();
     if (v != null) {
       dbg(`handle ${v.size} pending evaluations`);
-      v.forEach((_, key) => {
+      for (const key of v.keys()) {
         if (key != null) {
-          this.handle_input_change(key);
+          await this.handle_input_change(key);
         }
-      });
+      }
     }
   }
 
@@ -474,13 +469,16 @@ export class Evaluator {
     this.dbg("ensure_sage_session_exists")();
     // This code only runs in the project, where client
     // has a sage_session method.
-    this.sage_session = (this.client as any).sage_session({
+    this.sage_session = this.client.sage_session({
       path: this.syncdoc.get_path(),
     });
   }
 
   // Runs only in the project
-  private async evaluate_using_sage(input: Input, cb: Function): Promise<void> {
+  private async evaluate_using_sage(
+    input: SageCallOpts["input"],
+    cb: SageCallOpts["cb"]
+  ): Promise<void> {
     this.assert_is_project();
     const dbg = this.dbg("evaluate_using_sage");
     dbg();
@@ -492,17 +490,23 @@ export class Evaluator {
         "ensure sage session is running, so we can actually execute the code"
       );
     }
-    await this.ensure_sage_session_exists();
-    if (input.event === "execute_code") {
-      // We only need to actually create the socket, which makes a running process,
-      // if we are going to execute code.  The other events, e.g., 'status' don't
-      // need a running sage session.
-      if (!this.sage_session.is_running()) {
-        await callback(this.sage_session.init_socket);
+    try {
+      this.ensure_sage_session_exists();
+      if (input.event === "execute_code") {
+        // We only need to actually create the socket, which makes a running process,
+        // if we are going to execute code.  The other events, e.g., 'status' don't
+        // need a running sage session.
+        if (!this.sage_session.is_running()) {
+          dbg("sage session is not running, so init socket");
+          await this.sage_session.init_socket();
+        }
       }
+    } catch (error) {
+      cb({ error, done: true });
+      return;
     }
     dbg("send call to backend sage session manager", to_json(input));
-    this.sage_session.call({ input, cb });
+    await this.sage_session.call({ input, cb });
   }
 
   // Runs only in the project
@@ -521,6 +525,6 @@ export class Evaluator {
       output.done = true;
       cb(output);
     };
-    (this.client as any).shell(input);
+    this.client.shell(input);
   }
 }

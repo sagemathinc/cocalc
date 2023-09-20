@@ -9,7 +9,6 @@ Actions specific to manipulating the student projects that students have in a co
 
 import { delay, map as awaitMap } from "awaiting";
 import { sortBy } from "lodash";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
@@ -73,6 +72,7 @@ export class StudentProjectsActions {
         title: store.get("settings").get("title"),
         description: store.get("settings").get("description"),
         image: store.get("settings").get("custom_image") ?? dflt_img,
+        noPool: true, // student is unlikely to use the project right *now*
       });
     } catch (err) {
       this.course_actions.set_error(
@@ -253,13 +253,15 @@ export class StudentProjectsActions {
     const store = this.get_store();
     if (store == null) return;
     const currentLicenses: string[] = keys(
-      project_map.getIn([project_id, "site_license"])?.toJS() ?? {}
+      (project_map.getIn([project_id, "site_license"]) as any)?.toJS() ?? {}
     );
     const courseLicenses = new Set(
-      (store.getIn(["settings", "site_license_id"]) ?? "").split(",")
+      ((store.getIn(["settings", "site_license_id"]) as any) ?? "").split(",")
     );
     const removedLicenses = new Set(
-      (store.getIn(["settings", "site_license_removed"]) ?? "").split(",")
+      ((store.getIn(["settings", "site_license_removed"]) as any) ?? "").split(
+        ","
+      )
     );
     const toApply = [...license_ids];
     for (const id of currentLicenses) {
@@ -502,27 +504,11 @@ export class StudentProjectsActions {
     }
   }
 
-  public async set_all_student_project_course_info(
-    pay?: string | Date | undefined
-  ): Promise<void> {
+  public async set_all_student_project_course_info(): Promise<void> {
     const store = this.get_store();
-    if (pay == null) {
-      // read pay from syncdb then do the configuration below
-      pay = store.get_pay();
-      if (pay == null) {
-        pay = "";
-      }
-    } else {
-      // setting pay in the syncdb, and will then later
-      // do some configu below.
-      if (pay instanceof Date) {
-        pay = pay.toISOString();
-      }
-      this.course_actions.set({
-        pay,
-        table: "settings",
-      });
-    }
+    if (store == null) return;
+    let pay = store.get_pay() ?? "";
+    const payInfo = store.get_payInfo();
 
     if (pay != "" && !(pay instanceof Date)) {
       // pay *must* be a Date, not just a string timestamp... or "" for not paying.
@@ -552,6 +538,7 @@ export class StudentProjectsActions {
           store.get("course_project_id"),
           store.get("course_filename"),
           pay,
+          payInfo,
           student_account_id,
           student_email_address,
           datastore,

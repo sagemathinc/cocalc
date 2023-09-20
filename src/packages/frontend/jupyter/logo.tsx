@@ -7,9 +7,10 @@
 The kernel's logo display
 */
 
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import { getRandomColor } from "@cocalc/util/misc";
 import { CSSProperties, useState } from "react";
 import { get_logo_url } from "./server-urls";
-import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 const DEFAULT_HEIGHT = 24; // this matches the rest of the status bar.
 
@@ -41,11 +42,13 @@ export default function Logo({
       <div
         style={{
           fontSize: size,
-          color: "#ef6c00",
+          color: getRandomColor(kernel ?? "unknown"),
           display: "inline-block",
-          width: size,
-          height: size,
-          lineHeight: 1,
+          width: size - 5,
+          height: size - 5,
+          lineHeight: 0.8,
+          fontWeight: "bold",
+          verticalAlign: "middle",
           ...style,
         }}
       >

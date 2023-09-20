@@ -1,0 +1,77 @@
+{
+  "name": "@cocalc/jupyter",
+  "version": "0.1.2",
+  "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
+  "exports": {
+    "./*": "./dist/*.js",
+    "./blobs": "./dist/blobs/index.js",
+    "./execute/*": "./dist/execute/*.js",
+    "./kernel": "./dist/kernel/index.js",
+    "./kernel/*": "./dist/kernel/*.js",
+    "./nbgrader": "./dist/nbgrader/index.js",
+    "./nbgrader/*": "./dist/nbgrader/*.js",
+    "./pool/*": "./dist/pool/*.js",
+    "./stateless-api/*": "./dist/stateless-api/*.js",
+    "./store/*": "./dist/store/*.js",
+    "./types": "./dist/types/index.js",
+    "./types/*": "./dist/types/*.js",
+    "./util": "./dist/util/index.js",
+    "./util/*": "./dist/util/*.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "npx tsc",
+    "test": "pnpm exec jest dist",
+    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+  },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "SageMath, Inc.",
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/jupyter": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/sync-client": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@nteract/messaging": "^7.0.20",
+    "@types/better-sqlite3": "^7.6.4",
+    "@types/node-cleanup": "^2.1.2",
+    "async-await-utils": "^3.0.1",
+    "awaiting": "^3.0.0",
+    "better-sqlite3": "^8.3.0",
+    "debug": "^4.3.2",
+    "enchannel-zmq-backend": "^9.1.23",
+    "execa": "^7.1.1",
+    "expect": "^26.6.2",
+    "immutable": "^4.3.0",
+    "json-stable-stringify": "^1.0.1",
+    "jsonfile": "^6.1.0",
+    "jupyter-paths": "^2.0.3",
+    "kernelspecs": "^2.0.1",
+    "lodash": "^4.17.21",
+    "lru-cache": "^7.14.1",
+    "mkdirp": "^1.0.4",
+    "node-cleanup": "^2.1.2",
+    "portfinder": "^1.0.32",
+    "shell-escape": "^0.2.0",
+    "tsimportlib": "^0.0.5",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.14"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/jupyter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  }
+}

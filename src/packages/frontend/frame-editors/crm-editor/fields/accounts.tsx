@@ -20,8 +20,7 @@ import useAccountName from "@cocalc/frontend/users/use-account-name";
 import { CloseOutlined } from "@ant-design/icons";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components";
-
-export const AVATAR_SIZE = 18;
+import { AVATAR_SIZE } from "./account";
 
 render({ type: "accounts" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "accounts") throw Error("bug");
@@ -40,12 +39,6 @@ render({ type: "accounts" }, ({ field, obj, spec, viewOnly }) => {
       </div>
     );
   }
-});
-
-render({ type: "account" }, ({ field, obj }) => {
-  const account_id = obj[field];
-  if (!account_id) return null;
-  return <Avatar key={account_id} account_id={account_id} size={AVATAR_SIZE} />;
 });
 
 function EditAccounts({ obj, field, account_ids }) {

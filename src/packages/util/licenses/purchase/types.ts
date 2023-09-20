@@ -19,23 +19,26 @@ export interface Cost {
   cost_sub_year: number;
 }
 
+export type CostInput =
+  | (Partial<PurchaseInfo> & {
+      type: "vm" | "disk" | "quota";
+      subscription: Subscription;
+    })
+  | { type: "cash-voucher"; amount: number; subscription: Subscription };
+
 export interface CostInputPeriod extends Cost {
-  // enforce setting the subcription field
-  input: Partial<PurchaseInfo> & {
-    type: "vm" | "disk" | "quota";
-    subscription: Subscription;
-  };
+  input: CostInput;
   period: Period;
 }
 
 export interface StartEndDates {
   start: Date;
-  end?: Date;
+  end: Date;
 }
 
 export interface StartEndDatesWithStrings {
   start: Date | string;
-  end?: Date | string;
+  end: Date | string;
 }
 
 /*
@@ -43,9 +46,9 @@ export interface StartEndDatesWithStrings {
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Uptime } from "@cocalc/util/consts/site-license";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { CustomDescription, Period } from "../../upgrades/shopping";
+import type { Uptime } from "@cocalc/util/consts/site-license";
+import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import type { CustomDescription, Period } from "../../upgrades/shopping";
 
 export type PurchaseInfoQuota = {
   type: "quota";
@@ -66,19 +69,19 @@ export type PurchaseInfoQuota = {
   custom_uptime: Uptime;
   custom_always_running?: boolean; // no longer really used, defined by custom_uptime above!
   boost?: boolean;
+  run_limit?: number;
 } & StartEndDates &
   CustomDescription;
 
 export type PurchaseInfo =
   | PurchaseInfoQuota
-  | {
+  | ({
       type: "vouchers";
       id: number;
       quantity: number;
       cost: number;
       tax: number;
-      title: string;
-    }
+    } & CustomDescription)
   | ({
       type: "vm";
       quantity: 1;
@@ -89,14 +92,15 @@ export type PurchaseInfo =
     } & StartEndDates &
       CustomDescription)
   | ({
+      // note that start is set automatically when actually purchasing
       type: "disk";
-      start: Date; // set automatically when actually purchasing
       quantity: 1;
       subscription: Omit<Subscription, "no">;
       dedicated_disk: DedicatedDisk;
       cost?: Cost;
       payment_method?: string;
-    } & CustomDescription);
+    } & StartEndDates &
+      CustomDescription);
 
 // stripe's metadata can only handle string or number values.
 export type ProductMetadataQuota =
@@ -130,10 +134,10 @@ export type ProductMetadataDisk = Record<
   type: "disk";
 };
 
-export type ProductMetadataVouchers = Record<"title", string> & {
+export interface ProductMetadataVouchers {
   type: "vouchers";
   id: number; // id of the voucher in the vouchers table of the database
-};
+}
 
 export type ProductMetadata =
   | ProductMetadataVouchers

@@ -1,7 +1,17 @@
-import { List, Input, Space } from "antd";
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import { CSSProperties, useState } from "react";
-import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Input, List, Space } from "antd";
+
+import {
+  CSS,
+  redux,
+  useMemo,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -10,10 +20,11 @@ import {
   Text,
   TimeAgo,
 } from "@cocalc/frontend/components";
-import { handle_log_click } from "@cocalc/frontend/components/path-link";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
+import { handle_log_click } from "../../history/utils";
+import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 
 interface OpenedFile {
   filename: string;
@@ -23,10 +34,14 @@ interface OpenedFile {
 interface Props {
   project_id: string;
   max?: number;
-  style?: CSSProperties;
+  style?: CSS;
 }
 
-export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
+export function HomeRecentFiles({
+  max = 100,
+  project_id,
+  style,
+}: Props): JSX.Element {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -44,7 +59,7 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
           entry.getIn(["event", "filename"]) &&
           entry.getIn(["event", "event"]) === "open"
       )
-      .sort((a, b) => b.get("time").getTime() - a.get("time").getTime())
+      .sort((a, b) => getTime(b) - getTime(a))
       .filter((entry: EventRecordMap) => {
         const fn = entry.getIn(["event", "filename"]);
         if (dedupe.includes(fn)) return false;
@@ -65,10 +80,23 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
           account_id: entry.get("account_id"),
         };
       })
-      .toJS();
+      .toJS() as any;
   }, [project_log, searchTerm]);
 
-  function renderItem(entry) {
+  function renderItemInfo({ account_id, time }) {
+    return (
+      <>
+        {" "}
+        {/* this space is intentional! */}
+        <Text type="secondary">
+          by <User user_map={user_map} account_id={account_id} />{" "}
+          <TimeAgo date={time} />
+        </Text>
+      </>
+    );
+  }
+
+  function renderItem(entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
     const path = entry.filename;
@@ -86,11 +114,8 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
           style={{ fontWeight: "bold" }}
           path={path}
           project_id={project_id}
-        />{" "}
-        <Text type="secondary">
-          by <User user_map={user_map} account_id={account_id} />{" "}
-          <TimeAgo date={time} />
-        </Text>
+        />
+        {renderItemInfo({ account_id, time })}
       </List.Item>
     );
   }
@@ -100,26 +125,38 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
     return <Loading />;
   }
 
+  function onKeyUpHandler(e) {
+    // if esc key is pressed, empty the search term
+    if (e.key === "Escape") {
+      setSearchTerm("");
+    }
+  }
+
+  function renderHeader(): JSX.Element | undefined {
+    return (
+      <>
+        <Space style={{ width: "100%" }}>
+          Recent Files{" "}
+          <Input
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyUp={onKeyUpHandler}
+            style={{ width: "350px" }}
+          />
+        </Space>
+      </>
+    );
+  }
+
   return (
-    <>
-      <List
-        style={{ maxHeight: "500px", overflow: "auto", ...style }}
-        size="small"
-        header={
-          <Space style={{ width: "100%" }}>
-            Recent Files{" "}
-            <Input
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ width: "350px" }}
-            />
-          </Space>
-        }
-        bordered
-        dataSource={log}
-        renderItem={renderItem}
-      />
-    </>
+    <List
+      style={{ maxHeight: "500px", overflow: "auto", ...style }}
+      size="small"
+      header={renderHeader()}
+      bordered={true}
+      dataSource={log}
+      renderItem={renderItem}
+    />
   );
 }

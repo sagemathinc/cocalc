@@ -6,7 +6,7 @@
 /*
 Create a new site license.
 */
-import { Form, Input, Space, Switch } from "antd";
+import { Alert, Form, Input, Space, Switch } from "antd";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -74,17 +74,41 @@ export default function Boost(props: Props) {
       {router.query.id == null && (
         <Space direction="vertical" style={{ marginBottom: "20px" }}>
           <Paragraph>
-            A License Booster adds additional quotas to an already existing,
-            valid and currently active regular Site License. A common use case
-            is to increase the memory limit after you already bought a Site
-            License. Create a boost using the form below then add it to your{" "}
-            <A href="/store/cart">shopping cart</A>.
+            A License Booster adds additional memory, cpu or disk quotas to an
+            already existing, valid and currently active regular Site License. A
+            common use case is to increase the memory limit after you already
+            bought a Site License. Create a boost using the form below then add
+            it to your <A href="/store/cart">shopping cart</A>.
+          </Paragraph>
+          <Paragraph>
+            <Alert
+              showIcon
+              type="info"
+              message="Pay As You Go"
+              description={
+                <div>
+                  If you just need to upgrade your project for a few minutes or
+                  a few hours, you can use{" "}
+                  <A href="https://doc.cocalc.com/paygo.html" external>
+                    Pay As You Go
+                  </A>{" "}
+                  instead of a boost license.
+                </div>
+              }
+            />
           </Paragraph>
           <Paragraph>
             <Icon name="lightbulb" style={{ color: COLORS.ANTD_ORANGE }} /> If
             you are teaching a course and have to cover more students, you need
             to get an additional <A href="./site-license">Site License</A> with
             a "Run Limit" matching the number of additional of students.
+          </Paragraph>
+          <Paragraph>
+            If you aren't sure exactly what to buy, don't worry,{" "}
+            <b>you can always edit your boost licenses later</b>, including
+            changing dates, the run limit, idle timeout, and other
+            configuration. You will be charged or credited for the difference in
+            the cost.
           </Paragraph>
         </Space>
       )}
@@ -109,7 +133,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
   const router = useRouter();
   // if we "edit", we don't have to check the confirmation
   const [confirmWarning, setConfirmWarning] = useState<boolean>(
-    router.query.id != null
+    router.query.id != null,
   );
 
   const LS_BOOST_CONFIRM_KEY = "store_boost_confirm";
@@ -145,7 +169,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
 
   useEffect(() => {
     const store_site_license_show_explanations = get_local_storage(
-      "store_site_license_show_explanations"
+      "store_site_license_show_explanations",
     );
     if (store_site_license_show_explanations != null) {
       setShowExplanations(!!store_site_license_show_explanations);
@@ -192,14 +216,14 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
           opacity: confirmWarning ? 0.75 : 1,
         }}
       >
-        Boost licenses only work in combination with regular{" "}
-        <A href="./site-license">Site Licenses</A>. The intention of a Boost
-        License is to increase how much resources your project receives, without
-        having to purchase yet another regular license. For example, you can
-        increase just the RAM for some projects for a couple of days, while
-        otherwise you are happy with a smaller license as part of an ongoing
-        subscription. To cover more projects, e.g. additional students in a
-        course, you need to get a regular{" "}
+        Boost licenses{" "}
+        <Text strong>
+          only work in combination with matching{" "}
+          <A href="./site-license">Upgrade Site Licenses</A>
+        </Text>
+        . You can only increase <Text strong>Memory, CPU or Disk quotas</Text>{" "}
+        of a <Text strong>matching license</Text>. To cover more projects, e.g.
+        additional students in a course, you need to get a regular{" "}
         <A href="./site-license">Site License</A>.
         <p>
           The following conditions must be met in order to benefit from an
@@ -211,19 +235,23 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
             <a href="/store/site-license">regular Site License(s)</a> must be
             applied to the project and actively providing upgrades. This is
             evaluated each time a project starts. Boosts are only adding more
-            resources on top of what a regular license already provides!
+            resources on top of what a matching regular license already
+            provides!
           </li>
           <li>
-            <Text strong>Matching Configuration</Text>: the type of hosting
-            quality ("Member Hosting") and "Idle Timeout" duration must be the
-            same. A booster only works for a site license with a matching
-            upgrade quality.
+            <Text strong>Matching License</Text>: the type of hosting quality
+            ("Member Hosting") and "Idle Timeout" duration must be the same.
           </li>
         </ul>
         Besides that – just like a regular license – you can't exceed the run
         limit; the boost license must be valid as well, and combining all
         upgrades and boosts together, you cannot exceed the overall upgrade
-        limits. If you need vastly more resources, consider purchasing a{" "}
+        limits.{" "}
+        <Text strong>
+          You cannot change the run limit, hosting quality or idle timeout of an
+          existing regular license.
+        </Text>{" "}
+        If you need vastly more resources, consider purchasing a{" "}
         <Link href={"./dedicated?type=vm"} scroll={false}>
           Dedicated VM
         </Link>

@@ -15,8 +15,9 @@ import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
 import { OpenAIClient } from "./openai";
+import { PurchasesClient } from "./purchases";
 import { JupyterClient } from "./jupyter";
-import { SyncClient } from "./sync";
+import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
@@ -41,6 +42,7 @@ export interface WebappClient extends EventEmitter {
   project_client: ProjectClient;
   admin_client: AdminClient;
   openai_client: OpenAIClient;
+  purchases_client: PurchasesClient;
   jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
@@ -77,9 +79,9 @@ export interface WebappClient extends EventEmitter {
   is_connected: () => boolean;
   query: Query; // TODO typing
   query_cancel: Function;
-  is_deleted: Function;
+  is_deleted: (filename: string, project_id: string) => boolean;
   set_deleted: Function;
-  mark_file: Function;
+  mark_file: (opts: any) => Promise<void>;
 
   set_connected?: Function;
   version: Function;
@@ -117,6 +119,7 @@ class Client extends EventEmitter implements WebappClient {
   project_client: ProjectClient;
   admin_client: AdminClient;
   openai_client: OpenAIClient;
+  purchases_client: PurchasesClient;
   jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
@@ -154,8 +157,8 @@ class Client extends EventEmitter implements WebappClient {
   query: typeof QueryClient.prototype.query;
   query_cancel: Function;
 
-  is_deleted: Function;
-  mark_file: Function;
+  is_deleted: (filename: string, project_id: string) => boolean;
+  mark_file: (opts: any) => Promise<void>;
 
   idle_reset: Function;
   latency: Function;
@@ -194,9 +197,9 @@ class Client extends EventEmitter implements WebappClient {
     this.admin_client = bind_methods(
       new AdminClient(this.async_call.bind(this))
     );
-    this.openai_client = bind_methods(
-      new OpenAIClient(this.async_call.bind(this))
-    );
+    this.openai_client = bind_methods(new OpenAIClient(this));
+    //this.purchases_client = bind_methods(new PurchasesClient(this));
+    this.purchases_client = bind_methods(new PurchasesClient());
     this.jupyter_client = bind_methods(
       new JupyterClient(this.async_call.bind(this))
     );
@@ -248,11 +251,13 @@ class Client extends EventEmitter implements WebappClient {
     // start pinging -- not used/needed for primus,
     // but *is* needed for getting information about
     // server_time skew and showing ping time to user.
-    // Starting pinging a few seconds after connecting the first time,
-    // after things have settled down a little (to not throw off ping time).
     this.once("connected", async () => {
+      this.time_client.ping(true);
+      // Ping again a few seconds after connecting the first time,
+      // after things have settled down a little (to not throw off
+      // ping time).
       await delay(5000);
-      this.time_client.ping();
+      this.time_client.ping(); // this will ping periodically
     });
 
     this.init_prom_client();

@@ -3,17 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as immutable from "immutable";
+import React from "react";
+import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
+import * as underscore from "underscore";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
+  TypedMap,
+  project_redux_name,
   rclass,
   redux,
   rtypes,
-  TypedMap,
-  project_redux_name,
 } from "@cocalc/frontend/app-framework";
 import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
-import { BillingPage } from "@cocalc/frontend/billing/billing-page";
-import { PayCourseFee } from "@cocalc/frontend/billing/pay-course-fee";
 import {
   A,
   ActivityDisplay,
@@ -21,11 +23,11 @@ import {
   Icon,
   Loading,
   SettingBox,
-  TimeAgo,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { Library } from "@cocalc/frontend/library";
 import {
@@ -34,13 +36,8 @@ import {
 } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import * as immutable from "immutable";
-import React from "react";
-import { Alert, Button, ButtonGroup, Col, Row } from "react-bootstrap";
-import * as underscore from "underscore";
 import AskNewFilename from "../ask-filename";
-import { CourseProjectExtraHelp } from "../warnings/course-project";
+import { useProjectContext } from "../context";
 import { AccessErrors } from "./access-errors";
 import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
@@ -52,10 +49,8 @@ import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
+import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
-  .subscription.student_course.price.month4;
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -81,12 +76,10 @@ interface ReactProps {
 
 interface ReduxProps {
   project_map?: ProjectMap;
-  date_when_course_payment_required: (project_id: string) => number;
   get_my_group: (project_id: string) => "admin" | "public";
   get_total_project_quotas: (project_id: string) => { member_host: boolean };
   other_settings?: immutable.Map<string, any>;
   is_logged_in?: boolean;
-  customer?: { sources?: { total_count?: number } };
   kucalc?: string;
   site_name?: string;
   images: ComputeImages;
@@ -126,14 +119,15 @@ interface ReduxProps {
   available_features?: Available;
   file_listing_scroll_top?: number;
   show_custom_software_reset?: boolean;
+  explorerTour?: boolean;
 }
 
 interface State {
-  show_pay: boolean;
   shift_is_down: boolean;
 }
 
-export function Explorer({ project_id }) {
+export function Explorer() {
+  const { project_id } = useProjectContext();
   return (
     <Explorer0
       name={project_redux_name(project_id)}
@@ -147,11 +141,17 @@ export function Explorer({ project_id }) {
 // add a shouldComponentUpdate!!
 const Explorer0 = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
+    newFileRef = React.createRef<any>();
+    searchBarRef = React.createRef<any>();
+    fileListingRef = React.createRef<any>();
+    currentDirectoryRef = React.createRef<any>();
+    miscButtonsRef = React.createRef<any>();
+    miniterminalRef = React.createRef<any>();
+
     static reduxProps = ({ name }) => {
       return {
         projects: {
           project_map: rtypes.immutable.Map,
-          date_when_course_payment_required: rtypes.func.isRequired,
           get_my_group: rtypes.func.isRequired,
           get_total_project_quotas: rtypes.func.isRequired,
         },
@@ -159,10 +159,6 @@ const Explorer0 = rclass(
         account: {
           other_settings: rtypes.immutable.Map,
           is_logged_in: rtypes.bool,
-        },
-
-        billing: {
-          customer: rtypes.object,
         },
 
         customize: {
@@ -198,6 +194,7 @@ const Explorer0 = rclass(
           available_features: rtypes.object,
           file_listing_scroll_top: rtypes.number,
           show_custom_software_reset: rtypes.bool,
+          explorerTour: rtypes.bool,
         },
       };
     };
@@ -212,7 +209,6 @@ const Explorer0 = rclass(
     constructor(props) {
       super(props);
       this.state = {
-        show_pay: false,
         shift_is_down: false,
       };
     }
@@ -222,14 +218,6 @@ const Explorer0 = rclass(
       // Should probably be moved elsewhere
       // Prevents cascading changes which impact responsiveness
       // https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
-      setTimeout(async () => {
-        const billing = redux.getActions("billing");
-        if (billing != undefined) {
-          try {
-            await billing.update_customer();
-          } catch (_err) {}
-        }
-      }, 200);
       $(window).on("keydown", this.handle_files_key_down);
       $(window).on("keyup", this.handle_files_key_up);
     }
@@ -398,15 +386,17 @@ const Explorer0 = rclass(
 
     render_new_file() {
       return (
-        <NewButton
-          file_search={this.props.file_search}
-          current_path={this.props.current_path}
-          actions={this.props.actions}
-          create_file={this.create_file}
-          create_folder={this.create_folder}
-          configuration={this.props.configuration}
-          disabled={!!this.props.ext_selection}
-        />
+        <div ref={this.newFileRef}>
+          <NewButton
+            file_search={this.props.file_search}
+            current_path={this.props.current_path}
+            actions={this.props.actions}
+            create_file={this.create_file}
+            create_folder={this.create_folder}
+            configuration={this.props.configuration}
+            disabled={!!this.props.ext_selection}
+          />
+        </div>
       );
     }
 
@@ -418,62 +408,6 @@ const Explorer0 = rclass(
           on_clear={() => this.props.actions.clear_all_activity()}
           style={{ top: "100px" }}
         />
-      );
-    }
-
-    render_upgrade_in_place() {
-      const cards = this.props.customer?.sources?.total_count ?? 0;
-
-      return (
-        <div style={{ marginTop: "10px" }}>
-          <BillingPage is_simplified={true} for_course={true} />
-          {cards > 0 ? (
-            <PayCourseFee project_id={this.props.project_id} redux={redux} />
-          ) : undefined}
-        </div>
-      );
-    }
-
-    render_course_payment_required() {
-      const cards =
-        (this.props.customer &&
-          this.props.customer.sources &&
-          this.props.customer.sources.total_count) ||
-        0;
-
-      return (
-        <Alert bsStyle="warning">
-          <h4 style={{ padding: "2em" }}>
-            <Icon name="exclamation-triangle" /> Your instructor requires that
-            you pay the one-time ${STUDENT_COURSE_PRICE} course fee for this
-            project.
-            {cards && <CourseProjectExtraHelp />}
-          </h4>
-          {this.render_upgrade_in_place()}
-        </Alert>
-      );
-    }
-
-    render_course_payment_warning(pay) {
-      let link;
-      if (this.state.show_pay) {
-        link = <span>pay the one-time ${STUDENT_COURSE_PRICE} course fee</span>;
-      } else {
-        link = (
-          <a
-            style={{ cursor: "pointer" }}
-            onClick={() => this.setState({ show_pay: true })}
-          >
-            pay the one-time ${STUDENT_COURSE_PRICE} course fee
-          </a>
-        );
-      }
-      return (
-        <Alert bsStyle={"warning"} style={{ fontSize: "12pt" }}>
-          <Icon name="exclamation-triangle" /> Your instructor requires that you{" "}
-          {link} for this project within <TimeAgo date={pay} />.
-          {this.state.show_pay ? this.render_upgrade_in_place() : undefined}
-        </Alert>
       );
     }
 
@@ -597,6 +531,7 @@ const Explorer0 = rclass(
         >
           {!IS_MOBILE && (
             <div
+              ref={this.searchBarRef}
               style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
             >
               <SearchBar
@@ -632,7 +567,10 @@ const Explorer0 = rclass(
           >
             {this.render_new_file()}
           </div>
-          <div className="cc-project-files-path-nav">
+          <div
+            ref={this.currentDirectoryRef}
+            className="cc-project-files-path-nav"
+          >
             <PathNavigator project_id={this.props.project_id} />
           </div>
           <>
@@ -646,7 +584,10 @@ const Explorer0 = rclass(
               <UsersViewing project_id={this.props.project_id} />
             </div>
             <VisibleMDLG>
-              <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
+              <div
+                ref={this.miniterminalRef}
+                style={{ flex: "1 0 auto", marginBottom: "15px" }}
+              >
                 <MiniTerminal
                   current_path={this.props.current_path}
                   project_id={this.props.project_id}
@@ -663,6 +604,7 @@ const Explorer0 = rclass(
     render_project_files_buttons(): JSX.Element {
       return (
         <div
+          ref={this.miscButtonsRef}
           style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
         >
           <MiscSideButtons
@@ -716,13 +658,6 @@ const Explorer0 = rclass(
         return <Loading />;
       }
 
-      const pay = this.props.date_when_course_payment_required(
-        this.props.project_id
-      );
-      if (pay != undefined && pay <= webapp_client.server_time()) {
-        return this.render_course_payment_required();
-      }
-
       const my_group = this.props.get_my_group(this.props.project_id);
 
       // regardless of consequences, for admins a project is always running
@@ -736,7 +671,7 @@ const Explorer0 = rclass(
           project_state = this.props.project_map.getIn([
             this.props.project_id,
             "state",
-          ]);
+          ]) as any;
         }
         project_is_running = project_state?.get("state") == "running";
       } else {
@@ -774,9 +709,6 @@ const Explorer0 = rclass(
               padding: "5px 5px 0 5px",
             }}
           >
-            {pay != undefined
-              ? this.render_course_payment_warning(pay)
-              : undefined}
             {this.render_error()}
             {this.render_activity()}
             {this.render_control_row(visible_listing)}
@@ -810,6 +742,7 @@ const Explorer0 = rclass(
             ) : undefined}
           </div>
           <div
+            ref={this.fileListingRef}
             className="smc-vfill"
             style={{
               flex: "1 0 auto",
@@ -829,6 +762,16 @@ const Explorer0 = rclass(
                 )
               : undefined}
           </div>
+          <ExplorerTour
+            open={this.props.explorerTour}
+            project_id={this.props.project_id}
+            newFileRef={this.newFileRef}
+            searchBarRef={this.searchBarRef}
+            fileListingRef={this.fileListingRef}
+            currentDirectoryRef={this.currentDirectoryRef}
+            miscButtonsRef={this.miscButtonsRef}
+            miniterminalRef={this.miniterminalRef}
+          />
         </div>
       );
     }

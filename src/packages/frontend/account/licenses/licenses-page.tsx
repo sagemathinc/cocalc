@@ -3,28 +3,48 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { A } from "@cocalc/frontend/components";
+import { React } from "@cocalc/frontend/app-framework";
 import { Footer } from "@cocalc/frontend/customize";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
-import { join } from "path";
-import { AboutLicenses } from "./about-licenses";
+import { DOC_LICENSE_URL } from "../../billing/data";
 import { ManagedLicenses } from "./managed-licenses";
 import { ProjectsWithLicenses } from "./projects-with-licenses";
+import Next from "@cocalc/frontend/components/next";
+import { A } from "@cocalc/frontend/components/A";
 
 export const LicensesPage: React.FC = () => {
   return (
     <div>
-      <h3>
-        <A href={join(appBasePath, "licenses")}>
-          Visit the License Management Center...
-        </A>
-      </h3>
+      <div style={{ fontSize: "12pt" }}>
+        <h3>About</h3>
+        <A href={DOC_LICENSE_URL}>Licenses</A> allow you to automatically
+        upgrade projects whenever they start up, so that they have more memory,
+        better hosting, run faster, etc.
+      </div>
+      <br />
       <div>
         <BuyLicenseForProject />
       </div>
-      <br />
-      <AboutLicenses />
+      <div>
+        <h3>Links</h3>
+        <ul style={{ fontSize: "12pt" }}>
+          <li>
+            <Next href={"licenses"}>License Management Center</Next>: manage
+            your licenses
+          </li>
+          <li>
+            <Next href={"pricing"}>Pricing</Next>: an overview of all offered
+            products.
+          </li>
+          <li>
+            <Next href={"billing"}>Billing</Next>:{" "}
+            <Next href={"billing/receipts"}>your purchases</Next>,{" "}
+            <Next href={"billing/subscriptions"}>subscriptions</Next>,{" "}
+            <Next href={"billing/cards"}>credit cards</Next>,{" "}
+            <Next href={"billing/receipts"}>invoices</Next>, etc.
+          </li>
+        </ul>
+      </div>
       <br />
       <ManagedLicenses />
       <br />

@@ -37,6 +37,7 @@ export const whiteboardButtons = set([
   "show_search",
   "show_overview",
   "help",
+  "chatgpt"
 ]);
 
 export const EDITOR_SPEC = {

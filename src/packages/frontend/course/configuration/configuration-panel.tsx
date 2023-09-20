@@ -4,7 +4,7 @@
  */
 
 import { debounce } from "lodash";
-import { Alert, Card, Row, Col } from "antd";
+import { Card, Row, Col } from "antd";
 
 // React libraries and Components
 import {
@@ -16,21 +16,14 @@ import {
   useStore,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Button, ButtonGroup, Checkbox } from "@cocalc/frontend/antd-bootstrap";
-
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { contains_url, days_ago, plural } from "@cocalc/util/misc";
-
-// CoCalc Components
+import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { contains_url, plural } from "@cocalc/util/misc";
 import {
-  DateTimePicker,
   Icon,
   LabeledRow,
   Loading,
   MarkdownInput,
-  Space,
   TextInput,
-  TimeAgo,
   ErrorDisplay,
 } from "@cocalc/frontend/components";
 import { StudentProjectUpgrades } from "./upgrades";
@@ -38,29 +31,22 @@ import { CourseActions } from "../actions";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { CourseSettingsRecord, CourseStore } from "../store";
 import { HelpBox } from "./help-box";
-
 import { DeleteAllStudentProjects } from "./delete-all-student-projects";
 import { DeleteAllStudents } from "./delete-all-students";
-
 import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-project";
 import { TerminalCommandPanel } from "./terminal-command";
-
 import { Nbgrader } from "./nbgrader";
 import { Parallel } from "./parallel";
-
-import { upgrades } from "@cocalc/util/upgrade-spec";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
 import { CustomizeStudentProjectFunctionality } from "./customize-student-project-functionality";
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 import { DatastoreConfig } from "./datastore-config";
-
 import EmptyTrash from "./empty-trash";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
-
-const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
+import StudentPay from "./student-pay";
 
 interface Props {
   name: string;
@@ -80,7 +66,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     configuring_projects,
     reinviting_students,
   }) => {
-    const [show_students_pay, set_show_students_pay] = useState<boolean>(false);
     const [email_body_error, set_email_body_error] = useState<
       string | undefined
     >(undefined);
@@ -96,7 +81,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     function render_title_desc_header() {
       return (
         <>
-          <Icon name="header" /> Title and description
+          <Icon name="header" /> Title and Description
         </>
       );
     }
@@ -141,7 +126,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     function render_grades_header() {
       return (
         <>
-          <Icon name="table" /> Export grades
+          <Icon name="table" /> Export Grades
         </>
       );
     }
@@ -224,7 +209,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="envelope" /> Email invitation
+              <Icon name="envelope" /> Email Invitation
             </>
           }
         >
@@ -262,7 +247,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="envelope" /> Reconfigure all projects
+              <Icon name="envelope" /> Reconfigure all Projects
             </>
           }
         >
@@ -279,7 +264,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             {configuring_projects ? (
               <Icon name="cocalc-ring" spin />
             ) : undefined}{" "}
-            Reconfigure all projects
+            Reconfigure all Projects
           </Button>
         </Card>
       );
@@ -290,7 +275,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="envelope" /> Resend outstanding email invites
+              <Icon name="envelope" /> Resend Outstanding Email Invites
             </>
           }
         >
@@ -316,7 +301,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="share-square" /> Copy missing handouts and assignments
+              <Icon name="share-square" /> Copy Missing Handouts and Assignments
             </>
           }
         >
@@ -329,7 +314,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               actions.configuration.push_missing_handouts_and_assignments();
             }}
           >
-            <Icon name="share-square" /> Copy missing handouts and assignments
+            <Icon name="share-square" /> Copy Missing Handouts and Assignments
           </Button>
         </Card>
       );
@@ -344,251 +329,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
           num_running_projects={r}
           num_students={n}
         />
-      );
-    }
-
-    /*
-  Students pay
-  */
-    function get_student_pay_when(): Date | string {
-      const date = settings.get("pay");
-      if (date) {
-        return date;
-      } else {
-        return days_ago(-7);
-      }
-    }
-
-    function handle_student_pay_button(): void {
-      set_show_students_pay(true);
-    }
-
-    function render_students_pay_button() {
-      return (
-        <Button bsStyle="primary" onClick={handle_student_pay_button}>
-          <Icon name="arrow-circle-up" /> Configure how students will pay...
-        </Button>
-      );
-    }
-
-    function render_student_pay_choice_checkbox() {
-      return (
-        <span>
-          <Checkbox
-            checked={
-              !!(settings != null ? settings.get("student_pay") : undefined)
-            }
-            onChange={handle_student_pay_choice}
-          >
-            Students will pay for this course
-          </Checkbox>
-        </span>
-      );
-    }
-
-    function handle_student_pay_choice(e): void {
-      actions.configuration.set_pay_choice("student", e.target.checked);
-      if (e.target.checked) {
-        set_show_students_pay(true);
-        actions.configuration.set_course_info(get_student_pay_when());
-      }
-    }
-
-    function render_require_students_pay_desc() {
-      const date = new Date(settings.get("pay"));
-      if (date > webapp_client.server_time()) {
-        return (
-          <span>
-            <b>
-              Your students will see a warning until <TimeAgo date={date} />.
-            </b>{" "}
-            They will then be required to upgrade for a special discounted
-            one-time fee of ${STUDENT_COURSE_PRICE}.
-          </span>
-        );
-      } else {
-        return (
-          <span>
-            <b>
-              Your students are required to upgrade their project now to use it.
-            </b>{" "}
-            If you want to give them more time to upgrade, move the date
-            forward.
-          </span>
-        );
-      }
-    }
-
-    function render_require_students_pay_when() {
-      if (!settings.get("pay")) {
-        return <span />;
-      }
-
-      return (
-        <div style={{ marginBottom: "1em" }}>
-          <div style={{ width: "50%", marginLeft: "3em", marginBottom: "1ex" }}>
-            <DateTimePicker
-              style={{ width: "20em" }}
-              placeholder={"Student Pay Deadline"}
-              value={
-                typeof settings.get("pay") === "string"
-                  ? new Date(settings.get("pay"))
-                  : settings.get("pay")
-              }
-              onChange={(date) => {
-                actions.configuration.set_course_info(
-                  date != null ? date.toISOString() : undefined
-                );
-              }}
-            />
-          </div>
-          {settings.get("pay") ? render_require_students_pay_desc() : undefined}
-        </div>
-      );
-    }
-
-    function render_students_pay_submit_buttons() {
-      return (
-        <Button onClick={() => set_show_students_pay(false)}>Close</Button>
-      );
-    }
-
-    function handle_students_pay_checkbox(e): void {
-      if (e.target.checked) {
-        actions.configuration.set_course_info(get_student_pay_when());
-      } else {
-        actions.configuration.set_course_info("");
-      }
-    }
-
-    function render_students_pay_checkbox_label() {
-      if (settings.get("pay")) {
-        if (webapp_client.server_time() >= settings.get("pay")) {
-          return <span>Require that students upgrade immediately:</span>;
-        } else {
-          return (
-            <span>
-              Require that students upgrade by{" "}
-              <TimeAgo date={settings.get("pay")} />:{" "}
-            </span>
-          );
-        }
-      } else {
-        return <span>Require that students upgrade...</span>;
-      }
-    }
-
-    function render_students_pay_checkbox() {
-      return (
-        <span>
-          <Checkbox
-            checked={!!settings.get("pay")}
-            onChange={handle_students_pay_checkbox}
-          >
-            {render_students_pay_checkbox_label()}
-          </Checkbox>
-        </span>
-      );
-    }
-
-    function render_students_pay_dialog() {
-      return (
-        <Alert
-          type="warning"
-          message={
-            <div>
-              <h3>
-                <Icon name="arrow-circle-up" /> Require students to upgrade
-              </h3>
-              <hr />
-              <span>
-                Click the following checkbox to require that all students in the
-                course pay a special discounted{" "}
-                <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their
-                project from trial servers to better members-only servers,
-                enable full internet access, and not see a large red warning
-                message. This lasts four months, and{" "}
-                <em>you will not be charged (only students are charged).</em>
-              </span>
-
-              {render_students_pay_checkbox()}
-              {settings.get("pay")
-                ? render_require_students_pay_when()
-                : undefined}
-              {render_students_pay_submit_buttons()}
-            </div>
-          }
-        />
-      );
-    }
-
-    function render_student_pay_desc() {
-      if (settings.get("pay")) {
-        return (
-          <span>
-            <span style={{ fontSize: "18pt" }}>
-              <Icon name="check" />
-            </span>{" "}
-            <Space />
-            {render_require_students_pay_desc()}
-          </span>
-        );
-      } else {
-        return (
-          <span>
-            Require that all students in the course pay a one-time $
-            {STUDENT_COURSE_PRICE} fee to move their projects off trial servers
-            and enable full internet access, for four months. This is strongly
-            recommended, and ensures that your students have a better
-            experience, and do not see a large{" "}
-            <span style={{ color: "red" }}>RED warning banner</span> all the
-            time. Alternatively, you (or your university) can pay for all
-            students at one for a significant discount -- see below.
-          </span>
-        );
-      }
-    }
-
-    function render_student_pay_details() {
-      return (
-        <div>
-          {show_students_pay
-            ? render_students_pay_dialog()
-            : render_students_pay_button()}
-          <hr />
-          <div style={{ color: "#666" }}>{render_student_pay_desc()}</div>
-        </div>
-      );
-    }
-
-    function render_require_students_pay() {
-      if (!is_commercial) return;
-      let bg, style;
-      if (
-        (settings != null ? settings.get("student_pay") : undefined) ||
-        (settings != null ? settings.get("institute_pay") : undefined)
-      ) {
-        style = bg = undefined;
-      } else {
-        style = { fontWeight: "bold" };
-        bg = "#fcf8e3";
-      }
-      return (
-        <>
-          <Card
-            style={{ background: bg }}
-            title={
-              <div style={style}>
-                <Icon name="dashboard" /> Require students to upgrade (students
-                pay)
-              </div>
-            }
-          >
-            {render_student_pay_choice_checkbox()}
-            {settings?.get("student_pay") && render_student_pay_details()}
-          </Card>
-          <br />
-        </>
       );
     }
 
@@ -700,7 +440,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            {render_require_students_pay()}
+            {is_commercial && <StudentPay actions={actions} settings={settings} />}
             {render_require_institute_pay()}
             {render_onprem_upgrade_projects()}
             {render_export_grades()}

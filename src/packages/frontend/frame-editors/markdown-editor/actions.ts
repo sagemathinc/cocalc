@@ -198,7 +198,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       // There is no table of contents frame so don't update that info.
       return;
     }
-    const contents = fromJS(parseTableOfContents(this._syncstring.to_str()));
+    const contents = fromJS(parseTableOfContents(this._syncstring.to_str())) as any;
     this.setState({ contents });
   }
 

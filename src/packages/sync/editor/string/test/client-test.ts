@@ -15,6 +15,7 @@ import {
   FileWatcher as FileWatcher0,
 } from "../../generic/types";
 import { SyncTable } from "@cocalc/sync/table/synctable";
+import { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 
 export class FileWatcher extends EventEmitter implements FileWatcher0 {
   private path: string;
@@ -43,10 +44,6 @@ export class Client extends EventEmitter implements Client0 {
 
   public server_time(): Date {
     return new Date();
-  }
-
-  public is_user(): boolean {
-    return true;
   }
 
   public is_project(): boolean {
@@ -107,11 +104,19 @@ export class Client extends EventEmitter implements Client0 {
     console.log("path_state", opts.path);
     opts.cb(true);
   }
-  path_read(opts: { path: string; maxsize_MB?: number; cb: Function }): void {
+  async path_read(opts: {
+    path: string;
+    maxsize_MB?: number;
+    cb: Function;
+  }): Promise<void> {
     console.log("path_ready", opts.path);
     opts.cb(true);
   }
-  write_file(opts: { path: string; data: string; cb: Function }): void {
+  async write_file(opts: {
+    path: string;
+    data: string;
+    cb: Function;
+  }): Promise<void> {
     console.log("write_file", opts.path, opts.data);
     opts.cb(true);
   }
@@ -161,5 +166,13 @@ export class Client extends EventEmitter implements Client0 {
   // account_id or project_id
   public client_id(): string {
     return this._client_id;
+  }
+
+  public sage_session({ path }): void {
+    console.log(`sage_session: path=${path}`);
+  }
+
+  public shell(opts: ExecuteCodeOptionsWithCallback): void {
+    console.log(`shell: opts=${JSON.stringify(opts)}`);
   }
 }

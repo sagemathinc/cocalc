@@ -5,33 +5,36 @@
 
 // The "Restart Project" button, which says "Start" like the one at the top if the project isn't running
 
-import { Popconfirm } from "antd";
-
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
-import {
-  Button,
-  ButtonSize,
-  ButtonStyle,
-} from "@cocalc/frontend/antd-bootstrap";
-import { React, useActions } from "@cocalc/frontend/app-framework";
+import { Button, Popconfirm } from "antd";
+
+import { useActions } from "@cocalc/frontend/app-framework";
 import { useProjectState } from "../page/project-state-hook";
 
 interface Props {
   project_id: string;
   disabled?: boolean;
   text?: string;
-  bsStyle?: ButtonStyle;
-  bsSize?: ButtonSize;
+  size?;
+  danger?: boolean;
+  short?: boolean;
 }
 
-export const RestartProject: React.FC<Props> = React.memo((props) => {
-  const { project_id, disabled, text, bsStyle, bsSize } = props;
+export function RestartProject({
+  project_id,
+  disabled,
+  text,
+  size,
+  danger,
+  short = false,
+}: Props) {
   const actions = useActions("projects");
   const state = useProjectState(project_id);
   const is_running = state.get("state") === "running";
   const task = is_running ? "Restart" : "Start";
   const icon = is_running ? <SyncOutlined /> : <PlayCircleOutlined />;
-  const description = text != null ? text : `${task} Project…`;
+  const description =
+    text != null ? text : `${task}${short ? "" : " Project"}…`;
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>
@@ -46,20 +49,20 @@ export const RestartProject: React.FC<Props> = React.memo((props) => {
   return (
     <Popconfirm
       placement={"bottom"}
-      arrowPointAtCenter={true}
+      arrow={{ pointAtCenter: true }}
       title={explanation}
       icon={icon}
       onConfirm={() => actions?.restart_project(project_id)}
-      okText="Yes, restart project"
+      okText={`Yes, ${task.toLocaleLowerCase()} project`}
       cancelText="Cancel"
     >
       <Button
         disabled={disabled || actions == null}
-        bsSize={bsSize}
-        bsStyle={bsStyle ?? "warning"}
+        size={size}
+        danger={danger}
       >
         {icon} {description}
       </Button>
     </Popconfirm>
   );
-});
+}

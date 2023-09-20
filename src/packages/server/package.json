@@ -9,6 +9,7 @@
     "./accounts/*": "./dist/accounts/*.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
+    "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
     "./licenses/purchase": "./dist/licenses/purchase/index.js",
     "./projects/control": "./dist/projects/control/index.js",
@@ -18,12 +19,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf node_modules dist",
     "build": "npx tsc",
     "tsc": "npx tsc --watch",
     "test": "npx jest dist/",
@@ -34,9 +33,11 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
+    "@cocalc/gcloud-pricing-calculator": "^0.6.0",
     "@cocalc/hub": "workspace:*",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@google-cloud/compute": "^4.0.1",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.4",
     "@sendgrid/mail": "^7.5.0",
@@ -45,12 +46,18 @@
     "@types/node-zendesk": "^2.0.9",
     "@types/nodemailer": "^6.4.4",
     "@types/passport": "^1.0.9",
+    "@types/passport-google-oauth20": "^2.0.11",
     "async-await-utils": "^3.0.1",
     "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
+    "axios": "^1.4.0",
+    "base62": "^2.0.1",
     "cookies": "^0.8.0",
     "dayjs": "^1.11.7",
+    "gpt3-tokenizer": "^1.1.5",
+    "json-stable-stringify": "^1.0.1",
     "jwt-decode": "^3.1.2",
+    "lambda-cloud-node-api": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "ms": "2.1.2",
@@ -65,6 +72,7 @@
     "passport-facebook": "^3.0.0",
     "passport-github2": "^0.1.12",
     "passport-gitlab2": "^5.0.0",
+    "passport-google-oauth20": "^2.0.0",
     "passport-ldapauth": "^3.0.1",
     "passport-oauth": "^1.0.0",
     "passport-openidconnect": "^0.1.1",
@@ -73,7 +81,7 @@
     "passport-twitter": "^1.0.4",
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
-    "stripe": "^8.78.0",
+    "stripe": "^12.17.0",
     "uuid": "^8.3.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",
@@ -82,7 +90,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/node": "^18.11.18",
+    "@types/node": "^18.16.14",
     "expect": "^26.6.2"
   }
 }

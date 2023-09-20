@@ -3,31 +3,37 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties } from "react";
+import { Button, Col, Row, Tooltip } from "antd";
 import { Map } from "immutable";
-import { IS_TOUCH } from "@cocalc/frontend/feature";
+import { CSSProperties } from "react";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import {
-  is_editing,
-  message_colors,
-  newest_content,
-  sender_is_viewer,
-} from "./utils";
-import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import {
   redux,
   useMemo,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
-import { Button, Tooltip, Row, Col } from "antd";
-import { getUserName } from "./chat-log";
-import { HistoryTitle, HistoryFooter, History } from "./history";
-import ChatInput from "./input";
+import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { ChatActions } from "./actions";
-import { Time } from "./time";
+import { getUserName } from "./chat-log";
+import { History, HistoryFooter, HistoryTitle } from "./history";
+import ChatInput from "./input";
 import { Name } from "./name";
+import { Time } from "./time";
+import {
+  is_editing,
+  message_colors,
+  newest_content,
+  sender_is_viewer,
+} from "./utils";
+import { modelToName } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+
+// 5 minutes -- how long to show the "regenerate button" for chatgpt.
+// Don't show it forever, since we want to avoid clutter.
+const regenerateCutoff = 1000 * 60 * 5;
 
 const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
 
@@ -84,6 +90,13 @@ export default function Message(props: Props) {
     () => edited_message !== newest_content(props.message),
     [props.message] /* note -- edited_message is a function of props.message */
   );
+
+  // date as ms since epoch or 0
+  const date = useMemo(() => {
+    return props.message?.get("date")?.valueOf() ?? 0;
+  }, [props.message.get("date")]);
+
+  const generating = props.message.get("generating");
 
   const history_size = useMemo(
     () => props.message.get("history").size,
@@ -193,7 +206,7 @@ export default function Message(props: Props) {
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
             <Button onClick={on_cancel}>Cancel</Button>
-            <Space />
+            <Gap />
             <Button onClick={saveEditedMessage} type="primary">
               Save (shift+enter)
             </Button>
@@ -283,13 +296,25 @@ export default function Message(props: Props) {
 
     return (
       <Col key={1} xs={21}>
-        {!props.is_prev_sender &&
-        !is_viewers_message &&
-        props.message.get("sender_id") ? (
-          <Name
-            sender_name={props.get_user_name(props.message.get("sender_id"))}
-          />
-        ) : undefined}
+        <div style={{ display: "flex" }}>
+          {!props.is_prev_sender &&
+          !is_viewers_message &&
+          props.message.get("sender_id") ? (
+            <Name
+              sender_name={props.get_user_name(props.message.get("sender_id"))}
+            />
+          ) : undefined}
+          {generating === true && props.actions && (
+            <Button
+              style={{ color: "#666" }}
+              onClick={() => {
+                props.actions?.chatgptStopGenerating(new Date(date));
+              }}
+            >
+              <Icon name="square" /> Stop Generating
+            </Button>
+          )}
+        </div>
         <div
           style={message_style}
           className="smc-chat-message"
@@ -327,9 +352,7 @@ export default function Message(props: Props) {
               }}
             >
               <div>
-                {new Date().valueOf() -
-                  new Date(props.message.get("date")).valueOf() <
-                  SHOW_EDIT_BUTTON_MS && (
+                {Date.now() - date < SHOW_EDIT_BUTTON_MS && (
                   <Tooltip
                     title="Edit this message. You can edit any past message by anybody at any time by double clicking on it."
                     placement="left"
@@ -353,11 +376,11 @@ export default function Message(props: Props) {
                   props.allowReply &&
                   !replying && (
                     <Button
+                      type="text"
                       disabled={replying}
                       style={{
                         color: is_viewers_message ? "white" : "#555",
                       }}
-                      type="text"
                       size="small"
                       onClick={() => setReplying(true)}
                     >
@@ -423,7 +446,7 @@ export default function Message(props: Props) {
     set_edited_message(newest_content(props.message));
     if (props.actions == null) return;
     props.actions.set_editing(props.message, false);
-    props.actions.delete_draft(props.message?.get("date")?.valueOf() ?? 0);
+    props.actions.delete_draft(date);
   }
 
   function renderEditMessage() {
@@ -440,15 +463,13 @@ export default function Message(props: Props) {
       <div>
         <ChatInput
           autoFocus
-          cacheId={`${props.path}${props.project_id}${props.message
-            ?.get("date")
-            ?.valueOf()}`}
+          cacheId={`${props.path}${props.project_id}${date}`}
           input={newest_content(props.message)}
           submitMentionsRef={submitMentionsRef}
           on_send={saveEditedMessage}
           height={"auto"}
           syncdb={props.actions.syncdb}
-          date={props.message?.get("date")?.valueOf() ?? 0}
+          date={date}
           onChange={(value) => {
             edited_message_ref.current = value;
           }}
@@ -464,7 +485,7 @@ export default function Message(props: Props) {
           <Button
             onClick={() => {
               props.actions?.set_editing(props.message, false);
-              props.actions?.delete_draft(props.message.get("date")?.valueOf());
+              props.actions?.delete_draft(date);
             }}
           >
             Cancel
@@ -477,7 +498,7 @@ export default function Message(props: Props) {
   function sendReply() {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
-    props.actions.send_reply(props.message, reply);
+    props.actions.send_reply({ message: props.message, reply });
     setReplying(false);
   }
 
@@ -492,21 +513,20 @@ export default function Message(props: Props) {
       return;
     }
     return (
-      <div>
+      <div style={{ marginLeft: "30px" }}>
         <ChatInput
           autoFocus
           style={{
+            borderRadius: "8px",
             height: "auto" /* for some reason the default 100% breaks things */,
           }}
-          cacheId={`${props.path}${props.project_id}${props.message
-            ?.get("date")
-            ?.valueOf()}-reply`}
+          cacheId={`${props.path}${props.project_id}${date}-reply`}
           input={""}
           submitMentionsRef={replyMentionsRef}
           on_send={sendReply}
           height={"auto"}
           syncdb={props.actions.syncdb}
-          date={-(props.message?.get("date")?.valueOf() ?? 0)}
+          date={-date}
           onChange={(value) => {
             replyMessageRef.current = value;
           }}
@@ -574,31 +594,46 @@ export default function Message(props: Props) {
         <div
           style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
         >
-          <Tooltip
-            title={
-              isChatGPTThread
-                ? "Reply to ChatGPT, sending the entire thread as context."
-                : "Reply in this thread."
-            }
-          >
-            <Button
-              type="text"
-              onClick={() => setReplying(true)}
-              style={{ color: "#666" }}
+          {!generating && (
+            <Tooltip
+              title={
+                isChatGPTThread
+                  ? `Reply to ${modelToName(
+                      isChatGPTThread
+                    )}, sending the entire thread as context.`
+                  : "Reply in this thread."
+              }
             >
-              <Icon name="reply" /> Reply
-              {isChatGPTThread
-                ? ` to ChatGPT${isChatGPTThread == "gpt-4" ? "4" : ""}`
-                : ""}
-              {isChatGPTThread && (
-                <Avatar
-                  account_id="chatgpt"
-                  size={16}
-                  style={{ marginLeft: "10px", marginBottom: "2.5px" }}
-                />
-              )}
-            </Button>
-          </Tooltip>
+              <Button
+                type="text"
+                onClick={() => setReplying(true)}
+                style={{ color: "#666" }}
+              >
+                <Icon name="reply" /> Reply
+                {isChatGPTThread ? ` to ${modelToName(isChatGPTThread)}` : ""}
+                {isChatGPTThread && (
+                  <Avatar
+                    account_id="chatgpt"
+                    size={16}
+                    style={{ marginLeft: "10px", marginBottom: "2.5px" }}
+                  />
+                )}
+              </Button>
+            </Tooltip>
+          )}
+          {!generating &&
+            isChatGPTThread &&
+            props.actions &&
+            Date.now() - date <= regenerateCutoff && (
+              <Button
+                style={{ color: "#666", marginLeft: "15px" }}
+                onClick={() => {
+                  props.actions?.chatgptRegenerate(new Date(date));
+                }}
+              >
+                <Icon name="refresh" /> Regenerate response
+              </Button>
+            )}
         </div>
       )}
     </Row>

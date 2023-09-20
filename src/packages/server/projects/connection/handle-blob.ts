@@ -1,4 +1,4 @@
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import { uuidsha1 } from "@cocalc/backend/sha1";
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -46,7 +46,9 @@ async function saveBlob({ project_id, uuid, blob }): Promise<number> {
   if (!isValidUUID(uuid)) throw Error("uuid is invalid");
   if (!blob) throw Error("blob is required");
   if (uuid != uuidsha1(blob)) {
-    throw Error("uuid must be the sha1-uuid of blob");
+    throw Error(
+      `uuid must be the sha1-uuid of blob but got ${uuid} != ${uuidsha1(blob)}`
+    );
   }
   if (blob.length > MAX_BLOB_SIZE) {
     throw Error(

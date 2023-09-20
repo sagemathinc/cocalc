@@ -7,12 +7,12 @@
 
 // ProjectPage
 =file-tabs-base
-  height        : 32px
-  font-size     : 10.5pt
-  border-radius : 5px 5px 0px 0px
+  height: 32px
+  font-size: 10.5pt
+  border-radius: 5px 5px 0px 0px
 
 .smc-file-tabs-fixed-desktop > li > a
-  padding       : 10px 5px
+  padding: 10px 5px
   +file-tabs-base
 
 // make nav tabs a little tighter horizontally.
@@ -22,50 +22,50 @@
 // ProjectPage
 
 .list-group-header
-  list-style     : none
-  color          : $COL_GRAY
-  padding-left   : 5px
-  margin-top     : 5px
-  border-top     : 1px solid $COL_GRAY_LL
-  padding-top    : 10px
+  list-style: none
+  color: $COL_GRAY
+  padding-left: 5px
+  margin-top: 5px
+  border-top: 1px solid $COL_GRAY_LL
+  padding-top: 10px
   &:first-child
-    margin-top   : 5px
-    padding-top  : 0px
-    border-top   : none
+    margin-top: 5px
+    padding-top: 0px
+    border-top: none
 
 .smc-file-tab-floating
-  background-color    : $COL_BS_BLUE_BGRND
-  border-radius       : 5px 5px 0px 0px
-  box-sizing          : border-box
-  color               : rgb(51, 51, 51)
-  display             : block
-  flex-shrink         : 1
-  line-height         : normal
-  list-style-image    : none
-  list-style-position : outside
-  list-style-type     : none
-  overflow-x          : hidden
-  overflow-y          : hidden
-  position            : relative
-  text-align          : left
-  width               : 250px
+  background-color: $COL_BS_BLUE_BGRND
+  border-radius: 5px 5px 0px 0px
+  box-sizing: border-box
+  color: rgb(51, 51, 51)
+  display: block
+  flex-shrink: 1
+  line-height: normal
+  list-style-image: none
+  list-style-position: outside
+  list-style-type: none
+  overflow-x: hidden
+  overflow-y: hidden
+  position: relative
+  text-align: left
+  width: 250px
   +file-tabs-base
 
   > a
-    color               : rgb(51, 51, 51)
-    border-radius       : 5px 5px 0px 0px
-    box-sizing          : border-box
-    display             : block
-    line-height         : normal
-    list-style-image    : none
-    list-style-position : outside
-    list-style-type     : none
-    padding             : 11px 5px
-    position            : relative
+    color: rgb(51, 51, 51)
+    border-radius: 5px 5px 0px 0px
+    box-sizing: border-box
+    display: block
+    line-height: normal
+    list-style-image: none
+    list-style-position: outside
+    list-style-type: none
+    padding: 11px 5px
+    position: relative
     +file-tabs-base
 
 .highlight
-  background-color : yellow
+  background-color: yellow
 
 .cc-project-files-create-dropdown
   > .dropdown.btn-group
@@ -88,10 +88,27 @@
   max-width: 50vw
   padding: 5px 10px !important
 
-.cc-path-navigator
+.cc-path-navigator,
+.cc-project-flyout-path-navigator
   color: $COL_BS_BLUE_TEXT
   span
     cursor: pointer
+
+.cc-project-flyout-path-navigator
+  overflow: hidden
+  text-overflow: ellipsis
+  float: left
+  white-space: nowrap
+  > ol
+    display: inline-block
+    white-space: nowrap
+    > li
+      display: inline-block
+      white-space: nowrap
+  li.ant-breadcrumb-separator
+    margin-right: 2px
+    margin-left: 2px
+
 .cc-path-navigator-history
   color: $COL_GRAY
 .cc-path-navigator-active
@@ -114,3 +131,22 @@ li.cc-project-home-recent-files
   cursor: pointer
   &:hover
     background-color: $COL_GRAY_LLL
+
+div.cc-project-flyout-dragbar:hover
+  background-color: $COL_GRAY_L
+
+.cc-project-log-history-entry:hover
+  cusor: pointer
+  background-color: $COL_GRAY_LLL
+
+.cc-project-flyout-files-panel,
+.cc-project-flyout-settings-panel
+  .ant-collapse-content-box
+    padding: 0 !important
+
+.cc-license-table-public-info
+  td, th
+    padding: 5px !important
+  .ant-table-expanded-row
+    td
+      padding: 0 !important
