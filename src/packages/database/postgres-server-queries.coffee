@@ -1191,6 +1191,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             account_id    : required
             email_address : required
+            stripe        : required
             cb            : required
         if not @_validate_opts(opts) then return
         async.series([
@@ -1223,7 +1224,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             try
                                 await syncCustomer
                                     account_id  : opts.account_id
-                                    stripe      : undefined
+                                    stripe      : opts.stripe
                                     customer_id : x.stripe_customer_id
                                 cb()
                             catch err
