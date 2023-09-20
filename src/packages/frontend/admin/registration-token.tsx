@@ -30,7 +30,7 @@ import {
   Rendered,
   TypedMap,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, Icon, Saving, Title } from "@cocalc/frontend/components";
+import { ErrorDisplay, Icon, Saving } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
 import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
@@ -58,7 +58,6 @@ function use_registration_tokens() {
   const [loading, set_loading] = React.useState<boolean>(false);
   const [last_saved, set_last_saved] = React.useState<Token | null>(null);
   const [error, set_error] = React.useState<string>("");
-  const [show, set_show] = React.useState<boolean>(false);
   const [sel_rows, set_sel_rows] = React.useState<any>([]);
 
   // Antd
@@ -104,15 +103,8 @@ function use_registration_tokens() {
   React.useEffect(() => {
     // every time we show or hide, clear the selection
     set_sel_rows([]);
-    if (show) {
-      load();
-    } else {
-      // reset state upon closing
-      set_sel_rows([]);
-      set_last_saved(null);
-      set_error("");
-    }
-  }, [show]);
+    load();
+  }, []);
 
   React.useEffect(() => {
     if (editing != null) {
@@ -231,7 +223,6 @@ function use_registration_tokens() {
     last_saved,
     error,
     set_error,
-    show,
     sel_rows,
     set_sel_rows,
     set_deleting,
@@ -240,18 +231,15 @@ function use_registration_tokens() {
     edit_new_token,
     save,
     load,
-    set_show,
     no_or_all_inactive,
   };
 }
 
-export const RegistrationToken: React.FC<{}> = () => {
+export function RegistrationToken() {
   // TODO I'm sure this could be done in a smarter way ...
   const {
-    show,
     data,
     form,
-    set_show,
     error,
     set_error,
     deleting,
@@ -363,10 +351,6 @@ export const RegistrationToken: React.FC<{}> = () => {
         <AntdButton onClick={() => load()}>
           <Icon name="refresh" />
           Refresh
-        </AntdButton>
-        <AntdButton onClick={() => set_show(false)}>
-          <Icon name="times" />
-          Close
         </AntdButton>
       </AntdButton.Group>
     );
@@ -519,7 +503,7 @@ export const RegistrationToken: React.FC<{}> = () => {
     }
   }
 
-  function render_unsupported(): Rendered {
+  function render_unsupported() {
     // see https://github.com/sagemathinc/cocalc/issues/333
     return (
       <div style={{ color: COLORS.GRAY }}>
@@ -549,57 +533,26 @@ export const RegistrationToken: React.FC<{}> = () => {
       .some((s) => s.get("public"));
   }
 
-  function render_content(): Rendered {
-    const account_store: any = redux.getStore("account");
-    if (account_store == null) {
-      return <div>Account store not defined -- try again...</div>;
-    }
-    const strategies: List<TypedMap<PassportStrategyFrontend>> | undefined =
-      account_store.get("strategies");
-    if (strategies == null) {
-      // I hit this in production once and it crashed my browser.
-      return <div>strategies not loaded -- try again...</div>;
-    }
-    if (not_supported(strategies)) {
-      return render_unsupported();
-    } else {
-      return (
-        <div>
-          {render_no_active_token_warning()}
-          {render_error()}
-          {render_control()}
-          {render_info()}
-        </div>
-      );
-    }
+  const account_store: any = redux.getStore("account");
+  if (account_store == null) {
+    return <div>Account store not defined -- try again...</div>;
   }
-
-  function render_body(): Rendered {
-    if (show) {
-      return render_content();
-    }
+  const strategies: List<TypedMap<PassportStrategyFrontend>> | undefined =
+    account_store.get("strategies");
+  if (strategies == null) {
+    // I hit this in production once and it crashed my browser.
+    return <div>strategies not loaded -- try again...</div>;
   }
-
-  function render_header(): Rendered {
+  if (not_supported(strategies)) {
+    return render_unsupported();
+  } else {
     return (
-      <Title
-        level={4}
-        onClick={() => set_show((v) => !v)}
-        style={{ cursor: "pointer" }}
-      >
-        <Icon
-          style={{ width: "20px" }}
-          name={show ? "caret-down" : "caret-right"}
-        />{" "}
-        Registration Tokens
-      </Title>
+      <div>
+        {render_no_active_token_warning()}
+        {render_error()}
+        {render_control()}
+        {render_info()}
+      </div>
     );
   }
-
-  return (
-    <div>
-      {render_header()}
-      {render_body()}
-    </div>
-  );
-};
+}

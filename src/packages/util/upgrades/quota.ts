@@ -47,9 +47,7 @@ import {
 } from "../consts/site-license";
 import { deep_copy, len, test_valid_jsonpatch } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
-// TODO how to use the logger ?
-//import { getLogger } from "@cocalc/backend/logger";
-//const L = getLogger("upgrades:quota");
+import type { ProjectQuota as PayAsYouGoQuota } from "@cocalc/util/db-schema/purchase-quotas";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -101,6 +99,11 @@ interface QuotaBase {
   idle_timeout?: number;
   dedicated_vm?: { machine: string } | boolean;
   dedicated_disks?: DedicatedDisk[];
+  pay_as_you_go?: null | {
+    account_id: string;
+    purchase_id: number;
+    quota: PayAsYouGoQuota;
+  };
 }
 
 // additional fields of the quota result, which are used for onprem (cocalc-cloud) applications
@@ -257,6 +260,7 @@ const ZERO_QUOTA: RQuota = {
   always_running: false,
   dedicated_vm: false,
   dedicated_disks: [] as DedicatedDisk[],
+  pay_as_you_go: null,
 } as const;
 
 // base quota + calculated default quotas is the quota object each project gets by default
@@ -274,6 +278,7 @@ const BASE_QUOTAS: RQuota = {
   always_running: false, // if true, a service restarts the project if it isn't running
   dedicated_vm: false,
   dedicated_disks: [] as DedicatedDisk[],
+  pay_as_you_go: null,
 } as const;
 
 // sanitize the overcommitment ratio or discard it
@@ -628,6 +633,7 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     dedicated_vm: false, // old schema has no dedicated_vm upgrades
     dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
     ext_rw: false,
+    pay_as_you_go: null,
     patch: [],
   };
 }
@@ -647,6 +653,7 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     idle_timeout: 0, // idle_timeout is set AFTER summing up all licenses, they're not additive
     dedicated_vm: q.dedicated_vm ?? false,
     dedicated_disks: [] as DedicatedDisk[],
+    pay_as_you_go: null,
     ext_rw: !!q.ext_rw,
     patch: q.patch ? loadPatch(q.patch) : [],
   };
@@ -676,8 +683,8 @@ function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
     if (typeof v === "boolean") {
       q[k] = op === "min" ? q1[k] && q2[k] : q1[k] || q2[k];
     } else if (typeof v === "number") {
-      const cmp = op === "min" ? Math.min : Math.max;
-      q[k] = cmp(q1[k], q2[k]);
+      const f = op === "min" ? Math.min : Math.max;
+      q[k] = f(q1[k], q2[k]);
     }
   }
   return q as RQuota;
@@ -864,13 +871,19 @@ export function quota(
   settings_arg?: Settings,
   users_arg?: Users,
   site_licenses?: SiteLicenses,
-  site_settings?: SiteSettingsQuotas
+  site_settings?: SiteSettingsQuotas,
+  pay_as_you_go?: {
+    quota: PayAsYouGoQuota;
+    account_id: string;
+    purchase_id: number;
+  }
 ): Quota {
   const { quota } = quota_with_reasons(
     settings_arg,
     users_arg,
     site_licenses,
-    site_settings
+    site_settings,
+    pay_as_you_go
   );
   return quota;
 }
@@ -879,7 +892,12 @@ export function quota_with_reasons(
   settings_arg?: Settings,
   users_arg?: Users,
   site_licenses?: SiteLicenses,
-  site_settings?: SiteSettingsQuotas
+  site_settings?: SiteSettingsQuotas,
+  pay_as_you_go?: {
+    quota: PayAsYouGoQuota;
+    account_id: string;
+    purchase_id: number;
+  }
 ): { quota: Quota; reasons: { [key: string]: string } } {
   // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
   // tests to catch this are in postgres/site-license/hook.test.ts
@@ -964,7 +982,21 @@ export function quota_with_reasons(
     };
   }
 
-  const total_quota = quota_v2({
+  if (pay_as_you_go != null) {
+    // Include pay-as-you-go quotas.  We just take
+    // the maximum for each given quota, with the stupid
+    // complication that the names and units are all
+    // different.  pay_as_you_go is an array of objects
+    // and the names and units they use are EXACTLY
+    // the same as Settings, except some fields aren't used.
+    quota = op_quotas(
+      quota as RQuota,
+      upgrade2quota(pay_as_you_go.quota),
+      "max"
+    );
+  }
+
+  let total_quota = quota_v2({
     quota,
     settings: upgrade2quota(settings),
     max_upgrades: upgrade2quota(max_upgrades),
@@ -976,6 +1008,12 @@ export function quota_with_reasons(
   total_quota.dedicated_disks = dedicated_disks;
   if (ext_rw === true) total_quota.ext_rw = true;
   if (patch.length > 0) total_quota.patch = patch;
+
+  if (pay_as_you_go != null) {
+    // do this after any other processing or it would just go away, e.g., when min'ing with max's
+    total_quota.pay_as_you_go = pay_as_you_go;
+  }
+
   return { quota: total_quota, reasons };
 }
 
@@ -1012,6 +1050,7 @@ export function site_license_quota(
     idle_timeout: 0,
     dedicated_vm: false,
     dedicated_disks: [],
+    pay_as_you_go: null,
   };
 
   for (const license of Object.values(site_licenses)) {
@@ -1083,7 +1122,12 @@ total_quota =  {            max_upgrades = {
                             }
 */
 
-const IGNORED_KEYS = ["dedicated_disks", "dedicated_vm", "patch"] as const;
+const IGNORED_KEYS = [
+  "dedicated_disks",
+  "dedicated_vm",
+  "patch",
+  "pay_as_you_go",
+] as const;
 
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {

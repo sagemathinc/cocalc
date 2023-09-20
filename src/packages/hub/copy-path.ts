@@ -139,7 +139,7 @@ export class CopyPath {
       await Promise.all([write, read]);
 
       // get the "project" for issuing commands
-      const projectControl: ProjectControlFunction = this.client.compute_server;
+      const projectControl: ProjectControlFunction = this.client.projectControl;
       const project = projectControl(mesg.src_project_id);
 
       // do the copy

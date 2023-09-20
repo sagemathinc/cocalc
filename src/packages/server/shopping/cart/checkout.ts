@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// TODO: I THINK THIS IS DEPRECATED AND NO LONGER USED
+
 /*
 Purchase everything that is checked and in the shopping cart.
 
@@ -17,19 +19,15 @@ If this successfully runs, then the checked items in the shopping
 cart are changed in the database so that the purchased field is set.
 */
 
-import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
 import purchaseLicense from "@cocalc/server/licenses/purchase";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import {
-  PurchaseInfo,
-  Subscription,
-} from "@cocalc/util/licenses/purchase/types";
 import { isValidUUID } from "@cocalc/util/misc";
-import { Date0 } from "@cocalc/util/types/store";
 import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 import getCart from "./get";
+import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
+import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 
 export default async function checkout(account_id: string): Promise<void> {
   // Get the list of items in the cart that haven't been purchased
@@ -58,7 +56,7 @@ export default async function checkout(account_id: string): Promise<void> {
     );
 
     if (typeof project_id == "string" && isValidUUID(project_id)) {
-      await db().add_license_to_project(project_id, license_id);
+      await addLicenseToProject({ project_id, license_id });
       restartProjects.add(project_id);
     }
   }
@@ -100,92 +98,4 @@ export async function createLicenseWithoutPurchase({
   const info = getPurchaseInfo(description);
   delete info.cost; // so user isn't charged.
   return await purchaseLicense(account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
-}
-
-// make sure start/end is properly defined
-// later, when actually saving the range to the database, we will maybe append a portion of the start which is in the past
-function fixRange(rangeOrig?: [Date0 | string, Date0 | string]): [Date, Date0] {
-  if (rangeOrig == null) {
-    return [new Date(), undefined];
-  }
-
-  const [start, end]: [Date, Date0] = [
-    rangeOrig?.[0] ? new Date(rangeOrig?.[0]) : new Date(),
-    rangeOrig?.[1] ? new Date(rangeOrig?.[1]) : undefined,
-  ];
-
-  return [start, end];
-}
-
-function getPurchaseInfo(conf: SiteLicenseDescriptionDB): PurchaseInfo {
-  conf.type = conf.type ?? "quota"; // backwards compatibility
-
-  const { title, description } = conf;
-
-  switch (conf.type) {
-    case "quota":
-      const {
-        type,
-        user,
-        run_limit,
-        period,
-        ram,
-        cpu,
-        disk,
-        member,
-        uptime,
-        boost = false,
-      } = conf;
-      const rangeQuota = fixRange(conf.range);
-      return {
-        type, // "quota"
-        user,
-        upgrade: "custom" as "custom",
-        quantity: run_limit,
-        subscription: (period == "range" ? "no" : period) as Subscription,
-        start: rangeQuota[0],
-        end: rangeQuota[1],
-        custom_ram: ram,
-        custom_dedicated_ram: 0,
-        custom_cpu: cpu,
-        custom_dedicated_cpu: 0,
-        custom_disk: disk,
-        custom_member: member,
-        custom_uptime: uptime,
-        boost,
-        title,
-        description,
-      };
-
-    case "vm":
-      if (conf.range[0] == null || conf.range[1] == null) {
-        throw new Error(
-          `start/end range must be defined -- range=${JSON.stringify(
-            conf.range
-          )}`
-        );
-      }
-      const rangeVM = fixRange(conf.range);
-      return {
-        type: "vm",
-        quantity: 1,
-        dedicated_vm: conf.dedicated_vm,
-        subscription: "no",
-        start: rangeVM[0],
-        end: rangeVM[1],
-        title,
-        description,
-      };
-
-    case "disk":
-      return {
-        type: "disk",
-        quantity: 1,
-        dedicated_disk: conf.dedicated_disk,
-        subscription: conf.period,
-        start: new Date(),
-        title,
-        description,
-      };
-  }
 }

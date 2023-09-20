@@ -74,7 +74,7 @@ export async function getServerSideProps(context) {
     const { res } = context;
     res.writeHead(302, { location: basePath });
     res.end();
-    return { props: {} };
+    return { props: { customize: {} } };
   }
   customize.props.requiresToken = await getRequiresToken();
   return customize;

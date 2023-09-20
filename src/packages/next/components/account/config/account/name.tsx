@@ -132,7 +132,14 @@ function ConfigureName() {
               {original.name && (
                 <>
                   {" "}
-                  (Changing your name could break links that you have shared.)
+                  Setting a username provides optional nicer URL's for shared
+                  public documents. Your username can be between 1 and 39
+                  characters, contain upper and lower case letters, numbers, and
+                  dashes.
+                  <br />
+                  WARNING: If you change your username, existing links using the
+                  previous username will no longer work (automatic redirects are
+                  not implemented), so change with caution.
                 </>
               )}
             </Paragraph>

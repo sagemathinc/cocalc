@@ -7,6 +7,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -21,6 +22,7 @@ export interface SyncDBRecordSettings {
   student_project_functionality?: StudentProjectFunctionality;
   shared_project_id?: string;
   pay?: string;
+  payInfo?: PurchaseInfo;
   site_license_id?: string;
   site_license_removed?: string;
   site_license_strategy?: SiteLicenseStrategy;

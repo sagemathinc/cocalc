@@ -46,7 +46,7 @@ const STYLE = {
   background: "#fff",
 } as CSS;
 
-interface Props {
+export interface Props {
   id: string;
   actions: any;
   path: string;
@@ -100,7 +100,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     return () => {
       // clean up because unmounting.
       if (cmRef.current != null && !props.is_public) {
-        save_editor_state();
+        save_editor_state(cmRef.current);
         const actions = editor_actions();
         if (actions != null) {
           // We can't just use save_syncstring(), since if this is
@@ -198,11 +198,8 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
   }
 
   // Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
-  function save_editor_state(): void {
-    if (cmRef.current == null) {
-      return;
-    }
-    const state = get_state(cmRef.current);
+  function save_editor_state(cm): void {
+    const state = get_state(cm);
     if (state != null) {
       props.actions.save_editor_state(props.id, state);
     }
@@ -316,7 +313,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     }
 
     const throttled_save_editor_state = throttle(save_editor_state, 150);
-    cm.on("scroll", throttled_save_editor_state);
+    cm.on("scroll", () => throttled_save_editor_state(cm));
     init_style_hacks(cm);
 
     editor_actions()?.set_cm(props.id, cm);
@@ -389,7 +386,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
 
       const actions = editor_actions();
       actions?.set_cursor_locs(locs);
-      throttled_save_editor_state();
+      throttled_save_editor_state(cm);
     });
 
     // replace undo/redo by our sync aware versions

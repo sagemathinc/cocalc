@@ -26,13 +26,24 @@ interface Props {
   path;
   url;
   relativePath;
+  everything;
   image;
   description;
+  onCopied;
 }
 
 export default function ChooseProject(props: Props) {
-  const { id, src_project_id, path, url, relativePath, image, description } =
-    props;
+  const {
+    id,
+    src_project_id,
+    path,
+    url,
+    relativePath,
+    everything,
+    image,
+    description,
+    onCopied,
+  } = props;
   const isMounted = useIsMounted();
   const { defaultComputeImage } = useCustomize();
   const [project, setProject] = useState<
@@ -78,7 +89,7 @@ export default function ChooseProject(props: Props) {
       setCopying("during");
       // Get the content
       if (url) {
-        // From a URL
+        // From a URL (e.g. github)
         await api("/projects/copy-url", {
           project_id: project.project_id,
           url,
@@ -91,7 +102,7 @@ export default function ChooseProject(props: Props) {
           src_project_id,
           path,
           url,
-          relativePath,
+          relativePath: everything ? "" : relativePath, // "" = so *everything* is copied
           target_project_id: project.project_id,
         });
       }
@@ -101,6 +112,7 @@ export default function ChooseProject(props: Props) {
     } finally {
       if (!isMounted.current) return;
       setCopying("after");
+      onCopied();
     }
   }
 

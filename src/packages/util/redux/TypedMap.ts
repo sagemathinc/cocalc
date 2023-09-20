@@ -120,7 +120,7 @@ export interface TypedMap<TProps extends Record<string, any>>
   forEach: Map<string, TProps[keyof TProps]>["forEach"];
 }
 
-interface TypedMapFactory<TProps extends Record<string, any>> {
+export interface TypedMapFactory<TProps extends Record<string, any>> {
   new (values: TProps): TypedMap<TProps>;
 }
 

@@ -17,7 +17,7 @@ if (DEBUG == null) {
 }
 
 let rclass: <P extends object>(
-  Component: React.ComponentType<P>
+  Component: React.ComponentType<P>,
 ) => React.ComponentType<P>;
 
 import React from "react";
@@ -40,8 +40,8 @@ import { NAME_TYPE as ComputeImageStoreType } from "../custom-software/util";
 import { NEWS } from "@cocalc/frontend/notifications/news/init";
 
 import * as types from "./actions-and-stores";
-declare type ProjectStore = import("../project_store").ProjectStore;
-declare type ProjectActions = import("../project_actions").ProjectActions;
+import type { ProjectStore } from "../project_store";
+import type { ProjectActions } from "../project_actions";
 export type { ProjectStore, ProjectActions };
 
 export class AppRedux extends AppReduxBase {
@@ -66,7 +66,7 @@ export class AppRedux extends AppReduxBase {
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
-    name: string | { project_id: string }
+    name: string | { project_id: string },
   ): C | ProjectActions | undefined {
     if (typeof name === "string") {
       if (!this.hasActions(name)) {
@@ -96,7 +96,7 @@ export class AppRedux extends AppReduxBase {
   getStore(name: typeof NEWS): types.NewsStore;
   getStore<State extends Record<string, any>>(name: string): Store<State>;
   getStore<State extends Record<string, any>, C extends Store<State>>(
-    nam: string
+    nam: string,
   ): C | undefined;
   getStore(name) {
     return super.getStore(name);
@@ -104,7 +104,7 @@ export class AppRedux extends AppReduxBase {
 
   createTable<T extends Table>(
     name: string,
-    table_class: TableConstructor<T>
+    table_class: TableConstructor<T>,
   ): T {
     const tables = this._tables;
     if (tables[name] != null) {
@@ -148,7 +148,7 @@ export class AppRedux extends AppReduxBase {
    */
   useProjectStore<T>(
     selectFrom: (store?: ProjectStore) => T,
-    project_id?: string
+    project_id?: string,
   ): T {
     return useSelector<any, T>((_) => {
       let projectStore = undefined;
@@ -203,7 +203,7 @@ export class AppRedux extends AppReduxBase {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(
-        `getProjectReferences: INVALID project_id -- "${project_id}"`
+        `getProjectReferences: INVALID project_id -- "${project_id}"`,
       );
     }
     const name = project_redux_name(project_id);
@@ -214,7 +214,6 @@ export class AppRedux extends AppReduxBase {
     this.removeActions(name);
     this.removeStore(name);
   }
-
 
   // getEditorActions but for whatever editor  -- this is mainly meant to be used
   // from the console when debugging, e.g., smc.redux.currentEditorActions()
@@ -271,7 +270,7 @@ const connect_component = (spec) => {
         console.warn("spec = ", spec);
         throw Error(
           "WARNING: redux spec is invalid because it contains 'undefined' as a key. " +
-            JSON.stringify(spec)
+            JSON.stringify(spec),
         );
       }
       const info = spec[store_name];
@@ -284,7 +283,7 @@ const connect_component = (spec) => {
           throw Error(
             `ERROR invalid redux spec: no type info set for prop '${prop}' in store '${store_name}', ` +
               `where full spec has keys '${Object.keys(spec)}' ` +
-              `-- e.g. rtypes.bool vs. rtypes.boolean`
+              `-- e.g. rtypes.bool vs. rtypes.boolean`,
           );
         }
 
@@ -360,7 +359,7 @@ rclass = function (x: any) {
         return React.createElement(
           this.cache0[key],
           this.props,
-          this.props.children
+          this.props.children,
         );
       },
     });
@@ -384,7 +383,7 @@ rclass = function (x: any) {
 
         if (definition.actions != null) {
           throw Error(
-            "You may not define a method named actions in an rclass. This is used to expose redux actions"
+            "You may not define a method named actions in an rclass. This is used to expose redux actions",
           );
         }
 
@@ -397,7 +396,7 @@ rclass = function (x: any) {
         return React.createElement(
           this.cache[key],
           this.props,
-          this.props.children
+          this.props.children,
         );
       },
     });
@@ -424,7 +423,7 @@ rclass = function (x: any) {
 
     if (x.actions != null && x.actions !== redux.getActions) {
       throw Error(
-        "You may not define a method named actions in an rclass. This is used to expose redux actions"
+        "You may not define a method named actions in an rclass. This is used to expose redux actions",
       );
     }
 
@@ -460,7 +459,7 @@ export function Redux({ children }) {
   return React.createElement(Provider, {
     store: redux.reduxStore,
     children,
-  });
+  }) as any;
 }
 
 export const Component = React.Component;

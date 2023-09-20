@@ -18,6 +18,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { isChatBot } from "@cocalc/frontend/account/chatbot";
 
 const CIRCLE_OUTER_STYLE: CSSProperties = {
   textAlign: "center",
@@ -31,7 +32,7 @@ const CIRCLE_INNER_STYLE: CSSProperties = {
 } as const;
 
 interface Props {
-  account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet); uuid or "chatgpt"
+  account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet); uuid or "chatgpt" or "openai-[model]".
   size?: number; // in pixels
   max_age_s?: number; // if given fade the avatar out over time.
   project_id?: string; // if given, showing avatar info for a project (or specific file)
@@ -49,7 +50,7 @@ interface Props {
 }
 
 export function Avatar(props) {
-  if (props.account_id == "chatgpt" || props.account_id == "chatgpt4") {
+  if (isChatBot(props.account_id)) {
     return <OpenAIAvatar size={props.size} style={props.style} />;
   } else {
     return <Avatar0 {...props} />;

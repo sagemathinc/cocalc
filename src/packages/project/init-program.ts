@@ -22,7 +22,14 @@ interface Options {
 const DEFAULTS: Options = {
   hubPort: 0,
   browserPort: 0,
-  hostname: "127.0.0.1",
+  // It's important to make the hostname 'localhost' instead of '127.0.0.1',
+  // since we use 'localhost' in packages/server/projects/control/util.ts
+  // The distinction can of course matter, e.g,. using '127.0.0.1' causes
+  // our server to ONLY listen on ipv4, but the client will try 'localhost'
+  // which on some hosts will resolve to an ipv6 address ::1 first and that
+  // fails.  By listening on localhost, I think our project will listen on
+  // both ipv4 and ipv6 if they are available.
+  hostname: "localhost",
   testFirewall: false,
   kucalc: false,
   daemon: false,

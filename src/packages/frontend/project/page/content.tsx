@@ -48,6 +48,7 @@ import { ProjectSettings } from "@cocalc/frontend/project/settings";
 import { editor_id } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { hidden_meta_file } from "@cocalc/util/misc";
+import { useProjectContext } from "../context";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
 import { ProjectCollaboratorsPage } from "./project-collaborators";
@@ -66,13 +67,12 @@ const MAIN_STYLE: React.CSSProperties = {
 } as const;
 
 interface Props {
-  project_id: string; // the project
   tab_name: string; // e.g., 'files', 'new', 'log', 'search', 'settings', or 'editor-<path>'
   is_visible: boolean; // if false, editor is in the DOM (so all subtle DOM state preserved) but it is not visible on screen.
 }
 
 export const Content: React.FC<Props> = (props: Props) => {
-  const { project_id, tab_name, is_visible } = props;
+  const { tab_name, is_visible } = props;
   // The className below is so we always make this div the remaining height.
   // The overflowY is hidden for editors (which don't scroll), but auto
   // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
@@ -86,23 +86,19 @@ export const Content: React.FC<Props> = (props: Props) => {
       }}
       className={"smc-vfill"}
     >
-      <TabContent
-        project_id={project_id}
-        tab_name={tab_name}
-        is_visible={is_visible}
-      />
+      <TabContent tab_name={tab_name} is_visible={is_visible} />
     </div>
   );
 };
 
 interface TabContentProps {
-  project_id: string;
   tab_name: string;
   is_visible: boolean;
 }
 
 const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
-  const { project_id, tab_name, is_visible } = props;
+  const { tab_name, is_visible } = props;
+  const { project_id } = useProjectContext();
 
   const open_files =
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
@@ -137,9 +133,9 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
 
   switch (tab_name) {
     case "home":
-      return <HomePage project_id={project_id} />;
+      return <HomePage  />;
     case "files":
-      return <Explorer project_id={project_id} />;
+      return <Explorer />;
     case "new":
       return <ProjectNew project_id={project_id} />;
     case "log":

@@ -7,42 +7,52 @@ import { Tooltip } from "antd";
 import React from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { CSS, redux, Rendered } from "@cocalc/frontend/app-framework";
 import {
+  CSS,
+  redux,
+  Rendered,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import {
+  Gap,
   Icon,
   IconName,
   PathLink,
   r_join,
-  Gap,
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
+import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { DisplayProjectQuota } from "@cocalc/frontend/purchases/purchases";
 import { UserMap } from "@cocalc/frontend/todo-types";
 import track from "@cocalc/frontend/user-tracking";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
 import { Col, Grid, Row } from "react-bootstrap";
+import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
-import {
+import type {
   AssistantEvent,
   CollaboratorEvent,
   FileActionEvent,
-  isUnknownEvent,
   LibraryEvent,
   LicenseEvent,
   MiniTermEvent,
   OpenFile,
+  PayAsYouGoUpgradeEvent,
   ProjectControlEvent,
   ProjectEvent,
   PublicPathEvent,
+  SoftwareEnvironmentEvent,
   SystemEvent,
   UpgradeEvent,
   X11Event,
 } from "./types";
+import { isUnknownEvent } from "./types";
 
 const TRUNC = 90;
 
@@ -121,6 +131,11 @@ export const LogEntry: React.FC<Props> = React.memo(
       mode = "full",
     } = props;
 
+    const software_envs: SoftwareEnvironments | null = useTypedRedux(
+      "customize",
+      "software"
+    );
+
     function render_open_file(event: OpenFile): JSX.Element {
       return (
         <span>
@@ -163,6 +178,24 @@ export const LogEntry: React.FC<Props> = React.memo(
           {event.unlisted ? "unlisted" : "listed"}
           {event.site_license_id &&
             ` and license id ...${event.site_license_id}`}
+        </span>
+      );
+    }
+
+    function render_software_environment(
+      event: SoftwareEnvironmentEvent
+    ): JSX.Element {
+      const envs = software_envs?.get("environments");
+      const prev: string = envs
+        ? envs.get(event.previous)?.get("title") ?? event.previous
+        : "Loading…";
+      const next: string = envs
+        ? envs.get(event.next)?.get("title") ?? event.next
+        : "Loading…";
+
+      return (
+        <span>
+          changed the software environment from {prev} to {next}
         </span>
       );
     }
@@ -496,6 +529,15 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
+    function render_pay_as_you_go(event: PayAsYouGoUpgradeEvent) {
+      return (
+        <span>
+          ran this project with temporary Pay As You Go Upgrade:{" "}
+          {event.quota && <DisplayProjectQuota quota={event.quota} />}
+        </span>
+      );
+    }
+
     function render_invite_user(event: CollaboratorEvent): JSX.Element {
       return (
         <span>
@@ -550,6 +592,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_upgrade(event);
         case "license":
           return render_license(event);
+        case "pay-as-you-go-upgrade":
+          return render_pay_as_you_go(event);
         case "invite_user":
           return render_invite_user(event);
         case "invite_nonuser":
@@ -574,6 +618,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return <span>unhid the project from themself</span>;
         case "public_path":
           return render_public_path(event);
+        case "software_environment":
+          return render_software_environment(event);
         default:
           return <span>Unknown event: {JSON.stringify(event)}</span>;
       }
@@ -628,6 +674,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return "user";
         case "invite_nonuser":
           return "user";
+        case "software_environment":
+          return SOFTWARE_ENVIRONMENT_ICON
       }
 
       if (event.event.indexOf("project") !== -1) {

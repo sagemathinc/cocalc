@@ -16,7 +16,7 @@ import React from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Tip } from "@cocalc/frontend/components/tip";
-import { Button } from "antd";
+import { Button, Space } from "antd";
 import { capitalize } from "@cocalc/util/misc";
 import { INPUT_STYLE, InputPromptProps } from "./base";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
@@ -97,33 +97,37 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   const title = (
     <div>
       {props.actions != null ? (
-        <div style={{ color: "#666" }}>
-          {!props.hideMove && (
-            <Button size="small" onClick={() => move_cell(-1)}>
-              <Icon name="arrow-up" />
+        <Space>
+          <Button.Group>
+            {!props.hideRun && (
+              <Button size="small" onClick={run_cell}>
+                <Icon name="step-forward" /> Run
+              </Button>
+            )}
+            <Button size="small" onClick={stop_cell}>
+              <Icon name="stop" /> Stop
             </Button>
-          )}
-          {!props.hideMove && (
-            <>
-              <Button size="small" onClick={() => move_cell(1)}>
-                <Icon name="arrow-down" />
-              </Button>{" "}
-            </>
-          )}
-          {!props.hideRun && (
-            <Button size="small" onClick={run_cell}>
-              <Icon name="step-forward" />
-            </Button>
-          )}
-          <Button size="small" onClick={stop_cell}>
-            <Icon name="stop" />
-          </Button>
-          {!props.hideCut && (
-            <Button size="small" onClick={cut_cell}>
-              <Icon name="cut" />
-            </Button>
-          )}
-        </div>
+          </Button.Group>
+          <Button.Group>
+            {!props.hideCut && (
+              <Button size="small" onClick={cut_cell}>
+                <Icon name="cut" /> Cut
+              </Button>
+            )}
+            {!props.hideMove && (
+              <Button size="small" onClick={() => move_cell(-1)}>
+                <Icon name="arrow-up" /> Up
+              </Button>
+            )}
+            {!props.hideMove && (
+              <>
+                <Button size="small" onClick={() => move_cell(1)}>
+                  <Icon name="arrow-down" /> Down
+                </Button>{" "}
+              </>
+            )}
+          </Button.Group>
+        </Space>
       ) : (
         "Code Cell"
       )}

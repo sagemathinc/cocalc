@@ -3,10 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Checkbox } from "antd";
-
-import { join } from "path";
-
+import { Alert, Checkbox, Spin } from "antd";
+import { load_target } from "@cocalc/frontend/history";
 import {
   CSS,
   React,
@@ -17,17 +15,9 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  A,
-  ErrorDisplay,
-  Icon,
-  Loading,
-  Gap,
-  Title,
-} from "@cocalc/frontend/components";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { ErrorDisplay, Title } from "@cocalc/frontend/components";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
-import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import type { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 
 export const LICENSES_STYLE: CSS = {
   margin: "30px 0",
@@ -78,7 +68,7 @@ export const ManagedLicenses: React.FC = () => {
   function render_managed() {
     if (error) return;
     if (licenses == null) {
-      return <Loading theme={"medium"} />;
+      return <Spin />;
     }
     if (licenses.size == 0) {
       return <div>You are not the manager of any licenses yet.</div>;
@@ -128,13 +118,8 @@ export const ManagedLicenses: React.FC = () => {
     <>
       <Title level={3}>
         Licenses that you manage {render_count()}
-        <div style={{ float: "right" }}>
-          {render_show_all()}
-          <Button onClick={reload} disabled={loading}>
-            <Icon name="redo" />
-            <Gap /> <Gap /> {loading ? "Loading..." : "Refresh all"}
-          </Button>
-        </div>
+        <div style={{ float: "right" }}>{render_show_all()}</div>
+        {loading && <Spin />}
       </Title>
       <CancelSubscriptionBanner />
       {render_error()}
@@ -143,6 +128,7 @@ export const ManagedLicenses: React.FC = () => {
   );
 };
 
+// TODO: obviously this should only be shown if the user *has* a subscription!
 function CancelSubscriptionBanner() {
   return (
     <Alert
@@ -150,11 +136,16 @@ function CancelSubscriptionBanner() {
       type="info"
       message={
         <>
-          To cancel a subscription, visit the{" "}
-          <A href={join(appBasePath, "billing", "subscriptions")}>
-            Subscription Management
-          </A>
-          .
+          To cancel a subscription,{" "}
+          <a
+            onClick={() => {
+              load_target("settings/subscriptions");
+            }}
+          >
+            visit the Subscription tab above
+          </a>
+          . To edit a license <i>that you purchased</i> expand the license
+          below, then click on the "Edit License..." button.
         </>
       }
     />

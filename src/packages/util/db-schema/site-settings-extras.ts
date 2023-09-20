@@ -19,9 +19,15 @@ import {
   only_booleans,
   to_int,
   only_nonneg_int,
+  toFloat,
+  onlyNonnegFloat,
+  onlyPosFloat,
   only_pos_int,
   only_commercial,
   only_cocalc_com,
+  from_json,
+  parsableJson,
+  displayJson,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -41,7 +47,7 @@ export const pii_retention_parse = (retention: string): number | false => {
   const secs = num * (mult * 24 * 60 * 60);
   if (isNaN(secs) || secs == null) {
     throw new Error(
-      `pii_expire problem: cannot derive future time from "{retention}"`
+      `pii_expire problem: cannot derive future time from "{retention}"`,
     );
   }
   return secs;
@@ -58,6 +64,8 @@ const pii_retention_display = (retention: string) => {
 
 const openai_enabled = (conf) => to_bool(conf.openai_enabled);
 
+const compute_servers_enabled = (conf) => to_bool(conf.compute_servers_enabled);
+
 const neural_search_enabled = (conf) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);
 
@@ -68,6 +76,7 @@ export type SiteSettingsExtrasKeys =
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
+  | "stripe_webhook_secret"
   | "re_captcha_v3_heading"
   | "re_captcha_v3_publishable_key"
   | "re_captcha_v3_secret_key"
@@ -105,7 +114,24 @@ export type SiteSettingsExtrasKeys =
   | "github_token"
   | "prometheus_metrics"
   | "pay_as_you_go_section"
-  | "default_pay_as_you_go_quota";
+  | "pay_as_you_go_spending_limit"
+  | "pay_as_you_go_spending_limit_with_verified_email"
+  | "pay_as_you_go_spending_limit_with_credit"
+  | "pay_as_you_go_min_payment"
+  | "pay_as_you_go_openai_markup_percentage"
+  | "pay_as_you_go_max_project_upgrades"
+  | "pay_as_you_go_price_project_upgrades"
+  | "compute_servers_section"
+  | "compute_servers_markup_percentage"
+  | "lambda_cloud_api_key"
+  | "coreweave_kubeconfig"
+  | "google_cloud_service_account_json"
+  | "fluidstack_api_key"
+  | "fluidstack_api_token"
+  | "amazon_web_services_access_key"
+  | "amazon_web_services_secret_access_key"
+  | "fluidstack_api_token"
+  | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -203,6 +229,13 @@ export const EXTRAS: SettingsExtras = {
   stripe_secret_key: {
     name: "Stripe Secret",
     desc: "Stripe calls this key 'secret'",
+    default: "",
+    show: only_commercial,
+    password: true,
+  },
+  stripe_webhook_secret: {
+    name: "Stripe Webhook Secret",
+    desc: "The stripe webhook secret, which is used to verify the signature for stripe webhooks events, and should look like 'whsec_fibl8xlfp...'.  For this to work, you must enable stripe webhooks at https://dashboard.stripe.com/webhooks with a URL like `https://my-cocalc-server/webhooks/stripe`.   The actual webhook events we use are: invoice.paid, payment_intent.succeeded, customer.subscription.created; you can enable all webhooks and things still work, but it is less efficient.  See https://github.com/sagemathinc/cocalc/blob/master/src/packages/hub/servers/app/webhooks/stripe.ts",
     default: "",
     show: only_commercial,
     password: true,
@@ -405,12 +438,135 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     type: "header",
   },
-  default_pay_as_you_go_quota: {
-    name: "Default Pay-As-You-Go Quota",
-    desc: "The default pay-as-you-go purchase quota, in dollars.",
+  pay_as_you_go_spending_limit: {
+    name: "Initial Pay As You Go Spending Limit",
+    desc: "The initial default pay as you go spending limit that all accounts get, in dollars.",
     default: "0",
     show: only_commercial,
-    to_val: to_int,
-    valid: only_nonneg_int,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_min_payment: {
+    name: "Pay As You Go - Minimum Payment",
+    desc: "The minimum transaction size that a user can pay towards their pay-as-you-go balance, in dollars.",
+    default: "2.50",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyPosFloat,
+  },
+  pay_as_you_go_openai_markup_percentage: {
+    name: "Pay As You Go - OpenAI Markup Percentage",
+    desc: "The markup percentage that we add to the OpenAI API call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
+    default: "30",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_max_project_upgrades: {
+    name: "Pay As You Go - Max Project Upgrade Quotas",
+    desc: 'Example -- `{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}`. This is a json object, and the units are exactly as in the quota editor (so true/false, cores and megabytes).',
+    default:
+      '{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
+  },
+  pay_as_you_go_price_project_upgrades: {
+    name: "Pay As You Go - Price for Project Upgrades",
+    desc: 'Example -- `{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}`. This is a json object, where\n\n- cores = price per month for 1 vCPU\n- memory = price per month for 1GB of RAM\n- disk_quota = price per month for 1GB of disk\n- member_host = non-disk part of non-member hosting cost is divided by this',
+    default: '{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
+  },
+  subscription_maintenance: {
+    name: "Pay As You Go - Subscription Maintenance Parameters",
+    desc: 'Example -- {"request":6, "renew":1, "grace":3}" -- which means:\n\n- **request:** request payment 6 days before the subscription ends with instructions to renew or cancel\n- **renew:** automatically attempt renewal 1 day before subscription ends by debiting account if there is credit in the account\n- **grace:** provide a grace period of 3 days before actually cancelling the subscription and ending the license (user will get charged for those 3 days)',
+    default: '{"request":6, "renew":1, "grace":3}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
+  },
+  pay_as_you_go_spending_limit_with_verified_email: {
+    name: "Pay As You Go Spending Limit with Verified Email",
+    desc: "(NOT CURRENTLY USED) The pay as you go spending limit for accounts with a verified email address.",
+    default: "5",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_spending_limit_with_credit: {
+    name: "Pay As You Go Spending Limit with Credit",
+    desc: "(NOT CURRENTLY USED) The pay as you go spending limit for accounts that have ever successfully had a positive credit.",
+    default: "15",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  compute_servers_section: {
+    name: "Cloud Compute Service Providers",
+    desc: "Configure the cloud services that provide computer servers.",
+    default: "",
+    show: compute_servers_enabled,
+    type: "header",
+  },
+  compute_servers_markup_percentage: {
+    name: "Compute Servers -- Markup Percentage",
+    desc: "The markup percentage that we add to the cost we pay to the cloud service providers.  This accounts for maintenance, dev, servers, and *bandwidth* (which can be massive). For example, '30' would mean we add 30% to the price that the cloud service provides charge us for compute, and we currently gamble regarding bandwidth costs.",
+    default: "30",
+    show: (conf) => only_commercial(conf) && compute_servers_enabled(conf),
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  lambda_cloud_api_key: {
+    name: "Compute Servers - Lambda Cloud API Key (not implemented)",
+    desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
+  },
+  coreweave_kubeconfig: {
+    name: "Compute Servers - CoreWeave Kubeconfig File (not implemented)",
+    desc: "Your [CoreWeave](https://cloud.coreweave.com/) KubeConfig from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
+    default: "",
+    multiline: 2,
+    show: compute_servers_enabled,
+  },
+  google_cloud_service_account_json: {
+    name: "Compute Servers - Google Cloud Service Account Json (not implemented)",
+    desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud, and you must enable the Compute Engine API for this project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
+    default: "",
+    multiline: 2,
+    show: compute_servers_enabled,
+  },
+  fluidstack_api_key: {
+    name: "Compute Servers - FluidStack API Key (not implemented)",
+    desc: "Your [FluidStack](https://www.fluidstack.io/) API Key from https://console2.fluidstack.io/.  Be sure to also enter your API token below. This supports managing compute servers on FluidStack Cloud.",
+    default: "",
+    show: compute_servers_enabled,
+  },
+  fluidstack_api_token: {
+    name: "Compute Servers - FluidStack API Token (not implemented)",
+    desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
+  },
+  amazon_web_services_access_key: {
+    name: "Compute Servers - Amazon Web Services IAM Access Key (not implemented)",
+    desc: "Your AWS API Key from the AWS console.  Be sure to also enter your secret access key below. This supports managing compute servers on Amazon Web Services EC2 Cloud.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
+  },
+  amazon_web_services_secret_access_key: {
+    name: "Compute Servers - Amazon Web Services IAM Secret Access Key",
+    desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
   },
 } as const;

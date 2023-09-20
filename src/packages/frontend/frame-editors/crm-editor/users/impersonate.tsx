@@ -8,7 +8,7 @@ export default function Impersonate(props) {
   return (
     <div>
       <Button onClick={() => setImpersonate(!impersonate)}>
-        <Icon name="user-secret" /> Impersonate
+        <Icon name="user-secret" /> Impersonate...
       </Button>
       {impersonate && <OldImpersonate {...props} />}
     </div>

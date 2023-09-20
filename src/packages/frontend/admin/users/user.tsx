@@ -12,15 +12,17 @@ import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize } from "@cocalc/util/misc";
 import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { User } from "@cocalc/frontend/frame-editors/generic/client";
-import { Subscriptions } from "./subscriptions";
 import { Projects } from "./projects";
 import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
+import PayAsYouGoMinBalance from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-min-balance";
+import { PurchasesButton } from "@cocalc/frontend/purchases/purchases";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 interface State {
   projects: boolean;
-  subscriptions: boolean;
+  purchases: boolean;
   activity: boolean;
   impersonate: boolean;
   password: boolean;
@@ -46,7 +48,7 @@ type Props = HeaderProps | UserProps;
 
 type More =
   | "projects"
-  | "subscriptions"
+  | "purchases"
   | "activity"
   | "impersonate"
   | "password"
@@ -54,7 +56,7 @@ type More =
 
 const MORE: More[] = [
   "projects",
-  "subscriptions",
+  "purchases",
   "activity",
   "impersonate",
   "password",
@@ -85,11 +87,17 @@ export class UserResult extends Component<Props, State> {
     return <TimeAgo date={this.props.last_active} />;
   }
 
-  render_subscriptions(): Rendered {
-    if (!this.state.subscriptions) {
+  render_purchases(): Rendered {
+    if (!this.state.purchases) {
       return;
     }
-    return <Subscriptions account_id={this.props.account_id} />;
+    return (
+      <div style={{ margin: "15px 0" }}>
+        <PayAsYouGoMinBalance account_id={this.props.account_id} />
+        <div style={{height:'15px'}}/>
+        <PurchasesButton account_id={this.props.account_id}/>
+      </div>
+    );
   }
 
   render_projects(): Rendered {
@@ -159,7 +167,7 @@ export class UserResult extends Component<Props, State> {
         {this.render_more_link("projects")}
         <Gap />
         <Gap />
-        {this.render_more_link("subscriptions")}
+        {this.render_more_link("purchases")}
         <Gap />
         <Gap />
         {this.render_more_link("impersonate")}
@@ -206,20 +214,23 @@ export class UserResult extends Component<Props, State> {
             {this.render_last_active()} ({this.render_created()})
           </Col>
           <Col md={4}>{this.render_more_links()}</Col>
-          <Col md={2}>
-            <span
+          <Col md={2} style={{ overflow: "auto" }}>
+            <div
               style={{
-                fontSize: "9px",
+                paddingTop: "8px",
                 overflowX: "scroll",
-                whiteSpace: "nowrap",
               }}
             >
-              {this.props.account_id}
+              <CopyToClipBoard
+                before
+                value={this.props.account_id}
+                size="small"
+              />
               {this.render_banned()}
-            </span>
+            </div>
           </Col>
         </Row>
-        {this.render_subscriptions()}
+        {this.render_purchases()}
         {this.render_projects()}
         {this.render_impersonate()}
         {this.render_password()}

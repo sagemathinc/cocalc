@@ -20,7 +20,7 @@ import {
   chown,
   copyPath,
   createUser,
-//   deleteUser,
+  //   deleteUser,
   ensureConfFilesExists,
   getEnvironment,
   getState,
@@ -30,7 +30,7 @@ import {
   launchProjectDaemon,
   mkdir,
   setupDataPath,
-  stopProjectProcesses
+  stopProjectProcesses,
 } from "./util";
 import {
   BaseProject,
@@ -41,7 +41,6 @@ import {
 } from "./base";
 import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
-
 
 const winston = getLogger("project-control:multi-user");
 
@@ -94,12 +93,10 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "starting" };
       await this.saveStateToDatabase(this.stateChanging);
-      await this.siteLicenseHook();
-
+      await this.computeQuota();
       await mkdir(HOME, { recursive: true });
       await createUser(this.project_id);
       await chown(HOME, this.uid);
-
       await ensureConfFilesExists(HOME, this.uid);
 
       // this.get('env') = extra env vars for project (from synctable):
@@ -141,7 +138,7 @@ class Project extends BaseProject {
       this.stateChanging = { state: "stopping" };
       await this.saveStateToDatabase(this.stateChanging);
       await stopProjectProcesses(this.project_id);
-    //   await deleteUser(this.project_id);
+      //   await deleteUser(this.project_id);
       await this.wait({
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,

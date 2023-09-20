@@ -1,5 +1,5 @@
 import getClient from "./zendesk-client";
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import type { Tickets } from "node-zendesk";
 import { urlToUserURL } from "./util";
 

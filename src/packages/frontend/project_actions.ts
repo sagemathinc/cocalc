@@ -34,7 +34,10 @@ import { download_file, open_new_tab, open_popup_window } from "./misc";
 import * as project_file from "./project-file";
 import { delete_files } from "./project/delete-files";
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
-import { ProjectEvent } from "./project/history/types";
+import {
+  ProjectEvent,
+  SoftwareEnvironmentEvent,
+} from "./project/history/types";
 import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
@@ -59,6 +62,7 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
+import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
 const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
@@ -376,10 +380,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const flyoutsDefault = account_store?.getIn(
-          ["other_settings", "flyouts_default"],
-          false
-        );
+        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
+        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
@@ -1224,8 +1226,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (show_files) {
           this.set_active_tab("files", {
             update_file_listing: false,
-            change_history: change_history,
+            change_history: false, // see "if" below
           });
+        }
+        if (change_history) {
+          // i.e. regardless of show_files is true or false, we might want to record this in the history
+          this.set_url_to_path(store.get("current_path") ?? "", "");
         }
         this.set_all_files_unchecked();
       }
@@ -3092,6 +3098,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   async set_compute_image(compute_image: string): Promise<void> {
+    const projects_store = this.redux.getStore("projects");
+    const previous: string =
+      projects_store.getIn(["project_map", this.project_id, "compute_image"]) ??
+      "";
+
     await client_query({
       query: {
         projects: {
@@ -3100,6 +3111,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         },
       },
     });
+
+    // if the above is successful, we log it
+    const event: SoftwareEnvironmentEvent = {
+      event: "software_environment",
+      previous,
+      next: compute_image,
+    };
+    this.log(event);
   }
 
   async set_environment(env: object): Promise<void> {

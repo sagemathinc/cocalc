@@ -4,7 +4,14 @@
  */
 
 import { CaretRightOutlined } from "@ant-design/icons";
-import { Button, Collapse, Descriptions, Space, Tooltip } from "antd";
+import {
+  Button,
+  Collapse,
+  CollapseProps,
+  Descriptions,
+  Space,
+  Tooltip,
+} from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
 
@@ -68,7 +75,7 @@ interface FilesBottomProps {
   checked_files: immutable.Set<string>;
   activeFile: DirectoryListingEntry | null;
   directoryData: [DirectoryListing, FileMap];
-  projectIsRunning: boolean;
+  projectIsRunning?: boolean;
   rootHeightPx: number;
   open: (
     e: React.MouseEvent | React.KeyboardEvent,
@@ -182,7 +189,7 @@ export function FilesBottom({
   }, [collapseRef.current]);
 
   function renderTerminal() {
-    if (!projectIsRunning) {
+    if (projectIsRunning === false) {
       return (
         <div style={{ padding: FLYOUT_PADDING }}>
           You have to start the project to be able to run a terminal.
@@ -632,6 +639,25 @@ export function FilesBottom({
     border: "none",
   } as const;
 
+  const items: CollapseProps["items"] = [
+    {
+      key: "selected",
+      label: renderSelectedHeader(),
+      extra: renderSelectExtra(),
+      style,
+      className: "cc-project-flyout-files-panel",
+      children: renderSelected(),
+    },
+    {
+      key: "terminal",
+      label: terminalHeader(),
+      extra: renderTerminalExtra(),
+      style: { ...style, borderTop: FIX_BORDER },
+      className: "cc-project-flyout-files-panel",
+      children: renderTerminal(),
+    },
+  ];
+
   return (
     <Collapse
       ref={collapseRef}
@@ -648,25 +674,7 @@ export function FilesBottom({
         flex: "0 0 auto",
         borderTop: FIX_BORDER,
       }}
-    >
-      <Collapse.Panel
-        className="cc-project-flyout-files-panel"
-        header={renderSelectedHeader()}
-        key="selected"
-        style={style}
-        extra={renderSelectExtra()}
-      >
-        {renderSelected()}
-      </Collapse.Panel>
-      <Collapse.Panel
-        className="cc-project-flyout-files-panel"
-        header={terminalHeader()}
-        extra={renderTerminalExtra()}
-        key="terminal"
-        style={{ ...style, borderTop: FIX_BORDER }}
-      >
-        {renderTerminal()}
-      </Collapse.Panel>
-    </Collapse>
+      items={items}
+    />
   );
 }

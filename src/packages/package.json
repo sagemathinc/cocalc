@@ -4,8 +4,8 @@
     "build": "echo 'nothing yet'"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.0",
-    "jest": "^29.5.0",
-    "typescript": "^5.0.4"
+    "@types/jest": "^29.5.3",
+    "jest": "^29.6.1",
+    "typescript": "^5.2.2"
   }
 }

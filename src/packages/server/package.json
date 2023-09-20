@@ -9,6 +9,7 @@
     "./accounts/*": "./dist/accounts/*.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
+    "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
     "./licenses/purchase": "./dist/licenses/purchase/index.js",
     "./projects/control": "./dist/projects/control/index.js",
@@ -18,12 +19,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf node_modules dist",
     "build": "npx tsc",
     "tsc": "npx tsc --watch",
     "test": "npx jest dist/",
@@ -34,6 +33,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
+    "@cocalc/gcloud-pricing-calculator": "^0.6.0",
     "@cocalc/hub": "workspace:*",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
@@ -57,6 +57,7 @@
     "gpt3-tokenizer": "^1.1.5",
     "json-stable-stringify": "^1.0.1",
     "jwt-decode": "^3.1.2",
+    "lambda-cloud-node-api": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "node-zendesk": "^2.2.0",
@@ -79,7 +80,7 @@
     "passport-twitter": "^1.0.4",
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
-    "stripe": "^8.78.0",
+    "stripe": "^12.17.0",
     "uuid": "^8.3.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",

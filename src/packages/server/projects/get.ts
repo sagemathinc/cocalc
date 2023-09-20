@@ -5,7 +5,7 @@
 */
 
 import getPool from "@cocalc/database/pool";
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 
 // I may add more fields and more options later...
 export default async function getProjects({

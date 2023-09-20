@@ -19,6 +19,7 @@ import { join } from "node:path";
 
 import basePath from "@cocalc/backend/base-path";
 import initWebsocket from "@cocalc/project/browser-websocket/server";
+import initWebsocketFs from "../websocketfs";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";
 import { getOptions } from "@cocalc/project/init-program";
@@ -101,8 +102,10 @@ export default async function init(): Promise<void> {
   }
   const assignedPort = address.port; // may be a server assigned random port.
   winston.info(
-    `Started -- port=${assignedPort}, host='${options.hostname}', base='${base}'`
+    `Started -- port=${assignedPort}, host='${options.hostname}', base='${base}'`,
   );
+
+  initWebsocketFs(server, base, { port: assignedPort, host: options.hostname });
 
   winston.info(`Writing port to ${browserPortFile}`);
   await writeFile(browserPortFile, `${assignedPort}`);

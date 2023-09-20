@@ -45,6 +45,7 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   CloseCircleTwoTone,
+  CloseCircleFilled,
   CloseOutlined,
   CloudDownloadOutlined,
   CloudFilled,
@@ -198,7 +199,9 @@ import {
   WifiOutlined,
 } from "@ant-design/icons";
 
-const IconSpec = {
+// Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
+// compiler will serialize. An explicit type annotation is needed."
+const IconSpec: { [name: string]: any } = {
   "address-card": IdcardOutlined,
   aim: AimOutlined,
   "align-left": AlignLeftOutlined,
@@ -269,6 +272,7 @@ const IconSpec = {
   "clipboard-check": { IconFont: "clipboard-check" },
   clock: ClockCircleOutlined,
   "close-circle-two-tone": CloseCircleTwoTone,
+  "close-circle-filled": CloseCircleFilled,
   clone: { IconFont: "clone" },
   cloud: CloudFilled,
   "cloud-download": CloudDownloadOutlined,
@@ -582,7 +586,7 @@ try {
             const id = `icon-${x}`;
             if (document.getElementById(id) == null) {
               console.error(
-                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`
+                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`,
               );
             }
           }
@@ -596,7 +600,9 @@ try {
   console.log(`IconFont not available -- ${err}`);
 }
 
-export type IconName = keyof typeof IconSpec;
+// This was nice but unfortunately it exceeds typescript limits.
+//export type IconName = keyof typeof IconSpec;
+export type IconName = string;
 export const IconName = undefined; // Javascript needs this, though we are only using IconName for the type
 
 // Typeguard so can tell if a string is name of an icon and also
@@ -675,7 +681,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
     if (missing[props.name ?? ""] == null) {
       missing[props.name ?? ""] = true;
       console.warn(
-        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`
+        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`,
       );
     }
     // make it hopefully clear to devs that this icon is broken

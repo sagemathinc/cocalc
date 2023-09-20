@@ -167,33 +167,6 @@ const API = (obj) =>
   (exports.api_messages[obj.event] = true);
 
 //###########################################
-// Compute server messages
-//############################################
-
-message({
-  event: "compute_server_status",
-  status: undefined,
-});
-
-// Message for actions using a compute server
-message({
-  event: "compute",
-  project_id: undefined,
-  action: required, // open, save, ...
-  args: undefined,
-  param: undefined, // deprecate
-  id: undefined,
-});
-
-message({
-  event: "project_state_update",
-  project_id: required,
-  state: required,
-  time: required,
-  state_error: undefined,
-}); // error if there was one transitioning to this state
-
-//###########################################
 // Sage session management; executing code
 //############################################
 
@@ -2935,14 +2908,6 @@ message({
 message({
   event: "remove_all_upgrades",
   projects: undefined, // optional array of project_id's.
-  id: undefined,
-});
-
-// Ensures the expire date on licenses paid by subscriptions matches stripe customer field.
-// Call this to ensure expire gets set when it should be, but also gets unset when customer
-// has paid.
-message({
-  event: "stripe_sync_site_license_subscriptions",
   id: undefined,
 });
 

@@ -23,7 +23,6 @@ import {
   Loading,
   r_join,
   Gap,
-  Title,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { plural } from "@cocalc/util/misc";
@@ -56,7 +55,6 @@ export const SiteLicenses: React.FC<{}> = () => {
   function useField(name) {
     return useTypedRedux("admin-site-licenses", name);
   }
-  const view = useField("view");
   const error = useField("error");
   const loading = useField("loading");
   const creating = useField("creating");
@@ -106,7 +104,6 @@ export const SiteLicenses: React.FC<{}> = () => {
   }
 
   function render_main() {
-    if (!view) return;
     if (!site_licenses) return;
     const v: Rendered[] = [];
     for (const license of site_licenses) {
@@ -115,24 +112,7 @@ export const SiteLicenses: React.FC<{}> = () => {
     return r_join(v, <div style={{ height: "20px" }}></div>);
   }
 
-  function render_header_toggle(): Rendered {
-    return (
-      <Title
-        level={4}
-        onClick={() => actions.set_view(!view)}
-        style={{ cursor: "pointer" }}
-      >
-        <Icon
-          style={{ width: "20px" }}
-          name={view ? "caret-down" : "caret-right"}
-        />{" "}
-        Licenses
-      </Title>
-    );
-  }
-
   function render_search_button(): Rendered {
-    if (!view) return;
     return (
       <Button
         onClick={() => actions.load()}
@@ -145,7 +125,6 @@ export const SiteLicenses: React.FC<{}> = () => {
   }
 
   function render_create_new_license(): Rendered {
-    if (!view) return;
     return (
       <Popconfirm
         title={"Are you sure you want to create a new license?"}
@@ -165,7 +144,6 @@ export const SiteLicenses: React.FC<{}> = () => {
   }
 
   function render_search(): Rendered {
-    if (!view) return;
     return (
       <div>
         <DebounceInput
@@ -257,34 +235,24 @@ export const SiteLicenses: React.FC<{}> = () => {
     );
   }
 
-  function render_body(): Rendered {
-    if (!view) return;
-    return (
-      <div style={{ margin: "0 30px" }}>
-        {render_error()}
-        <div>
-          {render_search()}
-          <Gap />
-          <Gap />
-          {render_search_button()}
-          <Gap />
-          <Gap />
-          {render_create_new_license()}
-          <Gap />
-          <Gap />
-          {render_search_restriction_note()}
-          {render_export()}
-          {render_loading()}
-        </div>
-        {render_main()}
-      </div>
-    );
-  }
-
   return (
-    <div>
-      {render_header_toggle()}
-      {render_body()}
+    <div style={{ margin: "0 30px" }}>
+      {render_error()}
+      <div>
+        {render_search()}
+        <Gap />
+        <Gap />
+        {render_search_button()}
+        <Gap />
+        <Gap />
+        {render_create_new_license()}
+        <Gap />
+        <Gap />
+        {render_search_restriction_note()}
+        {render_export()}
+        {render_loading()}
+      </div>
+      {render_main()}
     </div>
   );
 };

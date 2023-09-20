@@ -61,7 +61,9 @@ export class StripeClient {
 
   constructor(client: Partial<HubClient>) {
     if (!client.account_id) {
-      throw Error("account_id must be specified -- make sure you are signed in");
+      throw Error(
+        "account_id must be specified -- make sure you are signed in"
+      );
     }
     if (!client.database) {
       // TODO: Importing this at the top level doesn't work with
@@ -94,6 +96,10 @@ export class StripeClient {
 
   private dbg(f: string): Function {
     return this.client.dbg(`stripe.${f}`);
+  }
+
+  public get_account_id(): string {
+    return this.client.account_id;
   }
 
   // Returns the stripe customer id for this account from our database,
@@ -148,7 +154,9 @@ export class StripeClient {
       customer_id = await this.need_customer_id();
     }
     dbg("now getting stripe customer object");
-    return await (await getConn()).customers.retrieve(customer_id);
+    return await (
+      await getConn()
+    ).customers.retrieve(customer_id, { expand: ["sources"] });
   }
 
   public async handle_mesg(mesg: Message): Promise<void> {
@@ -287,7 +295,7 @@ export class StripeClient {
     await this.update_database();
   }
 
-  // update_database queries stripe for customer record, stores
+  // update_database: queries stripe for customer record, stores
   // it in the database, and  returns the new customer record
   // if it exists
   public async update_database(): Promise<any> {
@@ -603,15 +611,6 @@ export class StripeClient {
     });
   }
 
-  public async mesg_sync_site_license_subscriptions(): Promise<void> {
-    const dbg = this.dbg("mesg_sync_site_license_subscriptions");
-    dbg();
-    if (this.client.account_id == null) throw Error("you must be signed in");
-    await this.client.database.sync_site_license_subscriptions(
-      this.client.account_id
-    );
-  }
-
   public async cancelEverything(): Promise<void> {
     const dbg = this.dbg("cancelEverything");
     const customer_id = await this.get_customer_id();
@@ -647,7 +646,7 @@ export class StripeClient {
     dbg("get a list of all the payment sources that this customer has");
     const customer = await this.need_customer_id();
     const conn = await getConn();
-    await conn.paymentMethods.list({ customer, type: "card" });
+    return await conn.paymentMethods.list({ customer, type: "card" });
   }
 
   public async setDefaultSource(default_source: string): Promise<void> {

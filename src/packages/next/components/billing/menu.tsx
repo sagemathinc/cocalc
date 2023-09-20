@@ -23,14 +23,14 @@ export default function ConfigMenu({ main }) {
     { label: <Text strong>Billing</Text>, key: "" },
     { label: "Cards", key: "cards", icon: <Icon name={"credit-card"} /> },
     {
-      label: "Subscriptions",
-      key: "subscriptions",
-      icon: <Icon name={"calendar"} />,
-    },
-    {
       label: "Invoices and Receipts",
       key: "receipts",
       icon: <Icon name={"list"} />,
+    },
+    {
+      label: "Subscriptions",
+      key: "subscriptions",
+      icon: <Icon name={"calendar"} />,
     },
   ];
 

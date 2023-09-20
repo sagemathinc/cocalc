@@ -15,15 +15,17 @@ export interface SiteLicensePublicInfo {
   id: string;
   title: string;
   description: string;
+  created: Date;
   activates?: Date;
   expires?: Date;
   run_limit?: number;
-  upgrades?: TypedMap<SiteLicenseUpgrades>;
+  upgrades?: SiteLicenseUpgrades;
   is_manager?: boolean;
   managers?: string[];
   running?: number;
   applied?: number;
   quota?: SiteLicenseQuota;
+  subscription_id?: number;
 }
 
 export type SiteLicenses = {

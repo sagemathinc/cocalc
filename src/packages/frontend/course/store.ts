@@ -22,6 +22,7 @@ import {
   EnvVarsRecord,
 } from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 export const PARALLEL_DEFAULT = 5;
 export const MAX_COPY_PARALLEL = 25;
@@ -254,6 +255,14 @@ export class CourseStore extends Store<CourseState> {
     const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
+  }
+
+  public get_payInfo(): PurchaseInfo | null {
+    const settings = this.get("settings");
+    if (settings == null || !settings.get("student_pay")) return null;
+    const payInfo = settings.get("payInfo");
+    if (!payInfo) return null;
+    return payInfo;
   }
 
   public get_datastore(): Datastore {

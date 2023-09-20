@@ -6,6 +6,7 @@
 import { createRoot } from "react-dom/client";
 
 import { Redux } from "@cocalc/frontend/app-framework";
+import { AppContext, useAppStateProvider } from "./context";
 
 function Root({ Page }) {
   const appState = useAppStateProvider();
@@ -28,7 +29,6 @@ export async function render(): Promise<void> {
 }
 
 import ReactDOM from "react-dom";
-import { AppContext, useAppStateProvider } from "./context";
 export async function xxx_render(): Promise<void> {
   finishedLoading(); // comment this out to leave the loading/startup banner visible
   const { Page } = await import("./page");

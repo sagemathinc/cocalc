@@ -1,12 +1,12 @@
 import getLogger from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
 import connectToProject from "@cocalc/server/projects/connection";
-
 import { BaseProject } from "./base";
 import kubernetes from "./kubernetes";
 import kucalc from "./kucalc";
 import multiUser from "./multi-user";
 import singleUser from "./single-user";
+import getPool from "@cocalc/database/pool";
 
 export const COCALC_MODES = [
   "single-user",
@@ -15,7 +15,7 @@ export const COCALC_MODES = [
   "kubernetes",
 ] as const;
 
-export type CocalcMode = (typeof COCALC_MODES)[number];
+export type CocalcMode = typeof COCALC_MODES[number];
 
 export type ProjectControlFunction = (project_id: string) => BaseProject;
 
@@ -58,7 +58,7 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
   }
   winston.info(`project controller created with mode ${mode}`);
   const database = db();
-  database.compute_server = getProject;
+  database.projectControl = getProject;
 
   // This is used by the database when handling certain writes to make sure
   // that the there is a connection to the corresponding project, so that
@@ -67,12 +67,25 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
     project_id: string,
     cb?: Function
   ): Promise<void> => {
-    winston.debug("ensure_connection_to_project --", project_id);
+    const dbg = (...args) => {
+      winston.debug("ensure_connection_to_project: ", project_id, ...args);
+    };
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT state->'state' AS state FROM projects WHERE project_id=$1",
+      [project_id]
+    );
+    const state = rows[0]?.state;
+    if (state != "running") {
+      dbg("NOT connecting because state is not 'running', state=", state);
+      return;
+    }
+    dbg("connecting");
     try {
       await connectToProject(project_id);
       cb?.();
     } catch (err) {
-      winston.debug("WARNING: unable to make a connection to", project_id, err);
+      dbg("WARNING: unable to make a connection", err);
       cb?.(err);
     }
   };
@@ -87,7 +100,9 @@ export const getProject: ProjectControlFunction = (project_id: string) => {
       return init(process.env["COCALC_MODE"] as CocalcMode)(project_id);
     }
     throw Error(
-      "must call init first or set the environment variable COCALC_MODE"
+      `must call init first or set the environment variable COCALC_MODE to one of ${COCALC_MODES.join(
+        ", "
+      )}`
     );
   }
   return cached(project_id);

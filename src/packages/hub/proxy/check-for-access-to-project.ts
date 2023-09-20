@@ -117,7 +117,7 @@ async function checkForAccess({
   }
 
   throw Error(
-    "you must authenticate with either an api_key or remember_me cookie, but neither is set"
+    "you must authenticate with either an api_key or remember_me cookie, but neither is set",
   );
 }
 

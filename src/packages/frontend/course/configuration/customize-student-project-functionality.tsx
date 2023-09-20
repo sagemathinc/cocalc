@@ -14,23 +14,8 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
-
-export interface StudentProjectFunctionality {
-  disableActions?: boolean;
-  disableJupyterToggleReadonly?: boolean;
-  disableJupyterClassicServer?: boolean;
-  disableJupyterClassicMode?: boolean;
-  disableJupyterLabServer?: boolean;
-  disableVSCodeServer?: boolean;
-  disablePlutoServer?: boolean;
-  disableTerminals?: boolean;
-  disableUploads?: boolean;
-  disableNetwork?: boolean;
-  disableSSH?: boolean;
-  disableCollaborators?: boolean;
-  disableChatGPT?: boolean;
-  disableSharing?: boolean;
-}
+import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+export type { StudentProjectFunctionality };
 
 interface Option {
   name: string;
@@ -149,24 +134,17 @@ interface Props {
 export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
   ({ functionality, onChange }) => {
     const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-    const [changed, setChanged] = useState<boolean>(false);
     const [state, setState] =
       useState<StudentProjectFunctionality>(functionality);
     const [saving, setSaving] = useState<boolean>(false);
     function onChangeState(obj: StudentProjectFunctionality) {
       const newState = { ...state };
-      setChanged(true);
       for (const key in obj) {
         newState[key] = obj[key];
       }
       setState(newState);
     }
     const isMountedRef = useIsMountedRef();
-
-    useEffect(() => {
-      // upstream change (e.g., another user editing these)
-      setState(functionality);
-    }, [functionality]);
 
     function renderOption(option) {
       let { title } = option;
@@ -177,14 +155,14 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
         <Tip key={title} title={`Disable ${title}`} tip={option.description}>
           <Checkbox
             disabled={saving}
-            checked={state[option.name]}
+            defaultChecked={state[option.name]}
             onChange={(e) =>
               onChangeState({
                 [option.name]: (e.target as any).checked,
               })
             }
           >
-            <span style={{ fontWeight: 500 }}>Disable {title}</span>
+            Disable {title}
           </Checkbox>
           <br />
         </Tip>
@@ -224,24 +202,21 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           }}
         >
           {options}
-          {(changed || !isEqual(functionality, state)) && (
-            <div>
-              <br />
-              <Button
-                type="primary"
-                disabled={saving || isEqual(functionality, state)}
-                onClick={async () => {
-                  setSaving(true);
-                  await onChange(state);
-                  if (isMountedRef.current) {
-                    setSaving(false);
-                  }
-                }}
-              >
-                Save changes
-              </Button>
-            </div>
-          )}
+          <div style={{ marginTop: "8px" }}>
+            <Button
+              type="primary"
+              disabled={saving || isEqual(functionality, state)}
+              onClick={async () => {
+                setSaving(true);
+                await onChange(state);
+                if (isMountedRef.current) {
+                  setSaving(false);
+                }
+              }}
+            >
+              Save changes
+            </Button>
+          </div>
         </div>
       </Card>
     );

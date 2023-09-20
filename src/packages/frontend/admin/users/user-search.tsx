@@ -9,7 +9,6 @@ Functionality and UI to ensure a user with given email (or account_id) is sync'd
 
 import { List } from "immutable";
 import { DebounceInput } from "react-debounce-input";
-
 import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   Component,
@@ -17,14 +16,12 @@ import {
   Rendered,
   rtypes,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Title } from "@cocalc/frontend/components";
 import { User } from "@cocalc/frontend/frame-editors/generic/client";
 import { actions } from "./actions";
 import { User as UserMap } from "./store";
 import { UserResult } from "./user";
 
 interface ReduxProps {
-  view?: boolean;
   state?: "edit" | "running";
   status?: string;
   query?: string;
@@ -35,7 +32,6 @@ class UserSearch extends Component<ReduxProps> {
   static reduxProps() {
     return {
       "admin-users": {
-        view: rtypes.bool,
         state: rtypes.string,
         status: rtypes.string,
         query: rtypes.string,
@@ -119,24 +115,7 @@ class UserSearch extends Component<ReduxProps> {
     return v;
   }
 
-  private render_header_toggle(): Rendered {
-    return (
-      <Title
-        level={4}
-        onClick={() => actions.set_view(!this.props.view)}
-        style={{ cursor: "pointer" }}
-      >
-        <Icon
-          style={{ width: "20px" }}
-          name={this.props.view ? "caret-down" : "caret-right"}
-        />{" "}
-        Users
-      </Title>
-    );
-  }
-
-  private render_body(): Rendered {
-    if (!this.props.view) return;
+  render(): Rendered {
     return (
       <div style={{ margin: "0 30px" }}>
         <div>
@@ -144,15 +123,6 @@ class UserSearch extends Component<ReduxProps> {
           {this.render_status()}
           {this.render_result()}
         </div>
-      </div>
-    );
-  }
-
-  render(): Rendered {
-    return (
-      <div>
-        {this.render_header_toggle()}
-        {this.render_body()}
       </div>
     );
   }

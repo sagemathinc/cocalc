@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { InputNumber } from "antd";
 import { useEditableContext } from "./context";
 import { render } from "./register";
+import { Icon } from "@cocalc/frontend/components";
 
 render({ type: "number" }, ({ field, obj, viewOnly, spec }) => {
   if (spec.type != "number") throw Error("bug");
@@ -94,6 +95,7 @@ function EditNumber({ field, obj, spec }) {
   } else {
     return (
       <ClickToEdit empty={value == null}>
+        <Icon name="pencil" style={{ marginRight: "8px", color: "#666" }} />
         {value != null ? displayFormatter(value) : ""}
       </ClickToEdit>
     );

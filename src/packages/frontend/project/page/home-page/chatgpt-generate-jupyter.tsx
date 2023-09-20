@@ -40,10 +40,16 @@ import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
+import ModelSwitch, {
+  modelToName,
+  Model,
+  DEFAULT_MODEL,
+} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const TAG = "generate-jupyter";
 
-const PLACEHOLDER = "Describe your notebook in detail...";
+const PLACEHOLDER = "Describe your notebook...";
 
 const EXAMPLES: { [language: string]: string } = {
   python:
@@ -71,6 +77,7 @@ export default function ChatGPTGenerateJupyterNotebook({
   onSuccess,
   project_id,
 }: Props) {
+  const [model, setModel] = useState<Model>(DEFAULT_MODEL);
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null
   );
@@ -137,10 +144,7 @@ export default function ChatGPTGenerateJupyterNotebook({
 
   async function generate() {
     if (spec == null) return;
-
-    const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
-
-    const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
+    const input = createInput({ spec, prompt });
 
     try {
       setQuerying(true);
@@ -150,6 +154,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
         tag: TAG,
+        model,
       });
 
       await updateNotebook(gptStream);
@@ -242,7 +247,11 @@ export default function ChatGPTGenerateJupyterNotebook({
 
       jfa.set_cell_input(
         fistCell,
-        `# ChatGPT generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
+        `# ${modelToName(
+          model
+        )} generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [${modelToName(
+          model
+        )}](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
       );
       ja.set_cell_type(fistCell, "markdown");
 
@@ -273,14 +282,14 @@ export default function ChatGPTGenerateJupyterNotebook({
         }
 
         // we always have to update the last cell, even if there are more cells ahead
-        jfa.set_cell_input(curCell, allCells[numCells - 1].source.join("\n"));
+        jfa.set_cell_input(curCell, allCells[numCells - 1].source.join(""));
         ja.set_cell_type(curCell, allCells[numCells - 1].cell_type);
 
         if (allCells.length > numCells) {
           // for all new cells, insert them and update lastCell and numCells
           for (let i = numCells; i < allCells.length; i++) {
             curCell = jfa.insert_cell(1); // insert cell below the current one
-            jfa.set_cell_input(curCell, allCells[i].source.join("\n"));
+            jfa.set_cell_input(curCell, allCells[i].source.join(""));
             ja.set_cell_type(curCell, allCells[i].cell_type);
             numCells += 1;
           }
@@ -304,11 +313,14 @@ export default function ChatGPTGenerateJupyterNotebook({
           updateCells(answer);
         }
       } else {
+        // we're done
+        ja?.delete_all_blank_code_cells();
         ja?.run_all_cells();
       }
     });
 
     gptStream.on("error", (err) => {
+      setError(`${err}`);
       setQuerying(false);
       const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
       if (ja == null) {
@@ -334,29 +346,37 @@ export default function ChatGPTGenerateJupyterNotebook({
   function info() {
     return (
       <HelpIcon title="OpenAI GPT" style={{ float: "right" }}>
-        <Paragraph style={{ minWidth: "300px" }}>
-          This tool sends your message to{" "}
-          <A href={"https://chat.openai.com/"}>ChatGPT</A> in order to get a
-          well structured answer back. This reply will be post-processed and
-          turned into a Jupyter Notebook. When it opens up, check the result and
-          evaluate the cells. Not everything might work on first try, but it
-          should give you some ideas towards your given task. If it does not
-          work, try again with a better prompt!
+        <Paragraph style={{ minWidth: "300px", maxWidth: "500px" }}>
+          This sends your requst to{" "}
+          <A href={"https://chat.openai.com/"}>{modelToName(model)}</A>, and we
+          turn the response into a Jupyter Notebook. Check the result then
+          evaluate the cells. Some things might now work on the first try, but
+          this should give you some good ideas to help you accomplish your goal.
+          If it does not work, try again with a better prompt, ask in chat, and
+          ask for suggested fixes.
         </Paragraph>
       </HelpIcon>
     );
   }
 
+  const input = createInput({ spec, prompt });
+
   return (
     <Block style={{ padding: "0 15px" }}>
-      <Title level={2}>
-        <OpenAIAvatar size={30} /> ChatGPT Jupyter Notebook Generator {info()}
+      <Title level={4}>
+        <OpenAIAvatar size={30} /> Create Notebook Using{" "}
+        <ModelSwitch
+          model={model}
+          setModel={setModel}
+          style={{ marginTop: "-7.5px" }}
+        />
+        {info()}
       </Title>
       {typeof kernelSpecs == "string" && (
         <Alert
           description={
             kernelSpecs == "start" ? (
-              <StartButton project_id={project_id} />
+              <StartButton />
             ) : (
               kernelSpecs
             )
@@ -396,13 +416,13 @@ export default function ChatGPTGenerateJupyterNotebook({
             <>
               <Paragraph>
                 Provide a detailed description of the notebook you want to
-                generate, including as many relevant details as possible.
+                create:
               </Paragraph>
               <Paragraph>
                 <Input.TextArea
                   allowClear
-                  autoSize={{ minRows: 2, maxRows: 6 }}
-                  maxLength={2000}
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  maxLength={3000}
                   placeholder={PLACEHOLDER}
                   value={prompt}
                   disabled={querying}
@@ -428,7 +448,8 @@ export default function ChatGPTGenerateJupyterNotebook({
                     onClick={generate}
                     disabled={querying || !prompt?.trim() || !spec}
                   >
-                    <Icon name="bolt" /> Generate Notebook (shift+enter)
+                    <Icon name="paper-plane" /> Create Notebook using{" "}
+                  {modelToName(model)} (shift+enter)
                   </Button>
                 </Paragraph>
               )}
@@ -445,6 +466,21 @@ export default function ChatGPTGenerateJupyterNotebook({
                   description={<Markdown value={error} />}
                 />
               )}
+              {input && (
+                <div>
+                  The following will be sent to {modelToName(model)}:
+                  <StaticMarkdown
+                    value={input}
+                    style={{
+                      border: "1px solid lightgrey",
+                      borderRadius: "5px",
+                      margin: "5px 0",
+                      padding: "5px",
+                    }}
+                  />
+                </div>
+              )}
+              {!error && querying && <ProgressEstimate seconds={30} />}
             </>
           )}
         </>
@@ -510,10 +546,6 @@ export function ChatGPTGenerateNotebookButton({
   if (!redux.getStore("projects").hasOpenAI(project_id)) {
     return null;
   }
-  const handleOk = () => {
-    setShow(false);
-  };
-
   const handleCancel = () => {
     setShow(false);
   };
@@ -525,9 +557,10 @@ export function ChatGPTGenerateNotebookButton({
       </Button>
       <Modal
         title="Generate Jupyter Notebook"
+        width={600}
         open={show}
-        onOk={handleOk}
         onCancel={handleCancel}
+        footer={null}
       >
         <ChatGPTGenerateJupyterNotebook
           project_id={project_id}
@@ -572,4 +605,11 @@ function getFilename(text: string, prompt: string): string | null {
   const match = text.match(/"filename: (.*)"/);
   if (match == null) return null;
   return sanitizeFilename(match[1]);
+}
+
+function createInput({ spec, prompt }): string {
+  if (spec == null || !prompt?.trim()) return "";
+  const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
+
+  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
 }

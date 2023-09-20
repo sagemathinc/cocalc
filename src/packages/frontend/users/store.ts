@@ -10,6 +10,7 @@ import { Store, redux } from "../app-framework";
 import { UsersState } from "./types";
 import { actions } from "./actions";
 import { cmp } from "@cocalc/util/misc";
+import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
 
 export const DEFAULT_COLOR = "rgb(170,170,170)";
 
@@ -82,8 +83,8 @@ export class UsersStore extends Store<UsersState> {
   }
 
   public get_name(account_id: string): string | undefined {
-    if (account_id == "chatgpt") {
-      return "ChatGPT";
+    if (isChatBot(account_id)) {
+      return chatBotName(account_id);
     }
     const user_map = this.get("user_map");
     if (user_map == null) {

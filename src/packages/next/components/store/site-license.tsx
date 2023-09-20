@@ -73,7 +73,7 @@ export default function SiteLicense(props: Props) {
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit Site License in Shopping Cart"
-          : "Buy a Quota Upgrades License"}
+          : "Buy a License"}
       </Title>
       {router.query.id == null && (
         <>
@@ -83,11 +83,29 @@ export default function SiteLicense(props: Props) {
             </A>{" "}
             allow you to upgrade any number of projects to run more quickly,
             have network access, more disk space, memory, or run on a dedicated
-            computer. Quota upgrade licenses can be for a wide range of sizes,
-            ranging from a single hobbyist project to thousands of simultaneous
-            users across an entire department of school. Create a license using
-            the form below then add it to your{" "}
-            <A href="/store/cart">shopping cart</A>.
+            virtual machine. Licenses cover a wide range of use cases, ranging
+            from a single hobbyist project to thousands of simultaneous users
+            across a college campus.
+          </Paragraph>
+
+          <Paragraph>
+            Create a license using the form below then add it to your{" "}
+            <A href="/store/cart">shopping cart</A>. If you aren't sure exactly
+            what to buy, you can always edit your licenses later, including
+            changing dates, the run limit, idle timeout, and any other
+            configuration. Subscriptions are also very flexible and can be{" "}
+            <A
+              href="https://doc.cocalc.com/account/purchases.html#recent-updates-to-subscriptions"
+              external
+            >
+              edited or canceled at any time for a prorated refund.{" "}
+            </A>
+            If you just need to upgrade your project for a few minutes or a few
+            hours, you can skip buying a license and use{" "}
+            <A href="https://doc.cocalc.com/paygo.html" external>
+              Pay As You Go
+            </A>
+            .
           </Paragraph>
           <Paragraph>
             You might also be interested in a{" "}
@@ -132,7 +150,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
 
   useEffect(() => {
     const store_site_license_show_explanations = get_local_storage(
-      "store_site_license_show_explanations"
+      "store_site_license_show_explanations",
     );
     if (store_site_license_show_explanations != null) {
       setShowExplanations(!!store_site_license_show_explanations);

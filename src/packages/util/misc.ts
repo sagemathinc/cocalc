@@ -433,7 +433,7 @@ export function plural(number, singular, plural = `${singular}s`) {
 
 const ELLIPSIS = "…";
 // "foobar" --> "foo…"
-export function trunc(s, max_length = 1024) {
+export function trunc(s, max_length = 1024, ellipsis = ELLIPSIS) {
   if (s == null) {
     return s;
   }
@@ -444,14 +444,14 @@ export function trunc(s, max_length = 1024) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return s.slice(0, max_length - 1) + ELLIPSIS;
+    return s.slice(0, max_length - 1) + ellipsis;
   } else {
     return s;
   }
 }
 
 // "foobar" --> "fo…ar"
-export function trunc_middle(s, max_length = 1024) {
+export function trunc_middle(s, max_length = 1024, ellipsis = ELLIPSIS) {
   if (s == null) {
     return s;
   }
@@ -467,13 +467,13 @@ export function trunc_middle(s, max_length = 1024) {
   const n = Math.floor(max_length / 2);
   return (
     s.slice(0, n - 1 + (max_length % 2 ? 1 : 0)) +
-    ELLIPSIS +
+    ellipsis +
     s.slice(s.length - n)
   );
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024) {
+export function trunc_left(s, max_length = 1024, ellipsis = ELLIPSIS) {
   if (s == null) {
     return s;
   }
@@ -484,7 +484,7 @@ export function trunc_left(s, max_length = 1024) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return ELLIPSIS + s.slice(s.length - max_length + 1);
+    return ellipsis + s.slice(s.length - max_length + 1);
   } else {
     return s;
   }
@@ -633,23 +633,26 @@ export function bind_methods<T extends object>(
   return obj;
 }
 
-export function human_readable_size(bytes: number | null | undefined): string {
+export function human_readable_size(
+  bytes: number | null | undefined,
+  short = false
+): string {
   if (bytes == null) {
     return "?";
   }
   if (bytes < 1000) {
-    return `${bytes} bytes`;
+    return `${bytes} ${short ? "b" : "bytes"}`;
   }
   if (bytes < 1000000) {
     const b = Math.floor(bytes / 100);
-    return `${b / 10} KB`;
+    return `${b / 10} ${short ? "K" : "KB"}`;
   }
   if (bytes < 1000000000) {
     const b = Math.floor(bytes / 100000);
-    return `${b / 10} MB`;
+    return `${b / 10} ${short ? "M" : "MB"}`;
   }
   const b = Math.floor(bytes / 100000000);
-  return `${b / 10} GB`;
+  return `${b / 10} ${short ? "G" : "GB"}`;
 }
 
 // Regexp used to test for URLs in a string.
@@ -781,6 +784,11 @@ export function round1(num: number): number {
 export function round2(num: number): number {
   // padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
   return Math.round((num + 0.00001) * 100) / 100;
+}
+
+// Round given number up to 2 decimal places
+export function round2up(num: number): number {
+  return Math.ceil(num * 100) / 100;
 }
 
 // returns the number parsed from the input text, or undefined if invalid
@@ -1709,10 +1717,20 @@ export function stripeDate(d: number): string {
   });
 }
 
-export function to_money(n: number): string {
+export function to_money(n: number, d = 2): string {
   // see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
   // TODO: replace by using react-intl...
-  return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
+  return n.toFixed(d).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
+}
+
+// Display currency with a dollar sign, rounded to *nearest*, and
+// if d is not given and n is less than 10 cents, will show 3 digits
+// instead of 2.
+export function currency(n: number, d?: number) {
+  if (n == 0) {
+    return `$0.00`;
+  }
+  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.1 ? 3 : 2))}`;
 }
 
 export function stripeAmount(
@@ -1722,10 +1740,12 @@ export function stripeAmount(
 ): string {
   // input is in pennies
   if (currency !== "usd") {
-    throw Error(`not-implemented currency ${currency}`);
+    // TODO: need to make this look nice with symbols for other currencies...
+    return `${currency == "eur" ? "€" : ""}${to_money(
+      (units * unitPrice) / 100
+    )} ${currency.toUpperCase()}`;
   }
-  let s = `$${to_money((units * unitPrice) / 100)} USD`;
-  return s;
+  return `$${to_money((units * unitPrice) / 100)} USD`;
 }
 
 export function planInterval(

@@ -7,16 +7,22 @@ declare let DEBUG;
 
 import { Alert, Table } from "antd";
 
-import { ProjectActions } from "@cocalc/frontend/app-framework";
+import { ProjectActions, useState } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
+import { Channel } from "@cocalc/frontend/project/websocket/types";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
 } from "@cocalc/project/project-info/types";
 import { field_cmp } from "@cocalc/util/misc";
-import { Channel } from "../websocket/types";
-import { CGroup, ProcState, ProjectProblems } from "./components";
+import {
+  AboutContent,
+  CGroup,
+  ProcState,
+  ProjectProblems,
+  SignalButtons,
+} from "./components";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 
 interface Props {
@@ -32,14 +38,12 @@ interface Props {
   loading: boolean;
   modal: string | Process | undefined;
   project_actions: ProjectActions | undefined;
-  project_id: string;
   project_state: string | undefined;
   project_status: Immutable.Map<string, any> | undefined;
   pt_stats: PTStats;
   ptree: ProcessRow[] | undefined;
   select_proc: (pids: number[]) => void;
   selected: number[];
-  set_expanded: (keys: number[]) => void;
   set_modal: (proc: string | Process | undefined) => void;
   set_selected: (pids: number[]) => void;
   show_explanation: boolean;
@@ -72,15 +76,55 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
 
   const projectIsRunning = project_state === "running";
 
+  // this is a list of pid strings, used as indices
+  const [pidExpanded, setPidExpanded] = useState<string[]>([]);
+
+  function renderExpandedProc(procRow: ProcessRow) {
+    if (info?.processes == null) return;
+    // pick the process from info.processes, where procRow.pid === proc.pid
+    const proc = info.processes[procRow.pid];
+    return (
+      <AboutContent
+        proc={proc}
+        mode={"flyout"}
+        closePid={(pid: number) => {
+          setPidExpanded(pidExpanded.filter((p) => p !== pid.toString()));
+        }}
+        buttons={
+          <SignalButtons
+            pid={procRow.pid}
+            loading={loading}
+            processes={info.processes}
+            chan={chan}
+            small={true}
+          />
+        }
+      />
+    );
+  }
+
   // mimic a table of processes program like htop – with tailored descriptions for cocalc
   function render_top() {
     if (ptree == null) {
       return null;
     }
 
+    const expandable = {
+      expandedRowKeys: pidExpanded,
+      onExpandedRowsChange: (expandedRows: string[]) => {
+        setPidExpanded(expandedRows);
+      },
+      showExpandColumn: false,
+      expandRowByClick: true,
+      expandedRowClassName: () => "cc-project-info-procs-flyout-row-expanded",
+      expandedRowRender: (procRow: ProcessRow) => renderExpandedProc(procRow),
+    };
+
     return (
       <Table<ProcessRow>
         dataSource={ptree}
+        expandable={expandable}
+        rowClassName={() => "cursor-pointer"}
         size={"small"}
         pagination={false}
         style={{
@@ -96,12 +140,14 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           width="50%"
           align={"left"}
           ellipsis={true}
-          render={(proc) => (
-            <span>
-              <ProcState state={proc.state} /> <b>{proc.name}</b>{" "}
-              <span>{proc.args}</span>
-            </span>
-          )}
+          render={(proc) => {
+            const { name, state, args } = proc;
+            return (
+              <span title={`${name} ${args}`}>
+                <ProcState state={state} /> <b>{name}</b> <span>{args}</span>
+              </span>
+            );
+          }}
           sorter={field_cmp("name")}
         />
         <Table.Column<ProcessRow>

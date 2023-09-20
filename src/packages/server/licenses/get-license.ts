@@ -7,7 +7,7 @@ import getPool from "@cocalc/database/pool";
 import { toEpoch } from "@cocalc/database/postgres/util";
 import { numberRunningQuery } from "@cocalc/database/postgres/site-license/analytics";
 import { isValidUUID } from "@cocalc/util/misc";
-import { License as FullLicense } from "./get-managed";
+import type { License as FullLicense } from "./get-managed";
 
 export async function isManager(
   license_id: string,
@@ -38,7 +38,7 @@ export default async function getLicense(
   const query = is_manager
     ? `SELECT id, title, description,
     expires, activates, last_used,
-    managers, upgrades, quota, run_limit, info
+    managers, upgrades, quota, run_limit, info, subscription_id
     FROM site_licenses WHERE $1=id`
     : `SELECT title, expires, activates, upgrades, quota, run_limit
     FROM site_licenses WHERE $1=id`;

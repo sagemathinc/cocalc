@@ -15,7 +15,7 @@ interface QueryOpts {
   db: PostgreSQL;
   query?: string;
   select?: string[];
-  set?: string;
+  set?: { [key: string]: any };
   jsonb_set?: object;
   jsonb_merge?: object;
   table?: string;

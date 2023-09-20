@@ -7,27 +7,30 @@ import { aggregate } from "@cocalc/util/aggregate";
 import * as message from "@cocalc/util/message";
 import { callback2 } from "@cocalc/util/async-utils";
 import { AsyncCall } from "./client";
-
 import { User } from "../frame-editors/generic/client";
+import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
 
-const get_username = aggregate({ omit: ["call"] }, function (opts: {
-  account_id: string;
-  call: Function;
-  aggregate: number;
-  cb: Function;
-}) {
-  opts.call({
-    message: message.get_usernames({ account_ids: [opts.account_id] }),
-    error_event: true,
-    cb(err, resp) {
-      if (err) {
-        opts.cb(err);
-      } else {
-        opts.cb(undefined, resp.usernames);
-      }
-    },
-  });
-});
+const get_username = aggregate(
+  { omit: ["call"] },
+  function (opts: {
+    account_id: string;
+    call: Function;
+    aggregate: number;
+    cb: Function;
+  }) {
+    opts.call({
+      message: message.get_usernames({ account_ids: [opts.account_id] }),
+      error_event: true,
+      cb(err, resp) {
+        if (err) {
+          opts.cb(err);
+        } else {
+          opts.cb(undefined, resp.usernames);
+        }
+      },
+    });
+  }
+);
 
 export class UsersClient {
   private call: Function;
@@ -64,6 +67,9 @@ export class UsersClient {
   public async get_username(
     account_id: string
   ): Promise<{ first_name: string; last_name: string }> {
+    if (isChatBot(account_id)) {
+      return { first_name: chatBotName(account_id), last_name: "" };
+    }
     const v = await callback2(get_username, {
       call: this.call,
       aggregate: Math.floor(new Date().valueOf() / 60000),

@@ -6,259 +6,286 @@
 /*
 Checkout -- finalize purchase and pay.
 */
-import { Alert, Button, Col, Row, Table } from "antd";
-import { useEffect, useMemo, useState } from "react";
-import {
-  GoogleReCaptchaProvider,
-  useGoogleReCaptcha,
-} from "react-google-recaptcha-v3";
-
+import { Alert, Button, Card, Divider, Col, Row, Spin, Table } from "antd";
+import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { money,  } from "@cocalc/util/licenses/purchase/utils";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
-import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
-import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
-import apiPost from "lib/api/post";
-import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
-import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { describeItem, DisplayCost } from "./site-license-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
+import * as purchasesApi from "@cocalc/frontend/purchases/api";
+import { currency } from "@cocalc/util/misc";
+import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
+import PaymentConfig from "@cocalc/frontend/purchases/payment-config";
+import { ProductColumn } from "./cart";
 
-export default function CheckoutWithCaptcha() {
-  const { reCaptchaKey } = useCustomize();
-
-  const body = <Checkout />;
-  if (reCaptchaKey == null) {
-    return body;
-  }
-  return (
-    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
-      {body}
-    </GoogleReCaptchaProvider>
-  );
-}
-
-function Checkout() {
-  const { reCaptchaKey } = useCustomize();
-  const { executeRecaptcha } = useGoogleReCaptcha();
+export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
-  const [placingOrder, setPlacingOrder] = useState<boolean>(false);
-  const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
-  const [orderError, setOrderError] = useState<string>("");
-  const [subTotal, setSubTotal] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(0);
+  const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
+  const [session, setSession] = useState<{ id: string; url: string } | null>(
+    null
+  );
+  const updateSession = async () => {
+    const session = await purchasesApi.getCurrentCheckoutSession();
+    setSession(session);
+    return session;
+  };
 
-  // most likely, user will do the purchase and then see the congratulations page
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [params, setParams] = useState<CheckoutParams | null>(null);
+  const updateParams = async () => {
+    try {
+      const params = await purchasesApi.getShoppingCartCheckoutParams();
+      setParams(params);
+      setPaymentAmount(params?.chargeAmount ?? 0);
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
   useEffect(() => {
-    router.prefetch("/store/congrats");
+    // on load, check for existing payent session.
+    updateSession();
+    // on load also get current price, cart, etc.
+    updateParams();
   }, []);
 
-  const cart = useAPI("/shopping/cart/get");
-
-  const items = useMemo(() => {
-    if (!cart.result) return undefined;
-    const x: any[] = [];
-    let subTotal = 0;
-    for (const item of cart.result) {
-      if (!item.checked) continue;
-      item.cost = computeCost(item.description);
-      subTotal += item.cost.discounted_cost;
-      x.push(item);
+  // handle ?complete -- i.e., what happens after successfully paying
+  // for a purchase - we do ANOTHER completePurchase, and for the second
+  // one no additional payment is required, so in this case user actually
+  // gets the items and goes to the congrats page.  Unless, of course,
+  // they try to be sneaky and add something to their cart right *after*
+  // paying... in which case they will just get asked for additional
+  // money for that last thing. :-)
+  useEffect(() => {
+    if (router.query.complete == null) {
+      // nothing to handle
+      return;
     }
-    setSubTotal(subTotal);
-    return x;
-  }, [cart.result]);
-
-  if (cart.error) {
-    return <Alert type="error" message={cart.error} />;
-  }
-  if (!items) {
-    return <Loading center />;
-  }
-
-  async function placeOrder() {
-    try {
-      setOrderError("");
-      setPlacingOrder(true);
-      let reCaptchaToken: undefined | string;
-      if (reCaptchaKey) {
-        if (!executeRecaptcha) {
-          throw Error("Please wait a few seconds, then try again.");
-        }
-        reCaptchaToken = await executeRecaptcha("checkout");
+    (async () => {
+      // in case webhooks aren't configured, get the payment via sync:
+      try {
+        await purchasesApi.syncPaidInvoices();
+      } catch (err) {
+        console.warn("syncPaidInvoices buying licenses -- issue", err);
       }
 
-      // This api call tells the backend, "buy everything in my shopping cart."
+      // now do the purchase flow again with money available.
+      completePurchase();
+    })();
+  }, []);
+
+  if (error) {
+    return (
+      <Alert
+        type="error"
+        message="Error"
+        description={error}
+        closable
+        onClose={updateParams}
+      />
+    );
+  }
+  async function completePurchase() {
+    try {
+      setError("");
+      setCompletingPurchase(true);
+      const curSession = await updateSession();
+      if (curSession != null || !isMounted.current) {
+        // there is already a stripe checkout session that hasn't been finished, so let's
+        // not cause confusion by creating another one.
+        // User will see a big alert with a link to finish this one, since updateSession
+        // sets the session state.
+        return;
+      }
+      // This api call tells the backend, "make a session that, when successfully finished, results in
+      // buying everything in my shopping cart", or, if it returns {done:true}, then
       // It succeeds if the purchase goes through.
-      await apiPost("/shopping/cart/checkout", { reCaptchaToken });
-      // Success!
-      if (!isMounted.current) return;
-      // If the user is still viewing the page after the purchase happened, we
-      // send them to the congrats page, which shows them what they recently purchased,
-      // with links about how to use it, etc.
-      router.push("/store/congrats");
+      const currentUrl = window.location.href.split("?")[0];
+      const success_url = `${currentUrl}?complete=true`;
+      const result = await purchasesApi.shoppingCartCheckout({
+        success_url,
+        cancel_url: currentUrl,
+        paymentAmount,
+      });
+      if (result.done) {
+        // done -- nothing further to do!
+        if (isMounted.current) {
+          router.push("/store/congrats");
+        }
+        return;
+      }
+      // payment is required to complete the purchase, since user doesn't
+      // have enough credit.
+      window.location = result.session.url as any;
     } catch (err) {
       // The purchase failed.
-      setOrderError(err.message);
+      setError(err.message);
     } finally {
       if (!isMounted.current) return;
-      setPlacingOrder(false);
+      setCompletingPurchase(false);
     }
   }
 
-  const columns = getColumns();
+  const cancelPurchaseInProgress = async () => {
+    try {
+      await purchasesApi.cancelCurrentCheckoutSession();
+      updateSession();
+      updateParams();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
-  function PlaceOrderButton() {
+  if (params == null) {
     return (
-      <Button
-        disabled={
-          subTotal == 0 ||
-          placingOrder ||
-          !haveCreditCard ||
-          !profile?.email_address
-        }
-        style={{ marginTop: "7px", marginBottom: "15px" }}
-        size="large"
-        type="primary"
-        onClick={placeOrder}
-      >
-        {placingOrder ? (
-          <Loading delay={0}>Placing Order...</Loading>
-        ) : (
-          "Place Your Order"
-        )}
-      </Button>
-    );
-  }
-
-  function EmptyCart() {
-    return (
-      <div style={{ maxWidth: "800px", margin: "auto" }}>
-        <h3>
-          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
-          {cart.result?.length > 0 && (
-            <>
-              Nothing in Your <SiteName />{" "}
-              <A href="/store/cart">Shopping Cart</A> is Selected
-            </>
-          )}
-          {(cart.result?.length ?? 0) == 0 && (
-            <>
-              Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is Empty
-            </>
-          )}
-        </h3>
-        <br />
-        <br />
-        You must have at least one item in <A href="/store/cart">
-          your cart
-        </A>{" "}
-        to checkout. Shop for <A href="/store/site-license">upgrades</A>, a{" "}
-        <A href="/store/boost">license boost</A>, or a{" "}
-        <A href="/dedicated">dedicated VM or disk</A>.
+      <div style={{ textAlign: "center" }}>
+        <Spin size="large" tip="Loading" />
       </div>
     );
   }
 
-  function nonemptyCart(items) {
-    return (
-      <>
-        <OrderError orderError={orderError} />
-        <Row>
-          <Col md={14} sm={24}>
-            <div>
-              <h3 style={{ fontSize: "16pt" }}>
-                <Icon name={"list"} style={{ marginRight: "5px" }} />
-                Checkout (<A href="/store/cart">{items.length} items</A>)
-              </h3>
-              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                1. Payment Method
-              </h4>
-              <p>
-                The default payment method shown below will be used for this
-                purchase.
-              </p>
-              <PaymentMethods
-                startMinimized
-                setTaxRate={setTaxRate}
-                setHaveCreditCard={setHaveCreditCard}
-              />
-            </div>
-          </Col>
-          <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>
-            <div>
-              <div
-                style={{
-                  textAlign: "center",
-                  border: "1px solid #ddd",
-                  padding: "15px",
-                  borderRadius: "5px",
-                  minWidth: "300px",
-                }}
-              >
-                <PlaceOrderButton />
-                <Terms />
-                <OrderSummary items={items} taxRate={taxRate} />
-                <span style={{ fontSize: "13pt" }}>
-                  <TotalCost items={items} taxRate={taxRate} />
-                </span>
-              </div>
-              <GetAQuote items={items} />
-            </div>
-          </Col>
-        </Row>
-
-        <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          2. Review Items ({items.length})
-        </h4>
-        <div style={{ border: "1px solid #eee" }}>
-          <Table
-            showHeader={false}
-            columns={columns}
-            dataSource={items}
-            rowKey={"id"}
-            pagination={{ hideOnSinglePage: true }}
-          />
-        </div>
-        <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          3. Place Your Order
-        </h4>
-        <div style={{ fontSize: "12pt" }}>
-          <Row>
-            <Col sm={12}>
-              <PlaceOrderButton />
-            </Col>
-            <Col sm={12}>
-              <div style={{ fontSize: "15pt" }}>
-                <TotalCost items={cart.result} taxRate={taxRate} />
-                <br />
-                <Terms />
-              </div>
-            </Col>
-          </Row>
-        </div>
-      </>
-    );
-  }
+  const columns = getColumns();
 
   return (
     <>
-      <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
-      {items.length == 0 && <EmptyCart />}
-      {items.length > 0 && nonemptyCart(items)}
-      <OrderError orderError={orderError} />
+      {session != null && (
+        <div style={{ textAlign: "center" }}>
+          <Alert
+            style={{ margin: "30px", display: "inline-block" }}
+            type="warning"
+            message={<h2>Purchase in Progress</h2>}
+            description={
+              <div style={{ fontSize: "14pt", width: "450px" }}>
+                <Divider />
+                <p>
+                  <Button href={session.url} type="primary" size="large">
+                    Complete Purchase
+                  </Button>
+                </p>
+                or
+                <p style={{ marginTop: "15px" }}>
+                  <Button onClick={cancelPurchaseInProgress}>Cancel</Button>
+                </p>
+              </div>
+            }
+          />
+        </div>
+      )}
+      <div style={session != null ? { opacity: 0.4 } : undefined}>
+        <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
+        {params.cart.length == 0 && (
+          <div style={{ maxWidth: "800px", margin: "auto" }}>
+            <h3>
+              <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
+              {params.cart.length > 0 && (
+                <>
+                  Nothing in Your <SiteName />{" "}
+                  <A href="/store/cart">Shopping Cart</A> is Selected
+                </>
+              )}
+              {(params.cart.length ?? 0) == 0 && (
+                <>
+                  Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is
+                  Empty
+                </>
+              )}
+            </h3>
+            <br />
+            <br />
+            You must have at least one item in{" "}
+            <A href="/store/cart">your cart</A> to checkout. Shop for{" "}
+            <A href="/store/site-license">upgrades</A>, a{" "}
+            <A href="/store/boost">license boost</A>, or a{" "}
+            <A href="/dedicated">dedicated VM or disk</A>.
+          </div>
+        )}
+        {params.cart.length > 0 && (
+          <>
+            <ShowError error={error} />
+            <Card title={<>1. Review Items ({params.cart.length})</>}>
+              <Table
+                showHeader={false}
+                columns={columns}
+                dataSource={params.cart}
+                rowKey={"id"}
+                pagination={{ hideOnSinglePage: true }}
+              />
+              <GetAQuote items={params.cart} />
+            </Card>
+
+            <div style={{ height: "30px" }} />
+
+            <Card title={<>2. Place Your Order</>}>
+              <ExplainPaymentSituation
+                params={params}
+                style={{ margin: "15px 0" }}
+              />
+              <Row>
+                <Col sm={12} style={{ textAlign: "center" }}>
+                  {params.chargeAmount > 0 && (
+                    <PaymentConfig
+                      balance={params.balance}
+                      minAmount={params.chargeAmount}
+                      paymentAmount={paymentAmount}
+                      setPaymentAmount={setPaymentAmount}
+                    />
+                  )}
+                </Col>
+                <Col sm={12}>
+                  <div style={{ fontSize: "15pt" }}>
+                    <TotalCost items={params.cart} />
+                    <br />
+                    <Terms />
+                  </div>
+                </Col>
+              </Row>
+              <div style={{ textAlign: "center" }}>
+                <Divider />
+                <Button
+                  disabled={
+                    params?.total == 0 ||
+                    completingPurchase ||
+                    !profile?.email_address ||
+                    session != null
+                  }
+                  style={{ marginTop: "7px", marginBottom: "15px" }}
+                  size="large"
+                  type="primary"
+                  onClick={completePurchase}
+                >
+                  <Icon name="credit-card" />{" "}
+                  {completingPurchase ? (
+                    <>
+                      Completing Purchase...
+                      <Spin />
+                    </>
+                  ) : params == null || paymentAmount == 0 ? (
+                    `Complete Purchase${
+                      session != null ? " (finish payment first)" : ""
+                    }`
+                  ) : (
+                    `Add ${currency(paymentAmount)} credit to your account...`
+                  )}
+                </Button>
+              </div>
+            </Card>
+          </>
+        )}
+        <ShowError error={error} />
+      </div>
     </>
   );
 }
@@ -283,8 +310,8 @@ export function discountedCost(items) {
   return discounted_cost;
 }
 
-function TotalCost({ items, taxRate }) {
-  const cost = discountedCost(items) * (1 + taxRate);
+function TotalCost({ items }) {
+  const cost = discountedCost(items);
   return (
     <>
       Total: <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
@@ -292,34 +319,11 @@ function TotalCost({ items, taxRate }) {
   );
 }
 
-function OrderSummary({ items, taxRate }) {
-  const cost = discountedCost(items);
-  const full = fullCost(items);
-  const tax = cost * taxRate;
-  return (
-    <Paragraph style={{ textAlign: "left" }}>
-      <b style={{ fontSize: "14pt" }}>Order Summary</b>
-      <div>
-        Items ({items.length}):{" "}
-        <span style={{ float: "right" }}>{money(full, true)}</span>
-      </div>
-      {full - cost > 0 && (
-        <div>
-          Self-service discount (25%):{" "}
-          <span style={{ float: "right" }}>-{money(full - cost, true)}</span>
-        </div>
-      )}
-      <div>
-        Estimated tax:{" "}
-        <span style={{ float: "right" }}>{money(tax, true)}</span>
-      </div>
-    </Paragraph>
-  );
-}
-
 function Terms() {
   return (
-    <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
+    <Paragraph
+      style={{ color: COLORS.GRAY, fontSize: "10pt", marginTop: "8px" }}
+    >
       By placing your order, you agree to{" "}
       <A href="/policies/terms" external>
         our terms of service
@@ -411,9 +415,9 @@ function GetAQuote({ items }) {
                 <>
                   Customized payment is available only for{" "}
                   <b>non-subscription purchases over ${MIN_AMOUNT}</b>. Make
-                  sure your cost before tax and discounts is over ${MIN_AMOUNT}{" "}
-                  and <A href="/store/cart">convert</A> any subscriptions in
-                  your cart to explicit date ranges, then try again. If this is
+                  sure your cost before discounts is over ${MIN_AMOUNT} and{" "}
+                  <A href="/store/cart">convert</A> any subscriptions in your
+                  cart to explicit date ranges, then try again. If this is
                   confusing, <A href="/support/new">make a support request</A>.
                 </>
               }
@@ -526,16 +530,13 @@ export function RequireEmailAddress({ profile, reloadProfile }) {
   );
 }
 
-export function OrderError({ orderError }) {
-  if (!orderError) return null;
+export function ShowError({ error }) {
+  if (!error) return null;
   return (
     <Alert
       type="error"
-      message={
-        <>
-          <b>Error placing order:</b> {orderError}
-        </>
-      }
+      message="Error"
+      description={<>{error}</>}
       style={{ margin: "30px 0" }}
     />
   );
@@ -575,12 +576,7 @@ export function getColumns({
       responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>License</div>
-        </div>
-      ),
+      render: (_, { product }) => <ProductColumn product={product} />,
     },
     {
       responsive: ["sm" as "sm"],
@@ -606,7 +602,7 @@ export function getColumns({
         </b>
       ),
     },
-  ];
+  ] as any;
 }
 
 function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
@@ -615,5 +611,102 @@ function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
     <div>
       For project: <code>{project_id}</code>
     </div>
+  );
+}
+
+export function ExplainPaymentSituation({
+  params,
+  style,
+}: {
+  params: CheckoutParams | null;
+  style?;
+}) {
+  if (params == null) {
+    return <Spin />;
+  }
+  const { balance, minPayment, amountDue, chargeAmount, total, minBalance } =
+    params;
+  const curBalance = (
+    <div style={{ float: "right" }}>
+      Current balance: {currency(balance)}
+      {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
+    </div>
+  );
+
+  if (chargeAmount == 0) {
+    return (
+      <Alert
+        showIcon
+        type="info"
+        style={style}
+        message={
+          <>
+            {curBalance}
+            <b>No Payment Required</b>
+          </>
+        }
+        description={
+          <>
+            <i>
+              You can complete this purchase <b>without making a payment now</b>
+            </i>
+            , since your account balance is {currency(balance)}
+            {minBalance < 0 && (
+              <>
+                , and your balance is allowed to go as low as{" "}
+                {currency(minBalance)}
+              </>
+            )}
+            .
+          </>
+        }
+      />
+    );
+  }
+  if (chargeAmount == minPayment) {
+    return (
+      <Alert
+        type="info"
+        style={style}
+        message={<>{curBalance}Payment Required</>}
+        description={
+          <>
+            <i>
+              To complete this purchase,{" "}
+              <b>add at least {currency(chargeAmount)}</b> to your balance.
+            </i>{" "}
+            {chargeAmount > amountDue && (
+              <>
+                The minimum transaction amount is {currency(minPayment)}. The
+                difference will be credited to your account, and you can use it
+                toward future purchases.
+              </>
+            )}
+          </>
+        }
+      />
+    );
+  }
+  return (
+    <Alert
+      type="info"
+      style={style}
+      message={<>{curBalance}Payment Required</>}
+      description={
+        <>
+          <i>
+            To complete this purchase,{" "}
+            <b>add at least {currency(chargeAmount)}</b> to your account
+            balance.
+          </i>{" "}
+          {chargeAmount > total && params.minBalance < 0 && (
+            <>
+              Your account balance must always be at least{" "}
+              {currency(params.minBalance)}.
+            </>
+          )}
+        </>
+      }
+    />
   );
 }

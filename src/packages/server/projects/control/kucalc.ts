@@ -55,7 +55,10 @@ class Project extends BaseProject {
     }
     try {
       this.stateChanging = { state: "starting" };
-      await this.siteLicenseHook();
+
+      // TODO: once "manage" processes site licenses, we can remove this line!
+      // Manage has do the equivalent of this.computeQuota()
+      await this.siteLicenseHook(false);
       await this.actionRequest("start");
       await this.waitUntilProject(
         (project) =>

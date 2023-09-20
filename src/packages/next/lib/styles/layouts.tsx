@@ -37,10 +37,22 @@ export const OVERVIEW_LARGE_ICON_MARGIN: React.CSSProperties = {
   fontSize: "80px",
 } as const;
 
-export function Product({ icon, title, href, children }) {
+export function Product({
+  icon,
+  title,
+  href,
+  children,
+  external,
+}: {
+  icon;
+  title;
+  href;
+  children;
+  external?;
+}) {
   return (
     <Col {...gridProps}>
-      <A href={href}>
+      <A href={href} external={external}>
         <Icon
           style={{ fontSize: "50px", fontWeight: "bold", display: "block" }}
           name={icon}
@@ -50,7 +62,9 @@ export function Product({ icon, title, href, children }) {
         level={2}
         style={{ fontSize: "25px", marginBottom: "15px", marginTop: "15px" }}
       >
-        <A href={href}>{title}</A>
+        <A href={href} external={external}>
+          {title}
+        </A>
       </Title>
       <Paragraph>{children}</Paragraph>
     </Col>

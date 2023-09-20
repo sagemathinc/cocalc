@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+[ ] TODO: I think this is entirely deprecated??
+*/
+
 import { getLogger } from "@cocalc/backend/logger";
 import { Stripe, StripeClient } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
@@ -12,11 +16,14 @@ import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { getProductId } from "./product-id";
 import { getProductMetadata } from "./product-metadata";
 import { getProductName } from "./product-name";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
+import createCredit from "@cocalc/server/purchases/create-credit";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = {
   type: "invoice" | "subscription"; // what was purchased
   id: string; // the id of the *invoice* in stripe
+  tax_percent: number; // tax rate (e.g., 0.085)
 };
 
 export async function chargeUser(
@@ -25,11 +32,13 @@ export async function chargeUser(
 ): Promise<Purchase> {
   logger.debug("getting product_id");
   const product_id = await stripeGetProduct(info);
+  let purchase;
   if (info.type == "vouchers" || info.subscription == "no") {
-    return await stripePurchaseProduct(stripe, product_id, info);
+    purchase = await stripePurchaseProduct(stripe, product_id, info);
   } else {
-    return await stripeCreateSubscription(stripe, product_id, info);
+    purchase = await stripeCreateSubscription(stripe, product_id, info);
   }
+  return purchase;
 }
 
 export function unitAmount(info: PurchaseInfo): number {
@@ -143,7 +152,7 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     await conn.products.create({
       id: product_id,
       name,
-      metadata,
+      metadata: metadata as any,
       statement_descriptor,
     });
     await stripeCreatePrice(info);
@@ -211,7 +220,7 @@ async function stripePurchaseProduct(
       );
     }
   }
-  logger.debug("stripePurchaseProduct: got price", JSON.stringify(price));
+  logger.debug("stripePurchaseProduct: got price", price);
   let tax_percent;
   if (info.type == "vouchers") {
     // (1) there is no period for a voucher, (2) we charge them the tax
@@ -220,7 +229,7 @@ async function stripePurchaseProduct(
       customer,
       price,
       quantity,
-      metadata: info,
+      metadata: info as any,
     });
     tax_percent = info.tax / Math.max(0.001, info.cost);
   } else {
@@ -310,7 +319,7 @@ async function stripePurchaseProduct(
   );
   await stripe.update_database();
 
-  return { type: "invoice", id: invoice_id };
+  return { type: "invoice", id: invoice_id, tax_percent };
 }
 
 /**
@@ -389,7 +398,7 @@ async function stripeCreateSubscription(
   const { id } = await conn.subscriptions.create(options);
   await stripe.update_database();
 
-  return { type: "subscription", id };
+  return { type: "subscription", id, tax_percent };
 }
 
 // Gets a coupon that matches the current online discount.
@@ -416,8 +425,9 @@ async function getSelfServiceDiscountCoupon(conn: Stripe): Promise<string> {
 }
 
 export async function setPurchaseMetadata(
+  info: PurchaseInfo,
   purchase: Purchase,
-  metadata
+  metadata: { account_id: string; license_id: string }
 ): Promise<void> {
   const conn = await getConn();
   switch (purchase.type) {
@@ -429,5 +439,37 @@ export async function setPurchaseMetadata(
       break;
     default:
       throw new Error(`unexpected purchase type ${purchase.type}`);
+  }
+
+  if (info.cost != null) {
+    let cost;
+    if (typeof info.cost == "number") {
+      cost = info.cost;
+    } else {
+      if (info.cost.discounted_cost) {
+        cost = info.cost.discounted_cost;
+      } else {
+        cost = info.cost.cost;
+      }
+      // sales tax
+      cost *= 1 + purchase.tax_percent;
+    }
+    const { account_id, license_id } = metadata;
+    const invoice_id = purchase.id;
+    await createPurchase({
+      account_id,
+      cost,
+      service: "license",
+      description: { type: "license", info, license_id, item: {} },
+      invoice_id,
+      tag: "license-purchase",
+      client: null,
+    });
+    await createCredit({
+      account_id,
+      amount: cost,
+      invoice_id,
+      tag: "license-purchase",
+    });
   }
 }

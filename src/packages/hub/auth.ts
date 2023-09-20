@@ -391,7 +391,7 @@ export class PassportManager {
 
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
-          secure: secure,
+          secure,
           overwrite: true,
           httpOnly: false,
         });
@@ -767,7 +767,8 @@ export class PassportManager {
     if (type === "saml") {
       this.router.post(
         returnUrl,
-        // the body-parser package is deprecated, using express directly
+        // External use of the body-parser package is deprecated, so we are using express directly.
+        // More precisely, body-parser is superseded by the version included inside express.
         express.urlencoded({ extended: false }),
         express.json(),
         passport.authenticate(name),

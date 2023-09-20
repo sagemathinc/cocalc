@@ -22,7 +22,7 @@ export default function ConfigMenu({ main }) {
   const items: MenuItem[] = [
     { label: <Text strong>Store</Text>, key: "" },
     {
-      label: "Upgrade",
+      label: "License",
       key: "site-license",
       icon: <Icon name="key" />,
     },

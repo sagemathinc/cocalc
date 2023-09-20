@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { HomeOutlined } from "@ant-design/icons";
 import { Breadcrumb } from "antd";
 
-import { HomeOutlined } from "@ant-design/icons";
-import { trunc_middle } from "@cocalc/util/misc";
 import {
   React,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { trunc_middle } from "@cocalc/util/misc";
 import { createPathSegmentLink } from "./path-segment-link";
 
 interface Props {
@@ -54,7 +54,6 @@ export const PathNavigator: React.FC<Props> = React.memo(
       );
 
       const pathLen = current_path_depth;
-      const histLen = history_segments.length;
       const condense = mode === "flyout";
 
       history_segments.forEach((segment, i) => {
@@ -63,14 +62,16 @@ export const PathNavigator: React.FC<Props> = React.memo(
         const is_history = i > current_path_depth;
 
         // don't show too much in flyout mode
-        const hide = condense && pathLen > i && i < histLen - 2;
-        if (is_history && i >= 2) return;
+        const hide =
+          condense &&
+          ((i < pathLen && i <= pathLen - 2) ||
+            (i > pathLen && i >= pathLen + 2));
 
         v.push(
           // yes, must be called as a normal function.
           createPathSegmentLink({
             path: history_segments.slice(0, i + 1 || undefined).join("/"),
-            display: hide ? <>&middot;</> : trunc_middle(segment, 15),
+            display: hide ? <>&bull;</> : trunc_middle(segment, 15),
             full_name: segment,
             key: i + 1,
             on_click: (path) => actions?.open_directory(path, true, false),

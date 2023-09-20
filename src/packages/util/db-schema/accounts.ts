@@ -131,7 +131,7 @@ Table({
     },
     stripe_customer: {
       type: "map",
-      desc: "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).",
+      desc: "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve)   ALMOST DEPRECATED -- THIS IS ONLY USED FOR OLD LEGACY UPGRADES.",
     },
     coupon_history: {
       type: "map",
@@ -199,10 +199,44 @@ Table({
         min: 1,
       },
     },
-    purchase_quota: {
-      type: "number", // actually comes back as string in queries.
-      pg_type: "numeric(10,2)",
-      desc: "The maximum amount of purchases that the user is allowed to have unpaid. This is a quota we impose for safety, not something they set.",
+    purchase_closing_day: {
+      type: "integer",
+      desc: "Day of the month when pay-as-you-go purchases are cutoff and charged for this user. It happens at midnight UTC on this day.  This should be an integer between 1 and 28.",
+      render: {
+        type: "number",
+        editable: false, // Do NOT change this without going through the reset-closing-date api call...
+        min: 1,
+        max: 28,
+      },
+    },
+    min_balance: {
+      type: "number",
+      pg_type: "REAL",
+      desc: "The minimum allowed balance for this user. This is a quota we impose for safety, not something they set. Admins may change this in response to a support request.  For most users this is not set at all hence 0, but for some special enterprise-style customers to whom we extend 'credit', it will be set.",
+      render: {
+        title: "Minimum Allowed Balance (USD)",
+        type: "number",
+        integer: false,
+        editable: true,
+        max: 0,
+      },
+    },
+    stripe_checkout_session: {
+      type: "map",
+      desc: "Part of the current open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
+    },
+    stripe_usage_subscription: {
+      type: "string",
+      pg_type: "varchar(256)",
+      desc: "Id of this user's stripe metered usage subscription, if they have one.",
+    },
+    email_daily_statements: {
+      type: "boolean",
+      desc: "If true (or not set), try to email daily statements to user showing all of their purchases.  NOTE: we always try to email monthly statements to users.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
   },
   rules: {
@@ -238,9 +272,12 @@ Table({
         throttle_changes: 500,
         pg_where: [{ "account_id = $::UUID": "account_id" }],
         fields: {
+          // Exactly what from the below is sync'd by default with the frontend app client is explicitly
+          // listed in frontend/account/table.ts
           account_id: null,
           email_address: null,
           lti_id: null,
+          stripe_checkout_session: null,
           email_address_verified: null,
           email_address_problem: null,
           editor_settings: {
@@ -328,7 +365,10 @@ Table({
           unlisted: false,
           tags: null,
           tours: null,
-          purchase_quota: null,
+          min_balance: null,
+          purchase_closing_day: null,
+          stripe_usage_subscription: null,
+          email_daily_statements: null,
         },
       },
       set: {
@@ -349,6 +389,8 @@ Table({
           unlisted: true,
           tags: true,
           tours: true,
+          email_daily_statements: true,
+          // obviously min_balance can't be set!
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
@@ -483,7 +525,8 @@ Table({
           unlisted: true,
           notes: true,
           salesloft_id: true,
-          purchase_quota: true,
+          purchase_closing_day: true,
+          min_balance: true, // admins can set this
         },
       },
     },

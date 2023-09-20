@@ -4,37 +4,9 @@ Returns array of licenses that a given user manages.
 
 import getPool from "@cocalc/database/pool";
 import { toEpoch } from "@cocalc/database/postgres/util";
-import { User } from "@cocalc/util/licenses/purchase/types";
 import { isValidUUID } from "@cocalc/util/misc";
-
-export interface License {
-  id: string;
-  title: string;
-  description: string;
-  expires?: number;
-  activates: number;
-  created: number;
-  last_used: number;
-  managers: string[];
-  is_manager?: boolean;
-  upgrades?: {
-    cores: number;
-    cpu_shares: number;
-    disk_quota: number;
-    memory: number;
-    mintime: number;
-    network: number;
-  };
-  quota?: {
-    ram: number;
-    cpu: number;
-    disk: number;
-    always_running: boolean;
-    member: boolean;
-    user: User;
-  };
-  run_limit: number;
-}
+import type { License } from "@cocalc/util/db-schema/site-licenses";
+export type { License };
 
 export default async function getManagedLicenses(
   account_id: string

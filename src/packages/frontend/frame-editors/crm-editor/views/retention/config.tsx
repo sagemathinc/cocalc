@@ -121,11 +121,14 @@ export default function RetentionConfig({
               title="When the first cohort starts (1 day long, starting at UTC midnight)"
               mouseEnterDelay={900}
             >
-              {retention.model?.endsWith(":all") ? "Start" : "First 1-Day Cohort"}
+              {retention.model?.endsWith(":all")
+                ? "Start"
+                : "First 1-Day Cohort"}
             </Tooltip>
           }
         >
           <DatePicker
+            changeOnBlur
             showToday={false}
             value={retention.start ? dayjs(retention.start) : undefined}
             onChange={(date) =>
@@ -187,6 +190,7 @@ export default function RetentionConfig({
           }
         >
           <DatePicker
+            changeOnBlur
             showToday
             value={dayjs(retention.dataEnd)}
             onChange={(dataEnd) =>

@@ -16,6 +16,7 @@ import {
 } from "@cocalc/util/db-schema/openai";
 import { EventEmitter } from "events";
 import type { WebappClient } from "./client";
+import type { Service } from "@cocalc/util/db-schema/purchases";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.  BE BRIEF.";
@@ -43,9 +44,13 @@ export class OpenAIClient {
   public chatgptStream(opts, startExplicitly = false): ChatStream {
     const chatStream = new ChatStream();
     (async () => {
-      await this.implementChatgpt({ ...opts, chatStream });
-      if (!startExplicitly) {
-        chatStream.emit("start");
+      try {
+        await this.implementChatgpt({ ...opts, chatStream });
+        if (!startExplicitly) {
+          chatStream.emit("start");
+        }
+      } catch (err) {
+        chatStream.emit("error", err);
       }
     })();
     return chatStream;
@@ -53,20 +58,20 @@ export class OpenAIClient {
 
   private async implementChatgpt({
     input,
+    model,
     system = DEFAULT_SYSTEM_PROMPT,
     history,
     project_id,
     path,
-    model,
     chatStream,
     tag = "",
   }: {
     input: string;
+    model: Model;
     system?: string;
     history?: History;
     project_id?: string;
     path?: string;
-    model?: Model;
     chatStream?: ChatStream; // if given, uses chat stream
     tag?: string;
     startStreamExplicitly?: boolean;
@@ -86,20 +91,41 @@ export class OpenAIClient {
         return "Pong";
       }
     }
+
+    if (model != "gpt-3.5-turbo") {
+      const service = `openai-${model}` as any as Service;
+      // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
+      const { allowed, reason } =
+        await this.client.purchases_client.isPurchaseAllowed(service);
+
+      if (!allowed) {
+        await this.client.purchases_client.quotaModal({
+          service,
+          reason,
+          allowed,
+        });
+      }
+      // Now check again after modal dismissed...
+      const x = await this.client.purchases_client.isPurchaseAllowed(service);
+      if (!x.allowed) {
+        throw Error(reason);
+      }
+    }
+
     const {
       numTokensUpperBound,
       truncateHistory,
       truncateMessage,
-      MAX_CHATGPT_TOKENS,
+      getMaxTokens,
     } = await import("@cocalc/frontend/misc/openai");
-    // We leave some room for output, hence about 3000 instead of 4000 here:
-    const maxTokens = MAX_CHATGPT_TOKENS - 1000;
+    // We always leave some room for output:
+    const maxTokens = getMaxTokens(model) - 1000;
     input = truncateMessage(input, maxTokens);
-    const n = numTokensUpperBound(input, MAX_CHATGPT_TOKENS);
+    const n = numTokensUpperBound(input, getMaxTokens(model));
     if (n >= maxTokens) {
       history = undefined;
     } else if (history != null) {
-      history = truncateHistory(history, maxTokens - n);
+      history = truncateHistory(history, maxTokens - n, model);
     }
     // console.log("chatgpt", { input, system, history, project_id, path });
     const mesg = message.chatgpt({
@@ -273,6 +299,7 @@ class ChatStream extends EventEmitter {
     super();
   }
   process(text?: string) {
+    // emits undefined text when done (or err below)
     this.emit("token", text);
   }
   error(err) {

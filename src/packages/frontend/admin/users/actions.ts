@@ -60,4 +60,5 @@ export class AdminUsersActions extends Actions<StoreState> {
   }
 }
 
-export const actions = redux.createActions("admin-users", AdminUsersActions);
+// The ?? is just to support hot module reload.
+export const actions = redux.getActions('admin-users') ?? redux.createActions("admin-users", AdminUsersActions);

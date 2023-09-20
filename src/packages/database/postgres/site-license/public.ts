@@ -5,7 +5,10 @@
 
 import { PostgreSQL } from "../types";
 import { query } from "../query";
-import { number_of_running_projects_using_license, number_of_projects_with_license_applied } from "./analytics";
+import {
+  number_of_running_projects_using_license,
+  number_of_projects_with_license_applied,
+} from "./analytics";
 
 export async function site_license_public_info(
   db: PostgreSQL,
@@ -23,6 +26,7 @@ export async function site_license_public_info(
       "quota",
       "run_limit",
       "managers",
+      "subscription_id",
     ],
     table: "site_licenses",
     where: { id: license_id },

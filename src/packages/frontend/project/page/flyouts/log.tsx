@@ -10,6 +10,7 @@ import {
   CSS,
   redux,
   useActions,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -33,10 +34,12 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { debounce } from "lodash";
 import { handle_log_click } from "../../history/utils";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FileListItem, fileItemStyle } from "./components";
+import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
 import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
 
 export const FLYOUT_LOG_DEFAULT_MODE = "files";
@@ -156,12 +159,14 @@ interface Props {
   project_id: string;
   max?: number;
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  flyoutWidth: number;
 }
 
 export function LogFlyout({
   max = 1000,
   project_id,
   wrap,
+  flyoutWidth,
 }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
@@ -175,7 +180,9 @@ export function LogFlyout({
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
+  const search = useTypedRedux({ project_id }, "search") ?? "";
   const [searchTerm, setSearchTerm] = useState<string>("");
+
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
   const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
 
@@ -189,13 +196,48 @@ export function LogFlyout({
 
     switch (mode) {
       case "files":
-        return deriveFiles(log, searchTerm, max);
+        return deriveFiles(log, search, max);
       case "history":
-        return deriveHistory(log, searchTerm, max);
+        return deriveHistory(log, search, max);
       default:
         unreachable(mode);
     }
-  }, [project_log, project_log_all, searchTerm, max, mode]);
+  }, [project_log, project_log_all, search, max, mode]);
+
+  const showExtra = useMemo(
+    () => flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
+    [flyoutWidth]
+  );
+
+  // trigger a search state change, only once and with a debounce
+  const setSearchState = debounce(
+    (val: string): void => {
+      actions?.setState({ search: val });
+    },
+    20,
+    { leading: false, trailing: true }
+  );
+
+  const handleOnChange = useCallback((val: string) => {
+    setScrollIdx(null);
+    setSearchTerm(val);
+    setSearchState(val);
+  }, []);
+
+  // incoming change, change the search term
+  useEffect(() => {
+    if (search === searchTerm) return;
+    setScrollIdx(null);
+    setSearchTerm(search);
+  }, [search]);
+
+  // end of hooks
+
+  function renderFileItemExtra(entry: OpenedFile) {
+    if (!showExtra) return null;
+    if (!entry.time) return;
+    return <TimeAgo date={entry.time} />;
+  }
 
   function renderFileItem(index: number, entry: OpenedFile) {
     const time = entry.time;
@@ -207,13 +249,27 @@ export function LogFlyout({
     return (
       <FileListItem
         item={{ name: path, isopen: isOpened, isactive: isActive }}
+        extra={renderFileItemExtra(entry)}
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
         selected={!scollIdxHide && index === scrollIdx}
-        onClick={(e) => handle_log_click(e, path, project_id)}
+        onClick={(e) => {
+          track("open-file", {
+            project_id,
+            path,
+            how: "click-on-log-file-flyout",
+          });
+          handle_log_click(e, path, project_id);
+        }}
         onClose={(e: React.MouseEvent, path: string) => {
           e.stopPropagation();
           actions?.close_tab(path);
+        }}
+        onMouseDown={(e: React.MouseEvent) => {
+          if (e.button === 1) {
+            // middle mouse click
+            actions?.close_tab(path);
+          }
         }}
         tooltip={
           <>
@@ -270,7 +326,7 @@ export function LogFlyout({
     track("open-file", {
       project_id,
       path: file.filename,
-      how: "click-on-log-file-flyout",
+      how: "keypress-on-log-file-flyout",
     });
     handle_log_click(e, file.filename, project_id);
   }
@@ -294,8 +350,7 @@ export function LogFlyout({
 
     // if esc key is pressed, empty the search term and reset scroll index
     if (e.key === "Escape") {
-      setSearchTerm("");
-      setScrollIdx(null);
+      handleOnChange("");
     }
   }
 
@@ -348,7 +403,9 @@ export function LogFlyout({
         style={{ flex: "1", marginRight: "10px" }}
         size="small"
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          handleOnChange(e.target.value);
+        }}
         onKeyDown={onKeyDownHandler}
         onFocus={() => setScrollIdxHide(false)}
         onBlur={() => setScrollIdxHide(true)}

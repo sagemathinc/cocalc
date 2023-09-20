@@ -9,12 +9,14 @@ import { redux, useActions, useRedux } from "@cocalc/frontend/app-framework";
 import { Title } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { useProjectContext } from "../../context";
 import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
 import { HomeRecentFiles } from "./recent-files";
 
 const SPAN = { md: 12, sm: 24, xs: 24 } as const;
 
-export default function HomePage({ project_id }) {
+export default function HomePage() {
+  const { project_id } = useProjectContext();
   const desc = useRedux(["projects", "project_map", project_id, "description"]);
   const actions = useActions({ project_id });
 

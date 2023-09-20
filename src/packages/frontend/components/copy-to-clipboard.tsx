@@ -12,12 +12,14 @@ import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
   value: string;
+  display?: string;
   style?: CSS;
   label?: ReactNode;
   labelStyle?: CSS;
   inputStyle?: CSS;
   inputWidth?: string;
   size?: "large" | "middle" | "small";
+  before?: boolean;
 }
 
 const INPUT_STYLE: CSS = { display: "inline-block", flex: 1 } as const;
@@ -33,12 +35,14 @@ const LABEL_STYLE: CSS = {
 
 export default function CopyToClipBoard({
   value,
+  display,
   style,
   size,
   label,
   labelStyle,
   inputStyle,
   inputWidth,
+  before,
 }: Props) {
   const [copied, setCopied] = useState<boolean>(false);
 
@@ -64,18 +68,19 @@ export default function CopyToClipBoard({
   // right way to do this.
   // hsy: Input.Group is deprecated, using Space.Compact instead
   const input = (
-    <Space.Compact style={{ display: "flex" }}>
+    <Space.Compact>
+      {before ? copy : undefined}
       <Input
         style={{
-          width: inputWidth ?? `${value.length + 8}ex`,
+          width: inputWidth ?? `${(display ?? value).length + 8}ex`,
           fontFamily: "monospace",
         }}
         readOnly
         size={size}
-        value={value}
+        value={display ?? value}
         onFocus={(e) => e.target.select()}
       />
-      {copy}
+      {!before ? copy : undefined}
     </Space.Compact>
   );
   if (!label) return <div style={style}>{input}</div>;
