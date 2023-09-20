@@ -10,7 +10,7 @@ import { isBlockedUnlinkStrategy } from "@cocalc/server/auth/sso/unlink-strategy
 import {
   getPassportsCached,
   setPassportsCached
-} from "@cocalc/server/settings/server-settings";
+} from "@cocalc/database/settings/server-settings";
 import { to_json } from "@cocalc/util/misc";
 import { CB } from "@cocalc/util/types/database";
 import {

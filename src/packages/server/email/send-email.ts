@@ -12,7 +12,7 @@ import type { Message } from "./message";
 import sendViaSMTP from "./smtp";
 import sendViaSendgrid from "./sendgrid";
 import sendEmailThrottle from "./throttle";
-import { getServerSettings } from "../settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 export default async function sendEmail(
   message: Message,

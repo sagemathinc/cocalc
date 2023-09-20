@@ -247,9 +247,6 @@ importers:
       '@cocalc/frontend':
         specifier: workspace:*
         version: 'link:'
-      '@cocalc/hub':
-        specifier: workspace:*
-        version: link:../hub
       '@cocalc/jupyter':
         specifier: workspace:*
         version: link:../jupyter

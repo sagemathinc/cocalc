@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getCustomize from "@cocalc/server/settings/customize";
+import getCustomize from "@cocalc/database/settings/customize";
 import getAccountId from "lib/account/get-account";
 import { getName } from "lib/share/get-account-info";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";

@@ -1,4 +1,4 @@
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 import { createClient } from "node-zendesk";
 import type { Client } from "node-zendesk";
 

@@ -100,7 +100,8 @@ def thread_map(callable: Callable,
 
 
 def all_packages() -> List[str]:
-    # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
+    # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments,
+    # but we use "tsc --build", which automatically builds deps if not built.
     v = [
         'packages/',  # top level workspace
         'packages/cdn',  # packages/hub assumes this is built
@@ -110,7 +111,8 @@ def all_packages() -> List[str]:
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
-        'packages/project',  # frontend depends on project (and project on frontend!) right now...
+        'packages/comm',
+        'packages/project',  # project depends on frontend for nbconvert (but NEVER vice versa again)
         'packages/assets',
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)

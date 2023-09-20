@@ -40,7 +40,6 @@
     "@cocalc/cdn": "workspace:*",
     "@cocalc/comm": "workspace:*",
     "@cocalc/frontend": "workspace:*",
-    "@cocalc/hub": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/local-storage-lru": "^2.1.1",
     "@cocalc/sync": "workspace:*",

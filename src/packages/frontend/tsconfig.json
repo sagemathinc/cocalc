@@ -27,7 +27,6 @@
   ],
   "references": [
     { "path": "../comm" },
-    { "path": "../hub" },
     { "path": "../jupyter" },
     { "path": "../sync" },
     { "path": "../util" }

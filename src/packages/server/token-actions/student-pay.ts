@@ -9,7 +9,7 @@ import { getCost } from "@cocalc/server/purchases/student-pay";
 import getBalance from "@cocalc/server/purchases/get-balance";
 import getMinBalance from "@cocalc/server/purchases/get-min-balance";
 import syncPaidInvoices from "@cocalc/server/purchases/sync-paid-invoices";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 export async function studentPay(token, description, account_id): Promise<any> {
   if (description.due > 0) {

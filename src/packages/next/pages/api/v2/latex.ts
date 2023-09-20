@@ -50,7 +50,7 @@ import { getProject } from "@cocalc/server/projects/control";
 import callProject from "@cocalc/server/projects/call";
 import getParams from "lib/api/get-params";
 import { path_split } from "@cocalc/util/misc";
-import getCustomize from "@cocalc/server/settings/customize";
+import getCustomize from "@cocalc/database/settings/customize";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export default async function handle(req, res) {
