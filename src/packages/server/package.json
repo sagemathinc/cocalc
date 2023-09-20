@@ -61,6 +61,7 @@
     "awaiting": "^3.0.0",
     "axios": "^1.4.0",
     "base62": "^2.0.1",
+    "bottleneck": "^2.19.5",
     "cookies": "^0.8.0",
     "dayjs": "^1.11.7",
     "dot-object": "^2.1.4",
