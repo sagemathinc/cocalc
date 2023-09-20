@@ -45,6 +45,7 @@ jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project = require("@cocalc/server/projects/create").default;
 user_search = require("@cocalc/server/accounts/search").default;
+collab = require('@cocalc/server/projects/collab').default;
 
 
 {one_result} = require("@cocalc/database")
@@ -1509,7 +1510,7 @@ class exports.Client extends EventEmitter
             accounts = [accounts]
 
         try
-            await @database.add_collaborators_to_projects(@account_id, accounts, projects, tokens)
+            await collab.add_collaborators_to_projects(@database, @account_id, accounts, projects, tokens)
             resp = message.success(id:mesg.id)
             if tokens
                 # Tokens determine the projects, and it maybe useful to the client to know what

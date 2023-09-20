@@ -41,7 +41,6 @@ read = require('read')
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
-collab = require('./postgres/collab')
 # TODO is set_account_info_if_possible used here?!
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 {getStripeCustomerId, syncCustomer} = require('./postgres/stripe')
@@ -1584,10 +1583,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             jsonb_set : {users : {"#{opts.account_id}": null}}
             where     : {'project_id :: UUID = $' : opts.project_id}
             cb        : opts.cb
-
-    # async
-    add_collaborators_to_projects: (account_id, accounts, projects, tokens) =>
-        await collab.add_collaborators_to_projects(@, account_id, accounts, projects, tokens)
 
     # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>
