@@ -4,14 +4,7 @@
  */
 
 import { Map } from "immutable";
-import {
-  React,
-  Component,
-  Rendered,
-  rtypes,
-  rclass,
-} from "../../app-framework";
-
+import { Component, Rendered, rtypes, rclass } from "../../app-framework";
 import { input_is_hidden, output_is_hidden } from "./flags";
 
 interface Props {
