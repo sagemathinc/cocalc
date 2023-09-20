@@ -10,7 +10,6 @@
   "references": [
     { "path": "../backend" },
     { "path": "../database" },
-    { "path": "../hub" },
     { "path": "../util" }
   ]
 }

@@ -116,8 +116,9 @@ def all_packages() -> List[str]:
         'packages/assets',
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
-        'packages/hub',
         'packages/server',  # packages/next assumes this is built
+        'packages/next',
+        'packages/hub', # hub won't build if next isn't already built
         'packages/database',  # packages/next also assumes this is built
     ]
     for x in os.listdir('packages'):

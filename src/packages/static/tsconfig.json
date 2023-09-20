@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "incremental": false,
+    "incremental": true,
     "lib": ["es5", "es6", "es2017", "dom"],
     "outDir": "dist",
     "rootDirs": ["./src", "./node_modules/@cocalc/frontend/"],
