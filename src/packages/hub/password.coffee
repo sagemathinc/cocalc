@@ -16,6 +16,7 @@ email                = require('./email')
 auth                 = require('./auth')
 base_path   = require('@cocalc/backend/base-path').default
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
+{checkEmailExclusiveSSO} = require("@cocalc/server/auth/check-email-exclusive-sso")
 
 exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password-reset'
 exports.PW_RESET_KEY = PW_RESET_KEY = 'token'
@@ -321,6 +322,15 @@ exports.change_email_address = (opts) ->
                     else
                         cb()
 
+        (cb) ->
+            checkEmailExclusiveSSO opts.database, opts.account_id, opts.mesg.new_email_address, (err, exclusive) =>
+                if err
+                    cb(err)
+                    return
+                if exclusive
+                    cb("you are not allowed to change your email address or change to this one")
+                    return
+                cb()
         (cb) ->
             # Record current email address (just in case?) and that we are
             # changing email address to the new one.  This will make it

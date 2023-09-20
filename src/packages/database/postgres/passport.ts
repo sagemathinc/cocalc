@@ -5,7 +5,7 @@
 
 // DEVELOPMENT: use scripts/auth/gen-sso.py to generate some test data
 
-import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
 import { isBlockedUnlinkStrategy } from "@cocalc/server/auth/sso/unlink-strategy";
 import {
   getPassportsCached,

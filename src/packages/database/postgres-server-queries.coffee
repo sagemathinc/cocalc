@@ -52,7 +52,6 @@ collab = require('./postgres/collab')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
-{checkEmailExclusiveSSO} = require("./postgres/check-email-exclusive-sso")
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
@@ -1207,15 +1206,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             cb("email_already_taken")
                             return
                         cb()
-            (cb) =>
-                checkEmailExclusiveSSO @, opts.account_id, opts.email_address, (err, exclusive) =>
-                    if err
-                        cb(err)
-                        return
-                    if exclusive
-                        cb("you are not allowed to change your email address or change to this one")
-                        return
-                    cb()
             (cb) =>
                 @_query
                     query : 'UPDATE accounts'

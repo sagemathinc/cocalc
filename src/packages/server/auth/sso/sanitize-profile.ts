@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PassportLoginOpts } from "@cocalc/server/auth/sso/types";
+import { PassportLoginOpts } from "@cocalc/database/settings/auth-sso-types";
 import {
   firstLetterUppercase,
   is_valid_email_address,
