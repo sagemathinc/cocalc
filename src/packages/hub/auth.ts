@@ -56,15 +56,17 @@ import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strat
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
-  InitPassport,
   isOAuth2,
   PassportLoginOpts,
-  PassportManagerOpts,
-  PassportStrategyDB,
   PassportStrategyDBConfig,
+  PassportStrategyDB,
   PassportTypes,
-  StrategyConf,
   StrategyInstanceOpts,
+} from "@cocalc/database/settings/auth-sso-types";
+import {
+  InitPassport,
+  PassportManagerOpts,
+  StrategyConf,
 } from "@cocalc/server/auth/sso/types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
@@ -185,7 +187,7 @@ export class PassportManager {
         const name = setting.strategy;
         if (BLACKLISTED_STRATEGIES.includes(name as any)) {
           throw new Error(
-            `It is not allowed to name a strategy endpoint "${name}", because it is used by the next.js /auth/* endpoint. See next/pages/auth/ROUTING.md for more information.`
+            `It is not allowed to name a strategy endpoint "${name}", because it is used by the next.js /auth/* endpoint. See next/pages/auth/ROUTING.md for more information.`,
           );
         }
         // backwards compatibility
@@ -258,7 +260,7 @@ export class PassportManager {
       const info: PassportStrategyFrontend = {
         name,
         ...(_.pick(this.passports[name].info, keys) as {
-          [key in typeof keys[number]]: any;
+          [key in (typeof keys)[number]]: any;
         }),
       };
       data.push(info);
@@ -318,7 +320,7 @@ export class PassportManager {
       for (const domain of v.info?.exclusive_domains ?? []) {
         if (ret[domain] != null) {
           throw new Error(
-            `exclusive domain '${domain}' defined by ${ret[domain]} and ${k}: they must be unique`
+            `exclusive domain '${domain}' defined by ${ret[domain]} and ${k}: they must be unique`,
           );
         }
         ret[domain] = k;
@@ -351,7 +353,7 @@ export class PassportManager {
         typeof req.query.token !== "string"
       ) {
         res.send(
-          "ERROR: I need the email address and the corresponding token data"
+          "ERROR: I need the email address and the corresponding token data",
         );
         return;
       }
@@ -467,7 +469,7 @@ export class PassportManager {
       }
       if (strategy.conf.type == null) {
         throw new Error(
-          `all "extra" strategies must define their type, in particular also "${name}"`
+          `all "extra" strategies must define their type, in particular also "${name}"`,
         );
       }
 
@@ -566,7 +568,7 @@ export class PassportManager {
       } catch (err) {
         Lret(`error parsing profile: ${err} -- ${profile_raw}`);
         const { help_email } = await cb2(
-          this.database.get_server_settings_cached
+          this.database.get_server_settings_cached,
         );
         const err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${help_email} -- ${err}<br/><pre>${err.stack}</pre>`;
         Lret(`sending error "${err_msg}"`);
@@ -634,7 +636,7 @@ export class PassportManager {
   private setState(
     name: string,
     type: PassportTypes,
-    auth_opts: AuthenticateOptions
+    auth_opts: AuthenticateOptions,
   ) {
     return async (_req: Request, _res: Response, next: NextFunction) => {
       if (isOAuth2(type)) {
@@ -709,7 +711,7 @@ export class PassportManager {
     if (confDB.conf == null) {
       // This happened on *all* of my dev servers, etc.  -- William
       L(
-        `strategy='${name}' is not properly configured -- aborting initialization`
+        `strategy='${name}' is not properly configured -- aborting initialization`,
       );
       return;
     }
@@ -738,7 +740,7 @@ export class PassportManager {
       strategyUrl,
       this.handle_get_api_key,
       this.setState(name, type, auth_opts),
-      passport.authenticate(name, auth_opts)
+      passport.authenticate(name, auth_opts),
     );
 
     // this will hopefully do new PassportLogin().login()
@@ -769,14 +771,14 @@ export class PassportManager {
           //if (req.user == null) req.user = {};
           //req.user["profile"] = samlRes.toObject();
           await handleReturn(req, res);
-        }
+        },
       );
     } else if (isOAuth2(type)) {
       this.router.get(
         returnUrl,
         this.checkState(name, type),
         passport.authenticate(name),
-        handleReturn
+        handleReturn,
       );
     } else {
       this.router.get(returnUrl, passport.authenticate(name), handleReturn);
@@ -806,7 +808,7 @@ interface IsPasswordCorrect {
 // password is correct, and false otherwise; it can do this because
 // there is no async IO when the password_hash is specified.
 export async function is_password_correct(
-  opts: IsPasswordCorrect
+  opts: IsPasswordCorrect,
 ): Promise<void> {
   opts = defaults(opts, {
     database: required,
@@ -851,7 +853,7 @@ export async function is_password_correct(
       } else {
         opts.cb(
           undefined,
-          verifyPassword(opts.password, account.password_hash)
+          verifyPassword(opts.password, account.password_hash),
         );
       }
     } catch (error) {
@@ -859,7 +861,7 @@ export async function is_password_correct(
     }
   } else {
     opts.cb(
-      "One of password_hash, account_id, or email_address must be specified."
+      "One of password_hash, account_id, or email_address must be specified.",
     );
   }
 }
