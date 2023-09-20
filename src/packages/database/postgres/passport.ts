@@ -6,7 +6,6 @@
 // DEVELOPMENT: use scripts/auth/gen-sso.py to generate some test data
 
 import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
-import { isBlockedUnlinkStrategy } from "@cocalc/server/auth/sso/unlink-strategy";
 import {
   getPassportsCached,
   setPassportsCached
@@ -20,7 +19,6 @@ import {
 } from "./account-queries";
 import {
   CreatePassportOpts,
-  DeletePassportOpts,
   PassportExistsOpts,
   PostgreSQL,
   UpdateAccountInfoAndPassportOpts
@@ -148,40 +146,6 @@ export async function create_passport(
       throw err;
     }
   }
-}
-
-export async function delete_passport(
-  db: PostgreSQL,
-  opts: DeletePassportOpts
-) {
-  db._dbg("delete_passport")(to_json({ strategy: opts.strategy, id: opts.id }));
-
-  if (
-    await isBlockedUnlinkStrategy({
-      strategyName: opts.strategy,
-      account_id: opts.account_id,
-    })
-  ) {
-    const err_msg = `You are not allowed to unlink '${opts.strategy}'`;
-    if (typeof opts.cb === "function") {
-      opts.cb(err_msg);
-      return;
-    } else {
-      throw new Error(err_msg);
-    }
-  }
-
-  return db._query({
-    query: "UPDATE accounts",
-    jsonb_set: {
-      // delete it
-      passports: { [_passport_key(opts)]: null },
-    },
-    where: {
-      "account_id = $::UUID": opts.account_id,
-    },
-    cb: opts.cb,
-  });
 }
 
 export async function passport_exists(

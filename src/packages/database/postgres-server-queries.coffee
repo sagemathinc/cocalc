@@ -54,7 +54,7 @@ read = require('read')
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
-{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, delete_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
+{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/database/settings/server-settings');
@@ -326,9 +326,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     create_passport: (opts) =>
         return await create_passport(@, opts)
-
-    delete_passport: (opts) =>
-        return delete_passport(@, opts)
 
     passport_exists: (opts) =>
         return await passport_exists(@, opts)

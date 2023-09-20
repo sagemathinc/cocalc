@@ -9,6 +9,5 @@
   "references": [
     { "path": "../util" },
     { "path": "../backend" },
-    { "path": "../server" }
   ]
 }

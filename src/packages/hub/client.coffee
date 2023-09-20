@@ -46,6 +46,7 @@ jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project = require("@cocalc/server/projects/create").default;
 user_search = require("@cocalc/server/accounts/search").default;
 collab = require('@cocalc/server/projects/collab').default;
+delete_passport = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
 
 
 {one_result} = require("@cocalc/database")
@@ -795,7 +796,7 @@ class exports.Client extends EventEmitter
         if not @account_id?
             @error_to_client(id:mesg.id, error:"must be logged in")
         else
-            @database.delete_passport
+            opts =
                 account_id : @account_id
                 strategy   : mesg.strategy
                 id         : mesg.id
@@ -804,6 +805,7 @@ class exports.Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
+            delete_passport(@database, opts)
 
     # Messages: Account settings
     get_groups: (cb) =>
