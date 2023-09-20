@@ -6,16 +6,18 @@ import type {
   ProjectWebsocket,
   WebsocketState,
 } from "@cocalc/sync/client/types";
-import debug from "debug";
 import { apiKey, apiServer, apiBasePath } from "@cocalc/backend/data";
 import versionCookie from "./version-cookie";
 import { toCookieHeader } from "./cookies";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("sync-client:connect");
+const log = logger.debug;
 
 export default async function connectToProject(
   project_id,
 ): Promise<ProjectWebsocket> {
-  const log = debug("cocalc:compute:sync:connect");
   if (!apiServer) {
     throw Error("API_SERVER must be set");
   }

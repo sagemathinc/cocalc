@@ -7,8 +7,6 @@ import { stat } from "fs";
 import type { CB } from "@cocalc/util/types/callback";
 import { Watcher } from "@cocalc/backend/watcher";
 
-const HOME = process.env.HOME ?? "/home/user";
-
 export class ClientFs extends Client implements ClientFsType {
   private filesystemClient = new FileSystemClient(this.dbg);
 
@@ -18,6 +16,19 @@ export class ClientFs extends Client implements ClientFsType {
   file_size_async = this.filesystemClient.file_size_async;
   file_stat_async = this.filesystemClient.file_stat_async;
   watch_file = this.filesystemClient.watch_file;
+
+  constructor({
+    project_id,
+    client_id,
+    home,
+  }: {
+    project_id: string;
+    client_id?: string;
+    home?: string;
+  }) {
+    super({ project_id, client_id });
+    this.filesystemClient.setHome(home ?? process.env.HOME ?? "/home/user");
+  }
 }
 
 // Some functions for reading and writing files under node.js
@@ -26,12 +37,18 @@ export class ClientFs extends Client implements ClientFsType {
 export class FileSystemClient {
   private _file_io_lock?: { [key: string]: number }; // file → timestamps
   private dbg;
+  private home: string;
 
   constructor(dbg) {
     this.dbg = dbg;
+    this.home = process.env.HOME ?? "/home/user";
   }
 
-  // Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
+  setHome(home: string) {
+    this.home = home;
+  }
+
+  // Write a file to a given path (relative to this.home) on disk; will create containing directory.
   // If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
   // WARNING: See big comment below for path_read.
   write_file = async (opts: {
@@ -40,7 +57,7 @@ export class FileSystemClient {
     cb: CB<void>;
   }): Promise<void> => {
     // WARNING: despite being async, this returns nothing!
-    const path = join(HOME, opts.path);
+    const path = join(this.home, opts.path);
     if (this._file_io_lock == null) {
       this._file_io_lock = {};
     }
@@ -85,7 +102,7 @@ export class FileSystemClient {
   }): Promise<void> => {
     // WARNING: despite being async, this returns nothing!
     let content: string | undefined = undefined;
-    const path = join(HOME, opts.path);
+    const path = join(this.home, opts.path);
     const dbg = this.dbg(
       `path_read(path='${opts.path}', maxsize_MB=${opts.maxsize_MB})`,
     );
@@ -181,7 +198,7 @@ export class FileSystemClient {
     interval?: number;
     debounce?: number;
   }): Watcher => {
-    const path = join(HOME, relPath);
+    const path = join(this.home, relPath);
     const dbg = this.dbg(`watch_file(path='${path}')`);
     dbg(`watching file '${path}'`);
     return new Watcher(path, interval, debounce);

@@ -27,6 +27,7 @@ class RemoteJupyter {
   private store;
 
   constructor({ client, path }: { client: SyncClient; path: string }) {
+    log("creating remote jupyter session");
     this.client = client;
     // @ts-ignore: TODO
     this.client.is_compute_server = true;

@@ -24,32 +24,42 @@ interface Options {
   project_id: string;
   // the id number of this manager, should be the id in the database from the compute_servers table.
   compute_server_id: number;
+  // HOME = local home directory.  This should be a network mounted (or local)
+  // filesystem that is identical to the home directory of the target project.
+  // The ipynb file will be loaded and saved from here, and must exist.
+  home: string;
 }
 
-export function manager({ project_id, compute_server_id }: Options) {
-  const m = new Manager({ project_id, compute_server_id });
-  process.on("exit", () => {
-    m.disconnectAll();
-  });
-  return m;
+process.on("exit", () => {
+  console.trace();
+});
+
+export function manager(opts: Options) {
+  return new Manager(opts);
 }
 
 class Manager {
   private sync_db;
   private project_id: string;
+  private home: string;
   private compute_server_id: number;
   private connections: { [path: string]: any } = {};
   private websocket;
   private client;
 
-  constructor({ project_id, compute_server_id }: Options) {
+  constructor({ project_id, compute_server_id, home }: Options) {
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
+    this.home = home;
   }
 
   init = async () => {
     const client_id = encodeIntToUUID(this.compute_server_id);
-    this.client = new SyncClient({ project_id: this.project_id, client_id });
+    this.client = new SyncClient({
+      project_id: this.project_id,
+      client_id,
+      home: this.home,
+    });
     this.websocket = await this.client.project_client.websocket(
       this.project_id,
     );

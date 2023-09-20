@@ -89,6 +89,9 @@ import {
   Patch,
 } from "./types";
 import { patch_cmp } from "./util";
+import debug from "debug";
+
+const logger = debug("cocalc:sync");
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -1070,12 +1073,13 @@ export class SyncDoc extends EventEmitter {
   }
 
   // Used for internal debug logging
-  private dbg(f: string = ""): Function {
-    if (!this.client?.is_project() || this.state == "closed") {
+  private dbg = (f: string = ""): Function => {
+    if (logger.enabled) {
+      return (...args) => logger(this.path, f, ...args);
+    } else {
       return (..._) => {};
     }
-    return this.client.dbg(`sync-doc("${this.path}").${f}`);
-  }
+  };
 
   private async init_all(): Promise<void> {
     if (this.state !== "init") {
