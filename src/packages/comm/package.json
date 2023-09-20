@@ -4,7 +4,9 @@
   "description": "Communication between project and frontend app support",
   "exports": {
     "./*": "./dist/*.js",
-    "./websocket/*": "./dist/websocket/*.js"
+    "./websocket/*": "./dist/websocket/*.js",
+    "./project-status/*": "./dist/project-status/*.js",
+    "./project-info/*": "./dist/project-info/*.js"
   },
   "files": ["dist/**", "README.md", "package.json", "tsconfig.json"],
   "scripts": {

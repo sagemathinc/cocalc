@@ -22,14 +22,19 @@ import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
 import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "../project-info/types";
+import { ProjectInfo } from "@cocalc/comm/project-info/types";
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   RAISE_ALERT_AFTER_MIN,
   STATUS_UPDATES_INTERVAL_S,
-} from "./const";
-import { Alert, AlertType, ComponentName, ProjectStatus } from "./types";
+} from "@cocalc/comm/project-status/const";
+import {
+  Alert,
+  AlertType,
+  ComponentName,
+  ProjectStatus,
+} from "@cocalc/comm/project-status/types";
 import { cgroup_stats } from "./utils";
 
 // TODO: only return the "next" value, if it is significantly different from "prev"
@@ -294,7 +299,7 @@ export class ProjectStatusServer extends EventEmitter {
   public async start(): Promise<void> {
     if (this.running) {
       this.dbg(
-        "project-status/server: already running, cannot be started twice"
+        "project-status/server: already running, cannot be started twice",
       );
     } else {
       await this._start();

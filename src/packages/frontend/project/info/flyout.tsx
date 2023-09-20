@@ -14,7 +14,7 @@ import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
-} from "@cocalc/project/project-info/types";
+} from "@cocalc/comm/project-info/types";
 import { field_cmp } from "@cocalc/util/misc";
 import {
   AboutContent,

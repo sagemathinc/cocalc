@@ -12,7 +12,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ProjectStatus } from "@cocalc/project/project-status/types";
+import { ProjectStatus } from "@cocalc/comm/project-status/types";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,

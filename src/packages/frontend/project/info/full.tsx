@@ -16,7 +16,7 @@ import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket
 import {
   Process,
   ProjectInfo as ProjectInfoType,
-} from "@cocalc/project/project-info/types";
+} from "@cocalc/comm/project-info/types";
 import { field_cmp, seconds2hms } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { RestartProject } from "../settings/restart-project";
