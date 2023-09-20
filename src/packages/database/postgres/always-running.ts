@@ -15,7 +15,7 @@ import { PostgreSQL } from "./types";
 // - settings ->> 'always_running' is indexed as TEXT, hence we match on the string "1" (no INT conversations)
 export async function projects_that_need_to_be_started(
   database: PostgreSQL,
-  limit = 10
+  limit = 10,
 ): Promise<string[]> {
   const result = await database.async_query({
     query: `SELECT project_id FROM projects
@@ -35,16 +35,16 @@ export async function projects_that_need_to_be_started(
 
 export async function init_start_always_running_projects(
   database: PostgreSQL,
-  interval_s: number = 15
+  interval_s: number = 15,
 ): Promise<void> {
   while (true) {
     try {
       for (const project_id of await projects_that_need_to_be_started(
-        database
+        database,
       )) {
-        const compute_server = (database as any).compute_server;
-        if (compute_server == null) continue; // not initialized (?)
-        const project = compute_server(project_id);
+        const projectControl = (database as any).projectControl;
+        if (projectControl == null) continue; // not initialized (?)
+        const project = projectControl(project_id);
         project.start(); // we fire this off, but do not wait on it
       }
     } catch (err) {

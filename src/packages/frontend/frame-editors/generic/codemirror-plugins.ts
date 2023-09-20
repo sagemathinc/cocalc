@@ -12,11 +12,9 @@ import { SetMap } from "../frame-tree/types";
 
 import * as CodeMirror from "codemirror";
 
-CodeMirror; // just to make typescript happy that CodeMirror is used.  The import above *is* needed.
-
 declare module "codemirror" {
   interface Editor {
-    options: EditorConfiguration;
+    options: CodeMirror.EditorConfiguration;
 
     setValueNoJump(value: string, scroll_last?: boolean): void;
 
@@ -30,4 +28,3 @@ declare module "codemirror" {
     }): void;
   }
 }
-

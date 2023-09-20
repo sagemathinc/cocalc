@@ -129,7 +129,7 @@ class exports.Client extends EventEmitter
             conn           : undefined
             logger         : undefined
             database       : required
-            compute_server : required
+            projectControl : required
             host           : undefined
             port           : undefined
             personal        : undefined
@@ -137,7 +137,7 @@ class exports.Client extends EventEmitter
         @conn            = @_opts.conn
         @logger          = @_opts.logger
         @database        = @_opts.database
-        @compute_server  = @_opts.compute_server
+        @projectControl  = @_opts.projectControl
 
         @_when_connected = new Date()
 
@@ -925,7 +925,7 @@ class exports.Client extends EventEmitter
                 dbg("error -- #{err}")
                 cb(err)
             else
-                project = hub_projects.new_project(mesg.project_id, @database, @compute_server)
+                project = hub_projects.new_project(mesg.project_id, @database, @projectControl)
                 @database.touch_project(project_id:mesg.project_id)
                 @_project_cache ?= {}
                 @_project_cache[key] = project
@@ -966,7 +966,7 @@ class exports.Client extends EventEmitter
                 # files to the project, etc.
                 # Also, if mesg.start is set, the project gets started below.
                 try
-                    project = await @compute_server(project_id)
+                    project = await @projectControl(project_id)
                     await project.state(force:true, update:true)
                     if mesg.start
                         await project.start()
@@ -1575,7 +1575,7 @@ class exports.Client extends EventEmitter
             (cb) =>
                 dbg("get project from compute server")
                 try
-                    project = await @compute_server(mesg.project_id)
+                    project = await @projectControl(mesg.project_id)
                     cb()
                 catch err
                     cb(err)
@@ -1629,7 +1629,7 @@ class exports.Client extends EventEmitter
                     return
                 if is_public
                     try
-                        opts.cb(undefined, await @compute_server(opts.project_id))
+                        opts.cb(undefined, await @projectControl(opts.project_id))
                     catch err
                         opts.cb(err)
                 else

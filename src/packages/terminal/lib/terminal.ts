@@ -510,7 +510,18 @@ export class Terminal {
         break;
 
       case "cwd":
-        await this.sendCurrentWorkingDirectory(spark);
+        try {
+          await this.sendCurrentWorkingDirectory(spark);
+        } catch (err) {
+          logger.debug(
+            "WARNING -- issue getting current working directory",
+            err,
+          );
+          // TODO: the terminal protocol doesn't even have a way
+          // to report that an error occured, so this silently
+          // fails. It's just for displaying the current working
+          // directory, so not too critical.
+        }
         break;
 
       case "boot": {
