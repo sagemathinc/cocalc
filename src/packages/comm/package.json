@@ -22,10 +22,9 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "dependencies": {
-    "@cocalc/frontend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
-    "@cocalc/project": "workspace:*",
-    "@cocalc/sync": "workspace:*"
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^18.16.14"

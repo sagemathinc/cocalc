@@ -3,15 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+These are types related to the websocket communications API
+between the frontend app and the project.
+*/
+
 import type {
   NBGraderAPIOptions,
   RunNotebookOptions,
 } from "@cocalc/jupyter/nbgrader/types";
 import type { Channel } from "@cocalc/sync/client/types";
-import type { Options } from "@cocalc/project/formatters";
-import type { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
-
+import type { Options } from "@cocalc/util/code-formatter";
 export type { Channel };
+
+
+export type ConfigurationAspect = "main" | "x11";
 
 export interface NbconvertParams {
   args: string[];

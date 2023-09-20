@@ -14,10 +14,10 @@ import { TypedMap } from "@cocalc/util/redux/TypedMap";
 import { KNITR_EXTS } from "@cocalc/frontend/frame-editors/latex-editor/constants";
 import { WebappClient } from "@cocalc/frontend/webapp-client";
 import { Map as iMap } from "immutable";
+import type { ConfigurationAspect } from "@cocalc/comm/websocket/types";
 
+export type { ConfigurationAspect };
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
-
-export type ConfigurationAspect = "main" | "x11";
 
 export interface MainConfiguration {
   capabilities: MainCapabilities;

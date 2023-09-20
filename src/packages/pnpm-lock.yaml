@@ -119,18 +119,15 @@ importers:
 
   comm:
     dependencies:
-      '@cocalc/frontend':
-        specifier: workspace:*
-        version: link:../frontend
       '@cocalc/jupyter':
         specifier: workspace:*
         version: link:../jupyter
-      '@cocalc/project':
-        specifier: workspace:*
-        version: link:../project
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
     devDependencies:
       '@types/node':
         specifier: ^18.16.14

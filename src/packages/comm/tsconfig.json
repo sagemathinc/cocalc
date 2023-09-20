@@ -7,8 +7,7 @@
   "exclude": ["node_modules", "dist", "test"],
   "references": [
     { "path": "../sync" },
-    { "path": "../frontend" },
     { "path": "../jupyter" },
-    { "path": "../project" }
+    { "path": "../util" },
   ]
 }
