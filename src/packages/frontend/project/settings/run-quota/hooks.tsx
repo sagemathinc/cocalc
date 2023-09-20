@@ -38,7 +38,7 @@ import {
 
 export function useRunQuota(
   project_id: string,
-  projectIsRunning: boolean | null
+  projectIsRunning: boolean | null,
 ): DisplayQuota {
   const [runQuota, setRunQuota] = useState<DisplayQuota>({});
   const project_map = useTypedRedux("projects", "project_map");
@@ -178,7 +178,7 @@ export function useCurrentUsage({
     const idle_timeout = runQuota?.get("idle_timeout"); // seconds
     const diff = Math.max(
       0,
-      (server_time().valueOf() - last_edited.valueOf()) / 1000
+      (server_time().valueOf() - last_edited.valueOf()) / 1000,
     );
     if (typeof idle_timeout === "number") {
       return {
@@ -236,8 +236,8 @@ export function useCurrentUsage({
             default:
               return [key, { display: name, element: <>{name}</> }];
           }
-        }
-      )
+        },
+      ),
     );
 
     if (!isEqual(next, currentUsage)) setCurrentUsage(next);
@@ -256,7 +256,7 @@ export function useDisplayedFields(): string[] {
 
   return useMemo(() => {
     // we have to make a copy, because we might modify it below
-    const fields = [...PROJECT_UPGRADES.field_order];
+    const fields: string[] = [...PROJECT_UPGRADES.field_order];
 
     // on kucalc on-prem, we add ext_rw and patch
     if (kucalc === KUCALC_ON_PREMISES) {
