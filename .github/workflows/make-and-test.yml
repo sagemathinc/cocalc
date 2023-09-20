@@ -18,11 +18,11 @@ env:
   PGDATABASE: smc
   PGUSER: smc
   PGHOST: localhost
-  
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:14
@@ -42,7 +42,6 @@ jobs:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         node-version:
-          - "16.x"
           - "18.x"
 
     steps:
@@ -58,5 +57,6 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - run: cd src && npm install -g pnpm && pnpm run make
+      - run: cd src && npm install -g pnpm
+      - run: cd src && pnpm run make
       - run: cd src && pnpm run test
