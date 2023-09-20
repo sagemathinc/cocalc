@@ -6,6 +6,7 @@
 import { Tooltip } from "antd";
 
 import { Icon } from "@cocalc/frontend/components";
+import track from "@cocalc/frontend/user-tracking";
 import { capitalize } from "@cocalc/util/misc";
 import { useProjectContext } from "../../context";
 import { PathNavigator } from "../../explorer/path-navigator";
@@ -54,6 +55,31 @@ export function FlyoutHeader(_: Readonly<Props>) {
             padding: FLYOUT_PADDING,
           }}
           onClick={() => actions?.toggleFlyout(flyout)}
+        />
+      </Tooltip>
+    );
+  }
+
+  function fullPageBtn() {
+    return (
+      <Tooltip title="Open this flyout panel as a full page" placement="bottom">
+        <Icon
+          name="expand"
+          className="cc-project-fixedtab-fullpage"
+          style={{
+            marginRight: FLYOUT_PADDING,
+            padding: FLYOUT_PADDING,
+            fontSize: "12px",
+          }}
+          onClick={() => {
+            // flyouts and full pages share the same internal name
+            actions?.set_active_tab(flyout);
+            track("switch-to-fixed-tab", {
+              project_id,
+              flyout,
+              how: "click-on-flyout-expand-button",
+            });
+          }}
         />
       </Tooltip>
     );
@@ -124,6 +150,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
       }}
     >
       {renderTitle()}
+      {fullPageBtn()}
       {closeBtn()}
     </div>
   );
