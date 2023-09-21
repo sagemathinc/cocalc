@@ -12,7 +12,7 @@ import maintainAutomaticPayments, {
 import { uuid } from "@cocalc/util/misc";
 import { createTestAccount } from "./test-data";
 import createCredit from "./create-credit";
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 
 const collect: { account_id: string; amount: number }[] = [];
 beforeAll(async () => {

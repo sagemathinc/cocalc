@@ -29,13 +29,13 @@ if (
     typeof process !== "undefined" && process !== null
       ? process.env
       : undefined,
-    (x) => x.DEVEL
+    (x) => x.DEVEL,
   ) &&
   !__guard__(
     typeof process !== "undefined" && process !== null
       ? process.env
       : undefined,
-    (x1) => x1.SMC_TEST
+    (x1) => x1.SMC_TEST,
   )
 ) {
   // Running on node and DEVEL is set and not running under test suite
@@ -56,7 +56,7 @@ if (
     typeof process !== "undefined" && process !== null
       ? process.env
       : undefined,
-    (x2) => x2.SMC_TEST
+    (x2) => x2.SMC_TEST,
   )
 ) {
   // in test mode we *do* want exception to get thrown below when type checks fails
@@ -65,7 +65,11 @@ if (
 
 // Checks property types on a target object with checkers in a declaration.
 // Declarations should throw an Error for mismatches and undefined if OK.
-const types = (exports.types = function (target, declaration, identifier) {
+const types = (exports.types = function (
+  target,
+  declaration,
+  identifier = "check.types",
+) {
   if (identifier == null) {
     identifier = "check.types";
   }
@@ -75,7 +79,7 @@ const types = (exports.types = function (target, declaration, identifier) {
 
   if (typeof declaration !== "object") {
     throw new Error(
-      `Types was given a ${typeof declaration} as a declaration instead of an object`
+      `Types was given a ${typeof declaration} as a declaration instead of an object`,
     );
   }
 
@@ -83,7 +87,7 @@ const types = (exports.types = function (target, declaration, identifier) {
     declaration,
     target,
     "checking a",
-    identifier
+    identifier,
   );
 });
 
@@ -102,7 +106,7 @@ types.immutable = immutable_types.immutable;
 // obj1.  For each property P of obj2 not specified in obj1, the
 // corresponding value obj1[P] is set (all in a new copy of obj1) to
 // be obj2[P].
-exports.defaults = function (obj1, obj2, allow_extra, strict) {
+exports.defaults = function (obj1, obj2, allow_extra = false, strict = false) {
   let err;
   if (strict == null) {
     strict = false;
@@ -114,7 +118,7 @@ exports.defaults = function (obj1, obj2, allow_extra, strict) {
     try {
       return `(obj1=${exports.trunc(
         exports.to_json(obj1),
-        1024
+        1024,
       )}, obj2=${exports.trunc(exports.to_json(obj2), 1024)})`;
     } catch (err) {
       return "";
@@ -183,8 +187,10 @@ exports.defaults = function (obj1, obj2, allow_extra, strict) {
 };
 
 // WARNING -- don't accidentally use this as a default:
-const required = (exports.required = exports.defaults.required =
-  "__!!!!!!this is a required property!!!!!!__");
+const required =
+  (exports.required =
+  exports.defaults.required =
+    "__!!!!!!this is a required property!!!!!!__");
 
 function __guard__(value, transform) {
   return typeof value !== "undefined" && value !== null

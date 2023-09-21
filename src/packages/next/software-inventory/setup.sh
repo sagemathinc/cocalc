@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-dist="dist/software-inventory"
+dist="lib/software-inventory"
 mkdir -p $dist
 
 # don't update inventory files if they're symlinks – used for local testing

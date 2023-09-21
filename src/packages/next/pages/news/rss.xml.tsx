@@ -14,7 +14,7 @@ const cache = new LRU<Channel | "all", any>({
   ttl: 10 * 60 * 1000,
 });
 
-import getCustomize from "@cocalc/server/settings/customize";
+import getCustomize from "@cocalc/database/settings/customize";
 import { capitalize } from "@cocalc/util/misc";
 import { slugURL } from "@cocalc/util/news";
 import {

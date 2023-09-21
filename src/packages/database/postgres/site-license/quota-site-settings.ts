@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { SiteSettingsQuotas } from "@cocalc/util/upgrades/quota";
 

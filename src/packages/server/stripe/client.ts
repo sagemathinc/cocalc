@@ -62,7 +62,7 @@ export class StripeClient {
   constructor(client: Partial<HubClient>) {
     if (!client.account_id) {
       throw Error(
-        "account_id must be specified -- make sure you are signed in"
+        "account_id must be specified -- make sure you are signed in",
       );
     }
     if (!client.database) {
@@ -211,7 +211,7 @@ export class StripeClient {
   }
 
   private async create_new_stripe_customer_from_card_token(
-    token: string
+    token: string,
   ): Promise<void> {
     const dbg = this.dbg("create_new_stripe_customer_from_card_token");
     dbg("create new stripe customer from card token");
@@ -223,7 +223,7 @@ export class StripeClient {
     const { is_anonymous } = await getPrivateProfile(this.client.account_id);
     if (is_anonymous) {
       throw Error(
-        "anonymous users are not allowed to create a stripe customer"
+        "anonymous users are not allowed to create a stripe customer",
       );
     }
 
@@ -256,7 +256,7 @@ export class StripeClient {
   }
 
   private async add_card_to_existing_stripe_customer(
-    token: string
+    token: string,
   ): Promise<void> {
     const dbg = this.dbg("add_card_to_existing_stripe_customer");
     dbg("add card to existing stripe customer");
@@ -305,6 +305,7 @@ export class StripeClient {
     return await syncCustomer({
       account_id: this.client.account_id,
       customer_id,
+      stripe: await getConn(),
     });
   }
 
@@ -362,7 +363,7 @@ export class StripeClient {
     if (options.coupon != null) {
       dbg("add coupon to customer history");
       const { coupon, coupon_history } = await this.validate_coupon(
-        options.coupon
+        options.coupon,
       );
 
       // SECURITY NOTE: incrementing a counter... subject to attack?
@@ -411,7 +412,7 @@ export class StripeClient {
     await this.update_database();
     if (mesg.coupon_id != null) {
       const { coupon, coupon_history } = await this.validate_coupon(
-        mesg.coupon_id
+        mesg.coupon_id,
       );
       coupon_history[coupon.id] += 1;
       await callback2(this.client.database.update_coupon_history, {
@@ -447,7 +448,7 @@ export class StripeClient {
   // - Is valid
   // - Used by this account less than the max per account (hard coded default is 1)
   private async validate_coupon(
-    coupon_id: string
+    coupon_id: string,
   ): Promise<{ coupon: Coupon; coupon_history: CouponHistory }> {
     const dbg = this.dbg("validate_coupon");
     dbg("retrieve the coupon");
@@ -458,7 +459,7 @@ export class StripeClient {
       this.client.database.get_coupon_history,
       {
         account_id: this.client.account_id,
-      }
+      },
     );
     if (!coupon.valid) throw Error("Sorry! This coupon has expired.");
 
@@ -492,7 +493,7 @@ export class StripeClient {
   }
 
   public async mesg_get_invoices(
-    mesg: Message
+    mesg: Message,
   ): Promise<{ invoices: InvoicesData }> {
     const dbg = this.dbg("mesg_get_invoices");
     dbg("get a list of invoices for this customer");
@@ -507,7 +508,7 @@ export class StripeClient {
     dbg();
     await callback(
       this.client.assert_user_is_in_group.bind(this.client),
-      "admin"
+      "admin",
     );
 
     dbg("check for existing stripe customer_id");
@@ -529,7 +530,7 @@ export class StripeClient {
     const conn = await getConn();
     if (customer_id != null) {
       dbg(
-        "already signed up for stripe -- sync local user account with stripe"
+        "already signed up for stripe -- sync local user account with stripe",
       );
       await syncCustomer({
         account_id: mesg.account_id,
@@ -541,7 +542,7 @@ export class StripeClient {
       const { is_anonymous } = await getPrivateProfile(mesg.account_id);
       if (is_anonymous) {
         throw Error(
-          "anonymous users are not allowed to create a stripe customer"
+          "anonymous users are not allowed to create a stripe customer",
         );
       }
       const x = {
@@ -590,7 +591,7 @@ export class StripeClient {
       this.client.database.get_user_project_upgrades,
       {
         account_id: this.client.account_id,
-      }
+      },
     );
     const { excess, available } = available_upgrades(stripe_data, projects);
     const total = get_total_upgrades(stripe_data);

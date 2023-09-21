@@ -5,10 +5,10 @@
 
 import { callback2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
 
 export async function have_active_registration_tokens(
-  db: PostgreSQL
+  db: PostgreSQL,
 ): Promise<boolean> {
   const resp = await callback2(db._query, {
     query:
@@ -19,7 +19,7 @@ export async function have_active_registration_tokens(
 }
 
 export async function get_passports(
-  db: PostgreSQL
+  db: PostgreSQL,
 ): Promise<PassportStrategyDB[]> {
   return await db.get_all_passport_settings_cached();
 }

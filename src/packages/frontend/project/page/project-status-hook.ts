@@ -5,7 +5,7 @@
 import { React } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ProjectStatus as WSProjectStatus } from "../websocket/project-status";
-import { ProjectStatus } from "@cocalc/project/project-status/types";
+import { ProjectStatus } from "@cocalc/comm/project-status/types";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { useProjectState } from "./project-state-hook";
 

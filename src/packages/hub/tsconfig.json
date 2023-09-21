@@ -5,5 +5,14 @@
     "outDir": "dist",
     "lib": ["ESNext"]
   },
-  "exclude": ["node_modules", "dist", "test"]
+  "exclude": ["node_modules", "dist", "test"],
+  "references": [
+    { "path": "../backend" },
+    { "path": "../database" },
+    { "path": "../frontend" },
+    { "path": "../next/tsconfig-dist.json" },
+    { "path": "../server" },
+    { "path": "../static" },
+    { "path": "../util" }
+  ]
 }

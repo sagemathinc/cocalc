@@ -25,7 +25,7 @@ import {
 } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import track from "@cocalc/frontend/user-tracking";
-import { getAlertName } from "@cocalc/project/project-status/types";
+import { getAlertName } from "@cocalc/comm/project-status/types";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
@@ -176,7 +176,7 @@ export function FileTab(props: Readonly<Props>) {
   } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
-  // this is @cocalc/project/project-status/types::ProjectStatus
+  // this is @cocalc/comm/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
   const status_alerts: string[] =
     name === "info"

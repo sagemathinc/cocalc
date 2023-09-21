@@ -20,10 +20,6 @@ process.env.PGDATABASE = "smc_ephemeral_testing_database";
 import { isEqual } from "lodash";
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-// import { db } from "@cocalc/database";
-// import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
-// import createProject from "@cocalc/server/projects/create";
-// import { uuid } from "@cocalc/util/misc";
 import { quota_with_reasons, SiteLicenses } from "@cocalc/util/upgrades/quota";
 
 beforeAll(async () => {

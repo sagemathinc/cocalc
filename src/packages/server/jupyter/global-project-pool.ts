@@ -7,7 +7,7 @@ server, etc., but not for code in normal projects.
 */
 
 import { isValidUUID } from "@cocalc/util/misc";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getProjects from "@cocalc/server/projects/get";
 import create from "@cocalc/server/projects/create";
 import getPool from "@cocalc/database/pool";

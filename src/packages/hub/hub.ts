@@ -29,10 +29,10 @@ import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects"
 import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
-import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
+import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import { init_passport } from "./auth";
+import { init_passport } from "@cocalc/server/hub/auth";
 import { getClients } from "./clients";
 import { set_agent_endpoint } from "./health-checks";
 import { start as startHubRegister } from "./hub_register";

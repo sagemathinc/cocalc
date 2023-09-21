@@ -8,7 +8,7 @@ import type {
   ComputeServer,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { setData } from "../util";
 import { InstancesClient } from "@google-cloud/compute";
 import * as pricing from "@cocalc/gcloud-pricing-calculator";

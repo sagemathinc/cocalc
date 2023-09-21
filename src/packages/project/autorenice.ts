@@ -14,7 +14,11 @@ import { setPriority } from "node:os";
 
 import { getLogger } from "./logger";
 import { ProjectInfoServer, get_ProjectInfoServer } from "./project-info";
-import { Process, Processes, ProjectInfo } from "./project-info/types";
+import {
+  Process,
+  Processes,
+  ProjectInfo,
+} from "@cocalc/comm/project-info/types";
 import { DEFAULT_FREE_PROCS_NICENESS, is_free_project } from "./project-setup";
 
 const L = getLogger("autorenice").debug;
@@ -29,8 +33,8 @@ const RENICE = reverse(
       { time_s: 5 * 60, niceness: 10 },
       { time_s: 60, niceness: 4 },
     ],
-    "time_s"
-  )
+    "time_s",
+  ),
 );
 
 interface Opts {

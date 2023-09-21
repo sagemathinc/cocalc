@@ -15,7 +15,7 @@ possible to test/debug this in cocalc-docker or somewhere else.
 
 import { Router } from "express";
 import { getLogger } from "@cocalc/hub/logger";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getConn from "@cocalc/server/stripe/connection";
 import {
   createCreditFromPaidStripeInvoice,

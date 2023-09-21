@@ -140,3 +140,4 @@ tsconfig.tsbuildinfo
 **/.successful-build
 src/packages/next/cache
 src/packages/next/software-inventory/*.json
+src/packages/next/lib/software-inventory/*.json

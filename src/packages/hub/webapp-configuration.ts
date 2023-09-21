@@ -19,7 +19,7 @@ import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-se
 import { SoftwareEnvConfig } from "@cocalc/util/sanitize-software-envs";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
 import { parseDomain, ParseResultType } from "parse-domain";
-import { get_passport_manager, PassportManager } from "./auth";
+import { get_passport_manager, PassportManager } from "@cocalc/server/hub/auth";
 import getServerSettings from "./servers/server-settings";
 import { have_active_registration_tokens } from "./utils";
 

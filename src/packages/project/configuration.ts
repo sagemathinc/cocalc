@@ -9,14 +9,14 @@
  * The corresponding file in the webapp is @cocalc/frontend/project_configuration.ts
  */
 
-import { APPS } from "@cocalc/frontend/frame-editors/x11-editor/apps";
+import { APPS } from "@cocalc/comm/x11-apps";
 import {
   Capabilities,
   Configuration,
   ConfigurationAspect,
   LIBRARY_INDEX_FILE,
   MainCapabilities,
-} from "@cocalc/frontend/project_configuration";
+} from "@cocalc/comm/project-configuration";
 import { syntax2tool, Tool as FormatTool } from "@cocalc/util/code-formatter";
 import { copy } from "@cocalc/util/misc";
 import { exec as child_process_exec } from "child_process";
@@ -193,7 +193,7 @@ async function get_library(): Promise<boolean> {
 async function get_formatting(): Promise<Capabilities> {
   const status: Promise<any>[] = [];
   const tools = new Array(
-    ...new Set(Object.keys(syntax2tool).map((k) => syntax2tool[k]))
+    ...new Set(Object.keys(syntax2tool).map((k) => syntax2tool[k])),
   );
   tools.push("yapf3", "black", "autopep8");
   const tidy = have("tidy");
@@ -312,7 +312,7 @@ async function capabilities(): Promise<MainCapabilities> {
 // TODO similarly, query available "shells" to use for the corresponding code editor button
 export async function get_configuration(
   aspect: ConfigurationAspect,
-  no_cache = false
+  no_cache = false,
 ): Promise<Configuration> {
   const cached = conf[aspect];
   if (cached != null && !no_cache) return cached;

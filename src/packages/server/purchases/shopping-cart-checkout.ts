@@ -2,7 +2,7 @@ import { getTransactionClient } from "@cocalc/database/pool";
 import getCart from "@cocalc/server/shopping/cart/get";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import getBalance from "./get-balance";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import getLogger from "@cocalc/backend/logger";
 import createStripeCheckoutSession from "./create-stripe-checkout-session";

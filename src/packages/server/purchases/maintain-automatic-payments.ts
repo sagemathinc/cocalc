@@ -39,7 +39,7 @@ smc=# \d accounts
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { collectPayment } from "./stripe-usage-based-subscription";
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 
 const logger = getLogger("purchase:maintain-automatic-payments");
 

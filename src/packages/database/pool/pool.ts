@@ -28,7 +28,7 @@ export default function getPool(cacheTime?: CacheTime): Pool {
   }
   if (pool == null) {
     L.debug(
-      `creating a new Pool(host:${host}, database:${database}, user:${user}, statement_timeout:${STATEMENT_TIMEOUT_MS}ms)`
+      `creating a new Pool(host:${host}, database:${database}, user:${user}, statement_timeout:${STATEMENT_TIMEOUT_MS}ms)`,
     );
     pool = new Pool({
       password: dbPassword(),
@@ -36,6 +36,8 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       host,
       database,
       statement_timeout: STATEMENT_TIMEOUT_MS, // fixes https://github.com/sagemathinc/cocalc/issues/6014
+      // the test suite assumes small pool, or there will be random failures sometimes (?)
+      max: process.env.PGDATABASE == TEST ? 2 : undefined,
     });
   }
   return pool;
@@ -76,7 +78,7 @@ export async function initEphemeralDatabase({
 }: { reset?: boolean } = {}) {
   if (database != TEST) {
     throw Error(
-      `You can't use initEphemeralDatabase() and test using the database if the env variabe PGDATABASE is not set to ${TEST}!`
+      `You can't use initEphemeralDatabase() and test using the database if the env variabe PGDATABASE is not set to ${TEST}!`,
     );
   }
   const db = new Pool({
@@ -88,7 +90,7 @@ export async function initEphemeralDatabase({
   });
   const { rows } = await db.query(
     "SELECT COUNT(*) AS count FROM pg_catalog.pg_database WHERE datname = $1",
-    [TEST]
+    [TEST],
   );
   //await db.query(`DROP DATABASE IF EXISTS ${TEST}`);
   const databaseExists = rows[0].count > 0;
@@ -110,7 +112,7 @@ async function dropAllData() {
   if (pool?.["options"]?.database != TEST) {
     // safety check!
     throw Error(
-      `You can't use dropAllData() if the env variabe PGDATABASE is not set to ${TEST}!`
+      `You can't use dropAllData() if the env variabe PGDATABASE is not set to ${TEST}!`,
     );
   }
   const client = await pool.connect();
@@ -118,7 +120,7 @@ async function dropAllData() {
   try {
     // Get all table names
     const result = await client.query(
-      "SELECT tablename FROM pg_tables WHERE schemaname='public'"
+      "SELECT tablename FROM pg_tables WHERE schemaname='public'",
     );
     const tableNames = result.rows.map((row) => row.tablename);
     await client.query(`TRUNCATE ${tableNames.join(",")}`);
