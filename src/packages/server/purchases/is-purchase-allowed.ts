@@ -4,7 +4,7 @@ import { getPurchaseQuotas } from "./purchase-quotas";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getMaxCost, Model } from "@cocalc/util/db-schema/openai";
 import { currency, round2up } from "@cocalc/util/misc";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";

@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist"
+  },
+  "exclude": ["node_modules", "dist", "test"],
+  "references": [
+    { "path": "../sync" },
+    { "path": "../jupyter" },
+    { "path": "../util" },
+  ]
+}

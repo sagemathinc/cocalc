@@ -7,5 +7,3 @@ This package connects the hub and nextjs servers to the PostgreSQL database, and
 ## Notes
 
 **WARNING**: This is the single scariest chunk of CoffeeScript left in CoCalc! 
-
-**Temporary Warning:** There is a circular dependency between this package and @cocalc/server right now.  That's necessary while we rewrite the coffeescript code.  What happened was that these files `postgres-*.coffee` ended up implementing hundreds amount of "server functions"  that have nothing to do with basic database functionality.  They need to be rewritten in lots of small typescript files, mostly in `@cocalc/server`.

@@ -5,7 +5,7 @@
 
 import { firstLetterUppercase } from "@cocalc/util/misc";
 import { Profile } from "passport";
-import { PassportTypes } from "./types";
+import { PassportTypes } from "@cocalc/database/settings/auth-sso-types";
 
 // generalized OpenID (OAuth2) profile parser for the "userinfo" endpoint
 // the returned structure matches passport.js's conventions and also has

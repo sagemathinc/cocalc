@@ -1,6 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import { is_valid_uuid_string as isValid } from "@cocalc/util/misc";
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 
 export default async function isSandbox(project_id: string): Promise<boolean> {
   if (!isValid(project_id)) {

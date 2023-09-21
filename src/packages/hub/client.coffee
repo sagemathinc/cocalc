@@ -25,7 +25,7 @@ auth                 = require('./auth')
 auth_token           = require('./auth-token')
 password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
-sign_in              = require('./sign-in')
+sign_in              = require('@cocalc/server/hub/sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
@@ -43,6 +43,11 @@ chatgpt        = require('@cocalc/server/openai/chatgpt');
 embeddings_api   = require('@cocalc/server/openai/embeddings-api');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
+create_project = require("@cocalc/server/projects/create").default;
+user_search = require("@cocalc/server/accounts/search").default;
+collab = require('@cocalc/server/projects/collab').default;
+delete_passport = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
+
 
 {one_result} = require("@cocalc/database")
 
@@ -791,7 +796,7 @@ class exports.Client extends EventEmitter
         if not @account_id?
             @error_to_client(id:mesg.id, error:"must be logged in")
         else
-            @database.delete_passport
+            opts =
                 account_id : @account_id
                 strategy   : mesg.strategy
                 id         : mesg.id
@@ -800,6 +805,7 @@ class exports.Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
+            delete_passport(@database, opts)
 
     # Messages: Account settings
     get_groups: (cb) =>
@@ -949,15 +955,18 @@ class exports.Client extends EventEmitter
         async.series([
             (cb) =>
                 dbg("create project entry in database")
-                @database.create_project
-                    account_id  : @account_id
-                    title       : mesg.title
-                    description : mesg.description
-                    image       : mesg.image
-                    license     : mesg.license
-                    noPool      : mesg.noPool
-                    cb          : (err, _project_id) =>
-                        project_id = _project_id; cb(err)
+                try
+                    opts =
+                        account_id  : @account_id
+                        title       : mesg.title
+                        description : mesg.description
+                        image       : mesg.image
+                        license     : mesg.license
+                        noPool      : mesg.noPool
+                    project_id = await create_project(opts)
+                    cb(undefined)
+                catch err
+                    cb(err)
             (cb) =>
                 cb() # we don't need to wait for project to start running before responding to user that project was created.
                 dbg("open project...")
@@ -1131,14 +1140,16 @@ class exports.Client extends EventEmitter
                     cb()
             (cb) =>
                 @touch()
-                @database.user_search
+                opts =
                     query  : mesg.query
                     limit  : mesg.limit
                     admin  : mesg.admin
                     active : mesg.active
-                    cb     : (err, results) =>
-                        locals.results = results
-                        cb(err)
+                try
+                    locals.results = await user_search(opts)
+                    cb(undefined)
+                catch err
+                    cb(err)
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
@@ -1501,7 +1512,7 @@ class exports.Client extends EventEmitter
             accounts = [accounts]
 
         try
-            await @database.add_collaborators_to_projects(@account_id, accounts, projects, tokens)
+            await collab.add_collaborators_to_projects(@database, @account_id, accounts, projects, tokens)
             resp = message.success(id:mesg.id)
             if tokens
                 # Tokens determine the projects, and it maybe useful to the client to know what

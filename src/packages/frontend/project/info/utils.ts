@@ -7,12 +7,12 @@ import { basename } from "path";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { project_websocket } from "@cocalc/frontend/frame-editors/generic/client";
-import { Process, Processes, State } from "@cocalc/project/project-info/types";
+import { Process, Processes, State } from "@cocalc/comm/project-info/types";
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT,
   ALERT_MEDIUM_PCT,
-} from "@cocalc/project/project-status/const";
+} from "@cocalc/comm/project-status/const";
 import { separate_file_extension, trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { DUState, PTStats, ProcessRow } from "./types";

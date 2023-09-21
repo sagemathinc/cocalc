@@ -117,7 +117,7 @@ export const file_extensions = [
 ] as const;
 
 // convert to type
-export type Exts = typeof file_extensions[number];
+export type Exts = (typeof file_extensions)[number];
 
 // associating filename extensions with a specific type of syntax for a parser
 type Ext2Syntax = { [s in Exts]: Parser };
@@ -158,8 +158,8 @@ export const ext2parser = ext2syntax;
 // those syntaxes (parser) which aren't handled by "prettier" (the default),
 // have these special tools (command-line interface)
 // (several ones are added for backwards compatibility)
-type Config = { [s in Parser]: Tool };
-export const syntax2tool: Readonly<Partial<Config>> = {
+type SyntaxConfig = { [s in Parser]: Tool };
+export const syntax2tool: Readonly<Partial<SyntaxConfig>> = {
   "c++": "clang-format",
   "clang-format": "clang-format",
   babel: "prettier",
@@ -238,3 +238,14 @@ for (const tool of Object.keys(t2d)) {
 }
 
 export const tool2display: Readonly<Tool2Display> = Object.freeze(t2d);
+
+export interface Config {
+  syntax: Syntax;
+  tabWidth?: number;
+  useTabs?: boolean;
+}
+
+export interface Options extends Omit<Config, "syntax"> {
+  parser: Syntax; // TODO refactor this to tool
+  tabWidth?: number;
+}

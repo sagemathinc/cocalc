@@ -24,7 +24,7 @@ import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
-import { Channel } from "@cocalc/frontend/project/websocket/types";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   aux_file,
   bind_methods,

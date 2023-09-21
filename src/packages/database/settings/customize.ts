@@ -8,7 +8,7 @@ import {
   KUCALC_COCALC_COM,
 } from "@cocalc/util/db-schema/site-defaults";
 import { Strategy } from "@cocalc/util/types/sso";
-import getStrategies from "../auth/sso/get-strategies";
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import { getServerSettings, ServerSettings } from "./server-settings";
 import siteURL from "./site-url";
 
