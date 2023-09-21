@@ -89,9 +89,6 @@ import {
   Patch,
 } from "./types";
 import { patch_cmp } from "./util";
-import debug from "debug";
-
-const logger = debug("cocalc:sync");
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -1074,11 +1071,7 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
-    if (logger.enabled) {
-      return (...args) => logger(this.path, f, ...args);
-    } else {
-      return (..._) => {};
-    }
+    return this.client.dbg(`SyncDoc('${this.path}').${f}`);
   };
 
   private async init_all(): Promise<void> {
@@ -2772,11 +2765,13 @@ export class SyncDoc extends EventEmitter {
 
   private async save_to_disk_project(): Promise<void> {
     this.assert_is_ready("save_to_disk_project");
+    const dbg = this.dbg("save_to_disk_project");
 
     // check if on-disk version is same as in memory, in
     // which case no save is needed.
     const data = this.to_str(); // string version of this doc
     const hash = hash_string(data);
+    dbg("hash = ", hash);
 
     /*
     // TODO: put this consistency check back in (?).
@@ -2800,7 +2795,7 @@ export class SyncDoc extends EventEmitter {
       throw Error(err);
     }
 
-    //dbg("project - write to disk file")
+    dbg("project - write to disk file", path);
     // set window to slightly earlier to account for clock
     // imprecision.
     // Over an sshfs mount, all stats info is **rounded down

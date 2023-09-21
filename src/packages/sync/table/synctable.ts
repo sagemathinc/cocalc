@@ -1182,7 +1182,7 @@ export class SyncTable extends EventEmitter {
         if (fields[field] == null) {
           //console.warn(changes, fields);
           throw Error(
-            `Cannot coerce: no field '${field}' in table ${this.table}`,
+            `Cannot coerce: no field '${field}' in table '${this.table}'`,
           );
         }
         const spec = specs[field];

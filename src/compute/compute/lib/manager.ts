@@ -30,9 +30,9 @@ interface Options {
   home: string;
 }
 
-// process.on("exit", () => {
-//   console.trace();
-// });
+process.on("exit", () => {
+  console.trace("manager has exited");
+});
 
 export function manager(opts: Options) {
   return new Manager(opts);
