@@ -315,7 +315,7 @@ Table({
     },
     format: {
       type: "integer",
-      desc: "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects;",
+      desc: "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects.",
     },
   },
   rules: {

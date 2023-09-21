@@ -56,7 +56,7 @@ class RemoteJupyter {
     this.log("close");
     const { sync_db } = this;
     delete this.sync_db;
-    sync_db.set_cursor_locs([]);
+    sync_db.setCursorLocsNoThrottle([]);
     sync_db.close();
     // TODO
     this.actions;
@@ -78,7 +78,7 @@ class RemoteJupyter {
       if (this.sync_db == null) {
         return;
       }
-      this.sync_db.set_cursor_locs([{ type: COMPUTER_SERVER_CURSOR_TYPE }]);
+      this.sync_db.setCursorLocsNoThrottle([{ type: COMPUTER_SERVER_CURSOR_TYPE }]);
     };
     const interval = setInterval(registerAsCellRunner, COMPUTE_THRESH_MS / 2);
     this.sync_db.once("closed", () => {

@@ -330,10 +330,11 @@ export class SyncDoc extends EventEmitter {
   }
 
   /* Set this user's cursors to the given locs. */
-  public async set_cursor_locs(
-    locs: any[],
+  setCursorLocsNoThrottle = async (
+    // locs is 'any' and not any[] because of a codemirror syntax highlighting bug!
+    locs: any,
     side_effect: boolean = false,
-  ): Promise<void> {
+  ) => {
     if (this.state != "ready") return;
     if (this.cursors_table == null) {
       throw Error("cursors are not enabled");
@@ -356,7 +357,12 @@ export class SyncDoc extends EventEmitter {
     }
     this.cursors_table.set(x, "none");
     await this.cursors_table.save();
-  }
+  };
+
+  set_cursor_locs = throttle(this.setCursorLocsNoThrottle, CURSOR_THROTTLE_MS, {
+    leading: true,
+    trailing: true,
+  });
 
   private init_file_use_interval(): void {
     if (this.file_use_interval == null) {
@@ -1553,12 +1559,6 @@ export class SyncDoc extends EventEmitter {
       }
     });
     this.cursors_table.on("change", this.handle_cursors_change.bind(this));
-
-    this.set_cursor_locs = throttle(
-      this.set_cursor_locs.bind(this),
-      CURSOR_THROTTLE_MS,
-      { leading: true, trailing: true },
-    );
 
     if (this.cursors_table.setOnDisconnect != null) {
       // setOnDisconnect is available, so clear our
