@@ -37,6 +37,7 @@ import getName from "@cocalc/server/accounts/get-name";
 import { query_projects_using_site_license } from "@cocalc/database/postgres/site-license/analytics";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import { currency } from "@cocalc/util/misc";
+import { getSubscription } from "./renew-subscription";
 
 const logger = getLogger("purchases:edit-license");
 
@@ -411,6 +412,12 @@ async function restartProjectsUsingLicense(license_id: string) {
   }
 }
 
+// Get the actual cost rate that was last paid when paying for
+// this license
+export async function getLicenseCostBasisRate(license_id:string) {
+
+}
+
 /*
 NOTES about how the above works.
 
@@ -476,3 +483,4 @@ takes as input a PurchaseInfo object and outputs this sort of object:
 }
 
 */
+
