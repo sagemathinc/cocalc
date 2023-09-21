@@ -8,7 +8,7 @@ import { getTarget, invalidateTargetCache } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
-import siteUrl from "@cocalc/server/settings/site-url";
+import siteUrl from "@cocalc/database/settings/site-url";
 
 const logger = getLogger("proxy:handle-request");
 

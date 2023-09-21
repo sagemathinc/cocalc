@@ -4,7 +4,7 @@
  */
 
 import getPool from "@cocalc/database/pool";
-import { COLORS } from "@cocalc/server/auth/sso/get-strategies";
+import { COLORS } from "@cocalc/database/settings/get-sso-strategies";
 import { ssoDispayedName } from "@cocalc/util/auth";
 import { sortBy } from "lodash";
 import { SSO } from "./types";

@@ -13,7 +13,7 @@ const DAILY_LIMIT = 1000;
 
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import getPool from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 
 // Call this function whenever an email will be sent on behalf of the given account.
 // It will increment a counter for each day, and if it goes too high it throws

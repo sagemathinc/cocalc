@@ -8,8 +8,7 @@ import { rclass, rtypes, Component, Rendered } from "../app-framework";
 import { Panel } from "../antd-bootstrap";
 import { LabeledRow, Loading, Gap } from "../components";
 import { ColorPicker } from "../colorpicker";
-import { ProfileImageSelector } from "./profile-image";
-import { set_account_table } from "./util";
+import { ProfileImageSelector, setProfile } from "./profile-image";
 import { Avatar } from "./avatar/avatar";
 
 interface Props {
@@ -41,9 +40,12 @@ class ProfileSettings extends Component<Props, State> {
     };
   }
 
-  private onColorChange(value: string): void {
-    set_account_table({ profile: { color: value } });
-  }
+  private onColorChange = (value: string) => {
+    setProfile({
+      account_id: this.props.account_id,
+      profile: { color: value },
+    });
+  };
 
   private render_header(): Rendered {
     return (

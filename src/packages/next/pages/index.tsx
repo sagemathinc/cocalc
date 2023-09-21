@@ -8,7 +8,7 @@ import { join } from "path";
 
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
 import CoCalcComFeatures, {

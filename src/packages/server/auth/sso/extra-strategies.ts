@@ -14,6 +14,7 @@ import { Strategy as Gitlab2Strategy } from "passport-gitlab2";
 import * as oauth from "passport-oauth"; // this is a wrapper containing version 1 and 2
 import { Strategy as OidcStrategy } from "passport-openidconnect";
 import { Strategy as OrcidStrategy } from "passport-orcid";
+<<<<<<< HEAD
 import { Strategy as SAMLStrategyOld } from "passport-saml";
 
 import { unreachable } from "@cocalc/util/misc";
@@ -27,6 +28,11 @@ export function getSAMLVariant(): "old" | "new" {
   L.debug(`SAML variant: ${ret}`);
   return ret;
 }
+=======
+import { Strategy as SAMLStrategy } from "passport-saml";
+import { PassportTypes, PassportTypesList } from "@cocalc/database/settings/auth-sso-types";
+
+>>>>>>> origin/master
 
 export function getExtraStrategyConstructor(
   type: PassportTypes

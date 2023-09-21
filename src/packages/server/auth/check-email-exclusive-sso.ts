@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PostgreSQL } from "./types";
-import getStrategies from "@cocalc/server/auth/sso/get-strategies";
+import { PostgreSQL } from "@cocalc/database/postgres/types";
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
 
 export async function checkEmailExclusiveSSO(
   db: PostgreSQL,
   account_id: string,
   new_email_address: string,
-  cb: (err: Error | null, result?: boolean) => void
+  cb: (err: Error | null, result?: boolean) => void,
 ): Promise<void> {
   try {
     const strategies = await getStrategies();

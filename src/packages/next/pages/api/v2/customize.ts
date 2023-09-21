@@ -5,7 +5,7 @@ a subset of fields (to cut down on bandwidth).
 This calls something that is LRU cached on the server for a few seconds.
 */
 
-import getCustomize from "@cocalc/server/settings/customize";
+import getCustomize from "@cocalc/database/settings/customize";
 import { copy_with } from "@cocalc/util/misc";
 import getParams from "lib/api/get-params";
 

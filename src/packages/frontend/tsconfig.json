@@ -23,6 +23,12 @@
     "test-mocha",
     "test",
     "*__tests__*",
-    "*__test__*",
+    "*__test__*"
+  ],
+  "references": [
+    { "path": "../comm" },
+    { "path": "../jupyter" },
+    { "path": "../sync" },
+    { "path": "../util" }
   ]
 }

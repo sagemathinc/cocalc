@@ -36,12 +36,17 @@ export class AdminUsersActions extends Actions<StoreState> {
   public async search(): Promise<void> {
     this.set_status("Searching...");
 
-    const result = await user_search({
-      query: store.get("query").trim().toLowerCase(), // backend assumes lower case
-      admin: true,
-      limit: 100,
-    });
-
+    let result;
+    try {
+      result = await user_search({
+        query: store.get("query").trim().toLowerCase(), // backend assumes lower case
+        admin: true,
+        limit: 100,
+      });
+    } catch (err) {
+      this.set_status(`ERROR -- ${err}`);
+      return;
+    }
     if (result == null) {
       this.set_status("ERROR");
       return;
@@ -61,4 +66,6 @@ export class AdminUsersActions extends Actions<StoreState> {
 }
 
 // The ?? is just to support hot module reload.
-export const actions = redux.getActions('admin-users') ?? redux.createActions("admin-users", AdminUsersActions);
+export const actions =
+  redux.getActions("admin-users") ??
+  redux.createActions("admin-users", AdminUsersActions);

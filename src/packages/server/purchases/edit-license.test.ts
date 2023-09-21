@@ -5,6 +5,7 @@
 
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import createAccount from "@cocalc/server/accounts/create-account";
+import editLicenseOwner from "./edit-license-owner";
 import editLicense from "./edit-license";
 import getLicense from "@cocalc/server/licenses/get-license";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
@@ -53,7 +54,7 @@ describe("create a license and then edit it in various ways", () => {
           account_id,
           license_id: x.license_id,
           changes: { end },
-        })
+        }),
     ).rejects.toThrow();
   });
 
@@ -70,10 +71,10 @@ describe("create a license and then edit it in various ways", () => {
     expect(license.is_manager).toBe(true);
     expect(license.number_running).toBe(0);
     expect(new Date(license.activates ?? 0).toISOString()).toBe(
-      license0.range[0]
+      license0.range[0],
     );
     expect(new Date(license.expires ?? 0).toISOString()).toBe(
-      end.toISOString()
+      end.toISOString(),
     );
   });
 
@@ -104,10 +105,10 @@ describe("create a license and then edit it in various ways", () => {
     expect(cost).toBeGreaterThan(0);
     const license = await getLicense(x.license_id, account_id);
     expect(new Date(license.activates ?? 0).toISOString()).toBe(
-      changes.start.toISOString()
+      changes.start.toISOString(),
     );
     expect(new Date(license.expires ?? 0).toISOString()).toBe(
-      changes.end.toISOString()
+      changes.end.toISOString(),
     );
     const { quota } = license;
     if (quota == null) throw Error("bug");
@@ -132,7 +133,7 @@ describe("create a license and then edit it in various ways", () => {
     const pool = getPool();
     await pool.query(
       "UPDATE site_licenses SET activates=NOW() - interval '1 hour' WHERE id=$1",
-      [x.license_id]
+      [x.license_id],
     );
     const start = dayjs().add(1, "week").toDate();
     await expect(
@@ -141,7 +142,7 @@ describe("create a license and then edit it in various ways", () => {
           account_id,
           license_id: x.license_id,
           changes: { start },
-        })
+        }),
     ).rejects.toThrow();
   });
 
@@ -153,7 +154,7 @@ describe("create a license and then edit it in various ways", () => {
           account_id: uuid(),
           license_id: x.license_id,
           changes: { end },
-        })
+        }),
     ).rejects.toThrow();
   });
 });
@@ -228,5 +229,92 @@ describe("create a subscription license and edit it and confirm the subscription
     // the monthly cost doesn't change *exactly* as the cost to edit, due
     // to the date range, particular month, etc.
     expect(subs2[0].cost).toBeCloseTo(cost2?.discounted_cost ?? 0, 2);
+  });
+});
+
+describe("testing changing the owner of a license", () => {
+  const account_id = uuid();
+
+  const x = { license_id: "" };
+
+  it("create an account and a license", async () => {
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id,
+    });
+    const info = getPurchaseInfo(license0);
+    x.license_id = await createLicense(account_id, info);
+  });
+
+  const new_account_id = uuid();
+
+  it("make account_id an admin and try empty change ", async () => {
+    const pool = getPool();
+    await pool.query(
+      "update accounts set groups='{admin}' where account_id=$1",
+      [account_id],
+    );
+    const { rows } = await pool.query(
+      "SELECT info FROM site_licenses WHERE id=$1",
+      [x.license_id],
+    );
+    await editLicenseOwner({
+      account_id,
+      new_account_id: account_id,
+      license_id: x.license_id,
+    });
+    const { rows: rows2 } = await pool.query(
+      "SELECT info FROM site_licenses WHERE id=$1",
+      [x.license_id],
+    );
+    // no change
+    expect(rows).toEqual(rows2);
+  });
+
+  it("make a real change", async () => {
+    await editLicenseOwner({
+      account_id,
+      new_account_id,
+      license_id: x.license_id,
+    });
+  });
+
+  it("verify that changing the owner worked", async () => {
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT info FROM site_licenses WHERE id=$1",
+      [x.license_id],
+    );
+    expect(rows[0].info.purchased.account_id).toBe(new_account_id);
+  });
+
+  it("attempt to change the owner of the license as a non-admin fails", async () => {
+    expect(async () => {
+      await editLicenseOwner({
+        account_id: new_account_id,
+        new_account_id: account_id,
+        license_id: x.license_id,
+      });
+    }).rejects.toThrow("admin");
+  });
+
+  it("clear the info field and confirm that editing still works (for manual purchased licenses from before)", async () => {
+    const pool = getPool();
+    await pool.query("UPDATE site_licenses SET info=null WHERE id=$1", [
+      x.license_id,
+    ]);
+    await editLicenseOwner({
+      account_id,
+      new_account_id,
+      license_id: x.license_id,
+    });
+    const { rows } = await pool.query(
+      "SELECT info FROM site_licenses WHERE id=$1",
+      [x.license_id],
+    );
+    expect(rows[0].info.purchased.account_id).toBe(new_account_id);
   });
 });

@@ -4,7 +4,7 @@ attacks.  This is in memory per-backend server, and doesn't touch
 the database.
 */
 
-import getStrategies from "@cocalc/server/auth/sso/get-strategies";
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import LRU from "lru-cache";
 import { checkRequiredSSO } from "./sso/check-required-sso";
 

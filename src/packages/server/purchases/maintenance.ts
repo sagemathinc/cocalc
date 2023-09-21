@@ -1,4 +1,4 @@
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { maintainActivePurchases as maintainProjectUpgrades } from "./project-quotas";
 import maintainSubscriptions from "./maintain-subscriptions";
 import maintainStatements from "./statements/maintenance";

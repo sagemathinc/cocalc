@@ -4,7 +4,7 @@ Get openai client.
 
 import getLogger from "@cocalc/backend/logger";
 import { Configuration, OpenAIApi } from "openai";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const log = getLogger("openai:client");
 

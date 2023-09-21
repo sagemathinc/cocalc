@@ -46,7 +46,7 @@ import {
 } from "@cocalc/frontend/misc/local-storage";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
-import { Config as FormatterConfig } from "@cocalc/project/formatters";
+import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import { SyncString } from "@cocalc/sync/editor/string";

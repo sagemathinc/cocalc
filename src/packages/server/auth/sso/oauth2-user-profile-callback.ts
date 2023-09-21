@@ -12,7 +12,7 @@ import jwt_decode from "jwt-decode";
 const safeJsonStringify = require("safe-json-stringify");
 
 import { parseOpenIdProfile } from "@cocalc/server/auth/sso/openid-parser";
-import { UserProfileCallbackOpts } from "./types";
+import { UserProfileCallbackOpts } from "@cocalc/database/settings/auth-sso-types";
 
 export function addUserProfileCallback(opts: UserProfileCallbackOpts) {
   const { strategy_instance, userinfoURL, L2, type } = opts;

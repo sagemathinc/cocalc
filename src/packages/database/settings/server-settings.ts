@@ -8,7 +8,7 @@ import LRU from "lru-cache";
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
@@ -87,7 +87,7 @@ e.g. COCALC_SETTING_DNS, COCALC_SETTING_EMAIL_SMTP_SERVER, COCALC_SETTING_EMAIL_
 Loaded once at startup, right after configuring the db schema, see hub/hub.ts.
 */
 export async function load_server_settings_from_env(
-  db: PostgreSQL
+  db: PostgreSQL,
 ): Promise<void> {
   const PREFIX = SERVER_SETTINGS_ENV_PREFIX;
   // reset all readonly values
@@ -110,11 +110,11 @@ export async function load_server_settings_from_env(
       if (valid != null) {
         if (Array.isArray(valid) && !valid.includes(envval)) {
           throw new Error(
-            `The value of $${envvar} is invalid. allowed are ${valid}.`
+            `The value of $${envvar} is invalid. allowed are ${valid}.`,
           );
         } else if (typeof valid == "function" && !valid(envval)) {
           throw new Error(
-            `The validation function rejected the value of $${envvar}.`
+            `The validation function rejected the value of $${envvar}.`,
           );
         }
       }

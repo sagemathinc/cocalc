@@ -31,6 +31,7 @@ import {
 import { SiteLicense } from "@cocalc/util/types/site-licenses";
 import { actions } from "./actions";
 import { Managers } from "./managers";
+import Owner from "./owner";
 import { DisplayQuota, EditQuota } from "./quota";
 import { license_fields, license_field_type, ManagerInfo } from "./types";
 import {
@@ -54,7 +55,7 @@ interface Props {
 function format_as_label(field: string): string {
   // Some replacements that look better.
   if (field == "info") {
-    field = "Structured JSON information";
+    field = "Purchaser information";
   }
   return replace_all(capitalize(field), "_", " ");
 }
@@ -117,7 +118,7 @@ export const License: React.FC<Props> = (props: Props) => {
         >
           <Col span={4}>{format_as_label(field)}</Col>
           <Col span={20}>{x}</Col>
-        </Row>
+        </Row>,
       );
     }
     if (typeof edits?.size === "number" && edits.size > 0) {
@@ -127,7 +128,7 @@ export const License: React.FC<Props> = (props: Props) => {
           <Col span={24} style={{ textAlign: "right" }}>
             {render_save_cancel(id)}
           </Col>
-        </Row>
+        </Row>,
       );
     }
     return v;
@@ -140,7 +141,7 @@ export const License: React.FC<Props> = (props: Props) => {
   function render_value_editing(
     type: license_field_type,
     field,
-    val
+    val,
   ): Rendered | string {
     let x: Rendered | string = undefined;
     const onChange = (new_val) => on_change(field, new_val);
@@ -290,7 +291,7 @@ export const License: React.FC<Props> = (props: Props) => {
   function render_value_static(
     type: license_field_type,
     field,
-    val
+    val,
   ): Rendered | string {
     let x: Rendered | string = undefined;
     switch (type) {
@@ -389,15 +390,23 @@ export const License: React.FC<Props> = (props: Props) => {
         x = <DisplayQuota quota={val} />;
         break;
       case "map":
-        if (!val) {
-          x = "";
-        } else {
-          x = (
-            <pre style={{ margin: 0, padding: "5px" }}>
-              {JSON.stringify(val, undefined, 2)}
-            </pre>
-          );
+        let value: string = "";
+        if (val) {
+          if (typeof val != "string") {
+            value = JSON.stringify(val, undefined, 2);
+          } else {
+            value = val;
+          }
         }
+        x = (
+          <div>
+            <Owner
+              account_id={JSON.parse(value)?.purchased?.account_id}
+              license_id={license.get("id")}
+            />
+            <pre style={{ margin: 0, padding: "5px" }}>{value}</pre>
+          </div>
+        );
         break;
       default:
         x = `${val}`;

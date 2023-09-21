@@ -6,7 +6,7 @@
 import LRU from "lru-cache";
 
 import { get } from "@cocalc/server/news/get";
-import getCustomize from "@cocalc/server/settings/customize";
+import getCustomize from "@cocalc/database/settings/customize";
 import { slugURL } from "@cocalc/util/news";
 import { NewsItem } from "@cocalc/util/types/news";
 import { renderMarkdown } from "lib/news";
