@@ -4,10 +4,15 @@ export function redux_name(project_id: string, path: string): string {
   return `editor-${project_id}-${path}`;
 }
 
+// don't change this without changing reduxNameToProjectId
 export function project_redux_name(project_id: string, name?: string): string {
   let s = `project-${project_id}`;
   if (name != null) {
     s += `-${name}`;
   }
   return s;
+}
+
+export function reduxNameToProjectId(name: string): string {
+  return name.slice("project-".length);
 }
