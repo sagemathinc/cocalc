@@ -20,7 +20,7 @@ import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log";
 
-const FLYOUT_FULLSCREEN_TOUR_NAME: TourName = "flyout-fullscreen";
+const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
 interface Props {
   flyoutWidth: number;
@@ -31,7 +31,7 @@ interface Props {
 export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
   const { actions, project_id, is_active } = useProjectContext();
-  // the flyout fullscreen button explanation isn't an Antd tour, but has the same effect.
+  // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
   const [highlightFullpage, setHighlightFullpage] = useState<boolean>(false);
 
@@ -39,7 +39,8 @@ export function FlyoutHeader(_: Readonly<Props>) {
     // we only want to show the highlight if the project page is in the front (active)
     // and the user has not seen the tour yet.
     const show =
-      is_active && tours && !tours.includes(FLYOUT_FULLSCREEN_TOUR_NAME);
+      is_active &&
+      (tours == null || !tours.includes(FLYOUT_FULLPAGE_TOUR_NAME));
     setHighlightFullpage(show || false);
   }, [is_active]);
 
@@ -85,14 +86,14 @@ export function FlyoutHeader(_: Readonly<Props>) {
           <>
             <hr />
             <div>
-              You can change the behavior of these buttons on the side via the
+              You can change the behavior of these buttons on the side, via the
               vertical menu layout button selector at the bottom left.
             </div>
             <div style={{ textAlign: "center", marginTop: "10px" }}>
               <Button
                 onClick={() => {
                   const actions = redux.getActions("account");
-                  actions.setTourDone(FLYOUT_FULLSCREEN_TOUR_NAME);
+                  actions.setTourDone(FLYOUT_FULLPAGE_TOUR_NAME);
                   setHighlightFullpage(false);
                 }}
               >
@@ -140,9 +141,11 @@ export function FlyoutHeader(_: Readonly<Props>) {
               });
               if (highlightFullpage) {
                 const actions = redux.getActions("account");
-                actions.setTourDone(FLYOUT_FULLSCREEN_TOUR_NAME);
+                actions.setTourDone(FLYOUT_FULLPAGE_TOUR_NAME);
                 setHighlightFullpage(false);
               }
+              // now, close the flyout panel, to finish the transition
+              actions?.toggleFlyout(flyout);
             }}
           />
         </Tooltip>

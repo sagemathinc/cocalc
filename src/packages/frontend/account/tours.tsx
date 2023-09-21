@@ -1,21 +1,22 @@
-import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { Checkbox, Space } from "antd";
 import { ReactNode } from "react";
 
-const tourNames = {
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
+
+const TOUR_NAMES = {
   projects: "Projects",
   "chatgpt-title-bar-button": "ChatGPT Button",
   explorer: "File Explorer",
   "frame-terminal": "Linux Terminal",
-  "flyout-fullscreen": "Fullscreen Flyout",
+  "flyout-fullpage": "Fullpage Flyout",
 } as const;
 
-export type TourName = keyof typeof tourNames;
+export type TourName = keyof typeof TOUR_NAMES;
 
 export default function Tours() {
   const tours = useRedux("account", "tours");
   const v: ReactNode[] = [];
-  for (const name in tourNames) {
+  for (const name in TOUR_NAMES) {
     v.push(
       <Checkbox
         key={name}
@@ -29,7 +30,7 @@ export default function Tours() {
           }
         }}
       >
-        {tourNames[name]}
+        {TOUR_NAMES[name]}
       </Checkbox>
     );
   }

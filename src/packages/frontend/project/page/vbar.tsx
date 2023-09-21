@@ -34,8 +34,8 @@ function getDefaultVBAROption() {
   const created = store.get("created");
   // check that cretaed is a Date
   if (created == null || !(created instanceof Date)) return "both";
-  // if created is after 2023-09-10 return "flyout", else "both"
-  if (created > new Date("2023-09-10")) {
+  // if created is after 2023-09-22 return "flyout", else "both"
+  if (created > new Date("2023-09-22")) {
     return "flyout";
   } else {
     return "both";

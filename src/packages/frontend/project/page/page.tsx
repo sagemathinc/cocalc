@@ -17,6 +17,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useAppState } from "@cocalc/frontend/app/context";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { Loading } from "@cocalc/frontend/components";
 import {
   FrameContext,
@@ -127,7 +128,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const flyoutLimit = useMemo(() => {
     return {
       left: FLYOUT_DEFAULT_WIDTH_PX / 2,
-      right: pageWidthPx / 2,
+      right: IS_MOBILE ? pageWidthPx * 0.9 : pageWidthPx / 2,
     };
   }, [pageWidthPx]);
 
