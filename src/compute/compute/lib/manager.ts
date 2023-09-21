@@ -26,8 +26,9 @@ interface Options {
   compute_server_id: number;
   // HOME = local home directory.  This should be a network mounted (or local)
   // filesystem that is identical to the home directory of the target project.
-  // The ipynb file will be loaded and saved from here, and must exist.
-  home: string;
+  // The ipynb file will be loaded and saved from here, and must exist, and
+  // process.env.HOME gets set to this.
+  home?: string;
 }
 
 process.on("exit", () => {
@@ -47,10 +48,15 @@ class Manager {
   private websocket;
   private client;
 
-  constructor({ project_id, compute_server_id, home }: Options) {
+  constructor({
+    project_id,
+    compute_server_id,
+    home = process.env.HOME ?? "/home/user",
+  }: Options) {
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.home = home;
+    process.env.HOME = home;
   }
 
   init = async () => {

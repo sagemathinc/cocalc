@@ -61,7 +61,7 @@ export class FileSystemClient {
     if (this._file_io_lock == null) {
       this._file_io_lock = {};
     }
-    const dbg = this.dbg(`write_file ${opts.path}`);
+    const dbg = this.dbg(`write_file ${path}`);
     dbg();
     const now = Date.now();
     if (now - (this._file_io_lock[path] ?? 0) < 15000) {
@@ -104,7 +104,7 @@ export class FileSystemClient {
     let content: string | undefined = undefined;
     const path = join(this.home, opts.path);
     const dbg = this.dbg(
-      `path_read(path='${opts.path}', maxsize_MB=${opts.maxsize_MB})`,
+      `path_read(path='${path}', maxsize_MB=${opts.maxsize_MB})`,
     );
     dbg();
     if (this._file_io_lock == null) {
@@ -131,7 +131,7 @@ export class FileSystemClient {
       dbg("check if file too big");
       let size: number | undefined = undefined;
       try {
-        size = await this.file_size_async(opts.path);
+        size = await this.file_size_async(path);
       } catch (err) {
         dbg(`error checking -- ${err}`);
         opts.cb(err);
@@ -142,7 +142,7 @@ export class FileSystemClient {
         dbg("file is too big!");
         opts.cb(
           new Error(
-            `file '${opts.path}' size (=${
+            `file '${path}' size (=${
               size / 1000000
             }MB) too large (must be at most ${
               opts.maxsize_MB
@@ -186,7 +186,8 @@ export class FileSystemClient {
 
   path_stat = (opts: { path: string; cb: CB }) => {
     // see https://nodejs.org/api/fs.html#fs_class_fs_stats
-    stat(opts.path, opts.cb);
+    const path = join(this.home, opts.path);
+    stat(path, opts.cb);
   };
 
   watch_file = ({
