@@ -1,4 +1,4 @@
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 import { getProject } from "@cocalc/server/projects/control";
 import LRU from "lru-cache";
 

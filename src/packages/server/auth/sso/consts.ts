@@ -6,7 +6,7 @@
 // various constants related to SSO authentication
 
 import base_path from "@cocalc/backend/base-path";
-import { PassportLoginInfo } from "@cocalc/server/auth/sso/types";
+import { PassportLoginInfo } from "@cocalc/database/settings/auth-sso-types";
 
 // This is the default derivation of user/profile fields.
 // Overwrite them via the configuration's login_info field.

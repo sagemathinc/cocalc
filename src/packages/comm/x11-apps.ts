@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/components/icon";
+//import { IconName } from "@cocalc/frontend/components/icon";
 
 interface APPS_Interface {
   [k: string]: {
-    icon: IconName;
+    icon: string;
     desc: string;
     label?: string;
     command?: string;

@@ -141,7 +141,7 @@ export interface Upgrades {
   network: number;
   disk_quota: number;
   member_host: number;
-  privileged: number;
+  privileged?: number;
   always_running: number;
   ephemeral_state: number;
   ephemeral_disk: number;
@@ -328,7 +328,7 @@ function calcDefaultQuotas(site_settings?: SiteSettingsQuotas): Quota {
 }
 
 export function isSiteLicenseQuotaSetting(
-  slq?: QuotaSetting
+  slq?: QuotaSetting,
 ): slq is SiteLicenseQuotaSetting {
   return slq != null && (slq as SiteLicenseQuotaSetting).quota != null;
 }
@@ -352,7 +352,7 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
 }
 
 function select_dedicated_vm(
-  site_licenses: SiteLicenses
+  site_licenses: SiteLicenses,
 ): { id: string; vm: DedicatedVM } | null {
   // if there is a dedicated_vm upgrade, pick the first one
   for (const [id, val] of Object.entries(site_licenses)) {
@@ -472,7 +472,7 @@ export function licenseToGroupKey(val: QuotaSetting): string {
 // * disks: orthogonal to VMs, more than one per project is possible
 function selectMatchingLicenses(
   site_licenses: SiteLicenses,
-  filterGroup?: string
+  filterGroup?: string,
 ):
   | {
       groupKey: string;
@@ -539,7 +539,7 @@ function extract_patches(site_licenses: SiteLicenses): Patch {
 
 function selectSiteLicenses(
   site_licenses: SiteLicenses,
-  reasons?: Reasons
+  reasons?: Reasons,
 ): {
   site_licenses: SiteLicenses;
   dedicated_disks?: DedicatedDisk[];
@@ -603,7 +603,7 @@ function selectSiteLicenses(
 // so we just take the first one. @see selectSiteLicense.
 // the basic unit is seconds!
 function calcSiteLicenseQuotaIdleTimeout(
-  site_licenses?: SiteLicenseQuotaSetting[]
+  site_licenses?: SiteLicenseQuotaSetting[],
 ): number {
   if (site_licenses == null || site_licenses.length === 0) return 0;
   const sl = site_licenses[0];
@@ -702,7 +702,7 @@ function max_quotas(q1: RQuota, q2: RQuota): RQuota {
 // still, max upgrades cap those hardcoded minimums
 function ensure_minimum<T extends Quota | RQuota>(
   quota: T,
-  max_upgrades?: RQuota
+  max_upgrades?: RQuota,
 ): T {
   // ensure minimum cpu are met
   cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU, max_upgrades);
@@ -721,13 +721,13 @@ function ensure_minimum<T extends Quota | RQuota>(
 function calc_oc(
   quota: RQuota,
   site_settings?: SiteSettingsQuotas,
-  max_upgrades?: RQuota
+  max_upgrades?: RQuota,
 ) {
   function ocfun(
     quota,
     ratio,
     limit: "cpu_limit" | "memory_limit",
-    request: "memory_request" | "cpu_request"
+    request: "memory_request" | "cpu_request",
   ): void {
     ratio = sanitize_overcommit(ratio);
     if (ratio != null) {
@@ -802,28 +802,28 @@ function quota_v2(opts: OptsV2): Quota {
   const users_sum = sum_quotas(
     ...Object.values(users)
       .filter((v: { upgrades?: Upgrades }) => v?.upgrades != null)
-      .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
+      .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades)),
   );
 
   // v1 of licenses, encoding upgrades directly
   const license_upgrades_sum = sum_quotas(
-    ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
+    ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota),
   );
 
   // those site licenses, which have a {quota : ...} set
   const site_license_quota_settings = Object.values(site_licenses).filter(
-    isSiteLicenseQuotaSetting
+    isSiteLicenseQuotaSetting,
   );
 
   // v2 of licenses, indirectly via {quota: {…}} objects, introducing yet another schema.
   const license_quota_sum = sum_quotas(
     ...site_license_quota_settings.map((l: SiteLicenseQuotaSetting) =>
-      license2quota(l.quota)
-    )
+      license2quota(l.quota),
+    ),
   );
 
   license_quota_sum.idle_timeout = calcSiteLicenseQuotaIdleTimeout(
-    site_license_quota_settings
+    site_license_quota_settings,
   );
 
   // the main idea is old upgrades and licenses quotas only complement each other – not add up.
@@ -840,15 +840,15 @@ function quota_v2(opts: OptsV2): Quota {
               quota,
               contribs: sum_quotas(users_sum, license_upgrades_sum),
               max_upgrades,
-            })
+            }),
           ),
-          min_quotas(license_quota_sum, max_upgrades)
+          min_quotas(license_quota_sum, max_upgrades),
         ),
         site_settings,
-        max_upgrades
-      )
+        max_upgrades,
+      ),
     ),
-    max_upgrades
+    max_upgrades,
   );
 }
 
@@ -876,14 +876,14 @@ export function quota(
     quota: PayAsYouGoQuota;
     account_id: string;
     purchase_id: number;
-  }
+  },
 ): Quota {
   const { quota } = quota_with_reasons(
     settings_arg,
     users_arg,
     site_licenses,
     site_settings,
-    pay_as_you_go
+    pay_as_you_go,
   );
   return quota;
 }
@@ -897,7 +897,7 @@ export function quota_with_reasons(
     quota: PayAsYouGoQuota;
     account_id: string;
     purchase_id: number;
-  }
+  },
 ): { quota: Quota; reasons: { [key: string]: string } } {
   // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
   // tests to catch this are in postgres/site-license/hook.test.ts
@@ -912,11 +912,11 @@ export function quota_with_reasons(
   }
   // we want to make sure the arguments can't be modified
   const settings: Readonly<Settings> = Object.freeze(
-    settings_arg == null ? {} : settings_arg
+    settings_arg == null ? {} : settings_arg,
   );
 
   const users: Readonly<Users> = Object.freeze(
-    users_arg == null ? {} : users_arg
+    users_arg == null ? {} : users_arg,
   );
 
   site_settings = Object.freeze(site_settings);
@@ -992,7 +992,7 @@ export function quota_with_reasons(
     quota = op_quotas(
       quota as RQuota,
       upgrade2quota(pay_as_you_go.quota),
-      "max"
+      "max",
     );
   }
 
@@ -1027,7 +1027,7 @@ export function quota_with_reasons(
 // this is only used by webapp, not this quota function, and also not tested
 export function site_license_quota(
   site_licenses: SiteLicenses,
-  max_upgrades_param?: Upgrades
+  max_upgrades_param?: Upgrades,
 ): Quota {
   // we filter here as well, b/c this function is used elsewhere
   const { site_licenses: site_licenses_selected, dedicated_vm = false } =
@@ -1150,7 +1150,7 @@ function cap_lower_bound(
   quota: Quota,
   name: keyof Quota,
   MIN_SPEC,
-  max_upgrades?: RQuota
+  max_upgrades?: RQuota,
 ): void {
   const val = quota[name];
   if (typeof val === "number") {

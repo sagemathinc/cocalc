@@ -23,15 +23,15 @@ import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeElapsed, Tip } from "@cocalc/frontend/components";
 import { FLYOUT_PADDING } from "@cocalc/frontend/project/page/flyouts/consts";
-import { Channel } from "@cocalc/frontend/project/websocket/types";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   Processes,
   ProjectInfoCmds,
   Signal,
   State,
-} from "@cocalc/project/project-info/types";
-import { AlertType, ComponentName } from "@cocalc/project/project-status/types";
+} from "@cocalc/comm/project-info/types";
+import { AlertType, ComponentName } from "@cocalc/comm/project-status/types";
 import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { CGroupInfo, DUState } from "./types";
@@ -273,7 +273,7 @@ const CGroupTip: React.FC<CGroupTipProps> = React.memo(
         {children}
       </Tip>
     );
-  }
+  },
 );
 
 const format = (val) => `${val.toFixed(0)}%`;
@@ -343,7 +343,7 @@ export const ProjectProblems: React.FC<ProjectProblemsProps> = React.memo(
         {component_alerts.map(render_problem)}
       </Alert>
     );
-  }
+  },
 );
 
 interface CGroupProps {
@@ -373,12 +373,12 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
     const progprops = useProgressProps(mode);
     const all_alerts = project_status?.get("alerts") ?? immutable.Map();
     const status_alerts: Readonly<string[]> = all_alerts.map((a) =>
-      a.get("type")
+      a.get("type"),
     );
 
     const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
 
-    // we're essentially checking the type of @cocalc/project/project-status/types.ts
+    // we're essentially checking the type of @cocalc/comm/project-status/types
     // (but it is immutable js)
     const alert = {
       cpu: status_alerts.includes("cpu-cgroup" as AlertType),
@@ -491,7 +491,7 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
         </Descriptions>
       );
     }
-  }
+  },
 );
 
 interface CoCalcFileProps {
@@ -531,7 +531,7 @@ export const CoCalcFile: React.FC<CoCalcFileProps> = React.memo(
         {render_tip()}
       </Button>
     );
-  }
+  },
 );
 
 interface SignalButtonsProps {
@@ -672,7 +672,7 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
         </Form.Item>
       );
     }
-  }
+  },
 );
 
 export function render_cocalc_btn({ title, onClick }) {

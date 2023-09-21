@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],
+    "composite": true,
+    "declaration": true,
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -26,8 +28,15 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "dist/software-inventory/*.json",
+    "software-inventory/*.json",
     "components/landing/*.json"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "public", "styles", "dist"],
+  "references": [
+    { "path": "../backend" },
+    { "path": "../database" },
+    { "path": "../frontend" },
+    { "path": "../server" },
+    { "path": "../util" }
+  ]
 }

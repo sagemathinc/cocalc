@@ -4,7 +4,7 @@
  */
 
 import { createContext, useContext } from "react";
-import type { Customize as ServerCustomize } from "@cocalc/server/settings/customize";
+import type { Customize as ServerCustomize } from "@cocalc/database/settings/customize";
 
 interface Customize extends ServerCustomize {
   account?: {

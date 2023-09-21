@@ -5,7 +5,7 @@ TODO: Much of this code is general to ongoing pay-as-you-go purchases, but right
 now only projects are such.  This code should get refactored into another file.
 */
 
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { getPricePerHour as getPricePerHour0 } from "@cocalc/util/purchases/project-quotas";
 import getPool, { PoolClient } from "@cocalc/database/pool";

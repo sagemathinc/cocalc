@@ -16,6 +16,8 @@ email                = require('./email')
 auth                 = require('./auth')
 base_path   = require('@cocalc/backend/base-path').default
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
+{checkEmailExclusiveSSO} = require("@cocalc/server/auth/check-email-exclusive-sso")
+getConn = require("@cocalc/server/stripe/connection").default;
 
 exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password-reset'
 exports.PW_RESET_KEY = PW_RESET_KEY = 'token'
@@ -322,6 +324,15 @@ exports.change_email_address = (opts) ->
                         cb()
 
         (cb) ->
+            checkEmailExclusiveSSO opts.database, opts.account_id, opts.mesg.new_email_address, (err, exclusive) =>
+                if err
+                    cb(err)
+                    return
+                if exclusive
+                    cb("you are not allowed to change your email address or change to this one")
+                    return
+                cb()
+        (cb) ->
             # Record current email address (just in case?) and that we are
             # changing email address to the new one.  This will make it
             # easy to implement a "change your email address back" feature
@@ -337,6 +348,7 @@ exports.change_email_address = (opts) ->
             opts.database.change_email_address
                 account_id    : opts.mesg.account_id
                 email_address : opts.mesg.new_email_address
+                stripe        : await getConn()
                 cb            : cb
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...

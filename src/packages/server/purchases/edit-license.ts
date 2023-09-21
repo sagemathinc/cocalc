@@ -56,7 +56,7 @@ interface Options {
 }
 
 export default async function editLicense(
-  opts: Options
+  opts: Options,
 ): Promise<{ purchase_id?: number; cost: number }> {
   let { changes } = opts;
   const {
@@ -85,7 +85,7 @@ export default async function editLicense(
   ) {
     if (changes.start != null || changes.end != null) {
       throw Error(
-        "editing the start or end dates of a subscription license is not allowed"
+        "editing the start or end dates of a subscription license is not allowed",
       );
     }
   }
@@ -111,8 +111,8 @@ export default async function editLicense(
     } else {
       throw Error(
         `Only the user who purchased a license is allowed to edit it. This license was purchased by ${await getName(
-          owner_id
-        )}.`
+          owner_id,
+        )}.`,
       );
     }
   }
@@ -178,7 +178,7 @@ export default async function editLicense(
       // is so far entirely for accounting (i.e., understanding *when*
       // a purchase is for to better compute accrued revenue).
       const period_start = new Date(
-        Math.max(modifiedInfo.start.valueOf(), Date.now())
+        Math.max(modifiedInfo.start.valueOf(), Date.now()),
       );
       const period_end = modifiedInfo.end;
 
@@ -202,7 +202,7 @@ export default async function editLicense(
         info,
         modifiedInfo,
         changes,
-        client
+        client,
       );
     }
 
@@ -223,7 +223,7 @@ export default async function editLicense(
   if (requiresRestart(info, changes)) {
     logger.debug(
       "editLicense -- restarting all projects that are using the license",
-      license_id
+      license_id,
     );
     // don't block returning on this
     (async () => {
@@ -231,14 +231,14 @@ export default async function editLicense(
         await restartProjectsUsingLicense(license_id);
         logger.debug(
           "editLicense -- DONE restarting all projects that are using the license",
-          license_id
+          license_id,
         );
       } catch (err) {
         console.trace(err);
         logger.debug(
           "editLicense -- ERROR restarting all projects that are using the license",
           license_id,
-          `${err}`
+          `${err}`,
         );
       }
     })();
@@ -289,7 +289,7 @@ function requiresRestart(info: PurchaseInfo, changes: Changes): boolean {
 async function changeLicense(
   license_id: string,
   info: PurchaseInfo,
-  client: PoolClient
+  client: PoolClient,
 ) {
   if (info.type == "vouchers") {
     throw Error("BUG -- info.type must not be vouchers");
@@ -304,7 +304,7 @@ async function changeLicense(
       (info as any).end,
       info.start,
       license_id,
-    ]
+    ],
   );
 }
 
@@ -313,7 +313,7 @@ async function updateSubscriptionCost(
   info: PurchaseInfo,
   modifiedInfo: PurchaseInfo,
   changes: Changes,
-  client: PoolClient
+  client: PoolClient,
 ) {
   if (
     info.type == "vouchers" ||
@@ -324,7 +324,7 @@ async function updateSubscriptionCost(
       "updateSubscriptionCost",
       license_id,
       "not a subscription",
-      info
+      info,
     );
     // no subscription associated to this license
     return;
@@ -346,7 +346,7 @@ async function updateSubscriptionCost(
   }
   const { rows } = await client.query(
     "SELECT subscription_id FROM site_licenses WHERE id=$1",
-    [license_id]
+    [license_id],
   );
   const subscription_id = rows[0]?.subscription_id;
   if (!subscription_id) {
@@ -362,7 +362,7 @@ async function updateSubscriptionCost(
     "updateSubscriptionCost",
     license_id,
     "changing cost to",
-    newCost
+    newCost,
   );
   await client.query("UPDATE subscriptions SET cost=$1 WHERE id=$2", [
     newCost,
@@ -374,12 +374,12 @@ async function updateSubscriptionCost(
 // to the activates and expires timestamps made.   Those take precedence
 // over whatever was used for the original purchase.
 export async function getPurchaseInfo(
-  license_id: string
+  license_id: string,
 ): Promise<PurchaseInfo & { account_id: string }> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT info->'purchased' as info, activates, expires FROM site_licenses WHERE id=$1",
-    [license_id]
+    [license_id],
   );
   if (rows.length == 0) {
     throw Error(`no license with id ${license_id}`);

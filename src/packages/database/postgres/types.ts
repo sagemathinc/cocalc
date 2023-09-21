@@ -6,7 +6,7 @@
 import { EventEmitter } from "events";
 import { Client } from "pg";
 
-import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
 import {
   CB,
   CBDB,
@@ -109,7 +109,7 @@ export interface PostgreSQL extends EventEmitter {
   get_site_settings(opts: { cb: CB }): void;
 
   async_query<T = UntypedQueryResult>(
-    opts: AsyncQueryOptions
+    opts: AsyncQueryOptions,
   ): Promise<QueryRows<T>>;
 
   _listen(table: string, select: QuerySelect, watch: string[], cb: CB): void;
@@ -238,7 +238,7 @@ export interface PostgreSQL extends EventEmitter {
 
   set_passport_settings(
     db: PostgreSQL,
-    opts: PassportStrategyDB & { cb?: CB }
+    opts: PassportStrategyDB & { cb?: CB },
   ): Promise<void>;
 
   get_passport_settings(opts: {
@@ -249,7 +249,7 @@ export interface PostgreSQL extends EventEmitter {
   get_all_passport_settings_cached(): Promise<PassportStrategyDB[]>;
 
   update_account_and_passport(
-    opts: UpdateAccountInfoAndPassportOpts
+    opts: UpdateAccountInfoAndPassportOpts,
   ): Promise<void>;
 
   change_password(opts: {

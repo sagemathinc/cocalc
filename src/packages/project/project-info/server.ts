@@ -29,7 +29,7 @@ import {
   ProjectInfo,
   Stat,
   State,
-} from "./types";
+} from "@cocalc/comm/project-info/types";
 import { exec } from "./utils";
 //import { get_sage_path } from "../sage_session"
 import { getLogger } from "../logger";

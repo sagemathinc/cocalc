@@ -3,7 +3,7 @@ Backend server side part of ChatGPT integration with CoCalc.
 */
 
 import getLogger from "@cocalc/backend/logger";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getProject from "./global-project-pool";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_kernels } from "@cocalc/util/message";

@@ -16,7 +16,8 @@ import * as oauth from "passport-oauth";
 import { Strategy as OidcStrategy } from "passport-openidconnect";
 import { Strategy as OrcidStrategy } from "passport-orcid";
 import { Strategy as SAMLStrategy } from "passport-saml";
-import { PassportTypes, PassportTypesList } from "./types";
+import { PassportTypes, PassportTypesList } from "@cocalc/database/settings/auth-sso-types";
+
 
 export function getExtraStrategyConstructor(
   type: PassportTypes

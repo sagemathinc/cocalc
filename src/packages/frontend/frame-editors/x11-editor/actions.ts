@@ -14,7 +14,7 @@ const HELP_URL = "https://doc.cocalc.com/x11.html";
 // waste of bandwidth...
 const CLIENT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
-import { Channel } from "@cocalc/frontend/project/websocket/types";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import { Map, Set as immutableSet, fromJS } from "immutable";
 import { project_api } from "../generic/client";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";

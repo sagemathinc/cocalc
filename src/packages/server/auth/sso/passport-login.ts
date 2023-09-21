@@ -37,7 +37,7 @@ import {
   PassportLoginLocals,
   PassportLoginOpts,
   PassportStrategyDB,
-} from "@cocalc/server/auth/sso/types";
+} from "@cocalc/database/settings/auth-sso-types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { HELP_EMAIL } from "@cocalc/util/theme";
 import getEmailAddress from "../../accounts/get-email-address";

@@ -8,7 +8,7 @@ import type { Transporter } from "nodemailer";
 import type { Message } from "./message";
 import getHelpEmail from "./help";
 import appendFooter from "./footer";
-import { getServerSettings } from "../settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 type BackendType = "email" | "password_reset";
 

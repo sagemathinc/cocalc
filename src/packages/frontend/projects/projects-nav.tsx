@@ -3,30 +3,35 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Avatar, Popover, Tabs } from "antd";
 import type { TabsProps } from "antd";
+import { Avatar, Popover, Tabs } from "antd";
 
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { COLORS } from "@cocalc/util/theme";
-import { COMPUTE_STATES } from "@cocalc/util/schema";
-import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
-import { set_window_title } from "@cocalc/frontend/browser";
+import { Icon, Loading } from "@cocalc/frontend//components";
 import {
   redux,
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { useMemo, useState, CSSProperties } from "react";
-import { Loading, Icon } from "@cocalc/frontend//components";
-import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
+import { set_window_title } from "@cocalc/frontend/browser";
 import {
   SortableTabs,
-  useSortable,
   renderTabBar,
   useItemContext,
+  useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
+import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { COMPUTE_STATES } from "@cocalc/util/schema";
+import { COLORS } from "@cocalc/util/theme";
+import { CSSProperties, useMemo, useState } from "react";
+import { useProjectState } from "../project/page/project-state-hook";
+import { useProjectHasInternetAccess } from "../project/settings/has-internet-access-hook";
+import { NO_INTERNET } from "../project/trial-banner";
+import { BuyLicenseForProject } from "../site-licenses/purchase/buy-license-for-project";
 
 const PROJECT_NAME_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
@@ -51,6 +56,18 @@ function useProjectStatusAlerts(project_id: string) {
 
 function ProjectTab({ project_id }: ProjectTabProps) {
   const { width } = useItemContext();
+
+  // determine, if the "no internet" icon + text is shown – only known for sure, if project is running
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const onKucalc = customize_kucalc === KUCALC_COCALC_COM;
+  const status = useProjectState(project_id);
+  const isRunning = useMemo(
+    () => status.get("state") === "running",
+    [status.get("state")]
+  );
+  const hasInternet = useProjectHasInternetAccess(project_id);
+  const showNoInternet = isRunning && !hasInternet;
+
   const { active } = useSortable({ id: project_id });
   const other_settings = useTypedRedux("account", "other_settings");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
@@ -112,9 +129,38 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     }
   }
 
+  function noInternetInfo() {
+    if (showNoInternet)
+      return (
+        <>
+          <div style={{ color: COLORS.ANTD_RED_WARN }}>
+            This project can't connect to the internet: {NO_INTERNET}.
+            {onKucalc && (
+              <>
+                {" "}
+                <BuyLicenseForProject
+                  buyText="Upgrade this project"
+                  asLink={true}
+                  size="small"
+                  style={{
+                    padding: 0,
+                    color: COLORS.ANTD_RED_WARN,
+                    fontWeight: "bold",
+                  }}
+                />{" "}
+                to unblock internet access.
+              </>
+            )}
+          </div>
+          <hr />
+        </>
+      );
+  }
+
   function renderContent() {
     return (
       <div style={{ maxWidth: "400px", maxHeight: "50vh", overflow: "auto" }}>
+        {noInternetInfo()}
         <ProjectAvatarImage
           project_id={project_id}
           size={120}
@@ -132,6 +178,24 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     );
   }
 
+  function renderNoInternet() {
+    if (showNoInternet)
+      return <Icon name="global" style={{ color: COLORS.ANTD_RED_WARN }} />;
+  }
+
+  function renderAvatar() {
+    const avatar = project?.get("avatar_image_tiny");
+    if (!avatar) return;
+    return (
+      <Avatar
+        style={{ marginTop: "-2px" }}
+        shape="circle"
+        icon={<img src={project.get("avatar_image_tiny")} />}
+        size={20}
+      />
+    );
+  }
+
   function onMouseUp(e: React.MouseEvent) {
     // if middle mouse button has been clicked, close the project
     if (e.button === 1) {
@@ -146,14 +210,8 @@ function ProjectTab({ project_id }: ProjectTabProps) {
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
         {icon}
-        {project?.get("avatar_image_tiny") && (
-          <Avatar
-            style={{ marginTop: "-2px" }}
-            shape="circle"
-            icon={<img src={project.get("avatar_image_tiny")} />}
-            size={20}
-          />
-        )}{" "}
+        {renderNoInternet()}
+        {renderAvatar()}{" "}
         <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
       </div>
     </div>
