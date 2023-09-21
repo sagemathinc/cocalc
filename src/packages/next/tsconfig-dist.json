@@ -3,14 +3,21 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist",
-    "lib": ["ESNext"]
+    "lib": ["dom", "dom.iterable", "ESNext"]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "dist/software-inventory/*.json",
+    "software-inventory/*.json",
     "components/landing/*.json"
   ],
-  "exclude": ["node_modules", "public", "styles"]
+  "exclude": ["node_modules", "public", "styles", "dist"],
+  "references": [
+    { "path": "../backend" },
+    { "path": "../database" },
+    { "path": "../frontend" },
+    { "path": "../server" },
+    { "path": "../util" }
+  ]
 }

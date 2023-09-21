@@ -5,23 +5,15 @@
   "main": "./dist/index.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc",
+    "build": "npx tsc --build",
     "clean": "rm -rf dist node_modules",
-    "test": "pnpm exec jest dist",
+    "_test_doc_": "--runInBand -- serial only because crashes when running all tests across all packages",
+    "test": "pnpm exec jest dist --runInBand",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter",
-    "terminal"
-  ],
+  "keywords": ["cocalc", "jupyter", "terminal"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",

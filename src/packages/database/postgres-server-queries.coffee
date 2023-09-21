@@ -34,8 +34,6 @@ required = defaults.required
 
 { quota } = require("@cocalc/util/upgrades/quota")
 
-{ DEFAULT_COMPUTE_IMAGE } = require("@cocalc/util/db-schema/defaults")
-
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 read = require('read')
@@ -43,7 +41,6 @@ read = require('read')
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
-collab = require('./postgres/collab')
 # TODO is set_account_info_if_possible used here?!
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 {getStripeCustomerId, syncCustomer} = require('./postgres/stripe')
@@ -54,25 +51,18 @@ collab = require('./postgres/collab')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
-{checkEmailExclusiveSSO} = require("./postgres/check-email-exclusive-sso")
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
-{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, delete_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
+{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
-{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/server/settings/server-settings');
+{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/database/settings/server-settings');
 {pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 registrationTokens = require('./postgres/registration-tokens').default;
 
 stripe_name = require('@cocalc/util/stripe/name').default;
-
-create_project = require("@cocalc/server/projects/create").default;
-
-{Stripe} = require("@cocalc/server/stripe/client")
-
-user_search = require("@cocalc/server/accounts/search").default;
 
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
@@ -336,9 +326,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     create_passport: (opts) =>
         return await create_passport(@, opts)
-
-    delete_passport: (opts) =>
-        return delete_passport(@, opts)
 
     passport_exists: (opts) =>
         return await passport_exists(@, opts)
@@ -894,12 +881,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         f(account_id, username)
                     opts.cb(undefined, usernames)
 
-    user_search: (opts) =>
-        try
-            opts.cb(undefined, await user_search(opts))
-        catch err
-            opts.cb(err.message)
-
     _account_where: (opts) =>
         # account_id > email_address > lti_id
         if opts.account_id
@@ -1207,6 +1188,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             account_id    : required
             email_address : required
+            stripe        : required
             cb            : required
         if not @_validate_opts(opts) then return
         async.series([
@@ -1221,15 +1203,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             cb("email_already_taken")
                             return
                         cb()
-            (cb) =>
-                checkEmailExclusiveSSO @, opts.account_id, opts.email_address, (err, exclusive) =>
-                    if err
-                        cb(err)
-                        return
-                    if exclusive
-                        cb("you are not allowed to change your email address or change to this one")
-                        return
-                    cb()
             (cb) =>
                 @_query
                     query : 'UPDATE accounts'
@@ -1248,7 +1221,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             try
                                 await syncCustomer
                                     account_id  : opts.account_id
-                                    stripe      : undefined
+                                    stripe      : opts.stripe
                                     customer_id : x.stripe_customer_id
                                 cb()
                             catch err
@@ -1427,23 +1400,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'account_id = $::UUID' : opts.account_id
                 'filename   = $::TEXT' : opts.filename
             cb   : all_results(opts.cb)
-
-    # Create a new project with given owner.  Returns the generated project_id.
-    create_project: (opts) =>
-        opts = defaults opts,
-            account_id  : required    # initial owner
-            title       : undefined
-            description : undefined
-            lti_id      : undefined   # array of strings
-            image       : DEFAULT_COMPUTE_IMAGE   # probably ok to leave it undefined
-            license     : undefined   # string -- "license_id1,license_id2,..."
-            noPool      : undefined   # if true, don't use pool
-            cb          : required    # cb(err, project_id)
-        if not @_validate_opts(opts) then return
-        try
-            opts.cb(undefined, await create_project(opts))
-        catch err
-            opts.cb(err)
 
     ###
     File editing activity -- users modifying files in any way
@@ -1625,10 +1581,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             jsonb_set : {users : {"#{opts.account_id}": null}}
             where     : {'project_id :: UUID = $' : opts.project_id}
             cb        : opts.cb
-
-    # async
-    add_collaborators_to_projects: (account_id, accounts, projects, tokens) =>
-        await collab.add_collaborators_to_projects(@, account_id, accounts, projects, tokens)
 
     # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>

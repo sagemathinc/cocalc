@@ -31,7 +31,7 @@ export default function AdminQuotas({ project_id }: Props) {
   ]);
   const [editing, setEditing] = useState<boolean>(false);
   const [quotaState, setQuotaState] = useState<Partial<QuotaParams> | null>(
-    null
+    null,
   );
 
   function setQuotaStateToProjectSettings() {
@@ -40,7 +40,7 @@ export default function AdminQuotas({ project_id }: Props) {
     for (const name in QUOTA_PARAMS) {
       const data = QUOTA_PARAMS[name];
       newState[name] = misc.round2(
-        (projectSettings.get(name) ?? 0) * data.display_factor
+        (projectSettings.get(name) ?? 0) * data.display_factor,
       );
     }
     if (!isEqual(quotaState, newState)) {
@@ -166,7 +166,7 @@ export default function AdminQuotas({ project_id }: Props) {
         PROJECT_UPGRADES.field_order.map((name) => (
           <QuotaRow
             key={name}
-            name={name}
+            name={name as any}
             quotaState={quotaState}
             setQuotaState={setQuotaState}
           />

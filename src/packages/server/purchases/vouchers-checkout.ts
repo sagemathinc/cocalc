@@ -3,7 +3,7 @@ import createStripeCheckoutSession from "./create-stripe-checkout-session";
 import { getCheckoutCart } from "./shopping-cart-checkout";
 import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import type { CheckoutParams } from "./shopping-cart-checkout";
 import createVouchers from "@cocalc/server/vouchers/create-vouchers";

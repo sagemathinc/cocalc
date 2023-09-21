@@ -4,7 +4,7 @@ Verify recaptcha or throw error on failure.
 Does nothing if recaptcha is not configured on the server.
 */
 
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 // IMPORTANT: This code is only meant to be used by the nextjs app.  Note that
 // nextjs polyfills fetch in: https://nextjs.org/blog/next-9-4#improved-built-in-fetch-support

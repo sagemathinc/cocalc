@@ -1,0 +1,35 @@
+{
+  "name": "@cocalc/comm",
+  "version": "0.1.0",
+  "description": "Communication between project and frontend app support",
+  "exports": {
+    "./*": "./dist/*.js",
+    "./websocket/*": "./dist/websocket/*.js",
+    "./project-status/*": "./dist/project-status/*.js",
+    "./project-info/*": "./dist/project-info/*.js"
+  },
+  "files": ["dist/**", "README.md", "package.json", "tsconfig.json"],
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "npx tsc --build",
+    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+  },
+  "author": "SageMath, Inc.",
+  "keywords": ["cocalc"],
+  "license": "SEE LICENSE.md",
+  "dependencies": {},
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/comm",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "dependencies": {
+    "@cocalc/comm": "workspace:*",
+    "@cocalc/jupyter": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.14"
+  }
+}

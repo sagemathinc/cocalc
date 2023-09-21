@@ -8,7 +8,7 @@ import { checkForAbuse } from "./abuse";
 import { GPTModel, getCost, isValidModel } from "@cocalc/util/db-schema/openai";
 import { delay } from "awaiting";
 import getClient from "./client";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import GPT3Tokenizer from "gpt3-tokenizer";
 import { EventEmitter } from "events";

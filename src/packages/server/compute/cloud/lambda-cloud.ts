@@ -2,7 +2,7 @@ import type {
   ComputeServer,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { LambdaCloudAPI } from "lambda-cloud-node-api";
 import { setData } from "../util";
 import getLogger from "@cocalc/backend/logger";

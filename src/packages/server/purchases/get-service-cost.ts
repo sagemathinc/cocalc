@@ -2,7 +2,7 @@
 Returns an object that describes the cost of a given service.
 */
 
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import {
   getCost as getOpenaiCost,
   OpenaiCost,

@@ -13,6 +13,7 @@ import {
 } from "./support";
 import { getRemotePtyChannelName, getChannelName } from "./util";
 import { RemoteTerminal } from "./remote-terminal";
+import { delay } from "awaiting";
 
 afterAll(() => {
   setTimeout(process.exit, 250);
@@ -125,7 +126,8 @@ describe("test remotePty using actual pty", () => {
   const channel = primus.channel(getChannelName(path));
   const ptyChannel = primus.channel(getRemotePtyChannelName(path));
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    await delay(1000);
     terminal = new Terminal(primus, path, options);
   });
 

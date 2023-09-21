@@ -10,7 +10,7 @@ import {
   get_ProjectStatusServer,
   ProjectStatusServer,
 } from "../project-status";
-import { ProjectStatus } from "../project-status/types";
+import { ProjectStatus } from "@cocalc/comm/project-status/types";
 
 class ProjectStatusTable {
   private table: SyncTable;

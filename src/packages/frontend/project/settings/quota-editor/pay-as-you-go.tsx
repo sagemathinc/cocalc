@@ -399,7 +399,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
             .map((name) => (
               <QuotaRow
                 key={name}
-                name={name}
+                name={name as any}
                 quotaState={quotaState}
                 setQuotaState={setQuotaState}
                 maxQuotas={maxQuotas}

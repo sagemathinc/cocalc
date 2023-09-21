@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PostgreSQL } from "./types";
+import { PostgreSQL } from "@cocalc/database/postgres/types";
 import { is_array, is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import isSandbox from "@cocalc/server/projects/is-sandbox";
@@ -16,7 +16,7 @@ export async function add_collaborators_to_projects(
   account_id: string,
   accounts: string[],
   projects: string[], // can be empty strings if tokens specified (since they determine project_id)
-  tokens?: string[] // must be all specified or none
+  tokens?: string[], // must be all specified or none
 ): Promise<void> {
   try {
     // In case of project tokens, this mutates the projects array:
@@ -73,7 +73,7 @@ async function verify_write_access_to_projects(
   db: PostgreSQL,
   account_id: string,
   projects: string[],
-  tokens?: string[]
+  tokens?: string[],
 ): Promise<void> {
   // Also, we are not doing this in parallel, but could. Let's not
   // put undue load on the server for this.
@@ -85,7 +85,7 @@ async function verify_write_access_to_projects(
       }
       const { project_id, error } = await project_invite_token_project_id(
         db,
-        tokens[i]
+        tokens[i],
       );
       if (error || !project_id) {
         throw Error(`Project invite token is not valid - ${error}`);
@@ -113,7 +113,7 @@ async function verify_write_access_to_projects(
       }
 
       throw Error(
-        `user ${account_id} does not have write access to project ${project_id}`
+        `user ${account_id} does not have write access to project ${project_id}`,
       );
     }
   }
@@ -122,11 +122,11 @@ async function verify_write_access_to_projects(
 function verify_types(
   account_id: string,
   accounts: string[],
-  projects: string[]
+  projects: string[],
 ) {
   if (!is_valid_uuid_string(account_id))
     throw Error(
-      `account_id (="${account_id}") must be a valid uuid string (type=${typeof account_id})`
+      `account_id (="${account_id}") must be a valid uuid string (type=${typeof account_id})`,
     );
   if (!is_array(accounts)) {
     throw Error("accounts must be an array");
@@ -136,7 +136,7 @@ function verify_types(
   }
   if (accounts.length != projects.length) {
     throw Error(
-      `accounts (of length ${accounts.length}) and projects (of length ${projects.length}) must be arrays of the same length`
+      `accounts (of length ${accounts.length}) and projects (of length ${projects.length}) must be arrays of the same length`,
     );
   }
   for (const x of accounts) {
@@ -146,7 +146,7 @@ function verify_types(
   for (const x of projects) {
     if (x != "" && !is_valid_uuid_string(x))
       throw Error(
-        `all project id's must be valid uuid's (or empty), but "${x}" is not`
+        `all project id's must be valid uuid's (or empty), but "${x}" is not`,
       );
   }
 }
@@ -155,7 +155,7 @@ function verify_types(
 // Returns {project_id:"...."} with project_id of the project if the token is valid.
 async function project_invite_token_project_id(
   db: PostgreSQL,
-  token: string
+  token: string,
 ): Promise<{ project_id?: string; error?: string }> {
   let v;
   try {
@@ -180,7 +180,7 @@ async function project_invite_token_project_id(
 
 async function increment_project_invite_token_counter(
   db: PostgreSQL,
-  token: string
+  token: string,
 ): Promise<void> {
   await db.async_query({
     query:
@@ -192,7 +192,7 @@ async function increment_project_invite_token_counter(
 async function verify_course_access_to_project(
   db: PostgreSQL,
   account_id: string,
-  project_id: string
+  project_id: string,
 ): Promise<void> {
   /*
   Raise an exception unless:
@@ -223,7 +223,7 @@ async function verify_course_access_to_project(
   const group = w.rows[0]?.group;
   if (group != "owner" && group != "collaborator") {
     throw Error(
-      `cannot add self to "${project_id}" -- must be owner or collaborator on course project`
+      `cannot add self to "${project_id}" -- must be owner or collaborator on course project`,
     );
   }
 }
@@ -237,7 +237,7 @@ gets overwhelmed.  This is better.
 */
 async function sandboxMaintenance(
   db: PostgreSQL,
-  project_id: string
+  project_id: string,
 ): Promise<void> {
   const idleUsers = await idleSandboxUsers(project_id);
   // remove them
