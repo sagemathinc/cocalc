@@ -14,6 +14,7 @@ export interface Client extends EventEmitter {
   is_signed_in: () => boolean;
   touch_project: (project_id: string) => void;
   set_connected?: Function;
+  is_compute_server?: boolean;
 }
 
 export interface ClientFs extends Client {

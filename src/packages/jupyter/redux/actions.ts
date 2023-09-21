@@ -108,7 +108,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.is_project = client.is_project();
     store._is_project = this.is_project;
 
-    // @ts-ignore (TODO):
     this.is_compute_server = !!client.is_compute_server;
 
     let directory: any;
@@ -184,7 +183,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const { responseCallbacks } = this.apiCallHandler;
     this.syncdb.on("message", (data) => {
       const cb = responseCallbacks[data.id];
-      console.log("message", cb != null, data);
       if (cb != null) {
         delete responseCallbacks[data.id];
         if (data.response.event == "error") {

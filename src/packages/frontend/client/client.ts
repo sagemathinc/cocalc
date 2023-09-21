@@ -27,8 +27,19 @@ import { version } from "@cocalc/util/smc-version";
 import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
+import debug from "debug";
 
-declare const DEBUG; //  this comes from webpack.
+// This DEBUG variable comes from webpack:
+declare const DEBUG;
+
+const log = debug("cocalc");
+// To get actual extreme logging though you have to also set
+//
+// localStorage.DEBUG='cocalc'
+//
+// and refresh your browser.  Example, this will turn on
+// all the sync activity logging and everything that calls
+// client.dbg.
 
 export type AsyncCall = (opts: object) => Promise<any>;
 
@@ -284,9 +295,14 @@ class Client extends EventEmitter implements WebappClient {
   }
 
   public dbg(f): Function {
-    return function (...m) {
-      console.log(`${new Date().toISOString()} - Client.${f}: `, ...m);
-    };
+    if (log.enabled) {
+      return (...args) => log(new Date().toISOString(), f, ...args);
+    } else {
+      return (..._) => {};
+    }
+    //     return function (...m) {
+    //       console.log(`${new Date().toISOString()} - Client.${f}: `, ...m);
+    //     };
   }
 
   public version(): number {

@@ -147,6 +147,28 @@ Table({
   name: "compute_servers",
   rules: {
     primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [{ "project_id = $::UUID": "project_id" }],
+        throttle_changes: 2000,
+        fields: {
+          id: null,
+          account_id: null,
+          name: null,
+          color: null,
+          cost_per_hour: null,
+          deleted: null,
+          project_id: null,
+          state_changed: null,
+          error: null,
+          state: null,
+          idle_timeout: null,
+          autorestart: null,
+          cloud: null,
+          configuration: null,
+        },
+      },
+    },
   },
   fields: {
     id: ID,
