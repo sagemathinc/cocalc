@@ -176,6 +176,7 @@ function SubscriptionActions({
               disabled={loading}
               key="nothing"
               onClick={() => setModalOpen(false)}
+              type="primary"
             >
               Make No Change
             </Button>,
@@ -195,7 +196,7 @@ function SubscriptionActions({
               cancelText="No"
             >
               <Button disabled={loading} key="cancelNow" danger>
-                Cancel Now
+                Cancel Now...
               </Button>
             </Popconfirm>,
             <Popconfirm
@@ -211,8 +212,8 @@ function SubscriptionActions({
               okText="Yes"
               cancelText="No"
             >
-              <Button disabled={loading} key="cancelEnd" type="primary">
-                Cancel at Period End
+              <Button disabled={loading} key="cancelEnd">
+                Cancel at Period End...
               </Button>
             </Popconfirm>,
           ]}
@@ -287,7 +288,7 @@ function LicenseDescription({ license_id, refresh }) {
 
 export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[] | null>(
-    null
+    null,
   );
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -420,7 +421,7 @@ export default function Subscriptions() {
         ),
       },
     ],
-    []
+    [],
   );
 
   return (

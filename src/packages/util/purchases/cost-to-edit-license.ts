@@ -25,7 +25,7 @@ const log = (..._args) => {};
 
 export default function costToEditLicense(
   info: PurchaseInfo,
-  changes: Changes
+  changes: Changes,
 ): { cost: number; modifiedInfo: PurchaseInfo } {
   if (info.type == "vouchers") {
     throw Error("bug -- a license for vouchers makes no sense");
@@ -45,13 +45,13 @@ export default function costToEditLicense(
   if (changes.start != null) {
     if (info.start <= recent) {
       throw Error(
-        "if you are going to change the start date, then the license can't have already started"
+        "if you are going to change the start date, then the license can't have already started",
       );
     }
     if (changes.end != null) {
       if (changes.start > changes.end) {
         throw Error(
-          "if you are changing both the start and end date, then start must be <= than end"
+          "if you are changing both the start and end date, then start must be <= than end",
         );
       }
     }
@@ -59,12 +59,12 @@ export default function costToEditLicense(
   if (changes.end != null) {
     if (changes.end < recent) {
       throw Error(
-        "if you're changing the end date, then you can't change it to be in the past"
+        "if you're changing the end date, then you can't change it to be in the past",
       );
     }
     if (changes.start == null && changes.end < info.start) {
       throw Error(
-        `you can't change the end date ${changes.end} to be before the start date ${info.start}`
+        `you can't change the end date ${changes.end} to be before the start date ${info.start}`,
       );
     }
   }
@@ -76,8 +76,8 @@ export default function costToEditLicense(
     ) {
       throw Error(
         `custom_uptime must be 'always_running' or one of ${JSON.stringify(
-          Object.keys(LicenseIdleTimeouts)
-        )}`
+          Object.keys(LicenseIdleTimeouts),
+        )}`,
       );
     }
   }
@@ -106,7 +106,7 @@ export default function costToEditLicense(
     assertIsPositiveInteger(changes.quantity, "quantity");
     if (modifiedInfo.type != "quota") {
       throw Error(
-        `you can only change the quantity of a quota upgrade license but this license has type '${modifiedInfo.type}'`
+        `you can only change the quantity of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
     modifiedInfo.quantity = changes.quantity;
@@ -119,7 +119,7 @@ export default function costToEditLicense(
     }
     if (modifiedInfo.type != "quota") {
       throw Error(
-        `you can only change the custom_ram of a quota upgrade license but this license has type '${modifiedInfo.type}'`
+        `you can only change the custom_ram of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
     modifiedInfo.custom_ram = changes.custom_ram;
@@ -132,7 +132,7 @@ export default function costToEditLicense(
     }
     if (modifiedInfo.type != "quota") {
       throw Error(
-        `you can only change the custom_cpu of a quota upgrade license but this license has type '${modifiedInfo.type}'`
+        `you can only change the custom_cpu of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
     modifiedInfo.custom_cpu = changes.custom_cpu;
@@ -145,7 +145,7 @@ export default function costToEditLicense(
     }
     if (modifiedInfo.type != "quota") {
       throw Error(
-        `you can only change the custom_disk of a quota upgrade license but this license has type '${modifiedInfo.type}'`
+        `you can only change the custom_disk of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
     modifiedInfo.custom_disk = changes.custom_disk;
@@ -157,7 +157,7 @@ export default function costToEditLicense(
     }
     if (modifiedInfo.type != "quota") {
       throw Error(
-        `you can only change the custom_member of a quota upgrade license but this license has type '${modifiedInfo.type}'`
+        `you can only change the custom_member of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
     modifiedInfo.custom_member = changes.custom_member;
@@ -166,7 +166,7 @@ export default function costToEditLicense(
   if (changes.custom_uptime != null) {
     if (modifiedInfo.type != "quota") {
       throw Error(
-        `you can only change the custom_uptime of a quota upgrade license but this license has type '${modifiedInfo.type}'`
+        `you can only change the custom_uptime of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
     modifiedInfo.custom_uptime = changes.custom_uptime;
@@ -175,7 +175,13 @@ export default function costToEditLicense(
   log({ modifiedInfo });
 
   // Determine price for the change
-  const price = compute_cost(origInfo);
+  let price;
+  if (origInfo.type !== "quota") {
+    // We do not provide any prorated refund for ancient license types.
+    price = { discounted_cost: 0 };
+  } else {
+    price = compute_cost(origInfo);
+  }
   const modifiedPrice = compute_cost(modifiedInfo);
   log({ price });
   log({ modifiedPrice });
