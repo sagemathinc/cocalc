@@ -1782,7 +1782,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public async signal(signal = "SIGINT"): Promise<void> {
-    // TODO: some setStates, awaits, and UI to reflect this happening...
+    // TODO: more setStates, awaits, and UI to reflect this happening...
     try {
       await this.api_call("signal", { signal }, 5000);
     } catch (err) {
@@ -1791,6 +1791,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   halt = reuseInFlight(async (): Promise<void> => {
+    this.clear_all_cell_run_state();
     await this.signal("SIGKILL");
     // Wait a little, since SIGKILL has to really happen on backend,
     // and server has to respond and change state.
@@ -1805,6 +1806,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   restart = reuseInFlight(async (): Promise<void> => {
     await this.halt();
     if (this._state === "closed") return;
+    this.clear_all_cell_run_state();
     // Actually start it running again (rather than waiting for
     // user to do something), since this is called "restart".
     await this.set_backend_kernel_info(); // causes kernel to start
