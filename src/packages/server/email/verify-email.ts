@@ -6,7 +6,7 @@
 /* Send email verification */
 
 import getLogger from "@cocalc/backend/logger";
-import { getServerSettings } from "../settings";
+import { getServerSettings } from "@cocalc/database/settings";
 import { sendTemplateEmail } from "./smtp";
 
 const L = getLogger("email:send-templates");

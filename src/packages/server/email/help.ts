@@ -1,4 +1,4 @@
-import { getServerSettings } from "../settings";
+import { getServerSettings } from "@cocalc/database/settings";
 
 export default async function getHelpEmail(): Promise<string> {
   const { help_email } = await getServerSettings(); // that's cached

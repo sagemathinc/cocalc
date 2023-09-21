@@ -6,10 +6,11 @@
 import { reuseInFlight } from "async-await-utils/hof";
 import LRU from "lru-cache";
 import { Pool } from "pg";
+import lodash from "lodash";
+
 import { sha1 } from "@cocalc/backend/misc_node";
 import getPool from "@cocalc/database/pool";
 import { is_array } from "@cocalc/util/misc";
-import lodash from "lodash";
 
 /* Some random little utils */
 

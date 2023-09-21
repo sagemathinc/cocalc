@@ -11,9 +11,9 @@ import {
   getEmailAddressOfAccount,
   getEmailNotificationSettings,
 } from "@cocalc/database/postgres/email";
+import { generateEmailSecretToken } from "@cocalc/database/postgres/valid-email-token";
 import { Icon } from "@cocalc/frontend/components/icon";
 import getAccountId from "@cocalc/server/auth/get-account";
-import { generateEmailSecretToken } from "@cocalc/server/email/utils";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";

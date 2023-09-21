@@ -3,10 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { isValidEmailToken } from "@cocalc/server/email/utils";
-
 import getAccountId from "@cocalc/database/pool/account/get";
 import getPool from "../pool";
+import { isValidEmailToken } from "./valid-email-token";
 
 export async function getEmailNotificationSettings({
   email_address,

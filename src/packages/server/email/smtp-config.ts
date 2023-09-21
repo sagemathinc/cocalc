@@ -5,9 +5,9 @@
 
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 
+import { getServerSettings } from "@cocalc/database/settings";
+import siteURL from "@cocalc/database/settings/site-url";
 import { DNS } from "@cocalc/util/theme";
-import { getServerSettings } from "../settings/server-settings";
-import siteURL from "../settings/site-url";
 import getHelpEmail from "./help";
 import { EmailTemplateSenderSettings, SMTPSettings } from "./types";
 
