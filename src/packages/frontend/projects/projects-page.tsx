@@ -30,9 +30,10 @@ import { ProjectsSearch } from "./search";
 import { AddToProjectToken } from "./token";
 import ProjectsPageTour from "./tour";
 import { get_visible_hashtags, get_visible_projects } from "./util";
+import { COLORS } from "@cocalc/util/theme";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
-  color: "#666",
+  color: COLORS.GRAY_D,
   fontSize: "24px",
   fontWeight: 500,
   marginBottom: "1ex",

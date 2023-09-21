@@ -11,7 +11,7 @@ import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
 import type { Stripe } from "stripe";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";

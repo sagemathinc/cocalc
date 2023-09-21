@@ -17,6 +17,7 @@ Sign up for a new account:
 
 import { v4 } from "uuid";
 
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import createAccount from "@cocalc/server/accounts/create-account";
 import isAccountAvailable from "@cocalc/server/auth/is-account-available";
 import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
@@ -24,7 +25,6 @@ import reCaptcha from "@cocalc/server/auth/recaptcha";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import {
   is_valid_email_address as isValidEmailAddress,
   len,

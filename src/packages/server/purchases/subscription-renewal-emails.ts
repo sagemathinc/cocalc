@@ -5,7 +5,7 @@ USER FRIENDLY: The emails contain a 1-click link to cancel a subscription.
 */
 
 import getPool from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import {
   currency,
   plural,
@@ -18,7 +18,7 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { cancelSubscription } from "@cocalc/server/token-actions/create";
 import sendEmail from "@cocalc/server/email/send-email";
 import getLogger from "@cocalc/backend/logger";
-import siteURL from "@cocalc/server/settings/site-url";
+import siteURL from "@cocalc/database/settings/site-url";
 
 const logger = getLogger("purchases:subscription-renewal-emails");
 

@@ -35,6 +35,16 @@ interface ProfileImageSelectorState {
   croppedImageUrl?: string;
 }
 
+export async function setProfile({ account_id, profile }) {
+  await webapp_client.async_query({
+    query: {
+      accounts: { account_id, profile },
+    },
+  });
+  // const table = redux.getTable("account");
+  // await table.set({ profile: { image: src } }, "none");
+}
+
 export class ProfileImageSelector extends Component<
   ProfileImageSelectorProps,
   ProfileImageSelectorState
@@ -61,16 +71,10 @@ export class ProfileImageSelector extends Component<
   set_image = async (src: string) => {
     this.setState({ is_loading: true });
     try {
-      await webapp_client.async_query({
-        query: {
-          accounts: {
-            account_id: this.props.account_id,
-            profile: { image: src },
-          },
-        },
+      await setProfile({
+        account_id: this.props.account_id,
+        profile: { image: src },
       });
-      // const table = redux.getTable("account");
-      // await table.set({ profile: { image: src } }, "none");
     } catch (err) {
       if (this.is_mounted) {
         this.setState({ error: `${err}` });

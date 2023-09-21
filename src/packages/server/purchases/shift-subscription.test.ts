@@ -20,7 +20,10 @@ function shiftToContainDate(opts) {
     return end;
   }
   throw Error(
-    `fail -- result does not satisfy condition ${JSON.stringify({ opts, end })}`
+    `fail -- result does not satisfy condition ${JSON.stringify({
+      opts,
+      end,
+    })}`,
   );
 }
 

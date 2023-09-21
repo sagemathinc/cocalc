@@ -2,7 +2,7 @@ import type { Description } from "@cocalc/util/db-schema/token-actions";
 import { generateToken } from "@cocalc/util/db-schema/token-actions";
 import dayjs from "dayjs";
 import getPool from "@cocalc/database/pool";
-import siteURL from "@cocalc/server/settings/site-url";
+import siteURL from "@cocalc/database/settings/site-url";
 
 export default async function createTokenAction(
   description: Description,

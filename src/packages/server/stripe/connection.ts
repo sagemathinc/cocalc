@@ -15,7 +15,7 @@ and if so will return new stripe object.
 */
 
 import Stripe from "stripe";
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 
 // See https://stripe.com/docs/api/versioning
 const apiVersion = "2022-11-15";

@@ -2,7 +2,7 @@
 // so we're waiting and will switch later.
 // See https://github.com/qdrant/qdrant-js/blob/master/packages/js-client-rest/src/qdrant-client.ts
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { promises as fs } from "fs";
 import { getLogger } from "@cocalc/backend/logger";
 const log = getLogger("database:qdrant");

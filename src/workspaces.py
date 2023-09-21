@@ -100,7 +100,8 @@ def thread_map(callable: Callable,
 
 
 def all_packages() -> List[str]:
-    # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
+    # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments,
+    # but we use "tsc --build", which automatically builds deps if not built.
     v = [
         'packages/',  # top level workspace
         'packages/cdn',  # packages/hub assumes this is built
@@ -111,12 +112,15 @@ def all_packages() -> List[str]:
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
-        'packages/project',  # frontend depends on project (and project on frontend!) right now...
+        'packages/comm',
+        'packages/project',  # project depends on frontend for nbconvert (but NEVER vice versa again)
+        'packages/assets',
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
-        'packages/hub',
         'packages/server',  # packages/next assumes this is built
-        'packages/database',  # packages/next also assumes this is built
+        'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
+        'packages/next',
+        'packages/hub',  # hub won't build if next isn't already built
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
@@ -240,12 +244,9 @@ def install(args) -> None:
 
     # Do "pnpm i" not in parallel
     for path in v:
-        # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
-        # TODO: but can they be removed?
         c = "pnpm install "
         if args.prod:
             c += ' --prod '
-        c += " | grep -v 'There are cyclic workspace dependencies'"  # useless
         cmd(c, path)
 
 

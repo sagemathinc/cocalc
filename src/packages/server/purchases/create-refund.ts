@@ -4,11 +4,11 @@ Create a refund.
 
 import getLogger from "@cocalc/backend/logger";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { Message } from "@cocalc/server/email/message";
 import sendEmail from "@cocalc/server/email/send-email";
-import { getServerSettings } from "@cocalc/server/settings";
 import getConn from "@cocalc/server/stripe/connection";
 import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";

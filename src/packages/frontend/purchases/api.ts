@@ -49,14 +49,14 @@ export async function resetClosingDate() {
 
 export async function setQuota(
   service: Service,
-  value: number
+  value: number,
 ): Promise<{ global: number; services: { [service: string]: number } }> {
   return await api("purchases/set-quota", { service, value });
 }
 
 export async function isPurchaseAllowed(
   service: Service,
-  cost?: number
+  cost?: number,
 ): Promise<{ allowed: boolean; reason?: string; chargeAmount?: number }> {
   return await api("purchases/is-purchase-allowed", { service, cost });
 }
@@ -81,7 +81,7 @@ export async function getPurchases(opts: PurchasesOptions) {
 // Admins can get purchases for any specified user -- error if called by non-admin.
 // Same options as getPurchases, but specify the account_id.
 export async function getPurchasesAdmin(
-  opts: PurchasesOptions & { account_id: string }
+  opts: PurchasesOptions & { account_id: string },
 ) {
   return await api("purchases/get-purchases-admin", opts);
 }
@@ -94,7 +94,7 @@ export async function getSubscriptions(opts: {
 }
 
 export async function getSubscription(
-  subscription_id: number
+  subscription_id: number,
 ): Promise<Subscription> {
   const x = await api("user-query", {
     query: {
@@ -144,12 +144,19 @@ export async function editLicense(opts: {
   return await api("purchases/edit-license", opts);
 }
 
+export async function editLicenseOwner(opts: {
+  license_id: string;
+  new_account_id: string;
+}) {
+  return await api("purchases/edit-license-owner", opts);
+}
+
 export async function getInvoice(invoice_id: string) {
   return await api("billing/get-invoice", { invoice_id });
 }
 
 export async function getInvoiceUrl(
-  invoice_id: string
+  invoice_id: string,
 ): Promise<string | null> {
   const { url } = await api("billing/get-invoice-url", { invoice_id });
   return url ?? null;
@@ -217,7 +224,7 @@ export async function getMinimumPayment(): Promise<number> {
 
 export async function setPayAsYouGoProjectQuotas(
   project_id: string,
-  quota: ProjectQuota
+  quota: ProjectQuota,
 ) {
   await api("purchases/set-project-quota", { project_id, quota });
 }
@@ -329,7 +336,7 @@ export async function adminGetMinBalance(account_id: string): Promise<number> {
 // for use by admins.
 export async function adminSetMinBalance(
   account_id: string,
-  min_balance: number
+  min_balance: number,
 ) {
   await api("user-query", {
     query: { crm_accounts: { account_id, min_balance } },
@@ -368,7 +375,7 @@ export async function resumeSubscription(subscription_id: number) {
 }
 
 export async function renewSubscription(
-  subscription_id: number
+  subscription_id: number,
 ): Promise<{ purchase_id: number | null }> {
   return await api("purchases/renew-subscription", {
     subscription_id,
@@ -380,7 +387,7 @@ export async function studentPay(project_id: string) {
 }
 
 export async function studentPayLink(
-  project_id: string
+  project_id: string,
 ): Promise<{ url: string }> {
   return await api("purchases/student-pay-link", { project_id });
 }

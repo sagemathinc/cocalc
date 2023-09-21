@@ -8,7 +8,7 @@ Send email using whichever email_backend is configured in the database,
 or throw an exception if none is properly configured.
 */
 
-import { getServerSettings } from "../settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import type { Message } from "./message";
 import sendViaSMTP from "./smtp";
 import sendEmailThrottle from "./throttle";

@@ -11,7 +11,7 @@ import createPurchase from "./create-purchase";
 import createAccount from "../accounts/create-account";
 import { uuid } from "@cocalc/util/misc";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { setPurchaseQuota } from "./purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 

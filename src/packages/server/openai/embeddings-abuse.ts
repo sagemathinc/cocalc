@@ -29,7 +29,7 @@ any amount of content!
 
 */
 
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getPool from "@cocalc/database/pool";
 
 const QUOTA = [

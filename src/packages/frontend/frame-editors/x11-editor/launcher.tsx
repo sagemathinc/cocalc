@@ -10,7 +10,7 @@ X11 Window frame.
 import { React, Rendered, TypedMap, useRedux } from "../../app-framework";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "../../components";
-import { APPS } from "./apps";
+import { APPS } from "@cocalc/comm/x11-apps";
 import { Actions } from "./actions";
 import { Capabilities } from "../../project_configuration";
 import { debounce, keys, sortBy } from "lodash";

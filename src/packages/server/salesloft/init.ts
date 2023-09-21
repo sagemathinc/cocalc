@@ -7,7 +7,7 @@ if salesloft is configured, and does nothing otherwise.
 We will add additional sync mechanisms later.
 */
 
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getLogger from "@cocalc/backend/logger";
 import { addNewUsers } from "./sync";
 

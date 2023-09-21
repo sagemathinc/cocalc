@@ -17,8 +17,8 @@ import {
   statementToText,
   purchasesToText,
 } from "./to-email";
-import { getServerSettings } from "@cocalc/server/settings";
-import siteURL from "@cocalc/server/settings/site-url";
+import { getServerSettings } from "@cocalc/database/settings";
+import siteURL from "@cocalc/database/settings/site-url";
 import {
   disableDailyStatements,
   makePayment,

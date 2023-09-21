@@ -8,12 +8,12 @@ icons) that make them easier to work with.
 
 Returns array Strategy[], where Strategy is as defined in
 
-       @cocalc/server/auth/sso/get-strategies
+       @cocalc/database/settings/get-sso-strategies
 
 or {error:message} if something goes wrong.
 */
 
-import getStrategies from "@cocalc/server/auth/sso/get-strategies";
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 
 export default async function handle(_req, res) {
   try {

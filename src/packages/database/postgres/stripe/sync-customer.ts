@@ -14,11 +14,9 @@ This will not touch stripe if the user doesn't have a stripe_customer_id
 set in the accounts table and customer_id is not given as an input.
 */
 
-import type Stripe from "stripe";
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { getStripeCustomerId } from "./customer-id";
-import getConn from "@cocalc/server/stripe/connection";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import stripeName from "@cocalc/util/stripe/name";
 
@@ -27,7 +25,7 @@ const log = getLogger("database:stripe:sync");
 interface Options {
   account_id: string;
   // The following two are for efficiency purposes:
-  stripe?: Stripe; // connection to stripe -- created if not known
+  stripe; // connection to stripe
   customer_id?: string; // gets looked up if not given
 }
 
@@ -47,9 +45,6 @@ export default async function syncCustomer({
       return;
     }
   }
-  if (!stripe) {
-    stripe = await getConn();
-  }
 
   // get customer data from stripe
   let customer = await stripe.customers.retrieve(customer_id, {
@@ -61,11 +56,11 @@ export default async function syncCustomer({
   if (customer.deleted) {
     // we don't delete customers -- this would be a weird situation.
     log.debug(
-      "customer exists in stripe but is deleted there, so we delete link to stripe."
+      "customer exists in stripe but is deleted there, so we delete link to stripe.",
     );
     await pool.query(
       "UPDATE accounts SET stripe_customer_id=NULL, stripe_customer=NULL WHERE account_id=$1",
-      [account_id]
+      [account_id],
     );
     return;
   }
@@ -73,7 +68,7 @@ export default async function syncCustomer({
   // update email, name or description in stripe if different from database.
   const { rows } = await pool.query(
     "SELECT email_address, first_name, last_name FROM accounts WHERE account_id = $1::UUID",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error(`no account ${account_id}`);
@@ -110,7 +105,7 @@ export default async function syncCustomer({
         ? customer
         : null,
       account_id,
-    ]
+    ],
   );
 
   return customer;

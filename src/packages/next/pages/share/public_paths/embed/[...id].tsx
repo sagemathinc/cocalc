@@ -14,7 +14,7 @@ import { Embed } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 import { getTitle } from "lib/share/util";
-import { Customize as CustomizeType } from "@cocalc/server/settings/customize";
+import { Customize as CustomizeType } from "@cocalc/database/settings/customize";
 import { PathContents as PathContentsInterface } from "lib/share/get-contents";
 
 interface Props {

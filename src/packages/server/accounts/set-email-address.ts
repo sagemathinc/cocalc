@@ -22,7 +22,7 @@ import passwordHash, {
 } from "@cocalc/backend/auth/password-hash";
 import getPool from "@cocalc/database/pool";
 import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
-import getStrategies from "@cocalc/server/auth/sso/get-strategies";
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import {
   isValidUUID,
   is_valid_email_address as isValidEmailAddress,
