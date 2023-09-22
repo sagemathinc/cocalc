@@ -6,7 +6,100 @@
 import { Table } from "./types";
 import { ID } from "./crm";
 
-export type State = "off" | "starting" | "running" | "stopping" | "unknown";
+export type State =
+  | "off"
+  | "suspended"
+  | "deleted"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "unknown";
+
+export type Action = "start" | "resume" | "stop" | "suspend" | "delete";
+
+export const ACTION_INFO: { [action: string]: any } = {
+  start: {
+    label: "Start",
+    icon: "play",
+    tip: "Start running compute server",
+    description:
+      "Start the compute server running.  It will then connect to any notebooks or terminals that it is configured with.",
+  },
+  resume: {
+    label: "Resume",
+    icon: "play",
+    clouds: ["google-cloud"],
+    tip: "Resume running compute server",
+    description: "Resume the compute server from suspend.",
+  },
+  stop: {
+    label: "Stop",
+    icon: "stop",
+    tip: "Turn off compute server",
+    description:
+      "Turn the compute server off. No data on disk is lost, but any data and state in memory will be lost. This is like turning your laptop off completely.",
+  },
+  suspend: {
+    label: "Suspend",
+    icon: "pause",
+    clouds: ["google-cloud"],
+    tip: "Suspend disk and memory state",
+    description:
+      "Suspend the compute server.  No data on disk or memory is lost, but the compute server pauses running and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for at most 60 days.",
+  },
+  delete: {
+    label: "Delete",
+    icon: "trash",
+    tip: "Delete this compute server completely.",
+    description:
+      "Deletes the compute server virtual memory.  All data on its disk and memory is lost, but the files in the home directory of your project are not affected.  You can start a deleted compute server and it comes up in a clean slate, and your configuration remains for use later.",
+  },
+};
+
+export const STATE_INFO: {
+  [state: string]: { label: string; actions: Action[]; icon: string };
+} = {
+  off: {
+    label: "Off",
+    actions: ["start", "delete"],
+    icon: "stop",
+  },
+  suspended: {
+    label: "Suspended",
+    actions: ["resume"],
+    icon: "pause",
+  },
+  starting: {
+    label: "Starting",
+    actions: [],
+    icon: "bolt",
+  },
+  running: {
+    label: "Running",
+    actions: ["stop", "suspend"],
+    icon: "run",
+  },
+  stopping: {
+    label: "Stopping",
+    actions: [],
+    icon: "hand",
+  },
+  unknown: {
+    label: "Unknown",
+    actions: [],
+    icon: "question-circle",
+  },
+  resuming: {
+    label: "Resuming",
+    actions: [],
+    icon: "play",
+  },
+  deleted: {
+    label: "Deleted",
+    actions: ["start"],
+    icon: "trash",
+  },
+};
 
 export type Cloud =
   | "any"

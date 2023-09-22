@@ -5,7 +5,6 @@
 
 import { Col, Divider, Modal, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
-
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
@@ -156,7 +155,7 @@ export function ProjectServers(props: Props) {
       <Paragraph>
         You can run various servers inside this project. They run in the same
         environment, have access to the same files, and stop when the project
-        stops. If you're adventurous, you can also{" "}
+        stops. You can also{" "}
         <A href={"https://doc.cocalc.com/howto/webserver.html"}>
           run your own servers
         </A>

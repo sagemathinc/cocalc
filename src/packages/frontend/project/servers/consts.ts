@@ -17,5 +17,7 @@ export const TITLE_UPGRADES = "Upgrades";
 export const ROOT_STYLE: CSS = {
   paddingLeft: "20px",
   paddingRight: "20px",
-  maxWidth: "800px",
+  maxWidth: "100%",
+  width: "800px",
+  margin: "auto",
 } as const;
