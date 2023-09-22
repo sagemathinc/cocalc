@@ -705,3 +705,6 @@ export const Icon: React.FC<Props> = (props: Props) => {
     return <BorderOutlined {...props} alt={name} />;
   }
 };
+
+// TOOD move this to a shared lib, which can import the IconName type
+export const PAYASYOUGO_ICON: IconName = "compass";

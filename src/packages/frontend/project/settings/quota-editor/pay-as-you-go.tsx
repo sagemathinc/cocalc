@@ -3,23 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Popconfirm, Tag } from "antd";
-import { Icon, Loading } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import QuotaRow from "./quota-row";
-import Information from "./information";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import CostPerHour from "./cost-per-hour";
-import { copy_without } from "@cocalc/util/misc";
+import { Icon, Loading } from "@cocalc/frontend/components";
+import { PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import stopProject from "@cocalc/frontend/purchases/pay-as-you-go/stop-project";
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { copy_without } from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { Alert, Button, Card, Popconfirm, Tag } from "antd";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
+import CostPerHour from "./cost-per-hour";
+import Information from "./information";
+import QuotaRow from "./quota-row";
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -49,7 +50,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const [editing, setEditing] = useState<boolean>(false);
   // one we are editing:
   const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
-    savedQuotaState,
+    savedQuotaState
   );
 
   const runningWithUpgrade = useMemo(() => {
@@ -69,7 +70,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       try {
         setStatus("Loading quotas...");
         setMaxQuotas(
-          await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas(),
+          await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas()
         );
       } catch (err) {
         setError(`${err}`);
@@ -94,7 +95,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       setError("");
       await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
         project_id,
-        quotaState,
+        quotaState
       );
     } catch (err) {
       setError(`${err}`);
@@ -199,7 +200,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       style={style}
       title={
         <h4>
-          <Icon name="compass" /> Pay As You Go
+          <Icon name={PAYASYOUGO_ICON} /> Pay As You Go
           <RunningStatus project={project} />
           {runningWithUpgrade && (
             <>
@@ -310,7 +311,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 setQuotaState(null);
                 await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
                   project_id,
-                  {},
+                  {}
                 );
               }}
             >

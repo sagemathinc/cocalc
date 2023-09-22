@@ -3,18 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon } from "@cocalc/frontend/components/icon";
-import { Paragraph, Text } from "components/misc";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
+
+import { Icon, PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import {
-  OverviewRow,
   OVERVIEW_LARGE_ICON,
   OVERVIEW_STYLE,
+  OverviewRow,
   Product,
 } from "lib/styles/layouts";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
 
 export default function Overview() {
   const router = useRouter();
@@ -31,9 +32,8 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <div style={{ fontSize: "13pt" }}>
-        Shop below, explore an{" "}
-        <A href="/pricing">overview of products and pricing</A>, or{" "}
-        <A href="/vouchers">explore vouchers</A>.
+        Shop below or explore an{" "}
+        <A href="/pricing">available products and pricing</A>.
       </div>
       <OverviewRow>
         <Product icon="key" title="License" href="/store/site-license">
@@ -57,6 +57,18 @@ export default function Overview() {
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
           Run CoCalc on your own machine or cluster in order to keep your data
           on-site and use compute resources that you already have.
+        </Product>
+        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
+          Purchase a <A href={"/vouchers"}>voucher code</A> and gift it to
+          someone else.
+        </Product>
+        <Product
+          href={"https://doc.cocalc.com/paygo.html"}
+          icon={PAYASYOUGO_ICON}
+          title="Pay As You Go"
+        >
+          Define resources for a project or service and pay only for what you
+          actually use.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>
