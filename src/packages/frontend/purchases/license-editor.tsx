@@ -173,7 +173,9 @@ export default function LicenseEditor({
           />
           {isSubscription && (
             <div style={{ color: "#666", marginTop: "15px" }}>
-              Editing the end date of a subscription license is not allowed.
+              Editing the end date of a subscription license is not allowed: it
+              is always set to your Closing Date, which can be adjusted in
+              Subscriptions.
             </div>
           )}
           {endPresets}
