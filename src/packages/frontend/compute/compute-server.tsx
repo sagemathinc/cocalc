@@ -113,14 +113,14 @@ export default function ComputeServer({
         }
         title={
           <div style={{ width: "100%" }}>
-            <div style={{ float: "right" }}>
-              <State
-                state={state}
-                editable={editable}
-                id={id}
-                account_id={account_id}
-              />
-            </div>
+            <State
+              style={{ marginRight: "5px" }}
+              state={state}
+              editable={editable}
+              id={id}
+              account_id={account_id}
+            />
+            -
             <Title title={name} editable={false} />
           </div>
         }

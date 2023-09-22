@@ -3,8 +3,23 @@ import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { Button, Divider, Popover } from "antd";
 import getActions from "./action";
 import { User } from "@cocalc/frontend/users";
+import { CSSProperties } from "react";
 
-export default function State({ state, id, editable, account_id }) {
+interface Props {
+  style?: CSSProperties;
+  state;
+  id;
+  editable;
+  account_id;
+}
+
+export default function State({
+  style,
+  state,
+  id,
+  editable,
+  account_id,
+}: Props) {
   const { label, actions, icon, color } = STATE_INFO[state ?? "off"];
   console.log({ id, editable, state, color });
 
@@ -39,7 +54,7 @@ export default function State({ state, id, editable, account_id }) {
         <div>You can {actions.join(", ")}</div>;
       }}
     >
-      <span style={{ color }}>
+      <span style={{ color, ...style }}>
         <Icon name={icon} /> {label}
       </span>
     </Popover>
