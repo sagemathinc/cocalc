@@ -9,10 +9,12 @@ import State from "./state";
 import getActions from "./action";
 import Cloud from "./cloud";
 import Description from "./description";
+import Title from "./title";
 
 interface Props extends ComputeServerUserInfo {
   style?: CSSProperties;
   editable: boolean;
+  projectLink?: boolean;
 }
 
 export default function ComputeServer({
@@ -26,34 +28,30 @@ export default function ComputeServer({
   account_id,
   style,
   editable,
+  projectLink,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [edit, setEdit] = useState<boolean>(false);
 
   const columns = [
     { dataIndex: "label", key: "label", width: 150 },
-    { dataIndex: "value", key: "value" },
+    {
+      dataIndex: "value",
+      key: "value",
+      title: (
+        <>
+          <span style={{ fontWeight: 250 }}>Click any value to edit</span>
+        </>
+      ),
+    },
   ];
 
   const data = [
     {
-      label: "State",
+      label: "Title",
       value: (
-        <State
-          state={state}
-          editable={editable}
-          id={id}
-          account_id={account_id}
-        />
+        <Title title={name} id={id} editable={editable} setError={setError} />
       ),
-    },
-    {
-      label: "Cloud",
-      value: <Cloud cloud={cloud} editable={editable} />,
-    },
-    {
-      label: "Configuration",
-      value: JSON.stringify(configuration, undefined, 2),
     },
     {
       label: "Color",
@@ -62,10 +60,22 @@ export default function ComputeServer({
       ),
     },
     {
-      label: "Project",
-      value: <ProjectTitle project_id={project_id} />,
+      label: "Cloud",
+      value: (
+        <Cloud cloud={cloud} editable={editable} setError={setError} id={id} />
+      ),
+    },
+    {
+      label: "Configuration",
+      value: JSON.stringify(configuration, undefined, 2),
     },
   ];
+  if (projectLink) {
+    data.push({
+      label: "Project",
+      value: <ProjectTitle project_id={project_id} />,
+    });
+  }
 
   const actions: JSX.Element[] = getActions({ state, editable });
   if (editable) {
@@ -111,7 +121,7 @@ export default function ComputeServer({
                 account_id={account_id}
               />
             </div>
-            {name ?? "Unnamed Compute Server"}
+            <Title title={name} editable={false} />
           </div>
         }
         description={

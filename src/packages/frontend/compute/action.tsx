@@ -23,6 +23,7 @@ export default function getActions({ state, editable }): JSX.Element[] {
     const { label, icon, tip, description } = a;
     v.push(
       <Popover
+        key={action}
         mouseEnterDelay={0.5}
         title={
           <div>

@@ -1,6 +1,6 @@
 import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Popover } from "antd";
+import { Button, Divider, Popover } from "antd";
 import getActions from "./action";
 import { User } from "@cocalc/frontend/users";
 
@@ -19,8 +19,12 @@ export default function State({ state, id, editable, account_id }) {
             return (
               <div>
                 Only the owner of the compute server can change its state.
-                <br />
-                <User account_id={account_id} show_avatar />
+                <Divider />
+                <div style={{ textAlign: "center" }}>
+                  <User account_id={account_id} show_avatar />
+                </div>
+                <Divider />
+                Instead, create your own clone of this compute server.
               </div>
             );
           }

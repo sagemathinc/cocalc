@@ -16,9 +16,14 @@ export async function createServer(opts: {
   return await api("compute/create-server", opts);
 }
 
-export async function setServerColor(opts: {
-  id: number;
-  color: string;
-}): Promise<number> {
+export async function setServerColor(opts: { id: number; color: string }) {
   return await api("compute/set-server-color", opts);
+}
+
+export async function setServerTitle(opts: { id: number; title: string }) {
+  return await api("compute/set-server-title", opts);
+}
+
+export async function setServerCloud(opts: { id: number; cloud: string }) {
+  return await api("compute/set-server-cloud", opts);
 }
