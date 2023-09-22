@@ -24,12 +24,20 @@ export const VBAR_OPTIONS = {
   full: "Buttons show full pages",
 } as const;
 
-export const VBAR_OPTIONS_DEFAULT = "both";
+type VbarName = keyof typeof VBAR_OPTIONS;
+
+// Tweak this function to change the default mode for the buttons on the vertical bar.
+// See commit 7eaa96ed6ddbe5851765b0f08224abfd8885e65e for an abandoned idea to base this on the
+// account creation time – i.e. to change this for new users.
+function getDefaultVBAROption(): VbarName {
+  return "both";
+}
 
 export function getValidVBAROption(
   vbar_setting: any
 ): keyof typeof VBAR_OPTIONS {
-  if (typeof vbar_setting !== "string") return VBAR_OPTIONS_DEFAULT;
-  if (VBAR_OPTIONS[vbar_setting] == null) return VBAR_OPTIONS_DEFAULT;
-  return vbar_setting as keyof typeof VBAR_OPTIONS;
+  if (typeof vbar_setting !== "string" || VBAR_OPTIONS[vbar_setting] == null) {
+    return getDefaultVBAROption();
+  }
+  return vbar_setting as VbarName;
 }

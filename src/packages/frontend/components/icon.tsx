@@ -43,9 +43,9 @@ import {
   CheckOutlined,
   CheckSquareOutlined,
   ClockCircleOutlined,
+  CloseCircleFilled,
   CloseCircleOutlined,
   CloseCircleTwoTone,
-  CloseCircleFilled,
   CloseOutlined,
   CloudDownloadOutlined,
   CloudFilled,
@@ -62,6 +62,7 @@ import {
   CopyOutlined,
   CreditCardOutlined,
   DashboardOutlined,
+  DatabaseFilled,
   DatabaseOutlined,
   DeleteOutlined,
   DeploymentUnitOutlined,
@@ -299,7 +300,9 @@ const IconSpec: { [name: string]: any } = {
   cut: ScissorOutlined,
   dashboard: DashboardOutlined,
   database: DatabaseOutlined,
-  dedicated: DeploymentUnitOutlined, // icon for "dedicated resources"
+  "database-filled": DatabaseFilled,
+  "deployment-unit": DeploymentUnitOutlined,
+  dedicated: DatabaseOutlined, // icon for "dedicated resources", looks like a server rack
   desktop: DesktopOutlined,
   discord: { IconFont: "discord" },
   docker: { IconFont: "docker" },
@@ -586,7 +589,7 @@ try {
             const id = `icon-${x}`;
             if (document.getElementById(id) == null) {
               console.error(
-                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`,
+                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`
               );
             }
           }
@@ -681,7 +684,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
     if (missing[props.name ?? ""] == null) {
       missing[props.name ?? ""] = true;
       console.warn(
-        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`,
+        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`
       );
     }
     // make it hopefully clear to devs that this icon is broken
@@ -702,3 +705,6 @@ export const Icon: React.FC<Props> = (props: Props) => {
     return <BorderOutlined {...props} alt={name} />;
   }
 };
+
+// TOOD move this to a shared lib, which can import the IconName type
+export const PAYASYOUGO_ICON: IconName = "compass";
