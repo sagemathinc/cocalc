@@ -41,34 +41,28 @@ export default function Overview() {
           internet access, more CPU and memory, etc.
         </Product>
         <Product icon="rocket" title="License Booster" href="/store/boost">
-          Add additional upgrades to an existing upgrade license.
+          Add additional upgrades to an existing and <em>compatible</em>{" "}
+          license.
         </Product>
         <Product
-          href={"/store/dedicated?type=disk"}
+          href={"/store/dedicated"}
           icon="save"
-          title="Dedicated Disk"
+          icon2="dedicated"
+          title="Dedicated Disk/VM"
         >
-          Add local storage to your project.
+          Attach a large dedicated disk for more storage to your project or run
+          your project on a dedicated Virtual Machine to harness much more CPU
+          and memory.
         </Product>
-        <Product
-          href={"/store/dedicated?type=vm"}
-          icon="dedicated"
-          title="Dedicated Virtual Machine"
-        >
-          Move your project to a much more powerful Virtual Machine.
+        <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
+          Run CoCalc on your own machine or cluster in order to keep your data
+          on-site and use compute resources that you already have.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>
         If you already selected one or more items, view your{" "}
         <A href="/store/cart">shopping cart</A> or go straight to{" "}
         <A href="/store/checkout">checkout</A>.
-      </Paragraph>
-      <Paragraph>
-        It is also possible to run <SiteName /> on your own infrastructure:{" "}
-        <Text strong>
-          <A href={"/pricing/onprem"}>on-premises offerings</A>
-        </Text>
-        .
       </Paragraph>
       <Paragraph>
         You can also browse your <A href="/billing">billing records</A> or{" "}
