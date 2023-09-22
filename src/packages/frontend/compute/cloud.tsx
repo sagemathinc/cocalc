@@ -2,12 +2,11 @@ import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 
 interface Props {
   cloud;
-  id?: number;
   editable?: boolean;
   height?: number | string;
 }
 
-export default function Cloud({ cloud, id, editable, height }: Props) {
+export default function Cloud({ cloud, editable, height }: Props) {
   const x = CLOUDS_BY_NAME[cloud];
   if (!editable) {
     return (

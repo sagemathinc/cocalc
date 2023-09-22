@@ -36,10 +36,20 @@ export default function ComputeServer({
   ];
 
   const data = [
-    { label: "State", value: state },
+    {
+      label: "State",
+      value: (
+        <State
+          state={state}
+          editable={editable}
+          id={id}
+          account_id={account_id}
+        />
+      ),
+    },
     {
       label: "Cloud",
-      value: <Cloud cloud={cloud} id={id} editable={editable} />,
+      value: <Cloud cloud={cloud} editable={editable} />,
     },
     {
       label: "Configuration",
@@ -109,7 +119,6 @@ export default function ComputeServer({
             account_id={account_id}
             cloud={cloud}
             configuration={configuration}
-            id={id}
           />
         }
       />

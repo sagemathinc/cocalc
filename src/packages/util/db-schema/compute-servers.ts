@@ -8,11 +8,12 @@ import { ID } from "./crm";
 
 export type State =
   | "off"
-  | "suspended"
-  | "deleted"
   | "starting"
   | "running"
   | "stopping"
+  | "deleted"
+  | "suspending"
+  | "suspended"
   | "unknown";
 
 export type Action =
@@ -79,6 +80,7 @@ export const STATE_INFO: {
 } = {
   off: {
     label: "Off",
+    color: "#f44336",
     actions: ["start", "delete"],
     icon: "stop",
   },
@@ -86,9 +88,17 @@ export const STATE_INFO: {
     label: "Suspended",
     actions: ["resume"],
     icon: "pause",
+    color: "#0097a7",
+  },
+  suspending: {
+    label: "Suspending",
+    actions: [],
+    icon: "pause",
+    color: "#00bcd4",
   },
   starting: {
     label: "Starting",
+    color: "#388e3c",
     actions: [],
     icon: "bolt",
   },
@@ -100,6 +110,7 @@ export const STATE_INFO: {
   },
   stopping: {
     label: "Stopping",
+    color: "#ff9800",
     actions: [],
     icon: "hand",
   },
@@ -110,12 +121,14 @@ export const STATE_INFO: {
   },
   resuming: {
     label: "Resuming",
+    color: "#afb42c",
     actions: [],
     icon: "play",
   },
   deleted: {
     label: "Deleted",
     actions: ["start"],
+    color: "#a1887f",
     icon: "trash",
   },
 };
