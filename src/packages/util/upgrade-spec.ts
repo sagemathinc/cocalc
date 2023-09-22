@@ -28,6 +28,7 @@ export const DEFAULT_QUOTAS = {
   ephemeral_state: 0,
   ephemeral_disk: 0,
   always_running: 0,
+  gpu: 0,
 } as const;
 
 // this is only for on-prem kubernetes setups
@@ -70,6 +71,7 @@ export const upgrades = {
     ephemeral_state: 1,
     ephemeral_disk: 1,
     always_running: 1,
+    gpu: 1,
   },
 
   // this is only for on-prem kubernetes setups
@@ -220,6 +222,16 @@ export const upgrades = {
       input_type: "string",
       desc: "Modifies the project's specification how it runs in the cluster.",
     },
+    gpu: {
+      display: "Shared GPU",
+      unit: "gpu",
+      display_unit: "gpu",
+      display_factor: 1,
+      pricing_unit: "gpu",
+      pricing_factor: 1,
+      input_type: "checkbox",
+      desc: "Enables shared GPU access for this project.",
+    },
   },
 
   field_order: [
@@ -232,6 +244,7 @@ export const upgrades = {
     "memory_request",
     "cores",
     "cpu_shares",
+    "gpu",
   ],
 
   // live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.

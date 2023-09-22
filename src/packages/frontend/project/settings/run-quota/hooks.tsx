@@ -53,7 +53,11 @@ export function useRunQuota(
     } else {
       return rq
         .map((val, key) => {
-          if (typeof val !== "number") {
+          if (key === "gpu") {
+            // map falsy to false or {type:"t4"} to true
+            // TODO: in the future, this could be ore complex: type of GPU and number of shares
+            return !!val;
+          } else if (typeof val !== "number") {
             return val;
           } else if (key == "idle_timeout") {
             return seconds2hms(val, false, false);

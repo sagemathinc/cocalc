@@ -36,7 +36,7 @@ export interface DiskType {
 
 export const DedicatedDiskSpeedNames = ["standard", "balanced", "ssd"] as const;
 
-export type DedicatedDiskSpeeds = typeof DedicatedDiskSpeedNames[number];
+export type DedicatedDiskSpeeds = (typeof DedicatedDiskSpeedNames)[number];
 
 export interface DedicatedDiskConfig {
   size_gb: number;
@@ -70,3 +70,10 @@ export type DedicatedResources = {
   vm: false | DedicatedVM;
   disks: DedicatedDisk[];
 };
+
+export type GPU =
+  | {
+      type: "t4"; // only one supported
+      share?: number; // default 0
+    }
+  | false;

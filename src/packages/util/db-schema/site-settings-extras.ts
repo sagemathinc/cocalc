@@ -9,29 +9,29 @@
 
 // You can use markdown in the descriptions below and it is rendered properly!
 
+import { isValidUUID } from "@cocalc/util/misc";
 import {
   Config,
+  displayJson,
+  from_json,
   is_email_enabled,
-  only_for_smtp,
-  only_for_sendgrid,
-  only_for_password_reset_smtp,
-  to_bool,
-  only_booleans,
-  to_int,
-  only_nonneg_int,
-  toFloat,
   onlyNonnegFloat,
   onlyPosFloat,
-  only_pos_int,
-  only_commercial,
+  only_booleans,
   only_cocalc_com,
-  from_json,
+  only_commercial,
+  only_for_password_reset_smtp,
+  only_for_sendgrid,
+  only_for_smtp,
+  only_nonneg_int,
+  only_pos_int,
   parsableJson,
-  displayJson,
+  toFloat,
+  to_bool,
+  to_int,
 } from "./site-defaults";
-import { isValidUUID } from "@cocalc/util/misc";
 
-import { is_valid_email_address, expire_time } from "@cocalc/util/misc";
+import { expire_time, is_valid_email_address } from "@cocalc/util/misc";
 
 export const pii_retention_parse = (retention: string): number | false => {
   if (retention == "never" || retention == null) return false;
@@ -47,7 +47,7 @@ export const pii_retention_parse = (retention: string): number | false => {
   const secs = num * (mult * 24 * 60 * 60);
   if (isNaN(secs) || secs == null) {
     throw new Error(
-      `pii_expire problem: cannot derive future time from "{retention}"`,
+      `pii_expire problem: cannot derive future time from "{retention}"`
     );
   }
   return secs;
@@ -121,6 +121,8 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_openai_markup_percentage"
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
+  | "subscription_maintenance"
+  | "gpus_available"
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
@@ -475,7 +477,9 @@ export const EXTRAS: SettingsExtras = {
   pay_as_you_go_price_project_upgrades: {
     name: "Pay As You Go - Price for Project Upgrades",
     desc: 'Example -- `{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}`. This is a json object, where\n\n- cores = price per month for 1 vCPU\n- memory = price per month for 1GB of RAM\n- disk_quota = price per month for 1GB of disk\n- member_host = non-disk part of non-member hosting cost is divided by this',
-    default: '{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}',
+    // GPU: a T4 costs about the same as a 4 core highmem. So, that's why this is 4x CPU. Adjust this!
+    default:
+      '{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4, "gpu" : 128}',
     show: only_commercial,
     to_val: from_json,
     to_display: displayJson,
@@ -505,6 +509,14 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
+  },
+  gpus_available: {
+    name: "GPUs Available",
+    desc: "Set this to true, in order to allow PAYGO upgrades to select a GPU. The value is queried directly via the API, see areGPUsAvailableForPAYGO()",
+    default: "false",
+    show: only_commercial,
+    to_val: to_bool,
+    valid: only_booleans,
   },
   compute_servers_section: {
     name: "Cloud Compute Service Providers",

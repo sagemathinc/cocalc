@@ -3,23 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Popconfirm, Tag } from "antd";
-import { Icon, Loading } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import QuotaRow from "./quota-row";
-import Information from "./information";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
+
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import CostPerHour from "./cost-per-hour";
-import { copy_without } from "@cocalc/util/misc";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import stopProject from "@cocalc/frontend/purchases/pay-as-you-go/stop-project";
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { copy_without } from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import CostPerHour from "./cost-per-hour";
+import Information from "./information";
+import QuotaRow from "./quota-row";
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -37,6 +38,7 @@ interface Props {
 
 export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const project = useRedux(["projects", "project_map", project_id]);
+  const [gpuAvailable, setGpuAvailable] = useState<boolean | null>(null);
 
   // Slightly subtle -- it's null if not loaded but {} or the thing if loaded, even
   // if there is no data yet in the database.
@@ -47,9 +49,23 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           .getIn(["pay_as_you_go_quotas", webapp_client.account_id])
           ?.toJS() ?? {};
   const [editing, setEditing] = useState<boolean>(false);
+
   // one we are editing:
-  const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
-    savedQuotaState,
+  const [quotaState, setQuotaState0] = useState<ProjectQuota | null>(
+    savedQuotaState
+  );
+
+  function setQuotaState(state: ProjectQuota | null) {
+    // if gpuAvailable is false, then we can't set the gpu quota
+    if (state?.gpu === 1 && gpuAvailable === false) {
+      state = { ...state, gpu: 0 };
+    }
+    setQuotaState0(state);
+  }
+
+  const isGPUUpgradeSelected = useMemo(
+    () => quotaState?.gpu === 1 && gpuAvailable === true,
+    [quotaState?.gpu, gpuAvailable]
   );
 
   const runningWithUpgrade = useMemo(() => {
@@ -69,7 +85,10 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       try {
         setStatus("Loading quotas...");
         setMaxQuotas(
-          await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas(),
+          await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas()
+        );
+        setGpuAvailable(
+          await webapp_client.purchases_client.areGPUsAvailableForPAYGO()
         );
       } catch (err) {
         setError(`${err}`);
@@ -85,6 +104,13 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }, [editing]);
 
+  useEffect(() => {
+    // just a double-check, to avoid race conditions
+    if (gpuAvailable === false) {
+      setQuotaState({ ...quotaState, gpu: 0 });
+    }
+  }, [gpuAvailable]);
+
   async function handleClose() {
     track({ action: "close", project_id });
     setEditing(false);
@@ -94,7 +120,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       setError("");
       await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
         project_id,
-        quotaState,
+        quotaState
       );
     } catch (err) {
       setError(`${err}`);
@@ -310,7 +336,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 setQuotaState(null);
                 await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
                   project_id,
-                  {},
+                  {}
                 );
               }}
             >
@@ -396,16 +422,23 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           </div>
           {PROJECT_UPGRADES.field_order
             .filter((name) => !EXCLUDE.has(name))
-            .map((name) => (
-              <QuotaRow
-                key={name}
-                name={name as any}
-                quotaState={quotaState}
-                setQuotaState={setQuotaState}
-                maxQuotas={maxQuotas}
-                disabled={runningWithUpgrade}
-              />
-            ))}
+            .map((name) => {
+              const disabled =
+                runningWithUpgrade ||
+                (name === "gpu" && gpuAvailable !== true) ||
+                (name !== "gpu" && isGPUUpgradeSelected);
+
+              return (
+                <QuotaRow
+                  key={name}
+                  name={name}
+                  quotaState={quotaState}
+                  setQuotaState={setQuotaState}
+                  maxQuotas={maxQuotas}
+                  disabled={disabled}
+                />
+              );
+            })}
         </>
       )}
     </Card>

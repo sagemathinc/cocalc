@@ -10,4 +10,5 @@ export interface QuotaParams {
   network: number;
   member_host: number;
   always_running?: number;
+  gpu?: number;
 }

@@ -39,7 +39,7 @@ costs add).
 import { isEmpty } from "lodash";
 import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
 
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import { DedicatedDisk, DedicatedVM, GPU } from "@cocalc/util/types/dedicated";
 import { VMS } from "@cocalc/util/upgrades/dedicated";
 import {
   LicenseIdleTimeouts,
@@ -99,6 +99,7 @@ interface QuotaBase {
   idle_timeout?: number;
   dedicated_vm?: { machine: string } | boolean;
   dedicated_disks?: DedicatedDisk[];
+  gpu?: GPU; // manage service expects nothing or a GPU config object
   pay_as_you_go?: null | {
     account_id: string;
     purchase_id: number;
@@ -147,6 +148,7 @@ export interface Upgrades {
   ephemeral_disk: number;
   ext_rw?: number;
   patch?: Patch;
+  gpu: number; // just 0 or 1, for PAYGO upgrades
 }
 
 // this is onprem specific only!
@@ -260,6 +262,7 @@ const ZERO_QUOTA: RQuota = {
   always_running: false,
   dedicated_vm: false,
   dedicated_disks: [] as DedicatedDisk[],
+  gpu: false,
   pay_as_you_go: null,
 } as const;
 
@@ -278,6 +281,7 @@ const BASE_QUOTAS: RQuota = {
   always_running: false, // if true, a service restarts the project if it isn't running
   dedicated_vm: false,
   dedicated_disks: [] as DedicatedDisk[],
+  gpu: false,
   pay_as_you_go: null,
 } as const;
 
@@ -376,6 +380,20 @@ function select_dedicated_disks(site_licenses: SiteLicenses): DedicatedDisk[] {
     }
   }
   return dedicated_disks;
+}
+
+// pick the first GPU configuration license we find and return the GPU info
+function get_gpu_config(site_licenses: SiteLicenses): GPU {
+  for (const val of Object.values(site_licenses)) {
+    if (isSiteLicenseQuotaSetting(val) && val.quota.gpu != null) {
+      // we don't delete the license, because it might contain other upgrades
+      const { gpu } = val.quota;
+      if (gpu) {
+        return gpu;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -546,9 +564,11 @@ function selectSiteLicenses(
   dedicated_vm?: DedicatedVM;
   ext_rw: boolean;
   patch: Patch;
+  gpu: GPU;
 } {
   // this "extracts" all dedicated disk upgrades from the site_licenses map
   const dedicated_disks = select_dedicated_disks(site_licenses);
+  const gpu = get_gpu_config(site_licenses);
   const ext_rw = extract_ext_rw(site_licenses);
   const patch = extract_patches(site_licenses);
   // and here we extract the dedicated VM quota
@@ -572,6 +592,7 @@ function selectSiteLicenses(
       dedicated_vm: vm,
       ext_rw,
       patch,
+      gpu,
     };
   }
 
@@ -596,7 +617,7 @@ function selectSiteLicenses(
     });
   }
 
-  return { site_licenses: all, dedicated_disks, ext_rw, patch };
+  return { site_licenses: all, dedicated_disks, ext_rw, patch, gpu };
 }
 
 // idle_timeouts aren't added up. All are assumed to have the *same* idle_timeout
@@ -619,6 +640,12 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     x != null ? (typeof x === "boolean" ? x : to_int(x) >= 1) : false;
   const dflt_num = (x) =>
     x != null ? (typeof x === "number" ? x : to_float(x)) : 0;
+
+  // TODO this is just a special case for now. Later, the PAYGO upgrade
+  // might encode more about the GPU (number/shares, type, etc.)
+  const gpu: GPU =
+    typeof up.gpu === "number" && up.gpu >= 1 ? { type: "t4" } : false;
+
   return {
     network: dflt_false(up.network),
     member_host: dflt_false(up.member_host),
@@ -632,6 +659,7 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     idle_timeout: dflt_num(up.mintime),
     dedicated_vm: false, // old schema has no dedicated_vm upgrades
     dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
+    gpu,
     ext_rw: false,
     pay_as_you_go: null,
     patch: [],
@@ -653,6 +681,7 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     idle_timeout: 0, // idle_timeout is set AFTER summing up all licenses, they're not additive
     dedicated_vm: q.dedicated_vm ?? false,
     dedicated_disks: [] as DedicatedDisk[],
+    gpu: false,
     pay_as_you_go: null,
     ext_rw: !!q.ext_rw,
     patch: q.patch ? loadPatch(q.patch) : [],
@@ -680,7 +709,15 @@ function sum_quotas(...quotas: RQuota[]): RQuota {
 function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
   const q: Quota = {};
   for (const [k, v] of Object.entries(ZERO_QUOTA)) {
-    if (typeof v === "boolean") {
+    if (k === "gpu") {
+      if (op === "min") {
+        // if q1[k] or q2[k] is false, set q[k] to false
+        q[k] = q1[k] === false || q2[k] === false ? false : { type: "t4" };
+      } else if (op === "max") {
+        // if q1[k] or q2[k] is true-ish, set it to the GPU object
+        q[k] = !!q1[k] || !!q2[k] ? { type: "t4" } : false;
+      }
+    } else if (typeof v === "boolean") {
       q[k] = op === "min" ? q1[k] && q2[k] : q1[k] || q2[k];
     } else if (typeof v === "number") {
       const f = op === "min" ? Math.min : Math.max;
@@ -795,6 +832,7 @@ function quota_v2(opts: OptsV2): Quota {
     site_licenses = {},
     site_settings = {},
   } = opts;
+
   // limit the default quota by max upgrades
   quota = min_quotas(quota, max_upgrades);
 
@@ -945,6 +983,7 @@ export function quota_with_reasons(
     dedicated_vm = false,
     ext_rw = false,
     patch = [],
+    gpu,
   } = selectSiteLicenses(site_licenses, reasons);
 
   site_licenses = Object.freeze(site_licenses_selected);
@@ -1008,6 +1047,8 @@ export function quota_with_reasons(
   total_quota.dedicated_disks = dedicated_disks;
   if (ext_rw === true) total_quota.ext_rw = true;
   if (patch.length > 0) total_quota.patch = patch;
+  // combines either an upgrade via a license or via PAYGO
+  if (!!gpu || !!quota.gpu) total_quota.gpu = { type: "t4" };
 
   if (pay_as_you_go != null) {
     // do this after any other processing or it would just go away, e.g., when min'ing with max's
@@ -1050,6 +1091,7 @@ export function site_license_quota(
     idle_timeout: 0,
     dedicated_vm: false,
     dedicated_disks: [],
+    gpu: false,
     pay_as_you_go: null,
   };
 
@@ -1125,6 +1167,7 @@ total_quota =  {            max_upgrades = {
 const IGNORED_KEYS = [
   "dedicated_disks",
   "dedicated_vm",
+  "gpu",
   "patch",
   "pay_as_you_go",
 ] as const;

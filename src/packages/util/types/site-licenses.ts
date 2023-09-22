@@ -5,7 +5,7 @@
 
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { Upgrades } from "@cocalc/util/upgrades/types";
-import { DedicatedDisk, DedicatedVM } from "./dedicated";
+import { DedicatedDisk, DedicatedVM, GPU } from "./dedicated";
 
 export interface SiteLicenseQuota {
   ram?: number;
@@ -27,6 +27,7 @@ export interface SiteLicenseQuota {
   // JSON array of Array of JSON Patch Operations, e.g. "[{op: \"add\", path: \"/foo\", value: \"bar\"}]"
   // It's not an array of objects, because somewhere the array is converted to weird map of "0, 1, 2,..." indexed objects.
   patch?: string;
+  gpu?: GPU;
 }
 
 // For typescript use of these from user side, we make this available:
