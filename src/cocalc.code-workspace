@@ -56,6 +56,15 @@
     },
     {
       "path": "packages/compute"
+    },
+    {
+      "path": "packages/terminal"
+    },
+    {
+      "path": "packages/comm"
+    },
+    {
+      "path": "packages/api-client"
     }
   ],
   "settings": {
