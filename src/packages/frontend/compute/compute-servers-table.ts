@@ -43,16 +43,18 @@ class ComputeServersTable extends Table {
           autorestart: null,
           cloud: null,
           configuration: null,
+          avatar_image_tiny: null,
         },
       ],
     };
   }
 
   _change(table) {
-    const compute_servers = table.get();
-    if (!compute_servers) return;
     const actions = redux.getProjectActions(this.name);
-    actions.setState({ compute_servers });
+    // Using {compute_servers:table.get()} does NOT work. The id keys are integers,
+    // which leads to problems when converting after an update.  Oh I wish we
+    // used immer instead of immutable js.
+    actions.setState({compute_servers: table.get()?.toJS()});
   }
 }
 

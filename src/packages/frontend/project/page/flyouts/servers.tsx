@@ -12,7 +12,7 @@ import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
 import {
   computeServersEnabled,
-  ManageComputeServers,
+  ComputeServers,
 } from "@cocalc/frontend/compute";
 
 export function ServersFlyout({ project_id, wrap }) {
@@ -71,7 +71,7 @@ export function ServersFlyout({ project_id, wrap }) {
           <Title level={5}>
             <Icon name="server" /> Compute Servers
           </Title>
-          <ManageComputeServers project_id={project_id} />
+          <ComputeServers project_id={project_id} />
         </div>
       )}
       {renderSageServerControl()}

@@ -17,7 +17,7 @@ import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 import {
   computeServersEnabled,
-  ManageComputeServers,
+  ComputeServers,
 } from "@cocalc/frontend/compute";
 
 // Antd's 24 grid system
@@ -167,7 +167,7 @@ export function ProjectServers(props: Props) {
         <>
           <Divider plain />
           <h2>Compute Servers</h2>
-          <ManageComputeServers project_id={project_id} />
+          <ComputeServers project_id={project_id} />
         </>
       )}
       <Divider plain />

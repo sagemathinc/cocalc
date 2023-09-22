@@ -120,13 +120,11 @@ export type Configuration =
 
 export type Data = any;
 
-export interface ComputeServer {
+export interface ComputeServerUserInfo {
   id: number;
   account_id: string;
   project_id: string;
   name: string;
-  api_key?: string; // project level api key for the project
-  api_key_id?: number; // id of the api key (needed so we can delete it from database).
   color?: string;
   cost_per_hour?: number;
   deleted?: boolean;
@@ -140,7 +138,12 @@ export interface ComputeServer {
   autorestart?: boolean;
   cloud: Cloud;
   configuration: Configuration;
+}
+
+export interface ComputeServer extends ComputeServerUserInfo {
   data?: Data;
+  api_key?: string; // project level api key for the project
+  api_key_id?: number; // id of the api key (needed so we can delete it from database).
 }
 
 Table({
@@ -166,6 +169,7 @@ Table({
           autorestart: null,
           cloud: null,
           configuration: null,
+          avatar_image_tiny: null,
         },
       },
     },
@@ -247,6 +251,18 @@ Table({
       type: "map",
       pg_type: "jsonb",
       desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This won't be returned to the user.",
+    },
+    avatar_image_tiny: {
+      title: "Image",
+      type: "string",
+      desc: "tiny (32x32) visual image associated with the compute server. Suitable to include as part of changefeed, since about 3kb. Derived from avatar_image_full.",
+      render: { type: "image" },
+    },
+    avatar_image_full: {
+      title: "Image",
+      type: "string",
+      desc: "User configurable visual image associated with the compute server.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
+      render: { type: "image" },
     },
   },
 });
