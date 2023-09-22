@@ -12,7 +12,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         Compute servers are{" "}
         <b>
           competitively priced very powerful unconstrained dedicated virtual
-          machines,
+          machines,{" "}
         </b>
         in which you can be root, use a GPU, run Docker containers, and install
         arbitrary free and commercial software. Run your Jupyter notebooks and

@@ -612,7 +612,7 @@ export const site_settings_conf: SiteSettings = {
   },
   compute_servers_lambda_enabled: {
     name: "Enable Compute Servers - Lambda Cloud",
-    desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.",
+    desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.  **WARNING:** As of October 2023, there is no legal way to use Lambda cloud  without a reseller agreement with Lambda cloud, if you're selling use of a CoCalc server.  Such agreements don't exist yet.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

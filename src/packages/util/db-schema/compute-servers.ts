@@ -15,7 +15,13 @@ export type State =
   | "stopping"
   | "unknown";
 
-export type Action = "start" | "resume" | "stop" | "suspend" | "delete";
+export type Action =
+  | "start"
+  | "resume"
+  | "stop"
+  | "suspend"
+  | "delete"
+  | "reboot";
 
 export const ACTION_INFO: { [action: string]: any } = {
   start: {
@@ -39,6 +45,13 @@ export const ACTION_INFO: { [action: string]: any } = {
     description:
       "Turn the compute server off. No data on disk is lost, but any data and state in memory will be lost. This is like turning your laptop off completely.",
   },
+  reboot: {
+    label: "Reboot",
+    icon: "refresh",
+    tip: "Reboot the compute server",
+    description:
+      "Reboot the compute server, which shuts it down and boots it up.  No data on disk is lost, but any  state in memory will be lost. This is like turning your laptop off and on.",
+  },
   suspend: {
     label: "Suspend",
     icon: "pause",
@@ -57,7 +70,12 @@ export const ACTION_INFO: { [action: string]: any } = {
 };
 
 export const STATE_INFO: {
-  [state: string]: { label: string; actions: Action[]; icon: string };
+  [state: string]: {
+    label: string;
+    actions: Action[];
+    icon: string;
+    color?: string;
+  };
 } = {
   off: {
     label: "Off",
@@ -76,7 +94,8 @@ export const STATE_INFO: {
   },
   running: {
     label: "Running",
-    actions: ["stop", "suspend"],
+    color: "#389e0d",
+    actions: ["stop", "suspend", "reboot"],
     icon: "run",
   },
   stopping: {

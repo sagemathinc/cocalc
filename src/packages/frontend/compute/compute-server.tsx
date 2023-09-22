@@ -23,6 +23,7 @@ export default function ComputeServer({
   cloud,
   configuration,
   project_id,
+  account_id,
   style,
   editable,
 }: Props) {
@@ -64,6 +65,13 @@ export default function ComputeServer({
       </div>,
     );
   }
+
+  actions.push(
+    <div>
+      <Icon name="clone" /> Clone
+    </div>,
+  );
+
   return (
     <Card
       style={{
@@ -75,22 +83,30 @@ export default function ComputeServer({
     >
       <Card.Meta
         avatar={
-          <Icon
-            name="server"
-            style={{ fontSize: "30px", color: color ?? "#666" }}
-          />
+          <div>
+            <Icon
+              name="server"
+              style={{ fontSize: "30px", color: color ?? "#666" }}
+            />
+            <div style={{ color: "#888" }}>Id: {id}</div>
+          </div>
         }
         title={
           <div style={{ width: "100%" }}>
             <div style={{ float: "right" }}>
-              <State state={state} editable={editable} id={id} />
+              <State
+                state={state}
+                editable={editable}
+                id={id}
+                account_id={account_id}
+              />
             </div>
             {name ?? "Unnamed Compute Server"}
           </div>
         }
         description={
           <Description
-            state={state}
+            account_id={account_id}
             cloud={cloud}
             configuration={configuration}
             id={id}

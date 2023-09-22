@@ -1,18 +1,13 @@
-import {
-  CLOUDS_BY_NAME,
-  STATE_INFO,
-} from "@cocalc/util/db-schema/compute-servers";
 import Configuration from "./configuration";
+import Cloud from "./cloud";
+import { User } from "@cocalc/frontend/users";
 
-export default function Description({ state, cloud, configuration, id }) {
-  const stateInfo = STATE_INFO[state] ?? {};
-  const cloudInfo = CLOUDS_BY_NAME[cloud] ?? {};
-  console.log({ state, stateInfo, cloud, cloudInfo });
+export default function Description({ cloud, configuration, account_id }) {
   return (
     <div>
-      Hosted on {cloudInfo.label ?? "Unknown"}. Currently{" "}
-      {stateInfo.label ?? "in an unknown state"}.{" "}
-      <Configuration configuration={configuration} /> (Id={id})
+      <User account_id={account_id} />
+      's compute server hosted on <Cloud height={15} cloud={cloud} />.{" "}
+      <Configuration configuration={configuration} />
     </div>
   );
 }
