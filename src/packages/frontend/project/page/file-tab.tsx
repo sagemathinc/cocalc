@@ -257,7 +257,7 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
-    if (IS_MOBILE || flyout == null || vbar !== "both") return;
+    if (flyout == null || vbar !== "both") return;
 
     const color =
       flyout === active_flyout
