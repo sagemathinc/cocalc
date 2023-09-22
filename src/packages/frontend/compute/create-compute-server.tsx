@@ -2,6 +2,7 @@ import { Button, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { createServer } from "./api";
 import { useState } from "react";
+import { availableClouds } from "./config";
 
 export default function CreateComputeServer({ project_id }) {
   const [creating, setCreating] = useState<boolean>(false);
@@ -12,7 +13,8 @@ export default function CreateComputeServer({ project_id }) {
       onClick={async () => {
         try {
           setCreating(true);
-          await createServer({ project_id });
+          const clouds = availableClouds();
+          await createServer({ project_id, cloud: clouds[0] });
         } finally {
           setCreating(false);
         }

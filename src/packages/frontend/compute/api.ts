@@ -15,3 +15,10 @@ export async function createServer(opts: {
 }): Promise<number> {
   return await api("compute/create-server", opts);
 }
+
+export async function setServerColor(opts: {
+  id: number;
+  color: string;
+}): Promise<number> {
+  return await api("compute/set-server-color", opts);
+}

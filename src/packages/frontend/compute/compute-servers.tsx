@@ -4,6 +4,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 export default function ComputeServers({ project_id }: { project_id: string }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
+  const account_id = useTypedRedux("account", "account_id");
 
   return (
     <div>
@@ -21,12 +22,13 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
       <ComputeServerTable
         computeServers={computeServers}
         project_id={project_id}
+        account_id={account_id}
       />
     </div>
   );
 }
 
-function ComputeServerTable({ computeServers, project_id }) {
+function ComputeServerTable({ computeServers, project_id, account_id }) {
   if (!computeServers || computeServers.size == 0) {
     return (
       <div style={{ textAlign: "center" }}>
@@ -45,11 +47,13 @@ function ComputeServerTable({ computeServers, project_id }) {
   }
   ids.sort().reverse();
   for (const id of ids) {
+    const data = computeServers.get(id).toJS();
     v.push(
       <ComputeServer
         style={{ marginBottom: "5px" }}
         key={`${id}`}
-        {...computeServers.get(id).toJS()}
+        editable={account_id == data.account_id}
+        {...data}
       />,
     );
   }

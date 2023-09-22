@@ -18,6 +18,30 @@ export type Cloud =
   | "fluid-stack"
   | "test";
 
+// The ones that are at all potentially worth exposing to users.
+export const CLOUDS: {
+  [short: string]: { name: Cloud; label: string; image?: string };
+} = {
+  google: {
+    name: "google-cloud",
+    label: "Google Cloud Platform",
+    image:
+      "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
+  },
+  lambda: {
+    name: "lambda-cloud",
+    label: "Lambda Cloud",
+    image: "https://cloud.lambdalabs.com/static/images/lambda-logo.svg",
+  },
+};
+
+export const CLOUDS_BY_NAME: {
+  [name: string]: { name: Cloud; label: string; image?: string };
+} = {};
+for (const short in CLOUDS) {
+  CLOUDS_BY_NAME[CLOUDS[short].name] = CLOUDS[short];
+}
+
 interface LambdaConfiguration {
   cloud: "lambda-cloud";
   instance_type_name: string;

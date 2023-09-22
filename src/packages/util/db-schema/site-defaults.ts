@@ -60,7 +60,9 @@ export type SiteSettingsKeys =
   | "sandbox_projects_enabled"
   | "sandbox_project_id"
   | "new_project_pool"
-  | "compute_servers_enabled";
+  | "compute_servers_enabled"
+  | "compute_servers_google_enabled"
+  | "compute_servers_lambda_enabled";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -596,7 +598,21 @@ export const site_settings_conf: SiteSettings = {
   },
   compute_servers_enabled: {
     name: "Enable Compute Servers",
-    desc: "Whether or not to include user interface elements related to compute servers.  Set to 'yes' to include these elements.  You may also want to configure 'Compute Servers -- remote cloud services' elsewhere.",
+    desc: "Whether or not to include user interface elements related to compute servers.  Set to 'yes' to include these elements.  You will also need to configure 'Compute Servers -- remote cloud services' elsewhere.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  compute_servers_google_enabled: {
+    name: "Enable Compute Servers - Google Cloud",
+    desc: "Whether or not to include google cloud compute servers.  You must also configure a service account below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  compute_servers_lambda_enabled: {
+    name: "Enable Compute Servers - Lambda Cloud",
+    desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
