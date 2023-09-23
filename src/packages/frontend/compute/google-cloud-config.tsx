@@ -1,5 +1,5 @@
 import type { GoogleCloudConfiguration as GoogleCloudConfigurationType } from "@cocalc/util/db-schema/compute-servers";
-import { Checkbox, Radio, Select, Spin, Table } from "antd";
+import { Checkbox, InputNumber, Radio, Select, Spin, Table } from "antd";
 import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
@@ -12,6 +12,9 @@ import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
+
+// TODO: this needs to depend on how big actual image is, if we use a read only disk etc.  For now this will work.
+const MIN_DISK_SIZE_GB = 50;
 
 interface Props {
   configuration: GoogleCloudConfigurationType;
@@ -115,9 +118,10 @@ export default function Configuration({
 
   const data = [
     {
+      key: "machineType",
       label: (
         <A href="https://cloud.google.com/compute/docs/machine-resource">
-          <Icon name="external-link" /> Machine Type
+          <Icon name="external-link" /> Machine Types
         </A>
       ),
       value: (
@@ -130,6 +134,7 @@ export default function Configuration({
       ),
     },
     {
+      key: "provisioning",
       label: (
         <A href="https://cloud.google.com/compute/docs/instances/spot">
           <Icon name="external-link" /> Provisioning
@@ -145,9 +150,10 @@ export default function Configuration({
       ),
     },
     {
+      key: "gpu",
       label: (
         <A href="https://cloud.google.com/compute/docs/gpus">
-          <Icon name="external-link" /> GPU
+          <Icon name="external-link" /> GPUs
         </A>
       ),
       value: (
@@ -160,9 +166,10 @@ export default function Configuration({
       ),
     },
     {
+      key: "region",
       label: (
         <A href="https://cloud.google.com/about/locations">
-          <Icon name="external-link" /> Region
+          <Icon name="external-link" /> Regions
         </A>
       ),
       value: (
@@ -175,9 +182,10 @@ export default function Configuration({
       ),
     },
     {
+      key: "zone",
       label: (
         <A href="https://cloud.google.com/about/locations">
-          <Icon name="external-link" /> Zone
+          <Icon name="external-link" /> Zones
         </A>
       ),
       value: (
@@ -190,6 +198,7 @@ export default function Configuration({
       ),
     },
     {
+      key: "boot",
       label: (
         <A href="https://cloud.google.com/compute/docs/disks">
           <Icon name="external-link" /> Boot Disk
@@ -198,7 +207,6 @@ export default function Configuration({
       value: (
         <BootDisk
           disabled={loading}
-          priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
         />
@@ -220,7 +228,6 @@ export default function Configuration({
       <ShowError error={error} setError={setError} />
       <Table
         style={{ marginTop: "5px" }}
-        rowKey="label"
         columns={columns}
         dataSource={data}
         pagination={false}
@@ -252,7 +259,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
       value: region,
       search: `${region} ${location} ${lowCO2 ? " co2 " : ""}`,
       label: (
-        <div>
+        <div key={region}>
           {region} {price}
           <br />
           {location?.split(",")[1].trim()}
@@ -264,12 +271,6 @@ function Region({ priceData, setConfig, configuration, disabled }) {
 
   return (
     <div>
-      {configuration.machineType ? (
-        <div style={{ color: "#666", marginBottom: "5px" }}>
-          Select from regions with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} instances.
-        </div>
-      ) : undefined}
       <Select
         disabled={disabled}
         style={{ width: "350px", marginRight: "5px" }}
@@ -284,12 +285,19 @@ function Region({ priceData, setConfig, configuration, disabled }) {
         filterOption={filterOption}
       />
       <Checkbox
+        disabled={disabled}
         style={{ marginTop: "5px" }}
         checked={sortByPrice}
         onChange={() => setSortByPrice(!sortByPrice)}
       >
         Sort by price
       </Checkbox>
+      {configuration.machineType ? (
+        <div style={{ color: "#666", marginTop: "5px" }}>
+          Select a region with {configuration.machineType}{" "}
+          {configuration.spot ? "spot" : ""} instances.
+        </div>
+      ) : undefined}
     </div>
   );
 }
@@ -420,6 +428,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
   const [prices, setPrices] = useState<{
     spot: number;
     standard: number;
+    discount: number;
   } | null>(getSpotAndStandardPrices(priceData, configuration));
 
   useEffect(() => {
@@ -444,7 +453,10 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
           {prices != null ? `${currency(prices.standard)}/hour` : undefined}{" "}
         </Radio.Button>
         <Radio.Button value="spot">
-          Spot {prices != null ? `${currency(prices.spot)}/hour` : undefined}{" "}
+          Spot{" "}
+          {prices != null
+            ? `${currency(prices.spot)}/hour (${prices.discount}% discount)`
+            : undefined}{" "}
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
@@ -457,15 +469,18 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
 
 function getSpotAndStandardPrices(priceData, configuration) {
   try {
+    const standard = computeCost({
+      priceData,
+      configuration: { ...configuration, spot: false },
+    });
+    const spot = computeCost({
+      priceData,
+      configuration: { ...configuration, spot: true },
+    });
     return {
-      standard: computeCost({
-        priceData,
-        configuration: { ...configuration, spot: false },
-      }),
-      spot: computeCost({
-        priceData,
-        configuration: { ...configuration, spot: true },
-      }),
+      standard,
+      spot,
+      discount: Math.round((1 - spot / standard) * 100),
     };
   } catch (_) {
     return null;
@@ -489,12 +504,6 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
 
   return (
     <div>
-      {configuration.machineType ? (
-        <div style={{ color: "#666", marginBottom: "5px" }}>
-          Select from the zones in the region with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} instances
-        </div>
-      ) : undefined}
       <Select
         disabled={disabled}
         style={{ width: "300px" }}
@@ -508,16 +517,148 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
         optionFilterProp="children"
         filterOption={filterOption}
       />
+      {configuration.machineType ? (
+        <div style={{ color: "#666", marginTop: "5px" }}>
+          Select from the zones in the region with {configuration.machineType}{" "}
+          {configuration.spot ? "spot" : ""} instances.
+        </div>
+      ) : undefined}
     </div>
   );
 }
 
 function MachineType({ priceData, setConfig, configuration, disabled }) {
-  return <div>{configuration.machineType}</div>;
+  const [sortByPrice, setSortByPrice] = useState<boolean>(false);
+  const [newMachineType, setNewMachineType] = useState<string>(
+    configuration.machineType ?? "",
+  );
+  useEffect(() => {
+    setNewMachineType(configuration.machineType);
+  }, [configuration.machineType]);
+
+  const machineTypes = Object.keys(priceData.machineTypes);
+  const options = machineTypes.map((machineType) => {
+    let cost;
+    try {
+      cost = computeCost({
+        priceData,
+        configuration: { ...configuration, machineType },
+      });
+    } catch (_) {
+      cost = null;
+    }
+    return {
+      value: machineType,
+      search: machineType,
+      cost,
+      label: (
+        <div key={machineType}>
+          {machineType} {cost ? `${currency(cost)}/hour` : undefined}
+          <RamAndCpu machineType={machineType} priceData={priceData} />
+        </div>
+      ),
+    };
+  });
+  if (sortByPrice) {
+    options.sort((a, b) => {
+      if (a.cost == null && b.cost != null) {
+        return 1;
+      }
+      if (a.cost != null && b.cost == null) {
+        return -1;
+      }
+      if (a.cost == null && b.cost == null) {
+        return cmp(a.value, b.value);
+      }
+      return cmp(a.cost, b.cost);
+    });
+  }
+
+  return (
+    <div>
+      <Select
+        disabled={disabled}
+        style={{ width: "300px" }}
+        options={options as any}
+        value={newMachineType}
+        onChange={(machineType) => {
+          setNewMachineType(machineType);
+          setConfig({ machineType });
+        }}
+        showSearch
+        optionFilterProp="children"
+        filterOption={filterOption}
+      />
+      <Checkbox
+        disabled={disabled}
+        style={{ marginTop: "5px", marginLeft: "5px" }}
+        checked={sortByPrice}
+        onChange={() => setSortByPrice(!sortByPrice)}
+      >
+        Sort by price
+      </Checkbox>
+      <div style={{ textAlign: "center", fontSize: "12pt" }}>
+        <RamAndCpu
+          machineType={newMachineType}
+          priceData={priceData}
+          style={{ marginTop: "5px" }}
+        />
+      </div>
+      <div style={{ color: "#666", marginTop: "5px" }}>
+        Machine prices also depend on the region and provisioning types, so
+        adjust those below to find the best overall value.
+      </div>
+    </div>
+  );
 }
 
-function BootDisk({ priceData, setConfig, configuration, disabled }) {
-  return <div>{configuration.diskSizeGb ?? "at least 10"} Gb</div>;
+function RamAndCpu({
+  machineType,
+  priceData,
+  style,
+}: {
+  machineType: string;
+  priceData;
+  style?;
+}) {
+  const data = priceData.machineTypes[machineType];
+  if (data == null) return null;
+  const { vcpu, memory } = data;
+  if (!vcpu || !memory) return null;
+  return (
+    <div style={style}>
+      <b>vCPU:</b> {vcpu} &nbsp;&nbsp;&nbsp; <b>Memory:</b> {memory} GB
+    </div>
+  );
+}
+
+function BootDisk({ setConfig, configuration, disabled }) {
+  const [newDiskSizeGb, setNewDiskSizeGb] = useState<number>(
+    configuration.diskSizeGb ?? MIN_DISK_SIZE_GB,
+  );
+  useEffect(() => {
+    setNewDiskSizeGb(configuration.diskSizeGb ?? MIN_DISK_SIZE_GB);
+  }, [configuration.diskSizeGb]);
+
+  return (
+    <div>
+      <InputNumber
+        disabled={disabled}
+        min={MIN_DISK_SIZE_GB}
+        max={10000}
+        value={newDiskSizeGb}
+        addonAfter="GB"
+        onChange={(diskSizeGb) => {
+          diskSizeGb = diskSizeGb ?? MIN_DISK_SIZE_GB;
+          setNewDiskSizeGb(diskSizeGb);
+          setConfig({ diskSizeGb });
+        }}
+      />
+      <div style={{ color: "#666", marginTop: "5px" }}>
+        Set the size of the compute server's boot disk.
+      </div>
+    </div>
+  );
 }
 
 function GPU({ priceData, setConfig, configuration, disabled }) {

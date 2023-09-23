@@ -1,6 +1,7 @@
 import ComputeServer from "./compute-server";
 import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { cmp } from "@cocalc/util/misc";
 
 export default function ComputeServers({ project_id }: { project_id: string }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
@@ -45,7 +46,24 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
   for (const [id] of computeServers) {
     ids.push(id);
   }
-  ids.sort().reverse();
+  ids.sort((a, b) => {
+    if (a == b) return 0;
+    const cs_a = computeServers.get(a);
+    const cs_b = computeServers.get(b);
+    if (
+      cs_a.get("account_id") == account_id &&
+      cs_b.get("account_id") != account_id
+    ) {
+      return -1;
+    }
+    if (
+      cs_a.get("account_id") != account_id &&
+      cs_b.get("account_id") == account_id
+    ) {
+      return 1;
+    }
+    return -cmp(a, b);
+  });
   for (const id of ids) {
     const data = computeServers.get(id).toJS();
     v.push(

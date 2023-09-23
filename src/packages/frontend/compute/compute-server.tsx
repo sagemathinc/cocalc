@@ -104,7 +104,8 @@ export default function ComputeServer({
     <Card
       style={{
         width: "100%",
-        border: `2px solid ${color ?? "#aaa"}`,
+        border: `1px solid #f0f0f0`,
+        borderTop: `7.5px solid ${color ?? "#aaa"}`,
         ...style,
       }}
       actions={actions}
@@ -128,7 +129,9 @@ export default function ComputeServer({
               id={id}
               account_id={account_id}
             />
-            - <Title title={name} editable={false} />
+            <div style={{ float: "right", color:"#666" }}>
+              <Title title={name} editable={false} />
+            </div>
           </div>
         }
         description={
