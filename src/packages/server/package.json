@@ -19,16 +19,14 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
     "build": "npx tsc --build",
     "tsc": "npx tsc --watch",
-    "test": "npx jest dist/",
+    "TEST_DOC": "Below we divide the tests into the purchases directory and everything else.  Otherwise all kinds of weird crashes happen.",
+    "test": "find dist |grep .test. |grep -v purchases | xargs pnpm exec jest && npx jest dist/purchases ",
     "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
