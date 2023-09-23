@@ -139,7 +139,7 @@ export function separate_file_extension(name: string): {
 // if there is no extension, add it.
 export function change_filename_extension(
   path: string,
-  new_ext: string
+  new_ext: string,
 ): string {
   const { name } = separate_file_extension(path);
   return `${name}.${new_ext}`;
@@ -276,7 +276,7 @@ import { v4 as v4uuid } from "uuid";
 export const uuid: () => string = v4uuid;
 
 const uuid_regexp = new RegExp(
-  /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
+  /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i,
 );
 export function is_valid_uuid_string(uuid?: any): boolean {
   return (
@@ -513,7 +513,7 @@ export function getIn(x: any, path: string[], default_value?: any): any {
 export function replace_all(
   s: string,
   search: string,
-  replace: string
+  replace: string,
 ): string {
   return s.split(search).join(replace);
 }
@@ -523,7 +523,7 @@ export function replace_all(
 export function replace_all_function(
   s: string,
   search: string,
-  replace_f: (i: number) => string
+  replace_f: (i: number) => string,
 ): string {
   const v = s.split(search);
   const w: string[] = [];
@@ -607,7 +607,7 @@ function get_methods(obj: object): string[] {
     Object.getOwnPropertyNames(current_obj).map((item) => properties.add(item));
   } while ((current_obj = Object.getPrototypeOf(current_obj)));
   return [...properties.keys()].filter(
-    (item) => typeof obj[item] === "function"
+    (item) => typeof obj[item] === "function",
   );
 }
 
@@ -621,7 +621,7 @@ function get_methods(obj: object): string[] {
 // loop and for which you want 'safer' semantics.
 export function bind_methods<T extends object>(
   obj: T,
-  method_names: undefined | string[] = undefined
+  method_names: undefined | string[] = undefined,
 ): T {
   if (method_names === undefined) {
     method_names = get_methods(obj);
@@ -635,7 +635,7 @@ export function bind_methods<T extends object>(
 
 export function human_readable_size(
   bytes: number | null | undefined,
-  short = false
+  short = false,
 ): string {
   if (bytes == null) {
     return "?";
@@ -726,7 +726,7 @@ https://security.stackexchange.com/questions/1952/how-long-should-a-random-nonce
 const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 export function secure_random_token(
   length: number = 16,
-  alphabet: string = BASE58 // default is this crypto base58 less ambiguous numbers/letters
+  alphabet: string = BASE58, // default is this crypto base58 less ambiguous numbers/letters
 ): string {
   let s = "";
   if (length == 0) return s;
@@ -797,7 +797,7 @@ export function round2up(num: number): number {
 export function parse_number_input(
   input: any,
   round_number: boolean = true,
-  allow_negative: boolean = false
+  allow_negative: boolean = false,
 ): number | undefined {
   if (typeof input == "boolean") {
     return input ? 1 : 0;
@@ -875,7 +875,7 @@ export function coerce_codomain_to_numbers(map: { [k: string]: any }): {
 // pass in properly typed inputs.
 export function map_sum(
   a?: { [k: string]: number },
-  b?: { [k: string]: number }
+  b?: { [k: string]: number },
 ): { [k: string]: number } {
   if (a == null) {
     return coerce_codomain_to_numbers(b ?? {});
@@ -902,7 +902,7 @@ export function map_sum(
 
 export function map_diff(
   a?: { [k: string]: number },
-  b?: { [k: string]: number }
+  b?: { [k: string]: number },
 ): { [k: string]: number } {
   if (b == null) {
     return coerce_codomain_to_numbers(a ?? {});
@@ -936,7 +936,7 @@ export function map_diff(
 export function search_split(
   search: string,
   allowRegexp: boolean = true,
-  regexpOptions: string = "i"
+  regexpOptions: string = "i",
 ): (string | RegExp)[] {
   search = search.trim();
   if (
@@ -974,7 +974,7 @@ export function search_split(
       }
     } else {
       terms.push(
-        allowRegexp ? stringOrRegExp(element, regexpOptions) : element
+        allowRegexp ? stringOrRegExp(element, regexpOptions) : element,
       );
     }
   }
@@ -1272,7 +1272,7 @@ export function original_path(path: string): string {
   const ext = filename_extension(s.tail);
   let x = s.tail.slice(
     s.tail[0] === "." ? 1 : 0,
-    s.tail.length - (ext.length + 1)
+    s.tail.length - (ext.length + 1),
   );
   if (s.head !== "") {
     x = s.head + "/" + x;
@@ -1390,14 +1390,14 @@ export function retry_until_success(opts: {
     if (opts.log != null) {
       if (opts.max_tries != null) {
         opts.log(
-          `retry_until_success(${opts.name}) -- try ${tries}/${opts.max_tries}`
+          `retry_until_success(${opts.name}) -- try ${tries}/${opts.max_tries}`,
         );
       }
       if (opts.max_time != null) {
         opts.log(
           `retry_until_success(${opts.name}) -- try ${tries} (started ${
             Date.now() - start_time
-          }ms ago; will stop before ${opts.max_time}ms max time)`
+          }ms ago; will stop before ${opts.max_time}ms max time)`,
         );
       }
       if (opts.max_tries == null && opts.max_time == null) {
@@ -1412,12 +1412,12 @@ export function retry_until_success(opts: {
         }
         if (err && opts.warn != null) {
           opts.warn(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
+            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
           );
         }
         if (opts.log != null) {
           opts.log(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
+            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
           );
         }
         if (opts.max_tries != null && opts.max_tries <= tries) {
@@ -1425,13 +1425,13 @@ export function retry_until_success(opts: {
             `maximum tries (=${
               opts.max_tries
             }) exceeded - last error ${JSON.stringify(err)}`,
-            err
+            err,
           );
           return;
         }
         delta = Math.min(
           opts.max_delay as number,
-          (opts.factor as number) * delta
+          (opts.factor as number) * delta,
         );
         if (
           opts.max_time != null &&
@@ -1441,7 +1441,7 @@ export function retry_until_success(opts: {
             `maximum time (=${
               opts.max_time
             }ms) exceeded - last error ${JSON.stringify(err)}`,
-            err
+            err,
           );
           return;
         }
@@ -1618,7 +1618,7 @@ export function parse_hashtags(t: string): [number, number][] {
 // that might be dangerous, right)?
 export function path_is_in_public_paths(
   path: string,
-  paths: string[] | Set<string> | object | undefined
+  paths: string[] | Set<string> | object | undefined,
 ): boolean {
   return containing_public_path(path, paths) != null;
 }
@@ -1629,7 +1629,7 @@ export function path_is_in_public_paths(
 // paths can be an array or object (with keys the paths) or a Set
 export function containing_public_path(
   path: string,
-  paths: string[] | Set<string> | object | undefined
+  paths: string[] | Set<string> | object | undefined,
 ): undefined | string {
   if (paths == null || path == null) {
     // just in case of non-typescript clients
@@ -1693,7 +1693,7 @@ export function lstrip(s: string): string {
 }
 
 export function date_to_snapshot_format(
-  d: Date | undefined | null | number
+  d: Date | undefined | null | number,
 ): string {
   if (d == null) {
     d = 0;
@@ -1736,13 +1736,13 @@ export function currency(n: number, d?: number) {
 export function stripeAmount(
   unitPrice: number,
   currency: string,
-  units = 1
+  units = 1,
 ): string {
   // input is in pennies
   if (currency !== "usd") {
     // TODO: need to make this look nice with symbols for other currencies...
     return `${currency == "eur" ? "€" : ""}${to_money(
-      (units * unitPrice) / 100
+      (units * unitPrice) / 100,
     )} ${currency.toUpperCase()}`;
   }
   return `$${to_money((units * unitPrice) / 100)} USD`;
@@ -1750,7 +1750,7 @@ export function stripeAmount(
 
 export function planInterval(
   interval: string,
-  interval_count: number = 1
+  interval_count: number = 1,
 ): string {
   return `${interval_count} ${plural(interval_count, interval)}`;
 }
@@ -1770,7 +1770,7 @@ function seconds2hms_days(
   d: number,
   h: number,
   m: number,
-  longform: boolean
+  longform: boolean,
 ): string {
   h = h % 24;
   const s = h * 60 * 60 + m * 60;
@@ -1791,7 +1791,7 @@ export function seconds2hm(secs: number, longform: boolean = false): string {
 export function seconds2hms(
   secs: number,
   longform: boolean = false,
-  show_seconds: boolean = true
+  show_seconds: boolean = true,
 ): string {
   let s;
   if (!longform && secs < 10) {
@@ -1920,7 +1920,7 @@ export function has_null_leaf(obj: object): boolean {
 // It returns an object, mapping each student to a list of N peers.
 export function peer_grading(
   students: string[],
-  N: number = 2
+  N: number = 2,
 ): { [student_id: string]: string[] } {
   if (N <= 0) {
     throw Error("Number of peer assigments must be at least 1");
@@ -2032,7 +2032,7 @@ export function suggest_duplicate_filename(name: string): string {
 // Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM
 export function top_sort(
   DAG: { [node: string]: string[] },
-  opts: { omit_sources?: boolean } = { omit_sources: false }
+  opts: { omit_sources?: boolean } = { omit_sources: false },
 ): string[] {
   const { omit_sources } = opts;
   const source_names: string[] = [];
@@ -2218,7 +2218,7 @@ export function jupyter_language_to_name(lang: string): string {
 // Find the kernel whose name is closest to the given name.
 export function closest_kernel_match(
   name: string,
-  kernel_list: immutable.List<immutable.Map<string, string>>
+  kernel_list: immutable.List<immutable.Map<string, string>>,
 ): immutable.Map<string, string> {
   name = name.toLowerCase().replace("matlab", "octave");
   name = name === "python" ? "python3" : name;
@@ -2250,7 +2250,7 @@ export function closest_kernel_match(
         bestMatch &&
         compareVersionStrings(
           k.get("name") ?? "",
-          bestMatch.get("name") ?? ""
+          bestMatch.get("name") ?? "",
         ) === 1)
     ) {
       bestValue = v;
@@ -2412,7 +2412,7 @@ export function firstLetterUppercase(str: string | undefined) {
  */
 export function getRandomColor(
   s: string,
-  opts?: { min: number; max: number }
+  opts?: { min: number; max: number },
 ): string {
   const { min = 120, max = 220 } = opts ?? {};
   const mod = max - min;

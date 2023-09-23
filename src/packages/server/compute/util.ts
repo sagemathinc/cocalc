@@ -28,6 +28,8 @@ export async function setData(id: number, newData: object) {
   );
 }
 
+// merges in configuration
+
 export async function setConfiguration(id: number, newConfiguration: object) {
   const pool = getPool();
   await pool.query(
