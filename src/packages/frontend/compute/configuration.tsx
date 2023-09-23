@@ -17,12 +17,17 @@ export default function Configuration({
   id,
   state,
 }: Props) {
-  return (
-    <>
-      <Extra editable={editable} id={id} state={state} />
-      <Config editable={editable} id={id} configuration={configuration} />
-    </>
-  );
+  if (editable && id && state != "off") {
+    return (
+      <>
+        <div style={{ fontWeight: 250 }}>
+          Stop the compute server to edit its configuration
+        </div>
+        <Config editable={false} id={id} configuration={configuration} />
+      </>
+    );
+  }
+  return <Config editable={editable} id={id} configuration={configuration} />;
 }
 
 function Config({ configuration, editable, id }) {
@@ -40,23 +45,5 @@ function Config({ configuration, editable, id }) {
         Configuration not implemented: {JSON.stringify(configuration)}
       </span>
     );
-  }
-}
-
-function Extra({ editable, id, state }) {
-  if (editable && id) {
-    if (state != "off") {
-      return (
-        <div style={{ fontWeight: 250 }}>Stop VM off to edit configuration</div>
-      );
-    } else {
-      return (
-        <div style={{ fontWeight: 250 }}>
-          Click on configuration below to edit it
-        </div>
-      );
-    }
-  } else {
-    return null;
   }
 }

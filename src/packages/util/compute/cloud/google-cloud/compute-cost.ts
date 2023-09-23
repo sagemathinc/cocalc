@@ -29,6 +29,9 @@ export interface GoogleCloudData {
   };
   accelerators: { [acceleratorType: string]: PriceData };
   zones: { [zone: string]: ZoneData };
+  // markup percentage: optionally include markup to always increase price by this amount,
+  // e.g., if markup is 42, then price will be multiplied by 1.42.
+  markup?: number;
 }
 
 interface Options {
@@ -104,5 +107,10 @@ export default function computeCost({
   const total =
     diskCost * (configuration.diskSizeGb ?? 10) + vmCost + acceleratorCost;
   log("cost", { total });
-  return total;
+
+  if (priceData.markup) {
+    return total * (1 + priceData.markup / 100.0);
+  } else {
+    return total;
+  }
 }
