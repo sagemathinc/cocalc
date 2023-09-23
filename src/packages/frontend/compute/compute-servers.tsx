@@ -7,7 +7,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
   const account_id = useTypedRedux("account", "account_id");
 
   return (
-    <div>
+    <div style={{ paddingRight: "15px" }}>
       <p>
         Compute servers are{" "}
         <b>
@@ -50,7 +50,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
     const data = computeServers.get(id).toJS();
     v.push(
       <ComputeServer
-        style={{ marginBottom: "5px" }}
+        style={{ marginBottom: "15px" }}
         key={`${id}`}
         editable={account_id == data.account_id}
         {...data}

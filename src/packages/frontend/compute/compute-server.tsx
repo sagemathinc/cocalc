@@ -10,6 +10,7 @@ import getActions from "./action";
 import Cloud from "./cloud";
 import Description from "./description";
 import Title from "./title";
+import Configuration from "./configuration";
 
 interface Props extends ComputeServerUserInfo {
   style?: CSSProperties;
@@ -34,7 +35,7 @@ export default function ComputeServer({
   const [edit, setEdit] = useState<boolean>(false);
 
   const columns = [
-    { dataIndex: "label", key: "label", width: 150 },
+    { dataIndex: "label", key: "label", width: 100 },
     {
       dataIndex: "value",
       key: "value",
@@ -66,8 +67,14 @@ export default function ComputeServer({
       ),
     },
     {
-      label: "Configuration",
-      value: JSON.stringify(configuration, undefined, 2),
+      label: "Config",
+      value: (
+        <Configuration
+          editable={editable}
+          id={id}
+          configuration={configuration}
+        />
+      ),
     },
   ];
   if (projectLink) {
@@ -120,7 +127,7 @@ export default function ComputeServer({
               id={id}
               account_id={account_id}
             />
-            -
+            -{" "}
             <Title title={name} editable={false} />
           </div>
         }
