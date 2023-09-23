@@ -4,6 +4,7 @@ import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
+import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -42,7 +43,7 @@ describe("creates account, project and then compute servers in various ways", ()
       await getServers({
         account_id,
       }),
-    ).toEqual([{ id, account_id, project_id }]);
+    ).toEqual([{ id, account_id, project_id, state: "off" }]);
 
     // get by id:
     expect(
@@ -50,7 +51,7 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         id,
       }),
-    ).toEqual([{ id, account_id, project_id }]);
+    ).toEqual([{ id, account_id, project_id, state: "off" }]);
   });
 
   it("creates compute server with every parameters set to something", async () => {
@@ -71,7 +72,16 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         id,
       }),
-    ).toEqual([{ id, account_id, project_id, ...s }]);
+    ).toEqual([
+      {
+        id,
+        account_id,
+        project_id,
+        ...s,
+        state: "off",
+        configuration: CLOUDS_BY_NAME["google-cloud"].defaultConfiguration,
+      },
+    ]);
   });
 
   it("a user can't create a compute server on a project they aren't a collaborator on", async () => {

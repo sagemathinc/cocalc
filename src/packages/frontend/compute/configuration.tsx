@@ -17,7 +17,7 @@ export default function Configuration({
   id,
   state,
 }: Props) {
-  if (editable && id && state != "off") {
+  if (editable && id && (state ?? "off") != "off") {
     return (
       <>
         <div style={{ fontWeight: 250 }}>

@@ -10,6 +10,7 @@ It's of course easy to make a compute serve that can't be started due to invalid
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 
 import type {
   Cloud,
@@ -48,16 +49,26 @@ export default async function createServer(opts: Options): Promise<number> {
       throw Error("configuration must be for the same cloud");
     }
   }
+  const push = (field, param) => {
+    fields.push(field);
+    params.push(param);
+    dollars.push(`$${fields.length}`);
+  };
   const fields: string[] = [];
   const params: any[] = [];
   const dollars: string[] = [];
   for (const field of FIELDS) {
     if (opts[field] != null) {
-      fields.push(field);
-      params.push(opts[field]);
-      dollars.push(`$${fields.length}`);
+      push(field, opts[field]);
+    } else if (
+      field == "configuration" &&
+      opts.cloud &&
+      CLOUDS_BY_NAME[opts.cloud]?.defaultConfiguration
+    ) {
+      push("configuration", CLOUDS_BY_NAME[opts.cloud].defaultConfiguration);
     }
   }
+  push("state", "off");
 
   const query = `INSERT INTO compute_servers(${fields.join(
     ",",

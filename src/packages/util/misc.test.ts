@@ -120,7 +120,7 @@ describe("json patch test", () => {
   });
   test("fails with broken examples", () => {
     expect(
-      j({ op: "add", path: "/biscuits/1", value: { name: "Ginger Nut" } })
+      j({ op: "add", path: "/biscuits/1", value: { name: "Ginger Nut" } }),
     ).toBe(false);
     expect(j([{ opp: "remove", path: "/biscuits" }])).toBe(false);
     expect(j([{ path: "/biscuits/0" }])).toBe(false);
@@ -165,12 +165,15 @@ describe("test code for displaying numbers as currency with 2 or sometimes 3 dec
     expect(currency(1.23)).toBe("$1.23");
   });
 
-  it("displays 0.0941 with 3 digits (not 2), but only because n is less than 0.10", () => {
-    expect(currency(0.0941)).toBe("$0.094");
+  it("displays 0.0094 with 3 digits (not 2), but only because n is less than 0.01", () => {
+    expect(currency(0.0094)).toBe("$0.009");
   });
 
-  it("displays 0.1941 with 2, because n is not less than 0.10", () => {
+  it("displays 0.1941 with 2, because n is not less than 0.01", () => {
     expect(currency(0.1941)).toBe("$0.19");
+  });
+  it("displays 0.01941 with 2, because n is not less than 0.01", () => {
+    expect(currency(0.01941)).toBe("$0.02");
   });
 
   it("displays 0.0941 with 2 digits if second argument specifies that", () => {

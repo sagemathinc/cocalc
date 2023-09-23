@@ -33,6 +33,8 @@ export default async function setServerCloud({ account_id, id, cloud }) {
   let newConfig: any = null;
   if (rows[0].configuration?.cloud == cloud) {
     newConfig = rows[0].configuration;
+  } else {
+    newConfig = CLOUDS_BY_NAME[cloud]?.defaultConfiguration ?? null;
   }
 
   const available = await availableClouds();

@@ -110,21 +110,42 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       await getServers({
         account_id: account_id1,
       }),
-    ).toEqual([{ id: id1, account_id: account_id1, project_id: project_id1 }]);
+    ).toEqual([
+      {
+        id: id1,
+        account_id: account_id1,
+        project_id: project_id1,
+        state: "off",
+      },
+    ]);
 
     expect(
       await getServers({
         account_id: account_id1,
         project_id: project_id1,
       }),
-    ).toEqual([{ id: id1, account_id: account_id1, project_id: project_id1 }]);
+    ).toEqual([
+      {
+        id: id1,
+        account_id: account_id1,
+        project_id: project_id1,
+        state: "off",
+      },
+    ]);
 
     expect(
       await getServers({
         account_id: account_id1,
         id: id1,
       }),
-    ).toEqual([{ id: id1, account_id: account_id1, project_id: project_id1 }]);
+    ).toEqual([
+      {
+        id: id1,
+        account_id: account_id1,
+        project_id: project_id1,
+        state: "off",
+      },
+    ]);
 
     expect(
       await getServers({
@@ -166,7 +187,14 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       await getServers({
         account_id: account_id1,
       }),
-    ).toEqual([{ id: id1, account_id: account_id1, project_id: project_id1 }]);
+    ).toEqual([
+      {
+        id: id1,
+        account_id: account_id1,
+        project_id: project_id1,
+        state: "off",
+      },
+    ]);
 
     // account 1 can get the servers on project 2 if they account 1 doesn't own it.
     expect(
@@ -174,12 +202,26 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
         account_id: account_id1,
         project_id: project_id2,
       }),
-    ).toEqual([{ id: id2, account_id: account_id2, project_id: project_id2 }]);
+    ).toEqual([
+      {
+        id: id2,
+        account_id: account_id2,
+        project_id: project_id2,
+        state: "off",
+      },
+    ]);
 
     expect(
       await getServers({
         account_id: account_id2,
       }),
-    ).toEqual([{ id: id2, account_id: account_id2, project_id: project_id2 }]);
+    ).toEqual([
+      {
+        id: id2,
+        account_id: account_id2,
+        project_id: project_id2,
+        state: "off",
+      },
+    ]);
   });
 });
