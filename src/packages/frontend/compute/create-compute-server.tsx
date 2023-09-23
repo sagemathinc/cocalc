@@ -10,7 +10,7 @@ import {
 import Cloud from "./cloud";
 import ShowError from "@cocalc/frontend/components/error";
 
-export default function CreateComputeServer({ project_id }) {
+export default function CreateComputeServer({ project_id, onCreate }) {
   const [creating, setCreating] = useState<boolean>(false);
   const [editing, setEditing] = useState<boolean>(false);
   const [title, setTitle] = useState<string>(
@@ -32,6 +32,7 @@ export default function CreateComputeServer({ project_id }) {
       setError("");
       setCreating(true);
       const configuration = CLOUDS_BY_NAME[cloud].defaultConfiguration;
+      onCreate();
       try {
         await createServer({ project_id, cloud, title, configuration });
       } catch (err) {

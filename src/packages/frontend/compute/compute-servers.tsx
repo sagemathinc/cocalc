@@ -47,13 +47,19 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
   if (!computeServers || computeServers.size == 0) {
     return (
       <div style={{ textAlign: "center" }}>
-        <CreateComputeServer project_id={project_id} />
+        <CreateComputeServer
+          project_id={project_id}
+          onCreate={() => setSearch("")}
+        />
       </div>
     );
   }
   const v: JSX.Element[] = [
     <div style={{ margin: "15px 0", textAlign: "center" }}>
-      <CreateComputeServer project_id={project_id} />
+      <CreateComputeServer
+        project_id={project_id}
+        onCreate={() => setSearch("")}
+      />
     </div>,
   ];
   const search_words = search_split(search.toLowerCase());
