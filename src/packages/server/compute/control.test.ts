@@ -13,6 +13,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await getPool().end();
+  setTimeout(process.exit, 1);
 });
 
 describe("creates account, project and a test compute server, then control it", () => {
@@ -74,7 +75,7 @@ describe("creates account, project and a test compute server, then control it", 
     expect((await getServer({ account_id, id })).state).toBe("off");
   });
 
-  it("start the server and see that it also automaticlaly  switches to running state", async () => {
+  it("start the server and see that it also automatically  switches to running state", async () => {
     await control.start({ account_id, id });
     expect((await getServer({ account_id, id })).state).toBe("starting");
     while ((await getServer({ account_id, id })).state != "running") {
