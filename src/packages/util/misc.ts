@@ -1724,13 +1724,13 @@ export function to_money(n: number, d = 2): string {
 }
 
 // Display currency with a dollar sign, rounded to *nearest*, and
-// if d is not given and n is less than 10 cents, will show 3 digits
+// if d is not given and n is less than 2 cents, will show 3 digits
 // instead of 2.
 export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.1 ? 3 : 2))}`;
+  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.02 ? 3 : 2))}`;
 }
 
 export function stripeAmount(

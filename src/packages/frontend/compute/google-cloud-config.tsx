@@ -1,6 +1,6 @@
 import type { GoogleCloudConfiguration as GoogleCloudConfigurationType } from "@cocalc/util/db-schema/compute-servers";
-import { Select, Spin, Table } from "antd";
-import { plural } from "@cocalc/util/misc";
+import { Checkbox, Radio, Select, Spin, Table } from "antd";
+import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
@@ -22,6 +22,7 @@ export default function Configuration({
   editable,
   id,
 }: Props) {
+  const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<GoogleCloudData | null>(null);
   const [error, setError] = useState<string>("");
@@ -36,10 +37,13 @@ export default function Configuration({
     if (!editable || !id) return;
     (async () => {
       try {
+        setLoading(true);
         const data = await getGoogleCloudPriceData();
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -88,10 +92,13 @@ export default function Configuration({
     }
     if (!changed) return;
     try {
+      setLoading(true);
       await setServerConfiguration({ id, configuration: changes });
       setLocalConfiguration({ ...configuration, ...changes });
     } catch (err) {
       setError(`${err}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,7 +131,13 @@ export default function Configuration({
     },
     {
       label: "Provisioning",
-      value: configuration.spot ? "Spot" : "Standard",
+      value: (
+        <Provisioning
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
     },
     {
       label: "Boot Disk Size",
@@ -144,6 +157,11 @@ export default function Configuration({
           <MoneyStatistic value={cost} title="Cost per hour" />
         </div>
       ) : null}
+      {loading && (
+        <div style={{ float: "right" }}>
+          <Spin />
+        </div>
+      )}
       <ShowError error={error} setError={setError} />
       <Table
         style={{ marginTop: "5px" }}
@@ -163,16 +181,16 @@ const filterOption = (
 ) => (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
 
 function Region({ priceData, setConfig, configuration }) {
+  const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newRegion, setNewRegion] = useState<string>(configuration.region);
-  const [editing, setEditing] = useState<boolean>(false);
   useEffect(() => {
     setNewRegion(configuration.region);
   }, [configuration.region]);
 
-  if (!editing) {
-    return <span onClick={() => setEditing(true)}>{newRegion}</span>;
-  }
   const regions = getRegions(priceData, configuration);
+  if (sortByPrice) {
+    regions.sort((a, b) => cmp(a.cost, b.cost));
+  }
   const options = regions.map(({ region, location, lowCO2, cost }) => {
     const price = cost ? ` - ${currency(cost)}/hour` : "";
     return {
@@ -186,8 +204,8 @@ function Region({ priceData, setConfig, configuration }) {
   return (
     <div>
       {configuration.machineType ? (
-        <div style={{ color: "#888", marginBottom: "5px" }}>
-          Select a region with {configuration.machineType}{" "}
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          Select from the regions with {configuration.machineType}{" "}
           {configuration.spot ? "spot" : ""} instances
         </div>
       ) : undefined}
@@ -195,15 +213,21 @@ function Region({ priceData, setConfig, configuration }) {
         style={{ width: "350px" }}
         options={options}
         value={newRegion}
-        onChange={setNewRegion}
+        onChange={(region) => {
+          setNewRegion(region);
+          setConfig({ region });
+        }}
         showSearch
         optionFilterProp="children"
         filterOption={filterOption}
-        onBlur={() => {
-          setConfig({ region: newRegion });
-          setEditing(false);
-        }}
       />
+      <Checkbox
+        style={{ marginTop: "5px" }}
+        checked={sortByPrice}
+        onChange={() => setSortByPrice(!sortByPrice)}
+      >
+        Sort by price
+      </Checkbox>
     </div>
   );
 }
@@ -246,7 +270,24 @@ function getRegions(priceData, configuration) {
     location[region] = zoneData.location;
   }
   const v = Array.from(regions);
-  v.sort();
+  v.sort((a, b) => {
+    for (const g of [
+      "us",
+      "northamerica",
+      "europe",
+      "asia",
+      "southamerica",
+      "australia",
+    ]) {
+      if (a.startsWith(g) && !b.startsWith(g)) {
+        return -1;
+      }
+      if (!a.startsWith(g) && b.startsWith(g)) {
+        return 1;
+      }
+    }
+    return cmp(a, b);
+  });
   const data: {
     region: string;
     location: string;
@@ -262,4 +303,60 @@ function getRegions(priceData, configuration) {
     });
   }
   return data;
+}
+
+function Provisioning({ priceData, setConfig, configuration }) {
+  const [newSpot, setNewSpot] = useState<boolean>(!!configuration.spot);
+  const [prices, setPrices] = useState<{
+    spot: number;
+    standard: number;
+  } | null>(getSpotAndStandardPrices(priceData, configuration));
+
+  useEffect(() => {
+    setNewSpot(!!configuration.spot);
+    setPrices(getSpotAndStandardPrices(priceData, configuration));
+  }, [configuration]);
+
+  return (
+    <div>
+      <Radio.Group
+        value={newSpot ? "spot" : "standard"}
+        onChange={(e) => {
+          const spot = e.target.value == "standard" ? false : true;
+          setNewSpot(spot);
+          setConfig({ spot });
+        }}
+        buttonStyle="solid"
+      >
+        <Radio.Button value="standard">
+          Standard{" "}
+          {prices != null ? `${currency(prices.standard)}/hour` : undefined}{" "}
+        </Radio.Button>
+        <Radio.Button value="spot">
+          Spot {prices != null ? `${currency(prices.spot)}/hour` : undefined}{" "}
+        </Radio.Button>
+      </Radio.Group>
+      <div style={{ color: "#666", marginTop: "5px" }}>
+        Standard instances stay running until you stop them, but cost more. Spot
+        instances stop when there is a surge in demand.
+      </div>
+    </div>
+  );
+}
+
+function getSpotAndStandardPrices(priceData, configuration) {
+  try {
+    return {
+      standard: computeCost({
+        priceData,
+        configuration: { ...configuration, spot: false },
+      }),
+      spot: computeCost({
+        priceData,
+        configuration: { ...configuration, spot: true },
+      }),
+    };
+  } catch (_) {
+    return null;
+  }
 }
