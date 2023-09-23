@@ -33,7 +33,7 @@ export default function CreateComputeServer({ project_id }) {
       setCreating(true);
       const configuration = CLOUDS_BY_NAME[cloud].defaultConfiguration;
       try {
-        await createServer({ project_id, cloud, name: title, configuration });
+        await createServer({ project_id, cloud, title, configuration });
       } catch (err) {
         setError(`${err}`);
       }

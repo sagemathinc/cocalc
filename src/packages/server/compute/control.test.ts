@@ -38,7 +38,7 @@ describe("creates account, project and a test compute server, then control it", 
   let id;
   it("creates compute server on the 'test' cloud", async () => {
     const s = {
-      name: "myserver",
+      title: "myserver",
       idle_timeout: 15,
       cloud: "test",
     } as const;

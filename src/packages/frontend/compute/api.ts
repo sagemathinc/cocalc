@@ -7,7 +7,7 @@ import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/co
 
 export async function createServer(opts: {
   project_id: string;
-  name?: string;
+  title?: string;
   color?: string;
   idle_timeout?: number;
   autorestart?: boolean;

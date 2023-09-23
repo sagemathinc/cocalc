@@ -22,7 +22,7 @@ async function get(req) {
   }
   const {
     project_id,
-    name,
+    title,
     color,
     idle_timeout,
     autorestart,
@@ -32,7 +32,7 @@ async function get(req) {
   return await createServer({
     account_id,
     project_id,
-    name,
+    title,
     color,
     idle_timeout,
     autorestart,

@@ -20,7 +20,7 @@ interface Props extends ComputeServerUserInfo {
 
 export default function ComputeServer({
   id,
-  name,
+  title,
   color,
   state,
   cloud,
@@ -51,7 +51,7 @@ export default function ComputeServer({
     {
       label: "Title",
       value: (
-        <Title title={name} id={id} editable={editable} setError={setError} />
+        <Title title={title} id={id} editable={editable} setError={setError} />
       ),
     },
     {
@@ -63,7 +63,13 @@ export default function ComputeServer({
     {
       label: "Cloud",
       value: (
-        <Cloud cloud={cloud} state={state} editable={editable} setError={setError} id={id} />
+        <Cloud
+          cloud={cloud}
+          state={state}
+          editable={editable}
+          setError={setError}
+          id={id}
+        />
       ),
     },
     {
@@ -130,7 +136,7 @@ export default function ComputeServer({
               account_id={account_id}
             />
             <div style={{ float: "right", color: "#666" }}>
-              <Title title={name} editable={false} />
+              <Title title={title} editable={false} />
             </div>
           </div>
         }

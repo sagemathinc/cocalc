@@ -22,14 +22,14 @@ interface Options {
   project_id: string;
   cloud?: Cloud;
   configuration?: Configuration;
-  name?: string;
+  title?: string;
   color?: string;
   idle_timeout?: number;
   autorestart?: boolean;
 }
 
 const FIELDS =
-  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,configuration".split(
+  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration".split(
     ",",
   );
 

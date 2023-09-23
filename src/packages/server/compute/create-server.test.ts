@@ -56,7 +56,7 @@ describe("creates account, project and then compute servers in various ways", ()
 
   it("creates compute server with every parameters set to something", async () => {
     const s = {
-      name: "myserver",
+      title: "myserver",
       color: "red",
       idle_timeout: 60 * 15,
       autorestart: true,

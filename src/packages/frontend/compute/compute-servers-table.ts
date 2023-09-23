@@ -32,7 +32,7 @@ class ComputeServersTable extends Table {
           project_id: this.name,
           id: null,
           account_id: null,
-          name: null,
+          title: null,
           color: null,
           cost_per_hour: null,
           deleted: null,
@@ -54,7 +54,7 @@ class ComputeServersTable extends Table {
     // Using {compute_servers:table.get()} does NOT work. The id keys are integers,
     // which leads to problems when converting after an update.  Oh I wish we
     // used immer instead of immutable js.
-    actions.setState({compute_servers: table.get()?.toJS()});
+    actions.setState({ compute_servers: table.get()?.toJS() });
   }
 }
 

@@ -3,7 +3,7 @@ import getPool from "@cocalc/database/pool";
 export default async function setServerTitle({ account_id, id, title }) {
   const pool = getPool();
   const { rowCount } = await pool.query(
-    "UPDATE compute_servers SET name=$1 WHERE id=$2 AND account_id=$3",
+    "UPDATE compute_servers SET title=$1 WHERE id=$2 AND account_id=$3",
     [title, id, account_id],
   );
   if (rowCount == 0) {

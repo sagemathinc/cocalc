@@ -296,7 +296,7 @@ export interface ComputeServerUserInfo {
   id: number;
   account_id: string;
   project_id: string;
-  name: string;
+  title: string;
   color?: string;
   cost_per_hour?: number;
   deleted?: boolean;
@@ -329,7 +329,7 @@ Table({
         fields: {
           id: null,
           account_id: null,
-          name: null,
+          title: null,
           color: null,
           cost_per_hour: null,
           deleted: null,
@@ -353,10 +353,10 @@ Table({
       desc: "User that owns this compute server.",
       render: { type: "account" },
     },
-    name: {
+    title: {
       type: "string",
       pg_type: "VARCHAR(254)",
-      desc: "Name of this computer server.  Used purely to make it easier for the user to keep track of it.",
+      desc: "Title of this computer server.  Used purely to make it easier for the user to keep track of it.",
       render: { type: "text", maxLength: 254, editable: true },
     },
     color: {
