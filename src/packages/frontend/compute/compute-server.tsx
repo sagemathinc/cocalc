@@ -71,6 +71,7 @@ export default function ComputeServer({
       value: (
         <Configuration
           editable={editable}
+          state={state}
           id={id}
           configuration={configuration}
         />
@@ -88,7 +89,7 @@ export default function ComputeServer({
   if (editable) {
     actions.push(
       <div onClick={() => setEdit(!edit)}>
-        <Icon name="gears" /> {!edit ? "Edit" : "Hide Details"}
+        <Icon name="gears" /> {!edit ? "Edit" : "Close"}
       </div>,
     );
   }
@@ -127,8 +128,7 @@ export default function ComputeServer({
               id={id}
               account_id={account_id}
             />
-            -{" "}
-            <Title title={name} editable={false} />
+            - <Title title={name} editable={false} />
           </div>
         }
         description={

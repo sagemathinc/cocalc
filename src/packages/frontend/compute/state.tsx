@@ -20,7 +20,10 @@ export default function State({
   editable,
   account_id,
 }: Props) {
-  const { label, actions, icon, color } = STATE_INFO[state ?? "off"];
+  const { label, actions, icon, color } = STATE_INFO[state ?? "off"] ?? {};
+  if (!label) {
+    return <span>Invalid State: {state}</span>;
+  }
   console.log({ id, editable, state, color });
 
   return (

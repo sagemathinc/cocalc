@@ -80,7 +80,7 @@ export const STATE_INFO: {
 } = {
   off: {
     label: "Off",
-    color: "#f44336",
+    color: "#607d8b",
     actions: ["start", "delete"],
     icon: "stop",
   },

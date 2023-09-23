@@ -63,7 +63,7 @@ export default function Configuration({ configuration, editable, id }: Props) {
   ];
   return (
     <Table
-      style={{ margin: "10px 0 10px -35px" }}
+      style={{ marginTop:'5px' }}
       rowKey="label"
       columns={columns}
       dataSource={data}
