@@ -52,7 +52,7 @@ function Extra({ editable, id, state }) {
     } else {
       return (
         <div style={{ fontWeight: 250 }}>
-          Click on any value below to edit it
+          Click on configuration below to edit it
         </div>
       );
     }

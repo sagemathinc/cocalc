@@ -1,6 +1,10 @@
 import type { GoogleCloudConfiguration as GoogleCloudConfigurationType } from "@cocalc/util/db-schema/compute-servers";
 import { Table } from "antd";
 import { plural } from "@cocalc/util/misc";
+import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import { getGoogleCloudPricingData } from "./api";
+import { useEffect, useState } from "react";
+import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 
 interface Props {
   configuration: GoogleCloudConfigurationType;
@@ -9,6 +13,19 @@ interface Props {
 }
 
 export default function Configuration({ configuration, editable, id }: Props) {
+  const [cost, setCost] = useState<number | null>(null);
+  useEffect(() => {
+    if (!configuration) return;
+    (async () => {
+      try {
+        const priceData = await getGoogleCloudPricingData();
+        setCost(computeCost({ configuration, priceData }));
+      } catch (err) {
+        console.log(err);
+      }
+    })();
+  }, [configuration]);
+
   if (!editable || !id) {
     const gpu = configuration.acceleratorType
       ? `, ${configuration.acceleratorCount ?? 1} ${
@@ -62,12 +79,19 @@ export default function Configuration({ configuration, editable, id }: Props) {
     },
   ];
   return (
-    <Table
-      style={{ marginTop:'5px' }}
-      rowKey="label"
-      columns={columns}
-      dataSource={data}
-      pagination={false}
-    />
+    <div>
+      {cost ? (
+        <div style={{ float: "right" }}>
+          <MoneyStatistic value={cost} title="Cost per hour" />
+        </div>
+      ) : null}
+      <Table
+        style={{ marginTop: "5px" }}
+        rowKey="label"
+        columns={columns}
+        dataSource={data}
+        pagination={false}
+      />
+    </div>
   );
 }

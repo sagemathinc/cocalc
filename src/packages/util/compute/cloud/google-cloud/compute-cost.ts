@@ -21,7 +21,7 @@ interface ZoneData {
   gpus: boolean; // if true, has gpus
 }
 
-interface GoogleCloudData {
+export interface GoogleCloudData {
   machineTypes: { [machineType: string]: PriceData };
   disks: {
     standard: { prices: { [zone: string]: number } };
@@ -45,7 +45,7 @@ given the result of getData from @cocalc/gcloud-pricing-calculator.
 export default function computeCost({
   configuration,
   priceData,
-}: Options): Promise<number> {
+}: Options): number {
   const data = priceData.machineTypes[configuration.machineType];
   if (data == null) {
     throw Error(
