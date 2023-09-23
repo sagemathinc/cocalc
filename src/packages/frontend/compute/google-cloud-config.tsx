@@ -8,6 +8,8 @@ import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import ShowError from "@cocalc/frontend/components/error";
+import { A } from "@cocalc/frontend/components/A";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 
@@ -39,6 +41,7 @@ export default function Configuration({
       try {
         setLoading(true);
         const data = await getGoogleCloudPriceData();
+        window.data = data;
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
@@ -103,18 +106,23 @@ export default function Configuration({
   };
 
   const columns = [
-    { dataIndex: "label", key: "label" },
     {
       dataIndex: "value",
       key: "value",
     },
+    { dataIndex: "label", key: "label", width: 130 },
   ];
 
   const data = [
     {
-      label: "Region",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/machine-resource">
+          <Icon name="external-link" /> Machine Type
+        </A>
+      ),
       value: (
-        <Region
+        <MachineType
+          disabled={loading}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -122,17 +130,14 @@ export default function Configuration({
       ),
     },
     {
-      label: "Zone",
-      value: configuration.zone,
-    },
-    {
-      label: "Machine Type",
-      value: configuration.machineType,
-    },
-    {
-      label: "Provisioning",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/instances/spot">
+          <Icon name="external-link" /> Provisioning
+        </A>
+      ),
       value: (
         <Provisioning
+          disabled={loading}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -140,28 +145,78 @@ export default function Configuration({
       ),
     },
     {
-      label: "Boot Disk Size",
-      value: `${configuration.diskSizeGb ?? "at least 10"} Gb`,
+      label: (
+        <A href="https://cloud.google.com/compute/docs/gpus">
+          <Icon name="external-link" /> GPU
+        </A>
+      ),
+      value: (
+        <GPU
+          disabled={loading}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
     },
     {
-      label: "GPU",
-      value: `${configuration.acceleratorCount ?? ""} ${
-        configuration.acceleratorType ?? "none"
-      }`,
+      label: (
+        <A href="https://cloud.google.com/about/locations">
+          <Icon name="external-link" /> Region
+        </A>
+      ),
+      value: (
+        <Region
+          disabled={loading}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+    {
+      label: (
+        <A href="https://cloud.google.com/about/locations">
+          <Icon name="external-link" /> Zone
+        </A>
+      ),
+      value: (
+        <Zone
+          disabled={loading}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+    {
+      label: (
+        <A href="https://cloud.google.com/compute/docs/disks">
+          <Icon name="external-link" /> Boot Disk
+        </A>
+      ),
+      value: (
+        <BootDisk
+          disabled={loading}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
     },
   ];
   return (
     <div>
-      {cost ? (
+      {loading && (
         <div style={{ float: "right" }}>
+          <Spin delay={1000} />
+        </div>
+      )}
+      {cost ? (
+        <div style={{ textAlign: "center" }}>
           <MoneyStatistic value={cost} title="Cost per hour" />
         </div>
       ) : null}
-      {loading && (
-        <div style={{ float: "right" }}>
-          <Spin />
-        </div>
-      )}
       <ShowError error={error} setError={setError} />
       <Table
         style={{ marginTop: "5px" }}
@@ -177,10 +232,10 @@ export default function Configuration({
 // Filter `option.label` match the user type `input`
 const filterOption = (
   input: string,
-  option: { label: string; value: string },
-) => (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
+  option: { label: string; value: string; search: string },
+) => (option?.search ?? "").toLowerCase().includes(input.toLowerCase());
 
-function Region({ priceData, setConfig, configuration }) {
+function Region({ priceData, setConfig, configuration, disabled }) {
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newRegion, setNewRegion] = useState<string>(configuration.region);
   useEffect(() => {
@@ -195,9 +250,15 @@ function Region({ priceData, setConfig, configuration }) {
     const price = cost ? ` - ${currency(cost)}/hour` : "";
     return {
       value: region,
-      label: `${region} (${location?.split(",")[1].trim()}) ${price} ${
-        lowCO2 ? " - 🍃 Low CO2" : ""
-      }`,
+      search: `${region} ${location} ${lowCO2 ? " co2 " : ""}`,
+      label: (
+        <div>
+          {region} {price}
+          <br />
+          {location?.split(",")[1].trim()}
+          {lowCO2 ? " - 🍃 Low CO2" : ""}
+        </div>
+      ),
     };
   });
 
@@ -205,13 +266,14 @@ function Region({ priceData, setConfig, configuration }) {
     <div>
       {configuration.machineType ? (
         <div style={{ color: "#666", marginBottom: "5px" }}>
-          Select from the regions with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} instances
+          Select from regions with {configuration.machineType}{" "}
+          {configuration.spot ? "spot" : ""} instances.
         </div>
       ) : undefined}
       <Select
-        style={{ width: "350px" }}
-        options={options}
+        disabled={disabled}
+        style={{ width: "350px", marginRight: "5px" }}
+        options={options as any}
         value={newRegion}
         onChange={(region) => {
           setNewRegion(region);
@@ -232,6 +294,8 @@ function Region({ priceData, setConfig, configuration }) {
   );
 }
 
+// Gets the regions where the given instance type is available.
+// Ignores the currently selected zone.
 function getRegions(priceData, configuration) {
   const lowCO2 = new Set<string>();
   const regions = new Set<string>();
@@ -305,7 +369,53 @@ function getRegions(priceData, configuration) {
   return data;
 }
 
-function Provisioning({ priceData, setConfig, configuration }) {
+// Gets the zones in a region where the instance type is available.
+function getZones(priceData, configuration) {
+  const lowCO2 = new Set<string>();
+  const zones = new Set<string>();
+  const { region, machineType, spot } = configuration ?? {};
+  if (!region) {
+    return [];
+  }
+  for (const zone in priceData.zones) {
+    const i = zone.lastIndexOf("-");
+    if (region != zone.slice(0, i)) {
+      // this zone isn't in the chosen region.
+      continue;
+    }
+    const zoneData = priceData.zones[zone];
+    if (machineType) {
+      if (!zoneData.machineTypes.includes(machineType.split("-")[0])) {
+        continue;
+      }
+      if (spot != null) {
+        if (priceData.machineTypes[machineType]?.spot?.[region] == null) {
+          continue;
+        }
+      }
+    }
+    if (zoneData.lowCO2 || zoneData.lowC02) {
+      // C02 above because of typo in data.
+      lowCO2.add(zone);
+    }
+    zones.add(zone);
+  }
+  const v = Array.from(zones);
+  v.sort();
+  const data: {
+    zone: string;
+    lowCO2: boolean;
+  }[] = [];
+  for (const zone of v) {
+    data.push({
+      zone,
+      lowCO2: lowCO2.has(zone),
+    });
+  }
+  return data;
+}
+
+function Provisioning({ priceData, setConfig, configuration, disabled }) {
   const [newSpot, setNewSpot] = useState<boolean>(!!configuration.spot);
   const [prices, setPrices] = useState<{
     spot: number;
@@ -320,6 +430,7 @@ function Provisioning({ priceData, setConfig, configuration }) {
   return (
     <div>
       <Radio.Group
+        disabled={disabled}
         value={newSpot ? "spot" : "standard"}
         onChange={(e) => {
           const spot = e.target.value == "standard" ? false : true;
@@ -359,4 +470,61 @@ function getSpotAndStandardPrices(priceData, configuration) {
   } catch (_) {
     return null;
   }
+}
+
+function Zone({ priceData, setConfig, configuration, disabled }) {
+  const [newZone, setNewZone] = useState<string>(configuration.zone ?? "");
+  useEffect(() => {
+    setNewZone(configuration.zone);
+  }, [configuration.zone]);
+
+  const zones = getZones(priceData, configuration);
+  const options = zones.map(({ zone, lowCO2 }) => {
+    return {
+      value: zone,
+      search: `${zone} ${lowCO2 ? " co 2" : ""}`,
+      label: `${zone} ${lowCO2 ? " - 🍃 Low CO2" : ""}`,
+    };
+  });
+
+  return (
+    <div>
+      {configuration.machineType ? (
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          Select from the zones in the region with {configuration.machineType}{" "}
+          {configuration.spot ? "spot" : ""} instances
+        </div>
+      ) : undefined}
+      <Select
+        disabled={disabled}
+        style={{ width: "300px" }}
+        options={options}
+        value={newZone}
+        onChange={(zone) => {
+          setNewZone(zone);
+          setConfig({ zone });
+        }}
+        showSearch
+        optionFilterProp="children"
+        filterOption={filterOption}
+      />
+    </div>
+  );
+}
+
+function MachineType({ priceData, setConfig, configuration, disabled }) {
+  return <div>{configuration.machineType}</div>;
+}
+
+function BootDisk({ priceData, setConfig, configuration, disabled }) {
+  return <div>{configuration.diskSizeGb ?? "at least 10"} Gb</div>;
+}
+
+function GPU({ priceData, setConfig, configuration, disabled }) {
+  return (
+    <div>
+      {configuration.acceleratorCount ?? ""}{" "}
+      {configuration.acceleratorType ?? "none"}
+    </div>
+  );
 }
