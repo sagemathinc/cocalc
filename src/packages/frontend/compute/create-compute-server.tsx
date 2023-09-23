@@ -85,6 +85,8 @@ export default function CreateComputeServer({ project_id }) {
               />
             </Form.Item>
           </Form>
+          After you create this compute server, you can further configure it
+          then start it running and run Jupyter notebooks and terminals on it.
           <Divider />
           <Button onClick={() => setEditing(false)}>Cancel</Button>{" "}
           <Button
