@@ -2,6 +2,7 @@ import ComputeServer from "./compute-server";
 import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
+import { availableClouds } from "./config";
 
 export default function ComputeServers({ project_id }: { project_id: string }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
@@ -17,14 +18,18 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         </b>
         in which you can be root, use a GPU, run Docker containers, and install
         arbitrary free and commercial software. Run your Jupyter notebooks and
-        terminals collaboratively on compute servers. You pay by the millisecond
-        only when the compute server is on.
+        terminals collaboratively on compute servers. Pay as you go for storage
+        of data and usage when the server is running.
       </p>
-      <ComputeServerTable
-        computeServers={computeServers}
-        project_id={project_id}
-        account_id={account_id}
-      />
+      {availableClouds().length == 0 ? (
+        <b>No Compute Server Clouds are currently enabled.</b>
+      ) : (
+        <ComputeServerTable
+          computeServers={computeServers}
+          project_id={project_id}
+          account_id={account_id}
+        />
+      )}
     </div>
   );
 }

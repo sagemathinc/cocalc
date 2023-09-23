@@ -17,11 +17,11 @@ export default function Configuration({
   id,
   state,
 }: Props) {
-  if (editable && id && (state ?? "off") != "off") {
+  if (editable && id && (state ?? "off") != "off" && state != "deleted") {
     return (
       <>
         <div style={{ fontWeight: 250 }}>
-          Stop the compute server to edit its configuration
+          You can only change the configuration when the VM is off or deleted.
         </div>
         <Config editable={false} id={id} configuration={configuration} />
       </>

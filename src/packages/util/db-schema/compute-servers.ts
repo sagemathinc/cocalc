@@ -64,9 +64,9 @@ export const ACTION_INFO: { [action: string]: any } = {
   delete: {
     label: "Delete",
     icon: "trash",
-    tip: "Delete this compute server completely.",
+    tip: "Delete the virtual machine completely.",
     description:
-      "Deletes the compute server virtual memory.  All data on its disk and memory is lost, but the files in the home directory of your project are not affected.  You can start a deleted compute server and it comes up in a clean slate, and your configuration remains for use later.",
+      "Deletes the compute server's virtual machine.  All data on its disk and memory is lost, but the files in the home directory of your project are not affected.  You can start a deleted VM and it comes up in a clean slate, and your configuration remains for use later.",
   },
 };
 

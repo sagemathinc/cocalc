@@ -1,29 +1,35 @@
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
+  State,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Select, Space, Spin } from "antd";
+import { Select, Space, Spin, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { setServerCloud } from "./api";
 
 interface Props {
-  cloud;
+  cloud: CloudType;
+  state?: State;
   editable?: boolean;
   height?: number | string;
   setError?;
   id?: number;
+  setCloud?: (cloud: CloudType) => void;
+  style?;
 }
 
 export default function Cloud({
   cloud,
+  state,
   editable,
   height,
   setError,
   id,
+  setCloud,
+  style,
 }: Props) {
   const [newCloud, setNewCloud] = useState<CloudType>(cloud);
   const [saving, setSaving] = useState<boolean>(false);
-  const [edit, setEdit] = useState<boolean>(false);
   useEffect(() => {
     setNewCloud(cloud);
   }, [cloud]);
@@ -38,7 +44,7 @@ export default function Cloud({
       )}
     </span>
   );
-  if (!editable || !id) {
+  if (!editable) {
     return label;
   }
 
@@ -46,58 +52,50 @@ export default function Cloud({
   for (const cloud in CLOUDS_BY_NAME) {
     options.push({
       value: cloud,
-      label: <Cloud editable={false} cloud={cloud} />,
+      label: <Cloud editable={false} cloud={cloud as CloudType} />,
     });
   }
 
-  if (!edit) {
+  if (state != "deleted" && setCloud == null) {
     return (
-      <div style={{ cursor: "pointer" }} onClick={() => setEdit(true)}>
-        {label}
-      </div>
+      <Tooltip
+        title="You must first delete the compute server VM to enable changing the
+          cloud provider."
+      >
+        <span>{label}</span>
+      </Tooltip>
     );
   }
 
   return (
     <Space>
       <Select
-        defaultValue={cloud}
-        style={{ width: 180 }}
-        onChange={setNewCloud}
+        value={newCloud}
+        style={{ width: 180, ...style }}
+        onChange={async (value) => {
+          if (value == newCloud) {
+            // nothing to do
+            return;
+          }
+          setNewCloud(value);
+          if (setCloud != null) {
+            setCloud(value);
+          }
+          if (id) {
+            // save to backend
+            try {
+              setSaving(true);
+              await setServerCloud({ cloud: value, id });
+            } catch (err) {
+              setError(`${err}`);
+            } finally {
+              setSaving(false);
+            }
+          }
+        }}
         options={options}
       />
-      <>
-        <Button
-          onClick={() => {
-            setNewCloud(cloud);
-            setEdit(false);
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          type={"primary"}
-          disabled={saving || cloud == newCloud}
-          onClick={async () => {
-            if (edit) {
-              if (cloud == newCloud) return;
-              // save to backend
-              try {
-                setSaving(true);
-                await setServerCloud({ cloud: newCloud, id });
-              } catch (err) {
-                setError(`${err}`);
-              } finally {
-                setSaving(false);
-              }
-            }
-            setEdit(false);
-          }}
-        >
-          Save
-          {saving && <Spin />}
-        </Button>
-      </>
+      {saving && <Spin />}
     </Space>
   );
 }

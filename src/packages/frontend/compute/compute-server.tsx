@@ -63,7 +63,7 @@ export default function ComputeServer({
     {
       label: "Cloud",
       value: (
-        <Cloud cloud={cloud} editable={editable} setError={setError} id={id} />
+        <Cloud cloud={cloud} state={state} editable={editable} setError={setError} id={id} />
       ),
     },
     {

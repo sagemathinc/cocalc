@@ -33,7 +33,7 @@ export default function getActions({ state, editable }): JSX.Element[] {
         content={<div style={{ width: "400px" }}>{description}</div>}
       >
         <span>
-          <Icon name={icon} /> {label}
+          <Icon name={icon} /> {label} VM
         </span>
       </Popover>,
     );

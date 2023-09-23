@@ -44,7 +44,6 @@ export default function Configuration({
       try {
         setLoading(true);
         const data = await getGoogleCloudPriceData();
-        window.data = data;
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
@@ -446,7 +445,6 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
           setNewSpot(spot);
           setConfig({ spot });
         }}
-        buttonStyle="solid"
       >
         <Radio.Button value="standard">
           Standard{" "}
@@ -662,6 +660,7 @@ function BootDisk({ setConfig, configuration, disabled }) {
 }
 
 function GPU({ priceData, setConfig, configuration, disabled }) {
+  console.log({ priceData, setConfig, disabled });
   return (
     <div>
       {configuration.acceleratorCount ?? ""}{" "}

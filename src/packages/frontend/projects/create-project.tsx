@@ -55,7 +55,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
 
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
-    start_in_edit_mode ? "edit" : "view"
+    start_in_edit_mode ? "edit" : "view",
   );
   const [title_text, set_title_text] = useState<string>(default_value ?? "");
   const [error, set_error] = useState<string>("");
@@ -76,7 +76,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   // onprem and cocalc.com use licenses to adjust quota configs – but only cocalc.com has custom software images
   const show = useMemo(
     () => [KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc),
-    [customize_kucalc]
+    [customize_kucalc],
   );
 
   const [form] = Form.useForm();
@@ -353,7 +353,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
 
   function render_input_section(): JSX.Element | undefined {
     const helpTxt =
-      "The title of your new project, you can easily change it later!";
+      "The title of your new project.  You can easily change this later!";
     return (
       <Well style={{ backgroundColor: "#FFF" }}>
         <Row>
@@ -373,7 +373,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
               >
                 <Input
                   ref={new_project_title_ref}
-                  placeholder={"A name for your new project..."}
+                  placeholder={"Name your new project..."}
                   disabled={state === "saving"}
                   onChange={input_on_change}
                   onKeyDown={handle_keypress}

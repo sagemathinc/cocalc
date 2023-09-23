@@ -58,7 +58,7 @@ export default function State({
       }}
     >
       <span style={{ color, ...style }}>
-        <Icon name={icon} /> {label}
+        <Icon name={icon} /> VM is {label}{label.endsWith('ing') ? "..." : ""}
       </span>
     </Popover>
   );
