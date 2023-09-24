@@ -26,13 +26,17 @@ const SELECTOR_WIDTH = "300px";
 // TODO: this needs to depend on how big actual image is, if we use a read only disk etc.  For now this will work.
 const MIN_DISK_SIZE_GB = 50;
 
+interface ConfigurationType extends GoogleCloudConfigurationType {
+  valid?: boolean;
+}
+
 interface Props {
-  configuration: GoogleCloudConfigurationType;
+  configuration: ConfigurationType;
   editable?: boolean;
   // if id not set, then doesn't try to save anything to the backend
   id?: number;
-  // callend whenever changes are made.
-  onChange?: (configuration: GoogleCloudConfigurationType) => void;
+  // called whenever changes are made.
+  onChange?: (configuration: ConfigurationType) => void;
 }
 
 export default function Configuration({
@@ -44,9 +48,16 @@ export default function Configuration({
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<GoogleCloudData | null>(null);
-  const [error, setError] = useState<string>("");
+  const [error, setError0] = useState<string>("");
   const [configuration, setLocalConfiguration] =
-    useState<GoogleCloudConfigurationType>(configuration0);
+    useState<ConfigurationType>(configuration0);
+  const setError = (error) => {
+    setError0(error);
+    const valid = !error;
+    if (onChange != null && configuration.valid != valid) {
+      onChange({ ...configuration, valid });
+    }
+  };
 
   useEffect(() => {
     setLocalConfiguration(configuration0);
@@ -57,6 +68,7 @@ export default function Configuration({
       try {
         setLoading(true);
         const data = await getGoogleCloudPriceData();
+        // window.x = { data, TESTING: (data.markup = 0) };
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
@@ -620,7 +632,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
           {cost ? (
             `- ${currency(cost)}/hour`
           ) : (
-            <span style={{ color: "#666" }}>(region will change)</span>
+            <span style={{ color: "#666" }}>(config will change)</span>
           )}
           <RamAndCpu machineType={machineType} priceData={priceData} />
         </div>
@@ -808,7 +820,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     const price = cost ? (
       ` - ${currency(cost)}/hour`
     ) : (
-      <span style={{ color: "#666" }}>(region will change)</span>
+      <span style={{ color: "#666" }}>(config will change)</span>
     );
     const memory = priceData.accelerators[acceleratorType].memory;
     return {
@@ -879,18 +891,18 @@ function ensureConsistentConfiguration(
   configuration: GoogleCloudConfigurationType,
   changes: Partial<GoogleCloudConfigurationType>,
 ) {
-  const newChanges = { ...changes };
   const newConfiguration = { ...configuration, ...changes };
+  const newChanges = { ...changes };
 
-  ensureConsistentAccelerator(priceData, newChanges, newConfiguration);
+  ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
 
   ensureConsistentRegionAndZoneWithMachineType(
     priceData,
-    newChanges,
     newConfiguration,
+    newChanges,
   );
 
-  ensureConsistentZoneWithRegion(priceData, newChanges, newConfiguration);
+  ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
 
   console.log("ensureConsistentConfiguration", {
     configuration,
@@ -901,29 +913,40 @@ function ensureConsistentConfiguration(
   return newChanges;
 }
 
-function ensureConsistentZoneWithRegion(priceData, changes, configuration) {
-  if (!configuration.zone.startsWith(configuration.region)) {
-    if (changes["region"]) {
-      // currently changing region, so set a zone that matches the region
-      for (const zone in priceData.zones) {
-        if (zone.startsWith(configuration.region)) {
-          changes["zone"] = zone;
-          break;
-        }
+function ensureConsistentZoneWithRegion(priceData, configuration, changes) {
+  if (configuration.zone.startsWith(configuration.region)) {
+    return;
+  }
+  if (changes["region"]) {
+    // currently changing region, so set a zone that matches the region
+    for (const zone in priceData.zones) {
+      if (zone.startsWith(configuration.region)) {
+        changes["zone"] = zone;
+        break;
       }
-    } else {
-      // probably changing the zone, so set the region from the zone
-      changes["region"] = zoneToRegion(configuration.zone);
     }
+  } else {
+    // probably changing the zone, so set the region from the zone
+    changes["region"] = zoneToRegion(configuration.zone);
   }
 }
 
 function ensureConsistentAccelerator(priceData, configuration, changes) {
-  if (configuration.acceleratorType) {
-    // have a GPU
-    const data = priceData.accelerators[configuration.acceleratorType];
-    // Ensure the machine type is consistent with
-    if (!(configuration.machineType ?? "").startsWith(data.machineType)) {
+  if (!configuration.acceleratorType) {
+    return;
+  }
+  // have a GPU
+  const data = priceData.accelerators[configuration.acceleratorType];
+  // Ensure the machine type is consistent
+  if (!configuration.machineType.startsWith(data.machineType)) {
+    if (changes["machineType"]) {
+      // if you are explicitly changing the machine type, then we respect
+      // that and disabled the gpu
+      configuration["acceleratorType"] = changes["acceleratorType"] = "";
+      configuration["acceleratorCount"] = changes["acceleratorCount"] = 0;
+      return;
+    } else {
+      // changing something else, so we fix the machine type
       for (const type in priceData.machineTypes) {
         if (type.startsWith(data.machineType)) {
           configuration["machineType"] = changes["machineType"] = type;
@@ -931,13 +954,13 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
         }
       }
     }
-    // Ensure the count is consistent
-    const count = configuration.acceleratorCount ?? 0;
-    if (count < 1) {
-      changes["acceleratorCount"] = 1;
-    } else if (count > data.max) {
-      changes["acceleratorCount"] = data.max;
-    }
+  }
+  // Ensure the count is consistent
+  const count = configuration.acceleratorCount ?? 0;
+  if (count < 1) {
+    changes["acceleratorCount"] = 1;
+  } else if (count > data.max) {
+    changes["acceleratorCount"] = data.max;
   }
 }
 
@@ -949,9 +972,11 @@ function ensureConsistentRegionAndZoneWithMachineType(
   // Specifically selecting a machine type.  We make this the
   // highest priority, so if you are changing this, we make everything
   // else fit it.
-  const machineType = changes["machineType"];
+  const machineType = configuration["machineType"];
   if (priceData.machineTypes[machineType] == null) {
-    // BUG -- This should never happen:
+    console.warn(
+      `BUG -- This should never happen: unknonwn machineType = '${machineType}'`,
+    );
     // invalid machineType -- so just fix it to the most compatible
     configuration["machineType"] = changes["machineType"] = "n1-standard-1";
     return;
@@ -974,7 +999,6 @@ function ensureConsistentRegionAndZoneWithMachineType(
     // so find cheapest region with our requested machine type.
     let price = 1e8;
     for (const region in regionToCost) {
-      console.log(regionToCost[region], price, region);
       if (regionToCost[region] < price) {
         price = regionToCost[region];
         configuration["region"] = changes["region"] = region;

@@ -21,6 +21,7 @@ interface Props extends Omit<ComputeServerUserInfo, "id"> {
   onColorChange?;
   onCloudChange?;
   onConfigurationChange?;
+  setIsValid?: (valid) => void;
 }
 
 export default function ComputeServer({

@@ -79,7 +79,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             }}
           >
             Customize your new compute server, then click "Start" below. You can
-            always change everything later.
+            change everything later.
           </div>
           <ComputeServer
             project_id={project_id}
@@ -98,7 +98,12 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             <Button size="large" onClick={() => setEditing(false)}>
               Cancel
             </Button>{" "}
-            <Button size="large" type="primary" onClick={handleCreate}>
+            <Button
+              size="large"
+              type="primary"
+              onClick={handleCreate}
+              disabled={!!error || !configuration.valid}
+            >
               <Icon name="run" /> Start "{title}" Running
             </Button>
           </div>
