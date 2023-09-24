@@ -19,13 +19,17 @@ const MIN_DISK_SIZE_GB = 50;
 interface Props {
   configuration: GoogleCloudConfigurationType;
   editable?: boolean;
+  // if id not set, then doesn't try to save anything to the backend
   id?: number;
+  // callend whenever changes are made.
+  onChange?: (configuration: GoogleCloudConfigurationType) => void;
 }
 
 export default function Configuration({
   configuration: configuration0,
   editable,
   id,
+  onChange,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
@@ -39,7 +43,7 @@ export default function Configuration({
   }, [configuration0]);
 
   useEffect(() => {
-    if (!editable || !id) return;
+    if (!editable) return;
     (async () => {
       try {
         setLoading(true);
@@ -54,7 +58,7 @@ export default function Configuration({
   }, []);
 
   useEffect(() => {
-    if (!editable || !id || configuration == null || priceData == null) {
+    if (!editable || configuration == null || priceData == null) {
       return;
     }
     try {
@@ -67,7 +71,7 @@ export default function Configuration({
     }
   }, [configuration, priceData]);
 
-  if (!editable || !id) {
+  if (!editable) {
     const gpu = configuration.acceleratorType
       ? `, ${configuration.acceleratorCount ?? 1} ${
           configuration.acceleratorType
@@ -77,8 +81,9 @@ export default function Configuration({
     return (
       <div>
         {configuration.spot ? "Spot instance " : ""} {configuration.machineType}{" "}
-        in {configuration.zone} with {configuration.diskSizeGb ?? "at least 10"}{" "}
-        Gb boot disk{gpu}.
+        in {configuration.zone} with{" "}
+        {configuration.diskSizeGb ?? `at least ${MIN_DISK_SIZE_GB}`} GB boot
+        disk{gpu}.
       </div>
     );
   }
@@ -98,7 +103,12 @@ export default function Configuration({
     if (!changed) return;
     try {
       setLoading(true);
-      await setServerConfiguration({ id, configuration: changes });
+      if (id != null) {
+        await setServerConfiguration({ id, configuration: changes });
+      }
+      if (onChange != null) {
+        onChange({ ...configuration, ...changes });
+      }
       setLocalConfiguration({ ...configuration, ...changes });
     } catch (err) {
       setError(`${err}`);
@@ -272,7 +282,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
     <div>
       <Select
         disabled={disabled}
-        style={{ width: "350px", marginRight: "5px" }}
+        style={{ width: "350px", marginRight: "15px" }}
         options={options as any}
         value={newRegion}
         onChange={(region) => {
@@ -551,7 +561,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       cost,
       label: (
         <div key={machineType}>
-          {machineType} {cost ? `${currency(cost)}/hour` : undefined}
+          {machineType} {cost ? `- ${currency(cost)}/hour` : undefined}
           <RamAndCpu machineType={machineType} priceData={priceData} />
         </div>
       ),
@@ -589,7 +599,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       />
       <Checkbox
         disabled={disabled}
-        style={{ marginTop: "5px", marginLeft: "5px" }}
+        style={{ marginTop: "5px", marginLeft: "15px" }}
         checked={sortByPrice}
         onChange={() => setSortByPrice(!sortByPrice)}
       >

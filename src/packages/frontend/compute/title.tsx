@@ -1,5 +1,5 @@
 import { Button, Input, Space, Spin, Tooltip } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { setServerTitle } from "./api";
 
 const NO_TITLE = "No Title";
@@ -9,11 +9,19 @@ interface Props {
   id?: number;
   editable?: boolean;
   setError?;
+  onChange?;
 }
 
-export default function Title({ title, id, editable, setError }: Props) {
+export default function Title({
+  title,
+  id,
+  editable,
+  setError,
+  onChange,
+}: Props) {
+  const titleRef = useRef(null);
   const [saving, setSaving] = useState<boolean>(false);
-  const [edit, setEdit] = useState<boolean>(false);
+  const [edit, setEdit] = useState<boolean>(id == null);
   const [newTitle, setNewTitle] = useState<string>(
     title?.trim() ? title : NO_TITLE,
   );
@@ -21,21 +29,35 @@ export default function Title({ title, id, editable, setError }: Props) {
     setNewTitle(title?.trim() ? title : NO_TITLE);
   }, [title]);
 
-  if (!editable || !id) {
+  useEffect(() => {
+    if (!edit) {
+      return;
+    }
+    setTimeout(() => (titleRef.current as any)?.input?.select(), 1);
+  }, [edit]);
+
+  if (!editable) {
     return <>{newTitle}</>;
   }
 
   const handleSave = async () => {
     if (edit) {
-      if (newTitle == title) return;
-      // save to backend
-      try {
-        setSaving(true);
-        await setServerTitle({ title: newTitle, id });
-      } catch (err) {
-        setError(`${err}`);
-      } finally {
-        setSaving(false);
+      if (newTitle == title) {
+        return;
+      }
+      if (onChange != null) {
+        onChange(newTitle);
+      }
+      if (id != null) {
+        // save to backend
+        try {
+          setSaving(true);
+          await setServerTitle({ title: newTitle, id });
+        } catch (err) {
+          setError(`${err}`);
+        } finally {
+          setSaving(false);
+        }
       }
     }
     setEdit(!edit);
@@ -50,6 +72,7 @@ export default function Title({ title, id, editable, setError }: Props) {
       )}
       {edit && (
         <Input
+          ref={titleRef}
           style={{ width: "300px" }}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}

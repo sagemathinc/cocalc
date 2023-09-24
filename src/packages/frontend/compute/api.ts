@@ -1,5 +1,6 @@
 import api from "@cocalc/frontend/client/api";
 import type {
+  Action,
   Configuration,
   Cloud,
 } from "@cocalc/util/db-schema/compute-servers";
@@ -15,6 +16,17 @@ export async function createServer(opts: {
   configuration?: Configuration;
 }): Promise<number> {
   return await api("compute/create-server", opts);
+}
+
+export async function computeServerAction(opts: {
+  id: number;
+  action: Action;
+}) {
+  await api("compute/delete-server", opts);
+}
+
+export async function deleteComputeServer(id) {
+  await api("compute/delete-server", { id });
 }
 
 // only owner can change properties of a compute server.

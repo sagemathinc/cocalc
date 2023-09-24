@@ -1,51 +1,64 @@
-import { Button, Card, Divider, Input, Form, Spin } from "antd";
+import { Button, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { createServer } from "./api";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { availableClouds } from "./config";
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
 } from "@cocalc/util/db-schema/compute-servers";
-import Cloud from "./cloud";
 import ShowError from "@cocalc/frontend/components/error";
+import ComputeServer from "./compute-server";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+
+const DEFAULTS = {
+  title: () => `Untitled ${new Date().toISOString().split("T")[0]}`,
+  color: "#888",
+  cloud: availableClouds()[0],
+  configuration: CLOUDS_BY_NAME[availableClouds()[0]].defaultConfiguration,
+};
 
 export default function CreateComputeServer({ project_id, onCreate }) {
-  const [creating, setCreating] = useState<boolean>(false);
+  const account_id = useTypedRedux("account", "account_id");
   const [editing, setEditing] = useState<boolean>(false);
-  const [title, setTitle] = useState<string>(
-    `Untitled ${new Date().toISOString().split("T")[0]}`,
-  );
+  const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [cloud, setCloud] = useState<CloudType>(availableClouds()[0]);
-  const titleRef = useRef(null);
+
+  const [title, setTitle] = useState<string>(DEFAULTS.title);
+  const [color, setColor] = useState<string>(DEFAULTS.color);
+  const [cloud, setCloud] = useState<CloudType>(DEFAULTS.cloud);
+  const [configuration, setConfiguration] = useState<any>(
+    DEFAULTS.configuration,
+  );
 
   useEffect(() => {
-    if (!editing) {
-      return;
+    if (configuration.cloud != cloud) {
+      setConfiguration(CLOUDS_BY_NAME[cloud].defaultConfiguration);
     }
-    setTimeout(() => (titleRef.current as any)?.input?.select(), 1);
-  }, [editing]);
+  }, [cloud]);
 
   const handleCreate = async () => {
     try {
       setError("");
       setCreating(true);
-      const configuration = CLOUDS_BY_NAME[cloud].defaultConfiguration;
       onCreate();
       try {
-        await createServer({ project_id, cloud, title, configuration });
+        await createServer({ project_id, cloud, title, color, configuration });
+        setEditing(false);
+        setTitle(DEFAULTS.title());
+        setColor(DEFAULTS.color);
+        setCloud(DEFAULTS.cloud);
+        setConfiguration(DEFAULTS.configuration);
       } catch (err) {
         setError(`${err}`);
       }
     } finally {
       setCreating(false);
-      setEditing(false);
     }
   };
 
   return (
-    <div>
+    <div style={{ marginTop: "15px" }}>
       <Button
         disabled={creating || editing}
         onClick={() => {
@@ -55,49 +68,29 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         <Icon name="plus-circle" /> Create New Compute Server...{" "}
         {creating ? <Spin /> : null}
       </Button>
-      <ShowError error={error} setError={setError} />
       {editing && (
-        <Card
-          style={{ margin: "15px 0" }}
-          title=<>
-            <Icon name="server" /> Create New Compute Server
-          </>
-        >
-          <Form>
-            <Form.Item label="Title">
-              <Input
-                ref={titleRef}
-                autoFocus
-                style={{ width: "300px" }}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={"Name your new compute server..."}
-              />
-              <div style={{ color: "#888", marginTop: "5px" }}>
-                You can easily change the title at any time later.
-              </div>
-            </Form.Item>
-            <Form.Item label="Cloud">
-              <Cloud
-                style={{ width: "300px" }}
-                editable={true}
-                cloud={cloud}
-                setCloud={setCloud}
-              />
-            </Form.Item>
-          </Form>
-          After you create this compute server, you can further configure it
-          then start it running and run Jupyter notebooks and terminals on it.
-          <Divider />
-          <Button onClick={() => setEditing(false)}>Cancel</Button>{" "}
-          <Button
-            type="primary"
-            disabled={!title.trim()}
-            onClick={handleCreate}
-          >
-            Create Compute Server
-          </Button>
-        </Card>
+        <div style={{ marginTop: "15px" }}>
+          <ShowError error={error} setError={setError} />
+          <ComputeServer
+            project_id={project_id}
+            account_id={account_id}
+            title={title}
+            color={color}
+            cloud={cloud}
+            configuration={configuration}
+            editable={!creating}
+            onColorChange={setColor}
+            onTitleChange={setTitle}
+            onCloudChange={setCloud}
+            onConfigurationChange={setConfiguration}
+          />
+          <div style={{ marginTop: "15px" }}>
+            <Button onClick={() => setEditing(false)}>Cancel</Button>{" "}
+            <Button type="primary" onClick={handleCreate}>
+              Create Compute Server
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

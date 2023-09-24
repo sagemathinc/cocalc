@@ -16,6 +16,7 @@ interface Props {
   id?: number;
   setCloud?: (cloud: CloudType) => void;
   style?;
+  onChange?;
 }
 
 export default function Cloud({
