@@ -1,5 +1,13 @@
 import type { GoogleCloudConfiguration as GoogleCloudConfigurationType } from "@cocalc/util/db-schema/compute-servers";
-import { Checkbox, InputNumber, Radio, Select, Spin, Table } from "antd";
+import {
+  Checkbox,
+  InputNumber,
+  Radio,
+  Select,
+  Spin,
+  Switch,
+  Table,
+} from "antd";
 import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
@@ -72,9 +80,9 @@ export default function Configuration({
 
   if (!editable) {
     const gpu = configuration.acceleratorType
-      ? `, ${configuration.acceleratorCount ?? 1} ${
-          configuration.acceleratorType
-        } ${plural(configuration.acceleratorCount ?? 1, "GPU")}`
+      ? `, ${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
+          configuration.acceleratorType,
+        )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}`
       : "";
     // short summary
     return (
@@ -93,7 +101,8 @@ export default function Configuration({
           </span>
         ) : (
           ""
-        )}.
+        )}
+        .
       </div>
     );
   }
@@ -349,8 +358,9 @@ function getRegions(priceData, configuration) {
           priceData,
           configuration: { ...configuration, region, zone },
         });
-      } catch (err) {
-        console.warn({ ...configuration, region, zone }, err);
+      } catch (_) {
+        continue;
+        // console.warn({ ...configuration, region, zone }, err);
       }
     }
     if (zoneData.lowCO2 || zoneData.lowC02) {
@@ -689,11 +699,106 @@ function BootDisk({ setConfig, configuration, disabled }) {
 }
 
 function GPU({ priceData, setConfig, configuration, disabled }) {
-  console.log({ priceData, setConfig, disabled });
+  const [acceleratorType, setAcceleratorType] = useState<string>(
+    configuration.acceleratorType,
+  );
+  const [acceleratorCount, setAcceleratorCount] = useState<number>(
+    configuration.acceleratorCount,
+  );
+
+  //   useEffect(() => {
+  //     setAcceleratorType(configuration.acceleratorType);
+  //   }, [configuration.acceleratorType]);
+
+  //   useEffect(() => {
+  //     setAcceleratorCount(configuration.acceleratorCount);
+  //   }, [configuration.acceleratorCount]);
+
+  const theSwitch = (
+    <Switch
+      disabled={disabled}
+      checkedChildren={"NVIDIA GPU"}
+      unCheckedChildren={"NO GPU"}
+      checked={!!acceleratorType}
+      onChange={() => {
+        if (!!acceleratorType) {
+          setAcceleratorType("");
+          setAcceleratorCount(0);
+          setConfig({ acceleratorType: "", acceleratorCount: 0 });
+        } else {
+          setAcceleratorType("nvidia-t4");
+          setAcceleratorCount(1);
+          setConfig({ acceleratorType: "nvidia-t4", acceleratorCount: 1 });
+        }
+      }}
+    />
+  );
+  if (!acceleratorType) {
+    return theSwitch;
+  }
+
+  const acceleratorTypes = Object.keys(priceData.accelerators);
+  const options = acceleratorTypes.map((acceleratorType) => {
+    let cost;
+    try {
+      cost = computeCost({
+        priceData,
+        configuration: { ...configuration, acceleratorType, acceleratorCount },
+      });
+    } catch (_) {
+      cost = null;
+    }
+    const price = cost ? ` - ${currency(cost)}/hour` : "";
+    return {
+      value: acceleratorType,
+      search: acceleratorType,
+      cost,
+      label: (
+        <div key={acceleratorType}>
+          {displayAcceleratorType(acceleratorType)} {price}
+        </div>
+      ),
+    };
+  });
+
   return (
     <div>
-      {configuration.acceleratorCount ?? ""}{" "}
-      {configuration.acceleratorType ?? "none"}
+      {theSwitch}
+      <div style={{ marginTop: "15px" }}>
+        <Select
+          disabled={disabled}
+          style={{ width: "250px" }}
+          options={options as any}
+          value={acceleratorType}
+          onChange={(type) => {
+            setAcceleratorType(type);
+            setConfig({ acceleratorType: type });
+            // todo -- change count if necessary
+          }}
+          showSearch
+          optionFilterProp="children"
+          filterOption={filterOption}
+        />
+        <InputNumber
+          addonAfter="Count"
+          style={{ marginLeft: "15px", width: "125px" }}
+          disabled={disabled}
+          min={1}
+          max={priceData.accelerators[acceleratorType].max}
+          value={acceleratorCount}
+          onChange={(count) => {
+            setAcceleratorCount(count);
+            setConfig({ acceleratorCount: count });
+          }}
+        />
+      </div>
     </div>
   );
+}
+
+function displayAcceleratorType(acceleratorType) {
+  return acceleratorType
+    .replace("nvidia-", "NVIDIA ")
+    .replace("-", " - ")
+    .toUpperCase();
 }
