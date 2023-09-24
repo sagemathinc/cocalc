@@ -19,7 +19,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
@@ -34,7 +37,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
-    "@cocalc/gcloud-pricing-calculator": "^0.10.0",
+    "@cocalc/gcloud-pricing-calculator": "^1.0.1",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@google-cloud/compute": "^4.0.1",

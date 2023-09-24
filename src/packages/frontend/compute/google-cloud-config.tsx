@@ -9,7 +9,7 @@ import {
   Switch,
   Table,
 } from "antd";
-import { capitalize, cmp, plural } from "@cocalc/util/misc";
+import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
@@ -68,7 +68,7 @@ export default function Configuration({
       try {
         setLoading(true);
         const data = await getGoogleCloudPriceData();
-        // window.x = { data, TESTING: (data.markup = 0) };
+        //window.x = { data, TESTING: (data.markup = 0) };
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
@@ -712,24 +712,29 @@ function RamAndCpu({
 }) {
   const data = priceData.machineTypes[machineType];
   if (data == null) return null;
-  const { vcpu, memory } = data;
+  const { memory } = data;
+  let { vcpu } = data;
   if (!vcpu || !memory) return null;
-  const shared = machineType.includes("micro") ? " shared " : "";
+  if (machineType == "e2-micro") {
+    vcpu = "0.25-2";
+  } else if (machineType == "e2-small") {
+    vcpu = "0.5-2";
+  } else if (machineType == "e2-medium") {
+    vcpu = "1-2";
+  }
   if (inline) {
     return (
       <span style={style}>
-        {vcpu} {shared}
+        {vcpu}
         {plural(vcpu, "vCPU", "vCPU's")} and {memory} GB RAM
       </span>
     );
   }
   return (
     <div style={{ color: "#666", ...style }}>
-      <b>
-        {capitalize(shared.trimLeft())} {plural(vcpu, "vCPU", "vCPU's")}:{" "}
-      </b>
+      <b>{plural(vcpu, "vCPU", "vCPU's")}: </b>
       <div
-        style={{ width: "50px", textAlign: "left", display: "inline-block" }}
+        style={{ width: "65px", textAlign: "left", display: "inline-block" }}
       >
         {vcpu}
       </div>
@@ -904,12 +909,6 @@ function ensureConsistentConfiguration(
 
   ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
 
-  console.log("ensureConsistentConfiguration", {
-    configuration,
-    changes,
-    newConfiguration,
-    newChanges,
-  });
   return newChanges;
 }
 
@@ -1006,7 +1005,6 @@ function ensureConsistentRegionAndZoneWithMachineType(
         zoneHasMachineType = false;
       }
     }
-    console.log("resulted in choosing region", changes["region"]);
   }
   if (!zoneHasMachineType) {
     // now the region has the machine type, but the zone doesn't (or

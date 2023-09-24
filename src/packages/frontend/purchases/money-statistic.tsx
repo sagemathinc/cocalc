@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { round2 } from "@cocalc/util/misc";
+import { round2, round3 } from "@cocalc/util/misc";
 import { Statistic } from "antd";
 
 interface Props {
@@ -7,12 +7,23 @@ interface Props {
   title: ReactNode;
 }
 export default function MoneyStatistic({ value, title }: Props) {
-  return (
-    <Statistic
-      title={<>{title} (USD)</>}
-      value={round2(value)}
-      precision={2}
-      prefix={"$"}
-    />
-  );
+  if (value >= 0.01) {
+    return (
+      <Statistic
+        title={<>{title} (USD)</>}
+        value={round2(value)}
+        precision={2}
+        prefix={"$"}
+      />
+    );
+  } else {
+    return (
+      <Statistic
+        title={<>{title} (USD)</>}
+        value={round3(value)}
+        precision={3}
+        prefix={"$"}
+      />
+    );
+  }
 }

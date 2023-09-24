@@ -786,6 +786,10 @@ export function round2(num: number): number {
   return Math.round((num + 0.00001) * 100) / 100;
 }
 
+export function round3(num: number): number {
+  return Math.round((num + 0.000001) * 1000) / 1000;
+}
+
 // Round given number up to 2 decimal places
 export function round2up(num: number): number {
   return Math.ceil(num * 100) / 100;
