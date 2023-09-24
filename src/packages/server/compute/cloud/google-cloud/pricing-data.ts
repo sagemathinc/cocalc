@@ -6,6 +6,7 @@ export default async function getPricingData() {
     await getServerSettings();
   const data = await getData();
   includeGpuData(data);
+  removeIncompleteMachineTypes(data);
 
   return { ...data, markup: markup ?? 30 };
 }
@@ -50,7 +51,7 @@ function includeGpuData(data) {
       "us-east5-b": 3229.66 / 730,
       "us-central1-a": 2867.5 / 730,
       "us-central1-c": 2867.5 / 730,
-      "europe-wast4-a": 3157.4 / 730,
+      "europe-west4-a": 3157.4 / 730,
       "asia-southeast1-c": 3537.63 / 730,
     },
     // @ts-ignore
@@ -67,6 +68,14 @@ function includeGpuData(data) {
       data.accelerators[key].machineType = "n1-";
     }
   }
+
+  for (const machineType of ["nvidia-a100-40gb", "nvidia-a100-80gb"]) {
+    for (const zone in data.accelerators[machineType].prices) {
+      if (!data.zones[zone].machineTypes.includes("a2")) {
+        data.zones[zone].machineTypes.push("a2");
+      }
+    }
+  }
 }
 
 // GPU's are in high demand, so as of Sept 25, 2023, Google
@@ -80,4 +89,17 @@ function sixtyPercentOff(obj) {
     obj2[key] = 0.6 * obj[key];
   }
   return obj2;
+}
+
+// Some wweird machine types like "n2-node-80-640"
+// don't have data about vcpu and memory.  For now we
+// just don't support them.  Maybe they are a special
+// notation for something for later...
+function removeIncompleteMachineTypes(data) {
+  for (const machineType in data.machineTypes) {
+    const x = data.machineTypes[machineType];
+    if (!x.prices || !x.vcpu || !x.memory) {
+      delete data.machineTypes[machineType];
+    }
+  }
 }

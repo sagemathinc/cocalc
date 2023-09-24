@@ -96,7 +96,7 @@ export default function ComputeServer({
       ),
     },
     {
-      label: "Config",
+      label: "Virtual Machine",
       value: (
         <Configuration
           editable={editable}

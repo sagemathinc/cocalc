@@ -94,9 +94,13 @@ export default function computeCost({
         `machine type for ${configuration.acceleratorType} must be ${acceleratorData.machineType}`,
       );
     }
-    const costPer =
+    // NOTE: accelerator cost by region except for the a100 where it is by zone.
+    let costPer =
       acceleratorData[configuration.spot ? "spot" : "prices"]?.[
         configuration.region
+      ] ??
+      acceleratorData[configuration.spot ? "spot" : "prices"]?.[
+        configuration.zone
       ];
     log("accelerator cost per", { costPer });
     if (costPer == null) {

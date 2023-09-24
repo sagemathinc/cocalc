@@ -1,5 +1,6 @@
 import type { GoogleCloudConfiguration as GoogleCloudConfigurationType } from "@cocalc/util/db-schema/compute-servers";
 import {
+  Card,
   Checkbox,
   InputNumber,
   Radio,
@@ -177,38 +178,6 @@ export default function Configuration({
       ),
     },
     {
-      key: "provisioning",
-      label: (
-        <A href="https://cloud.google.com/compute/docs/instances/spot">
-          <Icon name="external-link" /> Provisioning
-        </A>
-      ),
-      value: (
-        <Provisioning
-          disabled={loading}
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-    {
-      key: "gpu",
-      label: (
-        <A href="https://cloud.google.com/compute/docs/gpus">
-          <Icon name="external-link" /> GPUs
-        </A>
-      ),
-      value: (
-        <GPU
-          disabled={loading}
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-    {
       key: "region",
       label: (
         <A href="https://cloud.google.com/about/locations">
@@ -240,6 +209,40 @@ export default function Configuration({
         />
       ),
     },
+
+    {
+      key: "provisioning",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/instances/spot">
+          <Icon name="external-link" /> Provisioning
+        </A>
+      ),
+      value: (
+        <Provisioning
+          disabled={loading}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+    {
+      key: "gpu",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/gpus">
+          <Icon name="external-link" /> GPUs
+        </A>
+      ),
+      value: (
+        <GPU
+          disabled={loading}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+
     {
       key: "boot",
       label: (
@@ -265,7 +268,7 @@ export default function Configuration({
       )}
       <div
         style={{
-          height: "35px",
+          minHeight: "35px",
           padding: "5px 10px",
           background: error ? "red" : undefined,
           color: "white",
@@ -324,6 +327,11 @@ function Region({ priceData, setConfig, configuration, disabled }) {
 
   return (
     <div>
+      {configuration.machineType ? (
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          <b>Region</b>
+        </div>
+      ) : undefined}
       <Select
         disabled={disabled}
         style={{ width: SELECTOR_WIDTH, marginRight: "15px" }}
@@ -345,12 +353,6 @@ function Region({ priceData, setConfig, configuration, disabled }) {
       >
         Sort by price
       </Checkbox>
-      {configuration.machineType ? (
-        <div style={{ color: "#666", marginTop: "5px" }}>
-          Select a region with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} VMs.
-        </div>
-      ) : undefined}
     </div>
   );
 }
@@ -431,29 +433,32 @@ function getRegions(priceData, configuration) {
   return data;
 }
 
-// Gets the zones in a region where the machine type is available.
+// Gets the zones compatible with the other configuration
 function getZones(priceData, configuration) {
   const lowCO2 = new Set<string>();
   const zones = new Set<string>();
-  const { region, machineType, spot } = configuration ?? {};
-  if (!region) {
-    return [];
-  }
+  const { region, machineType, acceleratorType, spot } = configuration;
+  const prefix = machineType.split("-")[0];
   for (const zone in priceData.zones) {
-    const i = zone.lastIndexOf("-");
-    if (region != zone.slice(0, i)) {
+    if (region != zoneToRegion(zone)) {
       // this zone isn't in the chosen region.
       continue;
     }
     const zoneData = priceData.zones[zone];
     if (machineType) {
-      if (!zoneData.machineTypes.includes(machineType.split("-")[0])) {
+      if (!zoneData.machineTypes.includes(prefix)) {
         continue;
       }
       if (spot != null) {
         if (priceData.machineTypes[machineType]?.spot?.[region] == null) {
           continue;
         }
+      }
+    }
+    if (acceleratorType) {
+      if (priceData.accelerators[acceleratorType]?.prices?.[zone] == null) {
+        // not in this zone.
+        continue;
       }
     }
     if (zoneData.lowCO2 || zoneData.lowC02) {
@@ -492,6 +497,9 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
 
   return (
     <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>Provisioning</b>
+      </div>
       <Radio.Group
         buttonStyle="solid"
         disabled={disabled}
@@ -559,6 +567,12 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
 
   return (
     <div>
+      {configuration.machineType ? (
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          <b>Zone</b> in {configuration.region} with {configuration.machineType}{" "}
+          {configuration.spot ? "spot" : ""} VMs
+        </div>
+      ) : undefined}
       <Select
         disabled={disabled}
         style={{ width: SELECTOR_WIDTH }}
@@ -572,18 +586,12 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
         optionFilterProp="children"
         filterOption={filterOption}
       />
-      {configuration.machineType ? (
-        <div style={{ color: "#666", marginTop: "5px" }}>
-          Select from the zones in the region with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} machines.
-        </div>
-      ) : undefined}
     </div>
   );
 }
 
 function MachineType({ priceData, setConfig, configuration, disabled }) {
-  const [sortByPrice, setSortByPrice] = useState<boolean>(false);
+  const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newMachineType, setNewMachineType] = useState<string>(
     configuration.machineType ?? "",
   );
@@ -592,7 +600,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   }, [configuration]);
 
   const machineTypes = Object.keys(priceData.machineTypes);
-  let options = machineTypes.map((machineType) => {
+  let allOptions = machineTypes.map((machineType) => {
     let cost;
     try {
       cost = computeCost({
@@ -608,31 +616,39 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       cost,
       label: (
         <div key={machineType}>
-          {machineType} {cost ? `- ${currency(cost)}/hour` : undefined}
+          {machineType}{" "}
+          {cost ? (
+            `- ${currency(cost)}/hour`
+          ) : (
+            <span style={{ color: "#666" }}>(region will change)</span>
+          )}
           <RamAndCpu machineType={machineType} priceData={priceData} />
         </div>
       ),
     };
   });
-  // only include ones with a known price
-  options = options.filter((x) => x.cost);
+  const options = [
+    {
+      label: "Machine Types",
+      options: allOptions.filter((x) => x.cost),
+    },
+    {
+      label: "Other Configuration Will Change",
+      options: allOptions.filter((x) => !x.cost),
+    },
+  ];
+
   if (sortByPrice) {
-    options.sort((a, b) => {
-      if (a.cost == null && b.cost != null) {
-        return 1;
-      }
-      if (a.cost != null && b.cost == null) {
-        return -1;
-      }
-      if (a.cost == null && b.cost == null) {
-        return cmp(a.value, b.value);
-      }
+    options[0].options.sort((a, b) => {
       return cmp(a.cost, b.cost);
     });
   }
 
   return (
     <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>Machine Type</b>
+      </div>
       <Select
         disabled={disabled}
         style={{ width: SELECTOR_WIDTH }}
@@ -654,16 +670,18 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       >
         Sort by price
       </Checkbox>
-      <div style={{ textAlign: "center", fontSize: "12pt" }}>
-        <RamAndCpu
-          machineType={newMachineType}
-          priceData={priceData}
-          style={{ marginTop: "5px" }}
-        />
+      <div style={{ textAlign: "center" }}>
+        <Card type="inner" style={{ margin: "5px auto", fontSize: "13pt" }}>
+          <RamAndCpu
+            machineType={newMachineType}
+            priceData={priceData}
+            style={{ marginTop: "5px" }}
+          />
+        </Card>
       </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Prices and availability also depend on the region and provisioning
-        types, so adjust those below to find the best overall value.
+        Prices and availability depend on the region and provisioning type, so
+        adjust those below to find the best overall value.
       </div>
     </div>
   );
@@ -694,11 +712,16 @@ function RamAndCpu({
     );
   }
   return (
-    <div style={style}>
+    <div style={{ color: "#666", ...style }}>
       <b>
         {capitalize(shared.trimLeft())} {plural(vcpu, "vCPU", "vCPU's")}:{" "}
       </b>
-      {vcpu} &nbsp;&nbsp;&nbsp; <b>Memory:</b> {memory} GB
+      <div
+        style={{ width: "50px", textAlign: "left", display: "inline-block" }}
+      >
+        {vcpu}
+      </div>
+      <b>Memory:</b> {memory} GB
     </div>
   );
 }
@@ -713,6 +736,9 @@ function BootDisk({ setConfig, configuration, disabled }) {
 
   return (
     <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>Boot Disk</b>
+      </div>
       <InputNumber
         style={{ width: SELECTOR_WIDTH }}
         disabled={disabled}
@@ -735,6 +761,11 @@ function BootDisk({ setConfig, configuration, disabled }) {
 
 function GPU({ priceData, setConfig, configuration, disabled }) {
   const { acceleratorType, acceleratorCount } = configuration;
+  const head = (
+    <div style={{ color: "#666", marginBottom: "5px" }}>
+      <b>NVIDIA T4, P4, V100, P100, or A100 GPU</b>
+    </div>
+  );
 
   const theSwitch = (
     <Switch
@@ -755,7 +786,12 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     />
   );
   if (!acceleratorType) {
-    return theSwitch;
+    return (
+      <div>
+        {head}
+        {theSwitch}
+      </div>
+    );
   }
 
   const acceleratorTypes = Object.keys(priceData.accelerators);
@@ -769,7 +805,11 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     } catch (_) {
       cost = null;
     }
-    const price = cost ? ` - ${currency(cost)}/hour` : "";
+    const price = cost ? (
+      ` - ${currency(cost)}/hour`
+    ) : (
+      <span style={{ color: "#666" }}>(region will change)</span>
+    );
     const memory = priceData.accelerators[acceleratorType].memory;
     return {
       value: acceleratorType,
@@ -785,6 +825,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
 
   return (
     <div>
+      {head}
       {theSwitch}
       <div style={{ marginTop: "15px" }}>
         <Select
@@ -812,6 +853,12 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           }}
         />
       </div>
+      {acceleratorType?.includes("a100") && configuration.spot ? (
+        <div style={{ marginTop: "5px", color: "#666" }}>
+          <b>WARNING:</b> A100 spot instances are rarely available. Consider
+          standard provisioning instead.
+        </div>
+      ) : undefined}
     </div>
   );
 }
@@ -834,41 +881,17 @@ function ensureConsistentConfiguration(
 ) {
   const newChanges = { ...changes };
   const newConfiguration = { ...configuration, ...changes };
-  if (newConfiguration.acceleratorType) {
-    // have a GPU
-    const data = priceData.accelerators[newConfiguration.acceleratorType];
-    // Ensure the machine type is consistent with
-    if (!(newConfiguration.machineType ?? "").startsWith(data.machineType)) {
-      for (const type in priceData.machineTypes) {
-        if (type.startsWith(data.machineType)) {
-          newChanges["machineType"] = type;
-          break;
-        }
-      }
-    }
-    // Ensure the count is consistent
-    console.log(data);
-    const count = newConfiguration.acceleratorCount ?? 0;
-    if (count < 1) {
-      newChanges["acceleratorCount"] = 1;
-    } else if (count > data.max) {
-      newChanges["acceleratorCount"] = data.max;
-    }
-  }
-  if (!newConfiguration.zone.startsWith(newConfiguration.region)) {
-    if (changes["region"]) {
-      // currently changing region, so set a zone that matches the region
-      for (const zone in priceData.zones) {
-        if (zone.startsWith(newConfiguration.region)) {
-          newChanges["zone"] = zone;
-          break;
-        }
-      }
-    } else {
-      // probably changing the zone, so set the region from the zone
-      newChanges["region"] = zoneToRegion(newConfiguration.zone);
-    }
-  }
+
+  ensureConsistentAccelerator(priceData, newChanges, newConfiguration);
+
+  ensureConsistentRegionAndZoneWithMachineType(
+    priceData,
+    newChanges,
+    newConfiguration,
+  );
+
+  ensureConsistentZoneWithRegion(priceData, newChanges, newConfiguration);
+
   console.log("ensureConsistentConfiguration", {
     configuration,
     changes,
@@ -876,6 +899,104 @@ function ensureConsistentConfiguration(
     newChanges,
   });
   return newChanges;
+}
+
+function ensureConsistentZoneWithRegion(priceData, changes, configuration) {
+  if (!configuration.zone.startsWith(configuration.region)) {
+    if (changes["region"]) {
+      // currently changing region, so set a zone that matches the region
+      for (const zone in priceData.zones) {
+        if (zone.startsWith(configuration.region)) {
+          changes["zone"] = zone;
+          break;
+        }
+      }
+    } else {
+      // probably changing the zone, so set the region from the zone
+      changes["region"] = zoneToRegion(configuration.zone);
+    }
+  }
+}
+
+function ensureConsistentAccelerator(priceData, configuration, changes) {
+  if (configuration.acceleratorType) {
+    // have a GPU
+    const data = priceData.accelerators[configuration.acceleratorType];
+    // Ensure the machine type is consistent with
+    if (!(configuration.machineType ?? "").startsWith(data.machineType)) {
+      for (const type in priceData.machineTypes) {
+        if (type.startsWith(data.machineType)) {
+          configuration["machineType"] = changes["machineType"] = type;
+          break;
+        }
+      }
+    }
+    // Ensure the count is consistent
+    const count = configuration.acceleratorCount ?? 0;
+    if (count < 1) {
+      changes["acceleratorCount"] = 1;
+    } else if (count > data.max) {
+      changes["acceleratorCount"] = data.max;
+    }
+  }
+}
+
+function ensureConsistentRegionAndZoneWithMachineType(
+  priceData,
+  configuration,
+  changes,
+) {
+  // Specifically selecting a machine type.  We make this the
+  // highest priority, so if you are changing this, we make everything
+  // else fit it.
+  const machineType = changes["machineType"];
+  if (priceData.machineTypes[machineType] == null) {
+    // BUG -- This should never happen:
+    // invalid machineType -- so just fix it to the most compatible
+    configuration["machineType"] = changes["machineType"] = "n1-standard-1";
+    return;
+  }
+
+  const i = machineType.indexOf("-");
+  const prefix = machineType.slice(0, i);
+
+  let zoneHasMachineType = (
+    priceData.zones[configuration.zone]?.machineTypes ?? []
+  ).includes(prefix);
+  const regionToCost =
+    priceData.machineTypes[machineType][
+      configuration.spot ? "spot" : "prices"
+    ] ?? {};
+  const regionHasMachineType = regionToCost[configuration.region] != null;
+
+  if (!regionHasMachineType) {
+    // Our machine type is not in the currently selected region,
+    // so find cheapest region with our requested machine type.
+    let price = 1e8;
+    for (const region in regionToCost) {
+      console.log(regionToCost[region], price, region);
+      if (regionToCost[region] < price) {
+        price = regionToCost[region];
+        configuration["region"] = changes["region"] = region;
+        // since we changed the region:
+        zoneHasMachineType = false;
+      }
+    }
+    console.log("resulted in choosing region", changes["region"]);
+  }
+  if (!zoneHasMachineType) {
+    // now the region has the machine type, but the zone doesn't (or
+    // region changed so zone has to change).
+    // So we find some zone with the machine in that region
+    for (const zone in priceData.zones) {
+      if (zone.startsWith(configuration["region"])) {
+        if ((priceData.zones[zone]?.machineTypes ?? []).includes(prefix)) {
+          configuration["zone"] = changes["zone"] = zone;
+          break;
+        }
+      }
+    }
+  }
 }
 
 function zoneToRegion(zone: string): string {

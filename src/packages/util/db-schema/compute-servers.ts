@@ -105,7 +105,7 @@ export const STATE_INFO: {
   running: {
     label: "Running",
     color: "#389e0d",
-    actions: ["stop", /*"suspend",*/ "reboot", "delete"],
+    actions: ["stop", "suspend", "reboot", "delete"],
     icon: "run",
   },
   stopping: {

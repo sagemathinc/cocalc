@@ -13,17 +13,22 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
   const account_id = useTypedRedux("account", "account_id");
 
   return (
-    <div style={{ paddingRight: "15px" }}>
+    <div style={{ paddingRight: "15px", fontSize: "11pt" }}>
       <p>
-        Compute servers are{" "}
-        <b>
-          competitively priced very powerful unconstrained dedicated virtual
-          machines,{" "}
-        </b>
-        in which you can be root, use a GPU, run Docker containers, and install
-        arbitrary free and commercial software. Run your Jupyter notebooks and
-        terminals collaboratively on compute servers. Pay as you go for storage
-        of data and usage when the server is running.
+        Compute servers are competitively priced pay as you go virtual machines
+        where you can run Jupyter notebooks, terminals and web servers
+        collaboratively. You get
+        <ul>
+          <li>full root access,</li>
+          <li>
+            dedicated GPU's, hundreds of very fast vCPU's, and thousands of GB
+            of RAM
+          </li>
+          <li>
+            to install free and commercial Linux software (e.g., MATLAB,
+            Mathematica, any Docker container, etc.)
+          </li>
+        </ul>
       </p>
       {availableClouds().length == 0 ? (
         <b>No Compute Server Clouds are currently enabled.</b>
@@ -108,7 +113,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
       {computeServers.size > 1 && (
         <Search
           allowClear
-          placeholder="Search for compute servers..."
+          placeholder="Search..."
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: 300 }}
         />
