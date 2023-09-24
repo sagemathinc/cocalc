@@ -48,11 +48,12 @@ export default function ComputeServer({
     {
       dataIndex: "value",
       key: "value",
-      title: (
-        <>
-          <span style={{ fontWeight: 250 }}>Click any value to edit</span>
-        </>
-      ),
+      title:
+        id != null ? (
+          <>
+            <span style={{ fontWeight: 250 }}>Click any value to edit</span>
+          </>
+        ) : undefined,
     },
   ];
 
@@ -125,11 +126,12 @@ export default function ComputeServer({
       );
     }
 
-    actions.push(
-      <div>
-        <Icon name="clone" /> Clone
-      </div>,
-    );
+    // TODO: for later
+    //     actions.push(
+    //       <div>
+    //         <Icon name="clone" /> Clone
+    //       </div>,
+    //     );
   }
 
   return (
@@ -149,7 +151,7 @@ export default function ComputeServer({
               name="server"
               style={{ fontSize: "30px", color: color ?? "#666" }}
             />
-            <div style={{ color: "#888" }}>Id: {id}</div>
+            {id != null && <div style={{ color: "#888" }}>Id: {id}</div>}
           </div>
         }
         title={
@@ -169,11 +171,13 @@ export default function ComputeServer({
           )
         }
         description={
-          <Description
-            account_id={account_id}
-            cloud={cloud}
-            configuration={configuration}
-          />
+          <div style={{ textAlign: "center", color: "#666" }}>
+            <Description
+              account_id={account_id}
+              cloud={cloud}
+              configuration={configuration}
+            />
+          </div>
         }
       />
       <ShowError error={error} setError={setError} />

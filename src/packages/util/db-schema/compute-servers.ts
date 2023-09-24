@@ -66,7 +66,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     icon: "trash",
     tip: "Delete the virtual machine completely.",
     description:
-      "Deletes the compute server's virtual machine.  All data on its disk and memory is lost, but the files in the home directory of your project are not affected.  You can start a deleted VM and it comes up in a clean slate, and your configuration remains for use later.",
+      "Deletes the compute server.  All data on its disk and memory is lost, but the files in the home directory of your project are not affected.",
   },
 };
 
@@ -86,7 +86,7 @@ export const STATE_INFO: {
   },
   suspended: {
     label: "Suspended",
-    actions: ["resume"],
+    actions: ["resume", "delete"],
     icon: "pause",
     color: "#0097a7",
   },
@@ -99,19 +99,19 @@ export const STATE_INFO: {
   starting: {
     label: "Starting",
     color: "#388e3c",
-    actions: [],
+    actions: ["delete"],
     icon: "bolt",
   },
   running: {
     label: "Running",
     color: "#389e0d",
-    actions: ["stop", "suspend", "reboot"],
+    actions: ["stop", /*"suspend",*/ "reboot", "delete"],
     icon: "run",
   },
   stopping: {
     label: "Stopping",
     color: "#ff9800",
-    actions: [],
+    actions: ["delete"],
     icon: "hand",
   },
   unknown: {

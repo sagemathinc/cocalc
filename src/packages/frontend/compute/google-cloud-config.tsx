@@ -43,7 +43,6 @@ export default function Configuration({
   }, [configuration0]);
 
   useEffect(() => {
-    if (!editable) return;
     (async () => {
       try {
         setLoading(true);
@@ -80,10 +79,21 @@ export default function Configuration({
     // short summary
     return (
       <div>
-        {configuration.spot ? "Spot instance " : ""} {configuration.machineType}{" "}
-        in {configuration.zone} with{" "}
+        {configuration.spot ? "Spot " : "Standard "}VM with{" "}
         {configuration.diskSizeGb ?? `at least ${MIN_DISK_SIZE_GB}`} GB boot
-        disk{gpu}.
+        disk{gpu}
+        {priceData ? (
+          <span>
+            {", "}
+            <RamAndCpu
+              machineType={configuration.machineType}
+              priceData={priceData}
+              inline
+            />
+          </span>
+        ) : (
+          ""
+        )}.
       </div>
     );
   }
@@ -624,15 +634,24 @@ function RamAndCpu({
   machineType,
   priceData,
   style,
+  inline,
 }: {
   machineType: string;
   priceData;
   style?;
+  inline?: boolean;
 }) {
   const data = priceData.machineTypes[machineType];
   if (data == null) return null;
   const { vcpu, memory } = data;
   if (!vcpu || !memory) return null;
+  if (inline) {
+    return (
+      <span style={style}>
+        {vcpu} vCPU and {memory} GB RAM
+      </span>
+    );
+  }
   return (
     <div style={style}>
       <b>vCPU:</b> {vcpu} &nbsp;&nbsp;&nbsp; <b>Memory:</b> {memory} GB
