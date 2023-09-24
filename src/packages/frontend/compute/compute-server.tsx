@@ -1,4 +1,4 @@
-import { Card, Table } from "antd";
+import { Button, Card, Modal, Table } from "antd";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import { CSSProperties, useState } from "react";
@@ -122,7 +122,7 @@ export default function ComputeServer({
     if (editable) {
       actions.push(
         <div onClick={() => setEdit(!edit)}>
-          <Icon name="gears" /> {!edit ? "Edit" : "Close"}
+          <Icon name="gears" /> {!edit ? "Edit" : "Editing..."}
         </div>,
       );
     }
@@ -177,12 +177,34 @@ export default function ComputeServer({
               account_id={account_id}
               cloud={cloud}
               configuration={configuration}
+              short
             />
           </div>
         }
       />
       <ShowError error={error} setError={setError} />
-      {edit && (
+      <Modal
+        width={"900px"}
+        onCancel={() => setEdit(false)}
+        open={edit}
+        title={
+          <>
+            Edit Compute Server: <Title title={title} editable={false} />
+            <div style={{ textAlign: "center", color: "#666" }}>
+              <Description
+                account_id={account_id}
+                cloud={cloud}
+                configuration={configuration}
+              />
+            </div>
+          </>
+        }
+        footer={[
+          <Button size="large" onClick={() => setEdit(false)}>
+            Done
+          </Button>,
+        ]}
+      >
         <Table
           style={{ marginTop: "15px" }}
           rowKey="label"
@@ -190,7 +212,7 @@ export default function ComputeServer({
           dataSource={data}
           pagination={false}
         />
-      )}
+      </Modal>
     </Card>
   );
 }

@@ -7,7 +7,7 @@ interface Props {
   title: ReactNode;
 }
 export default function MoneyStatistic({ value, title }: Props) {
-  if (value >= 0.01) {
+  if (value >= 0.0095) {
     return (
       <Statistic
         title={<>{title} (USD)</>}

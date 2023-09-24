@@ -24,7 +24,7 @@ import { currency } from "@cocalc/util/misc";
 const SELECTOR_WIDTH = "300px";
 
 // TODO: this needs to depend on how big actual image is, if we use a read only disk etc.  For now this will work.
-const MIN_DISK_SIZE_GB = 50;
+const MIN_DISK_SIZE_GB = 40;
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -94,19 +94,16 @@ export default function Configuration({
 
   if (!editable) {
     const gpu = configuration.acceleratorType
-      ? `, ${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
+      ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
           configuration.acceleratorType,
-        )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}`
+        )} ${plural(configuration.acceleratorCount ?? 1, "GPU", "GPU's")}, `
       : "";
     // short summary
     return (
       <div>
-        {configuration.spot ? "Spot " : "Standard "}VM with{" "}
-        {configuration.diskSizeGb ?? `at least ${MIN_DISK_SIZE_GB}`} GB boot
-        disk{gpu}
+        {configuration.spot ? "Spot " : "Standard "}VM with {gpu}
         {priceData ? (
           <span>
-            {", "}
             <RamAndCpu
               machineType={configuration.machineType}
               priceData={priceData}
@@ -116,7 +113,8 @@ export default function Configuration({
         ) : (
           ""
         )}
-        .
+        , and a {configuration.diskSizeGb ?? `at least ${MIN_DISK_SIZE_GB}`} GB
+        boot disk.
       </div>
     );
   }
@@ -725,8 +723,7 @@ function RamAndCpu({
   if (inline) {
     return (
       <span style={style}>
-        {vcpu}
-        {plural(vcpu, "vCPU", "vCPU's")} and {memory} GB RAM
+        {vcpu} {plural(vcpu, "vCPU", "vCPU's")}, {memory} GB RAM
       </span>
     );
   }
@@ -744,7 +741,7 @@ function RamAndCpu({
 }
 
 function BootDisk({ setConfig, configuration, disabled }) {
-  const [newDiskSizeGb, setNewDiskSizeGb] = useState<number>(
+  const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? MIN_DISK_SIZE_GB,
   );
   useEffect(() => {
@@ -764,9 +761,11 @@ function BootDisk({ setConfig, configuration, disabled }) {
         value={newDiskSizeGb}
         addonAfter="GB"
         onChange={(diskSizeGb) => {
-          diskSizeGb = diskSizeGb ?? MIN_DISK_SIZE_GB;
           setNewDiskSizeGb(diskSizeGb);
-          setConfig({ diskSizeGb });
+        }}
+        onBlur={() => {
+          // only set on blur or every keystroke rerenders and cause loss of focus.
+          setConfig({ diskSizeGb: newDiskSizeGb ?? MIN_DISK_SIZE_GB });
         }}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>

@@ -16,7 +16,6 @@ interface Props {
 export default function State({
   style,
   state,
-  id,
   editable,
   account_id,
 }: Props) {
@@ -24,7 +23,6 @@ export default function State({
   if (!label) {
     return <span>Invalid State: {state}</span>;
   }
-  console.log({ id, editable, state, color });
 
   return (
     <Popover

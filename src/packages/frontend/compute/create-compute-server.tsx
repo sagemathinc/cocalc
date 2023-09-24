@@ -1,4 +1,4 @@
-import { Button, Spin } from "antd";
+import { Button, Modal, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { createServer } from "./api";
 import { useEffect, useState } from "react";
@@ -68,7 +68,26 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         <Icon name="plus-circle" /> Create New Compute Server...{" "}
         {creating ? <Spin /> : null}
       </Button>
-      {editing && (
+      <Modal
+        width={"900px"}
+        maskClosable={false}
+        onCancel={() => setEditing(false)}
+        open={editing}
+        title={"Create Compute Server"}
+        footer={[
+          <Button size="large" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>,
+          <Button
+            size="large"
+            type="primary"
+            onClick={handleCreate}
+            disabled={!!error || !configuration.valid}
+          >
+            <Icon name="run" /> Start "{title}" Running
+          </Button>,
+        ]}
+      >
         <div style={{ marginTop: "15px" }}>
           <ShowError error={error} setError={setError} />
           <div
@@ -94,21 +113,8 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             onCloudChange={setCloud}
             onConfigurationChange={setConfiguration}
           />
-          <div style={{ marginTop: "15px" }}>
-            <Button size="large" onClick={() => setEditing(false)}>
-              Cancel
-            </Button>{" "}
-            <Button
-              size="large"
-              type="primary"
-              onClick={handleCreate}
-              disabled={!!error || !configuration.valid}
-            >
-              <Icon name="run" /> Start "{title}" Running
-            </Button>
-          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

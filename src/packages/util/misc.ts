@@ -1734,7 +1734,7 @@ export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.01 ? 3 : 2))}`;
+  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
 }
 
 export function stripeAmount(
