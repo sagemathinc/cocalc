@@ -8,18 +8,19 @@ import {
   Switch,
   Table,
 } from "antd";
-import { cmp, plural } from "@cocalc/util/misc";
+import { capitalize, cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
-import ShowError from "@cocalc/frontend/components/error";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
+
+const SELECTOR_WIDTH = "300px";
 
 // TODO: this needs to depend on how big actual image is, if we use a read only disk etc.  For now this will work.
 const MIN_DISK_SIZE_GB = 50;
@@ -69,8 +70,8 @@ export default function Configuration({
       return;
     }
     try {
-      setError("");
       const cost = computeCost({ configuration, priceData });
+      setError("");
       setCost(cost);
     } catch (err) {
       setError(`${err}`);
@@ -119,16 +120,30 @@ export default function Configuration({
         break;
       }
     }
-    if (!changed) return;
+    if (!changed) {
+      // nothing at all changed
+      return;
+    }
+
+    changes = {
+      ...changes,
+      ...ensureConsistentConfiguration(priceData, configuration, changes),
+    };
+
+    if (Object.keys(changes).length == 0) {
+      // nothing going to change
+      return;
+    }
+
     try {
       setLoading(true);
-      if (id != null) {
-        await setServerConfiguration({ id, configuration: changes });
-      }
       if (onChange != null) {
         onChange({ ...configuration, ...changes });
       }
       setLocalConfiguration({ ...configuration, ...changes });
+      if (id != null) {
+        await setServerConfiguration({ id, configuration: changes });
+      }
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -149,7 +164,7 @@ export default function Configuration({
       key: "machineType",
       label: (
         <A href="https://cloud.google.com/compute/docs/machine-resource">
-          <Icon name="external-link" /> Machine Types
+          <Icon name="external-link" /> VM Types
         </A>
       ),
       value: (
@@ -248,12 +263,22 @@ export default function Configuration({
           <Spin delay={1000} />
         </div>
       )}
+      <div
+        style={{
+          height: "35px",
+          padding: "5px 10px",
+          background: error ? "red" : undefined,
+          color: "white",
+          borderRadius: "5px",
+        }}
+      >
+        {error}
+      </div>
       {cost ? (
         <div style={{ textAlign: "center" }}>
           <MoneyStatistic value={cost} title="Cost per hour" />
         </div>
       ) : null}
-      <ShowError error={error} setError={setError} />
       <Table
         style={{ marginTop: "5px" }}
         columns={columns}
@@ -301,7 +326,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
     <div>
       <Select
         disabled={disabled}
-        style={{ width: "350px", marginRight: "15px" }}
+        style={{ width: SELECTOR_WIDTH, marginRight: "15px" }}
         options={options as any}
         value={newRegion}
         onChange={(region) => {
@@ -323,14 +348,14 @@ function Region({ priceData, setConfig, configuration, disabled }) {
       {configuration.machineType ? (
         <div style={{ color: "#666", marginTop: "5px" }}>
           Select a region with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} instances.
+          {configuration.spot ? "spot" : ""} VMs.
         </div>
       ) : undefined}
     </div>
   );
 }
 
-// Gets the regions where the given instance type is available.
+// Gets the regions where the given VM type is available.
 // Ignores the currently selected zone.
 function getRegions(priceData, configuration) {
   const lowCO2 = new Set<string>();
@@ -406,7 +431,7 @@ function getRegions(priceData, configuration) {
   return data;
 }
 
-// Gets the zones in a region where the instance type is available.
+// Gets the zones in a region where the machine type is available.
 function getZones(priceData, configuration) {
   const lowCO2 = new Set<string>();
   const zones = new Set<string>();
@@ -468,6 +493,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       <Radio.Group
+        buttonStyle="solid"
         disabled={disabled}
         value={newSpot ? "spot" : "standard"}
         onChange={(e) => {
@@ -476,20 +502,21 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
           setConfig({ spot });
         }}
       >
-        <Radio.Button value="standard">
-          Standard{" "}
-          {prices != null ? `${currency(prices.standard)}/hour` : undefined}{" "}
-        </Radio.Button>
         <Radio.Button value="spot">
           Spot{" "}
           {prices != null
             ? `${currency(prices.spot)}/hour (${prices.discount}% discount)`
             : undefined}{" "}
         </Radio.Button>
+        <Radio.Button value="standard">
+          Standard{" "}
+          {prices != null ? `${currency(prices.standard)}/hour` : undefined}{" "}
+        </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard instances stay running until you stop them, but cost more. Spot
-        instances stop when there is a surge in demand.
+        Standard VMs stay running until you stop them, but cost more. Spot VMs
+        stop when there is a surge in demand, and the price changes over time,
+        location, and VM type.
       </div>
     </div>
   );
@@ -534,7 +561,7 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
     <div>
       <Select
         disabled={disabled}
-        style={{ width: "300px" }}
+        style={{ width: SELECTOR_WIDTH }}
         options={options}
         value={newZone}
         onChange={(zone) => {
@@ -548,7 +575,7 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
       {configuration.machineType ? (
         <div style={{ color: "#666", marginTop: "5px" }}>
           Select from the zones in the region with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} instances.
+          {configuration.spot ? "spot" : ""} machines.
         </div>
       ) : undefined}
     </div>
@@ -562,10 +589,10 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   );
   useEffect(() => {
     setNewMachineType(configuration.machineType);
-  }, [configuration.machineType]);
+  }, [configuration]);
 
   const machineTypes = Object.keys(priceData.machineTypes);
-  const options = machineTypes.map((machineType) => {
+  let options = machineTypes.map((machineType) => {
     let cost;
     try {
       cost = computeCost({
@@ -587,6 +614,8 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       ),
     };
   });
+  // only include ones with a known price
+  options = options.filter((x) => x.cost);
   if (sortByPrice) {
     options.sort((a, b) => {
       if (a.cost == null && b.cost != null) {
@@ -606,7 +635,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
     <div>
       <Select
         disabled={disabled}
-        style={{ width: "300px" }}
+        style={{ width: SELECTOR_WIDTH }}
         options={options as any}
         value={newMachineType}
         onChange={(machineType) => {
@@ -633,8 +662,8 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
         />
       </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Machine prices also depend on the region and provisioning types, so
-        adjust those below to find the best overall value.
+        Prices and availability also depend on the region and provisioning
+        types, so adjust those below to find the best overall value.
       </div>
     </div>
   );
@@ -655,16 +684,21 @@ function RamAndCpu({
   if (data == null) return null;
   const { vcpu, memory } = data;
   if (!vcpu || !memory) return null;
+  const shared = machineType.includes("micro") ? " shared " : "";
   if (inline) {
     return (
       <span style={style}>
-        {vcpu} vCPU and {memory} GB RAM
+        {vcpu} {shared}
+        {plural(vcpu, "vCPU", "vCPU's")} and {memory} GB RAM
       </span>
     );
   }
   return (
     <div style={style}>
-      <b>vCPU:</b> {vcpu} &nbsp;&nbsp;&nbsp; <b>Memory:</b> {memory} GB
+      <b>
+        {capitalize(shared.trimLeft())} {plural(vcpu, "vCPU", "vCPU's")}:{" "}
+      </b>
+      {vcpu} &nbsp;&nbsp;&nbsp; <b>Memory:</b> {memory} GB
     </div>
   );
 }
@@ -680,6 +714,7 @@ function BootDisk({ setConfig, configuration, disabled }) {
   return (
     <div>
       <InputNumber
+        style={{ width: SELECTOR_WIDTH }}
         disabled={disabled}
         min={MIN_DISK_SIZE_GB}
         max={10000}
@@ -699,20 +734,7 @@ function BootDisk({ setConfig, configuration, disabled }) {
 }
 
 function GPU({ priceData, setConfig, configuration, disabled }) {
-  const [acceleratorType, setAcceleratorType] = useState<string>(
-    configuration.acceleratorType,
-  );
-  const [acceleratorCount, setAcceleratorCount] = useState<number>(
-    configuration.acceleratorCount,
-  );
-
-  //   useEffect(() => {
-  //     setAcceleratorType(configuration.acceleratorType);
-  //   }, [configuration.acceleratorType]);
-
-  //   useEffect(() => {
-  //     setAcceleratorCount(configuration.acceleratorCount);
-  //   }, [configuration.acceleratorCount]);
+  const { acceleratorType, acceleratorCount } = configuration;
 
   const theSwitch = (
     <Switch
@@ -722,13 +744,12 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       checked={!!acceleratorType}
       onChange={() => {
         if (!!acceleratorType) {
-          setAcceleratorType("");
-          setAcceleratorCount(0);
           setConfig({ acceleratorType: "", acceleratorCount: 0 });
         } else {
-          setAcceleratorType("nvidia-t4");
-          setAcceleratorCount(1);
-          setConfig({ acceleratorType: "nvidia-t4", acceleratorCount: 1 });
+          setConfig({
+            acceleratorType: "nvidia-t4",
+            acceleratorCount: 1,
+          });
         }
       }}
     />
@@ -749,13 +770,14 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       cost = null;
     }
     const price = cost ? ` - ${currency(cost)}/hour` : "";
+    const memory = priceData.accelerators[acceleratorType].memory;
     return {
       value: acceleratorType,
       search: acceleratorType,
       cost,
       label: (
         <div key={acceleratorType}>
-          {displayAcceleratorType(acceleratorType)} {price}
+          {displayAcceleratorType(acceleratorType, memory)} {price}
         </div>
       ),
     };
@@ -767,11 +789,10 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       <div style={{ marginTop: "15px" }}>
         <Select
           disabled={disabled}
-          style={{ width: "250px" }}
+          style={{ width: SELECTOR_WIDTH }}
           options={options as any}
           value={acceleratorType}
           onChange={(type) => {
-            setAcceleratorType(type);
             setConfig({ acceleratorType: type });
             // todo -- change count if necessary
           }}
@@ -787,7 +808,6 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           max={priceData.accelerators[acceleratorType].max}
           value={acceleratorCount}
           onChange={(count) => {
-            setAcceleratorCount(count);
             setConfig({ acceleratorCount: count });
           }}
         />
@@ -796,9 +816,69 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   );
 }
 
-function displayAcceleratorType(acceleratorType) {
-  return acceleratorType
+function displayAcceleratorType(acceleratorType, memory?) {
+  let x = acceleratorType
     .replace("nvidia-", "NVIDIA ")
     .replace("-", " - ")
     .toUpperCase();
+  if (x.includes("GB") || !memory) {
+    return x;
+  }
+  return `${x} - ${memory} GB`;
+}
+
+function ensureConsistentConfiguration(
+  priceData,
+  configuration: GoogleCloudConfigurationType,
+  changes: Partial<GoogleCloudConfigurationType>,
+) {
+  const newChanges = { ...changes };
+  const newConfiguration = { ...configuration, ...changes };
+  if (newConfiguration.acceleratorType) {
+    // have a GPU
+    const data = priceData.accelerators[newConfiguration.acceleratorType];
+    // Ensure the machine type is consistent with
+    if (!(newConfiguration.machineType ?? "").startsWith(data.machineType)) {
+      for (const type in priceData.machineTypes) {
+        if (type.startsWith(data.machineType)) {
+          newChanges["machineType"] = type;
+          break;
+        }
+      }
+    }
+    // Ensure the count is consistent
+    console.log(data);
+    const count = newConfiguration.acceleratorCount ?? 0;
+    if (count < 1) {
+      newChanges["acceleratorCount"] = 1;
+    } else if (count > data.max) {
+      newChanges["acceleratorCount"] = data.max;
+    }
+  }
+  if (!newConfiguration.zone.startsWith(newConfiguration.region)) {
+    if (changes["region"]) {
+      // currently changing region, so set a zone that matches the region
+      for (const zone in priceData.zones) {
+        if (zone.startsWith(newConfiguration.region)) {
+          newChanges["zone"] = zone;
+          break;
+        }
+      }
+    } else {
+      // probably changing the zone, so set the region from the zone
+      newChanges["region"] = zoneToRegion(newConfiguration.zone);
+    }
+  }
+  console.log("ensureConsistentConfiguration", {
+    configuration,
+    changes,
+    newConfiguration,
+    newChanges,
+  });
+  return newChanges;
+}
+
+function zoneToRegion(zone: string): string {
+  const i = zone.lastIndexOf("-");
+  return zone.slice(0, i);
 }

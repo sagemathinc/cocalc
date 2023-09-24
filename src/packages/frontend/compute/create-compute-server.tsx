@@ -71,6 +71,16 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       {editing && (
         <div style={{ marginTop: "15px" }}>
           <ShowError error={error} setError={setError} />
+          <div
+            style={{
+              marginBottom: "5px",
+              color: "#666",
+              textAlign: "center",
+            }}
+          >
+            Customize your new compute server, then click "Start" below. You can
+            always change everything later.
+          </div>
           <ComputeServer
             project_id={project_id}
             account_id={account_id}
@@ -85,9 +95,11 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             onConfigurationChange={setConfiguration}
           />
           <div style={{ marginTop: "15px" }}>
-            <Button onClick={() => setEditing(false)}>Cancel</Button>{" "}
-            <Button type="primary" onClick={handleCreate}>
-              Create Compute Server
+            <Button size="large" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>{" "}
+            <Button size="large" type="primary" onClick={handleCreate}>
+              <Icon name="run" /> Start "{title}" Running
             </Button>
           </div>
         </div>
