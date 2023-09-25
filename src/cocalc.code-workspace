@@ -71,7 +71,9 @@
     "search.followSymlinks": false,
     "jest.disabledWorkspaceFolders": [
       "compute",
-      "sync-client"
+      "sync-client",
+      "comm",
+      "api-client"
     ],
     "jest.autoRun": "off",
     "files.exclude": {
