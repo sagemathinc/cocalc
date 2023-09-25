@@ -28,20 +28,20 @@ export const ACTION_INFO: { [action: string]: any } = {
   start: {
     label: "Start",
     icon: "play",
-    tip: "Start running compute server",
+    tip: "Start",
     description: "Start the compute server running.",
   },
   resume: {
     label: "Resume",
     icon: "play",
     clouds: ["google-cloud"],
-    tip: "Resume running compute server",
+    tip: "Resume",
     description: "Resume the compute server from suspend.",
   },
   stop: {
     label: "Stop",
     icon: "stop",
-    tip: "Turn off compute server",
+    tip: "Turn off",
     description:
       "Turn the compute server off. No data on disk is lost, but any data and state in memory will be lost. This is like turning your laptop off.",
     confirm: true,
@@ -49,9 +49,9 @@ export const ACTION_INFO: { [action: string]: any } = {
   reboot: {
     label: "Reboot",
     icon: "refresh",
-    tip: "Reboot the compute server",
+    tip: "Hard reboot the virtual machine.",
     description:
-      "Reboot the compute server, which shuts it down and boots it up.  No data on disk is lost, but any  state in memory will be lost. This is like turning your laptop off and on.",
+      "Perform a HARD reset on the virtual machine, which wipes the memory contents and resets the virtual machine to its initial state. This can lead to filesystem corruption.",
     confirm: true,
   },
   suspend: {

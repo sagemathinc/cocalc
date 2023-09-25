@@ -335,3 +335,32 @@ async function doResume(server: ComputeServer) {
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }
 }
+
+export async function reboot({
+  account_id,
+  id,
+}: {
+  account_id: string;
+  id: number;
+}) {
+  let server = await getServer({ account_id, id });
+  try {
+    await setError(id, "");
+    await setState(id, "stopping");
+    await doReboot(server);
+    waitStableNoError({ account_id, id });
+  } catch (err) {
+    await setState(id, "unknown");
+    await setError(id, `${err}`);
+    throw err;
+  }
+}
+
+async function doReboot(server: ComputeServer) {
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.reboot(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}

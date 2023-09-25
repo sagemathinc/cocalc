@@ -32,6 +32,7 @@ export default function State({
 
   return (
     <Popover
+      mouseEnterDelay={0.5}
       title={<>State: {label}</>}
       content={() => {
         return (

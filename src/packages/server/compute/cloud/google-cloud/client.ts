@@ -59,9 +59,33 @@ export async function deleteInstance({ name, zone, wait }: Options) {
   }
 }
 
+export async function startInstance({ name, zone, wait }: Options) {
+  const client = await getClient();
+  const [response] = await client.start({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
 export async function stopInstance({ name, zone, wait }: Options) {
   const client = await getClient();
   const [response] = await client.stop({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
+export async function rebootInstance({ name, zone, wait }: Options) {
+  const client = await getClient();
+  const [response] = await client.reset({
     project: client.googleProjectId,
     zone,
     instance: name,

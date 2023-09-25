@@ -27,7 +27,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         terminals and web servers collaboratively, with full access to this
         project. You get
         <ul>
-          <li>full root access,</li>
+          <li>full root access and Internet access,</li>
           <li>
             dedicated GPU's, hundreds of very fast vCPU's, and thousands of GB
             of RAM
@@ -36,6 +36,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             to install free and commercial Linux software (e.g., MATLAB,
             Mathematica, any Docker container, etc.)
           </li>
+          <li>a dedicated public ip address and domain name</li>
         </ul>
       </Typography.Paragraph>
       {availableClouds().length == 0 ? (
