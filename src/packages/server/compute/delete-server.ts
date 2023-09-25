@@ -17,9 +17,9 @@ export default async function deleteServer({ account_id, id }) {
   if (rows[0].account_id != account_id) {
     throw Error("you must be the owner of the compute server to delete it");
   }
-  if (rows[0].state != "deleted") {
+  if (rows[0].state != "deprovisioned") {
     throw Error(
-      "the compute server VM must be deleted before deleting the compute server",
+      "the compute server state must be 'deprovisioned' before deleting the compute server",
     );
   }
   const { rowCount } = await pool.query(

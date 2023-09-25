@@ -30,8 +30,8 @@ export default async function setServerCloud({ account_id, id, cloud }) {
     // nothing to do.
     return;
   }
-  if ((rows[0].state ?? "deleted") != "deleted") {
-    throw Error("can only change the cloud when VM state is 'deleted'");
+  if ((rows[0].state ?? "deprovisioned") != "deprovisioned") {
+    throw Error("can only change the cloud when VM state is 'deprovisioned'");
   }
   let newConfig: any = null;
   if (rows[0].configuration?.cloud == cloud) {

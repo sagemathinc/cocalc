@@ -35,14 +35,14 @@ export default async function setServerConfiguration({
   // These checks below for deleted state are *critical*.  Otherwise, we could easily end up
   // with multiple VM's left running in multiple zones/rgions (on our dime) and data loss.
   // Instead don't allow such a change.  Also, of course, frontend UI will have the same constraint.
-  if ((rows[0].state ?? "deleted") != "deleted") {
+  if ((rows[0].state ?? "deprovisioned") != "deprovisioned") {
     if (configuration.region != rows[0].region) {
       throw Error(
-        "cannot change the region unless VM is in the 'deleted' state",
+        "cannot change the region unless in the 'deprovisioned' state",
       );
     }
     if (configuration.zone != rows[0].zone) {
-      throw Error("cannot change the zone unless VM is in the 'deleted' state");
+      throw Error("cannot change the zone unless in the 'deprovisioned' state");
     }
   }
 
