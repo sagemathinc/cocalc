@@ -17,6 +17,7 @@ import type {
   ComputeServer,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
+import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
@@ -189,7 +190,7 @@ export const waitForStableState = reuseInFlight(
 
     while (Date.now() - s0 < maxTime) {
       const state = await getCloudServerState(server);
-      if (state != "starting" && state != "stopping" && state != "unknown") {
+      if (STATE_INFO[state]?.stable) {
         return state;
       }
       await delay(interval);

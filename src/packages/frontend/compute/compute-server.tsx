@@ -218,9 +218,11 @@ export default function ComputeServer({
             </>
           }
           footer={[
-            <Button size="large" onClick={() => setEdit(false)}>
-              Done
-            </Button>,
+            <div style={{ textAlign: "center" }}>
+              <Button size="large" onClick={() => setEdit(false)}>
+                Close
+              </Button>
+            </div>,
           ]}
         >
           {table}

@@ -29,8 +29,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     label: "Start",
     icon: "play",
     tip: "Start running compute server",
-    description:
-      "Start the compute server running.  It will then connect to any notebooks or terminals that it is configured with.",
+    description: "Start the compute server running.",
   },
   resume: {
     label: "Resume",
@@ -44,7 +43,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     icon: "stop",
     tip: "Turn off compute server",
     description:
-      "Turn the compute server off. No data on disk is lost, but any data and state in memory will be lost. This is like turning your laptop off completely.",
+      "Turn the compute server off. No data on disk is lost, but any data and state in memory will be lost. This is like turning your laptop off.",
     confirm: true,
   },
   reboot: {
@@ -61,7 +60,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     clouds: ["google-cloud"],
     tip: "Suspend disk and memory state",
     description:
-      "Suspend the compute server.  No data on disk or memory is lost, but the compute server pauses running and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for at most 60 days.",
+      "Suspend the compute server.  No data on disk or memory is lost, and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for up to 60 days before it automatically shuts off.",
   },
   delete: {
     label: "Delete",
