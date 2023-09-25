@@ -856,6 +856,13 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     return cmp(a.memory, b.memory);
   });
 
+  const countOptions: any[] = [];
+  const min = priceData.accelerators[acceleratorType]?.count ?? 1;
+  const max = priceData.accelerators[acceleratorType]?.max ?? 1;
+  for (let i = min; i <= max; i++) {
+    countOptions.push({ label: `${i}`, value: i });
+  }
+
   return (
     <div>
       {head}
@@ -874,27 +881,28 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           optionFilterProp="children"
           filterOption={filterOption}
         />
-        <InputNumber
-          addonAfter="Count"
-          style={{ marginLeft: "15px", width: "125px" }}
+        <Select
+          style={{ marginLeft: "15px", width: "75px" }}
           disabled={disabled}
-          min={priceData.accelerators[acceleratorType]?.count ?? 1}
-          max={priceData.accelerators[acceleratorType]?.max ?? 1}
+          options={countOptions}
           value={acceleratorCount}
           onChange={(count) => {
             setConfig({ acceleratorCount: count });
           }}
         />
       </div>
-      {acceleratorType?.includes("a100") && configuration.spot ? (
+
+    </div>
+  );
+}
+/*
+{acceleratorType?.includes("a100") && configuration.spot ? (
         <div style={{ marginTop: "5px", color: "#666" }}>
           <b>WARNING:</b> A100 spot instances are rarely available. Consider
           standard provisioning instead.
         </div>
       ) : undefined}
-    </div>
-  );
-}
+*/
 
 function displayAcceleratorType(acceleratorType, memory?) {
   let x = acceleratorType
