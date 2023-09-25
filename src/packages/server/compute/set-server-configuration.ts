@@ -22,13 +22,37 @@ export default async function setServerConfiguration({
   configuration,
 }) {
   const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT state, configuration FROM compute_servers WHERE id=$1 AND account_id=$2",
+    [id, account_id],
+  );
+  if (rows.length == 0) {
+    throw Error(
+      "invalid id or attempt to change compute server by a non-owner, which is not allowed.",
+    );
+  }
+
+  // These checks below for deleted state are *critical*.  Otherwise, we could easily end up
+  // with multiple VM's left running in multiple zones/rgions (on our dime) and data loss.
+  // Instead don't allow such a change.  Also, of course, frontend UI will have the same constraint.
+  if ((rows[0].state ?? "deleted") != "deleted") {
+    if (configuration.region != rows[0].region) {
+      throw Error(
+        "cannot change the region unless VM is in the 'deleted' state",
+      );
+    }
+    if (configuration.zone != rows[0].zone) {
+      throw Error("cannot change the zone unless VM is in the 'deleted' state");
+    }
+  }
+
   const { rowCount } = await pool.query(
-    "UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2 AND account_id=$3 AND state='off'",
+    "UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2 AND account_id=$3",
     [configuration, id, account_id],
   );
   if (rowCount == 0) {
     throw Error(
-      "invalid id, state not 'off', or attempt to change compute server by a non-owner, which is not allowed.",
+      "invalid id, or attempt to change compute server by a non-owner, which is not allowed.",
     );
   }
 }

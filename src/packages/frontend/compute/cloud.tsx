@@ -57,10 +57,10 @@ export default function Cloud({
     });
   }
 
-  if (state != "deleted" && setCloud == null) {
+  if (state != "deprovisioned" && setCloud == null) {
     return (
       <Tooltip
-        title="You must first delete the compute server VM to enable changing the
+        title="You must first deprovision the compute server VM before you can change the
           cloud provider."
       >
         <span>{label}</span>

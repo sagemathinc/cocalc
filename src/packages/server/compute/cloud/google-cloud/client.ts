@@ -59,6 +59,9 @@ export async function deleteInstance({ name, zone, wait }: Options) {
   }
 }
 
+// [ ] MAJOR TODO: need to check if the configuration of the existing instance
+// has changed, and if so, edit it before starting the instance!
+
 export async function startInstance({ name, zone, wait }: Options) {
   const client = await getClient();
   const [response] = await client.start({

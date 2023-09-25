@@ -57,6 +57,7 @@ function ActionButton({
   const [doing, setDoing] = useState<boolean>(false);
   const doAction = async () => {
     try {
+      setError('');
       setDoing(true);
       await computeServerAction({ id, action });
     } catch (err) {

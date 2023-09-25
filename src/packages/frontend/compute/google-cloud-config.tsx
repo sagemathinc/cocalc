@@ -1,6 +1,8 @@
-import type { GoogleCloudConfiguration as GoogleCloudConfigurationType } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  State,
+  GoogleCloudConfiguration as GoogleCloudConfigurationType,
+} from "@cocalc/util/db-schema/compute-servers";
 import {
-  Card,
   Checkbox,
   InputNumber,
   Radio,
@@ -41,6 +43,7 @@ interface Props {
   // called whenever changes are made.
   onChange?: (configuration: ConfigurationType) => void;
   disabled?: boolean;
+  state?: State;
 }
 
 export default function Configuration({
@@ -49,6 +52,7 @@ export default function Configuration({
   id,
   onChange,
   disabled,
+  state,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
@@ -106,7 +110,8 @@ export default function Configuration({
     // short summary
     return (
       <div>
-        {configuration.spot ? "Spot " : "Standard "}VM {configuration.machineType} with {gpu}
+        {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
+        with {gpu}
         {priceData ? (
           <span>
             <RamAndCpu
@@ -119,7 +124,7 @@ export default function Configuration({
           ""
         )}
         , and a {configuration.diskSizeGb ?? `at least ${MIN_DISK_SIZE_GB}`} GB
-        boot disk.
+        boot disk in {configuration.zone}.
       </div>
     );
   }
@@ -217,7 +222,7 @@ export default function Configuration({
       ),
       value: (
         <Region
-          disabled={loading || disabled}
+          disabled={loading || disabled || (state ?? "deleted") != "deleted"}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -233,7 +238,7 @@ export default function Configuration({
       ),
       value: (
         <Zone
-          disabled={loading || disabled}
+          disabled={loading || disabled || (state ?? "deleted") != "deleted"}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -283,7 +288,7 @@ export default function Configuration({
       )}
       <div
         style={{
-          minHeight: "35px",
+          /*minHeight: "35px", */
           padding: "5px 10px",
           background: error ? "red" : undefined,
           color: "white",
@@ -662,16 +667,12 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Machine Type</b>
-      </div>
-      <div style={{ textAlign: "center" }}>
-        <Card type="inner" style={{ margin: "5px auto", fontSize: "13pt" }}>
-          <RamAndCpu
-            machineType={newMachineType}
-            priceData={priceData}
-            style={{ marginTop: "5px" }}
-          />
-        </Card>
+        <b>Machine Type:</b>{" "}
+        <RamAndCpu
+          machineType={newMachineType}
+          priceData={priceData}
+          style={{ float:'right'}}
+        />
       </div>
       <Select
         disabled={disabled}

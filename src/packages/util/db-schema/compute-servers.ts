@@ -11,7 +11,8 @@ export type State =
   | "starting"
   | "running"
   | "stopping"
-  | "deleted"
+  | "deprovisioned"
+  | "deprovisioning"
   | "suspending"
   | "suspended"
   | "unknown";
@@ -21,7 +22,7 @@ export type Action =
   | "resume"
   | "stop"
   | "suspend"
-  | "delete"
+  | "deprovision"
   | "reboot";
 
 export const ACTION_INFO: { [action: string]: any } = {
@@ -62,12 +63,12 @@ export const ACTION_INFO: { [action: string]: any } = {
     description:
       "Suspend the compute server.  No data on disk or memory is lost, and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for up to 60 days before it automatically shuts off.",
   },
-  delete: {
-    label: "Delete",
+  deprovision: {
+    label: "Deprovision",
     icon: "trash",
-    tip: "Delete the virtual machine completely.",
+    tip: "Deprovision the virtual machine",
     description:
-      "Deletes the compute server.  All data on its disk and memory is lost, but the files in the home directory of your project are not affected.",
+      "Deprovisioning deletes the boot disk and memory.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
   },
 };
@@ -84,13 +85,13 @@ export const STATE_INFO: {
   off: {
     label: "Off",
     color: "#607d8b",
-    actions: ["start", "delete"],
+    actions: ["start", "deprovision"],
     icon: "stop",
     stable: true,
   },
   suspended: {
     label: "Suspended",
-    actions: ["resume", "delete"],
+    actions: ["resume", "deprovision", "stop"],
     icon: "pause",
     color: "#0097a7",
     stable: true,
@@ -105,21 +106,21 @@ export const STATE_INFO: {
   starting: {
     label: "Starting",
     color: "#388e3c",
-    actions: ["delete"],
+    actions: ["deprovision"],
     icon: "bolt",
     stable: false,
   },
   running: {
     label: "Running",
     color: "#389e0d",
-    actions: ["stop", "suspend", "reboot", "delete"],
+    actions: ["stop", "suspend", "reboot", "deprovision"],
     icon: "run",
     stable: true,
   },
   stopping: {
     label: "Stopping",
     color: "#ff9800",
-    actions: ["delete"],
+    actions: [],
     icon: "hand",
     stable: false,
   },
@@ -129,8 +130,8 @@ export const STATE_INFO: {
     icon: "question-circle",
     stable: true,
   },
-  deleted: {
-    label: "Deleted",
+  deprovisioned: {
+    label: "Deprovisioned",
     actions: ["start"],
     color: "#a1887f",
     icon: "trash",

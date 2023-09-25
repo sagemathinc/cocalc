@@ -23,7 +23,7 @@ export default async function getInstanceState({
     });
   } catch (err) {
     if (err.message.includes("not found")) {
-      return "off";
+      return "deprovisioned";
     }
   }
   const { status } = response;

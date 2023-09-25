@@ -28,7 +28,7 @@ export default function DeleteVM({ id, state }) {
       okButtonProps={{ disabled: confirm != `${id}` }}
       onConfirm={async () => {
         try {
-          await computeServerAction({ id, action: "delete" });
+          await computeServerAction({ id, action: "deprovision" });
         } catch (err) {
           setError(`${err}`);
         } finally {

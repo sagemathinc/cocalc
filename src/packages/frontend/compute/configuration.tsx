@@ -19,12 +19,12 @@ export default function Configuration({
   onChange,
   state,
 }: Props) {
-  const disabled = (state ?? "off") != "off" && state != "deleted";
+  const disabled = (state ?? "deprovision") != "deprovisioned" && state != "off";
   return (
     <>
       {editable && disabled && (
         <div style={{ fontWeight: 250 }}>
-          You can only change the configuration when the VM is off or deleted.
+          You can only change the configuration when the VM is off or deprovisioned.
         </div>
       )}
       <Config
@@ -33,12 +33,13 @@ export default function Configuration({
         configuration={configuration}
         onChange={onChange}
         disabled={disabled}
+        state={state}
       />
     </>
   );
 }
 
-function Config({ configuration, editable, id, onChange, disabled }) {
+function Config({ configuration, editable, id, onChange, disabled, state }) {
   if (configuration?.cloud == "google-cloud") {
     return (
       <GoogleCloudConfiguration
@@ -47,6 +48,7 @@ function Config({ configuration, editable, id, onChange, disabled }) {
         id={id}
         onChange={onChange}
         disabled={disabled}
+        state={state}
       />
     );
   } else {

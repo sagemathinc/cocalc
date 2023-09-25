@@ -37,9 +37,13 @@ export async function start({
     // try one more time:
     await state({ account_id, id });
     server = await getServer({ account_id, id });
-    if (server.state != null && server.state != "off") {
+    if (
+      server.state != null &&
+      server.state != "off" &&
+      server.state != "deprovisioned"
+    ) {
       throw Error(
-        "server must be in state 'off' (or not set) before starting it",
+        "server must be in state 'off' or 'deprovisioned' before starting it",
       );
     }
   }
@@ -106,6 +110,36 @@ async function doStop(server: ComputeServer) {
       return await googleCloud.stop(server);
     case "lambda-cloud":
       return await lambdaCloud.stop(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}
+
+export async function deprovision({
+  account_id,
+  id,
+}: {
+  account_id: string;
+  id: number;
+}) {
+  const server = await getServer({ account_id, id });
+  try {
+    await setError(id, "");
+    await setState(id, "stopping");
+    await deleteProjectApiKey({ account_id, server });
+    await doDeprovision(server);
+    waitStableNoError({ account_id, id });
+  } catch (err) {
+    await setState(id, "unknown");
+    await setError(id, `${err}`);
+    throw err;
+  }
+}
+
+async function doDeprovision(server: ComputeServer) {
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.deprovision(server);
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }

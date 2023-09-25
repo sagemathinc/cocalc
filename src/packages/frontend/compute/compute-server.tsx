@@ -49,51 +49,45 @@ export default function ComputeServer({
     {
       dataIndex: "value",
       key: "value",
-      title:
-        id != null ? (
-          <>
-            <span style={{ fontWeight: 250 }}>Click any value to edit</span>
-          </>
-        ) : undefined,
+      title: id != null ? <>Configuration</> : undefined,
     },
   ];
 
   const data = [
     {
-      label: "Title",
+      label: "Title & Color",
       value: (
-        <Title
-          title={title}
-          id={id}
-          editable={editable}
-          setError={setError}
-          onChange={onTitleChange}
-        />
-      ),
-    },
-    {
-      label: "Color",
-      value: (
-        <Color
-          color={color}
-          id={id}
-          editable={editable}
-          setError={setError}
-          onChange={onColorChange}
-        />
-      ),
-    },
-    {
-      label: "Cloud",
-      value: (
-        <Cloud
-          cloud={cloud}
-          state={state}
-          editable={editable}
-          setError={setError}
-          setCloud={onCloudChange}
-          id={id}
-        />
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            justifyContent: "space-between",
+          }}
+        >
+          <Title
+            title={title}
+            id={id}
+            editable={editable}
+            setError={setError}
+            onChange={onTitleChange}
+          />
+          <Color
+            color={color}
+            id={id}
+            editable={editable}
+            setError={setError}
+            onChange={onColorChange}
+          />
+          <Cloud
+            cloud={cloud}
+            state={state}
+            editable={editable}
+            setError={setError}
+            setCloud={onCloudChange}
+            id={id}
+            style={{ marginTop: "-10px" }}
+          />
+        </div>
       ),
     },
     {
@@ -121,9 +115,9 @@ export default function ComputeServer({
     actions = getActions({ id, state, editable, setError });
     if (editable) {
       actions.push(
-        <div onClick={() => setEdit(!edit)}>
+        <Button type="text" onClick={() => setEdit(!edit)}>
           <Icon name="gears" /> {!edit ? "Edit" : "Editing..."}
-        </div>,
+        </Button>,
       );
     }
 
@@ -149,8 +143,9 @@ export default function ComputeServer({
     <Card
       style={{
         width: "100%",
-        border: `1px solid ${color ?? "#f0f0f0"}`,
-        borderTop: `7.5px solid ${color ?? "#aaa"}`,
+        border: `0.5px solid ${color ?? "#f0f0f0"}`,
+        borderTop: `5px solid ${color ?? "#aaa"}`,
+        borderLeft: `5px solid ${color ?? "#aaa"}`,
         ...style,
       }}
       actions={actions}
@@ -202,19 +197,13 @@ export default function ComputeServer({
         table
       ) : (
         <Modal
+          maskStyle={{ background: color, opacity: 0.5 }}
           width={"900px"}
           onCancel={() => setEdit(false)}
           open={edit}
           title={
             <>
-              Edit Compute Server: <Title title={title} editable={false} />
-              <div style={{ textAlign: "center", color: "#666" }}>
-                <Description
-                  account_id={account_id}
-                  cloud={cloud}
-                  configuration={configuration}
-                />
-              </div>
+              <Icon name="gears" /> Edit Compute Server
             </>
           }
           footer={[
@@ -225,6 +214,13 @@ export default function ComputeServer({
             </div>,
           ]}
         >
+          <div style={{ textAlign: "center", color: "#666" }}>
+            <Description
+              account_id={account_id}
+              cloud={cloud}
+              configuration={configuration}
+            />
+          </div>
           {table}
         </Modal>
       )}

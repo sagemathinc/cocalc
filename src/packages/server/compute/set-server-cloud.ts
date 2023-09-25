@@ -18,7 +18,7 @@ export default async function setServerCloud({ account_id, id, cloud }) {
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT cloud, configuration FROM compute_servers WHERE id=$1 AND account_id=$2",
+    "SELECT cloud, state, configuration FROM compute_servers WHERE id=$1 AND account_id=$2",
     [id, account_id],
   );
   if (rows.length == 0) {
@@ -29,6 +29,9 @@ export default async function setServerCloud({ account_id, id, cloud }) {
   if (rows[0].cloud == cloud) {
     // nothing to do.
     return;
+  }
+  if ((rows[0].state ?? "deleted") != "deleted") {
+    throw Error("can only change the cloud when VM state is 'deleted'");
   }
   let newConfig: any = null;
   if (rows[0].configuration?.cloud == cloud) {

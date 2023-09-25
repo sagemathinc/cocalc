@@ -26,8 +26,30 @@ export default function State({
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const { label, actions, icon, color, stable } =
     STATE_INFO[state ?? "off"] ?? {};
+  const refresh = (
+    <Button
+      disabled={refreshing}
+      type="text"
+      onClick={async () => {
+        try {
+          setRefreshing(true);
+          await getServerState(id);
+        } catch (_) {
+        } finally {
+          setRefreshing(false);
+        }
+      }}
+    >
+      <Icon name="refresh" /> Refresh State
+    </Button>
+  );
+
   if (!label) {
-    return <span>Invalid State: {state}</span>;
+    return (
+      <span>
+        Invalid State: {state} {refresh}
+      </span>
+    );
   }
 
   return (
@@ -45,23 +67,7 @@ export default function State({
               editable={editable}
               setError={setError}
             />
-            <div style={{ textAlign: "center" }}>
-              <Button
-                disabled={refreshing}
-                type="text"
-                onClick={async () => {
-                  try {
-                    setRefreshing(true);
-                    await getServerState(id);
-                  } catch (_) {
-                  } finally {
-                    setRefreshing(false);
-                  }
-                }}
-              >
-                <Icon name="refresh" /> Refresh State
-              </Button>
-            </div>
+            <div style={{ textAlign: "center" }}>{refresh}</div>
           </div>
         );
       }}

@@ -6,6 +6,8 @@ import { setConfiguration, setData } from "@cocalc/server/compute/util";
 import getClient, {
   deleteInstance,
   rebootInstance,
+  startInstance,
+  stopInstance,
   suspendInstance,
   resumeInstance,
 } from "./client";
@@ -32,22 +34,30 @@ export async function start(server: ComputeServer) {
   if (configuration?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
+  const currentState = await state(server);
   const name = getServerName(server);
-  const { diskSizeGb } = await createInstance({
-    name,
-    configuration,
-    startupScript: startupScript({
-      api_key: server.api_key,
-      project_id: server.project_id,
-      gpu: !!configuration.acceleratorType,
-      arch: getArchitecture(configuration.machineType),
-      hostname: `compute-server-${server.id}`,
-    }),
-    metadata: { "serial-port-logging-enable": true },
-  });
-  if (configuration.diskSizeGb != diskSizeGb) {
-    // update config to reflect actual disk size used, so pricing matches this.
-    await setConfiguration(server.id, { ...configuration, diskSizeGb });
+
+  if (currentState == "deprovisioned") {
+    // create it
+    const { diskSizeGb } = await createInstance({
+      name,
+      configuration,
+      startupScript: startupScript({
+        api_key: server.api_key,
+        project_id: server.project_id,
+        gpu: !!configuration.acceleratorType,
+        arch: getArchitecture(configuration.machineType),
+        hostname: `compute-server-${server.id}`,
+      }),
+      metadata: { "serial-port-logging-enable": true },
+    });
+    if (configuration.diskSizeGb != diskSizeGb) {
+      // update config to reflect actual disk size used, so pricing matches this.
+      await setConfiguration(server.id, { ...configuration, diskSizeGb });
+    }
+  } else {
+    // start it
+    await startInstance({ name, zone: configuration.zone });
   }
   await setData(server.id, { name });
 }
@@ -65,6 +75,19 @@ export async function reboot(server: ComputeServer) {
   await rebootInstance({ name, zone: conf.zone });
 }
 
+export async function deprovision(server: ComputeServer) {
+  logger.debug("deprovision", server);
+  const conf = server.configuration;
+  if (conf?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const name = server.data?.name;
+  if (!name) {
+    return;
+  }
+  await deleteInstance({ name, zone: conf.zone });
+}
+
 export async function stop(server: ComputeServer) {
   logger.debug("stop", server);
   const conf = server.configuration;
@@ -75,7 +98,7 @@ export async function stop(server: ComputeServer) {
   if (!name) {
     return;
   }
-  await deleteInstance({ name, zone: conf.zone });
+  await stopInstance({ name, zone: conf.zone });
 }
 
 export async function state(server: ComputeServer): Promise<State> {
