@@ -97,7 +97,7 @@ interface QuotaBase {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
-  dedicated_vm?: { machine: string } | boolean;
+  dedicated_vm?: { name?: string; machine: string } | boolean;
   dedicated_disks?: DedicatedDisk[];
   pay_as_you_go?: null | {
     account_id: string;
