@@ -40,10 +40,9 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const handleCreate = async () => {
     try {
       setError("");
-      setCreating(true);
       onCreate();
       try {
-        setEditing(false);
+        setCreating(true);
         const id = await createServer({
           project_id,
           cloud,
@@ -51,11 +50,17 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           color,
           configuration,
         });
-        await computeServerAction({ id, action: "start" });
+        setEditing(false);
         setTitle(DEFAULTS.title());
         setColor(DEFAULTS.color);
         setCloud(DEFAULTS.cloud);
         setConfiguration(DEFAULTS.configuration);
+        setCreating(false);
+        (async () => {
+          try {
+            await computeServerAction({ id, action: "start" });
+          } catch (_) {}
+        })();
       } catch (err) {
         setError(`${err}`);
       }
@@ -81,17 +86,19 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         open={editing}
         title={"Create Compute Server"}
         footer={[
-          <Button size="large" onClick={() => setEditing(false)}>
-            Cancel
-          </Button>,
-          <Button
-            size="large"
-            type="primary"
-            onClick={handleCreate}
-            disabled={!!error || !configuration.valid}
-          >
-            <Icon name="run" /> Start "{title}" Running
-          </Button>,
+          <div style={{ textAlign: "center" }}>
+            <Button size="large" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="large"
+              type="primary"
+              onClick={handleCreate}
+              disabled={!!error || !configuration.valid || !title.trim()}
+            >
+              <Icon name="run" /> Start Compute Server
+            </Button>
+          </div>,
         ]}
       >
         <div style={{ marginTop: "15px" }}>
@@ -103,8 +110,13 @@ export default function CreateComputeServer({ project_id, onCreate }) {
               textAlign: "center",
             }}
           >
-            Customize your new compute server, then click "Start" below. You can
-            change everything later.
+            Customize your compute server below, then{" "}
+            <Button
+              onClick={handleCreate}
+              disabled={!!error || !configuration.valid || !title.trim()}
+            >
+              <Icon name="run" /> Start It
+            </Button>
           </div>
           <ComputeServer
             project_id={project_id}

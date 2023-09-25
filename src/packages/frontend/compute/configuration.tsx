@@ -19,7 +19,7 @@ export default function Configuration({
   onChange,
   state,
 }: Props) {
-  const disabled = (state ?? "deprovision") != "deprovisioned" && state != "off";
+  const disabled = (state ?? "deprovisioned") != "deprovisioned" && state != "off";
   return (
     <>
       {editable && disabled && (

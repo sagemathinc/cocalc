@@ -33,7 +33,11 @@ export async function start({
   id: number;
 }) {
   let server = await getServer({ account_id, id });
-  if (server.state != null && server.state != "off") {
+  if (
+    server.state != null &&
+    server.state != "off" &&
+    server.state != "deprovisioned"
+  ) {
     // try one more time:
     await state({ account_id, id });
     server = await getServer({ account_id, id });

@@ -19,13 +19,14 @@ export default function Title({
   setError,
   onChange,
 }: Props) {
-  const titleRef = useRef(null);
+  const titleRef = useRef<any>(null);
   const [saving, setSaving] = useState<boolean>(false);
+  const isFocusedRef = useRef<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>(
     title?.trim() ? title : NO_TITLE,
   );
   useEffect(() => {
-    if (!editable) {
+    if (!isFocusedRef.current) {
       setNewTitle(title?.trim() ? title : NO_TITLE);
     }
   }, [title]);
@@ -61,12 +62,19 @@ export default function Title({
 
   return (
     <Input
+      placeholder={"Title..."}
       ref={titleRef}
       style={{ width: "250px" }}
       value={newTitle}
       onChange={(e) => setNewTitle(e.target.value)}
       onPressEnter={handleSave}
-      onBlur={handleSave}
+      onFocus={() => {
+        isFocusedRef.current = true;
+      }}
+      onBlur={() => {
+        isFocusedRef.current = false;
+        handleSave();
+      }}
       addonAfter={
         saving ? (
           <Spin delay={1000} style={{ marginLeft: "15px" }} />

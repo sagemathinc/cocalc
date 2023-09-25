@@ -68,7 +68,7 @@ export default async function createServer(opts: Options): Promise<number> {
       push("configuration", CLOUDS_BY_NAME[opts.cloud].defaultConfiguration);
     }
   }
-  push("state", "off");
+  push("state", "deprovisioned");
 
   const query = `INSERT INTO compute_servers(${fields.join(
     ",",

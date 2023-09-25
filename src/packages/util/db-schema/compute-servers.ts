@@ -12,7 +12,6 @@ export type State =
   | "running"
   | "stopping"
   | "deprovisioned"
-  | "deprovisioning"
   | "suspending"
   | "suspended"
   | "unknown";
@@ -65,7 +64,7 @@ export const ACTION_INFO: { [action: string]: any } = {
   },
   deprovision: {
     label: "Deprovision",
-    icon: "trash",
+    icon: "global",
     tip: "Deprovision the virtual machine",
     description:
       "Deprovisioning deletes the boot disk and memory.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
@@ -134,7 +133,7 @@ export const STATE_INFO: {
     label: "Deprovisioned",
     actions: ["start"],
     color: "#a1887f",
-    icon: "trash",
+    icon: "global",
     stable: true,
   },
 };

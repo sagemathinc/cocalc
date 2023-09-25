@@ -109,7 +109,7 @@ export async function state(server: ComputeServer): Promise<State> {
   }
   const name = server.data?.name;
   if (!name) {
-    return "off";
+    return "deprovisioned";
   }
   return await getInstanceState({ name, zone: conf.zone });
 }
