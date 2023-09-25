@@ -71,6 +71,30 @@ export async function stopInstance({ name, zone, wait }: Options) {
   }
 }
 
+export async function suspendInstance({ name, zone, wait }: Options) {
+  const client = await getClient();
+  const [response] = await client.suspend({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
+export async function resumeInstance({ name, zone, wait }: Options) {
+  const client = await getClient();
+  const [response] = await client.resume({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
 export async function getSerialPortOutput({
   name,
   zone,

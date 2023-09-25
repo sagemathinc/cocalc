@@ -3,7 +3,7 @@ import type {
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { setConfiguration, setData } from "@cocalc/server/compute/util";
-import getClient, { deleteInstance } from "./client";
+import getClient, { deleteInstance, suspendInstance, resumeInstance  } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
 import getInstanceState from "./get-instance-state";
@@ -84,3 +84,29 @@ export async function cost(server: ComputeServer): Promise<number> {
 }
 
 export const test = { getClient };
+
+export async function suspend(server: ComputeServer) {
+  logger.debug("suspend", server);
+  const conf = server.configuration;
+  if (conf?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const name = server.data?.name;
+  if (!name) {
+    return;
+  }
+  await suspendInstance({ name, zone: conf.zone });
+}
+
+export async function resume(server: ComputeServer) {
+  logger.debug("resume", server);
+  const conf = server.configuration;
+  if (conf?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const name = server.data?.name;
+  if (!name) {
+    return;
+  }
+  await resumeInstance({ name, zone: conf.zone });
+}

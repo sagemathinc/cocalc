@@ -1,6 +1,6 @@
 import type { Action } from "@cocalc/util/db-schema/compute-servers";
 import { getPool } from "@cocalc/database";
-import { start, stop } from "./control";
+import { start, stop, suspend, resume } from "./control";
 
 interface Options {
   id: number;
@@ -27,6 +27,10 @@ export default async function computeServerAction({
       return await start({ id, account_id });
     case "stop":
       return await stop({ id, account_id });
+    case "suspend":
+      return await suspend({ id, account_id });
+    case "resume":
+      return await resume({ id, account_id });
     default:
       throw Error(`action '${action}' not implemented`);
   }

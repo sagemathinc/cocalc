@@ -1,4 +1,4 @@
-import { Button, Popconfirm, Popover, Spin } from "antd";
+import { Button, Popconfirm, Popover } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import {
   ACTION_INFO,
@@ -76,12 +76,6 @@ function ActionButton({
       onClick={!confirm ? doAction : undefined}
     >
       <Icon name={icon} /> {label}{" "}
-      {doing && (
-        <>
-          <div style={{ display: "inline-block", width: "10px" }} />
-          <Spin />
-        </>
-      )}
     </Button>
   );
   if (confirm) {

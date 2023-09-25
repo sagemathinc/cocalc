@@ -80,11 +80,6 @@ export async function stop({
   id: number;
 }) {
   const server = await getServer({ account_id, id });
-  //   if (server.state != null && server.state != "running") {
-  //     throw Error(
-  //       "server must be in state 'running' (or null) before stopping it",
-  //     );
-  //   }
   try {
     await setError(id, "");
     await setState(id, "stopping");
@@ -259,6 +254,82 @@ async function doCost(server: ComputeServer) {
       return await googleCloud.cost(server);
     case "lambda-cloud":
       return await lambdaCloud.cost(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}
+
+/* Suspend and Resume */
+
+export async function suspend({
+  account_id,
+  id,
+}: {
+  account_id: string;
+  id: number;
+}) {
+  let server = await getServer({ account_id, id });
+  if (server.state != null && server.state != "running") {
+    // try one more time:
+    await state({ account_id, id });
+    server = await getServer({ account_id, id });
+    if (server.state != null && server.state != "running") {
+      throw Error("server must be in state 'running' before suspending it");
+    }
+  }
+  try {
+    await setError(id, "");
+    await setState(id, "suspending");
+    await doSuspend(server);
+    waitStableNoError({ account_id, id });
+  } catch (err) {
+    await setState(id, "unknown");
+    await setError(id, `${err}`);
+    throw err;
+  }
+}
+
+async function doSuspend(server: ComputeServer) {
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.suspend(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}
+
+export async function resume({
+  account_id,
+  id,
+}: {
+  account_id: string;
+  id: number;
+}) {
+  let server = await getServer({ account_id, id });
+  if (server.state != null && server.state != "suspended") {
+    // try one more time:
+    await state({ account_id, id });
+    server = await getServer({ account_id, id });
+    if (server.state != null && server.state != "suspended") {
+      throw Error("server must be in state 'suspended' before resuming it");
+    }
+  }
+  try {
+    await setError(id, "");
+    await setState(id, "starting");
+    await doResume(server);
+    waitStableNoError({ account_id, id });
+  } catch (err) {
+    await setState(id, "unknown");
+    await setError(id, `${err}`);
+    throw err;
+  }
+}
+
+async function doResume(server: ComputeServer) {
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.resume(server);
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }

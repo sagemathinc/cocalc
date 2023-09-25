@@ -130,13 +130,6 @@ export const STATE_INFO: {
     icon: "question-circle",
     stable: true,
   },
-  resuming: {
-    label: "Resuming",
-    color: "#afb42c",
-    actions: [],
-    icon: "play",
-    stable: false,
-  },
   deleted: {
     label: "Deleted",
     actions: ["start"],

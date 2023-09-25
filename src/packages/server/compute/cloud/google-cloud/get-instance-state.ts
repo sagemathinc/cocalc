@@ -38,6 +38,10 @@ export default async function getInstanceState({
       return "stopping";
     case "TERMINATED":
       return "off";
+    case "SUSPENDING":
+      return "suspending";
+    case "SUSPENDED":
+      return "suspended";
     default:
       return "unknown";
   }
