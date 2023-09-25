@@ -45,6 +45,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     tip: "Turn off compute server",
     description:
       "Turn the compute server off. No data on disk is lost, but any data and state in memory will be lost. This is like turning your laptop off completely.",
+    confirm: true,
   },
   reboot: {
     label: "Reboot",
@@ -52,6 +53,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     tip: "Reboot the compute server",
     description:
       "Reboot the compute server, which shuts it down and boots it up.  No data on disk is lost, but any  state in memory will be lost. This is like turning your laptop off and on.",
+    confirm: true,
   },
   suspend: {
     label: "Suspend",
@@ -67,6 +69,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     tip: "Delete the virtual machine completely.",
     description:
       "Deletes the compute server.  All data on its disk and memory is lost, but the files in the home directory of your project are not affected.",
+    confirm: true,
   },
 };
 
@@ -264,7 +267,6 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
   "nvidia-tesla-v100",
   "nvidia-tesla-p4",
   "nvidia-tesla-p100",
-  "nvidia-tesla-k80",
 ];
 
 export interface GoogleCloudConfiguration {

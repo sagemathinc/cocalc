@@ -1,6 +1,6 @@
 import { Button, Modal, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
-import { createServer } from "./api";
+import { createServer, computeServerAction } from "./api";
 import { useEffect, useState } from "react";
 import { availableClouds } from "./config";
 import {
@@ -43,8 +43,15 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       setCreating(true);
       onCreate();
       try {
-        await createServer({ project_id, cloud, title, color, configuration });
         setEditing(false);
+        const id = await createServer({
+          project_id,
+          cloud,
+          title,
+          color,
+          configuration,
+        });
+        await computeServerAction({ id, action: "start" });
         setTitle(DEFAULTS.title());
         setColor(DEFAULTS.color);
         setCloud(DEFAULTS.cloud);

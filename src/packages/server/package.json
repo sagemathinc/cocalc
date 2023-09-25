@@ -37,7 +37,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
-    "@cocalc/gcloud-pricing-calculator": "^1.0.1",
+    "@cocalc/gcloud-pricing-calculator": "^1.2.0",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@google-cloud/compute": "^4.0.1",

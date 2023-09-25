@@ -114,6 +114,23 @@ export default async function createInstance({
     ...terminationTime,
   };
 
+  if (
+    configuration.machineType.startsWith("g2-") &&
+    !configuration.acceleratorType
+  ) {
+    // Critical to check this, or we might charge vastly less than we should,
+    // since instead of throwing an error, the GCP api "helpfully" just
+    // tosses in an expensive L4 GPU. Similar below.
+    throw Error("machine type g2- MUST have a GPU attached");
+  }
+
+  if (
+    configuration.machineType.startsWith("a2-") &&
+    !configuration.acceleratorType
+  ) {
+    throw Error("machine type a2- MUST have a GPU attached");
+  }
+
   const guestAccelerators = !configuration.acceleratorType
     ? []
     : [

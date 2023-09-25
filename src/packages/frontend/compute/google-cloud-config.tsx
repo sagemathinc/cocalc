@@ -21,10 +21,13 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 
-const SELECTOR_WIDTH = "300px";
+const SELECTOR_WIDTH = "350px";
+
+const DEFAULT_GPU = "nvidia-tesla-t4";
+const FALLBACK_INSTANCE = "n1-standard-1";
 
 // TODO: this needs to depend on how big actual image is, if we use a read only disk etc.  For now this will work.
-const MIN_DISK_SIZE_GB = 25;
+const MIN_DISK_SIZE_GB = 50;
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -70,7 +73,7 @@ export default function Configuration({
       try {
         setLoading(true);
         const data = await getGoogleCloudPriceData();
-        //window.x = { data, TESTING: (data.markup = 0) };
+        // window.x = { data, TESTING: (data.markup = 0) };
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
@@ -176,12 +179,28 @@ export default function Configuration({
     {
       key: "machineType",
       label: (
-        <A href="https://cloud.google.com/compute/docs/machine-resource">
-          <Icon name="external-link" /> VM Types
+        <A href="https://cloud.google.com/compute/docs/machine-resource#recommendations_for_machine_types">
+          <Icon name="external-link" /> Machine Types
         </A>
       ),
       value: (
         <MachineType
+          disabled={loading || disabled}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+    {
+      key: "gpu",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/gpus">
+          <Icon name="external-link" /> GPUs
+        </A>
+      ),
+      value: (
+        <GPU
           disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
@@ -231,22 +250,6 @@ export default function Configuration({
       ),
       value: (
         <Provisioning
-          disabled={loading || disabled}
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-    {
-      key: "gpu",
-      label: (
-        <A href="https://cloud.google.com/compute/docs/gpus">
-          <Icon name="external-link" /> GPUs
-        </A>
-      ),
-      value: (
-        <GPU
           disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
@@ -661,6 +664,15 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>Machine Type</b>
       </div>
+      <div style={{ textAlign: "center" }}>
+        <Card type="inner" style={{ margin: "5px auto", fontSize: "13pt" }}>
+          <RamAndCpu
+            machineType={newMachineType}
+            priceData={priceData}
+            style={{ marginTop: "5px" }}
+          />
+        </Card>
+      </div>
       <Select
         disabled={disabled}
         style={{ width: SELECTOR_WIDTH }}
@@ -682,15 +694,6 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       >
         Sort by price
       </Checkbox>
-      <div style={{ textAlign: "center" }}>
-        <Card type="inner" style={{ margin: "5px auto", fontSize: "13pt" }}>
-          <RamAndCpu
-            machineType={newMachineType}
-            priceData={priceData}
-            style={{ marginTop: "5px" }}
-          />
-        </Card>
-      </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
         Prices and availability depend on the region and provisioning type, so
         adjust those below to find the best overall value.
@@ -781,7 +784,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
-      <b>NVIDIA T4, P4, V100, P100, or A100 GPU</b>
+      <b>NVIDIA P4, T4, P100, V100, L4 and A100 GPU's</b>
     </div>
   );
 
@@ -796,7 +799,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           setConfig({ acceleratorType: "", acceleratorCount: 0 });
         } else {
           setConfig({
-            acceleratorType: "nvidia-t4",
+            acceleratorType: DEFAULT_GPU,
             acceleratorCount: 1,
           });
         }
@@ -833,12 +836,19 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       value: acceleratorType,
       search: acceleratorType,
       cost,
+      memory,
       label: (
         <div key={acceleratorType}>
           {displayAcceleratorType(acceleratorType, memory)} {price}
         </div>
       ),
     };
+  });
+  options.sort((a, b) => {
+    if (a.cost != null && b.cost != null) {
+      return cmp(a.cost, b.cost);
+    }
+    return cmp(a.memory, b.memory);
   });
 
   return (
@@ -863,8 +873,8 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           addonAfter="Count"
           style={{ marginLeft: "15px", width: "125px" }}
           disabled={disabled}
-          min={1}
-          max={priceData.accelerators[acceleratorType].max}
+          min={priceData.accelerators[acceleratorType]?.count ?? 1}
+          max={priceData.accelerators[acceleratorType]?.max ?? 1}
           value={acceleratorCount}
           onChange={(count) => {
             setConfig({ acceleratorCount: count });
@@ -883,6 +893,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
 
 function displayAcceleratorType(acceleratorType, memory?) {
   let x = acceleratorType
+    .replace("tesla-", "")
     .replace("nvidia-", "NVIDIA ")
     .replace("-", " - ")
     .toUpperCase();
@@ -901,6 +912,8 @@ function ensureConsistentConfiguration(
   const newChanges = { ...changes };
 
   ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
+
+  ensureConsistentNvidiaL4(priceData, newConfiguration, newChanges);
 
   ensureConsistentRegionAndZoneWithMachineType(
     priceData,
@@ -937,6 +950,10 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
   }
   // have a GPU
   const data = priceData.accelerators[configuration.acceleratorType];
+  if (!data) {
+    // invalid acceleratorType.
+    return;
+  }
   // Ensure the machine type is consistent
   if (!configuration.machineType.startsWith(data.machineType)) {
     if (changes["machineType"]) {
@@ -957,10 +974,41 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
   }
   // Ensure the count is consistent
   const count = configuration.acceleratorCount ?? 0;
-  if (count < 1) {
-    changes["acceleratorCount"] = 1;
+  if (count < data.count) {
+    changes["acceleratorCount"] = data.count;
   } else if (count > data.max) {
     changes["acceleratorCount"] = data.max;
+  }
+}
+
+// The Nvidia L4 is a little weirder.
+function ensureConsistentNvidiaL4(priceData, configuration, changes) {
+  const { machineType, acceleratorType } = configuration;
+  if (machineType.startsWith("g2-") && !acceleratorType) {
+    if (changes.acceleratorType !== undefined) {
+      configuration.machineType = changes.machineType = FALLBACK_INSTANCE;
+    } else {
+      configuration.acceleratorType = changes.acceleratorType = "nvidia-l4";
+    }
+  }
+  const TYPES = ["nvidia-l4", "nvidia-l4-x2", "nvidia-l4-x4", "nvidia-l4-x8"];
+  if (acceleratorType == "nvidia-l4") {
+    for (const other of TYPES) {
+      if (other != "nvidia-l4") {
+        if (machineType == priceData.accelerators[other].machineType) {
+          configuration.machineType = changes["machineType"] = "g2-standard-4";
+          return;
+        }
+      }
+    }
+  }
+  if (machineType.startsWith("a2-") && !acceleratorType) {
+    if (changes.acceleratorType !== undefined) {
+      configuration.machineType = changes.machineType = FALLBACK_INSTANCE;
+    } else {
+      configuration.acceleratorType = changes.acceleratorType =
+        "nvidia-tesla-a100";
+    }
   }
 }
 
@@ -978,7 +1026,7 @@ function ensureConsistentRegionAndZoneWithMachineType(
       `BUG -- This should never happen: unknonwn machineType = '${machineType}'`,
     );
     // invalid machineType -- so just fix it to the most compatible
-    configuration["machineType"] = changes["machineType"] = "n1-standard-1";
+    configuration["machineType"] = changes["machineType"] = FALLBACK_INSTANCE;
     return;
   }
 

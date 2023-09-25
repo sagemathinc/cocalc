@@ -1,10 +1,10 @@
-import { Button, Popover, Spin } from "antd";
+import { Button, Popconfirm, Popover, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import {
   ACTION_INFO,
   STATE_INFO,
 } from "@cocalc/util/db-schema/compute-servers";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { computeServerAction } from "./api";
 
 export default function getActions({
@@ -27,7 +27,7 @@ export default function getActions({
   for (const action of s.actions) {
     const a = ACTION_INFO[action];
     if (!a) continue;
-    const { label, icon, tip, description } = a;
+    const { label, icon, tip, description, confirm } = a;
     v.push(
       <ActionButton
         id={id}
@@ -37,13 +37,23 @@ export default function getActions({
         tip={tip}
         description={description}
         setError={setError}
+        confirm={confirm}
       />,
     );
   }
   return v;
 }
 
-function ActionButton({ id, action, icon, label, description, tip, setError }) {
+function ActionButton({
+  id,
+  action,
+  icon,
+  label,
+  description,
+  tip,
+  setError,
+  confirm,
+}) {
   const [doing, setDoing] = useState<boolean>(false);
   const doAction = async () => {
     try {
@@ -55,6 +65,38 @@ function ActionButton({ id, action, icon, label, description, tip, setError }) {
       setDoing(false);
     }
   };
+  useEffect(() => {
+    setDoing(false);
+  }, []);
+
+  let button = (
+    <Button
+      disabled={doing}
+      type="text"
+      onClick={!confirm ? doAction : undefined}
+    >
+      <Icon name={icon} /> {label}{" "}
+      {doing && (
+        <>
+          <div style={{ display: "inline-block", width: "10px" }} />
+          <Spin />
+        </>
+      )}
+    </Button>
+  );
+  if (confirm) {
+    button = (
+      <Popconfirm
+        title={`${label} - Are you sure?`}
+        description={<div style={{ width: "400px" }}>{description}</div>}
+        onConfirm={doAction}
+        okText="Yes"
+        cancelText="Cancel"
+      >
+        {button}
+      </Popconfirm>
+    );
+  }
 
   return (
     <Popover
@@ -67,9 +109,7 @@ function ActionButton({ id, action, icon, label, description, tip, setError }) {
       }
       content={<div style={{ width: "400px" }}>{description}</div>}
     >
-      <Button disabled={doing} type="text" onClick={doAction}>
-        <Icon name={icon} /> {label} {doing && <Spin />}
-      </Button>
+      {button}
     </Popover>
   );
 }

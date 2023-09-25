@@ -1348,8 +1348,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@cocalc/gcloud-pricing-calculator':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.2.0
+        version: 1.2.0
       '@cocalc/server':
         specifier: workspace:*
         version: 'link:'
@@ -4567,8 +4567,8 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /@cocalc/gcloud-pricing-calculator@1.0.1:
-    resolution: {integrity: sha512-nouuo+x8h6z8J+xjTwvIM4+tOPQHtRYAsNTg8IhMdlqtK6OMI7gzklWvw76JxlK4QMTXBIUlF2NEzymgqblQWQ==}
+  /@cocalc/gcloud-pricing-calculator@1.2.0:
+    resolution: {integrity: sha512-twDwlb6OTFqk6RDHcanHF2WPvyWbutau/C2r7JmxkAY3br92D3bYK4pDUxQL33kwukBOjnOCRjmI20ObWL352g==}
     engines: {node: '>=0.18.0'}
     requiresBuild: true
     dependencies:
@@ -8392,7 +8392,7 @@ packages:
     dependencies:
       '@npmcli/fs': 3.1.0
       fs-minipass: 3.0.3
-      glob: 10.3.6
+      glob: 10.3.7
       lru-cache: 10.0.1
       minipass: 7.0.3
       minipass-collect: 1.0.2
@@ -11306,8 +11306,8 @@ packages:
   /glob-to-regexp@0.4.1:
     resolution: {integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==}
 
-  /glob@10.3.6:
-    resolution: {integrity: sha512-mEfImdc/fiYHEcF6pHFfD2b/KrdFB1qH9mRe5vI5HROF8G51SWxQJ2V56Ezl6ZL9y86gsxQ1Lgo2S746KGUPSQ==}
+  /glob@10.3.7:
+    resolution: {integrity: sha512-wCMbE1m9Nx5yD9LYtgsVWq5VhHlk5WzJirw594qZR6AIvQYuHrdDtIktUVjQItalD53y7dqoedu9xP0u0WaxIQ==}
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
     dependencies:
