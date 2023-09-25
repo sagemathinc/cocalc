@@ -29,25 +29,31 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Gap, HelpIcon, TextInput } from "@cocalc/frontend/components";
+import {
+  A,
+  Gap,
+  HelpIcon,
+  Paragraph,
+  TextInput,
+} from "@cocalc/frontend/components";
 import {
   LicenseIdleTimeouts,
+  Uptime,
   requiresMemberhosting,
   untangleUptime,
-  Uptime,
 } from "@cocalc/util/consts/site-license";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import {
-  CostMap,
   COSTS,
+  CostMap,
   GCE_COSTS,
 } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round1, test_valid_jsonpatch } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { DEDICATED_VM_ONPREM_MACHINE } from "@cocalc/util/upgrades/consts";
 import { Upgrades } from "@cocalc/util/upgrades/quota";
-import Paragraph from "antd/es/typography/Paragraph";
 import { JsonEditor } from "../../admin/json-editor";
 
 const { Text } = Typography;
@@ -496,7 +502,9 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             disabled={disabled}
             type={"text"}
             on_change={(name) =>
-              onChange({ dedicated_vm: { name, machine: "" } })
+              onChange({
+                dedicated_vm: { name, machine: DEDICATED_VM_ONPREM_MACHINE },
+              })
             }
             style={{
               fontWeight: "normal",
