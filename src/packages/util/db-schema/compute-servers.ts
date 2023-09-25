@@ -125,6 +125,7 @@ export const STATE_INFO: {
     label: "Unknown",
     actions: [],
     icon: "question-circle",
+    stable: true,
   },
   resuming: {
     label: "Resuming",

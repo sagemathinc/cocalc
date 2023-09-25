@@ -193,7 +193,11 @@ export default function ComputeServer({
           </div>
         }
       />
-      <ShowError error={error} setError={setError} />
+      <ShowError
+        error={error}
+        setError={setError}
+        style={{ margin: "15px 0" }}
+      />
       {id == null ? (
         table
       ) : (

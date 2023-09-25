@@ -1,9 +1,10 @@
 import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Divider, Popover, Spin } from "antd";
+import { Button, Divider, Popover, Spin } from "antd";
 import getActions from "./action";
 import { User } from "@cocalc/frontend/users";
-import { CSSProperties } from "react";
+import { CSSProperties, useState } from "react";
+import { getServerState } from "./api";
 
 interface Props {
   style?: CSSProperties;
@@ -22,6 +23,7 @@ export default function State({
   account_id,
   setError,
 }: Props) {
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const { label, actions, icon, color, stable } =
     STATE_INFO[state ?? "off"] ?? {};
   if (!label) {
@@ -30,9 +32,12 @@ export default function State({
 
   return (
     <Popover
-      title={<>Compute Server is {label}</>}
+      title={<>State: {label}</>}
       content={() => {
-        if (actions.length == 0) {
+        if (state == "unknown") {
+          return <div>Click the "Refresh" button to update the state.</div>;
+        }
+        if (actions.length) {
           return <div>Please wait for this to finish.</div>;
         } else {
           if (!editable) {
@@ -57,9 +62,26 @@ export default function State({
         <Icon name={icon} /> {label}
         {!stable && (
           <>
-            {" "}
+            <div style={{ display: "inline-block", width: "10px" }} />
             <Spin />
           </>
+        )}
+        {state == "unknown" && (
+          <Button
+            disabled={refreshing}
+            type="text"
+            onClick={async () => {
+              try {
+                setRefreshing(true);
+                await getServerState(id);
+              } catch (_) {
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+          >
+            <Icon name="refresh" /> Refresh
+          </Button>
         )}
       </span>
     </Popover>

@@ -25,7 +25,11 @@ export async function computeServerAction(opts: {
   await api("compute/compute-server-action", opts);
 }
 
-export async function deleteComputeServer(id) {
+export async function getServerState(id: number) {
+  await api("compute/get-server-state", { id });
+}
+
+export async function deleteComputeServer(id: number) {
   await api("compute/delete-server", { id });
 }
 
