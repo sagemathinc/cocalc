@@ -72,12 +72,11 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           setEditing(true);
         }}
       >
-        <Icon name="plus-circle" /> Create New Compute Server...{" "}
+        <Icon name="plus-circle" /> Create Compute Server...{" "}
         {creating ? <Spin /> : null}
       </Button>
       <Modal
         width={"900px"}
-        maskClosable={false}
         onCancel={() => setEditing(false)}
         open={editing}
         title={"Create Compute Server"}

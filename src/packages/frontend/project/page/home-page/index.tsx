@@ -3,21 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
+import { Card, Col, Row } from "antd";
 
-import { redux, useActions, useRedux } from "@cocalc/frontend/app-framework";
-import { Title } from "@cocalc/frontend/components";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { redux, useActions } from "@cocalc/frontend/app-framework";
+import { Icon, Title } from "@cocalc/frontend/components";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { useProjectContext } from "../../context";
 import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
 import { HomeRecentFiles } from "./recent-files";
+import {
+  computeServersEnabled,
+  ComputeServers,
+} from "@cocalc/frontend/compute";
+import AccountStatus from "@cocalc/frontend/purchases/account-status";
 
 const SPAN = { md: 12, sm: 24, xs: 24 } as const;
 
 export default function HomePage() {
   const { project_id } = useProjectContext();
-  const desc = useRedux(["projects", "project_map", project_id, "description"]);
   const actions = useActions({ project_id });
 
   function renderGPTGenerator() {
@@ -36,32 +39,55 @@ export default function HomePage() {
     <div style={{ margin: "15px", maxWidth: "1300px" }}>
       <Row gutter={[30, 30]}>
         <Col {...SPAN}>
-          <Title
-            level={2}
-            onClick={() => actions?.set_active_tab("settings")}
-            style={{ cursor: "pointer", textAlign: "center" }}
-          >
-            <ProjectTitle project_id={project_id} noClick />
-          </Title>
-        </Col>
-        <Col>
           <div
             style={{
-              flex: 1,
-              cursor: "pointer",
-              maxHeight: "10em",
-              overflow: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "200px",
             }}
-            onClick={() => actions?.set_active_tab("settings")}
           >
-            <StaticMarkdown value={desc} />
+            <Title
+              level={2}
+              onClick={() => actions?.set_active_tab("settings")}
+              style={{ cursor: "pointer", textAlign: "center", color: "#666" }}
+            >
+              <ProjectTitle project_id={project_id} noClick />
+            </Title>
           </div>
         </Col>
-
         <Col {...SPAN}>
-          <HomeRecentFiles project_id={project_id} />
+          <HomeRecentFiles
+            project_id={project_id}
+            style={{ height: "200px" }}
+          />
         </Col>
+        {computeServersEnabled() && (
+          <Col {...SPAN}>
+            <Card
+              style={{
+                maxHeight: "500px",
+                overflow: "auto",
+                border: "1px solid #ddd",
+              }}
+              title={
+                <Title level={4}>
+                  <Icon
+                    name="server"
+                    style={{ fontSize: "20pt", marginRight: "5px" }}
+                  />{" "}
+                  Compute Servers
+                </Title>
+              }
+            >
+              <ComputeServers project_id={project_id} />
+            </Card>
+          </Col>
+        )}
         {renderGPTGenerator()}
+        <Col {...SPAN}>
+          <AccountStatus compact style={{ border: "1px solid #ddd" }} />
+        </Col>
       </Row>
     </div>
   );

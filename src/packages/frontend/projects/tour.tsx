@@ -45,12 +45,12 @@ export default function ProjectsPageTour({
     {
       title: (
         <>
-          <Icon name="plus-circle" /> Create New Projects
+          <Icon name="plus-circle" /> Create Projects
         </>
       ),
       description: (
         <div>
-          To start your work on <SiteName />, click the "Create New Project"
+          To start your work on <SiteName />, click the "Create Project"
           button. You can specify the project's title, and customize the image
           and license. Create as many projects as you want!
         </div>

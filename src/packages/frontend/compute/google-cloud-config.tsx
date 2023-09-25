@@ -106,7 +106,7 @@ export default function Configuration({
     // short summary
     return (
       <div>
-        {configuration.spot ? "Spot " : "Standard "}VM with {gpu}
+        {configuration.spot ? "Spot " : "Standard "}VM {configuration.machineType} with {gpu}
         {priceData ? (
           <span>
             <RamAndCpu

@@ -3,7 +3,7 @@ import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
-import { Input } from "antd";
+import { Input, Typography } from "antd";
 import { useState } from "react";
 const { Search } = Input;
 import { search_match, search_split } from "@cocalc/util/misc";
@@ -14,10 +14,18 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
 
   return (
     <div style={{ paddingRight: "15px", fontSize: "11pt" }}>
-      <p>
-        Compute servers are competitively priced pay as you go virtual machines
-        where you can run Jupyter notebooks, terminals and web servers
-        collaboratively, with full access to this project. You get
+      <Typography.Paragraph
+        ellipsis={{
+          expandable: true,
+          rows: 2,
+          symbol: "more",
+        }}
+      >
+        Do you need affordable GPU's and high end VM's, root access, Docker, or
+        to install commercial software? Compute servers are competitively priced
+        pay as you go virtual machines where you can run Jupyter notebooks,
+        terminals and web servers collaboratively, with full access to this
+        project. You get
         <ul>
           <li>full root access,</li>
           <li>
@@ -29,7 +37,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             Mathematica, any Docker container, etc.)
           </li>
         </ul>
-      </p>
+      </Typography.Paragraph>
       {availableClouds().length == 0 ? (
         <b>No Compute Server Clouds are currently enabled.</b>
       ) : (
@@ -113,7 +121,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
       {computeServers.size > 1 && (
         <Search
           allowClear
-          placeholder="Search..."
+          placeholder="Filter compute servers..."
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: 300 }}
         />

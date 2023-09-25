@@ -217,7 +217,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
             onClick={toggle_editing}
             style={{ width: "100%" }}
           >
-            <Icon name="plus-circle" /> Create New Project...
+            <Icon name="plus-circle" /> Create Project...
           </Button>
         </Col>
       </Row>

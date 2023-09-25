@@ -36,7 +36,7 @@ export default function Balance({
     );
   } else {
     let stat = (
-      <MoneyStatistic title={"Current Balance (USD)"} value={balance} />
+      <MoneyStatistic title={"Current Balance"} value={balance} />
     );
     if (balance < 0) {
       stat = (
