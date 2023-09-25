@@ -76,6 +76,7 @@ export const STATE_INFO: {
     actions: Action[];
     icon: string;
     color?: string;
+    stable?: boolean;
   };
 } = {
   off: {
@@ -83,36 +84,42 @@ export const STATE_INFO: {
     color: "#607d8b",
     actions: ["start", "delete"],
     icon: "stop",
+    stable: true,
   },
   suspended: {
     label: "Suspended",
     actions: ["resume", "delete"],
     icon: "pause",
     color: "#0097a7",
+    stable: true,
   },
   suspending: {
     label: "Suspending",
     actions: [],
     icon: "pause",
     color: "#00bcd4",
+    stable: false,
   },
   starting: {
     label: "Starting",
     color: "#388e3c",
     actions: ["delete"],
     icon: "bolt",
+    stable: false,
   },
   running: {
     label: "Running",
     color: "#389e0d",
     actions: ["stop", "suspend", "reboot", "delete"],
     icon: "run",
+    stable: true,
   },
   stopping: {
     label: "Stopping",
     color: "#ff9800",
     actions: ["delete"],
     icon: "hand",
+    stable: false,
   },
   unknown: {
     label: "Unknown",
@@ -124,12 +131,14 @@ export const STATE_INFO: {
     color: "#afb42c",
     actions: [],
     icon: "play",
+    stable: false,
   },
   deleted: {
     label: "Deleted",
     actions: ["start"],
     color: "#a1887f",
     icon: "trash",
+    stable: true,
   },
 };
 

@@ -17,7 +17,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
       <p>
         Compute servers are competitively priced pay as you go virtual machines
         where you can run Jupyter notebooks, terminals and web servers
-        collaboratively. You get
+        collaboratively, with full access to this project. You get
         <ul>
           <li>full root access,</li>
           <li>

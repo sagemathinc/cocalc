@@ -22,7 +22,7 @@ export async function computeServerAction(opts: {
   id: number;
   action: Action;
 }) {
-  await api("compute/delete-server", opts);
+  await api("compute/compute-server-action", opts);
 }
 
 export async function deleteComputeServer(id) {

@@ -1,6 +1,6 @@
 import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Divider, Popover } from "antd";
+import { Divider, Popover, Spin } from "antd";
 import getActions from "./action";
 import { User } from "@cocalc/frontend/users";
 import { CSSProperties } from "react";
@@ -11,15 +11,19 @@ interface Props {
   id;
   editable;
   account_id;
+  setError;
 }
 
 export default function State({
+  id,
   style,
   state,
   editable,
   account_id,
+  setError,
 }: Props) {
-  const { label, actions, icon, color } = STATE_INFO[state ?? "off"] ?? {};
+  const { label, actions, icon, color, stable } =
+    STATE_INFO[state ?? "off"] ?? {};
   if (!label) {
     return <span>Invalid State: {state}</span>;
   }
@@ -44,20 +48,19 @@ export default function State({
               </div>
             );
           }
-          return (
-            <div>
-              {getActions({ state, editable }).map((x) => (
-                <Button style={{ marginRight: "5px" }}>{x}</Button>
-              ))}
-            </div>
-          );
+          return <div>{getActions({ state, editable, id, setError })}</div>;
         }
         <div>You can {actions.join(", ")}</div>;
       }}
     >
       <span style={{ color, ...style }}>
         <Icon name={icon} /> {label}
-        {label.endsWith("ing") ? "..." : ""}
+        {!stable && (
+          <>
+            {" "}
+            <Spin />
+          </>
+        )}
       </span>
     </Popover>
   );

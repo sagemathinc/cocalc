@@ -118,7 +118,7 @@ export default function ComputeServer({
 
   let actions: JSX.Element[] | undefined = undefined;
   if (id != null) {
-    actions = getActions({ state, editable });
+    actions = getActions({ id, state, editable, setError });
     if (editable) {
       actions.push(
         <div onClick={() => setEdit(!edit)}>
@@ -134,6 +134,16 @@ export default function ComputeServer({
     //       </div>,
     //     );
   }
+
+  const table = (
+    <Table
+      style={{ marginTop: "15px" }}
+      rowKey="label"
+      columns={columns}
+      dataSource={data}
+      pagination={false}
+    />
+  );
 
   return (
     <Card
@@ -163,6 +173,7 @@ export default function ComputeServer({
                 state={state}
                 editable={editable}
                 id={id}
+                setError={setError}
                 account_id={account_id}
               />
               <div style={{ float: "right", color: "#666" }}>
@@ -183,36 +194,34 @@ export default function ComputeServer({
         }
       />
       <ShowError error={error} setError={setError} />
-      <Modal
-        width={"900px"}
-        onCancel={() => setEdit(false)}
-        open={edit}
-        title={
-          <>
-            Edit Compute Server: <Title title={title} editable={false} />
-            <div style={{ textAlign: "center", color: "#666" }}>
-              <Description
-                account_id={account_id}
-                cloud={cloud}
-                configuration={configuration}
-              />
-            </div>
-          </>
-        }
-        footer={[
-          <Button size="large" onClick={() => setEdit(false)}>
-            Done
-          </Button>,
-        ]}
-      >
-        <Table
-          style={{ marginTop: "15px" }}
-          rowKey="label"
-          columns={columns}
-          dataSource={data}
-          pagination={false}
-        />
-      </Modal>
+      {id == null ? (
+        table
+      ) : (
+        <Modal
+          width={"900px"}
+          onCancel={() => setEdit(false)}
+          open={edit}
+          title={
+            <>
+              Edit Compute Server: <Title title={title} editable={false} />
+              <div style={{ textAlign: "center", color: "#666" }}>
+                <Description
+                  account_id={account_id}
+                  cloud={cloud}
+                  configuration={configuration}
+                />
+              </div>
+            </>
+          }
+          footer={[
+            <Button size="large" onClick={() => setEdit(false)}>
+              Done
+            </Button>,
+          ]}
+        >
+          {table}
+        </Modal>
+      )}
     </Card>
   );
 }

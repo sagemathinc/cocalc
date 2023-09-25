@@ -24,7 +24,7 @@ import { currency } from "@cocalc/util/misc";
 const SELECTOR_WIDTH = "300px";
 
 // TODO: this needs to depend on how big actual image is, if we use a read only disk etc.  For now this will work.
-const MIN_DISK_SIZE_GB = 40;
+const MIN_DISK_SIZE_GB = 25;
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -37,6 +37,7 @@ interface Props {
   id?: number;
   // called whenever changes are made.
   onChange?: (configuration: ConfigurationType) => void;
+  disabled?: boolean;
 }
 
 export default function Configuration({
@@ -44,6 +45,7 @@ export default function Configuration({
   editable,
   id,
   onChange,
+  disabled,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
@@ -180,7 +182,7 @@ export default function Configuration({
       ),
       value: (
         <MachineType
-          disabled={loading}
+          disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -196,7 +198,7 @@ export default function Configuration({
       ),
       value: (
         <Region
-          disabled={loading}
+          disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -212,7 +214,7 @@ export default function Configuration({
       ),
       value: (
         <Zone
-          disabled={loading}
+          disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -229,7 +231,7 @@ export default function Configuration({
       ),
       value: (
         <Provisioning
-          disabled={loading}
+          disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -245,7 +247,7 @@ export default function Configuration({
       ),
       value: (
         <GPU
-          disabled={loading}
+          disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -262,7 +264,7 @@ export default function Configuration({
       ),
       value: (
         <BootDisk
-          disabled={loading}
+          disabled={loading || disabled}
           setConfig={setConfig}
           configuration={configuration}
         />
