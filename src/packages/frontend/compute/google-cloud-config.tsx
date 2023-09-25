@@ -222,7 +222,9 @@ export default function Configuration({
       ),
       value: (
         <Region
-          disabled={loading || disabled || (state ?? "deleted") != "deleted"}
+          disabled={
+            loading || disabled || (state ?? "deprovisioned") != "deprovisioned"
+          }
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -238,7 +240,9 @@ export default function Configuration({
       ),
       value: (
         <Zone
-          disabled={loading || disabled || (state ?? "deleted") != "deleted"}
+          disabled={
+            loading || disabled || (state ?? "deprovisioned") != "deprovisioned"
+          }
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -671,7 +675,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
         <RamAndCpu
           machineType={newMachineType}
           priceData={priceData}
-          style={{ float:'right'}}
+          style={{ float: "right" }}
         />
       </div>
       <Select
@@ -973,12 +977,61 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
       }
     }
   }
+  ensureZoneIsConsistentWithGPU(priceData, configuration, changes);
+
   // Ensure the count is consistent
   const count = configuration.acceleratorCount ?? 0;
   if (count < data.count) {
     changes["acceleratorCount"] = data.count;
   } else if (count > data.max) {
     changes["acceleratorCount"] = data.max;
+  }
+}
+
+function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
+  if (!configuration.acceleratorType) return;
+
+  const data = priceData.accelerators[configuration.acceleratorType];
+  if (!data) {
+    // invalid acceleratorType.
+    return;
+  }
+
+  // Ensure the region/zone is consistent with accelerator type
+  const prices = data[configuration.spot ? "spot" : "prices"];
+  if (prices[configuration.zone] == null) {
+    // there are no GPU's in the selected zone of the selected type.
+    // If you just explicitly changed the GPU type, then we fix this by changing the zone.
+    if (changes["acceleratorType"] != null) {
+      // fix the region and zone
+      // first, anything in the same region?
+      for (const zone in prices) {
+        if (zone.startsWith(configuration.region)) {
+          // yes!
+          changes["zone"] = configuration["zone"] = zone;
+          return;
+        }
+      }
+      // find cheapest zone
+      let price = 999999999;
+      let zoneChoice = "";
+      for (const zone in prices) {
+        if (prices[zone] < price) {
+          price = prices[zone];
+          zoneChoice = zone;
+        }
+      }
+      if (zoneChoice) {
+        changes["zone"] = configuration["zone"] = zoneChoice;
+        changes["region"] = configuration["region"] = zoneToRegion(zoneChoice);
+        return;
+      }
+    } else {
+      // You did not change the GPU type, so we  disable the GPU
+      configuration["acceleratorType"] = changes["acceleratorType"] = "";
+      configuration["acceleratorCount"] = changes["acceleratorCount"] = 0;
+      return;
+    }
   }
 }
 

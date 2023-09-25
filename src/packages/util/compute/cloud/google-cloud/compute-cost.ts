@@ -94,18 +94,14 @@ export default function computeCost({
         `machine type for ${configuration.acceleratorType} must be ${acceleratorData.machineType}`,
       );
     }
-    // NOTE: accelerator cost by region except for the a100 where it is by zone.
     let costPer =
-      acceleratorData[configuration.spot ? "spot" : "prices"]?.[
-        configuration.region
-      ] ??
       acceleratorData[configuration.spot ? "spot" : "prices"]?.[
         configuration.zone
       ];
     log("accelerator cost per", { costPer });
     if (costPer == null) {
       throw Error(
-        `GPU accelerator ${configuration.acceleratorType} not available in region ${configuration.region}`,
+        `GPU accelerator ${configuration.acceleratorType} not available in zone ${configuration.zone}`,
       );
     }
     acceleratorCost = costPer * acceleratorCount;
