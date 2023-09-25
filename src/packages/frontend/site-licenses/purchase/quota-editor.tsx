@@ -29,7 +29,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Gap } from "@cocalc/frontend/components";
+import { A, Gap, HelpIcon, TextInput } from "@cocalc/frontend/components";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
@@ -427,9 +427,85 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             style={{ fontWeight: "normal" }}
             onChange={(e) => onChange({ ext_rw: e.target.checked })}
           >
-            on-premises: mount <code>/ext</code> volume read/writeable (intended
-            for instructors/administrators)
+            <strong>
+              Mount <code>/ext</code> volume read/writeable
+            </strong>
+            : intended for instructors/administrators.
           </Checkbox>
+        </Col>
+      </Row>
+    );
+  }
+
+  function render_dedicated_vm_help(): JSX.Element {
+    return (
+      <HelpIcon title="Dedicated VM">
+        <Paragraph>
+          A dedicated virtual machine is part of your cluster. Due to its{" "}
+          <A
+            href={
+              "https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
+            }
+          >
+            kubernetes taint
+          </A>
+          , projects do not run on that node by default. The purpose of this
+          license configuration is to tell the management job, which creates the
+          pod for the project, to run the given project on exactly that node.
+          This is accomplished by adding a toleration to the pod specification
+          and selecting the dedicated VM node as the preferred node.
+        </Paragraph>
+        <Paragraph>
+          To configure such a Dedicated VM node, add a new node to your
+          kubernetes cluster and then add a taint and label in the following
+          way:
+        </Paragraph>
+        <Paragraph code>
+          kubectl taint nodes [node-name]
+          cocalc.com/dedicated_vm=[taint_name]:NoSchedule
+        </Paragraph>
+        <Paragraph code>
+          kubectl label nodes [node-name] cocalc.com/dedicated_vm=[taint_name]
+        </Paragraph>
+        <Paragraph type="secondary">
+          Replace [node-name] with the name of the node in your cluster and
+          [taint_name] with the name you did set here in this license
+          configuration.
+        </Paragraph>
+        <Paragraph>
+          Note: Do not forget to change the quota limits as well. In particular,
+          you'll probably want to increase the shared CPU and RAM quotas. You
+          can also increase the run limit of that license and change the idle
+          timeout to e.g. "always running". Once you saved the license,
+          double-check the quota configuration data – it will be displayed as a
+          JSON object. An empty string as the dedicated VM's name will be
+          interpreted as "no Dedicated VM".
+        </Paragraph>
+      </HelpIcon>
+    );
+  }
+
+  function render_dedicated_vm(): JSX.Element {
+    const dvm = quota.dedicated_vm;
+    const text = (dvm != null && typeof dvm != "boolean" && dvm.name) || "";
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control}>
+          <strong>Run project on dedicated virtual machine named</strong>{" "}
+          <TextInput
+            disabled={disabled}
+            type={"text"}
+            on_change={(name) =>
+              onChange({ dedicated_vm: { name, machine: "" } })
+            }
+            style={{
+              fontWeight: "normal",
+              display: "inline-block",
+              margin: "0 10px",
+            }}
+            text={text}
+          />{" "}
+          {render_dedicated_vm_help()}
         </Col>
       </Row>
     );
@@ -616,10 +692,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  if (isDedicated) {
+  if (isDedicated && !(isOnPrem && quota.dedicated_vm != null)) {
     return (
       <Typography.Text strong type="danger">
-        Dear Admin: editing a dedicated VM or Disk is not yet implemented.
+        Dear Admin: editing a Dedicated VM or Disk is not yet implemented.
       </Typography.Text>
     );
   }
@@ -638,6 +714,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {show_advanced && render_dedicated_ram()}
       {show_advanced && !hideExtra && render_dedicated()}
       {show_advanced && isOnPrem && render_ext_rw()}
+      {show_advanced && isOnPrem && render_dedicated_vm()}
       {show_advanced && isOnPrem && render_patch_project_pod()}
     </>
   );
