@@ -68,7 +68,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
     );
   }
   const v: JSX.Element[] = [
-    <div style={{ margin: "15px 0" }}>
+    <div style={{ margin: "15px 0" }} key="create">
       <CreateComputeServer
         project_id={project_id}
         onCreate={() => setSearch("")}

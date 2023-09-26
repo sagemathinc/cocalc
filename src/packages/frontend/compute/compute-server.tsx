@@ -121,6 +121,7 @@ export default function ComputeServer({
     if (editable) {
       actions.push(
         <Button
+          key="edit"
           type="text"
           onClick={() => {
             if (!edit) {
@@ -138,6 +139,7 @@ export default function ComputeServer({
     if (deleted && editable && id) {
       actions.push(
         <Button
+          key="undelete"
           type="text"
           onClick={async () => {
             await undeleteServer(id);
@@ -249,10 +251,13 @@ export default function ComputeServer({
             </>
           }
           footer={[
-            <Button onClick={() => setEdit(false)}>Close</Button>,
+            <Button key="close" onClick={() => setEdit(false)}>
+              Close
+            </Button>,
             editable &&
               (deleted ? (
                 <Button
+                  key="undelete"
                   onClick={async () => {
                     setShowDeleted?.(false);
                     await undeleteServer(id);
@@ -262,6 +267,7 @@ export default function ComputeServer({
                 </Button>
               ) : (
                 <Popconfirm
+                  key="delete"
                   title={"Delete this compute server?"}
                   description={
                     <div style={{ width: "400px" }}>

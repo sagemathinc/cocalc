@@ -30,6 +30,7 @@ export default function getActions({
     const { label, icon, tip, description, confirm } = a;
     v.push(
       <ActionButton
+        key={action}
         id={id}
         action={action}
         label={label}
@@ -57,7 +58,7 @@ function ActionButton({
   const [doing, setDoing] = useState<boolean>(false);
   const doAction = async () => {
     try {
-      setError('');
+      setError("");
       setDoing(true);
       await computeServerAction({ id, action });
     } catch (err) {
