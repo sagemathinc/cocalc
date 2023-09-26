@@ -67,7 +67,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     icon: "global",
     tip: "Deprovision the virtual machine",
     description:
-      "Deprovisioning deletes the boot disk and memory.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
+      "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
   },
 };

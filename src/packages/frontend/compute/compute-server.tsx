@@ -1,4 +1,4 @@
-import { Button, Card, Modal, Table } from "antd";
+import { Button, Card, Modal, Popconfirm, Table } from "antd";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import { CSSProperties, useState } from "react";
@@ -11,11 +11,13 @@ import Cloud from "./cloud";
 import Description from "./description";
 import Title from "./title";
 import Configuration from "./configuration";
+import { deleteServer, undeleteServer } from "./api";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
   style?: CSSProperties;
   editable: boolean;
+  setShowDeleted?: (showDeleted: boolean) => void;
   projectLink?: boolean;
   onTitleChange?;
   onColorChange?;
@@ -31,10 +33,12 @@ export default function ComputeServer({
   state,
   cloud,
   configuration,
+  deleted,
   project_id,
   account_id,
   style,
   editable,
+  setShowDeleted,
   projectLink,
   onTitleChange,
   onColorChange,
@@ -117,6 +121,19 @@ export default function ComputeServer({
       actions.push(
         <Button type="text" onClick={() => setEdit(!edit)}>
           <Icon name="gears" /> {!edit ? "Edit" : "Editing..."}
+        </Button>,
+      );
+    }
+    if (deleted && editable && id) {
+      actions.push(
+        <Button
+          type="text"
+          onClick={async () => {
+            await undeleteServer(id);
+            setShowDeleted?.(false);
+          }}
+        >
+          <Icon name="trash" /> Undelete
         </Button>,
       );
     }
@@ -207,11 +224,42 @@ export default function ComputeServer({
             </>
           }
           footer={[
-            <div style={{ textAlign: "center" }}>
-              <Button size="large" onClick={() => setEdit(false)}>
-                Close
-              </Button>
-            </div>,
+            <Button onClick={() => setEdit(false)}>Close</Button>,
+            editable &&
+              (deleted ? (
+                <Button
+                  onClick={async () => {
+                    setShowDeleted?.(false);
+                    await undeleteServer(id);
+                  }}
+                >
+                  <Icon name="trash" /> Undelete
+                </Button>
+              ) : (
+                <Popconfirm
+                  title={"Delete this compute server?"}
+                  description={
+                    <div style={{ width: "400px" }}>
+                      Are you sure you want to delete this compute server?
+                      {state != "deprovisioned" && (
+                        <b>
+                          WARNING: Any data on the boot disk will be deleted.
+                        </b>
+                      )}
+                    </div>
+                  }
+                  onConfirm={async () => {
+                    setEdit(false);
+                    await deleteServer(id);
+                  }}
+                  okText="Yes"
+                  cancelText="Cancel"
+                >
+                  <Button danger>
+                    <Icon name="trash" /> Delete...
+                  </Button>
+                </Popconfirm>
+              )),
           ]}
         >
           <div style={{ textAlign: "center", color: "#666" }}>

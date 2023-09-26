@@ -3,7 +3,7 @@ import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
-import { Input, Typography } from "antd";
+import { Input, Checkbox, Typography } from "antd";
 import { useState } from "react";
 const { Search } = Input;
 import { search_match, search_split } from "@cocalc/util/misc";
@@ -58,6 +58,7 @@ function computeServerToSearch(computeServers, id) {
 
 function ComputeServerTable({ computeServers, project_id, account_id }) {
   const [search, setSearch] = useState<string>("");
+  const [showDeleted, setShowDeleted] = useState<boolean>(false);
   if (!computeServers || computeServers.size == 0) {
     return (
       <div style={{ textAlign: "center" }}>
@@ -78,7 +79,15 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
   ];
   const search_words = search_split(search.toLowerCase());
   const ids: number[] = [];
+  let numDeleted = 0;
   for (const [id] of computeServers) {
+    const isDeleted = !!computeServers.getIn([id, "deleted"]);
+    if (isDeleted) {
+      numDeleted += 1;
+    }
+    if (showDeleted != isDeleted) {
+      continue;
+    }
     if (search_words.length > 0) {
       if (
         !search_match(computeServerToSearch(computeServers, id), search_words)
@@ -114,19 +123,31 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
         key={`${id}`}
         editable={account_id == data.account_id}
         {...data}
+        setShowDeleted={setShowDeleted}
       />,
     );
   }
   return (
     <div style={{ margin: "5px" }}>
-      {computeServers.size > 1 && (
-        <Search
-          allowClear
-          placeholder="Filter compute servers..."
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 300 }}
-        />
-      )}
+      <div style={{ float: "right" }}>
+        {computeServers.size > 1 && (
+          <Search
+            allowClear
+            placeholder="Filter compute servers..."
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 300 }}
+          />
+        )}
+        {numDeleted > 0 && (
+          <Checkbox
+            style={{ marginLeft: "10px", marginTop: "5px" }}
+            checked={showDeleted}
+            onChange={() => setShowDeleted(!showDeleted)}
+          >
+            Deleted ({numDeleted})
+          </Checkbox>
+        )}
+      </div>
       {v}
     </div>
   );

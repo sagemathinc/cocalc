@@ -1,9 +1,9 @@
 /*
-Delete the compute server. You can only do this if the VM is
-in the deleted state.
+Delete the compute server.
 */
 
 import getPool from "@cocalc/database/pool";
+import computeServerAction from "./compute-server-action";
 
 export default async function deleteServer({ account_id, id }) {
   const pool = getPool();
@@ -18,9 +18,7 @@ export default async function deleteServer({ account_id, id }) {
     throw Error("you must be the owner of the compute server to delete it");
   }
   if (rows[0].state != "deprovisioned") {
-    throw Error(
-      "the compute server state must be 'deprovisioned' before deleting the compute server",
-    );
+    await computeServerAction({ account_id, id, action: "deprovision" });
   }
   const { rowCount } = await pool.query(
     "UPDATE compute_servers SET deleted=true WHERE id=$1 AND account_id=$2",

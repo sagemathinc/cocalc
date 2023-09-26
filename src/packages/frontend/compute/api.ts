@@ -29,8 +29,12 @@ export async function getServerState(id: number) {
   await api("compute/get-server-state", { id });
 }
 
-export async function deleteComputeServer(id: number) {
+export async function deleteServer(id: number) {
   await api("compute/delete-server", { id });
+}
+
+export async function undeleteServer(id: number) {
+  await api("compute/undelete-server", { id });
 }
 
 // only owner can change properties of a compute server.

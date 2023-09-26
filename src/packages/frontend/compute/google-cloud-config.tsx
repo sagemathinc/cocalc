@@ -546,9 +546,8 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VMs stay running until you stop them, but cost more. Spot VMs
-        stop when there is a surge in demand, and the price changes over time,
-        location, and VM type.
+        Standard VM's stay running until you stop them, whereas spot VM's may get
+        killed if there is a surge in demand.
       </div>
     </div>
   );
@@ -891,7 +890,6 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           }}
         />
       </div>
-
     </div>
   );
 }
