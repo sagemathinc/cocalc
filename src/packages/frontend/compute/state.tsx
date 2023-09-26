@@ -40,7 +40,7 @@ export default function State({
         }
       }}
     >
-      <Icon name="refresh" /> Refresh State
+      <Icon name="refresh" spin={refreshing} /> Refresh State
     </Button>
   );
 

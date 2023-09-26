@@ -329,7 +329,7 @@ Table({
     user_query: {
       get: {
         pg_where: [{ "project_id = $::UUID": "project_id" }],
-        throttle_changes: 2000,
+        throttle_changes: 0, // do not make this bigger; UI really feels off if throttled
         fields: {
           id: null,
           account_id: null,

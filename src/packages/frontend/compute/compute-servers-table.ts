@@ -8,6 +8,14 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { isValidUUID } from "@cocalc/util/misc";
 import { computeServersEnabled } from "./index";
 
+const PREFIX = "compute-server-";
+function projectIdToName(project_id) {
+  return `${PREFIX}${project_id}`;
+}
+function nameToProjectId(name) {
+  return name.slice(PREFIX.length);
+}
+
 // Create and register compute servers table for a given project,
 // which gets automatically synchronized with the database, when
 // changes occur.
@@ -16,7 +24,7 @@ class ComputeServersTable extends Table {
     if (!isValidUUID(project_id)) {
       throw Error(`project_id must be a valid uuid but is ${project_id}`);
     }
-    super(project_id, redux);
+    super(projectIdToName(project_id), redux);
     this.query = this.query.bind(this);
     this._change = this._change.bind(this);
   }
@@ -29,14 +37,13 @@ class ComputeServersTable extends Table {
     return {
       compute_servers: [
         {
-          project_id: this.name,
+          project_id: nameToProjectId(this.name),
           id: null,
           account_id: null,
           title: null,
           color: null,
           cost_per_hour: null,
           deleted: null,
-          state_changed: null,
           error: null,
           state: null,
           idle_timeout: null,
@@ -50,10 +57,9 @@ class ComputeServersTable extends Table {
   }
 
   _change(table) {
-    const actions = redux.getProjectActions(this.name);
+    const actions = redux.getProjectActions(nameToProjectId(this.name));
     // Using {compute_servers:table.get()} does NOT work. The id keys are integers,
-    // which leads to problems when converting after an update.  Oh I wish we
-    // used immer instead of immutable js.
+    // which leads to problems when converting after an update.
     actions.setState({ compute_servers: table.get()?.toJS() });
   }
 }

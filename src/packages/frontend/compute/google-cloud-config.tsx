@@ -184,22 +184,6 @@ export default function Configuration({
 
   const data = [
     {
-      key: "machineType",
-      label: (
-        <A href="https://cloud.google.com/compute/docs/machine-resource#recommendations_for_machine_types">
-          <Icon name="external-link" /> Machine Types
-        </A>
-      ),
-      value: (
-        <MachineType
-          disabled={loading || disabled}
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-    {
       key: "gpu",
       label: (
         <A href="https://cloud.google.com/compute/docs/gpus">
@@ -215,6 +199,23 @@ export default function Configuration({
         />
       ),
     },
+    {
+      key: "machineType",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/machine-resource#recommendations_for_machine_types">
+          <Icon name="external-link" /> Machine Types
+        </A>
+      ),
+      value: (
+        <MachineType
+          disabled={loading || disabled}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+
     {
       key: "region",
       label: (
@@ -790,7 +791,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
-      <b>NVIDIA P4, T4, P100, V100, L4 and A100 GPU's</b>
+      <b>Dedicated NVIDIA P4, T4, P100, V100, L4 and A100 GPU's</b>
     </div>
   );
 

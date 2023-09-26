@@ -61,7 +61,7 @@ Table({
         pg_changefeed: "projects",
         options: [{ order_by: "-last_edited" }, { limit: 200 }], // limit is arbitrary
         options_load: [{ order_by: "-last_edited" }, { limit: 70 }], // limit is arbitrary
-        throttle_changes: 3000,
+        throttle_changes: 2000,
         fields: {
           id: null,
           project_id: null,

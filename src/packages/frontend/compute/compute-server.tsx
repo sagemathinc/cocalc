@@ -199,15 +199,6 @@ export default function ComputeServer({
                 justifyContent: "space-between",
               }}
             >
-              <Title title={title} editable={false} />
-              <div
-                style={{
-                  margin: "5px 15px",
-                  flex: 1,
-                  height: "15px",
-                  background: color,
-                }}
-              />
               <div style={{ color: "#666" }}>
                 <State
                   style={{ marginRight: "5px" }}
@@ -218,6 +209,15 @@ export default function ComputeServer({
                   account_id={account_id}
                 />
               </div>
+              {/*<div
+                style={{
+                  margin: "5px 15px",
+                  flex: 1,
+                  height: "15px",
+                  background: color,
+                }}
+              />*/}
+              <Title title={title} editable={false} />
             </div>
           )
         }
@@ -251,6 +251,7 @@ export default function ComputeServer({
             </>
           }
           footer={[
+            <>{getActions({ id, state, editable, setError })}</>,
             <Button key="close" onClick={() => setEdit(false)}>
               Close
             </Button>,
@@ -286,7 +287,7 @@ export default function ComputeServer({
                   okText="Yes"
                   cancelText="Cancel"
                 >
-                  <Button danger>
+                  <Button key="trash" danger>
                     <Icon name="trash" /> Delete...
                   </Button>
                 </Popconfirm>

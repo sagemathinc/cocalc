@@ -1,10 +1,12 @@
 import { getPool } from "@cocalc/database";
 import type { State } from "@cocalc/util/db-schema/compute-servers";
 
+// set the state. We ONLY make a change to the database updating state_changed
+// if the state actually changes, to avoid a lot of not necessary noise.
 export async function setState(id: number, state: State) {
   const pool = getPool();
   await pool.query(
-    "UPDATE compute_servers SET state=$1, state_changed=NOW() WHERE id=$2",
+    "UPDATE compute_servers SET state=$1, state_changed=NOW() WHERE id=$2 AND state != $1",
     [state, id],
   );
 }
