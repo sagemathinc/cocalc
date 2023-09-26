@@ -130,6 +130,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("change", this._syncdb_change);
 
+    if (!this.is_project) {
+      this.fetch_jupyter_kernels();
+    }
+
     // Hook for additional initialization.
     this.init2();
   }
@@ -287,12 +291,25 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
   fetch_jupyter_kernels = async (): Promise<void> => {
     let data;
+    const f = async () => {
+      data = await this.api_call("kernels", undefined, 3000);
+      if (this._state === "closed") {
+        return;
+      }
+    };
     try {
-      data = await this.api_call("kernels");
-      if (this._state === "closed") return;
+      await retry_until_success({
+        max_time: 1000 * 60 * 5,
+        start_delay: 250,
+        max_delay: 10000,
+        f,
+        desc: "jupyter:fetch_jupyter_kernels",
+      });
     } catch (err) {
-      if (this._state === "closed") return;
       this.set_error(err);
+      return;
+    }
+    if (this._state === "closed") {
       return;
     }
     // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel

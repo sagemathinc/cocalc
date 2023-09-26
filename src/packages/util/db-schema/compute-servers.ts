@@ -83,7 +83,7 @@ export const STATE_INFO: {
 } = {
   off: {
     label: "Off",
-    color: "#607d8b",
+    color: "#ff0000",
     actions: ["start", "deprovision"],
     icon: "stop",
     stable: true,
@@ -132,7 +132,7 @@ export const STATE_INFO: {
   deprovisioned: {
     label: "Deprovisioned",
     actions: ["start"],
-    color: "#64a3a9",
+    color: "#888",
     icon: "global",
     stable: true,
   },
