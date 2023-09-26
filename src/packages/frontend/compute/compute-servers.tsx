@@ -61,16 +61,14 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
   const [showDeleted, setShowDeleted] = useState<boolean>(false);
   if (!computeServers || computeServers.size == 0) {
     return (
-      <div style={{ textAlign: "center" }}>
-        <CreateComputeServer
-          project_id={project_id}
-          onCreate={() => setSearch("")}
-        />
-      </div>
+      <CreateComputeServer
+        project_id={project_id}
+        onCreate={() => setSearch("")}
+      />
     );
   }
   const v: JSX.Element[] = [
-    <div style={{ margin: "15px 0", textAlign: "center" }}>
+    <div style={{ margin: "15px 0" }}>
       <CreateComputeServer
         project_id={project_id}
         onCreate={() => setSearch("")}
@@ -113,7 +111,10 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
     ) {
       return 1;
     }
-    return -cmp(a, b);
+    return cmp(
+      cs_a.get("title")?.toLowerCase(),
+      cs_b.get("title")?.toLowerCase(),
+    );
   });
   for (const id of ids) {
     const data = computeServers.get(id).toJS();
@@ -124,6 +125,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
         editable={account_id == data.account_id}
         {...data}
         setShowDeleted={setShowDeleted}
+        setSearch={setSearch}
       />,
     );
   }
@@ -134,6 +136,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
           <Search
             allowClear
             placeholder="Filter compute servers..."
+            value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: 300 }}
           />

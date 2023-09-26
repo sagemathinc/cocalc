@@ -17,13 +17,13 @@ export default function Description({
 }: Props) {
   return (
     <div>
-      <Configuration configuration={configuration} />
       {!short && (
         <>
           <User account_id={account_id} />
           's compute server hosted on <Cloud height={15} cloud={cloud} />.
         </>
       )}
+      <Configuration configuration={configuration} />
     </div>
   );
 }

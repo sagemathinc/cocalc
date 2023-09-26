@@ -69,7 +69,9 @@ export default function Configuration({
   };
 
   useEffect(() => {
-    setLocalConfiguration(configuration0);
+    if (!editable) {
+      setLocalConfiguration(configuration0);
+    }
   }, [configuration0]);
 
   useEffect(() => {
@@ -546,8 +548,8 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VM's stay running until you stop them, whereas spot VM's may get
-        killed if there is a surge in demand.
+        Standard VM's stay running until you stop them, whereas spot VM's may
+        get killed if there is a surge in demand.
       </div>
     </div>
   );

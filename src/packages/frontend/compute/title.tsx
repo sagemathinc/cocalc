@@ -26,7 +26,7 @@ export default function Title({
     title?.trim() ? title : NO_TITLE,
   );
   useEffect(() => {
-    if (!isFocusedRef.current) {
+    if (!editable || !isFocusedRef.current) {
       setNewTitle(title?.trim() ? title : NO_TITLE);
     }
   }, [title]);

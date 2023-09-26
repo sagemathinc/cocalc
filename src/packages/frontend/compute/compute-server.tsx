@@ -18,6 +18,7 @@ interface Props extends Omit<ComputeServerUserInfo, "id"> {
   style?: CSSProperties;
   editable: boolean;
   setShowDeleted?: (showDeleted: boolean) => void;
+  setSearch?: (search: string) => void;
   projectLink?: boolean;
   onTitleChange?;
   onColorChange?;
@@ -39,6 +40,7 @@ export default function ComputeServer({
   style,
   editable,
   setShowDeleted,
+  setSearch,
   projectLink,
   onTitleChange,
   onColorChange,
@@ -53,7 +55,6 @@ export default function ComputeServer({
     {
       dataIndex: "value",
       key: "value",
-      title: id != null ? <>Configuration</> : undefined,
     },
   ];
 
@@ -119,7 +120,17 @@ export default function ComputeServer({
     actions = getActions({ id, state, editable, setError });
     if (editable) {
       actions.push(
-        <Button type="text" onClick={() => setEdit(!edit)}>
+        <Button
+          type="text"
+          onClick={() => {
+            if (!edit) {
+              // clear the search -- otherwise changing the title a little
+              // closes the modal!
+              setSearch?.("");
+            }
+            setEdit(!edit);
+          }}
+        >
           <Icon name="gears" /> {!edit ? "Edit" : "Editing..."}
         </Button>,
       );
@@ -161,7 +172,7 @@ export default function ComputeServer({
       style={{
         width: "100%",
         border: `0.5px solid ${color ?? "#f0f0f0"}`,
-        borderTop: `5px solid ${color ?? "#aaa"}`,
+        borderRight: `5px solid ${color ?? "#aaa"}`,
         borderLeft: `5px solid ${color ?? "#aaa"}`,
         ...style,
       }}
@@ -179,23 +190,37 @@ export default function ComputeServer({
         }
         title={
           id == null ? undefined : (
-            <div style={{ width: "100%" }}>
-              <State
-                style={{ marginRight: "5px" }}
-                state={state}
-                editable={editable}
-                id={id}
-                setError={setError}
-                account_id={account_id}
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                justifyContent: "space-between",
+              }}
+            >
+              <Title title={title} editable={false} />
+              <div
+                style={{
+                  margin: "5px 15px",
+                  flex: 1,
+                  height: "15px",
+                  background: color,
+                }}
               />
-              <div style={{ float: "right", color: "#666" }}>
-                <Title title={title} editable={false} />
+              <div style={{ color: "#666" }}>
+                <State
+                  style={{ marginRight: "5px" }}
+                  state={state}
+                  editable={editable}
+                  id={id}
+                  setError={setError}
+                  account_id={account_id}
+                />
               </div>
             </div>
           )
         }
         description={
-          <div style={{ textAlign: "center", color: "#666" }}>
+          <div style={{ color: "#666" }}>
             <Description
               account_id={account_id}
               cloud={cloud}
@@ -220,7 +245,7 @@ export default function ComputeServer({
           open={edit}
           title={
             <>
-              <Icon name="gears" /> Edit Compute Server
+              <Icon name="gears" /> Edit Compute Server With Id={id}
             </>
           }
           footer={[
@@ -262,7 +287,7 @@ export default function ComputeServer({
               )),
           ]}
         >
-          <div style={{ textAlign: "center", color: "#666" }}>
+          <div style={{ fontSize: "12pt", color: "#666" }}>
             <Description
               account_id={account_id}
               cloud={cloud}
