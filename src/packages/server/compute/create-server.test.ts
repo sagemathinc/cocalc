@@ -43,7 +43,7 @@ describe("creates account, project and then compute servers in various ways", ()
       await getServers({
         account_id,
       }),
-    ).toEqual([{ id, account_id, project_id, state: "off" }]);
+    ).toEqual([{ id, account_id, project_id, state: "deprovisioned" }]);
 
     // get by id:
     expect(
@@ -51,7 +51,7 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         id,
       }),
-    ).toEqual([{ id, account_id, project_id, state: "off" }]);
+    ).toEqual([{ id, account_id, project_id, state: "deprovisioned" }]);
   });
 
   it("creates compute server with every parameters set to something", async () => {
@@ -78,7 +78,7 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         project_id,
         ...s,
-        state: "off",
+        state: "deprovisioned",
         configuration: CLOUDS_BY_NAME["google-cloud"].defaultConfiguration,
       },
     ]);

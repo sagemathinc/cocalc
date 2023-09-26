@@ -115,7 +115,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
         id: id1,
         account_id: account_id1,
         project_id: project_id1,
-        state: "off",
+        state: "deprovisioned",
       },
     ]);
 
@@ -129,7 +129,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
         id: id1,
         account_id: account_id1,
         project_id: project_id1,
-        state: "off",
+        state: "deprovisioned",
       },
     ]);
 
@@ -143,7 +143,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
         id: id1,
         account_id: account_id1,
         project_id: project_id1,
-        state: "off",
+        state: "deprovisioned",
       },
     ]);
 
@@ -192,7 +192,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
         id: id1,
         account_id: account_id1,
         project_id: project_id1,
-        state: "off",
+        state: "deprovisioned",
       },
     ]);
 
@@ -207,7 +207,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
         id: id2,
         account_id: account_id2,
         project_id: project_id2,
-        state: "off",
+        state: "deprovisioned",
       },
     ]);
 
@@ -220,7 +220,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
         id: id2,
         account_id: account_id2,
         project_id: project_id2,
-        state: "off",
+        state: "deprovisioned",
       },
     ]);
   });
