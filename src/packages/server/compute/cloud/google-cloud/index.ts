@@ -18,6 +18,7 @@ import startupScript from "@cocalc/server/compute/cloud/startup-script";
 import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
 import { getArchitecture } from "./images";
+export * from "./validate-configuration";
 
 const logger = getLogger("server:compute:google-cloud");
 

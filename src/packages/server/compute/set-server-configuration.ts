@@ -15,15 +15,21 @@ the configuration to {zone:'foo'} that doesn't delete the rest of the configurat
 */
 
 import getPool from "@cocalc/database/pool";
+import { validateConfigurationChange } from "./control";
+import type { Configuration } from "@cocalc/util/db-schema/compute-servers";
 
 export default async function setServerConfiguration({
   account_id,
   id,
-  configuration,
+  configuration, // really the partial of changes
+}: {
+  account_id: string;
+  id: number;
+  configuration: Partial<Configuration>;
 }) {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT state, configuration FROM compute_servers WHERE id=$1 AND account_id=$2",
+    "SELECT state, cloud, configuration FROM compute_servers WHERE id=$1 AND account_id=$2",
     [id, account_id],
   );
   if (rows.length == 0) {
@@ -32,19 +38,13 @@ export default async function setServerConfiguration({
     );
   }
 
-  // These checks below for deleted state are *critical*.  Otherwise, we could easily end up
-  // with multiple VM's left running in multiple zones/rgions (on our dime) and data loss.
-  // Instead don't allow such a change.  Also, of course, frontend UI will have the same constraint.
-  if ((rows[0].state ?? "deprovisioned") != "deprovisioned") {
-    if (configuration.region != rows[0].region) {
-      throw Error(
-        "cannot change the region unless in the 'deprovisioned' state",
-      );
-    }
-    if (configuration.zone != rows[0].zone) {
-      throw Error("cannot change the zone unless in the 'deprovisioned' state");
-    }
-  }
+  await validateConfigurationChange({
+    id,
+    cloud: rows[0].cloud,
+    state: rows[0].state,
+    currentConfiguration: rows[0].configuration,
+    changes: configuration,
+  });
 
   const { rowCount } = await pool.query(
     "UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2 AND account_id=$3",

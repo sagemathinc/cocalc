@@ -15,6 +15,7 @@ import * as googleCloud from "./cloud/google-cloud";
 import type {
   Cloud,
   ComputeServer,
+  Configuration,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
@@ -22,6 +23,7 @@ import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
+import { isEqual } from "lodash";
 
 const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
 
@@ -244,7 +246,7 @@ export const waitForStableState = reuseInFlight(
 const BACKOFF_PARAMS = {
   default: {
     startDelay: 5000,
-    maxDelay: 15000,
+    maxDelay: 10000,
     backoff: 1.3,
   },
   test: {
@@ -400,5 +402,41 @@ async function doReboot(server: ComputeServer) {
       return await googleCloud.reboot(server);
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}
+
+// Throws an exception if changing from the given current
+// configuration to the new one should not be allowed.
+export async function validateConfigurationChange({
+  cloud,
+  state,
+  currentConfiguration,
+  changes,
+}: {
+  id: number;
+  state: State;
+  cloud: Cloud;
+  currentConfiguration: Configuration;
+  changes: Partial<Configuration>;
+}) {
+  const newConfiguration = { ...currentConfiguration, ...changes };
+  if (newConfiguration.cloud != cloud) {
+    throw Error(
+      `configuration cloud "${newConfiguration.cloud}" must match compute server cloud "${cloud}"`,
+    );
+  }
+  if (isEqual(currentConfiguration, newConfiguration)) {
+    return;
+  }
+
+  switch (cloud) {
+    case "google-cloud":
+      return await googleCloud.validateConfigurationChange({
+        state,
+        // @ts-ignore
+        currentConfiguration,
+        // @ts-ignore
+        newConfiguration,
+      });
   }
 }

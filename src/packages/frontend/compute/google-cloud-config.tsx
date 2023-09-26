@@ -3,6 +3,7 @@ import type {
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
 import {
+  Button,
   Checkbox,
   InputNumber,
   Radio,
@@ -95,7 +96,6 @@ export default function Configuration({
     }
     try {
       const cost = computeCost({ configuration, priceData });
-      setError("");
       setCost(cost);
     } catch (err) {
       setError(`${err}`);
@@ -148,10 +148,21 @@ export default function Configuration({
       return;
     }
 
-    changes = {
-      ...changes,
-      ...ensureConsistentConfiguration(priceData, configuration, changes),
-    };
+    changes = ensureConsistentConfiguration(priceData, configuration, changes);
+    const newConfiguration = { ...configuration, ...changes };
+
+    if (
+      (state ?? "deprovisioned") != "deprovisioned" &&
+      (configuration.region != newConfiguration.region ||
+        configuration.zone != newConfiguration.zone)
+    ) {
+      setError(
+        "Can't change the region or zone without first deprovisioning the VM",
+      );
+      // make copy so config gets reset -- i.e., whatever change you just tried to make is reverted.
+      setLocalConfiguration({ ...configuration });
+      return;
+    }
 
     if (Object.keys(changes).length == 0) {
       // nothing going to change
@@ -161,9 +172,9 @@ export default function Configuration({
     try {
       setLoading(true);
       if (onChange != null) {
-        onChange({ ...configuration, ...changes });
+        onChange(newConfiguration);
       }
-      setLocalConfiguration({ ...configuration, ...changes });
+      setLocalConfiguration(newConfiguration);
       if (id != null) {
         await setServerConfiguration({ id, configuration: changes });
       }
@@ -293,17 +304,26 @@ export default function Configuration({
           <Spin delay={1000} />
         </div>
       )}
-      <div
-        style={{
-          /*minHeight: "35px", */
-          padding: "5px 10px",
-          background: error ? "red" : undefined,
-          color: "white",
-          borderRadius: "5px",
-        }}
-      >
-        {error}
-      </div>
+      {error && (
+        <div
+          style={{
+            /*minHeight: "35px", */
+            padding: "5px 10px",
+            background: error ? "red" : undefined,
+            color: "white",
+            borderRadius: "5px",
+          }}
+        >
+          {error}
+          <Button
+            size="small"
+            onClick={() => setError("")}
+            style={{ float: "right" }}
+          >
+            Close
+          </Button>
+        </div>
+      )}
       {cost ? (
         <div style={{ textAlign: "center" }}>
           <MoneyStatistic value={cost} title="Cost per hour" />
@@ -646,7 +666,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
           {cost ? (
             `- ${currency(cost)}/hour`
           ) : (
-            <span style={{ color: "#666" }}>(config will change)</span>
+            <span style={{ color: "#666" }}>(region/zone will change)</span>
           )}
           <RamAndCpu machineType={machineType} priceData={priceData} />
         </div>
@@ -659,7 +679,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       options: allOptions.filter((x) => x.cost),
     },
     {
-      label: "Other Configuration Will Change",
+      label: "Location Will Change",
       options: allOptions.filter((x) => !x.cost),
     },
   ];
@@ -673,7 +693,7 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Machine Type:</b>{" "}
+        <b>Machine Type</b>{" "}
         <RamAndCpu
           machineType={newMachineType}
           priceData={priceData}
