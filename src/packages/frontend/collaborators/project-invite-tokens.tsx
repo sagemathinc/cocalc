@@ -34,7 +34,7 @@ const COLUMNS = [
   { title: "Invite Link", dataIndex: "token", key: "token", width: 300 },
   { title: "Created", dataIndex: "created", key: "created", width: 150 },
   { title: "Expires", dataIndex: "expires", key: "expires", width: 150 },
-  { title: "User Count", dataIndex: "counter", key: "counter" },
+  { title: "Redemption Count", dataIndex: "counter", key: "counter" },
   /* { title: "Limit", dataIndex: "usage_limit", key: "usage_limit" },*/
 ];
 
@@ -198,7 +198,11 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         <Popconfirm
           title={"Revoke this token?"}
           description={
-            "This will make it so this token cannot be used anymore.  Anybody who has already redeemed the token is not removed from this project."
+            <div style={{ maxWidth: "400px" }}>
+              This will make it so this token cannot be used anymore. Anybody
+              who has already redeemed the token is not removed from this
+              project.
+            </div>
           }
           onConfirm={() => expire_token(token)}
           okText={"Yes, revoke this token"}
