@@ -1,5 +1,5 @@
 /*
-Start a particular compute server "starting".
+Start, stop, etc. a particular compute server, generically, for any cloud...
 
 How this works will start simple, but is obviously going to get very complicated
 over time, with multiple clouds, heuristics, api client code, etc.
@@ -58,6 +58,7 @@ export async function start({
     await setState(id, "starting");
     await setProjectApiKey({ account_id, server });
     await doStart(server);
+    await saveProvisionedConfiguration(server);
     waitStableNoError({ account_id, id });
   } catch (err) {
     await setState(id, "unknown");
@@ -81,6 +82,17 @@ async function doStart(server: ComputeServer) {
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }
+}
+
+async function saveProvisionedConfiguration({
+  configuration,
+  id,
+}: ComputeServer) {
+  const pool = getPool();
+  await pool.query(
+    "UPDATE compute_servers SET provisioned_configuration=$1 WHERE id=$2",
+    [configuration, id],
+  );
 }
 
 export async function stop({

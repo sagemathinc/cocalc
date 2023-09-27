@@ -345,6 +345,7 @@ Table({
           autorestart: null,
           cloud: null,
           configuration: null,
+          provisioned_configuration: null,
           avatar_image_tiny: null,
         },
       },
@@ -422,6 +423,11 @@ Table({
       type: "map",
       pg_type: "jsonb",
       desc: "Cloud specific configuration of the computer at the cloud host. The format depends on the cloud",
+    },
+    provisioned_configuration: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Same as configuration, but this is the one we actually used last time we provisioned a VM in a cloud.",
     },
     data: {
       type: "map",

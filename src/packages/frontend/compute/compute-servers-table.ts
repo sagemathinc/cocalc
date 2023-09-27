@@ -51,6 +51,7 @@ class ComputeServersTable extends Table {
           autorestart: null,
           cloud: null,
           configuration: null,
+          provisioned_configuration: null,
           avatar_image_tiny: null,
         },
       ],
