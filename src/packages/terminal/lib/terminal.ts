@@ -406,9 +406,9 @@ export class Terminal {
 
   private sendCurrentWorkingDirectory = async (spark: Spark) => {
     if (this.localPty != null) {
-      this.sendCurrentWorkingDirectoryLocalPty(spark);
+      await this.sendCurrentWorkingDirectoryLocalPty(spark);
     } else if (this.remotePty != null) {
-      this.sendCurrentWorkingDirectoryRemotePty(spark);
+      await this.sendCurrentWorkingDirectoryRemotePty(spark);
     }
   };
 
