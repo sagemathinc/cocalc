@@ -72,13 +72,32 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   return (
     <div style={{ marginTop: "15px" }}>
       <Button
+        size="large"
         disabled={creating || editing}
         onClick={() => {
           setEditing(true);
         }}
+        style={{
+          marginRight: "5px",
+          marginBottom: "5px",
+          width: "100%",
+          height: "auto",
+          whiteSpace: "normal",
+          padding: "10px",
+          ...(creating
+            ? {
+                borderColor: "rgb(22, 119, 255)",
+                backgroundColor: "rgb(230, 244, 255)",
+              }
+            : undefined),
+        }}
       >
-        <Icon name="plus-circle" /> Create Compute Server...{" "}
-        {creating ? <Spin /> : null}
+        <Icon
+          name="server"
+          style={{ color: "rgb(66, 139, 202)", fontSize: "200%" }}
+        />
+        <br />
+        Create Compute Server... {creating ? <Spin /> : null}
       </Button>
       <Modal
         width={"900px"}
@@ -94,9 +113,11 @@ export default function CreateComputeServer({ project_id, onCreate }) {
               size="large"
               type="primary"
               onClick={handleCreate}
-              disabled={!!error || !configuration.valid || !title.trim()}
+              disabled={!!error || !title.trim()}
             >
               <Icon name="run" /> Start Compute Server
+              {!!error && "(clear error) "}
+              {!title.trim() && "(set title) "}
             </Button>
           </div>,
         ]}
@@ -111,10 +132,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             }}
           >
             Customize your compute server below, then{" "}
-            <Button
-              onClick={handleCreate}
-              disabled={!!error || !configuration.valid || !title.trim()}
-            >
+            <Button onClick={handleCreate} disabled={!!error || !title.trim()}>
               <Icon name="run" /> Start It
             </Button>
           </div>
