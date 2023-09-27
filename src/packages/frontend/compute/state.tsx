@@ -1,14 +1,16 @@
 import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Divider, Popover, Spin } from "antd";
+import { Button, Divider, Popover, Progress, Spin } from "antd";
 import getActions from "./action";
 import { User } from "@cocalc/frontend/users";
 import { CSSProperties, useState } from "react";
 import { getServerState } from "./api";
+import { useInterval } from "react-interval-hook";
 
 interface Props {
   style?: CSSProperties;
   state;
+  state_changed;
   id;
   editable;
   account_id;
@@ -19,6 +21,7 @@ export default function State({
   id,
   style,
   state,
+  state_changed,
   editable,
   account_id,
   setError,
@@ -72,16 +75,62 @@ export default function State({
         );
       }}
     >
-      <span style={{ color, ...style }}>
-        <Icon name={icon} /> {label}
+      <span style={style}>
+        <span style={{ color }}>
+          <Icon name={icon} /> {label}
+        </span>
         {!stable && (
           <>
             <div style={{ display: "inline-block", width: "10px" }} />
             <Spin />
+            {state_changed && (
+              <ProgressBarTimer
+                startTime={state_changed}
+                style={{ marginLeft: "10px" }}
+              />
+            )}
           </>
         )}
       </span>
     </Popover>
+  );
+}
+
+function ProgressBarTimer({
+  startTime,
+  style,
+  width = "150px",
+  interval = 1000,
+}: {
+  startTime: Date;
+  style?;
+  width?;
+  interval?;
+}) {
+  const [elapsed, setElapsed] = useState<number>(
+    Math.round((Date.now() - startTime.valueOf()) / 1000),
+  );
+
+  useInterval(() => {
+    setElapsed(Math.round((Date.now() - startTime.valueOf()) / 1000));
+  }, interval);
+
+  if (!startTime) {
+    return null;
+  }
+
+  return (
+    <div style={{ display: "inline-block", ...style }}>
+      <div style={{ display: "flex", width: "100%" }}>
+        <Progress
+          style={{ width, marginRight: "-30px" }}
+          status="active"
+          format={() => ""}
+          percent={elapsed}
+        />
+        {elapsed}s
+      </div>
+    </div>
   );
 }
 

@@ -32,6 +32,7 @@ export default function ComputeServer({
   title,
   color = "#888",
   state,
+  state_changed,
   cloud,
   configuration,
   deleted,
@@ -203,6 +204,7 @@ export default function ComputeServer({
                 <State
                   style={{ marginRight: "5px" }}
                   state={state}
+                  state_changed={state_changed}
                   editable={editable}
                   id={id}
                   setError={setError}
@@ -307,6 +309,7 @@ export default function ComputeServer({
             <State
               style={{ marginRight: "5px" }}
               state={state}
+              state_changed={state_changed}
               editable={editable}
               id={id}
               setError={setError}
