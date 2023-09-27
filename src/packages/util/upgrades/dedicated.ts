@@ -129,7 +129,7 @@ const DISK_MONTHLY_1GB: { [id in DedicatedDiskSpeeds]: number } = {
   ssd: (SNAPSHOT_FACTOR * 174.08) / 1024,
 };
 
-// https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size
+// https://cloud.google.com/compute/docs/disks/performance#performance_limits
 const IOPS: { [id in DedicatedDiskSpeeds]: { read: number; write: number } } = {
   standard: { read: 0.75, write: 1.5 },
   balanced: { read: 6, write: 6 },

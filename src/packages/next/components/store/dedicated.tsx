@@ -51,8 +51,9 @@ import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType, loadDateRange } from "./util";
 
-const GCP_DISK_URL =
-  "https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size";
+const GCP_DISK_URL = "https://cloud.google.com/compute/docs/disks#pdspecs";
+const GCP_DISK_PERFORMANCE_URL =
+  "https://cloud.google.com/compute/docs/disks/performance";
 
 interface Props {
   noAccount: boolean;
@@ -123,7 +124,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
   const [durationTypes, setDurationTypes] = useState<"monthly" | "range">(
-    "monthly"
+    "monthly",
   );
   const [vmMachine, setVmMachine] = useState<keyof VMsType | null>(null);
   const [diskNameValid, setDiskNameValid] = useState<boolean>(false);
@@ -173,7 +174,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
                 size_gb,
                 name: data["disk-name"],
               },
-            })
+            }),
           );
           break;
         case "vm":
@@ -185,7 +186,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
               dedicated_vm: {
                 machine: data["vm-machine"],
               },
-            })
+            }),
           );
           break;
       }
@@ -265,7 +266,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
 
   useEffect(() => {
     const store_site_license_show_explanations = get_local_storage(
-      "store_site_license_show_explanations"
+      "store_site_license_show_explanations",
     );
     if (store_site_license_show_explanations != null) {
       setShowExplanations(!!store_site_license_show_explanations);
@@ -510,7 +511,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
     return (
       <p>
         More information about Dedicated Disks can be found at{" "}
-        <A href={GCP_DISK_URL}>GCP: Performance by disk size</A>.
+        <A href={GCP_DISK_URL}>GCP: Persistent Disk</A>.
       </p>
     );
   }
@@ -530,9 +531,9 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
     }
     return (
       <p style={{ marginTop: "5px" }}>
-        Estimated speed: {di.mbps} MB/s sustained throughput and {di.iops} IOPS
-        read/write. For more detailed information:{" "}
-        <A href={GCP_DISK_URL}>GCP disk performance</A> information.
+        {di.mbps} MB/s sustained throughput and {di.iops} IOPS read/write. For
+        more detailed information:{" "}
+        <A href={GCP_DISK_PERFORMANCE_URL}>GCP disk performance</A> information.
       </p>
     );
   }
@@ -655,7 +656,8 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
   function dedicatedVmOptions() {
     return sortBy(
       Object.entries(PRICES.vms),
-      ([_, vm]) => `${1000 + (vm?.spec.cpu ?? 0)}:${1000 + (vm?.spec.mem ?? 0)}`
+      ([_, vm]) =>
+        `${1000 + (vm?.spec.cpu ?? 0)}:${1000 + (vm?.spec.mem ?? 0)}`,
     ).map(([id, vm]: [string, NonNullable<VMsType[string]>]) => {
       return (
         <Select.Option key={id} value={id}>
