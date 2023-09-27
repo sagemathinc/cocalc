@@ -21,6 +21,15 @@ interface Props {
   extraDuration?: ReactNode;
 }
 
+function getTimezoneFromDate(date: Date, format: 'long'|'short'='long'): string {
+  return Intl.DateTimeFormat(undefined, {
+    timeZoneName: format,
+  }).formatToParts(date)
+    .find(x => x.type === 'timeZoneName')
+    ?.value || '';
+}
+
+
 export function UsageAndDuration(props: Props) {
   const {
     showExplanations = false,
@@ -70,25 +79,28 @@ export function UsageAndDuration(props: Props) {
     const period = getFieldValue("period");
     if (period !== "range") return;
     const range = getFieldValue("range");
+    const invalidRange = range?.[0] == null || range?.[1] == null;
     return (
-      <>
-        {(range?.[0] == null || range?.[1] == null) && (
-          <div style={{ textAlign: "center", color: "#ff4d4f" }}>
-            Please enter a range of dates.
-          </div>
-        )}
+      <Form.Item label="License Term"
+                 name="range"
+                 rules={[{ required: true }]}
+                 help={invalidRange ? "Please enter a valid license range." : ""}
+                 validateStatus={invalidRange ? "error" : "success"}
+                 style={{ paddingBottom: "30px" }}
+      >
         <DateRange
           disabled={disabled}
           noPast
           maxDaysInFuture={365 * 4}
-          style={{ margin: "5px 0 30px", textAlign: "center" }}
+          style={{ marginTop: "5px" }}
           initialValues={getFieldValue("range")}
           onChange={(range) => {
             form.setFieldsValue({ range });
             onChange();
           }}
+          suffix={(range && range[0]) && `(${getTimezoneFromDate(range[0] as Date, 'long')})`}
         />
-      </>
+      </Form.Item>
     );
   }
 
