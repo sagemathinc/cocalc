@@ -45,7 +45,7 @@ jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project = require("@cocalc/server/projects/create").default;
 user_search = require("@cocalc/server/accounts/search").default;
-collab = require('@cocalc/server/projects/collab').default;
+collab = require('@cocalc/server/projects/collab');
 delete_passport = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
 
 
