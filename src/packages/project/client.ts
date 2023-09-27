@@ -71,6 +71,11 @@ if (fs.existsSync(DEBUG_FILE)) {
   // always make verbose in kucalc, since logs are taken care of by the k8s
   // logging infrastructure...
   DEBUG = true;
+} else {
+  winston.info(
+    "create this file to enable very verbose debugging:",
+    DEBUG_FILE,
+  );
 }
 
 winston.info(`DEBUG = ${DEBUG}`);
@@ -229,7 +234,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // communication with some hub (the one the socket is connected to).
   public active_socket(socket: CoCalcSocket): void {
     const dbg = this.dbg(
-      `active_socket(id=${socket.id},ip='${socket.remoteAddress}')`
+      `active_socket(id=${socket.id},ip='${socket.remoteAddress}')`,
     );
     let x = this._hub_client_sockets[socket.id];
     if (x == null) {
@@ -258,8 +263,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
         delete this._hub_client_sockets[socket.id];
         dbg(
           `number of active sockets now equals ${misc.len(
-            this._hub_client_sockets
-          )}`
+            this._hub_client_sockets,
+          )}`,
         );
         if (misc.len(this._hub_client_sockets) === 0) {
           this._connected = false;
@@ -287,7 +292,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
       heartbeat_interval = setInterval(
         check_heartbeat,
-        1.5 * PROJECT_HUB_HEARTBEAT_INTERVAL_S * 1000
+        1.5 * PROJECT_HUB_HEARTBEAT_INTERVAL_S * 1000,
       );
 
       if (misc.len(this._hub_client_sockets) >= 1) {
@@ -331,7 +336,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   public get_hub_socket() {
     const socket_ids = misc.keys(this._hub_client_sockets);
     this.dbg("get_hub_socket")(
-      `there are ${socket_ids.length} sockets -- ${JSON.stringify(socket_ids)}`
+      `there are ${socket_ids.length} sockets -- ${JSON.stringify(socket_ids)}`,
     );
     if (socket_ids.length === 0) {
       return;
@@ -489,7 +494,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     }
     if (the_synctable.get_state() !== "connected") {
       throw Error(
-        "Bug -- state of synctable must be connected " + JSON.stringify(query)
+        "Bug -- state of synctable must be connected " + JSON.stringify(query),
       );
     }
     return the_synctable;
@@ -564,7 +569,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     let content: string | undefined = undefined;
     const path = join(HOME, opts.path);
     const dbg = this.dbg(
-      `path_read(path='${opts.path}', maxsize_MB=${opts.maxsize_MB})`
+      `path_read(path='${opts.path}', maxsize_MB=${opts.maxsize_MB})`,
     );
     dbg();
     if (this._file_io_lock == null) {
@@ -578,7 +583,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       // Try again in 1s.
       setTimeout(
         async () => await this.path_read(opts),
-        500 + 500 * Math.random()
+        500 + 500 * Math.random(),
       );
       return;
     }
@@ -606,8 +611,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
               size / 1000000
             }MB) too large (must be at most ${
               opts.maxsize_MB
-            }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`
-          )
+            }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`,
+          ),
         );
         return;
       } else {
@@ -734,7 +739,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     if (hub == null) {
       dbg("fail -- no global hubs");
       cb?.(
-        "no global hubs are connected to the local hub, so nowhere to send file"
+        "no global hubs are connected to the local hub, so nowhere to send file",
       );
       return;
     }
@@ -796,7 +801,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   public async set_deleted(
     filename: string,
-    _project_id: string
+    _project_id: string,
   ): Promise<void> {
     // project_id is ignored
     const listings = get_listings_table();
