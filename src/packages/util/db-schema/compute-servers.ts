@@ -83,7 +83,7 @@ export const STATE_INFO: {
 } = {
   off: {
     label: "Off",
-    color: "#ff0000",
+    color: "#ff4b00",
     actions: ["start", "deprovision"],
     icon: "stop",
     stable: true,
@@ -105,14 +105,14 @@ export const STATE_INFO: {
   starting: {
     label: "Starting",
     color: "#388e3c",
-    actions: ["deprovision"],
+    actions: [],
     icon: "bolt",
     stable: false,
   },
   running: {
     label: "Running",
     color: "#389e0d",
-    actions: ["stop", "suspend", "reboot", "deprovision"],
+    actions: ["stop", "suspend", "reboot"],
     icon: "run",
     stable: true,
   },
@@ -169,6 +169,7 @@ export const CLOUDS: {
       machineType: "c2-standard-4",
       spot: true,
       diskSizeGb: 50,
+      diskType: "pd-standard",
     },
   },
   lambda: {
@@ -261,6 +262,8 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
   "nvidia-tesla-p100",
 ];
 
+const GOOGLE_CLOUD_DISK_TYPES = ["pd-standard", "pd-balanced", "pd-ssd"];
+
 export interface GoogleCloudConfiguration {
   cloud: "google-cloud";
   region: string;
@@ -268,8 +271,10 @@ export interface GoogleCloudConfiguration {
   machineType: string;
   // Ues a spot instance if spot is true.
   spot?: boolean;
+  // The boot disk:
   // diskSizeGb is an integer >= 10.  It defaults to 10. It's the size of the boot disk.
   diskSizeGb?: number;
+  diskType?: (typeof GOOGLE_CLOUD_DISK_TYPES)[number];
   acceleratorType?: (typeof GOOGLE_CLOUD_ACCELERATOR_TYPES)[number];
   // the allowed number depends on the accelerator; it defaults to 1.
   acceleratorCount?: number;

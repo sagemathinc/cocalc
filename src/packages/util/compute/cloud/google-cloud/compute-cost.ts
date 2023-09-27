@@ -25,8 +25,9 @@ interface ZoneData {
 export interface GoogleCloudData {
   machineTypes: { [machineType: string]: PriceData };
   disks: {
-    standard: { prices: { [zone: string]: number } };
-    ssd: { prices: { [zone: string]: number } };
+    "pd-standard": { prices: { [zone: string]: number } };
+    "pd-ssd": { prices: { [zone: string]: number } };
+    "pd-balanced": { prices: { [zone: string]: number } };
   };
   accelerators: { [acceleratorType: string]: PriceData };
   zones: { [zone: string]: ZoneData };
@@ -65,7 +66,8 @@ export default function computeCost({
     );
   }
 
-  const diskCost = priceData.disks["standard"]?.prices[configuration.region];
+  const diskType = configuration.diskType ?? "pd-standard";
+  const diskCost = priceData.disks[diskType]?.prices[configuration.region];
   log("disk cost per GB", { diskCost });
   if (diskCost == null) {
     throw Error(

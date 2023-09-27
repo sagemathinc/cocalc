@@ -126,7 +126,10 @@ export default function Configuration({
           ""
         )}
         , and a {configuration.diskSizeGb ?? `at least ${MIN_DISK_SIZE_GB}`} GB
-        boot disk in {configuration.zone}.
+        {(configuration.diskType ?? "pd-standard") != "pd-standard"
+          ? " SSD "
+          : " HDD "}{" "}
+        disk in {configuration.zone}.
       </div>
     );
   }
@@ -284,8 +287,8 @@ export default function Configuration({
     {
       key: "boot",
       label: (
-        <A href="https://cloud.google.com/compute/docs/disks">
-          <Icon name="external-link" /> Boot Disk
+        <A href="https://cloud.google.com/compute/docs/disks/performance">
+          <Icon name="external-link" /> Disks
         </A>
       ),
       value: (
@@ -293,6 +296,8 @@ export default function Configuration({
           disabled={loading || disabled}
           setConfig={setConfig}
           configuration={configuration}
+          priceData={priceData}
+          state={state}
         />
       ),
     },
@@ -772,18 +777,22 @@ function RamAndCpu({
   );
 }
 
-function BootDisk({ setConfig, configuration, disabled }) {
+function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? MIN_DISK_SIZE_GB,
   );
+  const [newDiskType, setNewDiskType] = useState<number | null>(
+    configuration.diskType ?? "pd-standard",
+  );
   useEffect(() => {
     setNewDiskSizeGb(configuration.diskSizeGb ?? MIN_DISK_SIZE_GB);
+    setNewDiskType(configuration.diskType ?? "pd-standard");
   }, [configuration.diskSizeGb]);
 
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Boot Disk</b>
+        <b>Disk</b>
       </div>
       <InputNumber
         style={{ width: SELECTOR_WIDTH }}
@@ -800,8 +809,41 @@ function BootDisk({ setConfig, configuration, disabled }) {
           setConfig({ diskSizeGb: newDiskSizeGb ?? MIN_DISK_SIZE_GB });
         }}
       />
+      <div style={{ marginTop: "15px" }}>
+        <Select
+          style={{ width: SELECTOR_WIDTH }}
+          disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+          value={newDiskType}
+          onChange={(diskType) => {
+            setNewDiskType(diskType);
+            setConfig({ diskType: diskType ?? "pd-standard" });
+          }}
+          options={[
+            {
+              value: "pd-standard",
+              label: `Standard (HDD) disk - ${currency(
+                priceData.disks["pd-standard"]?.prices[configuration.region] *
+                  730,
+              )}/GB per month`,
+            },
+            {
+              value: "pd-balanced",
+              label: `Balanced (SSD) disks - ${currency(
+                priceData.disks["pd-balanced"]?.prices[configuration.region] *
+                  730,
+              )}/GB per month`,
+            },
+            {
+              value: "pd-ssd",
+              label: `Performance (SSD) disks - ${currency(
+                priceData.disks["pd-ssd"]?.prices[configuration.region] * 730,
+              )}/GB per month`,
+            },
+          ]}
+        ></Select>
+      </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Set the size of the compute server's boot disk.
+        Set the size and type of the compute server's boot disk.
       </div>
     </div>
   );

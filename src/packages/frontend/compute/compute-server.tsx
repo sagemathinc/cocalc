@@ -291,8 +291,9 @@ export default function ComputeServer({
                     </Button>
                   </Popconfirm>
                 ))}
-              <div style={{ flex: 1 }}></div>
-              <>{getActions({ id, state, editable, setError })}</>
+              <div style={{ flex: 1, textAlign:'center' }}>
+                {getActions({ id, state, editable, setError })}
+              </div>
               <Button key="close" onClick={() => setEdit(false)}>
                 Close
               </Button>

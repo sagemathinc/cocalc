@@ -26,6 +26,11 @@ export async function validateConfigurationChange({
         `cannot change from "${currentConfiguration.zone}" the zone unless in the 'deprovisioned' state`,
       );
     }
+    if (currentConfiguration.diskType != newConfiguration.diskType) {
+      throw Error(
+        `cannot change disk type unless in the 'deprovisioned' state`,
+      );
+    }
   }
 
   if (newConfiguration.machineType.startsWith("g2-")) {
