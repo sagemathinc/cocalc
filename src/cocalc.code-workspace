@@ -79,6 +79,7 @@
     "files.exclude": {
       "dist": true,
       "node_modules": true
-    }
+    },
+    "prettier.trailingComma": "all"
   }
 }
