@@ -5,7 +5,7 @@ import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
 import { installCuda, installDocker, installUser } from "../install";
 import { delay } from "awaiting";
-import getInstanceState from "./get-instance-state";
+import getInstance from "./get-instance";
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -355,7 +355,8 @@ async function waitForInstallToFinish({ zone, name, maxTimeMinutes }) {
 
 async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
   logger.debug("createImageFromInstance", { zone, name });
-  if ((await getInstanceState({ zone, name })) != "off") {
+  const instance = await getInstance({ zone, name });
+  if (instance.state != "off") {
     logger.debug("createImageFromInstance: stopping instance...");
     await stopInstance({ zone, name, wait: true });
   }

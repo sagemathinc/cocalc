@@ -13,7 +13,7 @@ import getClient, {
 } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
-import getInstanceState from "./get-instance-state";
+import getInstance from "./get-instance";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
 import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
@@ -112,7 +112,15 @@ export async function state(server: ComputeServer): Promise<State> {
   if (!name) {
     return "deprovisioned";
   }
-  return await getInstanceState({ name, zone: conf.zone });
+  const instance = await getInstance({ name, zone: conf.zone });
+  (async () => {
+    try {
+      await setData(server.id, { ...instance });
+    } catch (err) {
+      logger.debug("WARNING -- issue saving data about instance", err);
+    }
+  })();
+  return instance.state;
 }
 
 export async function cost(server: ComputeServer): Promise<number> {

@@ -148,6 +148,16 @@ export type Cloud =
   | "fluid-stack"
   | "test";
 
+export function getMinDiskSizeGb(configuration) {
+  // TODO: will have to do something based on actual image size, maybe, unless I come up with a clever trick involving
+  // one PD mounted on many machines (?).
+  if (configuration.acceleratorType) {
+    return 50;
+  } else {
+    return 10;
+  }
+}
+
 // The ones that are at all potentially worth exposing to users.
 export const CLOUDS: {
   [short: string]: {
@@ -168,7 +178,7 @@ export const CLOUDS: {
       zone: "us-east1-d",
       machineType: "c2-standard-4",
       spot: true,
-      diskSizeGb: 50,
+      diskSizeGb: getMinDiskSizeGb({}),
       diskType: "pd-standard",
     },
   },
@@ -350,6 +360,7 @@ Table({
           autorestart: null,
           cloud: null,
           configuration: null,
+          data: null,
           provisioned_configuration: null,
           avatar_image_tiny: null,
         },
@@ -437,7 +448,7 @@ Table({
     data: {
       type: "map",
       pg_type: "jsonb",
-      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This won't be returned to the user.",
+      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This *IS* returned to the user.",
     },
     avatar_image_tiny: {
       title: "Image",

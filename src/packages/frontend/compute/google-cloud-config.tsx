@@ -2,6 +2,7 @@ import type {
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
+import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
   Button,
   Checkbox,
@@ -28,9 +29,6 @@ const SELECTOR_WIDTH = "350px";
 
 const DEFAULT_GPU = "nvidia-tesla-t4";
 const FALLBACK_INSTANCE = "n1-standard-1";
-
-// TODO: this needs to depend on how big actual image is, if we use a read only disk etc.  For now this will work.
-const MIN_DISK_SIZE_GB = 50;
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -125,7 +123,10 @@ export default function Configuration({
         ) : (
           ""
         )}
-        , and a {configuration.diskSizeGb ?? `at least ${MIN_DISK_SIZE_GB}`} GB
+        , and a{" "}
+        {configuration.diskSizeGb ??
+          `at least ${getMinDiskSizeGb(configuration)}`}{" "}
+        GB
         {(configuration.diskType ?? "pd-standard") != "pd-standard"
           ? " SSD "
           : " HDD "}{" "}
@@ -779,15 +780,27 @@ function RamAndCpu({
 
 function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
-    configuration.diskSizeGb ?? MIN_DISK_SIZE_GB,
+    configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
   );
   const [newDiskType, setNewDiskType] = useState<number | null>(
     configuration.diskType ?? "pd-standard",
   );
   useEffect(() => {
-    setNewDiskSizeGb(configuration.diskSizeGb ?? MIN_DISK_SIZE_GB);
+    setNewDiskSizeGb(
+      configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
+    );
     setNewDiskType(configuration.diskType ?? "pd-standard");
   }, [configuration.diskSizeGb]);
+
+  useEffect(() => {
+    const min = getMinDiskSizeGb(configuration);
+    if ((newDiskSizeGb ?? 0) < min) {
+      setConfig({
+        diskSizeGb: min,
+      });
+      setNewDiskSizeGb(min);
+    }
+  }, [configuration.acceleratorType]);
 
   return (
     <div>
@@ -797,7 +810,7 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
       <InputNumber
         style={{ width: SELECTOR_WIDTH }}
         disabled={disabled}
-        min={MIN_DISK_SIZE_GB}
+        min={getMinDiskSizeGb(configuration)}
         max={10000}
         value={newDiskSizeGb}
         addonAfter="GB"
@@ -806,7 +819,9 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
         }}
         onBlur={() => {
           // only set on blur or every keystroke rerenders and cause loss of focus.
-          setConfig({ diskSizeGb: newDiskSizeGb ?? MIN_DISK_SIZE_GB });
+          setConfig({
+            diskSizeGb: newDiskSizeGb ?? getMinDiskSizeGb(configuration),
+          });
         }}
       />
       <div style={{ marginTop: "15px" }}>

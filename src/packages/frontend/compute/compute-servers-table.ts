@@ -52,6 +52,7 @@ class ComputeServersTable extends Table {
           cloud: null,
           configuration: null,
           provisioned_configuration: null,
+          data: null,
           avatar_image_tiny: null,
         },
       ],
