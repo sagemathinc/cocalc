@@ -17,6 +17,8 @@ import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { CourseInfo } from "./projects";
+import * as computeServers from "./compute-servers";
+
 export type Reason =
   | "duplicate"
   | "fraudulent"
@@ -37,6 +39,7 @@ export type Service =
   | "openai-gpt-3.5-turbo-16k"
   | "openai-text-embedding-ada-002"
   | "project-upgrade"
+  | "compute-server"
   | "license"
   | "voucher"
   | "edit-license";
@@ -90,6 +93,14 @@ export interface ProjectUpgrade {
   };
 }
 
+export interface ComputerServer {
+  type: "compute-server";
+  project_id: string;
+  state: computeServers.State;
+  compute_server_id: number;
+  configuration: computeServers.Configuration;
+}
+
 export interface License {
   type: "license";
   info: PurchaseInfo;
@@ -134,6 +145,7 @@ export type Description =
   | OpenaiGPT35_16k
   | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
+  | ComputerServer
   | Credit
   | Refund
   | License

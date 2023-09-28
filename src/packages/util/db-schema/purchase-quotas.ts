@@ -37,6 +37,7 @@ export const QUOTA_SPEC: QuotaSpec = {
     noSet: true, // because this is not user visible yet
   },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
+  "compute-server": { display: "Compute Server", color: "#2196f3" },
   license: {
     display: "License",
     color: "cyan",

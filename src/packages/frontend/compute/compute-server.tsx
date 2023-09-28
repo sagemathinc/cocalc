@@ -231,6 +231,7 @@ export default function ComputeServer({
               cloud={cloud}
               configuration={configuration}
               data={data}
+              state={state}
               short
             />
           </div>
@@ -306,7 +307,9 @@ export default function ComputeServer({
             <Description
               account_id={account_id}
               cloud={cloud}
+              data={data}
               configuration={configuration}
+              state={state}
             />
             <div style={{ flex: 1 }} />
             <State

@@ -29,7 +29,7 @@ export default function AllQuotasConfig() {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
-    null
+    null,
   );
   const lastFetchedQuotasRef = useRef<ServiceQuota[] | null>(null);
   const [changed, setChanged] = useState<boolean>(false);
@@ -84,7 +84,7 @@ export default function AllQuotasConfig() {
               serviceQuotas[i].service,
               serviceQuotas[i].quota ??
                 lastFetchedQuotasRef.current[i]?.quota ??
-                0
+                0,
             );
           } catch (err) {
             setError(`${err}`);
@@ -177,7 +177,7 @@ export default function AllQuotasConfig() {
             <Icon name="refresh" />
             Refresh
           </Button>
-          Limits
+          Spending Limits
         </span>
       }
     >
@@ -189,8 +189,7 @@ export default function AllQuotasConfig() {
         />
       )}
       <div style={{ color: "#666", marginBottom: "15px" }}>
-        These are self-imposed monthly spending caps to prevent accidental
-        overspending.
+        These are monthly spending caps to prevent overspending.
       </div>
       <div style={{ marginBottom: "15px" }}>
         <Button.Group style={{ marginRight: "5px" }}>

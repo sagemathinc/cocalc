@@ -24,10 +24,12 @@ type ServiceCost<T extends Service> = T extends "credit" // if type is 'credit' 
   ? number
   : T extends "project-upgrade" // if type is 'project-upgrade' return ProjectUpgrade
   ? ProjectUpgrade
+  : T extends "compute-server"
+  ? number | undefined
   : OpenaiCost; // otherwise return OpenaiCost object
 
 export default async function getServiceCost<T extends Service>(
-  service: T
+  service: T,
 ): Promise<ServiceCost<T>> {
   if (service.startsWith("openai-")) {
     const { pay_as_you_go_openai_markup_percentage } =
@@ -35,7 +37,7 @@ export default async function getServiceCost<T extends Service>(
     const model = service.slice(7);
     return getOpenaiCost(
       model as any,
-      pay_as_you_go_openai_markup_percentage
+      pay_as_you_go_openai_markup_percentage,
     ) as any;
   } else if (service == "credit") {
     // returns the minimum allowed credit.
@@ -44,6 +46,9 @@ export default async function getServiceCost<T extends Service>(
   } else if (service == "project-upgrade") {
     const { pay_as_you_go_price_project_upgrades } = await getServerSettings();
     return pay_as_you_go_price_project_upgrades;
+  } else if (service == "compute-server") {
+    const { compute_servers_markup_percentage } = await getServerSettings();
+    return compute_servers_markup_percentage;
   } else {
     throw Error(`${service} not fully implemented`);
   }

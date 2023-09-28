@@ -24,7 +24,7 @@ export default function PurchasesPage() {
       label: (
         <>
           <Icon name="credit-card" style={{ marginRight: "8px" }} />{" "}
-          Transactions: Every Purchase and Credit
+          All Transactions
         </>
       ),
       children: <Purchases />,
@@ -34,7 +34,7 @@ export default function PurchasesPage() {
       label: (
         <>
           <Icon name="ColumnHeightOutlined" style={{ marginRight: "8px" }} />{" "}
-          Self-Imposed Spending Limits
+          Spending Limits
         </>
       ),
       children: <Quotas />,

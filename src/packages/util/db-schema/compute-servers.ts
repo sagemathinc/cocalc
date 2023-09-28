@@ -330,6 +330,7 @@ export interface ComputeServerUserInfo {
   cloud: Cloud;
   configuration: Configuration;
   data?: Data;
+  purchase_id?: number;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -461,6 +462,10 @@ Table({
       type: "string",
       desc: "User configurable visual image associated with the compute server.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
       render: { type: "image" },
+    },
+    purchase_id: {
+      type: "number",
+      desc: "if there is a current active purchase related to this compute server, this is the id of that purchase in the purchases table",
     },
   },
 });
