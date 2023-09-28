@@ -54,7 +54,7 @@ export default function computeCost({
   const data = priceData.machineTypes[configuration.machineType];
   if (data == null) {
     throw Error(
-      `unable to determine cost since machine type ${configuration.machineType} is unknown`,
+      `unable to determine cost since machine type ${configuration.machineType} is unknown. Select a different machine type.`,
     );
   }
   const vmCost =
@@ -62,7 +62,7 @@ export default function computeCost({
   log("vm cost", { vmCost });
   if (vmCost == null) {
     throw Error(
-      `unable to determine cost since region pricing for machine type ${configuration.machineType} is unknown`,
+      `unable to determine cost since region pricing for machine type ${configuration.machineType} is unknown. Select a different region.`,
     );
   }
 
@@ -71,7 +71,7 @@ export default function computeCost({
   log("disk cost per GB", { diskCost });
   if (diskCost == null) {
     throw Error(
-      `unable to determine cost since disk cost in region ${configuration.region} is unknown`,
+      `unable to determine cost since disk cost in region ${configuration.region} is unknown. Select a different region.`,
     );
   }
 
@@ -93,7 +93,7 @@ export default function computeCost({
       !configuration.machineType.startsWith(acceleratorData.machineType ?? "")
     ) {
       throw Error(
-        `machine type for ${configuration.acceleratorType} must be ${acceleratorData.machineType}`,
+        `machine type for ${configuration.acceleratorType} must be ${acceleratorData.machineType}. Change the machine type.`,
       );
     }
     let costPer =
@@ -103,7 +103,7 @@ export default function computeCost({
     log("accelerator cost per", { costPer });
     if (costPer == null) {
       throw Error(
-        `GPU accelerator ${configuration.acceleratorType} not available in zone ${configuration.zone}`,
+        `GPU accelerator ${configuration.acceleratorType} not available in zone ${configuration.zone}. Select a different zone.`,
       );
     }
     acceleratorCost = costPer * acceleratorCount;

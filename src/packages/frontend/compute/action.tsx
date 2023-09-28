@@ -6,12 +6,16 @@ import {
 } from "@cocalc/util/db-schema/compute-servers";
 import { useEffect, useState } from "react";
 import { computeServerAction } from "./api";
+import costPerHour from "./cost";
+import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
+import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 
 export default function getActions({
   id,
   state,
   editable,
   setError,
+  configuration,
 }): JSX.Element[] {
   if (!editable) {
     return [];
@@ -39,6 +43,7 @@ export default function getActions({
         description={description}
         setError={setError}
         confirm={confirm}
+        configuration={configuration}
       />,
     );
   }
@@ -54,11 +59,32 @@ function ActionButton({
   tip,
   setError,
   confirm,
+  configuration,
 }) {
+  const [cost_per_hour, setCostPerHour] = useState<number | null>(null);
+  useEffect(() => {
+    if (configuration == null || action != "start") return;
+    (async () => {
+      try {
+        const c = await costPerHour({ configuration, state: "running" });
+        setCostPerHour(c);
+      } catch (err) {
+        setCostPerHour(null);
+      }
+    })();
+  }, [configuration]);
   const [doing, setDoing] = useState<boolean>(false);
   const doAction = async () => {
     try {
       setError("");
+      if (action == "start" || action == "resume") {
+        if (cost_per_hour == null) {
+          throw Error(
+            "unable to compute cost -- please update the configuration",
+          );
+        }
+        await confirmStartComputeServer({ id, cost_per_hour });
+      }
       setDoing(true);
       await computeServerAction({ id, action });
     } catch (err) {
@@ -109,7 +135,16 @@ function ActionButton({
           <Icon name={icon} /> {tip}
         </div>
       }
-      content={<div style={{ width: "400px" }}>{description}</div>}
+      content={
+        <div style={{ width: "400px" }}>
+          {description}{" "}
+          {cost_per_hour != null && (
+            <div style={{ textAlign: "center" }}>
+              <MoneyStatistic value={cost_per_hour} title="Cost per hour" />
+            </div>
+          )}
+        </div>
+      }
     >
       {button}
     </Popover>

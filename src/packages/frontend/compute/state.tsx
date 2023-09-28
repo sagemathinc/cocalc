@@ -1,5 +1,9 @@
 import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  State,
+  Configuration,
+} from "@cocalc/util/db-schema/compute-servers";
 import { Button, Divider, Popover, Progress, Spin } from "antd";
 import getActions from "./action";
 import { User } from "@cocalc/frontend/users";
@@ -9,12 +13,13 @@ import { useInterval } from "react-interval-hook";
 
 interface Props {
   style?: CSSProperties;
-  state;
-  state_changed;
-  id;
-  editable;
-  account_id;
-  setError;
+  state?: State;
+  state_changed?: Date;
+  id: number;
+  editable: boolean;
+  account_id: string;
+  configuration: Configuration;
+  setError: (string) => void;
 }
 
 export default function State({
@@ -24,6 +29,7 @@ export default function State({
   state_changed,
   editable,
   account_id,
+  configuration,
   setError,
 }: Props) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -69,6 +75,7 @@ export default function State({
               actions={actions}
               editable={editable}
               setError={setError}
+              configuration={configuration}
             />
             <div style={{ textAlign: "center" }}>{refresh}</div>
           </div>
@@ -134,7 +141,7 @@ function ProgressBarTimer({
   );
 }
 
-function Body({ state, actions, id, account_id, editable, setError }) {
+function Body({ state, actions, id, account_id, editable, setError, configuration }) {
   if (state == "unknown") {
     return <div>Click the "Refresh" button to update the state.</div>;
   }
@@ -154,7 +161,7 @@ function Body({ state, actions, id, account_id, editable, setError }) {
         </div>
       );
     }
-    return <div>{getActions({ state, editable, id, setError })}</div>;
+    return <div>{getActions({ state, editable, id, setError, configuration })}</div>;
   }
   return <div>You can {actions.join(", ")}</div>;
 }

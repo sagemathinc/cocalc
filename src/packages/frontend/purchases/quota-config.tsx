@@ -61,7 +61,7 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
       {!QUOTA_SPEC[service]?.noSet && (
         <Card
           style={{ textAlign: "center" }}
-          title={<>Configure Your {serviceToDisplay(service)} Spending Limit</>}
+          title={<>Set your monthly spending limit for the {serviceToDisplay(service)} service</>}
         >
           {quotas == null && <Spin delay={500} />}
 

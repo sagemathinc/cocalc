@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { round2, round3 } from "@cocalc/util/misc";
 import { Tooltip, Statistic } from "antd";
+import { zIndexTip } from "./payment";
 
 interface Props {
   value: number;
@@ -28,5 +29,9 @@ export default function MoneyStatistic({ value, title }: Props) {
     );
   }
 
-  return <Tooltip title={`Exactly $${value} (USD)`}>{body}</Tooltip>;
+  return (
+    <Tooltip mouseEnterDelay={0.5} zIndex={zIndexTip} title={`Exactly $${value} (USD)`}>
+      {body}
+    </Tooltip>
+  );
 }

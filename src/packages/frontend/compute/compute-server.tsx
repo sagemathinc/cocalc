@@ -119,7 +119,7 @@ export default function ComputeServer({
 
   let actions: JSX.Element[] | undefined = undefined;
   if (id != null) {
-    actions = getActions({ id, state, editable, setError });
+    actions = getActions({ id, state, editable, setError, configuration });
     if (editable) {
       actions.push(
         <Button
@@ -210,6 +210,7 @@ export default function ComputeServer({
                   id={id}
                   setError={setError}
                   account_id={account_id}
+                  configuration={configuration}
                 />
               </div>
               {/*<div
@@ -294,8 +295,8 @@ export default function ComputeServer({
                     </Button>
                   </Popconfirm>
                 ))}
-              <div style={{ flex: 1, textAlign:'center' }}>
-                {getActions({ id, state, editable, setError })}
+              <div style={{ flex: 1, textAlign: "center" }}>
+                {getActions({ id, state, editable, setError, configuration })}
               </div>
               <Button key="close" onClick={() => setEdit(false)}>
                 Close
@@ -320,6 +321,7 @@ export default function ComputeServer({
               id={id}
               setError={setError}
               account_id={account_id}
+              configuration={configuration}
             />
           </div>
           {table}

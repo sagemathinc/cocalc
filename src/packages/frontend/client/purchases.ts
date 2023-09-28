@@ -41,14 +41,14 @@ export class PurchasesClient {
 
   async setQuota(
     service: Service,
-    value: number
+    value: number,
   ): Promise<{ global: number; services: { [service: string]: number } }> {
     return await purchasesApi.setQuota(service, value);
   }
 
   async isPurchaseAllowed(
     service: Service,
-    cost?: number
+    cost?: number,
   ): Promise<{ allowed: boolean; reason?: string; chargeAmount?: number }> {
     return await purchasesApi.isPurchaseAllowed(service, cost);
   }
@@ -81,15 +81,26 @@ export class PurchasesClient {
     cost,
     allowed,
     reason,
+    cost_per_hour,
   }: {
     service?: Service;
+    // cost = how much you have to have available in your account
     cost?: number;
     allowed?: boolean;
     reason?: string;
+    // the rate if this is a pay-as-you-go metered purchase.
+    cost_per_hour?: number;
   } = {}): Promise<void> {
     const actions = redux.getActions("billing");
     actions.setState({
-      pay_as_you_go: { showModal: true, service, cost, reason, allowed } as any,
+      pay_as_you_go: {
+        showModal: true,
+        service,
+        cost,
+        reason,
+        allowed,
+        cost_per_hour,
+      } as any,
     });
     await waitUntilPayAsYouGoModalCloses();
   }
@@ -169,7 +180,7 @@ export class PurchasesClient {
   }
 
   async renewSubscription(
-    subscription_id: number
+    subscription_id: number,
   ): Promise<{ purchase_id: number | null }> {
     return await purchasesApi.renewSubscription(subscription_id);
   }

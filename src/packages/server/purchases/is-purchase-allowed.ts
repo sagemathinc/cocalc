@@ -59,7 +59,9 @@ export async function isPurchaseAllowed({
   if (cost > MAX_COST) {
     return {
       allowed: false,
-      reason: `Cost exceeds the maximum allowed cost of ${currency(MAX_COST)}. Please contact support.`,
+      reason: `Cost exceeds the maximum allowed cost of ${currency(
+        MAX_COST,
+      )}. Please contact support.`,
     };
   }
   if (!Number.isFinite(cost)) {
@@ -122,7 +124,7 @@ export async function isPurchaseAllowed({
     if (!quotaForService) {
       return {
         allowed: false,
-        reason: `Please set a spending limit for the "${
+        reason: `You must increase your monthly spending limit for the "${
           QUOTA_SPEC[service]?.display ?? service
         }" service.`,
       };

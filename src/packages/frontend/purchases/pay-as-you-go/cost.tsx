@@ -70,8 +70,8 @@ export default function Cost({ service }: Props) {
   } else if (service == "compute-server") {
     return (
       <div style={TEXT_STYLE}>
-        Competitive pay-as-you-go pricing depending on VM configuration and
-        state. Pay by the millisecond (with one minute minimum) when the VM is
+        Competitive pay-as-you-go pricing depending on cloud rates, VM
+        configuration and state. Pay by the millisecond while the VM is
         provisioned.
       </div>
     );
