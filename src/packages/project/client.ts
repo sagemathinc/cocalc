@@ -62,6 +62,11 @@ if (fs.existsSync(DEBUG_FILE)) {
   // always make verbose in kucalc, since logs are taken care of by the k8s
   // logging infrastructure...
   DEBUG = true;
+} else {
+  winston.info(
+    "create this file to enable very verbose debugging:",
+    DEBUG_FILE,
+  );
 }
 
 winston.info(`DEBUG = ${DEBUG}`);
@@ -117,7 +122,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       return function (..._) {};
     }
   };
-  
+
   private filesystemClient = new FileSystemClient(this.dbg);
   write_file = this.filesystemClient.write_file;
   path_read = this.filesystemClient.path_read;
