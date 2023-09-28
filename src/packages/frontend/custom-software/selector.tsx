@@ -3,6 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Divider } from "antd";
+import { join } from "path";
+import {
+  Col,
+  ControlLabel,
+  FormGroup,
+  ListGroup,
+  ListGroupItem,
+  Radio,
+  Row,
+} from "react-bootstrap";
+
 import {
   React,
   redux,
@@ -11,10 +23,11 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
+  A,
+  Gap,
   Icon,
   Markdown,
   SearchInput,
-  Gap,
 } from "@cocalc/frontend/components";
 import {
   CompanyName,
@@ -26,22 +39,11 @@ import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Divider } from "antd";
-import { join } from "path";
+import { ComputeImage, ComputeImageTypes, ComputeImages } from "./init";
 import {
-  Col,
-  ControlLabel,
-  FormGroup,
-  ListGroup,
-  ListGroupItem,
-  Radio,
-  Row,
-} from "react-bootstrap";
-import { ComputeImage, ComputeImages, ComputeImageTypes } from "./init";
-import {
+  CUSTOM_SOFTWARE_HELP_URL,
   compute_image2basename,
   custom_image_name,
-  CUSTOM_SOFTWARE_HELP_URL,
   is_custom_image,
 } from "./util";
 
@@ -73,7 +75,7 @@ export interface SoftwareEnvironmentState {
 // this is used in create-project and course/configuration/actions
 // this derives the proper image name from the image type & image selection of SoftwareEnvironmentState
 export async function derive_project_img_name(
-  custom_software: SoftwareEnvironmentState
+  custom_software: SoftwareEnvironmentState,
 ): Promise<string> {
   const { image_type, image_selected } = custom_software;
   const dflt_software_img = await redux
@@ -105,7 +107,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   const { onChange, default_image, showTitle = true } = props;
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
-    "images"
+    "images",
   );
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
@@ -114,17 +116,17 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       customize_software.get("default"),
       customize_software.get("environments"),
     ],
-    [customize_software]
+    [customize_software],
   );
 
   const haveSoftwareImages: boolean = useMemo(
     () => (customize_software.get("environments")?.size ?? 0) > 0,
-    [customize_software]
+    [customize_software],
   );
 
   const [search_img, set_search_img] = useState<string>("");
   const [image_selected, set_image_selected] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const set_title_text = useState<string | undefined>(undefined)[1];
   const [image_type, set_image_type] = useState<ComputeImageTypes>("default");
@@ -132,7 +134,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   function set_state(
     image_selected: string | undefined,
     title_text: string | undefined,
-    image_type: ComputeImageTypes
+    image_type: ComputeImageTypes,
   ): void {
     set_image_selected(image_selected);
     set_title_text(title_text);
@@ -227,10 +229,38 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           />
         </div>
         {render_custom_image_entries()}
+      </>
+    );
+  }
+
+  function render_custom_images_info() {
+    if (image_type !== "custom") return;
+
+    return (
+      <>
         <div style={{ color: COLORS.GRAY, margin: "15px 0" }}>
           Contact us to add more or give feedback:{" "}
           <HelpEmailLink color={COLORS.GRAY} />.
         </div>
+        <Alert
+          type="info"
+          banner
+          message={
+            <>
+              The selected <em>custom</em> software environment stays with the
+              project. Create a new project to work in a different software
+              environment. You can always{" "}
+              <A
+                href={
+                  "https://doc.cocalc.com/project-files.html#file-actions-on-one-file"
+                }
+              >
+                copy files between projects
+              </A>{" "}
+              as well.
+            </>
+          }
+        />
       </>
     );
   }
@@ -352,6 +382,21 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     }
   }
 
+  function render_standard_modify_later(): JSX.Element {
+    return (
+      <Alert
+        type="info"
+        banner
+        message={
+          <>
+            The selected <em>standard</em> software environment can be changed
+            in Project Settings → Control at any time.
+          </>
+        }
+      />
+    );
+  }
+
   function render_standard() {
     if (!haveSoftwareImages) return;
     return (
@@ -413,6 +458,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           }}
         />
         <Gap />
+        {render_standard_modify_later()}
       </Col>
     );
   }
@@ -450,6 +496,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       {render_standard_image_selector()}
       <Col sm={6}>{render_custom_images()}</Col>
       <Col sm={6}>{render_selected_custom_image_info()}</Col>
+      <Col sm={12}>{render_custom_images_info()}</Col>
     </Row>
   );
 };
