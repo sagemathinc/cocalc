@@ -1,4 +1,4 @@
-import { Card, Statistic } from "antd";
+import { Card, Statistic, Tooltip } from "antd";
 
 interface Props {
   style?;
@@ -16,13 +16,15 @@ export default function SpendRate({ style, spendRate, compact }: Props) {
       style={{ maxWidth: "300px", ...style }}
       title=<>Metered Spending Rate</>
     >
-      <Statistic
-        title={"Metered Spend (USD)"}
-        value={spendRate}
-        precision={spendRate ? 3 : 2}
-        prefix={"$"}
-        suffix={"/hour"}
-      />
+      <Tooltip title={`Exactly $${spendRate} (USD)`}>
+        <Statistic
+          title={"Metered Spend (USD)"}
+          value={spendRate}
+          precision={spendRate ? 3 : 2}
+          prefix={"$"}
+          suffix={"/hour"}
+        />
+      </Tooltip>
       {!compact && (
         <div style={{ color: "#666" }}>
           Only includes pay-as-you-go purchases (licenses are excluded)
