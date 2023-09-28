@@ -35,6 +35,7 @@ export default function ComputeServer({
   state_changed,
   cloud,
   configuration,
+  data,
   deleted,
   project_id,
   account_id,
@@ -59,7 +60,7 @@ export default function ComputeServer({
     },
   ];
 
-  const data = [
+  const dataSource = [
     {
       label: "Title & Color",
       value: (
@@ -165,7 +166,7 @@ export default function ComputeServer({
       style={{ marginTop: "15px" }}
       rowKey="label"
       columns={columns}
-      dataSource={data}
+      dataSource={dataSource}
       pagination={false}
     />
   );
@@ -229,6 +230,7 @@ export default function ComputeServer({
               account_id={account_id}
               cloud={cloud}
               configuration={configuration}
+              data={data}
               short
             />
           </div>

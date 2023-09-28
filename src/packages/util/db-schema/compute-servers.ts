@@ -112,7 +112,7 @@ export const STATE_INFO: {
   running: {
     label: "Running",
     color: "#389e0d",
-    actions: ["stop", "suspend", "reboot"],
+    actions: ["stop", "suspend", "reboot", "deprovision"],
     icon: "run",
     stable: true,
   },
@@ -329,10 +329,10 @@ export interface ComputeServerUserInfo {
   autorestart?: boolean;
   cloud: Cloud;
   configuration: Configuration;
+  data?: Data;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
-  data?: Data;
   api_key?: string; // project level api key for the project
   api_key_id?: number; // id of the api key (needed so we can delete it from database).
 }
