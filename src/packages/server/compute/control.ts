@@ -18,22 +18,25 @@ import type {
   Configuration,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
+import { getTargetState } from "@cocalc/util/db-schema/compute-servers";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";
+import updatePurchase from "./update-purchase";
+
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("server:compute:control");
 
 const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
 
-export async function start({
-  account_id,
-  id,
-}: {
+export const start: (opts: {
   account_id: string;
   id: number;
-}) {
+}) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
   if (
     server.state != null &&
@@ -65,7 +68,7 @@ export async function start({
     await setError(id, `${err}`);
     throw err;
   }
-}
+});
 
 async function doStart(server: ComputeServer) {
   switch (server.cloud) {
@@ -95,26 +98,21 @@ async function saveProvisionedConfiguration({
   );
 }
 
-export async function stop({
-  account_id,
-  id,
-}: {
-  account_id: string;
-  id: number;
-}) {
-  const server = await getServer({ account_id, id });
-  try {
-    await setError(id, "");
-    await setState(id, "stopping");
-    await deleteProjectApiKey({ account_id, server });
-    await doStop(server);
-    waitStableNoError({ account_id, id });
-  } catch (err) {
-    await setState(id, "unknown");
-    await setError(id, `${err}`);
-    throw err;
-  }
-}
+export const stop: (opts: { account_id: string; id: number }) => Promise<void> =
+  reuseInFlight(async ({ account_id, id }) => {
+    const server = await getServer({ account_id, id });
+    try {
+      await setError(id, "");
+      await setState(id, "stopping");
+      await deleteProjectApiKey({ account_id, server });
+      await doStop(server);
+      waitStableNoError({ account_id, id });
+    } catch (err) {
+      await setState(id, "unknown");
+      await setError(id, `${err}`);
+      throw err;
+    }
+  });
 
 async function doStop(server: ComputeServer) {
   switch (server.cloud) {
@@ -133,13 +131,10 @@ async function doStop(server: ComputeServer) {
   }
 }
 
-export async function deprovision({
-  account_id,
-  id,
-}: {
+export const deprovision: (opts: {
   account_id: string;
   id: number;
-}) {
+}) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   const server = await getServer({ account_id, id });
   try {
     await setError(id, "");
@@ -152,7 +147,7 @@ export async function deprovision({
     await setError(id, `${err}`);
     throw err;
   }
-}
+});
 
 async function doDeprovision(server: ComputeServer) {
   switch (server.cloud) {
@@ -179,6 +174,15 @@ export const state: (opts: {
   if (state == "stopping" || state == "off") {
     // don't need it anymore.
     await deleteProjectApiKey({ account_id, server });
+  }
+  try {
+    await updatePurchase({ server, newState: state });
+  } catch (err) {
+    logger.debug(
+      "error updating purchase in response to a state change -- ",
+      err,
+      { server },
+    );
   }
   lastCalled[id] = { time: now, state };
   return state;
@@ -281,46 +285,50 @@ function backoffParams(cloud: Cloud): {
 export async function cost({
   account_id,
   id,
+  state,
 }: {
   account_id: string;
   id: number;
+  state: State;
 }): Promise<number> {
   const server = await getServer({ account_id, id });
-  const cost_per_hour = await doCost(server);
-  const pool = getPool();
-  await pool.query("UPDATE compute_servers SET cost_per_hour=$1 WHERE id=$2", [
-    cost_per_hour,
-    id,
-  ]);
+  const cost_per_hour = await doCost(server, state);
   return cost_per_hour;
 }
 
-async function doCost(server: ComputeServer) {
+async function doCost(server: ComputeServer, state: State) {
+  if (state == "deprovisioned") {
+    // in all cases this one is by definition easy
+    return 0;
+  }
+  // for unstable states, we use the cost of the target stable state, because that's
+  // what we get charged.  This emans the cloud cost functions below only have to handle
+  // cost for stable states.
+  state = getTargetState(state);
+
   switch (server.cloud) {
     case "test":
-      return await testCloud.cost(server);
+      return await testCloud.cost(server, state);
     case "core-weave":
-      return await coreWeave.cost(server);
+      return await coreWeave.cost(server, state);
     case "fluid-stack":
-      return await fluidStack.cost(server);
+      return await fluidStack.cost(server, state);
     case "google-cloud":
-      return await googleCloud.cost(server);
+      return await googleCloud.cost(server, state);
     case "lambda-cloud":
-      return await lambdaCloud.cost(server);
+      return await lambdaCloud.cost(server, state);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cost for cloud '${server.cloud}' and state '${state}' not currently supported`,
+      );
   }
 }
 
 /* Suspend and Resume */
-
-export async function suspend({
-  account_id,
-  id,
-}: {
+export const suspend: (opts: {
   account_id: string;
   id: number;
-}) {
+}) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
   if (server.state != null && server.state != "running") {
     // try one more time:
@@ -340,7 +348,7 @@ export async function suspend({
     await setError(id, `${err}`);
     throw err;
   }
-}
+});
 
 async function doSuspend(server: ComputeServer) {
   switch (server.cloud) {
@@ -351,13 +359,10 @@ async function doSuspend(server: ComputeServer) {
   }
 }
 
-export async function resume({
-  account_id,
-  id,
-}: {
+export const resume: (opts: {
   account_id: string;
   id: number;
-}) {
+}) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
   if (server.state != null && server.state != "suspended") {
     // try one more time:
@@ -377,7 +382,7 @@ export async function resume({
     await setError(id, `${err}`);
     throw err;
   }
-}
+});
 
 async function doResume(server: ComputeServer) {
   switch (server.cloud) {
@@ -388,13 +393,10 @@ async function doResume(server: ComputeServer) {
   }
 }
 
-export async function reboot({
-  account_id,
-  id,
-}: {
+export const reboot: (opts: {
   account_id: string;
   id: number;
-}) {
+}) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
   try {
     await setError(id, "");
@@ -406,7 +408,7 @@ export async function reboot({
     await setError(id, `${err}`);
     throw err;
   }
-}
+});
 
 async function doReboot(server: ComputeServer) {
   switch (server.cloud) {

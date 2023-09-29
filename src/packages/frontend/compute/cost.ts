@@ -23,10 +23,9 @@ export default async function costPerHour({
   if (configuration.cloud != "google-cloud") {
     throw Error("cost computation only implemented for google cloud");
   }
-  const priceData = await getGoogleCloudPriceData();
-  if (state == "running") {
-    return computeGoogleCloudCost({ configuration, priceData });
-  } else {
-    throw Error(`cost computation for state '${state}' not implemented`);
+  if (state != "running" && state != "off" && state != "suspended") {
+    throw Error("state must be stable");
   }
+  const priceData = await getGoogleCloudPriceData();
+  return computeGoogleCloudCost({ configuration, priceData, state });
 }

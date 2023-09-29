@@ -24,12 +24,23 @@ export type Action =
   | "deprovision"
   | "reboot";
 
-export const ACTION_INFO: { [action: string]: any } = {
+export const ACTION_INFO: {
+  [action: string]: {
+    label: string;
+    icon: string;
+    tip: string;
+    description: string;
+    confirm?: boolean;
+    target: State; // target stable state after doing this action.
+    clouds?: Cloud[];
+  };
+} = {
   start: {
     label: "Start",
     icon: "play",
     tip: "Start",
     description: "Start the compute server running.",
+    target: "running",
   },
   resume: {
     label: "Resume",
@@ -37,6 +48,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     clouds: ["google-cloud"],
     tip: "Resume",
     description: "Resume the compute server from suspend.",
+    target: "running",
   },
   stop: {
     label: "Stop",
@@ -45,6 +57,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     description:
       "Turn the compute server off. No data on disk is lost, but any data and state in memory will be lost. This is like turning your laptop off.",
     confirm: true,
+    target: "off",
   },
   reboot: {
     label: "Reboot",
@@ -53,6 +66,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     description:
       "Perform a HARD reset on the virtual machine, which wipes the memory contents and resets the virtual machine to its initial state. This can lead to filesystem corruption.",
     confirm: true,
+    target: "running",
   },
   suspend: {
     label: "Suspend",
@@ -61,6 +75,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     tip: "Suspend disk and memory state",
     description:
       "Suspend the compute server.  No data on disk or memory is lost, and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for up to 60 days before it automatically shuts off.",
+    target: "suspended",
   },
   deprovision: {
     label: "Deprovision",
@@ -69,6 +84,7 @@ export const ACTION_INFO: { [action: string]: any } = {
     description:
       "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
+    target: "deprovisioned",
   },
 };
 
@@ -79,6 +95,7 @@ export const STATE_INFO: {
     icon: string;
     color?: string;
     stable?: boolean;
+    target?: State; // if not stable, this is the target state it is heading to
   };
 } = {
   off: {
@@ -101,6 +118,7 @@ export const STATE_INFO: {
     icon: "pause",
     color: "#00bcd4",
     stable: false,
+    target: "suspended",
   },
   starting: {
     label: "Starting",
@@ -108,6 +126,7 @@ export const STATE_INFO: {
     actions: [],
     icon: "bolt",
     stable: false,
+    target: "running",
   },
   running: {
     label: "Running",
@@ -122,6 +141,7 @@ export const STATE_INFO: {
     actions: [],
     icon: "hand",
     stable: false,
+    target: "off",
   },
   unknown: {
     label: "Unknown",
@@ -137,6 +157,19 @@ export const STATE_INFO: {
     stable: true,
   },
 };
+
+export function getTargetState(x: State | Action): State {
+  if (ACTION_INFO[x] != null) {
+    return ACTION_INFO[x].target;
+  }
+  if (STATE_INFO[x] != null) {
+    if (!STATE_INFO[x]?.stable) {
+      return (STATE_INFO[x].target ?? x) as State;
+    }
+    return x as State;
+  }
+  throw Error(`x =${x} must be a state or action`);
+}
 
 export type Cloud =
   | "any"

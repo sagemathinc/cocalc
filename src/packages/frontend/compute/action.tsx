@@ -3,6 +3,7 @@ import { Icon } from "@cocalc/frontend/components";
 import {
   ACTION_INFO,
   STATE_INFO,
+  getTargetState,
 } from "@cocalc/util/db-schema/compute-servers";
 import { useEffect, useState } from "react";
 import { computeServerAction } from "./api";
@@ -31,6 +32,16 @@ export default function getActions({
   for (const action of s.actions) {
     const a = ACTION_INFO[action];
     if (!a) continue;
+    if (action == "suspend") {
+      if (configuration.cloud != "google-cloud") {
+        continue;
+      }
+      // must have no gpu and <= 208GB of RAM -- https://cloud.google.com/compute/docs/instances/suspend-resume-instance
+      if (configuration.acceleratorType) {
+        continue;
+      }
+      // [ ] TODO: we don't have an easy way to check the RAM requirement right now.
+    }
     const { label, icon, tip, description, confirm } = a;
     v.push(
       <ActionButton
@@ -63,12 +74,16 @@ function ActionButton({
 }) {
   const [cost_per_hour, setCostPerHour] = useState<number | null>(null);
   useEffect(() => {
-    if (configuration == null || action != "start") return;
+    if (configuration == null) return;
     (async () => {
       try {
-        const c = await costPerHour({ configuration, state: "running" });
+        const c = await costPerHour({
+          configuration,
+          state: getTargetState(action),
+        });
         setCostPerHour(c);
       } catch (err) {
+        console.log(err);
         setCostPerHour(null);
       }
     })();

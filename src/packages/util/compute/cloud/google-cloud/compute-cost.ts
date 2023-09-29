@@ -41,6 +41,8 @@ interface Options {
   // output of getData from this package -- https://www.npmjs.com/package/@cocalc/gcloud-pricing-calculator
   // except that package is backend only (it caches to disk), so data is obtained via an api, then used here.
   priceData: GoogleCloudData;
+  noMarkup?: boolean;
+  state?: "running" | "off" | "suspended";
 }
 
 /*
@@ -50,7 +52,21 @@ given the result of getData from @cocalc/gcloud-pricing-calculator.
 export default function computeCost({
   configuration,
   priceData,
+  noMarkup,
+  state = "running",
 }: Options): number {
+  if (state == "off") {
+    return computeDiskCost({ configuration, priceData, noMarkup });
+  } else if (state == "suspended") {
+    return computeSuspendedCost({ configuration, priceData, noMarkup });
+  } else if (state == "running") {
+    return computeRunningCost({ configuration, priceData, noMarkup });
+  } else {
+    throw Error(`computing cost for state "${state}" not implemented`);
+  }
+}
+
+function computeRunningCost({ configuration, priceData, noMarkup }) {
   const data = priceData.machineTypes[configuration.machineType];
   if (data == null) {
     throw Error(
@@ -66,14 +82,7 @@ export default function computeCost({
     );
   }
 
-  const diskType = configuration.diskType ?? "pd-standard";
-  const diskCost = priceData.disks[diskType]?.prices[configuration.region];
-  log("disk cost per GB", { diskCost });
-  if (diskCost == null) {
-    throw Error(
-      `unable to determine cost since disk cost in region ${configuration.region} is unknown. Select a different region.`,
-    );
-  }
+  const diskCost = computeDiskCost({ configuration, priceData });
 
   let acceleratorCost;
   if (configuration.acceleratorType) {
@@ -111,13 +120,70 @@ export default function computeCost({
     acceleratorCost = 0;
   }
 
-  const total =
-    diskCost * (configuration.diskSizeGb ?? 10) + vmCost + acceleratorCost;
-  log("cost", { total });
-
-  if (priceData.markup) {
-    return total * (1 + priceData.markup / 100.0);
-  } else {
-    return total;
+  let computeCost = vmCost + acceleratorCost;
+  if (priceData.markup && !noMarkup) {
+    computeCost *= 1 + priceData.markup / 100.0;
   }
+
+  const total = diskCost + computeCost;
+  log("cost", { total, vmCost, acceleratorCost, diskCost });
+  return total;
+}
+
+// Compute the total cost of disk for this configuration, including any markup.
+function computeDiskCost({
+  configuration,
+  priceData,
+  noMarkup,
+}: Options): number {
+  const diskType = configuration.diskType ?? "pd-standard";
+  const diskCostPerGB = priceData.disks[diskType]?.prices[configuration.region];
+  log("disk cost per GB per hour", { diskCostPerGB });
+  if (diskCostPerGB == null) {
+    throw Error(
+      `unable to determine cost since disk cost in region ${configuration.region} is unknown. Select a different region.`,
+    );
+  }
+  let diskCost = diskCostPerGB * (configuration.diskSizeGb ?? 10);
+  if (priceData.markup && !noMarkup) {
+    diskCost *= 1 + priceData.markup / 100.0;
+  }
+  return diskCost;
+}
+
+function computeSuspendedCost({
+  configuration,
+  priceData,
+  noMarkup,
+}: Options): number {
+  const diskCost = computeDiskCost({ configuration, priceData, noMarkup });
+  // how much memory does it have?
+  const data = priceData.machineTypes[configuration.machineType];
+  if (data == null) {
+    throw Error(
+      `unable to determine cost since machine type ${configuration.machineType} is unknown. Select a different machine type.`,
+    );
+  }
+  const { memory } = data;
+  if (!memory) {
+    throw Error(
+      `cannot compute suspended cost without knowing memory of machine type '${configuration.machineType}'`,
+    );
+  }
+  // Pricing / GB of RAM / month is here -- https://cloud.google.com/compute/all-pricing#suspended_vm_instances
+  // It is really weird in the table, e.g., in some places it claims to be basically 0, and in Sao Paulo it is
+  // 0.25/GB/month, which seems to be the highest.  Until I nail this down properly with SKU's, for cocalc
+  // we will just use 0.25 + the markup.
+  const memoryCost = (memory * 0.25) / 730;
+
+  // NOTE: we do not have any static ip support -- just ephemeral external ip's that go away on suspend.
+  // static unused ip's are VERY expensive when suspended, so be sure to update this if we ever have those.
+  // I don't plan to have them though -- it doesn't make sense for our use cases.
+
+  let suspendCost = diskCost + memoryCost;
+
+  if (priceData.markup && !noMarkup) {
+    suspendCost *= 1 + priceData.markup / 100.0;
+  }
+  return suspendCost;
 }

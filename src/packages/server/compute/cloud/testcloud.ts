@@ -26,7 +26,10 @@ export async function state(server: ComputeServer): Promise<State> {
   return internalState[server.id] ?? "off";
 }
 
-export async function cost(server: ComputeServer): Promise<number> {
-  logger.debug("cost", server);
+export async function cost(
+  server: ComputeServer,
+  state: State,
+): Promise<number> {
+  logger.debug("cost", server, state);
   return 0.05;
 }

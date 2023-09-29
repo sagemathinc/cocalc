@@ -29,7 +29,7 @@ function getServerName(server: ComputeServer) {
 export async function start(server: ComputeServer) {
   logger.debug("start", server);
   // make sure we can compute cost before starting
-  const cost_per_hour = await cost(server);
+  const cost_per_hour = await cost(server, "running");
   logger.debug("starting server with cost $", cost_per_hour, "/hour");
   const { configuration } = server;
   if (configuration?.cloud != "google-cloud") {
@@ -123,14 +123,28 @@ export async function state(server: ComputeServer): Promise<State> {
   return instance.state;
 }
 
-export async function cost(server: ComputeServer): Promise<number> {
+export async function cost(
+  server: ComputeServer,
+  state: State,
+): Promise<number> {
   logger.debug("cost", server);
   const { configuration } = server;
   if (configuration?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
+  if (state == "deprovisioned") {
+    return 0;
+  }
   const priceData = await getPricingData();
-  return computeCost({ priceData, configuration });
+  // we  need to handle the stable target states except 'deprovisioned'
+  switch (state) {
+    case "off":
+    case "running":
+    case "suspended":
+      return computeCost({ priceData, configuration, state });
+    default:
+      throw Error(`cost computation for state '${state}' not implemented`);
+  }
 }
 
 export const test = { getClient };
