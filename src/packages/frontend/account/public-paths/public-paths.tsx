@@ -49,16 +49,16 @@ export const PublicPaths: React.FC = () => {
   const [loading, set_loading] = useState<boolean>(false);
 
   const [show_listed, set_show_listed] = useState<boolean>(
-    DEFAULT_CHECKED.indexOf("Listed") != -1
+    DEFAULT_CHECKED.indexOf("Listed") != -1,
   );
   const [show_authenticated, set_show_authenticated] = useState<boolean>(
-    showAuthenticatedOption && DEFAULT_CHECKED.indexOf("Authenticated") != -1
+    showAuthenticatedOption && DEFAULT_CHECKED.indexOf("Authenticated") != -1,
   );
   const [show_unlisted, set_show_unlisted] = useState<boolean>(
-    DEFAULT_CHECKED.indexOf("Unlisted") != -1
+    DEFAULT_CHECKED.indexOf("Unlisted") != -1,
   );
   const [show_unpublished, set_show_unpublished] = useState<boolean>(
-    DEFAULT_CHECKED.indexOf("Unpublished") != -1
+    DEFAULT_CHECKED.indexOf("Unpublished") != -1,
   );
 
   const isMountedRef = useIsMountedRef();
@@ -165,6 +165,7 @@ export const PublicPaths: React.FC = () => {
       dataIndex: "status",
       key: "status",
     },
+    { title: "Image", dataIndex: "compute_image", key: "image" },
   ];
 
   async function fetch() {
