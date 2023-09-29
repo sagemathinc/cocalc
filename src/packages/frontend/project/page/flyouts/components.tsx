@@ -13,7 +13,7 @@ import { Button, Tooltip } from "antd";
 import { CSS, React, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { hexColorToRGBA } from "@cocalc/util/misc";
+import { hexColorToRGBA, separate_file_extension } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
@@ -81,6 +81,7 @@ interface Item {
   is_public?: boolean;
   name: string;
   size?: number;
+  mask?: boolean;
 }
 
 interface FileListItemProps {
@@ -156,6 +157,9 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderName(): JSX.Element {
+    const { name, ext } = item.isdir
+      ? { name: item.name, ext: "" }
+      : separate_file_extension(item.name);
     return (
       <div
         ref={itemRef}
@@ -165,7 +169,12 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           ...(multiline ? { whiteSpace: "normal" } : {}),
         }}
       >
-        {item.name}
+        {name}
+        {ext === "" ? undefined : (
+          <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
+            {`.${ext}`}
+          </span>
+        )}
       </div>
     );
   }
