@@ -8,6 +8,7 @@ import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import type { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
 import dayjs from "dayjs";
+import currentLicenseValue from "./current-license-value";
 
 export interface Changes {
   end?: Date;
@@ -175,19 +176,10 @@ export default function costToEditLicense(
   log({ modifiedInfo });
 
   // Determine price for the change
-  let price;
-  if (origInfo.type !== "quota") {
-    // We do not provide any prorated refund for ancient license types.
-    price = { discounted_cost: 0 };
-  } else {
-    price = compute_cost(origInfo);
-  }
+  const currentValue = currentLicenseValue({ info: origInfo });
   const modifiedPrice = compute_cost(modifiedInfo);
-  log({ price });
-  log({ modifiedPrice });
-
-  const cost = modifiedPrice.discounted_cost - price.discounted_cost;
-  log({ cost });
+  const cost = modifiedPrice.discounted_cost - currentValue;
+  log({ cost, currentValue, modifiedPrice });
   // We removed subscription so it didn't impact price calculation.  Now we put it back.
   modifiedInfo.subscription = originalInfo.subscription;
   // In case of a subscription, we changed start to correctly compute the cost
