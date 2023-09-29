@@ -27,9 +27,9 @@ export default async function getInstance({ name, zone }: Options): Promise<{
     });
   } catch (err) {
     if (err.message.includes("not found")) {
-      logger.debug("got error", err.message);
       return { state: "deprovisioned" } as const;
     }
+    logger.debug("got error", err.message);
   }
   // logger.debug("got GCP instance info", response);
   const internalIp = response.networkInterfaces?.[0]?.networkIP;

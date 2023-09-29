@@ -171,18 +171,10 @@ export const state: (opts: {
   }
   const server = await getServer({ account_id, id });
   const state = await getCloudServerState(server);
+  doPurchaseUpdate({ server, state });
   if (state == "stopping" || state == "off") {
     // don't need it anymore.
     await deleteProjectApiKey({ account_id, server });
-  }
-  try {
-    await updatePurchase({ server, newState: state });
-  } catch (err) {
-    logger.debug(
-      "error updating purchase in response to a state change -- ",
-      err,
-      { server },
-    );
   }
   lastCalled[id] = { time: now, state };
   return state;
@@ -223,6 +215,7 @@ async function waitStableNoError({ account_id, id }) {
     await delay(3000);
     try {
       await waitForStableState({ account_id, id, maxTime: 10 * 60 * 1000 });
+      return;
     } catch (err) {
       await setError(id, `error waiting for stable state -- ${err}`);
     }
@@ -247,6 +240,7 @@ export const waitForStableState = reuseInFlight(
     while (Date.now() - s0 < maxTime) {
       const state = await getCloudServerState(server);
       if (STATE_INFO[state]?.stable) {
+        doPurchaseUpdate({ server, state });
         return state;
       }
       await delay(interval);
@@ -280,8 +274,8 @@ function backoffParams(cloud: Cloud): {
   return BACKOFF_PARAMS[cloud] ?? BACKOFF_PARAMS["default"];
 }
 
-// Computes and returns the upstream cost we incur in usd per hour for this compute server.
-// This is often a lower bound, due to bandwidth and other hidden costs.
+// Computes and returns the upstream cost we incur in usd per hour for
+// this compute server.  This is the fixed cost, not including network costs.
 export async function cost({
   account_id,
   id,
@@ -292,11 +286,17 @@ export async function cost({
   state: State;
 }): Promise<number> {
   const server = await getServer({ account_id, id });
-  const cost_per_hour = await doCost(server, state);
+  const cost_per_hour = await computeCost({ server, state });
   return cost_per_hour;
 }
 
-async function doCost(server: ComputeServer, state: State) {
+export async function computeCost({
+  server,
+  state,
+}: {
+  server: ComputeServer;
+  state: State;
+}) {
   if (state == "deprovisioned") {
     // in all cases this one is by definition easy
     return 0;
@@ -452,5 +452,17 @@ export async function validateConfigurationChange({
         // @ts-ignore
         newConfiguration,
       });
+  }
+}
+
+async function doPurchaseUpdate({ server, state }) {
+  try {
+    await updatePurchase({ server, newState: state });
+  } catch (err) {
+    logger.debug(
+      "error updating purchase in response to a state change -- ",
+      `${err}`,
+      { server_id: server.id },
+    );
   }
 }

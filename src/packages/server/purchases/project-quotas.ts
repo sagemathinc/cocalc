@@ -38,17 +38,17 @@ export async function getPrices() {
   return pay_as_you_go_price_project_upgrades;
 }
 
-// If there are any open pay as you go purchases for this project,
+// If there are any open pay as you go purchases for upgrading this project,
 // close them, putting in the final price.
 export const closePayAsYouGoPurchases = reuseInFlight(
-  closePayAsYouGoPurchases0
+  closePayAsYouGoPurchases0,
 );
 async function closePayAsYouGoPurchases0(project_id: string) {
   logger.debug("closePayAsYouGoPurchases0", project_id);
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT id, description, cost_per_hour FROM purchases WHERE service='project-upgrade' AND cost IS NULL AND project_id=$1",
-    [project_id]
+    [project_id],
   );
   if (rows.length == 0) {
     logger.debug("closePayAsYouGoPurchases0", project_id, " - no purchases");
@@ -59,7 +59,7 @@ async function closePayAsYouGoPurchases0(project_id: string) {
   // there is an outstanding purchase.
   const { rows: rows1 } = await pool.query(
     "SELECT state->'state', run_quota->'pay_as_you_go'->>'purchase_id' as run_quota_purchase_id FROM projects WHERE project_id=$1",
-    [project_id]
+    [project_id],
   );
   if (rows1.length > 0) {
     const { state, run_quota_purchase_id } = rows1[0];
@@ -70,7 +70,7 @@ async function closePayAsYouGoPurchases0(project_id: string) {
       logger.debug(
         "closePayAsYouGoPurchases0",
         project_id,
-        " - running with run quota from this purchase, so don't close"
+        " - running with run quota from this purchase, so don't close",
       );
       // don't close -- this makes it safe to call closePayAsYouGoPurchases
       // on running projects and have nothing happen
@@ -95,7 +95,7 @@ async function closePurchase(opts: {
   if (description == null) {
     const { rows } = await pool.query(
       "SELECT description FROM purchases WHERE id=$1",
-      [id]
+      [id],
     );
     if (rows.length == 0) {
       throw Error(`no purchase with id ${id}`);
@@ -105,15 +105,14 @@ async function closePurchase(opts: {
       throw Error(`purchase with id ${id} has no description`);
     }
   }
-  if (description.quota == null) {
-    // invalid format: should never happen
-    throw Error(
-      `purchase with id ${id} has no description.quota but it must so we know the price`
-    );
-  }
-
   // Figure out the final cost.
   if (cost_per_hour == null) {
+    if (description.quota == null) {
+      // invalid format: should never happen
+      throw Error(
+        `purchase with id ${id} has no description.quota but it must so we know the price`,
+      );
+    }
     // this should never happen, but we can try to recompute the cost.
     cost_per_hour = await getPricePerHour(description.quota);
   }
@@ -127,19 +126,19 @@ async function closePurchase(opts: {
   description.stop = now;
   const cost = Math.max(
     0.01, // always at least one penny to avoid some abuse (?).
-    ((now - start) / (1000 * 60 * 60)) * cost_per_hour
+    ((now - start) / (1000 * 60 * 60)) * cost_per_hour,
   );
   // set the final cost, thus closing out this purchase.
   await (client ?? pool).query(
     "UPDATE purchases SET cost=$1, description=$2, period_end=$3 WHERE id=$4",
-    [cost, description, new Date(now), id]
+    [cost, description, new Date(now), id],
   );
 }
 
 // Also used externally when making statements.
 export async function closeAndContinuePurchase(
   id: number,
-  client?: PoolClient
+  client?: PoolClient,
 ) {
   logger.debug("closeAndContinuePurchase", id);
   const pool = getPool();
@@ -160,11 +159,11 @@ export async function closeAndContinuePurchase(
     now.valueOf();
   logger.debug(
     "closeAndContinuePurchase -- creating newPurchase=",
-    newPurchase
+    newPurchase,
   );
   const new_purchase_id = await createPurchase(newPurchase);
   logger.debug(
-    "closeAndContinuePurchase -- update purchased in run_quota of project"
+    "closeAndContinuePurchase -- update purchased in run_quota of project",
   );
   await setRunQuotaPurchaseId(newPurchase.project_id, new_purchase_id);
   logger.debug("closeAndContinuePurchase -- closing old purchase", newPurchase);
@@ -184,7 +183,7 @@ async function setRunQuotaPurchaseId(project_id: string, purchase_id: number) {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT run_quota FROM projects WHERE project_id=$1",
-    [project_id]
+    [project_id],
   );
   const { run_quota } = rows[0] ?? {};
   if (run_quota?.pay_as_you_go == null) {
@@ -201,7 +200,7 @@ async function setRunQuotaPurchaseId(project_id: string, purchase_id: number) {
 const MAX_ELAPSED_MS = 1000 * 60 * 60 * 24; // 1 day
 
 /*
-This function ensures everything is in sync, and close out project purchases once per day.  
+This function ensures everything is in sync, and close out project purchases once per day.
 In particular:
 
 - If a project is not running/starting and there is an unclosed purchase, close it.
@@ -209,7 +208,7 @@ In particular:
   it doesn't due to some weird issue, so this catches it.
 - If there is a purchase of a project-upgrade that is actively being charged, make
   sure the project has the given run quota; otherwise end purchase.
-  
+
 - Also, if the total amount of time is at least 24 hours, we close the purchase out
   and make a new one starting now.  This is so an always running project can't just run
   for months and *never* get billed for usage, and also, so usage is clearly displayed
@@ -220,24 +219,24 @@ Probably other issues will arise, but I can't think of any yet....
 export async function maintainActivePurchases() {
   logger.debug("maintainActivePurchases");
 
-  /* 
+  /*
   Query the database for the following:
-    
+
     - purchase id
     - project_id
     - run_quota
     - state
-    
+
   For all open project-upgrade purchases.
   */
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT purchases.account_id AS account_id, purchases.project_id AS project_id, purchases.id AS purchase_id, projects.run_quota->'pay_as_you_go'->>'purchase_id' AS run_quota_purchase_id, projects.state->>'state' AS state, purchases.description->'start' AS start, purchases.description->'quota'->>'cost' AS cost_per_hour FROM purchases, projects WHERE cost IS NULL AND service='project-upgrade' AND purchases.project_id = projects.project_id"
+    "SELECT purchases.account_id AS account_id, purchases.project_id AS project_id, purchases.id AS purchase_id, projects.run_quota->'pay_as_you_go'->>'purchase_id' AS run_quota_purchase_id, projects.state->>'state' AS state, purchases.description->'start' AS start, purchases.description->'quota'->>'cost' AS cost_per_hour FROM purchases, projects WHERE cost IS NULL AND service='project-upgrade' AND purchases.project_id = projects.project_id",
   );
   logger.debug(
     "maintainActivePurchases --- found",
     rows.length,
-    "active purchases that might be closed"
+    "active purchases that might be closed",
   );
   for (const row of rows) {
     logger.debug("maintainActivePurchases -- considering", row);
@@ -248,7 +247,7 @@ export async function maintainActivePurchases() {
       logger.debug(
         "maintainActivePurchases -- ERROR doing maintenance",
         err,
-        row
+        row,
       );
     }
   }
@@ -285,7 +284,7 @@ async function doMaintenance({
   } else if (now - start >= MAX_ELAPSED_MS) {
     logger.debug(
       "doMaintenance --- closing AND continuing purchase with id",
-      purchase_id
+      purchase_id,
     );
     await closeAndContinuePurchase(purchase_id);
   } else if (start != null && cost_per_hour != null) {
@@ -298,14 +297,14 @@ async function doMaintenance({
       // balance *includes* all partial metered charges already
       logger.debug(
         `doMaintenance --- stopping project because balance (${currency(
-          balance
-        )} has hit the min allowed balance of = ${currency(minBalance)}`
+          balance,
+        )} has hit the min allowed balance of = ${currency(minBalance)}`,
       );
       cutoff = true;
     } else if (chargesThisMonth >= limitThisMonth) {
       // this is the self-imposed limit to avoid accidental overspend
       logger.debug(
-        "doMaintenance --- stopping project because chargesThisMonth + total_cost >= limitThisMonth"
+        "doMaintenance --- stopping project because chargesThisMonth + total_cost >= limitThisMonth",
       );
       cutoff = true;
       logger.debug("");
@@ -314,7 +313,7 @@ async function doMaintenance({
     }
     if (cutoff) {
       logger.debug(
-        "doMaintenance --- cutoff true, so stopping project and pay-as-you-go project upgrade"
+        "doMaintenance --- cutoff true, so stopping project and pay-as-you-go project upgrade",
       );
       // cut this off -- (1) stop project, and (2) make sure purchase is closed
       const project = getProject(project_id);
@@ -350,7 +349,7 @@ async function getAccountInfo(account_id: string): Promise<AccountInfo> {
     (await getPurchaseQuota(account_id, "project-upgrade")) ?? 0;
   const chargesThisMonth = await getTotalChargesThisMonth(
     account_id,
-    "project-upgrade"
+    "project-upgrade",
   );
   const minBalance = await getMinBalance(account_id);
   const info = { balance, chargesThisMonth, limitThisMonth, minBalance };

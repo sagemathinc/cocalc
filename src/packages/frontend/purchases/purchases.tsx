@@ -415,7 +415,7 @@ function DetailedPurchaseTable({
                     minutes = Math.ceil(
                       (record.description.stop - record.description.start) /
                         1000 /
-                        60
+                        60,
                     );
                   } else {
                     minutes = null;
@@ -572,6 +572,11 @@ function Description({ description }: { description?: Description }) {
     const quota = description?.quota ?? {};
     return <DisplayProjectQuota quota={quota} />;
   }
+
+  if (description.type == "compute-server") {
+    return <div>{JSON.stringify(description)}</div>;
+  }
+
   if (description.type == "voucher") {
     const { title, quantity, voucher_id } = description;
     return (

@@ -93,7 +93,7 @@ export interface ProjectUpgrade {
   };
 }
 
-export interface ComputerServer {
+export interface ComputeServer {
   type: "compute-server";
   project_id: string;
   state: computeServers.State;
@@ -145,7 +145,7 @@ export type Description =
   | OpenaiGPT35_16k
   | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
-  | ComputerServer
+  | ComputeServer
   | Credit
   | Refund
   | License
