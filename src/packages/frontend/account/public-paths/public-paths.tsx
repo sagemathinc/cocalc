@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Checkbox, Table } from "antd";
+import ShowError from "@cocalc/frontend/components/error";
+import { Button, Checkbox, Spin, Table } from "antd";
 import {
   redux,
   React,
@@ -17,14 +18,7 @@ import {
 import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
 import { trunc, trunc_middle } from "@cocalc/util/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import {
-  ErrorDisplay,
-  Icon,
-  Loading,
-  Gap,
-  TimeAgo,
-  A,
-} from "@cocalc/frontend/components";
+import { Icon, Loading, Gap, TimeAgo, A } from "@cocalc/frontend/components";
 import { UnpublishEverything } from "./unpublish-everything";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 import { Footer } from "@cocalc/frontend/customize";
@@ -32,6 +26,7 @@ import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { Alert } from "antd";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
+import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
@@ -45,20 +40,20 @@ export const PublicPaths: React.FC = () => {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const showAuthenticatedOption = customize_kucalc !== KUCALC_COCALC_COM;
   const [data, set_data] = useState<PublicPath[] | undefined>(undefined);
-  const [error, set_error] = useState<string>("");
+  const [error, setError] = useState<string>("");
   const [loading, set_loading] = useState<boolean>(false);
 
   const [show_listed, set_show_listed] = useState<boolean>(
-    DEFAULT_CHECKED.indexOf("Listed") != -1
+    DEFAULT_CHECKED.indexOf("Listed") != -1,
   );
   const [show_authenticated, set_show_authenticated] = useState<boolean>(
-    showAuthenticatedOption && DEFAULT_CHECKED.indexOf("Authenticated") != -1
+    showAuthenticatedOption && DEFAULT_CHECKED.indexOf("Authenticated") != -1,
   );
   const [show_unlisted, set_show_unlisted] = useState<boolean>(
-    DEFAULT_CHECKED.indexOf("Unlisted") != -1
+    DEFAULT_CHECKED.indexOf("Unlisted") != -1,
   );
   const [show_unpublished, set_show_unpublished] = useState<boolean>(
-    DEFAULT_CHECKED.indexOf("Unpublished") != -1
+    DEFAULT_CHECKED.indexOf("Unpublished") != -1,
   );
 
   const isMountedRef = useIsMountedRef();
@@ -165,6 +160,14 @@ export const PublicPaths: React.FC = () => {
       dataIndex: "status",
       key: "status",
     },
+    {
+      title: "Image",
+      dataIndex: "compute_image",
+      key: "image",
+      render: (_, record) => {
+        return <ComputeImage {...record} setError={setError} />;
+      },
+    },
   ];
 
   async function fetch() {
@@ -196,13 +199,13 @@ export const PublicPaths: React.FC = () => {
       }
       set_loading(false);
       set_data(data);
-      set_error("");
+      setError("");
     } catch (err) {
       if (!isMountedRef.current) {
         return;
       }
       set_loading(false);
-      set_error(err.toString());
+      setError(err.toString());
     }
   }
 
@@ -256,9 +259,7 @@ export const PublicPaths: React.FC = () => {
       {loading && <Loading />}
       {render_checkboxes()}
       <br />
-      {error != "" && (
-        <ErrorDisplay style={{ marginTop: "32px" }} error={error} />
-      )}
+      <ShowError error={error} setError={setError} />
       <br />
       {data != null && (
         <Table rowKey="id" columns={COLUMNS} dataSource={paths} />
@@ -269,3 +270,43 @@ export const PublicPaths: React.FC = () => {
     </div>
   );
 };
+
+function ComputeImage({ compute_image, project_id, path, setError }) {
+  const [selectedImage, setSelectedImage] = useState<string>(compute_image);
+  const [saving, setSaving] = useState<boolean>(false);
+
+  useEffect(() => {
+    setSelectedImage(compute_image);
+  }, [compute_image]);
+
+  return (
+    <>
+      <ComputeImageSelector
+        disabled={saving}
+        selected_image={selectedImage}
+        layout={"compact"}
+        onSelect={async (img) => {
+          setSelectedImage(img);
+          try {
+            setSaving(true);
+            await webapp_client.async_query({
+              query: { public_paths: { project_id, path, compute_image: img } },
+            });
+          } catch (err) {
+            setError(`${err}`);
+            // failed to save -- change back so clear indication
+            // it didn't work, and also so they can try again.
+            setSelectedImage(compute_image);
+          } finally {
+            setSaving(false);
+          }
+        }}
+      />
+      {saving && (
+        <div>
+          <Spin />
+        </div>
+      )}
+    </>
+  );
+}

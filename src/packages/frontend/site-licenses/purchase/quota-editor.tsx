@@ -468,10 +468,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Paragraph>
         <Paragraph code>
           kubectl taint nodes [node-name]
-          cocalc.com/dedicated_vm=[taint_name]:NoSchedule
+          cocalc-dedicated_vm=[taint_name]:NoSchedule
         </Paragraph>
         <Paragraph code>
-          kubectl label nodes [node-name] cocalc.com/dedicated_vm=[taint_name]
+          kubectl label nodes [node-name] cocalc-dedicated_vm=[taint_name]
         </Paragraph>
         <Paragraph type="secondary">
           Replace [node-name] with the name of the node in your cluster and
