@@ -5,24 +5,25 @@
 
 // Show a file listing.
 
-import React, { useEffect, useRef } from "react";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import * as immutable from "immutable";
+import React, { useEffect, useRef } from "react";
 import { useInterval } from "react-interval-hook";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
-import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import {
   AppRedux,
   Rendered,
   TypedMap,
   usePrevious,
 } from "@cocalc/frontend/app-framework";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import { FileRow } from "./file-row";
+import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
 import { TerminalModeDisplay } from "./terminal-mode-display";
-import { ListingHeader } from "./listing-header";
-import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
 
 import * as misc from "@cocalc/util/misc";
@@ -111,7 +112,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     public_data,
     issymlink,
     index: number,
-    link_target?: string // if given, is a known symlink to this file
+    link_target?: string, // if given, is a known symlink to this file
   ): Rendered {
     const checked = checked_files.has(misc.path_to_file(current_path, name));
     const color = misc.rowBackground({ index, checked });
@@ -174,7 +175,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
             a.public,
             a.issymlink,
             index,
-            a.link_target
+            a.link_target,
           );
         }}
         {...virtuosoScroll}

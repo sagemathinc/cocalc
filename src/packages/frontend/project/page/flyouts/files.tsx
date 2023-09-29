@@ -89,7 +89,7 @@ function useStrippedPublicPaths(project_id: string) {
     return public_paths
       .valueSeq()
       .map((public_path: any) =>
-        copy_without(public_path.toJS(), ["id", "project_id"])
+        copy_without(public_path.toJS(), ["id", "project_id"]),
       );
   }, [public_paths]);
 }
@@ -123,7 +123,7 @@ export function FilesFlyout({
   const rootRef = useRef<HTMLDivElement>(null);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
-    null
+    null,
   );
   const refInput = useRef<InputRef>(null);
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -132,11 +132,11 @@ export function FilesFlyout({
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const file_creation_error = useTypedRedux(
     { project_id },
-    "file_creation_error"
+    "file_creation_error",
   );
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
-    "active_file_sort"
+    "active_file_sort",
   );
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
@@ -198,7 +198,7 @@ export function FilesFlyout({
     DirectoryListing,
     FileMap,
     DirectoryListingEntry | null,
-    boolean
+    boolean,
   ] => {
     if (directoryListings == null) return EMPTY_LISTING;
     const filesStore = directoryListings.get(current_path);
@@ -224,10 +224,10 @@ export function FilesFlyout({
         );
       })
       .filter(
-        (file: DirectoryListingEntry) => show_masked || !(file.mask === true)
+        (file: DirectoryListingEntry) => show_masked || !(file.mask === true),
       )
       .filter(
-        (file: DirectoryListingEntry) => hidden || !file.name.startsWith(".")
+        (file: DirectoryListingEntry) => hidden || !file.name.startsWith("."),
       );
 
     // this shares the logic with what's in project_store.js
@@ -237,7 +237,7 @@ export function FilesFlyout({
         public: {},
       },
       strippedPublicPaths,
-      current_path
+      current_path,
     );
 
     procFiles.sort((a, b) => {
@@ -333,7 +333,7 @@ export function FilesFlyout({
   const triggerRootResize = debounce(
     () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
     50,
-    { leading: false, trailing: true }
+    { leading: false, trailing: true },
   );
 
   // observe the root element's height
@@ -391,7 +391,7 @@ export function FilesFlyout({
   function open(
     e: React.MouseEvent | React.KeyboardEvent,
     index: number,
-    skip = false // to exclude directories
+    skip = false, // to exclude directories
   ) {
     e.stopPropagation();
     const file = directoryFiles[index];
@@ -478,7 +478,7 @@ export function FilesFlyout({
         const start = Math.min(prevSelected, index);
         const end = Math.max(prevSelected, index);
         const add = !checked_files.includes(
-          path_to_file(current_path, directoryFiles[index].name)
+          path_to_file(current_path, directoryFiles[index].name),
         );
         let fileNames: string[] = [];
         for (let i = start; i <= end; i++) {
@@ -522,7 +522,7 @@ export function FilesFlyout({
   function doScroll(dx: -1 | 1) {
     const nextIdx = strictMod(
       scrollIdx == null ? (dx === 1 ? 0 : -1) : scrollIdx + dx,
-      directoryFiles.length
+      directoryFiles.length,
     );
     setScrollIdx(nextIdx);
     virtuosoRef.current?.scrollToIndex({
@@ -550,7 +550,7 @@ export function FilesFlyout({
     else if (e.code === "ArrowLeft") {
       if (current_path != "") {
         actions?.set_current_path(
-          current_path.split("/").slice(0, -1).join("/")
+          current_path.split("/").slice(0, -1).join("/"),
         );
       }
     }
@@ -634,7 +634,7 @@ export function FilesFlyout({
       scrollIdx != null
         ? !scollIdxHide && index === scrollIdx
         : checked_files.includes(
-            path_to_file(current_path, directoryFiles[index].name)
+            path_to_file(current_path, directoryFiles[index].name),
           );
     return (
       <FileListItem
@@ -670,9 +670,39 @@ export function FilesFlyout({
     );
   }
 
+  function renderLoadingOrStartProject(): JSX.Element {
+    if (projectIsRunning) {
+      return <Loading theme="medium" transparent />;
+    } else {
+      return (
+        <Alert
+          type="warning"
+          banner
+          showIcon={false}
+          style={{ padding: FLYOUT_PADDING, margin: 0 }}
+          description={
+            <>
+              In order to see the files in this directory, you have to{" "}
+              <a
+                onClick={() => {
+                  redux.getActions("projects").start_project(project_id);
+                }}
+              >
+                start this project
+              </a>
+              .
+            </>
+          }
+        />
+      );
+    }
+  }
+
   function renderListing(): JSX.Element {
     const files = directoryListings.get(current_path);
-    if (files == null) return <Loading theme="medium" transparent />;
+    if (files == null) {
+      return renderLoadingOrStartProject();
+    }
 
     return (
       <Virtuoso
@@ -775,7 +805,7 @@ export function FilesFlyout({
                   </Button>
                 </Tooltip>
               </Space.Compact>
-            </div>
+            </div>,
           )}
           <div
             style={{
@@ -1003,7 +1033,7 @@ export function FilesFlyout({
           actions?.set_file_list_checked(
             directoryFiles
               .filter((f) => f.name !== "..")
-              .map((f) => path_to_file(current_path, f.name))
+              .map((f) => path_to_file(current_path, f.name)),
           );
         }}
         open={open}
