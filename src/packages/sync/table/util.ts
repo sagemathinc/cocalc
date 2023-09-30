@@ -39,7 +39,9 @@ export function parse_query(query) {
 
 const json_stable_stringify = require("json-stable-stringify");
 export function to_key(x): string | undefined {
-  if (typeof x === "object") {
+  if (x === undefined) {
+    return undefined;
+  } else if (typeof x === "object") {
     return json_stable_stringify(x);
   } else {
     return `${x}`;
