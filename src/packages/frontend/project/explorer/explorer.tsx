@@ -8,6 +8,7 @@ import React from "react";
 import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
 import * as underscore from "underscore";
 
+
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   TypedMap,
@@ -23,6 +24,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
+  Paragraph,
   SettingBox,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
@@ -52,6 +54,7 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
+import { Alert } from "antd";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -432,6 +435,7 @@ const Explorer0 = rclass(
       listing: ListingItem[] | undefined,
       file_map,
       fetch_directory_error: any,
+      project_is_running: boolean,
     ) {
       if (fetch_directory_error) {
         // TODO: the refresh button text is inconsistant
@@ -503,11 +507,37 @@ const Explorer0 = rclass(
           </FileUploadWrapper>
         );
       } else {
-        return (
-          <div style={{ textAlign: "center" }}>
-            <Loading theme={"medium"} />
-          </div>
-        );
+        if (project_is_running) {
+          return (
+            <div style={{ textAlign: "center" }}>
+              <Loading theme={"medium"} />
+            </div>
+          );
+        } else {
+          return (
+            <Alert
+              type="warning"
+              icon={<Icon name="ban" />}
+              style={{textAlign: "center"}}
+              showIcon
+              description={
+                <Paragraph>
+                  In order to see the files in this directory, you have to{" "}
+                  <a
+                    onClick={() => {
+                      redux
+                        .getActions("projects")
+                        .start_project(this.props.project_id);
+                    }}
+                  >
+                    start this project
+                  </a>
+                  .
+                </Paragraph>
+              }
+            />
+          );
+        }
       }
     }
 
@@ -756,6 +786,7 @@ const Explorer0 = rclass(
               visible_listing,
               file_map,
               directory_error,
+              project_is_running,
             )}
             {listing != undefined
               ? this.render_paging_buttons(

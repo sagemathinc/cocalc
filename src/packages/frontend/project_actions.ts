@@ -43,7 +43,10 @@ import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
 import { FlyoutLogMode, storeFlyoutState } from "./project/page/flyouts/state";
-import { ensure_project_running } from "./project/project-start-warning";
+import {
+  ensure_project_running,
+  is_running_or_starting,
+} from "./project/project-start-warning";
 import { transform_get_url } from "./project/transform-get-url";
 import {
   NewFilenames,
@@ -1347,7 +1350,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       status = "Loading file list";
     }
-    this.set_activity({ id, status });
+
+    // only show this indicator, if the project is running or starting
+    // if it is stopped, we might get a stale listing from the database!
+    if (is_running_or_starting(this.project_id)) {
+      this.set_activity({ id, status });
+    }
+
     let my_group: any;
     let the_listing: any;
     async.series(
@@ -1380,6 +1389,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             },
           });
         },
+
         async (cb) => {
           store = this.get_store();
           if (store == null) {
@@ -1396,6 +1406,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               hidden: true,
               max_time_s: 15 * 60, // keep trying for up to 15 minutes
               group: my_group,
+              trigger_start_project: false,
             });
           } catch (err) {
             cb(err.message);
@@ -1404,6 +1415,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           cb();
         },
       ],
+
       (err) => {
         this.set_activity({ id, stop: "" });
         // Update the path component of the immutable directory listings map:
@@ -1438,12 +1450,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   }
 
-  public async fetch_directory_listing_directly(path: string): Promise<void> {
+  public async fetch_directory_listing_directly(
+    path: string,
+    trigger_start_project?: boolean,
+  ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
     const listings = store.get_listings();
     try {
-      const files = await listings.get_listing_directly(path);
+      const files = await listings.get_listing_directly(path, trigger_start_project);
       const directory_listings = store
         .get("directory_listings")
         .set(path, fromJS(files));

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { InputRef } from "antd";
+import { Alert, InputRef } from "antd";
 import { delay } from "awaiting";
 import { List } from "immutable";
 import { debounce, fromPairs } from "lodash";
@@ -50,7 +50,11 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { FileListItem, fileItemStyle } from "./components";
-import { FLYOUT_EXTRA2_WIDTH_PX, FLYOUT_EXTRA_WIDTH_PX } from "./consts";
+import {
+  FLYOUT_EXTRA2_WIDTH_PX,
+  FLYOUT_EXTRA_WIDTH_PX,
+  FLYOUT_PADDING,
+} from "./consts";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
 
@@ -576,9 +580,39 @@ export function FilesFlyout({
     );
   }
 
+  function renderLoadingOrStartProject(): JSX.Element {
+    if (projectIsRunning) {
+      return <Loading theme="medium" transparent />;
+    } else {
+      return (
+        <Alert
+          type="warning"
+          banner
+          showIcon={false}
+          style={{ padding: FLYOUT_PADDING, margin: 0 }}
+          description={
+            <>
+              In order to see the files in this directory, you have to{" "}
+              <a
+                onClick={() => {
+                  redux.getActions("projects").start_project(project_id);
+                }}
+              >
+                start this project
+              </a>
+              .
+            </>
+          }
+        />
+      );
+    }
+  }
+
   function renderListing(): JSX.Element {
     const files = directoryListings.get(current_path);
-    if (files == null) return <Loading theme="medium" transparent />;
+    if (files == null) {
+      return renderLoadingOrStartProject();
+    }
 
     return (
       <Virtuoso
