@@ -73,6 +73,12 @@ export default async function createInstance({
     },
   ];
 
+  const tags = configuration.externalIp
+    ? {
+        items: ["https-server"],
+      }
+    : undefined;
+
   const configMetadata = { items: [] as { key: string; value: any }[] };
   if (metadata != null) {
     for (const key in metadata) {
@@ -150,6 +156,7 @@ export default async function createInstance({
     metadata: configMetadata,
     scheduling,
     guestAccelerators,
+    tags,
   };
 
   logger.debug("create instance", instanceResource);
