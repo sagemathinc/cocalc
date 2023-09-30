@@ -131,7 +131,6 @@ function ActionButton({
     button = (
       <Popconfirm
         title={`${label} - Are you sure?`}
-        description={<div style={{ width: "400px" }}>{description}</div>}
         onConfirm={doAction}
         okText="Yes"
         cancelText="Cancel"
@@ -143,6 +142,7 @@ function ActionButton({
 
   return (
     <Popover
+      placement="bottom"
       key={action}
       mouseEnterDelay={0.5}
       title={
