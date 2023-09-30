@@ -42,6 +42,6 @@ export function to_key(x): string | undefined {
   if (typeof x === "object") {
     return json_stable_stringify(x);
   } else {
-    return x;
+    return `${x}`;
   }
 }
