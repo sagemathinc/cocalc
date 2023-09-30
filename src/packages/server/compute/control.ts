@@ -466,3 +466,21 @@ async function doPurchaseUpdate({ server, state }) {
     );
   }
 }
+
+export async function getNetworkUsage(opts: {
+  server: ComputeServer;
+  start: Date;
+  end: Date;
+}): Promise<{ amount: number; cost: number }> {
+  switch (opts.server.cloud) {
+    case "google-cloud":
+      return await googleCloud.getNetworkUsage(opts);
+    case "lambda-cloud":
+      // lambda doesn't charge for network usage at all.
+      return { amount: 0, cost: 0 };
+    default:
+      throw Error(
+        `cloud '${opts.server.cloud}' network usage not currently implemented`,
+      );
+  }
+}

@@ -1,6 +1,7 @@
 import type {
   ComputeServer,
   State,
+  GoogleCloudData,
 } from "@cocalc/util/db-schema/compute-servers";
 import { setConfiguration, setData } from "@cocalc/server/compute/util";
 import getClient, {
@@ -15,9 +16,13 @@ import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
 import getInstance from "./get-instance";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
-import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import computeCost, {
+  computeNetworkCost,
+} from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
 import { getArchitecture } from "./images";
+import { getInstanceEgress } from "./monitoring";
+
 export * from "./validate-configuration";
 
 const logger = getLogger("server:compute:google-cloud");
@@ -60,7 +65,7 @@ export async function start(server: ComputeServer) {
     // start it
     await startInstance({ name, zone: configuration.zone });
   }
-  await setData(server.id, { name });
+  await setData({ id: server.id, data: { name }, cloud: "google-cloud" });
 }
 
 export async function reboot(server: ComputeServer) {
@@ -69,7 +74,7 @@ export async function reboot(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = server.data?.name;
+  const name = (server.data as GoogleCloudData | undefined)?.name;
   if (!name) {
     return;
   }
@@ -82,7 +87,7 @@ export async function deprovision(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = server.data?.name;
+  const name = (server.data as GoogleCloudData | undefined)?.name;
   if (!name) {
     return;
   }
@@ -95,7 +100,7 @@ export async function stop(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = server.data?.name;
+  const name = (server.data as GoogleCloudData | undefined)?.name;
   if (!name) {
     return;
   }
@@ -108,14 +113,18 @@ export async function state(server: ComputeServer): Promise<State> {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = server.data?.name;
+  const name = (server.data as GoogleCloudData | undefined)?.name;
   if (!name) {
     return "deprovisioned";
   }
   const instance = await getInstance({ name, zone: conf.zone });
   (async () => {
     try {
-      await setData(server.id, { ...instance });
+      await setData({
+        id: server.id,
+        data: instance,
+        cloud: "google-cloud",
+      });
     } catch (err) {
       logger.debug("WARNING -- issue saving data about instance", err);
     }
@@ -155,7 +164,7 @@ export async function suspend(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = server.data?.name;
+  const name = (server.data as GoogleCloudData | undefined)?.name;
   if (!name) {
     return;
   }
@@ -168,9 +177,23 @@ export async function resume(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = server.data?.name;
+  const name = (server.data as GoogleCloudData | undefined)?.name;
   if (!name) {
     return;
   }
   await resumeInstance({ name, zone: conf.zone });
+}
+
+export async function getNetworkUsage({
+  server,
+  start,
+  end,
+}: {
+  server: ComputeServer;
+  start: Date;
+  end: Date;
+}) {
+  const instanceName = getServerName(server);
+  const amount = await getInstanceEgress({ instanceName, start, end });
+  return { cost: computeNetworkCost(amount), amount };
 }

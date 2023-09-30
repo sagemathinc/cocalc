@@ -344,7 +344,23 @@ export type Configuration =
   | FluidStackConfiguration
   | GoogleCloudConfiguration;
 
-export type Data = any;
+export interface LambdaCloudData {
+  type: "lambda-cloud";
+  instance_id: string;
+}
+
+export interface GoogleCloudData {
+  type: "google-cloud";
+  name?: string;
+  state?: State;
+  externalIp?: string;
+  internalIp?: string;
+  cpuPlatform?: string;
+  creationTimestamp?: Date;
+  lastStartTimestamp?: Date;
+}
+
+export type Data = GoogleCloudData | LambdaCloudData;
 
 export interface ComputeServerUserInfo {
   id: number;
@@ -504,3 +520,28 @@ Table({
     },
   },
 });
+
+// Table({
+//   name: "compute_server_log",
+//   rules: {
+//     primary_key: ["compute_server_id", "event", "time"],
+//   },
+//   fields: {
+//     compute_server_id: {
+//       type: "number",
+//       desc: "id of the compute server",
+//     },
+//     time: {
+//       type: "timestamp",
+//       desc: "When the event was logged",
+//     },
+//     type: {
+//       type: "string",
+//       desc: "The event type",
+//     },
+//     data: {
+//       pg_type: "jsonb",
+//       desc: "amount of egress during this interval in GiB",
+//     },
+//   },
+// });

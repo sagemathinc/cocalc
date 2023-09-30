@@ -16,8 +16,13 @@ export async function getMonitoringClient(): Promise<MonitoringClient> {
   return client;
 }
 
-// Get the total amount of egress as a floating point value in data from the
-// given instance, during the given window of time in unites of GiB (=2**30 bytes).
+// Get the total amount of egress as a floating point value in data
+// from the given instance, during the given window of time in unites
+// of GiB (=2**30 bytes).
+// IMPORTANT: If end is really close to right now, the data simply
+// isn't available yet, and the reported egress will be too small.
+// I did tests and this is delayed by maybe 3 minutes in tests, but
+// I guess in theory it could be delayed by several hours.
 export async function getInstanceEgress({
   instanceName,
   start,

@@ -1,5 +1,5 @@
 import { getPool } from "@cocalc/database";
-import type { State } from "@cocalc/util/db-schema/compute-servers";
+import type { State, Data } from "@cocalc/util/db-schema/compute-servers";
 
 // set the state. We ONLY make a change to the database updating state_changed
 // if the state actually changes, to avoid a lot of not necessary noise.
@@ -22,11 +22,19 @@ export async function setError(id: number, error: string) {
 // merges the object newData into the current data in the database
 // (i.e., doesn't delete keys not mentioned in newData)
 
-export async function setData(id: number, newData: object) {
+export async function setData({
+  cloud,
+  id,
+  data,
+}: {
+  id: number;
+  cloud: "lambda-cloud" | "google-cloud";
+  data: Partial<Data>;
+}) {
   const pool = getPool();
   await pool.query(
     `UPDATE compute_servers SET data = COALESCE(data, '{}'::jsonb) || $1::jsonb WHERE id=$2`,
-    [JSON.stringify(newData), id],
+    [JSON.stringify({ ...data, cloud }), id],
   );
 }
 

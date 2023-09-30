@@ -40,6 +40,7 @@ export type Service =
   | "openai-text-embedding-ada-002"
   | "project-upgrade"
   | "compute-server"
+  | "compute-server-network-usage"
   | "license"
   | "voucher"
   | "edit-license";
@@ -101,6 +102,13 @@ export interface ComputeServer {
   configuration: computeServers.Configuration;
 }
 
+export interface ComputeServerNetworkUsage {
+  type: "compute-server-network-usage";
+  project_id: string;
+  compute_server_id: number;
+  amount: number;
+}
+
 export interface License {
   type: "license";
   info: PurchaseInfo;
@@ -146,6 +154,7 @@ export type Description =
   | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
   | ComputeServer
+  | ComputeServerNetworkUsage
   | Credit
   | Refund
   | License

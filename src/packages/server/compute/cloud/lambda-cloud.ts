@@ -1,5 +1,6 @@
 import type {
   ComputeServer,
+  LambdaCloudData,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -59,12 +60,17 @@ export async function start(server: ComputeServer) {
   if (instance_ids.length == 0) {
     throw Error("failed to launch any instances");
   }
-  await setData(server.id, { instance_id: instance_ids[0] });
+
+  await setData({
+    id: server.id,
+    data: { instance_id: instance_ids[0] },
+    cloud: "lambda-cloud",
+  });
 }
 
 export async function stop(server: ComputeServer) {
   logger.debug("top", server);
-  const instance_id = server.data?.instance_id;
+  const instance_id = (server.data as LambdaCloudData | undefined)?.instance_id;
   if (!instance_id) {
     return;
   }
@@ -74,7 +80,7 @@ export async function stop(server: ComputeServer) {
 
 export async function state(server: ComputeServer): Promise<State> {
   logger.debug("state", server);
-  const instance_id = server.data?.instance_id;
+  const instance_id = (server.data as LambdaCloudData | undefined)?.instance_id;
   if (!instance_id) {
     return "off";
   }
@@ -82,7 +88,12 @@ export async function state(server: ComputeServer): Promise<State> {
   const client = await getClient();
   const instance = await client.getRunningInstance(instance_id);
   logger.debug("state", instance);
-  await setData(server.id, { instance });
+  await setData({
+    id: server.id,
+    data: { instance_id: instance.id },
+    cloud: "lambda-cloud",
+  });
+
   if (instance.status == "booting") {
     return "starting";
   } else if (instance.status == "active") {

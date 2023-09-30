@@ -112,7 +112,7 @@ export default function ComputeServer({
     },
   ];
   if (projectLink) {
-    data.push({
+    dataSource.push({
       label: "Project",
       value: <ProjectTitle project_id={project_id} />,
     });

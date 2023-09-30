@@ -1,4 +1,4 @@
-import { computeCost } from "./control";
+import { computeCost, getNetworkUsage } from "./control";
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
@@ -68,7 +68,7 @@ export default async function updatePurchase({
 
         logger.debug("stop current purchase");
         await closePurchase({
-          id: server.purchase_id,
+          server,
           cost_per_hour: cost_per_hour0,
           period_start,
         });
@@ -130,17 +130,28 @@ async function setPurchaseId({
 // Code below is similar to code in server/purchases/project-quotas.ts.
 
 async function closePurchase({
-  id,
+  server,
   cost_per_hour,
   period_start,
   client,
 }: {
-  id: number;
+  server: ComputeServer;
   cost_per_hour: number;
   period_start: Date;
   client?: PoolClient;
 }) {
+  const id = server.purchase_id;
   logger.debug("closePurchase", id);
+  const pool = client ?? getPool();
+  const { rows } = await pool.query(
+    "SELECT period_end, cost FROM purchases WHERE id=$1",
+    [id],
+  );
+  if (rows[0]?.period_end && rows[0]?.cost) {
+    // do not close purchase more than once:
+    logger.debug("closePurchase", id, " -- already closed");
+    return;
+  }
 
   // Figure out the final cost.
   const start = period_start.valueOf();
@@ -152,10 +163,42 @@ async function closePurchase({
     hours * cost_per_hour,
   );
   // set the final cost, thus closing out this purchase.
-  await (client ?? getPool()).query(
-    "UPDATE purchases SET cost=$1, period_end=$2 WHERE id=$3",
-    [cost, new Date(now), id],
-  );
+  const period_end = new Date(now);
+  await pool.query("UPDATE purchases SET cost=$1, period_end=$2 WHERE id=$3", [
+    cost,
+    period_end,
+    id,
+  ]);
+
+  // If server was recently then we also record purchase for
+  // any network usage.
+  if (server.state == "running" || server.state == "stopping") {
+    // [ ] TODO: we may want to wait some minutes before
+    // running the network usage computation, since usage
+    // isn't all reported until a few minutes after it happens.
+    const network = await getNetworkUsage({
+      server,
+      start: period_start,
+      end: new Date(),
+    });
+    if (network.cost) {
+      await createPurchase({
+        client: null,
+        account_id: server.account_id,
+        project_id: server.project_id,
+        service: "compute-server-network-usage",
+        period_start,
+        period_end,
+        cost: network.cost,
+        description: {
+          type: "compute-server-network-usage",
+          project_id: server.project_id,
+          compute_server_id: server.id,
+          amount: network.amount,
+        },
+      });
+    }
+  }
 }
 
 // todo -- need to hook this into statements (?).
@@ -215,7 +258,7 @@ export async function closeAndContinuePurchase(
   });
   logger.debug("closeAndContinuePurchase -- closing old purchase", newPurchase);
   await closePurchase({
-    id,
+    server,
     cost_per_hour: purchase.cost_per_hour,
     period_start: purchase.period_start,
     client,
