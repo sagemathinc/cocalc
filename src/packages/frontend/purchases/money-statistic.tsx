@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { round2, round3 } from "@cocalc/util/misc";
+import { currency, round2, round3, round4 } from "@cocalc/util/misc";
 import { Tooltip, Statistic } from "antd";
 import { zIndexTip } from "./payment";
 
@@ -33,11 +33,18 @@ export default function MoneyStatistic({ value, title }: Props) {
     <Tooltip
       mouseEnterDelay={0.5}
       zIndex={zIndexTip}
-      title={`Exactly $${value} (USD)${
-        typeof title == "string" && title?.includes("per hour")
-          ? `$${value * 730}/month (USD)`
-          : ""
-      }`}
+      title={() => (
+        <>
+          {title} (USD): ${round4(value)}
+          {typeof title == "string" && title?.includes("Cost per hour") ? (
+            <>
+              <br /> Cost per month (USD): {currency(value * 730)}
+            </>
+          ) : (
+            ""
+          )}
+        </>
+      )}
     >
       {body}
     </Tooltip>

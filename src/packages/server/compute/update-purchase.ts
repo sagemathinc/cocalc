@@ -79,7 +79,11 @@ export default async function updatePurchase({
 
   if (!cost_per_hour || newState == "deprovisioned") {
     // no need to make a new purchase -- deprovisioned is free.
-    await setPurchaseId({ purchase_id: null, server_id: server.id });
+    await setPurchaseId({
+      purchase_id: null,
+      server_id: server.id,
+      cost_per_hour: 0,
+    });
     return;
   }
 
@@ -100,21 +104,26 @@ export default async function updatePurchase({
     },
   });
 
-  await setPurchaseId({ purchase_id, server_id: server.id });
+  await setPurchaseId({ purchase_id, server_id: server.id, cost_per_hour });
 }
 
 async function setPurchaseId({
   purchase_id,
   server_id,
+  cost_per_hour,
   client,
 }: {
   purchase_id: number | null;
   server_id: number;
+  cost_per_hour: number;
   client?;
 }) {
+  if (purchase_id == null) {
+    cost_per_hour = 0;
+  }
   await (client ?? getPool()).query(
-    "UPDATE compute_servers SET purchase_id=$1 WHERE id=$2",
-    [purchase_id, server_id],
+    "UPDATE compute_servers SET purchase_id=$1, cost_per_hour=$2 WHERE id=$3",
+    [purchase_id, cost_per_hour, server_id],
   );
 }
 
@@ -199,7 +208,11 @@ export async function closeAndContinuePurchase(
   logger.debug(
     "closeAndContinuePurchase -- update purchased in run_quota of project",
   );
-  await setPurchaseId({ purchase_id: new_purchase_id, server_id: server.id });
+  await setPurchaseId({
+    purchase_id: new_purchase_id,
+    server_id: server.id,
+    cost_per_hour: purchase.cost_per_hour,
+  });
   logger.debug("closeAndContinuePurchase -- closing old purchase", newPurchase);
   await closePurchase({
     id,
