@@ -4,12 +4,12 @@ import type {
   State,
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Divider, Popover, Progress, Spin } from "antd";
-import getActions from "./action";
+import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
 import { User } from "@cocalc/frontend/users";
 import { CSSProperties, useState } from "react";
 import { getServerState } from "./api";
 import { useInterval } from "react-interval-hook";
+import { currency } from "@cocalc/util/misc";
 
 interface Props {
   style?: CSSProperties;
@@ -20,6 +20,7 @@ interface Props {
   account_id: string;
   configuration: Configuration;
   setError: (string) => void;
+  cost_per_hour?: number;
 }
 
 export default function State({
@@ -29,16 +30,13 @@ export default function State({
   state_changed,
   editable,
   account_id,
-  configuration,
-  setError,
+  cost_per_hour,
 }: Props) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const { label, actions, icon, color, stable } =
-    STATE_INFO[state ?? "off"] ?? {};
+  const { label, icon, color, stable } = STATE_INFO[state ?? "off"] ?? {};
   const refresh = (
     <Button
       disabled={refreshing}
-      type="text"
       onClick={async () => {
         try {
           setRefreshing(true);
@@ -61,22 +59,39 @@ export default function State({
     );
   }
 
+  let cost;
+  if (cost_per_hour == null) {
+    cost = ""; // no info
+  } else if (stable) {
+    if (state == "deprovisioned") {
+      cost = " - $0/month";
+    } else {
+      const cost_per_month = `${currency(cost_per_hour * 730)}/month`;
+      if (state == "running") {
+        cost = (
+          <Tooltip title={cost_per_month} placement="right">
+            {" "}
+            - {currency(cost_per_hour)}/hour
+          </Tooltip>
+        );
+      } else {
+        cost = ` - ${cost_per_month}`;
+      }
+    }
+  }
+
   return (
     <Popover
       mouseEnterDelay={0.5}
-      title={<>State: {label}</>}
+      title={
+        <>
+          State: {label} {cost}
+        </>
+      }
       content={() => {
         return (
           <div style={{ maxWidth: "400px" }}>
-            <Body
-              id={id}
-              account_id={account_id}
-              state={state}
-              actions={actions}
-              editable={editable}
-              setError={setError}
-              configuration={configuration}
-            />
+            <Body account_id={account_id} editable={editable} />
             <div style={{ textAlign: "center" }}>{refresh}</div>
           </div>
         );
@@ -84,7 +99,7 @@ export default function State({
     >
       <span style={style}>
         <span style={{ color }}>
-          <Icon name={icon} /> {label}
+          <Icon name={icon} /> {label} {cost}
         </span>
         {!stable && (
           <>
@@ -141,27 +156,20 @@ function ProgressBarTimer({
   );
 }
 
-function Body({ state, actions, id, account_id, editable, setError, configuration }) {
-  if (state == "unknown") {
-    return <div>Click the "Refresh" button to update the state.</div>;
-  }
-  if (actions.length == 0) {
-    return <div>Please wait for this to finish.</div>;
-  } else {
-    if (!editable) {
-      return (
-        <div>
-          Only the owner of the compute server can change its state.
-          <Divider />
-          <div style={{ textAlign: "center" }}>
-            <User account_id={account_id} show_avatar />
-          </div>
-          <Divider />
-          Instead, create your own clone of this compute server.
+function Body({ account_id, editable }) {
+  if (!editable) {
+    return (
+      <div>
+        Only the owner of the compute server can change its state.
+        <Divider />
+        <div style={{ textAlign: "center" }}>
+          <User account_id={account_id} show_avatar />
         </div>
-      );
-    }
-    return <div>{getActions({ state, editable, id, setError, configuration })}</div>;
+        <Divider />
+        Instead, create your own clone of this compute server.
+      </div>
+    );
+  } else {
+    return null;
   }
-  return <div>You can {actions.join(", ")}</div>;
 }

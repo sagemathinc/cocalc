@@ -34,6 +34,7 @@ export default function ComputeServer({
   state,
   state_changed,
   cloud,
+  cost_per_hour,
   configuration,
   data,
   deleted,
@@ -211,6 +212,7 @@ export default function ComputeServer({
                   setError={setError}
                   account_id={account_id}
                   configuration={configuration}
+                  cost_per_hour={cost_per_hour}
                 />
               </div>
               {/*<div
@@ -322,6 +324,7 @@ export default function ComputeServer({
               setError={setError}
               account_id={account_id}
               configuration={configuration}
+              cost_per_hour={cost_per_hour}
             />
           </div>
           {table}
