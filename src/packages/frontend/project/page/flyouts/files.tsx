@@ -3,13 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
+import { Alert, InputRef } from "antd";
 import { delay } from "awaiting";
 import { List } from "immutable";
 import { debounce, fromPairs } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
-import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   TypedMap,
@@ -23,13 +22,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  ErrorDisplay,
-  Icon,
-  Loading,
-  Text,
-  TimeAgo,
-} from "@cocalc/frontend/components";
+import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
@@ -44,7 +37,6 @@ import {
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
   capitalize,
   copy_without,
@@ -54,20 +46,17 @@ import {
   search_split,
   separate_file_extension,
   should_open_in_foreground,
-  strictMod,
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { FIX_BORDER } from "../common";
 import { FileListItem, fileItemStyle } from "./components";
 import {
-  DEFAULT_EXT,
   FLYOUT_EXTRA2_WIDTH_PX,
   FLYOUT_EXTRA_WIDTH_PX,
   FLYOUT_PADDING,
 } from "./consts";
 import { FilesBottom } from "./files-bottom";
+import { FilesHeader } from "./files-header";
 
 const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
   [],
@@ -76,7 +65,7 @@ const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
   true,
 ];
 
-type ActiveFileSort = TypedMap<{
+export type ActiveFileSort = TypedMap<{
   column_name: string;
   is_descending: boolean;
 }>;
@@ -94,21 +83,6 @@ function useStrippedPublicPaths(project_id: string) {
   }, [public_paths]);
 }
 
-function searchToFilename(search: string): string {
-  if (search.endsWith(" ")) {
-    return search.trim(); // base name, without extension
-  }
-  search = search.trim();
-  if (search === "") return "";
-  // if last character is "/" return the search string
-  if (search.endsWith("/")) return search;
-  if (search.endsWith(".")) return `${search}${DEFAULT_EXT}`;
-  const { ext } = separate_file_extension(search);
-  if (ext.length > 0) return search;
-  if (ext === "") return `${search}.${DEFAULT_EXT}`;
-  return `${search}.${DEFAULT_EXT}`;
-}
-
 export function FilesFlyout({
   flyoutWidth,
 }: {
@@ -121,27 +95,22 @@ export function FilesFlyout({
   } = useProjectContext();
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null);
+  const refInput = useRef<InputRef>(null);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
     null,
   );
-  const refInput = useRef<InputRef>(null);
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-  const file_creation_error = useTypedRedux(
-    { project_id },
-    "file_creation_error",
-  );
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
     "active_file_sort",
   );
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
-  const hidden = useTypedRedux({ project_id }, "show_hidden");
-  const kucalc = useTypedRedux("customize", "kucalc");
   const show_masked = useTypedRedux({ project_id }, "show_masked");
+  const hidden = useTypedRedux({ project_id }, "show_hidden");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   // mainly controls what a single click does, plus additional UI elements
@@ -157,8 +126,6 @@ export function FilesFlyout({
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::files::${current_path}`,
   });
-  const uploadClassName = `upload-button-flyout-${project_id}`;
-
   const activePath = useMemo(() => {
     return tab_to_path(activeTab);
   }, [activeTab]);
@@ -519,63 +486,6 @@ export function FilesFlyout({
     }
   }
 
-  function doScroll(dx: -1 | 1) {
-    const nextIdx = strictMod(
-      scrollIdx == null ? (dx === 1 ? 0 : -1) : scrollIdx + dx,
-      directoryFiles.length,
-    );
-    setScrollIdx(nextIdx);
-    virtuosoRef.current?.scrollToIndex({
-      index: nextIdx,
-      align: "center",
-    });
-  }
-
-  async function createFileOrFolder() {
-    const fn = searchToFilename(file_search);
-    await actions?.create_file({
-      name: fn,
-      current_path,
-    });
-  }
-
-  function filterKeyHandler(e: React.KeyboardEvent) {
-    // if arrow key down or up, then scroll to next item
-    const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
-    if (dx != 0) {
-      doScroll(dx);
-    }
-
-    // left arrow key: go up a directory
-    else if (e.code === "ArrowLeft") {
-      if (current_path != "") {
-        actions?.set_current_path(
-          current_path.split("/").slice(0, -1).join("/"),
-        );
-      }
-    }
-
-    // return key pressed
-    else if (e.code === "Enter") {
-      if (scrollIdx != null) {
-        open(e, scrollIdx);
-        setScrollIdx(null);
-      } else if (file_search != "") {
-        setSearchState("");
-        if (!isEmpty) {
-          open(e, 0);
-        } else {
-          createFileOrFolder();
-        }
-      }
-    }
-
-    // if esc key is pressed, clear search and reset scroll index
-    else if (e.key === "Escape") {
-      handleSearchChange("");
-    }
-  }
-
   function showFileSharingDialog(file?: { name: string }) {
     if (!file) return;
     actions?.set_active_tab("files");
@@ -724,279 +634,25 @@ export function FilesFlyout({
     );
   }
 
-  function wrapDropzone(children: JSX.Element): JSX.Element {
-    if (disableUploads) return children;
-    return (
-      <FileUploadWrapper
-        project_id={project_id}
-        dest_path={current_path}
-        event_handlers={{
-          complete: () => actions?.fetch_directory_listing(),
-        }}
-        config={{ clickable: `.${uploadClassName}` }}
-        className="smc-vfill"
-      >
-        {children}
-      </FileUploadWrapper>
-    );
-  }
-
-  function renderSortButton(name: string, display: string): JSX.Element {
-    const isActive = activeFileSort.get("column_name") === name;
-    const direction = isActive ? (
-      <Icon
-        style={{ marginLeft: FLYOUT_PADDING }}
-        name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
-      />
-    ) : undefined;
-
-    return (
-      <Radio.Button
-        value={name}
-        style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
-        onClick={() => actions?.set_sorted_file_column(name)}
-      >
-        {display}
-        {direction}
-      </Radio.Button>
-    );
-  }
-
-  function renderHeader() {
-    return (
-      <>
-        <Space
-          direction="vertical"
-          style={{
-            flex: "0 0 auto",
-            paddingBottom: FLYOUT_PADDING,
-            paddingRight: FLYOUT_PADDING,
-          }}
-        >
-          {wrapDropzone(
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <Radio.Group size="small">
-                {renderSortButton("name", "Name")}
-                {renderSortButton("size", "Size")}
-                {renderSortButton("time", "Time")}
-                {renderSortButton("type", "Type")}
-              </Radio.Group>
-              <Space.Compact direction="horizontal" size={"small"}>
-                <Button
-                  className={uploadClassName}
-                  size="small"
-                  disabled={!projectIsRunning || disableUploads}
-                >
-                  <Icon name={"upload"} />
-                </Button>
-                <Tooltip title="Create a new file" placement="bottom">
-                  <Button
-                    size="small"
-                    type="primary"
-                    onClick={() => actions?.toggleFlyout("new")}
-                  >
-                    <Icon name={"plus-circle"} />
-                  </Button>
-                </Tooltip>
-              </Space.Compact>
-            </div>,
-          )}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              justifyContent: "space-between",
-              width: "100%",
-              gap: FLYOUT_PADDING,
-            }}
-          >
-            <Input
-              ref={refInput}
-              placeholder="Filter..."
-              size="small"
-              value={file_search}
-              onKeyDown={filterKeyHandler}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onFocus={() => setScrollIdxHide(false)}
-              onBlur={() => setScrollIdxHide(true)}
-              style={{ flex: "1" }}
-              allowClear
-              prefix={<Icon name="search" />}
-            />
-            <Space.Compact direction="horizontal" size="small">
-              <BootstrapButton
-                title={hidden ? "Hide hidden files" : "Show hidden files"}
-                bsSize="xsmall"
-                style={{ flex: "0" }}
-                onClick={() => actions?.setState({ show_hidden: !hidden })}
-              >
-                <Icon name={hidden ? "eye" : "eye-slash"} />
-              </BootstrapButton>
-              <BootstrapButton
-                title={show_masked ? "Hide masked files" : "Show masked files"}
-                bsSize="xsmall"
-                style={{ flex: "0" }}
-                active={!show_masked}
-                onClick={() => actions?.setState({ show_masked: !show_masked })}
-              >
-                <Icon name={"mask"} />
-              </BootstrapButton>
-            </Space.Compact>
-            {kucalc === KUCALC_COCALC_COM ? (
-              <Space.Compact direction="horizontal" size="small">
-                <Button
-                  onClick={() => {
-                    actions?.open_directory(".snapshots");
-                    track("snapshots", {
-                      action: "open",
-                      where: "flyout-files",
-                    });
-                  }}
-                  title={
-                    "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
-                  }
-                  icon={<Icon name={"life-ring"} />}
-                />
-              </Space.Compact>
-            ) : undefined}
-          </div>
-        </Space>
-        <Space
-          direction="vertical"
-          style={{
-            flex: "0 0 auto",
-            borderBottom: FIX_BORDER,
-          }}
-        >
-          {staleListingWarning()}
-          {activeFilterWarning()}
-          {createFileIfNotExists()}
-          {renderFileCreationError()}
-        </Space>
-      </>
-    );
-  }
-
-  function renderClearSearchSmall() {
-    return (
-      <Tooltip title="Clear search" placement="bottom">
-        <Button
-          size="small"
-          type="text"
-          style={{ float: "right", color: COLORS.GRAY_M }}
-          onClick={() => setSearchState("")}
-          icon={<Icon name="close-circle-filled" />}
-        />
-      </Tooltip>
-    );
-  }
-
-  function renderFileCreationError() {
-    if (!file_creation_error) return;
-    return (
-      <ErrorDisplay
-        banner
-        error={file_creation_error}
-        componentStyle={{
-          margin: 0,
-          maxHeight: "200px",
-        }}
-        onClose={(): void => {
-          actions?.setState({ file_creation_error: "" });
-        }}
-      />
-    );
-  }
-
-  function activeFilterWarning() {
-    if (file_search === "") return;
-    if (!isEmpty) {
-      return (
-        <Alert
-          type="info"
-          banner
-          showIcon={false}
-          style={{ padding: FLYOUT_PADDING, margin: 0 }}
-          description={
-            <>
-              {renderClearSearchSmall()}
-              Only showing files matching "<Text code>{file_search}</Text>".
-            </>
-          }
-        />
-      );
-    }
-  }
-
-  function createFileIfNotExists() {
-    if (file_search === "" || !isEmpty) return;
-
-    const what = file_search.trim().endsWith("/") ? "directory" : "file";
-    return (
-      <Alert
-        type="info"
-        banner
-        showIcon={false}
-        style={{ padding: FLYOUT_PADDING, margin: 0 }}
-        description={
-          <>
-            <div>
-              {renderClearSearchSmall()}
-              No files match the current filter.
-            </div>
-            <div>
-              Hit <Text code>Return</Text> to create the {what}{" "}
-              <Text code>{searchToFilename(file_search)}</Text>
-            </div>
-          </>
-        }
-      />
-    );
-  }
-
-  function staleListingWarning() {
-    if (projectIsRunning || (directoryFiles?.length ?? 0) === 0) return;
-
-    return (
-      <Alert
-        type="warning"
-        banner
-        showIcon={false}
-        style={{ padding: FLYOUT_PADDING, margin: 0 }}
-        message={
-          <>
-            <Icon name="warning" /> Stale directory listing
-          </>
-        }
-        description={
-          <>
-            To update,{" "}
-            <a
-              onClick={() => {
-                redux.getActions("projects").start_project(project_id);
-              }}
-            >
-              start this project
-            </a>
-            .
-          </>
-        }
-      />
-    );
-  }
-
   return (
     <div
       ref={rootRef}
       style={{ flex: "1 0 auto", flexDirection: "column", display: "flex" }}
     >
-      {renderHeader()}
+      <FilesHeader
+        activeFileSort={activeFileSort}
+        directoryFiles={directoryFiles}
+        disableUploads={disableUploads}
+        handleSearchChange={handleSearchChange}
+        isEmpty={isEmpty}
+        open={open}
+        refInput={refInput}
+        scrollIdx={scrollIdx}
+        setScrollIdx={setScrollIdx}
+        setScrollIdxHide={setScrollIdxHide}
+        setSearchState={setSearchState}
+        virtuosoRef={virtuosoRef}
+      />
       {disableUploads ? (
         renderListing()
       ) : (

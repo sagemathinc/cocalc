@@ -256,7 +256,6 @@ export function ProjectsNav(props: ProjectsNavProps) {
   const projectActions = useActions("projects");
   const activeTopTab = useTypedRedux("page", "active_top_tab");
   const openProjects = useTypedRedux("projects", "open_projects");
-  const isAnonymous = useTypedRedux("account", "is_anonymous");
 
   const items: TabsProps["items"] = useMemo(() => {
     if (openProjects == null) return [];
@@ -319,7 +318,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
             onChange={(project_id) => {
               actions.set_active_tab(project_id);
             }}
-            type={isAnonymous ? "card" : "editable-card"}
+            type={"editable-card"}
             renderTabBar={renderTabBar}
             items={items}
           />
