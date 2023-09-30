@@ -12,6 +12,7 @@ import {
   Spin,
   Switch,
   Table,
+  Typography,
 } from "antd";
 import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
@@ -286,7 +287,7 @@ export default function Configuration({
     },
 
     {
-      key: "boot",
+      key: "disk",
       label: (
         <A href="https://cloud.google.com/compute/docs/disks/performance">
           <Icon name="external-link" /> Disks
@@ -298,6 +299,19 @@ export default function Configuration({
           setConfig={setConfig}
           configuration={configuration}
           priceData={priceData}
+          state={state}
+        />
+      ),
+    },
+
+    {
+      key: "network",
+      label: <>Network</>,
+      value: (
+        <Network
+          disabled={loading || disabled}
+          setConfig={setConfig}
+          configuration={configuration}
           state={state}
         />
       ),
@@ -1213,4 +1227,48 @@ function ensureConsistentRegionAndZoneWithMachineType(
 function zoneToRegion(zone: string): string {
   const i = zone.lastIndexOf("-");
   return zone.slice(0, i);
+}
+
+function Network({ setConfig, configuration, disabled, state }) {
+  const [externalIp, setExternalIp] = useState<boolean>(
+    !!configuration.externalIp,
+  );
+  useEffect(() => {
+    setExternalIp(!!configuration.externalIp);
+  }, [configuration.externalIp]);
+
+  return (
+    <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>Network</b>
+      </div>
+      <Checkbox
+        checked={externalIp}
+        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+        onChange={() => {
+          setExternalIp(!externalIp);
+          setConfig({ externalIp: !externalIp });
+        }}
+      >
+        External IP Address
+      </Checkbox>
+      <div style={{ color: "#666", marginTop: "5px" }}>
+        <Typography.Paragraph
+          ellipsis={{
+            expandable: true,
+            rows: 2,
+            symbol: "more",
+          }}
+        >
+          {/* TODO: we can and will in theory support all this without external
+        ip using a gateway. E.g., google cloud shell has ssh to host, etc. */}
+          Set whether or not the VM has an external IP address. This makes it
+          easy to run a public web service and ssh to your compute server, but
+          costs {configuration.spot ? "$0.002/hour" : "$0.004/hour"} while the
+          VM is running. The VM can always access the internet without an
+          external IP address.
+        </Typography.Paragraph>
+      </div>
+    </div>
+  );
 }

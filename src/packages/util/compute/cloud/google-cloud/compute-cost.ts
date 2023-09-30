@@ -83,6 +83,7 @@ function computeRunningCost({ configuration, priceData, noMarkup }) {
   }
 
   const diskCost = computeDiskCost({ configuration, priceData });
+  const externalIpCost = computeExternalIpCost({ configuration });
 
   let acceleratorCost;
   if (configuration.acceleratorType) {
@@ -125,7 +126,7 @@ function computeRunningCost({ configuration, priceData, noMarkup }) {
     computeCost *= 1 + priceData.markup / 100.0;
   }
 
-  const total = diskCost + computeCost;
+  const total = diskCost + computeCost + externalIpCost;
   log("cost", { total, vmCost, acceleratorCost, diskCost });
   return total;
 }
@@ -186,4 +187,17 @@ function computeSuspendedCost({
     suspendCost *= 1 + priceData.markup / 100.0;
   }
   return suspendCost;
+}
+
+// TODO: This could change and should be in pricing data --
+//     https://cloud.google.com/vpc/network-pricing#ipaddress
+function computeExternalIpCost({ configuration }) {
+  if (!configuration.externalIp) {
+    return 0;
+  }
+  if (configuration.spot) {
+    return 0.004;
+  } else {
+    return 0.002;
+  }
 }

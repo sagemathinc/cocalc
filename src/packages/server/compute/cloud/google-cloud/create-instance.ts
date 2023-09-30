@@ -58,14 +58,16 @@ export default async function createInstance({
 
   const networkInterfaces = [
     {
-      accessConfigs: [
-        {
-          name: "External NAT",
-          networkTier: supportsStandardNetworkTier(configuration.region)
-            ? "STANDARD"
-            : "PREMIUM",
-        },
-      ],
+      accessConfigs: configuration.externalIp
+        ? [
+            {
+              name: "External NAT",
+              networkTier: supportsStandardNetworkTier(configuration.region)
+                ? "STANDARD"
+                : "PREMIUM",
+            },
+          ]
+        : [],
       stackType: "IPV4_ONLY",
       subnetwork: `projects/${client.googleProjectId}/regions/${configuration.region}/subnetworks/default`,
     },

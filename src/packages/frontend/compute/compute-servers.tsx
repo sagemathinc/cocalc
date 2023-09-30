@@ -131,7 +131,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
   }
   return (
     <div style={{ margin: "5px" }}>
-      <div style={{ float: "right" }}>
+      <div style={{ float: "right", marginBottom: "15px" }}>
         {computeServers.size > 1 && (
           <Search
             allowClear

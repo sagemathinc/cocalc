@@ -30,7 +30,15 @@ export default function MoneyStatistic({ value, title }: Props) {
   }
 
   return (
-    <Tooltip mouseEnterDelay={0.5} zIndex={zIndexTip} title={`Exactly $${value} (USD)`}>
+    <Tooltip
+      mouseEnterDelay={0.5}
+      zIndex={zIndexTip}
+      title={`Exactly $${value} (USD)${
+        typeof title == "string" && title?.includes("per hour")
+          ? `$${value * 730}/month (USD)`
+          : ""
+      }`}
+    >
       {body}
     </Tooltip>
   );

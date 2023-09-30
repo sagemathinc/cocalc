@@ -79,7 +79,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }}
         style={{
           marginRight: "5px",
-          marginBottom: "5px",
           width: "100%",
           height: "auto",
           whiteSpace: "normal",

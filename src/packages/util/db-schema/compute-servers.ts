@@ -334,6 +334,8 @@ export interface GoogleCloudConfiguration {
   // this might not be needed, but we'll see.  If image is not set, we use the newest
   // image that is tagged prod:true, or its an error if no such image exists.
   image?: string;
+  // If true, then we have an external ip address
+  externalIp?: boolean;
 }
 
 export type Configuration =
