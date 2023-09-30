@@ -6,7 +6,7 @@
 import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux } from "@cocalc/frontend/app-framework";
 import { isValidUUID } from "@cocalc/util/misc";
-import { computeServersEnabled } from "./index";
+import { computeServersEnabled } from "./config";
 
 const PREFIX = "compute-server-";
 function projectIdToName(project_id) {

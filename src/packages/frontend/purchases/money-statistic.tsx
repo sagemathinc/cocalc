@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { currency, round2, round3, round4 } from "@cocalc/util/misc";
 import { Tooltip, Statistic } from "antd";
-import { zIndexTip } from "./payment";
+import { zIndexTip } from "./zindex";
 
 interface Props {
   value: number;

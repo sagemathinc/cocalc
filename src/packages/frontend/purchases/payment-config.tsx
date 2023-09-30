@@ -2,7 +2,7 @@ import { Divider, InputNumber, Space, Spin, Tag, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
-import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/consts";
+import { zIndexPayAsGo } from "./zindex";
 import * as api from "./api";
 import MoneyStatistic from "./money-statistic";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
@@ -50,7 +50,7 @@ export default function PaymentConfig({
         <Tooltip
           zIndex={zIndexTip}
           title={`If you enter more than ${currency(
-            minAmount
+            minAmount,
           )}, your account will be credited.  Credit can be used to purchase anything on our site.  These credits are nonrefundable, but do not expire.`}
         >
           <Icon name="question-circle" style={{ marginLeft: "30px" }} />
