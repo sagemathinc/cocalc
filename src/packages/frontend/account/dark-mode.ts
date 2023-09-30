@@ -8,7 +8,7 @@ import { AccountStore } from "./store";
 
 if (require("darkreader/package").version != "4.9.35") {
   throw Error(
-    "Do NOT upgrade darkreader beyond 4.9.35 until https://github.com/sagemathinc/cocalc/issues/5591 is resolved!  Doing so breaks MathJax v2."
+    "Do NOT upgrade darkreader beyond 4.9.35 until https://github.com/sagemathinc/cocalc/issues/5591 is resolved!  Doing so breaks MathJax v2.",
   );
 }
 
@@ -54,23 +54,24 @@ export function get_dark_mode_config(other_settings?: {
 }): Config {
   const brightness = Math.max(
     dark_mode_mins.brightness,
-    to_number(other_settings?.dark_mode_brightness, 100)
+    to_number(other_settings?.dark_mode_brightness, 100),
   );
   const contrast = Math.max(
     dark_mode_mins.contrast,
-    to_number(other_settings?.dark_mode_contrast, 90)
+    to_number(other_settings?.dark_mode_contrast, 90),
   );
   const sepia = to_number(
     other_settings?.dark_mode_sepia,
-    dark_mode_mins.sepia
+    dark_mode_mins.sepia,
   );
   const grayscale = to_number(
     other_settings?.dark_mode_grayscale,
-    dark_mode_mins.grayscale
+    dark_mode_mins.grayscale,
   );
   return { brightness, contrast, sepia, grayscale };
 }
 
+let currentDarkMode: boolean = false;
 let last_dark_mode: boolean = false;
 let last_config: Config | undefined = undefined;
 export function init_dark_mode(account_store: AccountStore): void {
@@ -78,8 +79,9 @@ export function init_dark_mode(account_store: AccountStore): void {
     "change",
     throttle(async () => {
       const dark_mode = !!account_store.getIn(["other_settings", "dark_mode"]);
+      currentDarkMode = dark_mode;
       const config = get_dark_mode_config(
-        account_store.get("other_settings")?.toJS()
+        account_store.get("other_settings")?.toJS(),
       );
       if (
         dark_mode == last_dark_mode &&
@@ -95,6 +97,10 @@ export function init_dark_mode(account_store: AccountStore): void {
       } else {
         disable();
       }
-    }, 3000)
+    }, 3000),
   );
+}
+
+export function inDarkMode() {
+  return currentDarkMode;
 }

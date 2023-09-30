@@ -23,6 +23,7 @@ interface Props {
   show_uncommitted_changes?: boolean;
   set_show_uncommitted_changes?: Function;
   style?: CSSProperties;
+  type?: "default"; // only used to turn off color in case of dark mode right now
 }
 
 export const SaveButton: FC<Props> = memo(
@@ -38,6 +39,7 @@ export const SaveButton: FC<Props> = memo(
     show_uncommitted_changes,
     set_show_uncommitted_changes,
     style,
+    type,
   }: Props) => {
     const label = useMemo(() => {
       if (!no_labels) {
@@ -55,11 +57,11 @@ export const SaveButton: FC<Props> = memo(
 
     const disabled = useMemo(
       () => !has_unsaved_changes || !!read_only || !!is_public,
-      [has_unsaved_changes, read_only, is_public]
+      [has_unsaved_changes, read_only, is_public],
     );
     const icon = useMemo(
       () => (is_saving ? "arrow-circle-o-left" : "save"),
-      [is_saving]
+      [is_saving],
     );
 
     // The funny style in the icon below is because the width changes
@@ -72,8 +74,9 @@ export const SaveButton: FC<Props> = memo(
         disabled={disabled}
         onClick={onClick}
         style={{
-          background: "#5cb85c",
-          color: "white",
+          ...(type == "default"
+            ? undefined
+            : { background: "#5cb85c", color: "white" }),
           opacity: disabled ? 0.65 : undefined,
           whiteSpace: "nowrap",
           ...style,
@@ -88,5 +91,5 @@ export const SaveButton: FC<Props> = memo(
         />
       </Button>
     );
-  }
+  },
 );
