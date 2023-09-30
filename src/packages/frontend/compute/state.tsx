@@ -34,19 +34,18 @@ export default function State({
 }: Props) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const { label, icon, color, stable } = STATE_INFO[state ?? "off"] ?? {};
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await getServerState(id);
+    } catch (_) {
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const refresh = (
-    <Button
-      disabled={refreshing}
-      onClick={async () => {
-        try {
-          setRefreshing(true);
-          await getServerState(id);
-        } catch (_) {
-        } finally {
-          setRefreshing(false);
-        }
-      }}
-    >
+    <Button disabled={refreshing} onClick={handleRefresh}>
       <Icon name="refresh" spin={refreshing} /> Refresh State
     </Button>
   );
@@ -82,7 +81,7 @@ export default function State({
 
   return (
     <Popover
-      mouseEnterDelay={0.5}
+      mouseEnterDelay={0.9}
       title={
         <>
           State: {label} {cost}
@@ -97,7 +96,7 @@ export default function State({
         );
       }}
     >
-      <span style={style}>
+      <span style={{ cursor: "pointer", ...style }} onClick={handleRefresh}>
         <span style={{ color }}>
           <Icon name={icon} /> {label} {cost}
         </span>
