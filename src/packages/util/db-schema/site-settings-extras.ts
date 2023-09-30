@@ -541,7 +541,7 @@ export const EXTRAS: SettingsExtras = {
   //   },
   google_cloud_service_account_json: {
     name: "Compute Servers: Google Cloud - Service Account Json",
-    desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud, and you must enable the Compute Engine API for this project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
+    desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud, and you must (1) [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
     default: "",
     multiline: 2,
     show: compute_servers_google_enabled,
