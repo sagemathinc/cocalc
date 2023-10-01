@@ -97,7 +97,6 @@ export default async function updatePurchase({
     cost_per_hour,
     description: {
       type: "compute-server",
-      project_id: server.project_id,
       state: newState,
       compute_server_id: server.id,
       configuration: server.configuration,
@@ -192,7 +191,6 @@ async function closePurchase({
         cost: network.cost,
         description: {
           type: "compute-server-network-usage",
-          project_id: server.project_id,
           compute_server_id: server.id,
           amount: network.amount,
         },
