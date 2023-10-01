@@ -6,7 +6,11 @@ But that works!
 */
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
+import {
+  DisksClient,
+  InstancesClient,
+  ZoneOperationsClient,
+} from "@google-cloud/compute";
 import getLogger from "@cocalc/backend/logger";
 import { getFullMachineType, getSchedulingModel } from "./create-instance";
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
@@ -195,6 +199,26 @@ export async function setSpot({
     zone,
     instance: name,
     schedulingResource: getSchedulingModel(configuration),
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
+export async function increaseBootDiskSize({
+  name,
+  zone,
+  wait,
+  configuration,
+}: ChangeOptions) {
+  const credentials = await getCredentials();
+  const client = new DisksClient(credentials);
+
+  const [response] = await client.resize({
+    disk: name,
+    disksResizeRequestResource: { sizeGb: configuration.diskSizeGb },
+    project: credentials.projectId,
+    zone,
   });
   if (wait) {
     await waitUntilOperationComplete({ response, zone });

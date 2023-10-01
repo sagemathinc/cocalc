@@ -65,15 +65,18 @@ export default async function setServerConfiguration({
       currentConfiguration,
       changes: configuration,
     });
-  }
-
-  const { rowCount } = await pool.query(
-    "UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2 AND account_id=$3",
-    [configuration, id, account_id],
-  );
-  if (rowCount == 0) {
-    throw Error(
-      "invalid id, or attempt to change compute server by a non-owner, which is not allowed.",
+    const provisioned_configuration = {
+      ...currentConfiguration,
+      ...configuration,
+    };
+    await pool.query(
+      "UPDATE compute_servers SET provisioned_configuration = $1::jsonb WHERE id=$2",
+      [provisioned_configuration, id],
     );
   }
+
+  await pool.query(
+    "UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2",
+    [configuration, id],
+  );
 }
