@@ -2,11 +2,10 @@ import type {
   GoogleCloudConfiguration,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
-import { setMachineType } from "./client";
+import { setMachineType, setSpot } from "./client";
 import { getServerName } from "./index";
-import { getFullMachineType } from "./create-instance";
 
-export const SUPPORTED_CHANGES = ["machineType"];
+export const SUPPORTED_CHANGES = ["machineType", "spot"];
 
 export async function makeConfigurationChange({
   id,
@@ -33,12 +32,20 @@ export async function makeConfigurationChange({
   const name = getServerName({ id });
   const zone = currentConfiguration.zone;
 
-  if (currentConfiguration["machineType"] != newConfiguration["machineType"]) {
+  if (currentConfiguration.machineType != newConfiguration.machineType) {
     await setMachineType({
       name,
       zone,
       wait: true,
-      machineType: getFullMachineType(newConfiguration),
+      configuration: newConfiguration,
+    });
+  }
+  if (!!currentConfiguration.spot != !!newConfiguration.spot) {
+    await setSpot({
+      name,
+      zone,
+      wait: true,
+      configuration: newConfiguration,
     });
   }
 }

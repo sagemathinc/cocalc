@@ -8,6 +8,8 @@ But that works!
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
 import getLogger from "@cocalc/backend/logger";
+import { getFullMachineType, getSchedulingModel } from "./create-instance";
+import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
 
 const logger = getLogger("server:compute:google-cloud:client");
 
@@ -157,20 +159,42 @@ export async function waitUntilOperationComplete({ response, zone }) {
   }
 }
 
+interface ChangeOptions extends Options {
+  configuration: GoogleCloudConfiguration;
+}
+
 export async function setMachineType({
   name,
   zone,
   wait,
-  machineType,
-}: { machineType: string } & Options) {
+  configuration,
+}: ChangeOptions) {
   const client = await getClient();
   const [response] = await client.setMachineType({
     project: client.googleProjectId,
     zone,
     instance: name,
     instancesSetMachineTypeRequestResource: {
-      machineType,
+      machineType: getFullMachineType(configuration),
     },
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
+export async function setSpot({
+  name,
+  zone,
+  wait,
+  configuration,
+}: ChangeOptions) {
+  const client = await getClient();
+  const [response] = await client.setScheduling({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+    schedulingResource: getSchedulingModel(configuration),
   });
   if (wait) {
     await waitUntilOperationComplete({ response, zone });

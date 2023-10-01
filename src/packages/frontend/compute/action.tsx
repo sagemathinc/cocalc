@@ -1,4 +1,4 @@
-import { Button, Popconfirm, Popover, Spin } from "antd";
+import { Alert, Button, Popconfirm, Popover, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import {
   ACTION_INFO,
@@ -130,9 +130,31 @@ function ActionButton({
   if (confirm) {
     button = (
       <Popconfirm
-        title={`${label} - Are you sure?`}
+        title={
+          <div>
+            {label} - Are you sure?
+            {action == "deprovision" && (
+              <Alert
+                showIcon
+                style={{ margin: "15px 0" }}
+                type="warning"
+                message={"This will delete all data on the boot disk!!"}
+              />
+            )}
+            {action == "stop" && (
+              <Alert
+                showIcon
+                style={{ margin: "15px 0" }}
+                type="info"
+                message={
+                  "This will safely turn off the VM, and allow you to edit its configuration."
+                }
+              />
+            )}
+          </div>
+        }
         onConfirm={doAction}
-        okText="Yes"
+        okText={`Yes, ${action} VM`}
         cancelText="Cancel"
       >
         {button}

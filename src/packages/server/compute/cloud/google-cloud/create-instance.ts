@@ -92,20 +92,7 @@ export default async function createInstance({
     });
   }
 
-  const schedulingModel = configuration.spot
-    ? {
-        automaticRestart: false,
-        instanceTerminationAction: "STOP",
-        onHostMaintenance: "TERMINATE",
-        provisioningModel: "SPOT",
-      }
-    : {
-        automaticRestart: true,
-        onHostMaintenance: !configuration.acceleratorType
-          ? "MIGRATE"
-          : "TERMINATE",
-        provisioningModel: "STANDARD",
-      };
+  const schedulingModel = getSchedulingModel(configuration);
 
   const maxRunDuration = configuration.maxRunDurationSeconds
     ? {
@@ -175,4 +162,32 @@ export function getFullMachineType(
   configuration: GoogleCloudConfiguration,
 ): string {
   return `zones/${configuration.zone}/machineTypes/${configuration.machineType}`;
+}
+
+export function getSchedulingModel(configuration: GoogleCloudConfiguration) {
+  if (configuration.spot) {
+    return {
+      automaticRestart: false,
+      instanceTerminationAction: "STOP",
+      localSsdRecoveryTimeout: null,
+      locationHint: null,
+      nodeAffinities: null,
+      onHostMaintenance: "TERMINATE",
+      preemptible: true,
+      provisioningModel: "SPOT",
+    };
+  } else {
+    return {
+      automaticRestart: true,
+      instanceTerminationAction: "START",
+      localSsdRecoveryTimeout: null,
+      locationHint: null,
+      nodeAffinities: null,
+      onHostMaintenance: !configuration.acceleratorType
+        ? "MIGRATE"
+        : "TERMINATE",
+      provisioningModel: "STANDARD",
+      preemptible: false,
+    };
+  }
 }
