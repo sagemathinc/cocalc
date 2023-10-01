@@ -55,7 +55,9 @@ export default async function setServerConfiguration({
     // making config changes to the provisioned VM, but this still throws an
     // exception, so they can get something for free.  However, we will also
     // sync the provisioned state back to our database regularly, thus updating
-    // the configuration.  Still, it is something to worry about.
+    // the configuration.  Still, it is something to worry about.  ALSO,
+    // we can always ALSO check that the configuration is correct when starting
+    // the machine, just in case.
     await makeConfigurationChange({
       id,
       cloud,

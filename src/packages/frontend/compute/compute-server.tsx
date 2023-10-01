@@ -249,6 +249,7 @@ export default function ComputeServer({
         table
       ) : (
         <Modal
+          destroyOnClose
           maskStyle={{ background: color, opacity: 0.5 }}
           width={"900px"}
           onCancel={() => setEdit(false)}

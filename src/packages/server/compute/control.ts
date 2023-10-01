@@ -444,13 +444,14 @@ export async function validateConfigurationChange({
 
   switch (cloud) {
     case "google-cloud":
-      return await googleCloud.validateConfigurationChange({
+      await googleCloud.validateConfigurationChange({
         state,
         // @ts-ignore
         currentConfiguration,
         // @ts-ignore
         newConfiguration,
       });
+      return;
   }
 }
 

@@ -28,7 +28,7 @@ export * from "./make-configuration-change";
 
 const logger = getLogger("server:compute:google-cloud");
 
-function getServerName(server: ComputeServer) {
+export function getServerName(server: { id: number }) {
   return `cocalc-compute-server-${server.id}`;
 }
 

@@ -99,6 +99,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         Create Compute Server... {creating ? <Spin /> : null}
       </Button>
       <Modal
+        destroyOnClose
         width={"900px"}
         onCancel={() => setEditing(false)}
         open={editing}

@@ -54,7 +54,7 @@ export default async function createInstance({
     },
   ];
 
-  const machineType = `zones/${configuration.zone}/machineTypes/${configuration.machineType}`;
+  const machineType = getFullMachineType(configuration);
 
   const networkInterfaces = [
     {
@@ -169,4 +169,10 @@ export default async function createInstance({
   });
 
   return { diskSizeGb };
+}
+
+export function getFullMachineType(
+  configuration: GoogleCloudConfiguration,
+): string {
+  return `zones/${configuration.zone}/machineTypes/${configuration.machineType}`;
 }
