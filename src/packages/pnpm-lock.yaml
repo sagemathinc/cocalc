@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      encoding:
+        specifier: ^0.1.13
+        version: 0.1.13
     devDependencies:
       '@types/jest':
         specifier: ^29.5.3
@@ -115,7 +119,7 @@ importers:
         version: 2.7.9
       pdfjs-dist:
         specifier: ^3.2.146
-        version: 3.2.146
+        version: 3.2.146(encoding@0.1.13)
 
   comm:
     dependencies:
@@ -188,7 +192,7 @@ importers:
         version: 7.14.1
       node-fetch:
         specifier: 2.6.7
-        version: 2.6.7
+        version: 2.6.7(encoding@0.1.13)
       pg:
         specifier: ^8.7.1
         version: 8.8.0
@@ -276,19 +280,19 @@ importers:
         version: 1.2.1
       '@jupyter-widgets/base':
         specifier: ^4.1.1
-        version: 4.1.1(crypto@1.0.1)
+        version: 4.1.1(crypto@1.0.1)(encoding@0.1.13)
       '@jupyter-widgets/controls':
         specifier: ^3.1.0
-        version: 3.1.1(crypto@1.0.1)
+        version: 3.1.1(crypto@1.0.1)(encoding@0.1.13)
       '@jupyter-widgets/output':
         specifier: ^4.1.0
-        version: 4.1.1(crypto@1.0.1)
+        version: 4.1.1(crypto@1.0.1)(encoding@0.1.13)
       '@lumino/widgets':
         specifier: ^1.31.1
         version: 1.36.0(crypto@1.0.1)
       '@microlink/react-json-view':
         specifier: ^1.22.2
-        version: 1.22.2(@types/react@18.0.26)(react-dom@18.2.0)(react@18.2.0)
+        version: 1.22.2(@types/react@18.0.26)(encoding@0.1.13)(react-dom@18.2.0)(react@18.2.0)
       '@react-hook/mouse-position':
         specifier: ^4.1.3
         version: 4.1.3(react@18.2.0)
@@ -462,7 +466,7 @@ importers:
         version: 1.0.1
       k3d:
         specifier: ^2.14.1
-        version: 2.15.2(crypto@1.0.1)
+        version: 2.15.2(crypto@1.0.1)(encoding@0.1.13)
       katex:
         specifier: ^0.16.4
         version: 0.16.4
@@ -510,7 +514,7 @@ importers:
         version: 3.1.0
       pdfjs-dist:
         specifier: ^3.2.146
-        version: 3.2.146
+        version: 3.2.146(encoding@0.1.13)
       pegjs:
         specifier: ^0.10.0
         version: 0.10.0
@@ -850,7 +854,7 @@ importers:
         version: 15.1.0
       parse-domain:
         specifier: ^5.0.0
-        version: 5.0.0
+        version: 5.0.0(encoding@0.1.13)
       passport:
         specifier: ^0.6.0
         version: 0.6.0
@@ -1358,10 +1362,10 @@ importers:
         version: link:../util
       '@google-cloud/compute':
         specifier: ^4.0.1
-        version: 4.0.1
+        version: 4.0.1(encoding@0.1.13)
       '@google-cloud/monitoring':
         specifier: ^4.0.0
-        version: 4.0.0
+        version: 4.0.0(encoding@0.1.13)
       '@isaacs/ttlcache':
         specifier: ^1.2.1
         version: 1.2.1
@@ -1475,7 +1479,7 @@ importers:
         version: 3.2.1
       parse-domain:
         specifier: ^5.0.0
-        version: 5.0.0
+        version: 5.0.0(encoding@0.1.13)
       passport:
         specifier: ^0.6.0
         version: 0.6.0
@@ -2161,7 +2165,7 @@ packages:
       '@babel/traverse': 7.21.5
       '@babel/types': 7.21.5
       convert-source-map: 1.9.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.0
@@ -2206,7 +2210,7 @@ packages:
       '@babel/traverse': 7.22.8
       '@babel/types': 7.22.5
       convert-source-map: 1.9.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -2509,7 +2513,7 @@ packages:
       '@babel/core': 7.18.13
       '@babel/helper-compilation-targets': 7.22.9(@babel/core@7.18.13)
       '@babel/helper-plugin-utils': 7.22.5
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4
       lodash.debounce: 4.0.8
       resolve: 1.22.2
       semver: 6.3.0
@@ -2527,7 +2531,7 @@ packages:
       debug: 4.3.4(supports-color@9.3.1)
       lodash.debounce: 4.0.8
       resolve: 1.22.2
-      semver: 6.3.1
+      semver: 6.3.0
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -4465,7 +4469,7 @@ packages:
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.22.7
       '@babel/types': 7.22.5
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -4518,7 +4522,7 @@ packages:
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.22.7
       '@babel/types': 7.22.5
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -4740,21 +4744,21 @@ packages:
       - supports-color
     dev: true
 
-  /@google-cloud/compute@4.0.1:
+  /@google-cloud/compute@4.0.1(encoding@0.1.13):
     resolution: {integrity: sha512-9/kzXFNTmEh8UqNdt8G5NdtfIyAfVYG+7yagk/rh2mh/XFynDGW4DXIYvrWIcMns8HSZxrUgNyNDPva+BUp14w==}
     engines: {node: '>=14.0.0'}
     dependencies:
-      google-gax: 4.0.3
+      google-gax: 4.0.3(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
       - supports-color
     dev: false
 
-  /@google-cloud/monitoring@4.0.0:
+  /@google-cloud/monitoring@4.0.0(encoding@0.1.13):
     resolution: {integrity: sha512-7HBEWbusYzcaNr6aZHqM4sUmqYS7BCh5VashxHrurXU45yTwiYgfmqhHd4P1yO5J/zpVEDXPZBI+a+8nacQoqw==}
     engines: {node: '>=14.0.0'}
     dependencies:
-      google-gax: 4.0.3
+      google-gax: 4.0.3(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -5242,7 +5246,7 @@ packages:
     dependencies:
       '@types/istanbul-lib-coverage': 2.0.4
       '@types/istanbul-reports': 3.0.1
-      '@types/node': 18.17.14
+      '@types/node': 18.18.0
       '@types/yargs': 15.0.14
       chalk: 4.1.2
 
@@ -5285,7 +5289,6 @@ packages:
   /@jridgewell/resolve-uri@3.1.1:
     resolution: {integrity: sha512-dSYZh7HhCDtCKm4QakX0xFpsRDqjjtZf/kjI/v3T3Nwt5r8/qz/M19F9ySyOqU94SXBmeG9ttTul+YnR4LOxFA==}
     engines: {node: '>=6.0.0'}
-    dev: true
 
   /@jridgewell/set-array@1.1.2:
     resolution: {integrity: sha512-xnkseuNADM0gt2bs+BvhO0p78Mk762YnZdsuzFV018NoG1Sj1SCQvpSqa7XUaTam5vAGasABV9qXASMKnFMwMw==}
@@ -5295,7 +5298,7 @@ packages:
     resolution: {integrity: sha512-UTYAUj/wviwdsMfzoSJspJxbkH5o1snzwX0//0ENX1u/55kkZZkcTZP6u9bwKGkv+dkk9at4m1Cpt0uY80kcpQ==}
     dependencies:
       '@jridgewell/gen-mapping': 0.3.3
-      '@jridgewell/trace-mapping': 0.3.18
+      '@jridgewell/trace-mapping': 0.3.19
 
   /@jridgewell/sourcemap-codec@1.4.14:
     resolution: {integrity: sha512-XPSJHWmi394fuUuzDnGz1wiKqWfo1yXecHQMRf2l6hztTO+nPru658AyDngaBe7isIxEkRsPR3FZh+s7iVa4Uw==}
@@ -5314,16 +5317,15 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
-    dev: true
 
   /@juggle/resize-observer@3.4.0:
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
     dev: false
 
-  /@jupyter-widgets/base@4.1.1(crypto@1.0.1):
+  /@jupyter-widgets/base@4.1.1(crypto@1.0.1)(encoding@0.1.13):
     resolution: {integrity: sha512-bw3Qib1FbUaRXjXol0HcjzYnKzEvmevGXyXjxIiVXGIG43cwMipFLwL9mPa7RWUim/5u1H+XzGdWpfyNj4zdDA==}
     dependencies:
-      '@jupyterlab/services': 6.5.2(crypto@1.0.1)
+      '@jupyterlab/services': 6.5.2(crypto@1.0.1)(encoding@0.1.13)
       '@lumino/coreutils': 1.12.1(crypto@1.0.1)
       '@lumino/messaging': 1.10.3
       '@lumino/widgets': 1.36.0(crypto@1.0.1)
@@ -5340,10 +5342,10 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@jupyter-widgets/controls@3.1.1(crypto@1.0.1):
+  /@jupyter-widgets/controls@3.1.1(crypto@1.0.1)(encoding@0.1.13):
     resolution: {integrity: sha512-zo+LZYqn/rIQc9o9TiPO5WX8n7g/jN8eFCwP0tjg6tRfv5Tl/uvdcByv1pIyFm/qB5fsn6k01NKrAc6NlKh2SQ==}
     dependencies:
-      '@jupyter-widgets/base': 4.1.1(crypto@1.0.1)
+      '@jupyter-widgets/base': 4.1.1(crypto@1.0.1)(encoding@0.1.13)
       '@lumino/algorithm': 1.9.2
       '@lumino/domutils': 1.8.2
       '@lumino/messaging': 1.10.3
@@ -5360,10 +5362,10 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@jupyter-widgets/output@4.1.1(crypto@1.0.1):
+  /@jupyter-widgets/output@4.1.1(crypto@1.0.1)(encoding@0.1.13):
     resolution: {integrity: sha512-XYNabDT3MtPGNAx1yLFYHn9mJTqGWqRRsejyJkv1KrAlUhJJQTJwvoBInP2OdaGAUMk8n6pE16qzzQcCS1+Qog==}
     dependencies:
-      '@jupyter-widgets/base': 4.1.1(crypto@1.0.1)
+      '@jupyter-widgets/base': 4.1.1(crypto@1.0.1)(encoding@0.1.13)
     transitivePeerDependencies:
       - bufferutil
       - crypto
@@ -5405,7 +5407,7 @@ packages:
       - crypto
     dev: false
 
-  /@jupyterlab/services@6.5.2(crypto@1.0.1):
+  /@jupyterlab/services@6.5.2(crypto@1.0.1)(encoding@0.1.13):
     resolution: {integrity: sha512-3uiOZpIsx7o1we/QDj9tfEkw3fwFlk018OPYfo1nRFg/Xl1B+9cOHQJtFzDpIIAIdNDNsYyIK8RergTsnjP5FA==}
     dependencies:
       '@jupyterlab/coreutils': 5.5.2(crypto@1.0.1)
@@ -5418,7 +5420,7 @@ packages:
       '@lumino/disposable': 1.10.3
       '@lumino/polling': 1.11.3(crypto@1.0.1)
       '@lumino/signaling': 1.11.0
-      node-fetch: 2.6.7
+      node-fetch: 2.6.7(encoding@0.1.13)
       ws: 7.5.9
     transitivePeerDependencies:
       - bufferutil
@@ -5586,7 +5588,7 @@ packages:
       mapbox-gl: 1.10.1
     dev: false
 
-  /@mapbox/node-pre-gyp@1.0.10:
+  /@mapbox/node-pre-gyp@1.0.10(encoding@0.1.13):
     resolution: {integrity: sha512-4ySo4CjzStuprMwk35H5pPbkymjv1SF3jGLj6rAHp/xT/RF7TL7bd9CTm1xDY49K2qF7jmR/g7k+SkLETP6opA==}
     hasBin: true
     requiresBuild: true
@@ -5594,7 +5596,7 @@ packages:
       detect-libc: 2.0.2
       https-proxy-agent: 5.0.1
       make-dir: 3.1.0
-      node-fetch: 2.6.7
+      node-fetch: 2.6.7(encoding@0.1.13)
       nopt: 5.0.0
       npmlog: 5.0.1
       rimraf: 3.0.2
@@ -5628,13 +5630,13 @@ packages:
     engines: {node: '>=6.0.0'}
     dev: false
 
-  /@microlink/react-json-view@1.22.2(@types/react@18.0.26)(react-dom@18.2.0)(react@18.2.0):
+  /@microlink/react-json-view@1.22.2(@types/react@18.0.26)(encoding@0.1.13)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-liJzdlbspT5GbEuPffw4jzZfXOypKLK1Er9br03T31bAaIi/WptZqpcJaXPi7OmwC7v/YYczCkmAS7WaEfItPQ==}
     peerDependencies:
       react: '>= 15'
       react-dom: '>= 15'
     dependencies:
-      flux: 4.0.3(react@18.2.0)
+      flux: 4.0.3(encoding@0.1.13)(react@18.2.0)
       react: 18.2.0
       react-base16-styling: 0.6.0
       react-dom: 18.2.0(react@18.2.0)
@@ -8384,7 +8386,6 @@ packages:
       electron-to-chromium: 1.4.523
       node-releases: 2.0.13
       update-browserslist-db: 1.0.11(browserslist@4.21.10)
-    dev: true
 
   /browserslist@4.21.9:
     resolution: {integrity: sha512-M0MFoZzbUrRU4KNfCrDLnvyE7gub+peetoTid3TBIqtunaDJyXlwhakT+/VkvSXcfIzFfK/nkCs4nmyTmxdNSg==}
@@ -8559,7 +8560,6 @@ packages:
 
   /caniuse-lite@1.0.30001534:
     resolution: {integrity: sha512-vlPVrhsCS7XaSh2VvWluIQEzVhefrUQcEsQWSS5A5V+dM07uv1qHeQzAOTGIMy9i3e9bH15+muvI/UHojVgS/Q==}
-    dev: true
 
   /canvas-fit@1.5.0:
     resolution: {integrity: sha512-onIcjRpz69/Hx5bB5HGbYKUF2uC6QT6Gp+pfpGm3A7mPfcluSLV5v4Zu+oflDUwLdUw0rLIBhUbi0v8hM4FJQQ==}
@@ -8567,12 +8567,12 @@ packages:
       element-size: 1.1.1
     dev: false
 
-  /canvas@2.11.2:
+  /canvas@2.11.2(encoding@0.1.13):
     resolution: {integrity: sha512-ItanGBMrmRV7Py2Z+Xhs7cT+FNt5K0vPL4p9EZ/UX/Mu7hFbkxSjKF2KVtPwX7UYWp7dRKnrTvReflgrItJbdw==}
     engines: {node: '>=6'}
     requiresBuild: true
     dependencies:
-      '@mapbox/node-pre-gyp': 1.0.10
+      '@mapbox/node-pre-gyp': 1.0.10(encoding@0.1.13)
       nan: 2.17.0
       simple-get: 3.1.1
     transitivePeerDependencies:
@@ -9297,10 +9297,10 @@ packages:
       connected: 0.0.2
     dev: false
 
-  /cross-fetch@3.1.5:
+  /cross-fetch@3.1.5(encoding@0.1.13):
     resolution: {integrity: sha512-lvb1SBsI0Z7GDwmuid+mU3kWVBwTVUbe7S0H52yaaAdQOXq2YktTCZdlAcNKFzE6QtRz0snpw9bNiPeOIkkQvw==}
     dependencies:
-      node-fetch: 2.6.7
+      node-fetch: 2.6.7(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
     dev: false
@@ -9623,6 +9623,17 @@ packages:
 
   /debug@3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
+    dependencies:
+      ms: 2.1.2
+
+  /debug@4.3.4:
+    resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
+    engines: {node: '>=6.0'}
     peerDependencies:
       supports-color: '*'
     peerDependenciesMeta:
@@ -10136,7 +10147,6 @@ packages:
 
   /electron-to-chromium@1.4.523:
     resolution: {integrity: sha512-9AreocSUWnzNtvLcbpng6N+GkXnCcBR80IQkxRC9Dfdyg4gaWNUPBujAHUpKkiUkoSoR9UlhA4zD/IgBklmhzg==}
-    dev: true
 
   /element-size@1.1.1:
     resolution: {integrity: sha512-eaN+GMOq/Q+BIWy0ybsgpcYImjGIdNLyjLFJU4XsLHXYQao5jCNb36GyN6C2qwmDDYSfIBmKpPpr4VnBdLCsPQ==}
@@ -10208,6 +10218,11 @@ packages:
     resolution: {integrity: sha512-TPJXq8JqFaVYm2CWmPvnP2Iyo4ZSM7/QKcSmuMLDObfpH5fi7RUGmd/rTDf+rut/saiDiQEeVTNgAmJEdAOx0w==}
     engines: {node: '>= 0.8'}
     dev: false
+
+  /encoding@0.1.13:
+    resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
+    dependencies:
+      iconv-lite: 0.6.3
 
   /end-of-stream@1.4.4:
     resolution: {integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==}
@@ -10914,10 +10929,10 @@ packages:
       bser: 2.1.1
     dev: true
 
-  /fbemitter@3.0.0:
+  /fbemitter@3.0.0(encoding@0.1.13):
     resolution: {integrity: sha512-KWKaceCwKQU0+HPoop6gn4eOHk50bBv/VxjJtGMfwmJt3D29JpN4H4eisCtIPA+a8GVBam+ldMMpMjJUvpDyHw==}
     dependencies:
-      fbjs: 3.0.4
+      fbjs: 3.0.4(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
     dev: false
@@ -10926,10 +10941,10 @@ packages:
     resolution: {integrity: sha512-b2XGFAFdWZWg0phtAWLHCk836A1Xann+I+Dgd3Gk64MHKZO44FfoD1KxyvbSh0qZsIoXQGGlVztIY+oitJPpRQ==}
     dev: false
 
-  /fbjs@3.0.4:
+  /fbjs@3.0.4(encoding@0.1.13):
     resolution: {integrity: sha512-ucV0tDODnGV3JCnnkmoszb5lf4bNpzjv80K41wd4k798Etq+UYD0y0TIfalLjZoKgjive6/adkRnszwapiDgBQ==}
     dependencies:
-      cross-fetch: 3.1.5
+      cross-fetch: 3.1.5(encoding@0.1.13)
       fbjs-css-vars: 1.0.2
       loose-envify: 1.4.0
       object-assign: 4.1.1
@@ -11038,13 +11053,13 @@ packages:
     resolution: {integrity: sha512-oXbJGbjDnfJRWPC7Va38EFhd+A8JWE5/hCiKcK8qjCdbLj9DTpsq6MEudwpRTH+V4qq+Jw7d3pUgQdSr3x3mTA==}
     dev: false
 
-  /flux@4.0.3(react@18.2.0):
+  /flux@4.0.3(encoding@0.1.13)(react@18.2.0):
     resolution: {integrity: sha512-yKAbrp7JhZhj6uiT1FTuVMlIAT1J4jqEyBpFApi1kxpGZCvacMVc/t1pMQyotqHhAgvoE3bNvAykhCo2CLjnYw==}
     peerDependencies:
       react: ^15.0.2 || ^16.0.0 || ^17.0.0
     dependencies:
-      fbemitter: 3.0.0
-      fbjs: 3.0.4
+      fbemitter: 3.0.0(encoding@0.1.13)
+      fbjs: 3.0.4(encoding@0.1.13)
       react: 18.2.0
     transitivePeerDependencies:
       - encoding
@@ -11245,24 +11260,24 @@ packages:
       wide-align: 1.1.5
     optional: true
 
-  /gaxios@6.1.1:
+  /gaxios@6.1.1(encoding@0.1.13):
     resolution: {integrity: sha512-bw8smrX+XlAoo9o1JAksBwX+hi/RG15J+NTSxmNPIclKC3ZVK6C2afwY8OSdRvOK0+ZLecUJYtj2MmjOt3Dm0w==}
     engines: {node: '>=14'}
     dependencies:
       extend: 3.0.2
       https-proxy-agent: 7.0.2
       is-stream: 2.0.1
-      node-fetch: 2.7.0
+      node-fetch: 2.7.0(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
       - supports-color
     dev: false
 
-  /gcp-metadata@6.0.0:
+  /gcp-metadata@6.0.0(encoding@0.1.13):
     resolution: {integrity: sha512-Ozxyi23/1Ar51wjUT2RDklK+3HxqDr8TLBNK8rBBFQ7T85iIGnXnVusauj06QyqCXRFZig8LZC+TUddWbndlpQ==}
     engines: {node: '>=14'}
     dependencies:
-      gaxios: 6.1.1
+      gaxios: 6.1.1(encoding@0.1.13)
       json-bigint: 1.0.0
     transitivePeerDependencies:
       - encoding
@@ -11589,15 +11604,15 @@ packages:
     resolution: {integrity: sha512-l+8esYHTKOx2G/Aao4lEQ0bnHWg4fWtJbVoZZT9Knxi01pB8C80BR85nONLFwkkQoFRCmXY+BUcGZN3yZ2QsRA==}
     dev: false
 
-  /google-auth-library@9.0.0:
+  /google-auth-library@9.0.0(encoding@0.1.13):
     resolution: {integrity: sha512-IQGjgQoVUAfOk6khqTVMLvWx26R+yPw9uLyb1MNyMQpdKiKt0Fd9sp4NWoINjyGHR8S3iw12hMTYK7O8J07c6Q==}
     engines: {node: '>=14'}
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
-      gaxios: 6.1.1
-      gcp-metadata: 6.0.0
-      gtoken: 7.0.1
+      gaxios: 6.1.1(encoding@0.1.13)
+      gcp-metadata: 6.0.0(encoding@0.1.13)
+      gtoken: 7.0.1(encoding@0.1.13)
       jws: 4.0.0
       lru-cache: 6.0.0
     transitivePeerDependencies:
@@ -11605,7 +11620,7 @@ packages:
       - supports-color
     dev: false
 
-  /google-gax@4.0.3:
+  /google-gax@4.0.3(encoding@0.1.13):
     resolution: {integrity: sha512-gllHYRhZvpz0LcVN+xtyzBeUa/ZYiLGF4JNBECrvL/LxDkaJc09hHoQ+KzRBI2Ewqgrjj7V3QrOC2pGno5ropw==}
     engines: {node: '>=14'}
     dependencies:
@@ -11614,8 +11629,8 @@ packages:
       '@types/long': 4.0.2
       abort-controller: 3.0.0
       duplexify: 4.1.2
-      google-auth-library: 9.0.0
-      node-fetch: 2.6.7
+      google-auth-library: 9.0.0(encoding@0.1.13)
+      node-fetch: 2.6.7(encoding@0.1.13)
       object-hash: 3.0.0
       proto3-json-serializer: 1.1.1
       protobufjs: 7.2.4
@@ -11672,11 +11687,11 @@ packages:
     resolution: {integrity: sha512-HZRwumpOGUrHyxO5bqKZL0B0GlUpwtCAzZ42sgxUPniu33R1LSFH5yrIcBCHjkctCAh3mtWKcKd9J4vDDdeVHA==}
     dev: false
 
-  /gtoken@7.0.1:
+  /gtoken@7.0.1(encoding@0.1.13):
     resolution: {integrity: sha512-KcFVtoP1CVFtQu0aSk3AyAt2og66PFhZAlkUOuWKwzMLoulHXG5W5wE5xAnHb+yl3/wEFoqGW7/cDGMU8igDZQ==}
     engines: {node: '>=14.0.0'}
     dependencies:
-      gaxios: 6.1.1
+      gaxios: 6.1.1(encoding@0.1.13)
       jws: 4.0.0
     transitivePeerDependencies:
       - encoding
@@ -12195,7 +12210,6 @@ packages:
     requiresBuild: true
     dependencies:
       safer-buffer: 2.1.2
-    dev: true
 
   /icss-utils@5.1.0(postcss@8.4.20):
     resolution: {integrity: sha512-soFhflCVWLfRNOPU3iv5Z9VUdT44xFRbzjLsEzSr5AQmgqPMTHdU3PMT1Cf1ssx8fLNJDA1juftYl+PUcv3MqA==}
@@ -14082,10 +14096,10 @@ packages:
     resolution: {integrity: sha512-UfpWE/VZn0iP50d8cz9NrZLM9lSWhcJ+0Gt/nm4by88UL+J1SiKN8/5dkjMmbEzwL2CAe+67GsegCbIKtbp75A==}
     dev: false
 
-  /k3d@2.15.2(crypto@1.0.1):
+  /k3d@2.15.2(crypto@1.0.1)(encoding@0.1.13):
     resolution: {integrity: sha512-jtIKxXdGRWNg+HG1ZrhN4PbYI920Q+wgOlD3CxargXItjSyu/ycFrN0Xky1l9d0bi5iPpX5zNeD8TOgXGtTFjg==}
     dependencies:
-      '@jupyter-widgets/base': 4.1.1(crypto@1.0.1)
+      '@jupyter-widgets/base': 4.1.1(crypto@1.0.1)(encoding@0.1.13)
       fflate: 0.7.4
       file-saver: 2.0.5
       katex: 0.15.6
@@ -15253,7 +15267,7 @@ packages:
     resolution: {integrity: sha512-qN8v/s2PAJwGUtr1/hYTpNKlD6Y9rc4p8KSmJXyGdYGZsDGKXrGThikLFP9OCHFeLeEpQzPwiAtdIvBLqm//Hw==}
     dev: false
 
-  /node-fetch@2.6.7:
+  /node-fetch@2.6.7(encoding@0.1.13):
     resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
     engines: {node: 4.x || >=6.0.0}
     peerDependencies:
@@ -15262,9 +15276,10 @@ packages:
       encoding:
         optional: true
     dependencies:
+      encoding: 0.1.13
       whatwg-url: 5.0.0
 
-  /node-fetch@2.7.0:
+  /node-fetch@2.7.0(encoding@0.1.13):
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
     engines: {node: 4.x || >=6.0.0}
     peerDependencies:
@@ -15273,6 +15288,7 @@ packages:
       encoding:
         optional: true
     dependencies:
+      encoding: 0.1.13
       whatwg-url: 5.0.0
     dev: false
 
@@ -15761,12 +15777,12 @@ packages:
       safe-buffer: 5.2.1
     dev: true
 
-  /parse-domain@5.0.0:
+  /parse-domain@5.0.0(encoding@0.1.13):
     resolution: {integrity: sha512-sjvhVD0seIF3IquDLsbOE+6nekYyPzj4mGOMv4r9HIXalOjtTXb1uTZwtpQyp0myIoi9++w2eDqYOlCT5ic3+Q==}
     hasBin: true
     dependencies:
       is-ip: 3.1.0
-      node-fetch: 2.6.7
+      node-fetch: 2.6.7(encoding@0.1.13)
       punycode: 2.1.1
     transitivePeerDependencies:
       - encoding
@@ -16082,12 +16098,12 @@ packages:
       sha.js: 2.4.11
     dev: true
 
-  /pdfjs-dist@3.2.146:
+  /pdfjs-dist@3.2.146(encoding@0.1.13):
     resolution: {integrity: sha512-wy1OB/v75usRD1LqgxBUWC+ZOiKTmG5J8c2z9XVFrVSSWiVbSuseNojmvFa/TT0pYtcFmkL4zn6KaxvqfPYMRg==}
     dependencies:
       web-streams-polyfill: 3.2.1
     optionalDependencies:
-      canvas: 2.11.2
+      canvas: 2.11.2(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -19346,7 +19362,7 @@ packages:
       uglify-js:
         optional: true
     dependencies:
-      '@jridgewell/trace-mapping': 0.3.18
+      '@jridgewell/trace-mapping': 0.3.19
       jest-worker: 27.5.1
       schema-utils: 3.3.0
       serialize-javascript: 6.0.1
@@ -19948,7 +19964,6 @@ packages:
       browserslist: 4.21.10
       escalade: 3.1.1
       picocolors: 1.0.0
-    dev: true
 
   /update-browserslist-db@1.0.11(browserslist@4.21.9):
     resolution: {integrity: sha512-dCwEFf0/oT85M1fHBg4F0jtLwJrutGoHSQXCh7u4o2t1drG+c0a9Flnqww6XUKSfQMPpJBRjU8d4RXB09qtvaA==}
@@ -20503,7 +20518,7 @@ packages:
       '@webassemblyjs/wasm-parser': 1.11.6
       acorn: 8.10.0
       acorn-import-assertions: 1.9.0(acorn@8.10.0)
-      browserslist: 4.21.9
+      browserslist: 4.21.10
       chrome-trace-event: 1.0.3
       enhanced-resolve: 5.15.0
       es-module-lexer: 1.3.0

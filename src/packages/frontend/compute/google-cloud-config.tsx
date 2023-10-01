@@ -17,6 +17,7 @@ import {
 import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
+  EXTERNAL_IP_COST,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
@@ -1269,9 +1270,12 @@ function Network({ setConfig, configuration, disabled, state }) {
         ip using a gateway. E.g., google cloud shell has ssh to host, etc. */}
           Set whether or not the VM has an external IP address. This makes it
           easy to run a public web service and ssh to your compute server, but
-          costs {configuration.spot ? "$0.002/hour" : "$0.004/hour"} while the
-          VM is running. The VM can always access the internet without an
-          external IP address.
+          costs{" "}
+          {configuration.spot
+            ? `$${EXTERNAL_IP_COST.spot}/hour`
+            : `$${EXTERNAL_IP_COST.standard}/hour`}{" "}
+          while the VM is running. The VM can always access the internet without
+          an external IP address.
         </Typography.Paragraph>
       </div>
     </div>

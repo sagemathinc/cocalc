@@ -38,6 +38,7 @@ export async function getCredentials() {
       client_email: serviceAccount.client_email,
       private_key: serviceAccount.private_key,
     },
+    fallback: true, // see https://github.com/googleapis/google-cloud-node/issues/2933#issuecomment-547657659
   };
 }
 

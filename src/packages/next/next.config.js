@@ -12,7 +12,7 @@ const { join, resolve } = require("path");
 const cacheDirectory = join(
   `/tmp/nextjs-${require("os").userInfo().username}`,
   basePath,
-  resolve(".")
+  resolve("."),
 );
 
 const removeImports = require("next-remove-imports")();
@@ -41,7 +41,7 @@ module.exports = removeImports({
     config.resolve.alias["react-dom"] = resolve(
       __dirname,
       "node_modules",
-      "react-dom"
+      "react-dom",
     );
     config.ignoreWarnings = [
       // This yargs warning is caused by node-zendesk in the @cocalc/server package

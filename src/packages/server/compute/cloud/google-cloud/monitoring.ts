@@ -1,5 +1,16 @@
+/*
+Use google cloud monitoring to get the (known) egress network usage
+by a specific instance during a particular period of time.
+If end time is now, this might be a few minutes off.
+
+NOTE: Google charges us $0.01 for 1000 calls.
+*/
+
 import { MetricServiceClient } from "@google-cloud/monitoring";
 import { getCredentials } from "./client";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("server:compute:google-cloud:monitoring");
 
 interface MonitoringClient extends MetricServiceClient {
   googleProjectId: string;
@@ -32,6 +43,7 @@ export async function getInstanceEgress({
   start: Date;
   end: Date;
 }): Promise<number> {
+  logger.debug("getInstanceEgress", { instanceName, start, end });
   const client = await getMonitoringClient();
   const filter = `metric.type="compute.googleapis.com/instance/network/sent_bytes_count" AND metric.labels.instance_name="${instanceName}"`;
   const request = {
@@ -54,5 +66,6 @@ export async function getInstanceEgress({
       totalBytes += Number(point.value?.int64Value ?? 0);
     }
   }
+  logger.debug("getInstanceEgress", { totalBytes });
   return totalBytes / 2 ** 30;
 }

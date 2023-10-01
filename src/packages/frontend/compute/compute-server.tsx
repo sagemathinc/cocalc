@@ -204,6 +204,7 @@ export default function ComputeServer({
             >
               <div style={{ color: "#666" }}>
                 <State
+                  data={data}
                   style={{ marginRight: "5px" }}
                   state={state}
                   state_changed={state_changed}
@@ -318,6 +319,7 @@ export default function ComputeServer({
             <State
               style={{ marginRight: "5px" }}
               state={state}
+              data={data}
               state_changed={state_changed}
               editable={editable}
               id={id}

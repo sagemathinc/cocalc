@@ -136,15 +136,19 @@ function computeSuspendedMemoryCost({ configuration, priceData }) {
 
 // TODO: This could change and should be in pricing data --
 //     https://cloud.google.com/vpc/network-pricing#ipaddress
+export const EXTERNAL_IP_COST = {
+  standard: 0.005,
+  spot: 0.0025,
+};
 function computeExternalIpCost({ configuration, priceData }) {
   if (!configuration.externalIp) {
     return 0;
   }
   let cost;
   if (configuration.spot) {
-    cost = 0.005;
+    cost = EXTERNAL_IP_COST.spot;
   } else {
-    cost = 0.0025;
+    cost = EXTERNAL_IP_COST.standard;
   }
   return markup({ cost, priceData });
 }

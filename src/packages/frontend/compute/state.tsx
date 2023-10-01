@@ -6,13 +6,14 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
 import { User } from "@cocalc/frontend/users";
-import { CSSProperties, useState } from "react";
-import { getServerState } from "./api";
+import { CSSProperties, useEffect, useState } from "react";
+import { getNetworkUsage, getServerState } from "./api";
 import { useInterval } from "react-interval-hook";
-import { currency } from "@cocalc/util/misc";
+import { currency, human_readable_size } from "@cocalc/util/misc";
 
 interface Props {
   style?: CSSProperties;
+  data?;
   state?: State;
   state_changed?: Date;
   id: number;
@@ -25,6 +26,7 @@ interface Props {
 
 export default function State({
   id,
+  data,
   style,
   state,
   state_changed,
@@ -81,17 +83,20 @@ export default function State({
 
   return (
     <Popover
-      mouseEnterDelay={0.9}
+      mouseEnterDelay={0.5}
       title={
         <>
-          State: {label} {cost}
+          <Icon name={icon} /> {label} {cost}
         </>
       }
       content={() => {
         return (
           <div style={{ maxWidth: "400px" }}>
             <Body account_id={account_id} editable={editable} />
-            <div style={{ textAlign: "center" }}>{refresh}</div>
+            <NetworkUsage id={id} data={data} state={state} />
+            <div style={{ textAlign: "center", margin: "15px 0" }}>
+              {refresh}
+            </div>
           </div>
         );
       }}
@@ -114,6 +119,39 @@ export default function State({
         )}
       </span>
     </Popover>
+  );
+}
+
+function NetworkUsage({ id, state, data, style }) {
+  const [usage, setUsage] = useState<{ amount: number; cost: number } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (data == null || state != "running" || data.lastStartTimestamp == null) {
+      return;
+    }
+    (async () => {
+      try {
+        const opts = {
+          id,
+          start: data.lastStartTimestamp,
+          end: new Date(),
+        };
+        setUsage(await getNetworkUsage(opts));
+      } catch (err) {
+        console.log("error getting network usage -- ", err);
+      }
+    })();
+  }, []);
+  if (usage == null) {
+    return null;
+  }
+  return (
+    <div style={style}>
+      <Icon name="network-wired" /> Network egress since start:{" "}
+      {human_readable_size(usage.amount * 2 ** 30)}, Cost:{" "}
+      {currency(usage.cost)}
+    </div>
   );
 }
 

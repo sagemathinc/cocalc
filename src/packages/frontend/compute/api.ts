@@ -74,3 +74,13 @@ export async function getGoogleCloudPriceData(): Promise<GoogleCloudData> {
   }
   return googleCloudPriceData;
 }
+
+// Returns network usage during the given interval.  Returns
+// amount in GiB and cost at our current rate.
+export async function getNetworkUsage(opts: {
+  id: number;
+  start: Date;
+  end: Date;
+}): Promise<{ amount: number; cost: number }> {
+  return await api("compute/get-network-usage", opts);
+}
