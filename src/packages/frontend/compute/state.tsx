@@ -122,7 +122,7 @@ export default function State({
   );
 }
 
-function NetworkUsage({ id, state, data, style }) {
+function NetworkUsage({ id, state, data }) {
   const [usage, setUsage] = useState<{ amount: number; cost: number } | null>(
     null,
   );
@@ -147,7 +147,7 @@ function NetworkUsage({ id, state, data, style }) {
     return null;
   }
   return (
-    <div style={style}>
+    <div>
       <Icon name="network-wired" /> Network egress since start:{" "}
       {human_readable_size(usage.amount * 2 ** 30)}, Cost:{" "}
       {currency(usage.cost)}
