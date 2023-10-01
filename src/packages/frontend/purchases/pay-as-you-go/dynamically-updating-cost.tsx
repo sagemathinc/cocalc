@@ -5,7 +5,7 @@ A dynamically updating cost, which is useful for pay as you go.
 import { Tooltip } from "antd";
 import { useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { currency } from "@cocalc/util/misc";
+import { currency, round4 } from "@cocalc/util/misc";
 import { useInterval } from "react-interval-hook";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
@@ -25,7 +25,7 @@ export default function DynamicallyUpdatingCost({
   alwaysNonnegative,
 }: Props) {
   const [currentTime, setCurrentTime] = useState(
-    webapp_client.server_time().valueOf()
+    webapp_client.server_time().valueOf(),
   );
 
   useInterval(() => {
@@ -45,11 +45,12 @@ export default function DynamicallyUpdatingCost({
     <Tooltip
       title={
         <>
-          Costs {currency(costPerHour)}/hour since <TimeAgo date={start} />
+          Costs {currency(costPerHour, 2)}/hour since <TimeAgo date={start} />.
+          Total: ${round4(amount)}
         </>
       }
     >
-      <span style={getAmountStyle(amount)}>{currency(amount)}</span>
+      <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>
     </Tooltip>
   );
 }

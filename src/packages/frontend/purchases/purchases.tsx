@@ -19,7 +19,7 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import { capitalize, plural } from "@cocalc/util/misc";
+import { capitalize, plural, round4 } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -38,6 +38,10 @@ import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import AdminRefund from "./admin-refund";
 import { A } from "@cocalc/frontend/components/A";
 import getSupportURL from "@cocalc/frontend/support/url";
+import {
+  ComputeServerDescription,
+  ComputeServerNetworkUsageDescription,
+} from "@cocalc/frontend/compute/purchases";
 
 const DEFAULT_LIMIT = 150;
 
@@ -368,9 +372,21 @@ function DetailedPurchaseTable({
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (_, { id, description, invoice_id, notes }) => (
+              render: (
+                _,
+                {
+                  id,
+                  description,
+                  invoice_id,
+                  notes,
+                  period_end,
+                },
+              ) => (
                 <div>
-                  <Description description={description} />
+                  <Description
+                    description={description}
+                    period_end={period_end}
+                  />
                   {invoice_id && (
                     <div
                       style={{ marginLeft: "15px", display: "inline-block" }}
@@ -399,6 +415,15 @@ function DetailedPurchaseTable({
                   )}
                 </div>
               ),
+            },
+            {
+              title: "Project",
+              dataIndex: "project_id",
+              key: "project_id",
+              render: (project_id) =>
+                project_id ? (
+                  <ProjectTitle project_id={project_id} trunc={20} />
+                ) : null,
             },
             {
               title: "Time",
@@ -468,15 +493,6 @@ function DetailedPurchaseTable({
               sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
-            {
-              title: "Project",
-              dataIndex: "project_id",
-              key: "project_id",
-              render: (project_id) =>
-                project_id ? (
-                  <ProjectTitle project_id={project_id} trunc={20} />
-                ) : null,
-            },
           ]}
         />
       </div>
@@ -484,9 +500,9 @@ function DetailedPurchaseTable({
   );
 }
 
-// "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license"
+// "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license", etc.
 
-function Description({ description }: { description?: Description }) {
+function Description({ description, period_end }) {
   if (description == null) {
     return null;
   }
@@ -570,11 +586,24 @@ function Description({ description }: { description?: Description }) {
 
   if (description.type == "project-upgrade") {
     const quota = description?.quota ?? {};
-    return <DisplayProjectQuota quota={quota} />;
+    return (
+      <>
+        Project upgraded with <DisplayProjectQuota quota={quota} />
+      </>
+    );
   }
 
   if (description.type == "compute-server") {
-    return <div>{JSON.stringify(description)}</div>;
+    return (
+      <ComputeServerDescription
+        description={description}
+        period_end={period_end}
+      />
+    );
+  }
+
+  if (description.type == "compute-server-network-usage") {
+    return <ComputeServerNetworkUsageDescription description={description} />;
   }
 
   if (description.type == "voucher") {
@@ -737,20 +766,20 @@ function Amount({ record }) {
   ) {
     return (
       <Space>
+        <Tag color="green">Active</Tag>
         <DynamicallyUpdatingCost
           costPerHour={record.cost_per_hour}
           start={new Date(record.period_start).valueOf()}
         />
-        <Tag color="green">Active</Tag>
       </Space>
     );
   }
   if (cost != null) {
     const amount = -cost;
     return (
-      <span style={getAmountStyle(amount)}>
-        {currency(amount, Math.abs(amount) < 0.1 ? 3 : 2)}
-      </span>
+      <Tooltip title={` (USD): $${round4(amount)}`}>
+        <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>
+      </Tooltip>
     );
   }
   return <>-</>;

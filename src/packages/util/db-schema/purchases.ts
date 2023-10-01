@@ -96,7 +96,6 @@ export interface ProjectUpgrade {
 
 export interface ComputeServer {
   type: "compute-server";
-  project_id: string;
   state: computeServers.State;
   compute_server_id: number;
   configuration: computeServers.Configuration;
@@ -104,7 +103,6 @@ export interface ComputeServer {
 
 export interface ComputeServerNetworkUsage {
   type: "compute-server-network-usage";
-  project_id: string;
   compute_server_id: number;
   amount: number;
 }

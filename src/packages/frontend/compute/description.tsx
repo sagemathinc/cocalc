@@ -6,9 +6,9 @@ import { TimeAgo } from "@cocalc/frontend/components";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 interface Props {
-  cloud;
+  cloud?;
   configuration;
-  account_id: string;
+  account_id?: string;
   short?;
   data?: Data;
   state?: State;
@@ -26,12 +26,23 @@ export default function Description({
     <div>
       {!short && (
         <>
-          <User account_id={account_id} />
-          's compute server hosted on <Cloud height={15} cloud={cloud} />.
+          {account_id != null && (
+            <>
+              <User account_id={account_id} />
+              's
+            </>
+          )}{" "}
+          compute server{" "}
+          {cloud != null && (
+            <>
+              hosted on <Cloud height={15} cloud={cloud} />
+            </>
+          )}
+          .
         </>
       )}
       <Configuration configuration={configuration} />
-      {state == "running" && <RuntimeInfo data={data} />}
+      {state == "running" && data != null && <RuntimeInfo data={data} />}
     </div>
   );
 }

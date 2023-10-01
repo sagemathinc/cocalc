@@ -17,10 +17,9 @@ interface Props {
   state?: State;
   state_changed?: Date;
   id: number;
-  editable: boolean;
-  account_id: string;
+  editable?: boolean;
+  account_id?: string;
   configuration: Configuration;
-  setError: (string) => void;
   cost_per_hour?: number;
 }
 
@@ -122,6 +121,23 @@ export default function State({
   );
 }
 
+export function DisplayNetworkUsage({
+  amount,
+  cost,
+  style,
+}: {
+  amount: number;
+  cost?: number;
+  style?;
+}) {
+  return (
+    <div style={style}>
+      <Icon name="network-wired" /> {human_readable_size(amount * 2 ** 30)} of
+      network egress{cost != null && <>: {currency(cost)}</>}
+    </div>
+  );
+}
+
 function NetworkUsage({ id, state, data }) {
   const [usage, setUsage] = useState<{ amount: number; cost: number } | null>(
     null,
@@ -146,13 +162,7 @@ function NetworkUsage({ id, state, data }) {
   if (usage == null) {
     return null;
   }
-  return (
-    <div>
-      <Icon name="network-wired" /> Network egress since start:{" "}
-      {human_readable_size(usage.amount * 2 ** 30)}, Cost:{" "}
-      {currency(usage.cost)}
-    </div>
-  );
+  return <DisplayNetworkUsage amount={usage.amount} cost={usage.cost} />;
 }
 
 function ProgressBarTimer({
@@ -198,10 +208,14 @@ function Body({ account_id, editable }) {
     return (
       <div>
         Only the owner of the compute server can change its state.
-        <Divider />
-        <div style={{ textAlign: "center" }}>
-          <User account_id={account_id} show_avatar />
-        </div>
+        {account_id && (
+          <>
+            <Divider />
+            <div style={{ textAlign: "center" }}>
+              <User account_id={account_id} show_avatar />
+            </div>
+          </>
+        )}
         <Divider />
         Instead, create your own clone of this compute server.
       </div>
