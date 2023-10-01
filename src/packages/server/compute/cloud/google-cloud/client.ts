@@ -1,3 +1,10 @@
+/*
+IMPORTANT NOTE: Basically the only way to figure out how to use any of
+this @google-cloud/compute package is via VS Code and typescript, and
+following the typescript definitions.  There's no other docs really.
+But that works!
+*/
+
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
 import getLogger from "@cocalc/backend/logger";
@@ -147,5 +154,25 @@ export async function waitUntilOperationComplete({ response, zone }) {
       project: credentials.projectId,
       zone,
     });
+  }
+}
+
+export async function setMachineType({
+  name,
+  zone,
+  wait,
+  machineType,
+}: { machineType: string } & Options) {
+  const client = await getClient();
+  const [response] = await client.setMachineType({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+    instancesSetMachineTypeRequestResource: {
+      machineType,
+    },
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
   }
 }

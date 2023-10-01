@@ -427,7 +427,6 @@ export async function validateConfigurationChange({
   currentConfiguration,
   changes,
 }: {
-  id: number;
   state: State;
   cloud: Cloud;
   currentConfiguration: Configuration;
@@ -452,6 +451,45 @@ export async function validateConfigurationChange({
         // @ts-ignore
         newConfiguration,
       });
+  }
+}
+
+export async function makeConfigurationChange({
+  id,
+  cloud,
+  state,
+  currentConfiguration,
+  changes,
+}: {
+  id: number;
+  state: State;
+  cloud: Cloud;
+  currentConfiguration: Configuration;
+  changes: Partial<Configuration>;
+}) {
+  if (state == "deprovisioned") {
+    return;
+  }
+
+  const newConfiguration = { ...currentConfiguration, ...changes };
+  if (isEqual(currentConfiguration, newConfiguration)) {
+    return;
+  }
+
+  switch (cloud) {
+    case "google-cloud":
+      return await googleCloud.makeConfigurationChange({
+        id,
+        state,
+        // @ts-ignore
+        currentConfiguration,
+        // @ts-ignore
+        newConfiguration,
+      });
+    default:
+      throw Error(
+        `makeConfigurationChange not implemented for cloud '${cloud}'`,
+      );
   }
 }
 

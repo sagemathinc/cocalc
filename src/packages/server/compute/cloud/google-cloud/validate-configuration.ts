@@ -31,6 +31,10 @@ export async function validateConfigurationChange({
         `cannot change disk type unless in the 'deprovisioned' state`,
       );
     }
+    // TODO: we will support live editing of disk size at some point.
+    if (state != "off") {
+      throw Error("machine must be off to change the configuration");
+    }
   }
 
   if (newConfiguration.machineType.startsWith("g2-")) {

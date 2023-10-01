@@ -24,6 +24,7 @@ import { getArchitecture } from "./images";
 import { getInstanceEgress } from "./monitoring";
 
 export * from "./validate-configuration";
+export * from "./make-configuration-change";
 
 const logger = getLogger("server:compute:google-cloud");
 

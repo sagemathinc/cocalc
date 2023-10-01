@@ -15,7 +15,10 @@ the configuration to {zone:'foo'} that doesn't delete the rest of the configurat
 */
 
 import getPool from "@cocalc/database/pool";
-import { validateConfigurationChange } from "./control";
+import {
+  makeConfigurationChange,
+  validateConfigurationChange,
+} from "./control";
 import type { Configuration } from "@cocalc/util/db-schema/compute-servers";
 
 export default async function setServerConfiguration({
@@ -38,13 +41,29 @@ export default async function setServerConfiguration({
     );
   }
 
+  const { cloud, state, configuration: currentConfiguration } = rows[0];
+
   await validateConfigurationChange({
-    id,
-    cloud: rows[0].cloud,
-    state: rows[0].state,
-    currentConfiguration: rows[0].configuration,
+    cloud,
+    state,
+    currentConfiguration,
     changes: configuration,
   });
+
+  if (state != "deprovisioned") {
+    // A big worry would be if the user could somehow trick the system into
+    // making config changes to the provisioned VM, but this still throws an
+    // exception, so they can get something for free.  However, we will also
+    // sync the provisioned state back to our database regularly, thus updating
+    // the configuration.  Still, it is something to worry about.
+    await makeConfigurationChange({
+      id,
+      cloud,
+      state,
+      currentConfiguration,
+      changes: configuration,
+    });
+  }
 
   const { rowCount } = await pool.query(
     "UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2 AND account_id=$3",

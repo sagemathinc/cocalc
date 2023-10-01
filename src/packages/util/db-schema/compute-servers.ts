@@ -380,6 +380,7 @@ export interface ComputeServerUserInfo {
   autorestart?: boolean;
   cloud: Cloud;
   configuration: Configuration;
+  provisioned_configuration?: Configuration;
   data?: Data;
   purchase_id?: number;
 }
