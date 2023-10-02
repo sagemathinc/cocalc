@@ -315,12 +315,16 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_action_buttons(_, record) {
+    const placement = isFlyout ? "right" : "bottom";
     return (
       <Space.Compact
         size={size}
         direction={isFlyout ? "vertical" : "horizontal"}
       >
-        <Tooltip title={`Modify ${record.name}'s configuration.`}>
+        <Tooltip
+          title={`Modify ${record.name}'s configuration.`}
+          placement={placement}
+        >
           <Button
             size={size}
             onClick={() => edit(record)}
@@ -328,7 +332,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           ></Button>
         </Tooltip>
 
-        <Tooltip title={`Open ${record.name} in Files`}>
+        <Tooltip title={`Open ${record.name} in Files`} placement={placement}>
           <Button
             size={size}
             onClick={() => open(record)}
@@ -342,7 +346,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           okText="Yes"
           cancelText="No"
         >
-          <Tooltip title={`Delete ${record.name}.`}>
+          <Tooltip title={`Delete ${record.name}.`} placement={placement}>
             <Button size={size} icon={<DeleteOutlined />}></Button>{" "}
           </Tooltip>
         </Popconfirm>
