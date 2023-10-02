@@ -12,7 +12,11 @@ import {
   ZoneOperationsClient,
 } from "@google-cloud/compute";
 import getLogger from "@cocalc/backend/logger";
-import { getFullMachineType, getSchedulingModel } from "./create-instance";
+import {
+  getFullMachineType,
+  getSchedulingModel,
+  getGuestAccelerators,
+} from "./create-instance";
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
 
 const logger = getLogger("server:compute:google-cloud:client");
@@ -167,6 +171,7 @@ interface ChangeOptions extends Options {
   configuration: GoogleCloudConfiguration;
 }
 
+// Change the machine type of an 'off' instance.
 export async function setMachineType({
   name,
   zone,
@@ -187,6 +192,28 @@ export async function setMachineType({
   }
 }
 
+// Changes the number and/or type of accelerator for a stopped instance to the values specified in the request.
+export async function setAccelerator({
+  name,
+  zone,
+  wait,
+  configuration,
+}: ChangeOptions) {
+  const client = await getClient();
+  const [response] = await client.setMachineResources({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+    instancesSetMachineResourcesRequestResource: {
+      guestAccelerators: getGuestAccelerators(configuration, client),
+    },
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
+// Changer whether it is a spot or standard instance.
 export async function setSpot({
   name,
   zone,
@@ -205,6 +232,8 @@ export async function setSpot({
   }
 }
 
+// Increase size of the boot disk.  Linux automatically detects and handles
+// this when the instance starts up.
 export async function increaseBootDiskSize({
   name,
   zone,

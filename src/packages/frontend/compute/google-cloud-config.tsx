@@ -338,7 +338,10 @@ export default function Configuration({
           {error}
           <Button
             size="small"
-            onClick={() => setError("")}
+            onClick={() => {
+              setError("");
+              setLocalConfiguration(configuration0);
+            }}
             style={{ float: "right" }}
           >
             Close
@@ -879,6 +882,7 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
       </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
         Set the size and type of the compute server's boot disk.
+        {state != "deprovisioned" && <> You can only increase the disk size.</>}
       </div>
     </div>
   );
@@ -933,7 +937,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     const price = cost ? (
       ` - ${currency(cost)}/hour`
     ) : (
-      <span style={{ color: "#666" }}>(config will change)</span>
+      <span style={{ color: "#666" }}>(region will change)</span>
     );
     const memory = priceData.accelerators[acceleratorType].memory;
     return {

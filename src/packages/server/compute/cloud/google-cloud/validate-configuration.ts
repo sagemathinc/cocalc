@@ -33,6 +33,14 @@ export async function validateConfigurationChange({
         `cannot change disk type unless in the 'deprovisioned' state`,
       );
     }
+    if (
+      (newConfiguration.diskSizeGb ?? 10) <
+      (currentConfiguration.diskSizeGb ?? 10)
+    ) {
+      throw Error(
+        `cannot shrink disk unless in the 'deprovisioned' state`,
+      );
+    }
     // TODO: we will support live editing of disk size at some point.
     if (state != "off") {
       throw Error("machine must be off to change the configuration");
@@ -40,9 +48,7 @@ export async function validateConfigurationChange({
 
     // state is off -- but still only some changes are supported.
     const keys = new Set(
-      Object.keys(currentConfiguration).concat(
-        Object.keys(newConfiguration),
-      ),
+      Object.keys(currentConfiguration).concat(Object.keys(newConfiguration)),
     );
     for (const key of keys) {
       if (
@@ -51,6 +57,18 @@ export async function validateConfigurationChange({
       ) {
         throw Error(`changing ${key} is not currently supported`);
       }
+    }
+    // You can't go between having and not having a GPU, because the disk image itself has to change
+    // and that isn't possible.
+    if (
+      !!currentConfiguration.acceleratorType !=
+        !!newConfiguration.acceleratorType ||
+      !!currentConfiguration.acceleratorCount !=
+        !!newConfiguration.acceleratorCount
+    ) {
+      throw Error(
+        "cannot change between having and not having a GPU unless in the 'deprovisioned' state",
+      );
     }
   }
 

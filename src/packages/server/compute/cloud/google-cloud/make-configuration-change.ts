@@ -2,10 +2,21 @@ import type {
   GoogleCloudConfiguration,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
-import { setMachineType, setSpot, increaseBootDiskSize } from "./client";
+import {
+  setMachineType,
+  setSpot,
+  increaseBootDiskSize,
+  setAccelerator,
+} from "./client";
 import { getServerName } from "./index";
 
-export const SUPPORTED_CHANGES = ["machineType", "spot", "diskSizeGb"];
+export const SUPPORTED_CHANGES = [
+  "machineType",
+  "spot",
+  "diskSizeGb",
+  "acceleratorType",
+  "acceleratorCount",
+];
 
 export async function makeConfigurationChange({
   id,
@@ -53,6 +64,17 @@ export async function makeConfigurationChange({
     (newConfiguration.diskSizeGb ?? 10)
   ) {
     await increaseBootDiskSize({
+      name,
+      zone,
+      wait: true,
+      configuration: newConfiguration,
+    });
+  }
+  if (
+    currentConfiguration.acceleratorType != newConfiguration.acceleratorType ||
+    currentConfiguration.acceleratorCount != newConfiguration.acceleratorCount
+  ) {
+    await setAccelerator({
       name,
       zone,
       wait: true,

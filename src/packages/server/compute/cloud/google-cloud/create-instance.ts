@@ -109,31 +109,7 @@ export default async function createInstance({
     ...terminationTime,
   };
 
-  if (
-    configuration.machineType.startsWith("g2-") &&
-    !configuration.acceleratorType
-  ) {
-    // Critical to check this, or we might charge vastly less than we should,
-    // since instead of throwing an error, the GCP api "helpfully" just
-    // tosses in an expensive L4 GPU. Similar below.
-    throw Error("machine type g2- MUST have a GPU attached");
-  }
-
-  if (
-    configuration.machineType.startsWith("a2-") &&
-    !configuration.acceleratorType
-  ) {
-    throw Error("machine type a2- MUST have a GPU attached");
-  }
-
-  const guestAccelerators = !configuration.acceleratorType
-    ? []
-    : [
-        {
-          acceleratorCount: configuration.acceleratorCount ?? 1,
-          acceleratorType: `projects/${client.googleProjectId}/zones/${configuration.zone}/acceleratorTypes/${configuration.acceleratorType}`,
-        },
-      ];
+  const guestAccelerators = getGuestAccelerators(configuration, client);
 
   const instanceResource = {
     name,
@@ -161,7 +137,39 @@ export default async function createInstance({
 export function getFullMachineType(
   configuration: GoogleCloudConfiguration,
 ): string {
+  if (
+    configuration.machineType.startsWith("g2-") &&
+    !configuration.acceleratorType
+  ) {
+    // Critical to check this, or we might charge vastly less than we should,
+    // since instead of throwing an error, the GCP api "helpfully" just
+    // tosses in an expensive L4 GPU. Similar below.
+    throw Error("machine type g2- MUST have a GPU attached");
+  }
+
+  if (
+    configuration.machineType.startsWith("a2-") &&
+    !configuration.acceleratorType
+  ) {
+    throw Error("machine type a2- MUST have a GPU attached");
+  }
+
   return `zones/${configuration.zone}/machineTypes/${configuration.machineType}`;
+}
+
+export function getGuestAccelerators(
+  configuration: GoogleCloudConfiguration,
+  client,
+) {
+  if (!configuration.acceleratorType) {
+    return [];
+  }
+  return [
+    {
+      acceleratorCount: Math.max(1, configuration.acceleratorCount ?? 1),
+      acceleratorType: `projects/${client.googleProjectId}/zones/${configuration.zone}/acceleratorTypes/${configuration.acceleratorType}`,
+    },
+  ];
 }
 
 export function getSchedulingModel(configuration: GoogleCloudConfiguration) {

@@ -136,9 +136,11 @@ function ActionButton({
             {action == "deprovision" && (
               <Alert
                 showIcon
-                style={{ margin: "15px 0" }}
+                style={{ margin: "15px 0", maxWidth: "400px" }}
                 type="warning"
-                message={"This will delete all data on the boot disk!!"}
+                message={
+                  "This will delete the boot disk!  This does not touch the files in your project's home directory."
+                }
               />
             )}
             {action == "stop" && (
@@ -154,7 +156,7 @@ function ActionButton({
           </div>
         }
         onConfirm={doAction}
-        okText={`Yes, ${action} VM`}
+        okText={`Yes, ${label} VM`}
         cancelText="Cancel"
       >
         {button}
