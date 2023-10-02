@@ -63,7 +63,7 @@ export async function start(server: ComputeServer) {
     }
   } else {
     // start it
-    await startInstance({ name, zone: configuration.zone });
+    await startInstance({ name, zone: configuration.zone, wait: true });
   }
   await setData({ id: server.id, data: { name }, cloud: "google-cloud" });
 }
@@ -75,7 +75,7 @@ export async function reboot(server: ComputeServer) {
     throw Error("must have a google-cloud configuration");
   }
   const name = getServerName(server);
-  await rebootInstance({ name, zone: conf.zone });
+  await rebootInstance({ name, zone: conf.zone, wait: true });
 }
 
 export async function deprovision(server: ComputeServer) {
@@ -85,7 +85,7 @@ export async function deprovision(server: ComputeServer) {
     throw Error("must have a google-cloud configuration");
   }
   const name = getServerName(server);
-  await deleteInstance({ name, zone: conf.zone });
+  await deleteInstance({ name, zone: conf.zone, wait: true });
 }
 
 export async function stop(server: ComputeServer) {
@@ -95,7 +95,7 @@ export async function stop(server: ComputeServer) {
     throw Error("must have a google-cloud configuration");
   }
   const name = getServerName(server);
-  await stopInstance({ name, zone: conf.zone });
+  await stopInstance({ name, zone: conf.zone, wait: true });
 }
 
 export async function state(server: ComputeServer): Promise<State> {
@@ -153,7 +153,7 @@ export async function suspend(server: ComputeServer) {
     throw Error("must have a google-cloud configuration");
   }
   const name = getServerName(server);
-  await suspendInstance({ name, zone: conf.zone });
+  await suspendInstance({ name, zone: conf.zone, wait: true });
 }
 
 export async function resume(server: ComputeServer) {
@@ -163,7 +163,7 @@ export async function resume(server: ComputeServer) {
     throw Error("must have a google-cloud configuration");
   }
   const name = getServerName(server);
-  await resumeInstance({ name, zone: conf.zone });
+  await resumeInstance({ name, zone: conf.zone, wait: true });
 }
 
 export async function getNetworkUsage({

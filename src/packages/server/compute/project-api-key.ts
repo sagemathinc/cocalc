@@ -13,6 +13,7 @@ export async function setProjectApiKey({ account_id, server }: Options) {
     // one is already set, so just stick with that
     // TODO: or we could delete it and create a new one...
     //  await deleteProjectApiKey({ account_id, server });
+    // [ ] TODO: the expire below is one year!
     return;
   }
   const x = await manageApiKeys({

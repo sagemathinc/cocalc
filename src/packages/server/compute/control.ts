@@ -33,41 +33,34 @@ const logger = getLogger("server:compute:control");
 
 const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
 
+async function runTasks(opts, f: () => Promise<void>) {
+  try {
+    await f();
+    await waitStableNoError(opts);
+  } catch (err) {
+    await setError(opts.id, `${err}`);
+    await state(opts);
+  }
+}
+
 export const start: (opts: {
   account_id: string;
   id: number;
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
-  if (
-    server.state != null &&
-    server.state != "off" &&
-    server.state != "deprovisioned"
-  ) {
-    // try one more time:
-    await state({ account_id, id });
-    server = await getServer({ account_id, id });
-    if (
-      server.state != null &&
-      server.state != "off" &&
-      server.state != "deprovisioned"
-    ) {
-      throw Error(
-        "server must be in state 'off' or 'deprovisioned' before starting it",
-      );
-    }
-  }
   try {
     await setError(id, "");
-    await setState(id, "starting");
     await setProjectApiKey({ account_id, server });
-    await doStart(server);
-    await saveProvisionedConfiguration(server);
-    waitStableNoError({ account_id, id });
   } catch (err) {
-    await setState(id, "unknown");
     await setError(id, `${err}`);
     throw err;
   }
+  runTasks({ account_id, id }, async () => {
+    await setState(id, "starting");
+    await doStart(server);
+    await setState(id, "running");
+    await saveProvisionedConfiguration(server);
+  });
 });
 
 async function doStart(server: ComputeServer) {
@@ -101,17 +94,13 @@ async function saveProvisionedConfiguration({
 export const stop: (opts: { account_id: string; id: number }) => Promise<void> =
   reuseInFlight(async ({ account_id, id }) => {
     const server = await getServer({ account_id, id });
-    try {
-      await setError(id, "");
+    await setError(id, "");
+    runTasks({ account_id, id }, async () => {
       await setState(id, "stopping");
       await deleteProjectApiKey({ account_id, server });
       await doStop(server);
-      waitStableNoError({ account_id, id });
-    } catch (err) {
-      await setState(id, "unknown");
-      await setError(id, `${err}`);
-      throw err;
-    }
+      await setState(id, "off");
+    });
   });
 
 async function doStop(server: ComputeServer) {
@@ -136,17 +125,14 @@ export const deprovision: (opts: {
   id: number;
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   const server = await getServer({ account_id, id });
-  try {
-    await setError(id, "");
+  await setError(id, "");
+
+  runTasks({ account_id, id }, async () => {
     await setState(id, "stopping");
     await deleteProjectApiKey({ account_id, server });
     await doDeprovision(server);
-    waitStableNoError({ account_id, id });
-  } catch (err) {
-    await setState(id, "unknown");
-    await setError(id, `${err}`);
-    throw err;
-  }
+    await setState(id, "deprovisioned");
+  });
 });
 
 async function doDeprovision(server: ComputeServer) {
@@ -329,25 +315,13 @@ export const suspend: (opts: {
   account_id: string;
   id: number;
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
-  let server = await getServer({ account_id, id });
-  if (server.state != null && server.state != "running") {
-    // try one more time:
-    await state({ account_id, id });
-    server = await getServer({ account_id, id });
-    if (server.state != null && server.state != "running") {
-      throw Error("server must be in state 'running' before suspending it");
-    }
-  }
-  try {
-    await setError(id, "");
+  const server = await getServer({ account_id, id });
+  await setError(id, "");
+  runTasks({ account_id, id }, async () => {
     await setState(id, "suspending");
     await doSuspend(server);
-    waitStableNoError({ account_id, id });
-  } catch (err) {
-    await setState(id, "unknown");
-    await setError(id, `${err}`);
-    throw err;
-  }
+    await setState(id, "suspended");
+  });
 });
 
 async function doSuspend(server: ComputeServer) {
@@ -364,24 +338,13 @@ export const resume: (opts: {
   id: number;
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
-  if (server.state != null && server.state != "suspended") {
-    // try one more time:
-    await state({ account_id, id });
-    server = await getServer({ account_id, id });
-    if (server.state != null && server.state != "suspended") {
-      throw Error("server must be in state 'suspended' before resuming it");
-    }
-  }
-  try {
-    await setError(id, "");
+  await setError(id, "");
+
+  runTasks({ account_id, id }, async () => {
     await setState(id, "starting");
     await doResume(server);
-    waitStableNoError({ account_id, id });
-  } catch (err) {
-    await setState(id, "unknown");
-    await setError(id, `${err}`);
-    throw err;
-  }
+    await setState(id, "running");
+  });
 });
 
 async function doResume(server: ComputeServer) {
@@ -398,16 +361,12 @@ export const reboot: (opts: {
   id: number;
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
-  try {
+  runTasks({ account_id, id }, async () => {
     await setError(id, "");
     await setState(id, "stopping");
     await doReboot(server);
-    waitStableNoError({ account_id, id });
-  } catch (err) {
-    await setState(id, "unknown");
-    await setError(id, `${err}`);
-    throw err;
-  }
+    await setState(id, "starting");
+  });
 });
 
 async function doReboot(server: ComputeServer) {
