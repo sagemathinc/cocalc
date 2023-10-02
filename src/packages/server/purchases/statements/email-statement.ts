@@ -169,11 +169,18 @@ ${purchasesToText(purchases)}
 
 `;
 
-  const mesg = { from: help_email, to, subject, html, text };
+  const mesg: Message = {
+    from: help_email,
+    to,
+    subject,
+    html,
+    text,
+    channel: "custom",
+  };
 
   if (!dryRun) {
     // actually send email
-    await sendEmail(mesg);
+    await sendEmail({ message: mesg });
   }
 
   return mesg;

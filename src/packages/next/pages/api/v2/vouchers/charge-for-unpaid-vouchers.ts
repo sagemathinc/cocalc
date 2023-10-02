@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import chargeForUnpaidVouchers from "@cocalc/server/vouchers/charge-for-unpaid-vouchers";
 import getAccountId from "lib/account/get-account";
-import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
 export default async function handle(req, res) {
   try {

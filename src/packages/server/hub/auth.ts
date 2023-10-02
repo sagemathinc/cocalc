@@ -35,6 +35,7 @@
 
 import Cookies from "cookies";
 import * as dot from "dot-object";
+import type { NextFunction, Request, Response } from "express";
 import * as express from "express";
 import express_session from "express-session";
 import * as _ from "lodash";
@@ -43,26 +44,25 @@ import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
 import { v4 as uuidv4, v4 } from "uuid";
 const safeJsonStringify = require("safe-json-stringify");
-import type { Request, Response, NextFunction } from "express";
 
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
 import base_path from "@cocalc/backend/base-path";
+import { getLogger } from "@cocalc/backend/logger";
 import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { getLogger } from "@cocalc/backend/logger";
+import {
+  PassportLoginOpts,
+  PassportStrategyDB,
+  PassportStrategyDBConfig,
+  PassportTypes,
+  StrategyInstanceOpts,
+  isOAuth2,
+} from "@cocalc/database/settings/auth-sso-types";
 import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
-import {
-  isOAuth2,
-  PassportLoginOpts,
-  PassportStrategyDBConfig,
-  PassportStrategyDB,
-  PassportTypes,
-  StrategyInstanceOpts,
-} from "@cocalc/database/settings/auth-sso-types";
 import {
   InitPassport,
   PassportManagerOpts,
@@ -72,13 +72,12 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { DNS } from "@cocalc/util/theme";
 import {
-  PassportStrategyFrontend,
   PRIMARY_SSO,
+  PassportStrategyFrontend,
 } from "@cocalc/util/types/passport-types";
 import {
   email_verification_problem,
-  email_verified_successfully,
-  welcome_email,
+  email_verified_successfully
 } from "./email";
 //import Saml2js from "saml2js";
 import { WinstonLogger } from "@cocalc/backend/logger";
@@ -87,9 +86,9 @@ import {
   getPassportCache,
 } from "@cocalc/database/postgres/passport-store";
 import {
-  SSO_API_KEY_COOKIE_NAME,
   BLACKLISTED_STRATEGIES,
   DEFAULT_LOGIN_INFO,
+  SSO_API_KEY_COOKIE_NAME,
 } from "@cocalc/server/auth/sso/consts";
 import {
   FacebookStrategyConf,
@@ -97,6 +96,7 @@ import {
   GoogleStrategyConf,
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
+import { sendVerifyEmail } from "@cocalc/server/email/verify-email";
 const sign_in = require("./sign-in");
 
 const logger = getLogger("server:hub:auth");
@@ -891,13 +891,7 @@ export async function verify_email_send_token(opts: VerifyEmailOpts) {
     }>(opts.database.verify_email_create_token, {
       account_id: opts.account_id,
     });
-    const settings = await cb2(opts.database.get_server_settings_cached);
-    await cb2(welcome_email, {
-      to: email_address,
-      token,
-      only_verify: opts.only_verify,
-      settings,
-    });
+    sendVerifyEmail(email_address, token);
     opts.cb();
   } catch (err) {
     opts.cb(err);

@@ -20,12 +20,16 @@ Table({
       type: "timestamp",
       desc: "Start of the time interval when these emails were sent (e.g., start of the day if we are counting up for a single day).",
     },
+    channel: {
+      type: "string",
+      desc: "The channel/template used to send these emails.",
+    },
     expire: {
       type: "timestamp",
     },
   },
   rules: {
     // using a compound primary key consisting of who and day we start.
-    primary_key: ["id", "time"],
+    primary_key: ["id", "time", "channel"],
   },
 });

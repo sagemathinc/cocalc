@@ -105,6 +105,7 @@ def all_packages() -> List[str]:
     v = [
         'packages/',  # top level workspace
         'packages/cdn',  # packages/hub assumes this is built
+        'packages/assets', # hsy: moved this higher up, otherwise next fails
         'packages/util',
         'packages/sync',
         'packages/sync-client',

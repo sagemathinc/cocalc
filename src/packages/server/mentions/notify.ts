@@ -55,17 +55,16 @@ ${description ? "> " : ""}${description}
   const { help_email } = await getServerSettings();
   const from = `${sourceName} <${help_email}>`;
 
-  await sendEmail(
-    {
+  await sendEmail({
+    message: {
       from,
       to,
       subject,
       text,
       html,
-      categories: ["notification"],
-      asm_group: 148185, // see https://app.sendgrid.com/suppressions/advanced_suppression_manager
+      channel: "notification",
     },
-    source
-  );
+    id: source,
+  });
   return "email";
 }

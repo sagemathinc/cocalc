@@ -123,7 +123,16 @@ if you need more or less resources.  If you have any questions, reply
 to this email to create a support request.
 
 `;
-  await sendEmail({ from: help_email, to, subject, html, text: html }); // TODO: lazy regarding text!
+  await sendEmail({
+    message: {
+      from: help_email,
+      to,
+      subject,
+      html,
+      text: html, // TODO: lazy regarding text!
+      channel: "custom",
+    },
+  });
 
   const pool = getPool();
   await pool.query(

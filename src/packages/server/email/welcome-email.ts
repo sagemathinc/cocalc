@@ -23,17 +23,16 @@ export default async function sendWelcomeEmail(
 
   const { text, html } = await getWelcomeEmail(email_address);
 
-  await sendEmail(
-    {
+  await sendEmail({
+    message: {
       to: email_address,
       subject: randomOnboardingSubject(),
       text,
       html,
-      categories: ["welcome"],
-      asm_group: 147985,
+      channel: "custom", // for now. TODO make this "welcome" and get rid of the template here
     },
-    account_id
-  );
+    id: account_id,
+  });
 }
 
 const WELCOMES = [

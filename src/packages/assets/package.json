@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@cocalc/backend": "workspace:*",
-    "uglify-js": "^3.14.1"
+    "uglify-js": "^3.17.4"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/assets",
   "repository": {
