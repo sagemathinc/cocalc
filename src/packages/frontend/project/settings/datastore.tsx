@@ -1,10 +1,10 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021 – 2023 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
 /*
-Datastore (kucalc only!)
+Datastore (only for kucalc and cocalc-cloud)
 */
 
 import {
@@ -126,6 +126,10 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const [form_s3] = Form.useForm();
   const [form_sshfs] = Form.useForm();
 
+  const form_layout = isFlyout
+    ? { labelCol: { span: 8 }, wrapperCol: { span: 16 } }
+    : { labelCol: { span: 6 }, wrapperCol: { span: 18 } };
+
   React.useEffect(() => {
     // if there is a change to that project running again, we clear the restart warning
     if (is_running && needs_restart) set_needs_restart(false);
@@ -153,32 +157,6 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         unreachable(type);
     }
     set_form_readonly(READONLY_DEFAULT);
-  }
-
-  function render_instructions() {
-    if (!needs_restart) return null;
-
-    return (
-      <Alert
-        type={"warning"}
-        showIcon={false}
-        banner
-        message={
-          <div>
-            <Typography.Text strong>
-              Restart your project for these changes to take effect.
-            </Typography.Text>
-            <span style={{ float: "right" }}>
-              <RestartProject
-                project_id={project_id}
-                text={"Restart…"}
-                size={"small"}
-              />
-            </span>
-          </div>
-        }
-      />
-    );
   }
 
   // retrieve all datastore configurations – post-processing in reload()
@@ -308,6 +286,32 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   function open(record) {
     project_actions?.open_directory(`.smc/root/data/${record.name}/`);
+  }
+
+  function render_instructions() {
+    if (!needs_restart) return null;
+
+    return (
+      <Alert
+        type={"warning"}
+        showIcon={false}
+        banner
+        message={
+          <div>
+            <Typography.Text strong>
+              Restart your project for these changes to take effect.
+            </Typography.Text>
+            <span style={{ float: "right" }}>
+              <RestartProject
+                project_id={project_id}
+                text={"Restart…"}
+                size={"small"}
+              />
+            </span>
+          </div>
+        }
+      />
+    );
   }
 
   function render_action_buttons(_, record) {
@@ -514,67 +518,14 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  const form_layout = isFlyout
-    ? { labelCol: { span: 8 }, wrapperCol: { span: 16 } }
-    : { labelCol: { span: 6 }, wrapperCol: { span: 18 } };
-  const form_layout_tail = {
-    wrapperCol: {
-      offset: form_layout.labelCol.span,
-      span: form_layout.wrapperCol.span,
-    },
-  };
-
   function cancel() {
     set_new_config(null);
     set_error("");
   }
 
-  function render_form_bottom() {
-    // TODO: in general, I don't know to back the readonly boolean with the form
-    // that's why this is a control setting a state, and some extras around it
-    return (
-      <>
-        <Form.Item label="Read-only" name="readonly">
-          <Checkbox
-            checked={form_readonly}
-            onChange={(e) => set_form_readonly(e.target.checked)}
-          />
-        </Form.Item>
-        <Form.Item {...form_layout_tail}>
-          <Space>
-            <Button type="primary" htmlType="submit">
-              Save
-            </Button>
-            <Button onClick={cancel}>Cancel</Button>
-          </Space>
-        </Form.Item>
-      </>
-    );
-  }
-
-  function render_form_name() {
-    return (
-      <Form.Item
-        label="Name"
-        name="name"
-        rules={RULE_ALPHANUM}
-        tooltip={
-          <div>
-            Choose a name.
-            <br />
-            It will be mounted at{" "}
-            <code style={{ color: "white" }}>/data/[name]</code>.
-          </div>
-        }
-      >
-        <Input placeholder="" />
-      </Form.Item>
-    );
-  }
-
   function process_failure(err: { errorFields: { name; errors: string[] }[] }) {
     const msg: string[] = err.errorFields?.map(
-      ({ name, errors }) => `- ${name}: ${errors.join(" ")}`
+      ({ name, errors }) => `- ${name}: ${errors.join(" ")}`,
     );
     set_error(msg.join("\n"));
   }
@@ -589,121 +540,27 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function ConfigForm(props) {
-    return (
-      <Form
-        {...form_layout}
-        form={props.form}
-        onFinish={(v) => form_finish(v, props.type)}
-        onFinishFailed={process_failure}
-        style={isFlyout ? { paddingRight: FLYOUT_PADDING } : undefined}
-        size="small"
-      >
-        {props.children}
-      </Form>
-    );
-  }
-
-  function render_new_gcs() {
-    const creds_help =
-      "JSON formatted content of the service account credentials file.";
-    const msg_bucket = "Name of the S3 bucket";
-    return (
-      <ConfigForm form={form_gcs} type={"gcs"}>
-        {render_form_name()}
-        <Form.Item
-          label="Bucket"
-          name="bucket"
-          rules={RULE_ALPHANUM}
-          tooltip={msg_bucket}
-        >
-          <Input placeholder="name-of-bucket-01" />
-        </Form.Item>
-        <Form.Item
-          label="Credentials"
-          name="secret"
-          tooltip={creds_help + SECRET_TOOLTIP}
-        >
-          <Input.TextArea rows={5} placeholder={creds_help} />
-        </Form.Item>
-        {render_form_bottom()}
-      </ConfigForm>
-    );
-  }
-
-  function render_new_s3() {
-    return (
-      <ConfigForm form={form_s3} type={"s3"}>
-        {render_form_name()}
-        <Form.Item
-          label="Bucket"
-          name="bucket"
-          rules={RULE_ALPHANUM}
-          tooltip="The bucket"
-        >
-          <Input placeholder="name-of-bucket-01" />
-        </Form.Item>
-        <Form.Item
-          label="Key ID"
-          name="keyid"
-          rules={RULE_REQUIRED}
-          tooltip="The Key ID"
-        >
-          <Input placeholder="AFiwFw892...." />
-        </Form.Item>
-        <Form.Item
-          label="Secret"
-          name="secret"
-          tooltip={"The secret key" + SECRET_TOOLTIP}
-        >
-          <Input placeholder="fie$kf2&ifw..." />
-        </Form.Item>
-        {render_form_bottom()}
-      </ConfigForm>
-    );
-  }
-
-  function render_new_sshfs() {
-    const pk_help =
-      "This must be a passphrase-less private key, which allows to connect to the remove OpenSSH server.";
-    const pk_example =
-      "This must be a passphrase-less private key!\n\n-----BEGIN OPENSSH PRIVATE KEY-----\naNmQfie...\n...\n...\n-----END OPENSSH PRIVATE KEY-----";
-    return (
-      <ConfigForm form={form_sshfs} type={"sshfs"}>
-        {render_form_name()}
-        <Form.Item
-          label="User"
-          name="user"
-          rules={RULE_REQUIRED}
-          tooltip="The username in [user]@[host]"
-        >
-          <Input placeholder="foo..." />
-        </Form.Item>
-        <Form.Item
-          label="Host"
-          name="host"
-          rules={RULE_REQUIRED}
-          tooltip="The host in [user]@[host]"
-        >
-          <Input placeholder="login.server.edu" />
-        </Form.Item>
-        <Form.Item
-          label="Remote path"
-          name="path"
-          tooltip="The full remote path to mount, defaults to '/home/[user]'"
-        >
-          <Input placeholder="" />
-        </Form.Item>
-        <Form.Item
-          label="Private Key"
-          name="secret"
-          tooltip={pk_help + SECRET_TOOLTIP}
-        >
-          <Input.TextArea rows={5} placeholder={pk_example} />
-        </Form.Item>
-        {render_form_bottom()}
-      </ConfigForm>
-    );
+  function render_forms(new_config: Config) {
+    const { type } = new_config;
+    const props = {
+      form_layout,
+      form_readonly,
+      set_form_readonly,
+      cancel,
+      process_failure,
+      form_finish,
+      isFlyout,
+    } as const;
+    switch (type) {
+      case "s3":
+        return <NewS3 form_s3={form_s3} {...props} />;
+      case "gcs":
+        return <NewGCS form_gcs={form_gcs} {...props} />;
+      case "sshfs":
+        return <NewSSHF form_sshfs={form_sshfs} {...props} />;
+      default:
+        unreachable(type);
+    }
   }
 
   function render_new_config() {
@@ -717,9 +574,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           </Typography.Text>{" "}
           configuration
         </h3>
-        {new_config.type === "s3" && render_new_s3()}
-        {new_config.type === "gcs" && render_new_gcs()}
-        {new_config.type === "sshfs" && render_new_sshfs()}
+        {render_forms(new_config)}
       </>
     );
   }
@@ -770,3 +625,241 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 });
+
+function FormName() {
+  return (
+    <Form.Item
+      label="Name"
+      name="name"
+      rules={RULE_ALPHANUM}
+      tooltip={
+        <div>
+          Choose a name.
+          <br />
+          It will be mounted at{" "}
+          <code style={{ color: "white" }}>/data/[name]</code>.
+        </div>
+      }
+    >
+      <Input placeholder="" />
+    </Form.Item>
+  );
+}
+
+function FormBottom({ form_readonly, set_form_readonly, form_layout, cancel }) {
+  const form_layout_tail = {
+    wrapperCol: {
+      offset: form_layout.labelCol.span,
+      span: form_layout.wrapperCol.span,
+    },
+  };
+
+  // TODO: in general, I don't know to back the readonly boolean with the form
+  // that's why this is a control setting a state, and some extras around it
+  return (
+    <>
+      <Form.Item label="Read-only" name="readonly">
+        <Checkbox
+          checked={form_readonly}
+          onChange={(e) => set_form_readonly(e.target.checked)}
+        />
+      </Form.Item>
+      <Form.Item {...form_layout_tail}>
+        <Space>
+          <Button type="primary" htmlType="submit">
+            Save
+          </Button>
+          <Button onClick={cancel}>Cancel</Button>
+        </Space>
+      </Form.Item>
+    </>
+  );
+}
+
+function NewSSHF({
+  form_sshfs,
+  form_layout,
+  form_readonly,
+  set_form_readonly,
+  cancel,
+  process_failure,
+  form_finish,
+  isFlyout,
+}) {
+  const pk_help =
+    "This must be a passphrase-less private key, which allows to connect to the remove OpenSSH server.";
+  const pk_example =
+    "This must be a passphrase-less private key!\n\n-----BEGIN OPENSSH PRIVATE KEY-----\naNmQfie...\n...\n...\n-----END OPENSSH PRIVATE KEY-----";
+  return (
+    <ConfigForm
+      form={form_sshfs}
+      type={"sshfs"}
+      form_layout={form_layout}
+      process_failure={process_failure}
+      form_finish={form_finish}
+      isFlyout={isFlyout}
+    >
+      <FormName />
+      <Form.Item
+        label="User"
+        name="user"
+        rules={RULE_REQUIRED}
+        tooltip="The username in [user]@[host]"
+      >
+        <Input placeholder="foo..." />
+      </Form.Item>
+      <Form.Item
+        label="Host"
+        name="host"
+        rules={RULE_REQUIRED}
+        tooltip="The host in [user]@[host]"
+      >
+        <Input placeholder="login.server.edu" />
+      </Form.Item>
+      <Form.Item
+        label="Remote path"
+        name="path"
+        tooltip="The full remote path to mount, defaults to '/home/[user]'"
+      >
+        <Input placeholder="" />
+      </Form.Item>
+      <Form.Item
+        label="Private Key"
+        name="secret"
+        tooltip={pk_help + SECRET_TOOLTIP}
+      >
+        <Input.TextArea rows={5} placeholder={pk_example} />
+      </Form.Item>
+      <FormBottom
+        form_layout={form_layout}
+        form_readonly={form_readonly}
+        set_form_readonly={set_form_readonly}
+        cancel={cancel}
+      />
+    </ConfigForm>
+  );
+}
+
+function NewGCS({
+  form_gcs,
+  form_layout,
+  form_readonly,
+  set_form_readonly,
+  cancel,
+  process_failure,
+  form_finish,
+  isFlyout,
+}) {
+  const creds_help =
+    "JSON formatted content of the service account credentials file.";
+  const msg_bucket = "Name of the S3 bucket";
+  return (
+    <ConfigForm
+      form={form_gcs}
+      type={"gcs"}
+      form_layout={form_layout}
+      process_failure={process_failure}
+      form_finish={form_finish}
+      isFlyout={isFlyout}
+    >
+      <FormName />
+      <Form.Item
+        label="Bucket"
+        name="bucket"
+        rules={RULE_ALPHANUM}
+        tooltip={msg_bucket}
+      >
+        <Input placeholder="name-of-bucket-01" />
+      </Form.Item>
+      <Form.Item
+        label="Credentials"
+        name="secret"
+        tooltip={creds_help + SECRET_TOOLTIP}
+      >
+        <Input.TextArea rows={5} placeholder={creds_help} />
+      </Form.Item>
+      <FormBottom
+        form_layout={form_layout}
+        form_readonly={form_readonly}
+        set_form_readonly={set_form_readonly}
+        cancel={cancel}
+      />
+    </ConfigForm>
+  );
+}
+
+function NewS3({
+  form_s3,
+  form_layout,
+  form_readonly,
+  set_form_readonly,
+  cancel,
+  process_failure,
+  form_finish,
+  isFlyout,
+}) {
+  return (
+    <ConfigForm
+      form={form_s3}
+      type={"s3"}
+      form_layout={form_layout}
+      process_failure={process_failure}
+      form_finish={form_finish}
+      isFlyout={isFlyout}
+    >
+      <FormName />
+      <Form.Item
+        label="Bucket"
+        name="bucket"
+        rules={RULE_ALPHANUM}
+        tooltip="The bucket"
+      >
+        <Input placeholder="name-of-bucket-01" />
+      </Form.Item>
+      <Form.Item
+        label="Key ID"
+        name="keyid"
+        rules={RULE_REQUIRED}
+        tooltip="The Key ID"
+      >
+        <Input placeholder="AFiwFw892...." />
+      </Form.Item>
+      <Form.Item
+        label="Secret"
+        name="secret"
+        tooltip={`The secret key ${SECRET_TOOLTIP}`}
+      >
+        <Input placeholder="fie$kf2&ifw..." />
+      </Form.Item>
+      <FormBottom
+        form_layout={form_layout}
+        form_readonly={form_readonly}
+        set_form_readonly={set_form_readonly}
+        cancel={cancel}
+      />
+    </ConfigForm>
+  );
+}
+
+function ConfigForm({
+  form_layout,
+  form,
+  form_finish,
+  process_failure,
+  type,
+  isFlyout,
+  children,
+}) {
+  return (
+    <Form
+      {...form_layout}
+      form={form}
+      onFinish={(v) => form_finish(v, type)}
+      onFinishFailed={process_failure}
+      style={isFlyout ? { paddingRight: FLYOUT_PADDING } : undefined}
+      size="small"
+    >
+      {children}
+    </Form>
+  );
+}
