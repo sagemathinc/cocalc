@@ -172,7 +172,7 @@ export const state: (opts: {
   const server = await getServer({ account_id, id });
   const state = await getCloudServerState(server);
   doPurchaseUpdate({ server, state });
-  if (state == "stopping" || state == "off") {
+  if (state == "deprovisioned") {
     // don't need it anymore.
     await deleteProjectApiKey({ account_id, server });
   }

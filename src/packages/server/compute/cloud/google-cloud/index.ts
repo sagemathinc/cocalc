@@ -1,7 +1,6 @@
 import type {
   ComputeServer,
   State,
-  GoogleCloudData,
 } from "@cocalc/util/db-schema/compute-servers";
 import { setConfiguration, setData } from "@cocalc/server/compute/util";
 import getClient, {
@@ -75,10 +74,7 @@ export async function reboot(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = (server.data as GoogleCloudData | undefined)?.name;
-  if (!name) {
-    return;
-  }
+  const name = getServerName(server);
   await rebootInstance({ name, zone: conf.zone });
 }
 
@@ -88,10 +84,7 @@ export async function deprovision(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = (server.data as GoogleCloudData | undefined)?.name;
-  if (!name) {
-    return;
-  }
+  const name = getServerName(server);
   await deleteInstance({ name, zone: conf.zone });
 }
 
@@ -101,10 +94,7 @@ export async function stop(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = (server.data as GoogleCloudData | undefined)?.name;
-  if (!name) {
-    return;
-  }
+  const name = getServerName(server);
   await stopInstance({ name, zone: conf.zone });
 }
 
@@ -114,10 +104,7 @@ export async function state(server: ComputeServer): Promise<State> {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = (server.data as GoogleCloudData | undefined)?.name;
-  if (!name) {
-    return "deprovisioned";
-  }
+  const name = getServerName(server);
   const instance = await getInstance({ name, zone: conf.zone });
   (async () => {
     try {
@@ -165,10 +152,7 @@ export async function suspend(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = (server.data as GoogleCloudData | undefined)?.name;
-  if (!name) {
-    return;
-  }
+  const name = getServerName(server);
   await suspendInstance({ name, zone: conf.zone });
 }
 
@@ -178,10 +162,7 @@ export async function resume(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const name = (server.data as GoogleCloudData | undefined)?.name;
-  if (!name) {
-    return;
-  }
+  const name = getServerName(server);
   await resumeInstance({ name, zone: conf.zone });
 }
 
