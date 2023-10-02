@@ -7,6 +7,8 @@ import * as immutable from "immutable";
 import React from "react";
 import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
 import * as underscore from "underscore";
+
+
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   TypedMap,
@@ -22,6 +24,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
+  Paragraph,
   SettingBox,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
@@ -51,6 +54,7 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
+import { Alert } from "antd";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -430,7 +434,8 @@ const Explorer0 = rclass(
     render_file_listing(
       listing: ListingItem[] | undefined,
       file_map,
-      fetch_directory_error: any
+      fetch_directory_error: any,
+      project_is_running: boolean,
     ) {
       if (fetch_directory_error) {
         // TODO: the refresh button text is inconsistant
@@ -440,7 +445,7 @@ const Explorer0 = rclass(
               error={fetch_directory_error}
               path={this.props.current_path}
               quotas={this.props.get_total_project_quotas(
-                this.props.project_id
+                this.props.project_id,
               )}
               is_commercial={require("@cocalc/frontend/customize").commercial}
               is_logged_in={!!this.props.is_logged_in}
@@ -502,11 +507,37 @@ const Explorer0 = rclass(
           </FileUploadWrapper>
         );
       } else {
-        return (
-          <div style={{ textAlign: "center" }}>
-            <Loading theme={"medium"} />
-          </div>
-        );
+        if (project_is_running) {
+          return (
+            <div style={{ textAlign: "center" }}>
+              <Loading theme={"medium"} />
+            </div>
+          );
+        } else {
+          return (
+            <Alert
+              type="warning"
+              icon={<Icon name="ban" />}
+              style={{textAlign: "center"}}
+              showIcon
+              description={
+                <Paragraph>
+                  In order to see the files in this directory, you have to{" "}
+                  <a
+                    onClick={() => {
+                      redux
+                        .getActions("projects")
+                        .start_project(this.props.project_id);
+                    }}
+                  >
+                    start this project
+                  </a>
+                  .
+                </Paragraph>
+              }
+            />
+          );
+        }
       }
     }
 
@@ -518,7 +549,7 @@ const Explorer0 = rclass(
     }
 
     render_control_row(
-      visible_listing: ListingItem[] | undefined
+      visible_listing: ListingItem[] | undefined,
     ): JSX.Element {
       return (
         <div
@@ -686,7 +717,7 @@ const Explorer0 = rclass(
       if (listing != undefined) {
         const { start_index, end_index } = pager_range(
           file_listing_page_size,
-          this.props.page_number
+          this.props.page_number,
         );
         visible_listing = listing.slice(start_index, end_index);
       }
@@ -754,11 +785,12 @@ const Explorer0 = rclass(
             {this.render_file_listing(
               visible_listing,
               file_map,
-              directory_error
+              directory_error,
+              project_is_running,
             )}
             {listing != undefined
               ? this.render_paging_buttons(
-                  Math.ceil(listing.length / file_listing_page_size)
+                  Math.ceil(listing.length / file_listing_page_size),
                 )
               : undefined}
           </div>
@@ -775,5 +807,5 @@ const Explorer0 = rclass(
         </div>
       );
     }
-  }
+  },
 );

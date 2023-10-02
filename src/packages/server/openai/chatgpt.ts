@@ -341,7 +341,7 @@ const APPROX_CHARACTERS_PER_TOKEN = 8;
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 function numTokens(content: string): number {
   // slice to avoid extreme slowdown "attack".
-  return tokenizer.encode(content.slice(0, 8000 * APPROX_CHARACTERS_PER_TOKEN))
+  return tokenizer.encode(content.slice(0, 32000 * APPROX_CHARACTERS_PER_TOKEN))
     .text.length;
 }
 function totalNumTokens(messages: { content: string }[]): number {

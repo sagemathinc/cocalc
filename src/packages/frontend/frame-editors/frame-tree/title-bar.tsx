@@ -201,7 +201,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     useState<boolean>(false);
 
   const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id
+    props.project_id,
   );
 
   if (props.editor_actions?.name == null) {
@@ -234,12 +234,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const fullscreen: undefined | "default" | "kiosk" = useRedux(
     "page",
-    "fullscreen"
+    "fullscreen",
   );
 
-  const hideButtonTooltips = useRedux(["account", "other_settings"]).get(
-    "hide_button_tooltips"
-  );
+  const otherSettings = useRedux(["account", "other_settings"]);
+  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
+  const darkMode = otherSettings.get("dark_mode");
+  console.log("dark_mode = ", darkMode);
 
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
@@ -286,7 +287,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         } catch (err) {
           console.trace(`${err}`);
           props.actions.set_error(
-            `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`
+            `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
           );
         }
       };
@@ -385,7 +386,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         // makes this easier to debug.
         console.log(props.editor_spec);
         throw Error(
-          `BUG -- ${type} must be defined by the editor_spec, but is not`
+          `BUG -- ${type} must be defined by the editor_spec, but is not`,
         );
       }
       if (is_public && spec.hide_public) {
@@ -480,7 +481,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
             track("unset-full");
             props.actions.unset_frame_full();
           }}
-          bsStyle={"warning"}
+          bsStyle={!darkMode ? "warning" : undefined}
+          style={{ color: darkMode ? "orange" : undefined }}
         >
           <Icon name={"compress"} />
         </StyledButton>
@@ -808,7 +810,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={debounce(
           () => props.editor_actions.paste(props.id, true),
           200,
-          { leading: true, trailing: false }
+          { leading: true, trailing: false },
         )}
         disabled={read_only}
         bsSize={button_size()}
@@ -985,7 +987,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function button_text(
     button_name: string,
-    labels?: boolean
+    labels?: boolean,
   ): string | undefined {
     if (!labels) return;
     const custom = props.editor_spec[props.type].customize_buttons;
@@ -1020,7 +1022,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <AntdButton
         key={"timetravel"}
         title={"Show edit history"}
-        style={{ ...button_style(), color: "white", background: "#5bc0de" }}
+        style={{
+          ...button_style(),
+          ...(!darkMode
+            ? { color: "white", background: "#5bc0de" }
+            : undefined),
+        }}
         size={button_size()}
         onClick={(event) => {
           track("time-travel");
@@ -1062,8 +1069,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         buttonSize={button_size()}
         buttonStyle={{
           ...button_style(),
-          backgroundColor: "rgb(16, 163, 127)",
-          color: "white",
+          ...(!darkMode
+            ? { backgroundColor: "rgb(16, 163, 127)", color: "white" }
+            : undefined),
         }}
         labels={labels}
         visible={props.tab_is_visible && props.is_visible}
@@ -1090,7 +1098,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           // be defined and it won't work.
           setTimeout(
             () => props.actions.set_frame_tree({ id: props.id, tour: true }),
-            1
+            1,
           );
         }}
         style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
@@ -1222,6 +1230,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           props.actions.explicit_save();
           props.actions.focus(props.id);
         }}
+        type={darkMode ? "default" : undefined}
       />
     );
   }
@@ -1247,7 +1256,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       !is_visible("format") ||
       !props.editor_actions.has_format_support(
         props.id,
-        props.available_features
+        props.available_features,
       )
     ) {
       return;
@@ -1719,7 +1728,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_buttons(
     forceLabels?: boolean,
     style?: CSS,
-    noRefs?
+    noRefs?,
   ): Rendered {
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
@@ -1849,7 +1858,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
                 {render_buttons(
                   true,
                   { maxHeight: "50vh", display: "block" },
-                  true
+                  true,
                 )}
               </div>
               <div>{render_types()}</div>
