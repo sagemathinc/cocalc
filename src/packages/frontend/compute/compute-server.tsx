@@ -35,6 +35,7 @@ export default function ComputeServer({
   state_changed,
   cloud,
   cost_per_hour,
+  purchase_id,
   configuration,
   data,
   deleted,
@@ -214,6 +215,7 @@ export default function ComputeServer({
                   account_id={account_id}
                   configuration={configuration}
                   cost_per_hour={cost_per_hour}
+                  purchase_id={purchase_id}
                 />
               </div>
               {/*<div
@@ -327,6 +329,7 @@ export default function ComputeServer({
               account_id={account_id}
               configuration={configuration}
               cost_per_hour={cost_per_hour}
+              purchase_id={purchase_id}
             />
           </div>
           {table}

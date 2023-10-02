@@ -20,6 +20,8 @@ import {
   validateConfigurationChange,
 } from "./control";
 import type { Configuration } from "@cocalc/util/db-schema/compute-servers";
+import { getServer } from "./get-servers";
+import updatePurchase from "./update-purchase";
 
 export default async function setServerConfiguration({
   account_id,
@@ -73,6 +75,12 @@ export default async function setServerConfiguration({
       "UPDATE compute_servers SET provisioned_configuration = $1::jsonb WHERE id=$2",
       [provisioned_configuration, id],
     );
+    const server = await getServer({ id, account_id });
+    // Note: It's conceivable something goes wrong and the configuration changes, e.g., the disk
+    // is enlarged, and somehow we don't get to this point right here and update the cost. Our plan
+    // is that this still gets handled, but later via a sync process, so only a small amount of
+    // money is lost.
+    await updatePurchase({ server, newState: state });
   }
 
   await pool.query(

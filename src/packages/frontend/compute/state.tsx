@@ -21,6 +21,7 @@ interface Props {
   account_id?: string;
   configuration: Configuration;
   cost_per_hour?: number;
+  purchase_id?: number;
 }
 
 export default function State({
@@ -31,6 +32,7 @@ export default function State({
   state_changed,
   editable,
   account_id,
+  purchase_id,
   cost_per_hour,
 }: Props) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -96,6 +98,7 @@ export default function State({
             <div style={{ textAlign: "center", margin: "15px 0" }}>
               {refresh}
             </div>
+            {purchase_id && <div>Purchase Id: {purchase_id} </div>}
           </div>
         );
       }}
@@ -216,8 +219,6 @@ function Body({ account_id, editable }) {
             </div>
           </>
         )}
-        <Divider />
-        Instead, create your own clone of this compute server.
       </div>
     );
   } else {

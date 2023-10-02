@@ -1,3 +1,11 @@
+/*
+Update the purchase status for the compute server.
+
+The purchase could change if the state changes.
+It can also change when the VM is off but the disk size changes.
+
+*/
+
 import { computeCost, getNetworkUsage } from "./control";
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
@@ -60,7 +68,7 @@ export default async function updatePurchase({
 
         if (
           description.state == newState &&
-          Math.abs(cost_per_hour - cost_per_hour0) < 0.0001
+          Math.abs(cost_per_hour - cost_per_hour0) < 0.000001
         ) {
           logger.debug("keep purchase going -- no change");
           return;

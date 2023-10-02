@@ -418,6 +418,7 @@ Table({
           provisioned_configuration: null,
           avatar_image_tiny: null,
           last_edited: null,
+          purchase_id: null,
         },
       },
     },

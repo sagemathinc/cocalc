@@ -114,14 +114,16 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
     //     ) {
     //       return 1;
     //     }
+    console.log({ sortBy });
     if (sortBy == "changed") {
-      return -cmp(cs_a.get("last_changed") ?? 0, cs_b.get("last_changed") ?? 0);
+      return -cmp(cs_a.get("last_edited") ?? 0, cs_b.get("last_edited") ?? 0);
     } else if (sortBy == "title") {
       return cmp(
         cs_a.get("title")?.toLowerCase(),
         cs_b.get("title")?.toLowerCase(),
       );
     } else {
+      // sort by id
       return -cmp(cs_a.get("id"), cs_b.get("id"));
     }
   });
