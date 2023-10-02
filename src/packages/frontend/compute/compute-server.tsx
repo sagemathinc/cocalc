@@ -93,7 +93,7 @@ export default function ComputeServer({
             setError={setError}
             setCloud={onCloudChange}
             id={id}
-            style={{ marginTop: "-10px" }}
+            style={{ marginTop: "-5px" }}
           />
         </div>
       ),
@@ -175,10 +175,11 @@ export default function ComputeServer({
   return (
     <Card
       style={{
+        opacity: deleted ? 0.5 : undefined,
         width: "100%",
         border: `0.5px solid ${color ?? "#f0f0f0"}`,
-        borderRight: `5px solid ${color ?? "#aaa"}`,
-        borderLeft: `5px solid ${color ?? "#aaa"}`,
+        borderRight: `10px solid ${color ?? "#aaa"}`,
+        borderLeft: `10px solid ${color ?? "#aaa"}`,
         ...style,
       }}
       actions={actions}

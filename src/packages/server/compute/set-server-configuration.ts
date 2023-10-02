@@ -76,7 +76,7 @@ export default async function setServerConfiguration({
   }
 
   await pool.query(
-    "UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2",
+    "UPDATE compute_servers SET last_edited=NOW(), configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2",
     [configuration, id],
   );
 }

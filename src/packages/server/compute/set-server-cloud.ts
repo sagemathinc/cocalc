@@ -50,7 +50,7 @@ export default async function setServerCloud({ account_id, id, cloud }) {
   }
 
   await pool.query(
-    "UPDATE compute_servers SET cloud=$1, configuration=$2 WHERE id=$3 AND account_id=$4",
+    "UPDATE compute_servers SET cloud=$1, configuration=$2, last_edited=NOW() WHERE id=$3 AND account_id=$4",
     [cloud, newConfig, id, account_id],
   );
 }

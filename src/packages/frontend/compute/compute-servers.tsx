@@ -3,7 +3,7 @@ import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
-import { Input, Checkbox, Typography } from "antd";
+import { Input, Checkbox, Radio, Typography } from "antd";
 import { useState } from "react";
 const { Search } = Input;
 import { search_match, search_split } from "@cocalc/util/misc";
@@ -59,6 +59,9 @@ function computeServerToSearch(computeServers, id) {
 function ComputeServerTable({ computeServers, project_id, account_id }) {
   const [search, setSearch] = useState<string>("");
   const [showDeleted, setShowDeleted] = useState<boolean>(false);
+  const [sortBy, setSortBy] = useState<"id" | "title" | "changed">(
+    localStorage.compute_server_sort ?? "id",
+  );
   if (!computeServers || computeServers.size == 0) {
     return (
       <CreateComputeServer
@@ -99,22 +102,28 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
     if (a == b) return 0;
     const cs_a = computeServers.get(a);
     const cs_b = computeServers.get(b);
-    if (
-      cs_a.get("account_id") == account_id &&
-      cs_b.get("account_id") != account_id
-    ) {
-      return -1;
+    //     if (
+    //       cs_a.get("account_id") == account_id &&
+    //       cs_b.get("account_id") != account_id
+    //     ) {
+    //       return -1;
+    //     }
+    //     if (
+    //       cs_a.get("account_id") != account_id &&
+    //       cs_b.get("account_id") == account_id
+    //     ) {
+    //       return 1;
+    //     }
+    if (sortBy == "changed") {
+      return -cmp(cs_a.get("last_changed") ?? 0, cs_b.get("last_changed") ?? 0);
+    } else if (sortBy == "title") {
+      return cmp(
+        cs_a.get("title")?.toLowerCase(),
+        cs_b.get("title")?.toLowerCase(),
+      );
+    } else {
+      return -cmp(cs_a.get("id"), cs_b.get("id"));
     }
-    if (
-      cs_a.get("account_id") != account_id &&
-      cs_b.get("account_id") == account_id
-    ) {
-      return 1;
-    }
-    return cmp(
-      cs_a.get("title")?.toLowerCase(),
-      cs_b.get("title")?.toLowerCase(),
-    );
   });
   for (const id of ids) {
     const data = computeServers.get(id).toJS();
@@ -149,6 +158,25 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
           >
             Deleted ({numDeleted})
           </Checkbox>
+        )}
+        {computeServers.size > 1 && (
+          <>
+            <Radio.Group
+              value={sortBy}
+              size="small"
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                // LAZY!
+                try {
+                  localStorage.compute_server_sort = e.target.value;
+                } catch (_) {}
+              }}
+            >
+              <Radio.Button value="id">Id</Radio.Button>
+              <Radio.Button value="title">Title</Radio.Button>
+              <Radio.Button value="changed">Changed</Radio.Button>
+            </Radio.Group>
+          </>
         )}
       </div>
       {v}

@@ -6,7 +6,7 @@ import type { State, Data } from "@cocalc/util/db-schema/compute-servers";
 export async function setState(id: number, state: State) {
   const pool = getPool();
   await pool.query(
-    "UPDATE compute_servers SET state=$1, state_changed=NOW() WHERE id=$2 AND state != $1",
+    "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND state != $1",
     [state, id],
   );
 }
@@ -33,7 +33,7 @@ export async function setData({
 }) {
   const pool = getPool();
   await pool.query(
-    `UPDATE compute_servers SET data = COALESCE(data, '{}'::jsonb) || $1::jsonb WHERE id=$2`,
+    `UPDATE compute_servers SET data = COALESCE(data, '{}'::jsonb) || $1::jsonb, last_edited=NOW(),  WHERE id=$2`,
     [JSON.stringify({ ...data, cloud }), id],
   );
 }
@@ -43,7 +43,7 @@ export async function setData({
 export async function setConfiguration(id: number, newConfiguration: object) {
   const pool = getPool();
   await pool.query(
-    `UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2`,
+    `UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb, last_edited=NOW(),  WHERE id=$2`,
     [JSON.stringify(newConfiguration), id],
   );
 }

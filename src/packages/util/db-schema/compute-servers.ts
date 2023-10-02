@@ -383,6 +383,7 @@ export interface ComputeServerUserInfo {
   provisioned_configuration?: Configuration;
   data?: Data;
   purchase_id?: number;
+  last_edited?: Date;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -416,6 +417,7 @@ Table({
           data: null,
           provisioned_configuration: null,
           avatar_image_tiny: null,
+          last_edited: null,
         },
       },
     },
@@ -518,6 +520,10 @@ Table({
     purchase_id: {
       type: "number",
       desc: "if there is a current active purchase related to this compute server, this is the id of that purchase in the purchases table",
+    },
+    last_edited: {
+      type: "timestamp",
+      desc: "Last time the configuration, state, etc., changed.",
     },
   },
 });

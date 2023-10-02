@@ -54,6 +54,7 @@ class ComputeServersTable extends Table {
           provisioned_configuration: null,
           data: null,
           avatar_image_tiny: null,
+          last_edited: null,
         },
       ],
     };
