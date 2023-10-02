@@ -32,27 +32,11 @@ export default async function createInstance({
     throw Error("the nvidia-tesla-k80 GPU is deprecated");
   }
 
-  let diskSizeGb = 10;
-  if (!sourceImage) {
-    ({ diskSizeGb, sourceImage } =
-      await getNewestProdSourceImage(configuration));
-  }
-
-  diskSizeGb = Math.max(diskSizeGb, configuration.diskSizeGb ?? diskSizeGb);
-  const disks = [
-    {
-      autoDelete: true,
-      boot: true,
-      initializeParams: {
-        diskSizeGb: `${diskSizeGb}`,
-        diskType: `projects/${client.googleProjectId}/zones/${configuration.zone}/diskTypes/pd-balanced`,
-        labels: {},
-        sourceImage,
-      },
-      mode: "READ_WRITE",
-      type: "PERSISTENT",
-    },
-  ];
+  const { disks, diskSizeGb } = await getDisks(
+    configuration,
+    client,
+    sourceImage,
+  );
 
   const machineType = getFullMachineType(configuration);
 
@@ -170,6 +154,38 @@ export function getGuestAccelerators(
       acceleratorType: `projects/${client.googleProjectId}/zones/${configuration.zone}/acceleratorTypes/${configuration.acceleratorType}`,
     },
   ];
+}
+
+async function getDisks(
+  configuration: GoogleCloudConfiguration,
+  client,
+  sourceImage,
+) {
+  let diskSizeGb = 10;
+  if (!sourceImage) {
+    ({ diskSizeGb, sourceImage } =
+      await getNewestProdSourceImage(configuration));
+  }
+
+  diskSizeGb = Math.max(diskSizeGb, configuration.diskSizeGb ?? diskSizeGb);
+  const disks = [
+    {
+      autoDelete: true,
+      boot: true,
+      initializeParams: {
+        diskSizeGb: `${diskSizeGb}`,
+        diskType: `projects/${client.googleProjectId}/zones/${
+          configuration.zone
+        }/diskTypes/${configuration.diskType ?? "pd-standard"}`,
+        labels: {},
+        sourceImage,
+      },
+      mode: "READ_WRITE",
+      type: "PERSISTENT",
+    },
+  ];
+
+  return { disks, diskSizeGb };
 }
 
 export function getSchedulingModel(configuration: GoogleCloudConfiguration) {

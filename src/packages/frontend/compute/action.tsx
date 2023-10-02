@@ -168,7 +168,7 @@ function ActionButton({
     <Popover
       placement="bottom"
       key={action}
-      mouseEnterDelay={0.5}
+      mouseEnterDelay={1}
       title={
         <div>
           <Icon name={icon} /> {tip}
