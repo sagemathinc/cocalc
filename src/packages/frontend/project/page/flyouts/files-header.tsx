@@ -7,7 +7,15 @@ import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import { VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
-import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  React,
+  redux,
+  useAsyncEffect,
+  useEffect,
+  usePrevious,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -84,6 +92,23 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
   );
   const current_path = useTypedRedux({ project_id }, "current_path");
 
+  const [highlighNothingFound, setHighlighNothingFound] = React.useState(false);
+  const file_search_prev = usePrevious(file_search);
+
+  useEffect(() => {
+    if (!highlighNothingFound) return;
+    if (!isEmpty || file_search != file_search_prev || file_search === "") {
+      setHighlighNothingFound(false);
+    }
+  }, [isEmpty, file_search, highlighNothingFound]);
+
+  // disable highlightNothingFound shortly after being set
+  useAsyncEffect(async () => {
+    if (!highlighNothingFound) return;
+    await new Promise((resolve) => setTimeout(resolve, 333));
+    setHighlighNothingFound(false);
+  }, [highlighNothingFound]);
+
   function doScroll(dx: -1 | 1) {
     const nextIdx = strictMod(
       scrollIdx == null ? (dx === 1 ? 0 : -1) : scrollIdx + dx,
@@ -126,11 +151,19 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
         open(e, scrollIdx);
         setScrollIdx(null);
       } else if (file_search != "") {
-        setSearchState("");
         if (!isEmpty) {
+          setSearchState("");
           open(e, 0);
         } else {
-          createFileOrFolder();
+          if (e.shiftKey) {
+            // only if shift is pressed as well, create a file or folder
+            // this avoids accidentally creating jupyter notebooks (the default file type)
+            createFileOrFolder();
+            setSearchState("");
+          } else {
+            // we change a state, such that at least something happens if user hits return
+            setHighlighNothingFound(true);
+          }
         }
       }
     }
@@ -234,12 +267,17 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     if (file_search === "" || !isEmpty) return;
 
     const what = file_search.trim().endsWith("/") ? "directory" : "file";
+    const style: CSS = {
+      padding: FLYOUT_PADDING,
+      margin: 0,
+      ...(highlighNothingFound ? { fontWeight: "bold" } : undefined),
+    };
     return (
       <Alert
         type="info"
         banner
         showIcon={false}
-        style={{ padding: FLYOUT_PADDING, margin: 0 }}
+        style={style}
         description={
           <>
             <div>
@@ -247,7 +285,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
               No files match the current filter.
             </div>
             <div>
-              Hit <Text code>Return</Text> to create the {what}{" "}
+              Hit <Text code>Shift+Return</Text> to create the {what}{" "}
               <Text code>{searchToFilename(file_search)}</Text>
             </div>
           </>

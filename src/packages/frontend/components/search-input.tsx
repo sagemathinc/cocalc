@@ -10,7 +10,13 @@
 */
 
 import { Input, InputRef } from "antd";
-import { React, useEffect, useState, useRef } from "../app-framework";
+
+import {
+  React,
+  useEffect,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 
 interface Props {
   size?;
@@ -35,12 +41,13 @@ interface Props {
 
 export const SearchInput: React.FC<Props> = React.memo((props) => {
   const [value, set_value] = useState<string>(
-    props.value ?? props.default_value ?? ""
+    props.value ?? props.default_value ?? "",
   );
   // if value changes, we update as well!
   useEffect(() => set_value(props.value ?? ""), [props.value]);
 
   const [ctrl_down, set_ctrl_down] = useState<boolean>(false);
+  const [shift_down, set_shift_down] = useState<boolean>(false);
 
   const input_ref = useRef<InputRef>(null);
 
@@ -57,8 +64,8 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
     input_ref.current?.focus();
   }, [focus]);
 
-  function get_opts(): { ctrl_down: boolean } {
-    return { ctrl_down };
+  function get_opts(): { ctrl_down: boolean; shift_down: boolean } {
+    return { ctrl_down, shift_down };
   }
 
   function clear_value(): void {
@@ -93,6 +100,9 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
         break;
       case 17:
         set_ctrl_down(true);
+        break;
+      case 16:
+        set_shift_down(true);
         break;
       case 13:
         submit();
