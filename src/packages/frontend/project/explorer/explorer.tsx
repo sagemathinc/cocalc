@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert } from "antd";
 import * as immutable from "immutable";
 import React from "react";
 import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
 import * as underscore from "underscore";
-
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
@@ -54,7 +54,6 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
-import { Alert } from "antd";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -518,7 +517,7 @@ const Explorer0 = rclass(
             <Alert
               type="warning"
               icon={<Icon name="ban" />}
-              style={{textAlign: "center"}}
+              style={{ textAlign: "center" }}
               showIcon
               description={
                 <Paragraph>
