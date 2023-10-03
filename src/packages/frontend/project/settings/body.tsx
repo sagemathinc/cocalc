@@ -74,7 +74,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
     (kucalc === KUCALC_ON_PREMISES && datastore);
 
   const showNonMemberWarning =
-    commercial && runQuota != null && !runQuota?.member_host;
+    commercial && runQuota != null && !runQuota.member_host;
   const showNoInternetWarning =
     commercial && runQuota != null && !runQuota.network;
 

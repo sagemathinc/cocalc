@@ -7,7 +7,7 @@ import { Alert, Button, Card, Popconfirm, Tag } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
@@ -23,6 +23,8 @@ import CostPerHour from "./cost-per-hour";
 import Information from "./information";
 import QuotaRow from "./quota-row";
 import { isEmpty } from "lodash";
+import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../../context";
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -42,6 +44,7 @@ interface Props {
 
 export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const project = useRedux(["projects", "project_map", project_id]);
+  const { isRunning: projectIsRunning } = useProjectContext();
 
   // Slightly subtle -- it's null if not loaded but {} or the thing if loaded, even
   // if there is no data yet in the database.
@@ -275,34 +278,47 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   function renderUpgradeOrClear() {
     if (editing || runningWithUpgrade) return;
 
+    const disabled = quotaState == null || Object.keys(quotaState).length == 0;
+
     return (
-      <div>
-        <Button
-          onClick={() => {
-            if (!editing) {
-              track({ action: "open", project_id });
-            }
-            setEditing(!editing);
-          }}
-        >
-          <Icon name="credit-card" /> Upgrade...
-        </Button>
-        {project?.getIn(["state", "state"]) != "running" && (
+      <>
+        <Paragraph>
           <Button
-            disabled={quotaState == null || Object.keys(quotaState).length == 0}
-            style={{ marginLeft: "8px" }}
-            onClick={async () => {
-              setQuotaState(null);
-              await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
-                project_id,
-                {},
-              );
+            onClick={() => {
+              if (!editing) {
+                track({ action: "open", project_id });
+              }
+              setEditing(!editing);
             }}
           >
-            <Icon name="credit-card" /> Clear Upgrades
+            <Icon name="credit-card" /> Upgrade...
           </Button>
-        )}
-      </div>
+          {!projectIsRunning ? (
+            <Button
+              disabled={disabled}
+              style={{
+                marginLeft: "8px",
+                backgroundColor: disabled ? undefined : COLORS.BG_WARNING,
+              }}
+              onClick={async () => {
+                setQuotaState(null);
+                await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
+                  project_id,
+                  {},
+                );
+              }}
+            >
+              <Icon name="credit-card" /> Clear Upgrades
+            </Button>
+          ) : undefined}
+        </Paragraph>
+        {!disabled && !projectIsRunning ? (
+          <Paragraph type="secondary">
+            <strong>Note:</strong> When this project starts, it will run with
+            the currently configured Pay-as-you-go upgrade schema.
+          </Paragraph>
+        ) : undefined}
+      </>
     );
   }
 
