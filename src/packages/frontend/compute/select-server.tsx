@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Select } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props {
   project_id: string;
@@ -10,11 +11,9 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function SelectComputeServer({
-  project_id,
-  style,
-}: Props) {
+export default function SelectComputeServer({ project_id, style }: Props) {
   const [value, setValue] = useState<string | null>(null);
+  const [color, setColor] = useState<string | undefined>(undefined);
   const [open, setOpen] = useState<boolean>(false);
   const computeServers = useTypedRedux(
     { project_id },
@@ -28,15 +27,15 @@ export default function SelectComputeServer({
       if (server.deleted) continue;
       const { color, title } = server;
       const label = (
-        <div style={{ display: "flex" }}>
-          <div
-            style={{
-              backgroundColor: color,
-              display: "inline-block",
-              width: "20px",
-              marginRight: "5px",
-            }}
-          ></div>
+        <div
+          style={{
+            backgroundColor: color,
+            color: "white",
+            overflow: "hidden",
+            padding: "0 5px",
+          }}
+        >
+          <Icon name="server" style={{ marginRight: "5px" }} />
           {title}
         </div>
       );
@@ -48,14 +47,26 @@ export default function SelectComputeServer({
 
   return (
     <Select
+      bordered={false}
       allowClear
       placeholder="Compute..."
       open={open}
-      onSelect={setValue}
-      onClear={() => setValue(null)}
+      onSelect={(id) => {
+        setValue(id);
+        setColor(computeServers[id]?.color);
+      }}
+      onClear={() => {
+        setValue(null);
+        setColor(undefined);
+      }}
       value={value}
       onDropdownVisibleChange={setOpen}
-      style={{ ...style, width: open ? "300px" : "125px" }}
+      style={{
+        ...style,
+        width: open ? "300px" : "125px",
+        background: !open ? color : undefined,
+        color: "white", // todo
+      }}
       options={options}
     />
   );
