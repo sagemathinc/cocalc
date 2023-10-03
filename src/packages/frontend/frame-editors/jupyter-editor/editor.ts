@@ -46,6 +46,7 @@ export const EDITOR_SPEC = {
       "guide",
       "shell",
       "help",
+      "compute_server",
     ]),
     guide_info: {
       title: "Snippets",

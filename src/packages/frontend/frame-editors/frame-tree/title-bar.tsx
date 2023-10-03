@@ -56,6 +56,7 @@ import ChatGPT from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import SelectComputeServer from "@cocalc/frontend/compute/select-server";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -240,8 +241,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const otherSettings = useRedux(["account", "other_settings"]);
   const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
-  console.log("dark_mode = ", darkMode);
-
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
@@ -464,6 +463,16 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
+        {is_visible("compute_server") && (
+          <SelectComputeServer
+            style={{
+              marginRight: "3px",
+              marginTop: "1px",
+            }}
+            project_id={props.project_id}
+            path={props.path}
+          />
+        )}
         {render_types()}
       </div>
     );

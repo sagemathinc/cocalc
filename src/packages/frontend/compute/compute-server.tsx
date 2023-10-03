@@ -1,4 +1,4 @@
-import { Button, Card, Modal, Popconfirm, Table } from "antd";
+import { Button, Card, Divider, Modal, Popconfirm, Table } from "antd";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import { CSSProperties, useState } from "react";
@@ -121,7 +121,15 @@ export default function ComputeServer({
 
   let actions: JSX.Element[] | undefined = undefined;
   if (id != null) {
-    actions = getActions({ id, state, editable, setError, configuration });
+    actions = getActions({
+      id,
+      state,
+      editable,
+      setError,
+      configuration,
+      includeDangerous: false,
+      type: "text",
+    });
     if (editable) {
       actions.push(
         <Button
@@ -171,6 +179,57 @@ export default function ComputeServer({
       dataSource={dataSource}
       pagination={false}
     />
+  );
+
+  const buttons = (
+    <div style={{ width: "100%", display: "flex" }}>
+      <div style={{ marginRight: "5px" }}>
+        {getActions({
+          id,
+          state,
+          editable,
+          setError,
+          configuration,
+          includeDangerous: true,
+          type: undefined,
+        })}
+      </div>{" "}
+      {editable && id &&
+        (deleted ? (
+          <Button
+            key="undelete"
+            onClick={async () => {
+              setShowDeleted?.(false);
+              await undeleteServer(id);
+            }}
+          >
+            <Icon name="trash" /> Undelete
+          </Button>
+        ) : (
+          <Popconfirm
+            key="delete"
+            title={"Delete this compute server?"}
+            description={
+              <div style={{ width: "400px" }}>
+                Are you sure you want to delete this compute server?
+                {state != "deprovisioned" && (
+                  <b>WARNING: Any data on the boot disk will be deleted.</b>
+                )}
+              </div>
+            }
+            onConfirm={async () => {
+              setEdit(false);
+              await deleteServer(id);
+            }}
+            okText="Yes"
+            cancelText="Cancel"
+          >
+            <Button key="trash" danger>
+              <Icon name="trash" /> Delete
+            </Button>
+          </Popconfirm>
+        ))}
+    </div>
   );
 
   return (
@@ -259,56 +318,12 @@ export default function ComputeServer({
           open={edit}
           title={
             <>
+              {buttons}
+              <Divider />
               <Icon name="gears" /> Edit Compute Server With Id={id}
             </>
           }
-          footer={[
-            <div style={{ width: "100%", display: "flex" }}>
-              {editable &&
-                (deleted ? (
-                  <Button
-                    key="undelete"
-                    onClick={async () => {
-                      setShowDeleted?.(false);
-                      await undeleteServer(id);
-                    }}
-                  >
-                    <Icon name="trash" /> Undelete
-                  </Button>
-                ) : (
-                  <Popconfirm
-                    key="delete"
-                    title={"Delete this compute server?"}
-                    description={
-                      <div style={{ width: "400px" }}>
-                        Are you sure you want to delete this compute server?
-                        {state != "deprovisioned" && (
-                          <b>
-                            WARNING: Any data on the boot disk will be deleted.
-                          </b>
-                        )}
-                      </div>
-                    }
-                    onConfirm={async () => {
-                      setEdit(false);
-                      await deleteServer(id);
-                    }}
-                    okText="Yes"
-                    cancelText="Cancel"
-                  >
-                    <Button key="trash" danger>
-                      <Icon name="trash" /> Delete...
-                    </Button>
-                  </Popconfirm>
-                ))}
-              <div style={{ flex: 1, textAlign: "center" }}>
-                {getActions({ id, state, editable, setError, configuration })}
-              </div>
-              <Button key="close" onClick={() => setEdit(false)}>
-                Close
-              </Button>
-            </div>,
-          ]}
+          footer={[buttons]}
         >
           <div style={{ fontSize: "12pt", color: "#666", display: "flex" }}>
             <Description

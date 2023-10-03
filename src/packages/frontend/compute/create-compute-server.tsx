@@ -15,7 +15,7 @@ const DEFAULTS = {
   title: () => `Untitled ${new Date().toISOString().split("T")[0]}`,
   color: "#2196f3",
   cloud: availableClouds()[0],
-  configuration: CLOUDS_BY_NAME[availableClouds()[0]].defaultConfiguration,
+  configuration: CLOUDS_BY_NAME[availableClouds()[0]]?.defaultConfiguration,
 };
 
 export default function CreateComputeServer({ project_id, onCreate }) {

@@ -17,6 +17,8 @@ export default function getActions({
   editable,
   setError,
   configuration,
+  includeDangerous,
+  type,
 }): JSX.Element[] {
   if (!editable) {
     return [];
@@ -42,9 +44,13 @@ export default function getActions({
       }
       // [ ] TODO: we don't have an easy way to check the RAM requirement right now.
     }
-    const { label, icon, tip, description, confirm } = a;
+    const { label, icon, tip, description, confirm, danger } = a;
+    if (danger && !includeDangerous) {
+      continue;
+    }
     v.push(
       <ActionButton
+        style={v.length > 0 ? { marginLeft: "5px" } : undefined}
         key={action}
         id={id}
         action={action}
@@ -55,6 +61,8 @@ export default function getActions({
         setError={setError}
         confirm={confirm}
         configuration={configuration}
+        danger={danger}
+        type={type}
       />,
     );
   }
@@ -71,6 +79,9 @@ function ActionButton({
   setError,
   confirm,
   configuration,
+  danger,
+  type,
+  style,
 }) {
   const [cost_per_hour, setCostPerHour] = useState<number | null>(null);
   useEffect(() => {
@@ -114,9 +125,11 @@ function ActionButton({
 
   let button = (
     <Button
+      style={style}
       disabled={doing}
-      type="text"
+      type={type}
       onClick={!confirm ? doAction : undefined}
+      danger={danger}
     >
       <Icon name={icon} /> {label}{" "}
       {doing && (
