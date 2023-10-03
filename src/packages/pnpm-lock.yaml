@@ -1384,6 +1384,9 @@ importers:
       '@types/async':
         specifier: ^2.0.43
         version: 2.4.2
+      '@types/cloudflare':
+        specifier: ^2.7.11
+        version: 2.7.11
       '@types/dot-object':
         specifier: ^2.1.2
         version: 2.1.2
@@ -6525,6 +6528,10 @@ packages:
   /@types/chai@4.3.4:
     resolution: {integrity: sha512-KnRanxnpfpjUTqTCXslZSEdLfXExwgNxYPdiO2WGUj8+HDjFi8R3k5RVKPeSCzLjCcshCAtVO2QBbVuAV4kTnw==}
     dev: true
+
+  /@types/cloudflare@2.7.11:
+    resolution: {integrity: sha512-4SRVSTvQzipe00lbk5s+5vEGz1IX0ipP6fOXehezkSZ4SKV/8vsLSRWF7yZfJpD+Jz19UKZb5jD6bzD5K3mRPg==}
+    dev: false
 
   /@types/codemirror@5.60.6:
     resolution: {integrity: sha512-JIDPSvkYRlcv/2F0erqD+de2ni/Mz6FJMEGb0vwF6ByQOcHIKfiEfwrO4d6dSRwYeHyNUMpGjev0PyjX2M0XWw==}
