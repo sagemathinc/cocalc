@@ -106,6 +106,7 @@ const MAIN_COLORS = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca", // blue used for text
+  BG_WARNING: "#f0ad4e", // e.g. used for the orange warning when a button is active
 
   ANTD_LINK_BLUE: "#1677ff", // blue used for links
   ANTD_LINK_BLUE_DARK: "#003eb3", // dark blue used for links
