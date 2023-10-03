@@ -129,6 +129,7 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
   | "google_cloud_service_account_json"
+  | "cloudflare_api_key"
   //   | "coreweave_kubeconfig"
   //   | "fluidstack_api_key"
   //   | "fluidstack_api_token"
@@ -545,6 +546,13 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     multiline: 2,
     show: compute_servers_google_enabled,
+  },
+  cloudflare_api_key: {
+    name: "Compute Servers: CloudFlare API Token",
+    desc: 'A CloudFlare [API Token](https://dash.cloudflare.com/profile/api-tokens) that has the "Edit zone DNS" capability for the domain that you set as "Domain Name" above.  This is used for custom subdomains, i.e., so users can make a compute server and connect to it at https://custom.cocalc.com.',
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
   },
   //   fluidstack_api_key: {
   //     name: "Compute Servers: FluidStack - API Key (not implemented)",
