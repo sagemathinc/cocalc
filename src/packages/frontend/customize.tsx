@@ -244,11 +244,11 @@ function process_software(software, is_cocalc_com) {
     actions.setState({ software });
   } else {
     if (is_cocalc_com) {
-      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) as any});
+      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) as any });
     } else {
       software = sanitizeSoftwareEnv(
         { software: FALLBACK_ONPREM_ENV, purpose: "webapp" },
-        dbg
+        dbg,
       );
       actions.setState({ software });
     }
@@ -291,7 +291,7 @@ export const HelpEmailLink: React.FC<HelpEmailLink> = React.memo(
     } else {
       return <Loading style={{ display: "inline" }} />;
     }
-  }
+  },
 );
 
 export const SiteName: React.FC = React.memo(() => {
@@ -330,7 +330,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
         return <Loading style={{ display: "inline" }} />;
       }
     }
-  }
+  },
 );
 
 // TODO: not used?
@@ -396,7 +396,7 @@ const CustomizeStringElement = rclass<CustomizeStringProps>(
     render() {
       return <span>{this.props[this.props.name]}</span>;
     }
-  }
+  },
 );
 
 // TODO: not used?
@@ -434,7 +434,7 @@ const AccountCreationEmailInstructions0 = rclass<{}>(
         </h3>
       );
     }
-  }
+  },
 );
 
 // TODO is this used?
@@ -498,6 +498,7 @@ export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy");
 export const PolicyCopyrightPageUrl = join(appBasePath, "policies/copyright");
 export const PolicyTOSPageUrl = join(appBasePath, "policies/terms");
 export const SystemStatusUrl = join(appBasePath, "info/status");
+export const PAYGODocsUrl = "https://doc.cocalc.com/paygo.html";
 
 // 1. Google analytics
 async function setup_google_analytics(w) {
