@@ -144,12 +144,6 @@ export interface PassportStrategyDB {
   info?: PassportStrategyDBInfo;
 }
 
-export interface StrategyInstanceOpts {
-  type: PassportTypes;
-  opts: { [key: string]: any };
-  userinfoURL: string | undefined;
-  PassportStrategyConstructor: new (options, verify) => any;
-}
 
 export interface UserProfileCallbackOpts {
   strategy_instance: any;

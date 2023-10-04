@@ -3,19 +3,18 @@ A generic button for helping a user fix problems using chatgpt.
 If chatgpt is disabled or not available it renders as null.
 */
 
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Alert, Button } from "antd";
-import { CSSProperties, useState } from "react";
-
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { CSSProperties, useState } from "react";
+import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
+import shortenError from "./shorten-error";
+import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
+import type { Model } from "./model-switch";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
-import type { Model } from "./model-switch";
-import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
-import shortenError from "./shorten-error";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
