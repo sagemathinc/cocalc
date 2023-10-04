@@ -11,11 +11,11 @@ interface Options {
 
 export default async function getInstance({ name, zone }: Options): Promise<{
   state: State;
-  internalIp?: string;
-  externalIp?: string;
+  internalIp: string;
+  externalIp: string;
+  cpuPlatform: string;
   creationTimestamp?: Date;
   lastStartTimestamp?: Date;
-  cpuPlatform?: string;
 }> {
   const client = await getClient();
   let response;
@@ -27,13 +27,18 @@ export default async function getInstance({ name, zone }: Options): Promise<{
     });
   } catch (err) {
     if (err.message.includes("not found")) {
-      return { state: "deprovisioned" } as const;
+      return {
+        state: "deprovisioned",
+        internalIp: "",
+        externalIp: "",
+        cpuPlatform: "",
+      } as const;
     }
     logger.debug("got error", err.message);
   }
   // logger.debug("got GCP instance info", response);
-  const internalIp = response.networkInterfaces?.[0]?.networkIP;
-  const externalIp = response.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP;
+  const internalIp = response.networkInterfaces?.[0]?.networkIP ?? "";
+  const externalIp = response.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP ?? "";
 
   const r = {
     name: response.name,

@@ -42,6 +42,10 @@ async function runTasks(opts, f: () => Promise<void>) {
     await waitStableNoError(opts);
   } catch (err) {
     await setError(opts.id, `${err}`);
+  } finally {
+    // We always update the state no matter what after doing the above.
+    // This ensures things stay in sync with the server, and
+    // also DNS gets updated when the state function is called.
     await state(opts);
   }
 }
