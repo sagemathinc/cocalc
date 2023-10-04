@@ -67,7 +67,7 @@ export class Listings extends EventEmitter {
         {
           leading: true,
           trailing: true,
-        }
+        },
       );
     }
     if (this.throttled_watch[path] == null) throw Error("bug");
@@ -83,7 +83,10 @@ export class Listings extends EventEmitter {
     });
   }
 
-  public async get(path: string): Promise<DirectoryListingEntry[] | undefined> {
+  public async get(
+    path: string,
+    trigger_start_project?: boolean,
+  ): Promise<DirectoryListingEntry[] | undefined> {
     if (this.state != "ready") {
       try {
         const listing = await this.get_using_database(path);
@@ -100,7 +103,10 @@ export class Listings extends EventEmitter {
       // for old projects that haven't been restarted since we released the new
       // sync code, but could possibly be a useful fallback in case of other
       // problems).
-      const listing = await this.get_listing_directly(path);
+      const listing = await this.get_listing_directly(
+        path,
+        trigger_start_project,
+      );
       if (listing != null) {
         return listing;
       }
@@ -254,7 +260,7 @@ export class Listings extends EventEmitter {
   //  - string in case of an error
   //  - undefined if directory listing not known (and error not known either).
   public async get_for_store(
-    path: string
+    path: string,
   ): Promise<List<ImmutablePathEntry> | undefined | string> {
     if (this.state != "ready") {
       const x = await this.get_using_database(path);
@@ -270,7 +276,7 @@ export class Listings extends EventEmitter {
   }
 
   public async get_using_database(
-    path: string
+    path: string,
   ): Promise<DirectoryListingEntry[] | undefined> {
     const q = await query({
       query: {
@@ -295,7 +301,8 @@ export class Listings extends EventEmitter {
   }
 
   public async get_listing_directly(
-    path: string
+    path: string,
+    trigger_start_project?: boolean,
   ): Promise<DirectoryListingEntry[]> {
     const store = redux.getStore("projects");
     // make sure that our relationship to this project is known.
@@ -310,6 +317,7 @@ export class Listings extends EventEmitter {
       hidden: true,
       max_time_s: 15 * 60,
       group,
+      trigger_start_project,
     });
     if (x.error != null) {
       throw Error(x.error);
@@ -368,7 +376,7 @@ export class Listings extends EventEmitter {
           },
         ],
       },
-      []
+      [],
     );
 
     if ((this.state as State) == "closed") return;

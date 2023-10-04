@@ -141,7 +141,7 @@ export const SearchBar = React.memo((props: Props) => {
       } else if (firstFolderPosition === file_search.length - 1) {
         text = `Showing folders matching ${file_search.slice(
           0,
-          file_search.length - 1
+          file_search.length - 1,
         )}`;
       } else {
         text = `Showing files matching ${file_search}`;
@@ -200,7 +200,10 @@ export const SearchBar = React.memo((props: Props) => {
     actions.setState({ file_creation_error: "" });
   }
 
-  function search_submit(value: string, opts: { ctrl_down: boolean }): void {
+  function search_submit(
+    value: string,
+    { ctrl_down, shift_down }: { ctrl_down: boolean; shift_down: boolean },
+  ): void {
     if (current_path == null) {
       return;
     }
@@ -216,18 +219,20 @@ export const SearchBar = React.memo((props: Props) => {
       } else {
         actions.open_file({
           path: new_path,
-          foreground: !opts.ctrl_down,
+          foreground: !ctrl_down,
         });
       }
-      if (opening_a_dir || !opts.ctrl_down) {
+      if (opening_a_dir || !ctrl_down) {
         actions.set_file_search("");
         actions.clear_selected_file_index();
       }
-    } else if (file_search.length > 0) {
+    } else if (file_search.length > 0 && shift_down) {
+      // only create a file, if shift is pressed as well to avoid creating
+      // jupyter notebooks (default file-type) by accident.
       if (file_search[file_search.length - 1] === "/") {
-        create_folder(!opts.ctrl_down);
+        create_folder(!ctrl_down);
       } else {
-        create_file(undefined, !opts.ctrl_down);
+        create_file(undefined, !ctrl_down);
       }
       actions.clear_selected_file_index();
     }

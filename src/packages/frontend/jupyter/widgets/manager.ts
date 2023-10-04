@@ -16,6 +16,7 @@ import * as react_output from "./output";
 import * as react_controls from "./controls";
 import { size } from "lodash";
 import { delay } from "awaiting";
+import * as k3d from "./k3d";
 
 /*
 NOTES: Third party custom widgets:
@@ -52,7 +53,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
   private setWidgetModelIdState: (
     model_id: string,
-    state: string | null // '' = created; 'module_name'=unsupported; null=not created.
+    state: string | null, // '' = created; 'module_name'=unsupported; null=not created.
   ) => void;
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
@@ -78,6 +79,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     // Now process all info currently in the table.
+    // Do NOT await this or beow, so all get done in parallel,
+    // to avoid a deadlock.
     for (const { model_id, type } of this.ipywidgets_state.keys()) {
       this.handle_table_state_change({ model_id, type });
     }
@@ -85,7 +88,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     this.ipywidgets_state.on("change", async (keys) => {
       for (const key of keys) {
         const [, model_id, type] = JSON.parse(key);
-        // do NOT await this, so all get done in parallel.
         this.handle_table_state_change({ model_id, type });
       }
     });
@@ -124,7 +126,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
           await this.handle_table_model_buffers_change(model_id);
           break;
         case "message":
-          this.handle_table_model_message_change(model_id);
+          await this.handle_table_model_message_change(model_id);
           break;
         default:
           throw Error(`unknown state type '${type}'`);
@@ -133,13 +135,13 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       console.warn(
         "issue handling table state change",
         { model_id, type },
-        err
+        err,
       );
     }
   }
 
   private async handle_table_model_state_change(
-    model_id: string
+    model_id: string,
   ): Promise<void> {
     if (!this.has_model(model_id)) {
       // given table a chance to push out the corresponding value update
@@ -166,10 +168,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_table_model_value_change(
-    model_id: string
+    model_id: string,
   ): Promise<void> {
     const changed = this.ipywidgets_state.get_model_value(model_id);
-    // console.log("handle_table_model_value_change", model_id, changed);
     if (
       this.last_changed[model_id] != null &&
       changed.last_changed != null &&
@@ -190,7 +191,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         // for changing a single key NOT rapidly.
         this.ipywidgets_state.set_model_value(
           model_id,
-          this.last_changed[model_id]
+          this.last_changed[model_id],
         );
         this.ipywidgets_state.save();
       }
@@ -231,7 +232,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_table_model_buffers_change(
-    model_id: string
+    model_id: string,
   ): Promise<void> {
     /*
     The data structures currently don't store which buffers changed, so we're
@@ -242,10 +243,15 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     processes everything.
     */
     const model = await this.get_model(model_id);
-    if (model == null) return;
-    const { buffer_paths } = await this.ipywidgets_state.get_model_buffers(
-      model_id
-    );
+    if (model == null) {
+      //       console.log(
+      //         "handle_table_model_buffers_change -- missing model",
+      //         model_id,
+      //       );
+      return;
+    }
+    const { buffer_paths } =
+      await this.ipywidgets_state.get_model_buffers(model_id);
     const deserialized_state = model.get_state(true);
     const serializers = (model.constructor as any).serializers;
     const change: { [key: string]: any } = {};
@@ -259,11 +265,13 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_table_model_message_change(
-    model_id: string
+    model_id: string,
   ): Promise<void> {
     const message = this.ipywidgets_state.get_message(model_id);
+
+    // console.log("handle_table_model_message_change", { model_id, message });
+
     if (size(message) == 0) return; // temporary until we have delete functionality
-    // console.log("handle_table_model_message_change", message);
     const model = await this.get_model(model_id);
     if (model == null) return;
     model.trigger("msg:custom", message);
@@ -271,7 +279,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   async deserialize_state(
     model: base.DOMWidgetModel,
-    serialized_state: ModelState
+    serialized_state: ModelState,
   ): Promise<ModelState> {
     // console.log("deserialize_state", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
@@ -285,14 +293,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     return await this._deserialize_state(
       model.model_id,
       model.constructor,
-      serialized_state
+      serialized_state,
     );
   }
 
   private async _deserialize_state(
     model_id: string,
     constructor: any,
-    serialized_state: ModelState
+    serialized_state: ModelState,
   ): Promise<ModelState> {
     //     console.log("_deserialize_state", {
     //       model_id,
@@ -322,11 +330,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async update_model(
     model_id: string,
-    change: ModelState
+    change: ModelState,
   ): Promise<void> {
-    const model: base.DOMWidgetModel | undefined = await this.get_model(
-      model_id
-    );
+    const model: base.DOMWidgetModel | undefined =
+      await this.get_model(model_id);
     // console.log("update_model", { model, change });
     if (model != null) {
       //console.log(`setting state of model "${model_id}" to `, change);
@@ -336,7 +343,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       const success = await this.dereference_model_links(change);
       if (!success) {
         console.warn(
-          "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update."
+          "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.",
         );
         return;
       }
@@ -354,7 +361,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   // it kind of massively different than what is in master.
   async _make_model(
     options,
-    serialized_state: any = {}
+    serialized_state: any = {},
   ): Promise<base.WidgetModel> {
     //     console.log("_make_model", options.model_id, {
     //       serialized_state,
@@ -365,7 +372,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       ModelType = await this.loadClass(
         options.model_name,
         options.model_module,
-        options.model_module_version
+        options.model_module_version,
       );
     } catch (error) {
       console.warn("Could not load widget module");
@@ -374,14 +381,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
     if (!ModelType) {
       throw new Error(
-        `Cannot find model module ${options.model_module}@${options.model_module_version}, ${options.model_name}`
+        `Cannot find model module ${options.model_module}@${options.model_module_version}, ${options.model_name}`,
       );
     }
 
     const state = await this._deserialize_state(
       model_id,
       ModelType,
-      serialized_state
+      serialized_state,
     );
 
     // TODO: this is silly, of course.  I will rewrite this when I better
@@ -419,7 +426,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async create_new_model(
     model_id: string,
-    serialized_state: any
+    serialized_state: any,
   ): Promise<void> {
     if ((await this.get_model(model_id)) != null) {
       // already created
@@ -455,11 +462,11 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
           model_id,
           model_module_version,
         },
-        serialized_state
+        serialized_state,
       );
     } catch (err) {
       console.warn(
-        `ipywidgets -- ${model_module}.${model_name} not supported: ${err}`
+        `ipywidgets -- ${model_module}.${model_name} not supported: ${err}`,
       );
       this.setWidgetModelIdState(model_id, `${model_module}.${model_name}`);
       return;
@@ -480,12 +487,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     target_name: string,
     model_id: string,
     _data?: any,
-    _metadata?: any
+    _metadata?: any,
   ): Promise<Comm> {
     const comm = new Comm(
       target_name,
       model_id,
-      this.process_comm_message_from_browser.bind(this)
+      this.process_comm_message_from_browser.bind(this),
     );
     return comm;
   }
@@ -493,7 +500,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   // TODO: NOT USED since we just directly listen for change events on the model.
   private process_comm_message_from_browser(
     model_id: string,
-    data: any
+    data: any,
   ): string {
     // console.log("TODO: process_comm_message_from_browser", model_id, data);
     if (data == null) {
@@ -508,7 +515,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       this.ipywidgets_state.save();
     } else {
       throw Error(
-        `TODO: process_comm_message_from_browser with method '${data.method}' not implemented`
+        `TODO: process_comm_message_from_browser with method '${data.method}' not implemented`,
       );
     }
     return uuid();
@@ -537,7 +544,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     changed.last_changed =
       Math.max(
         last_changed ?? 0,
-        this.last_changed[model_id]?.last_changed ?? 0
+        this.last_changed[model_id]?.last_changed ?? 0,
       ) + 1;
     this.last_changed[model_id] = changed;
     // console.log("handle_model_change (frontend) -- actually saving", changed);
@@ -568,7 +575,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   protected async loadClass(
     className: string,
     moduleName: string,
-    moduleVersion: string
+    moduleVersion: string,
   ): Promise<any> {
     // console.log("loadClass", { className, moduleName, moduleVersion });
     let module: any;
@@ -584,7 +591,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       module = react_output;
     } else if (moduleName === "k3d") {
       // NOTE: I completely rewrote the entire k3d widget interface...
-      module = await import("./k3d");
+      module = k3d;
     } else if (moduleName === "jupyter-matplotlib") {
       //module = await import("jupyter-matplotlib");
       throw Error(`custom widgets: ${moduleName} not installed`);
@@ -599,12 +606,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       throw Error(`custom widgets: ${moduleName} not installed`);
     } else if (this.loader !== undefined) {
       console.warn(
-        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
+        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`,
       );
       module = { [className]: react_controls.UnsupportedModel };
     } else {
       console.warn(
-        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
+        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`,
       );
       module = { [className]: react_controls.UnsupportedModel };
     }
@@ -612,7 +619,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       return module[className];
     } else {
       throw Error(
-        `Class ${className} not found in module ${moduleName}@${moduleVersion}`
+        `Class ${className} not found in module ${moduleName}@${moduleVersion}`,
       );
     }
   }
@@ -637,7 +644,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   // Returns undefined if it is not able to resolve the reference.  In
   // this case, we'll try again later after parsing everything else.
   private async dereference_model_link(
-    val: string
+    val: string,
   ): Promise<base.DOMWidgetModel | undefined> {
     if (val.slice(0, 10) !== "IPY_MODEL_") {
       throw Error(`val (="${val}") is not a model reference.`);
@@ -710,7 +717,7 @@ WidgetModel.prototype.sync = () => {};
 export function put_buffers(
   state,
   buffer_paths: (string | number)[][],
-  buffers: any[]
+  buffers: any[],
 ): void {
   for (let i = 0; i < buffer_paths.length; i++) {
     const buffer_path = buffer_paths[i];
@@ -718,7 +725,7 @@ export function put_buffers(
     let buffer = buffers[i];
     if (!(buffer instanceof DataView)) {
       buffer = new DataView(
-        buffer instanceof ArrayBuffer ? buffer : buffer.buffer
+        buffer instanceof ArrayBuffer ? buffer : buffer.buffer,
       );
     }
     // say we want to set state[x][y][z] = buffer

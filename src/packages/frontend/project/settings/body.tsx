@@ -5,6 +5,7 @@
 
 import React from "react";
 import { Col, Row } from "react-bootstrap";
+
 import {
   redux,
   useActions,
@@ -12,9 +13,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph, SettingBox } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { commercial } from "@cocalc/frontend/customize";
 import { Customer, ProjectMap } from "@cocalc/frontend/todo-types";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
@@ -22,10 +21,10 @@ import {
 import { is_different } from "@cocalc/util/misc";
 import { NewFileButton } from "../new/new-file-button";
 import {
-  ICON_USERS,
   ICON_UPGRADES,
-  TITLE_USERS,
+  ICON_USERS,
   TITLE_UPGRADES,
+  TITLE_USERS,
 } from "../servers/consts";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
@@ -36,6 +35,7 @@ import { Environment } from "./environment";
 import { HideDeleteBox } from "./hide-delete-box";
 import { ProjectCapabilities } from "./project-capabilites";
 import { ProjectControl } from "./project-control";
+import { useRunQuota } from "./run-quota/hooks";
 import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
@@ -57,62 +57,31 @@ const is_same = (prev: ReactProps, next: ReactProps) => {
 };
 
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
-  const { project_id, account_id, project, email_address } = props;
+  const { project_id, account_id, project } = props;
   const project_actions = useActions({ project_id });
-  const get_total_upgrades = redux.getStore("account").get_total_upgrades;
   const kucalc = useTypedRedux("customize", "kucalc");
+  const runQuota = useRunQuota(project_id, null);
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const datastore = useTypedRedux("customize", "datastore");
-
-  const projects_store = redux.getStore("projects");
-  const {
-    get_course_info,
-    get_total_upgrades_you_have_applied,
-    get_total_project_quotas,
-  } = projects_store;
+  const commercial = useTypedRedux("customize", "commercial");
 
   // get the description of the share, in case the project is being shared
   const id = project_id;
-
-  const upgrades_you_can_use = get_total_upgrades();
-
-  const course_info = get_course_info(project_id);
-  const upgrades_you_applied_to_all_projects =
-    get_total_upgrades_you_have_applied();
-  const total_project_quotas = get_total_project_quotas(id); // only available for non-admin for now.
 
   const student = getStudentProjectFunctionality(project_id);
   const showDatastore =
     kucalc === KUCALC_COCALC_COM ||
     (kucalc === KUCALC_ON_PREMISES && datastore);
 
+  const showNonMemberWarning =
+    commercial && runQuota != null && !runQuota.member_host;
+  const showNoInternetWarning =
+    commercial && runQuota != null && !runQuota.network;
+
   return (
     <div>
-      {commercial &&
-      total_project_quotas != undefined &&
-      !total_project_quotas.member_host ? (
-        <NonMemberProjectWarning
-          upgrade_type="member_host"
-          upgrades_you_can_use={upgrades_you_can_use}
-          upgrades_you_applied_to_all_projects={
-            upgrades_you_applied_to_all_projects
-          }
-          course_info={course_info}
-          account_id={webapp_client.account_id}
-          email_address={email_address}
-        />
-      ) : undefined}
-      {commercial &&
-      total_project_quotas != undefined &&
-      !total_project_quotas.network ? (
-        <NoNetworkProjectWarning
-          upgrade_type="network"
-          upgrades_you_can_use={upgrades_you_can_use}
-          upgrades_you_applied_to_all_projects={
-            upgrades_you_applied_to_all_projects
-          }
-        />
-      ) : undefined}
+      {showNonMemberWarning ? <NonMemberProjectWarning /> : undefined}
+      {showNoInternetWarning ? <NoNetworkProjectWarning /> : undefined}
       <h1 style={{ marginTop: "0px" }}>
         <Icon name="wrench" /> Project Settings and Controls
       </h1>

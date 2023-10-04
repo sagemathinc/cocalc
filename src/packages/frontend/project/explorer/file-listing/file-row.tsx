@@ -3,22 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Popover } from "antd";
+import memoizeOne from "memoize-one";
+import { Col, Row } from "react-bootstrap";
+
 import { CSS, React, useState } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
+import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button, Popover } from "antd";
-import memoizeOne from "memoize-one";
-import { Col, Row } from "react-bootstrap";
 import { url_href } from "../../utils";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
-import track from "@cocalc/frontend/user-tracking";
 
 export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "md",
@@ -50,7 +51,7 @@ interface Props {
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
   const student_project_functionality = useStudentProjectFunctionality(
-    props.actions.project_id
+    props.actions.project_id,
   );
   const [selection_at_last_mouse_down, set_selection_at_last_mouse_down] =
     useState<string | undefined>(undefined);

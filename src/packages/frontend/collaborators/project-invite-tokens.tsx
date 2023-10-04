@@ -31,10 +31,10 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 const TOKEN_LENGTH = 16;
 const MAX_TOKENS = 200;
 const COLUMNS = [
-  { title: "Token", dataIndex: "token", key: "token", width: 250 },
+  { title: "Invite Link", dataIndex: "token", key: "token", width: 300 },
   { title: "Created", dataIndex: "created", key: "created", width: 150 },
   { title: "Expires", dataIndex: "expires", key: "expires", width: 150 },
-  { title: "Users", dataIndex: "counter", key: "counter" },
+  { title: "Redemption Count", dataIndex: "counter", key: "counter" },
   /* { title: "Limit", dataIndex: "usage_limit", key: "usage_limit" },*/
 ];
 
@@ -47,7 +47,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     // blah
     const [expanded, set_expanded] = useState<boolean>(false);
     const [tokens, set_tokens] = useState<undefined | ProjectInviteToken[]>(
-      undefined
+      undefined,
     );
     const is_mounted_ref = useIsMountedRef();
     const [fetching, set_fetching] = useState<boolean>(false);
@@ -92,14 +92,14 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
             }
             set_expanded(!expanded);
           }}
-          style={{ cursor: "pointer" }}
+          style={{ cursor: "pointer", fontSize: "12pt" }}
         >
           {" "}
           <Icon
             style={{ width: "20px" }}
             name={expanded ? "caret-down" : "caret-right"}
           />{" "}
-          Invite collaborators by sending them a project invite token...
+          Invite collaborators by sending them an invite URL...
         </a>
       </div>
     );
@@ -192,46 +192,24 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
 
     function render_expire_button(token, expires) {
       if (expires && expires <= webapp_client.server_time()) {
-        return "(EXPIRED)";
+        return "(REVOKED)";
       }
       return (
         <Popconfirm
-          title={
-            "Expire this token?  This will make it so this token cannot be used anymore."
+          title={"Revoke this token?"}
+          description={
+            <div style={{ maxWidth: "400px" }}>
+              This will make it so this token cannot be used anymore. Anybody
+              who has already redeemed the token is not removed from this
+              project.
+            </div>
           }
           onConfirm={() => expire_token(token)}
-          okText={"Yes, expire token"}
+          okText={"Yes, revoke this token"}
           cancelText={"Cancel"}
         >
-          <Button>Expire...</Button>
+          <Button size="small">Revoke...</Button>
         </Popconfirm>
-      );
-    }
-
-    function render_link(data: ProjectInviteToken) {
-      const { token, expires } = data;
-      if (expires && expires <= webapp_client.server_time()) {
-        return <div>This token is expired.</div>;
-      }
-      return (
-        <div>
-          Make this link available to people who you would like to join this
-          project:
-          <br />
-          <br />
-          <CopyToClipBoard
-            value={`${document.location.origin}${join(
-              appBasePath,
-              "app"
-            )}?${PROJECT_INVITE_QUERY_PARAM}=${token}`}
-            style={{ width: "100%" }}
-          />
-          <br />
-          When they click the link, they will get added to this project (this
-          will even work without an account!). You can also share the token
-          above, which they can enter on the top right side of the projects
-          page.
-        </div>
       );
     }
 
@@ -246,7 +224,13 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
             expires && expires <= webapp_client.server_time() ? (
               <span style={{ textDecoration: "line-through" }}>{token}</span>
             ) : (
-              <CopyToClipBoard value={token} />
+              <CopyToClipBoard
+                inputWidth="250px"
+                value={`${document.location.origin}${join(
+                  appBasePath,
+                  "app",
+                )}?${PROJECT_INVITE_QUERY_PARAM}=${token}`}
+              />
             ),
           counter,
           usage_limit: usage_limit ?? "∞",
@@ -266,11 +250,6 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           columns={COLUMNS}
           pagination={{ pageSize: 4 }}
           scroll={{ y: 240 }}
-          expandable={{
-            expandedRowRender: ({ data }) => {
-              return <div style={{ margin: 0 }}>{render_link(data)}</div>;
-            },
-          }}
         />
       );
     }
@@ -288,5 +267,5 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         {render_tokens()}
       </Card>
     );
-  }
+  },
 );
