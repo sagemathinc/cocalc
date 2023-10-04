@@ -44,6 +44,18 @@ export default function Overview() {
           Add additional upgrades to an existing and <em>compatible</em>{" "}
           license.
         </Product>
+        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
+          Purchase a <A href={"/vouchers"}>voucher code</A> and gift it to
+          someone else.
+        </Product>
+        <Product
+          href={"https://doc.cocalc.com/paygo.html"}
+          icon={PAYASYOUGO_ICON}
+          title="Pay As You Go"
+        >
+          Define resources for a project or service and pay only for what you
+          actually use.
+        </Product>
         <Product
           href={"/store/dedicated"}
           icon="save"
@@ -57,18 +69,6 @@ export default function Overview() {
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
           Run CoCalc on your own machine or cluster in order to keep your data
           on-site and use compute resources that you already have.
-        </Product>
-        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
-          Purchase a <A href={"/vouchers"}>voucher code</A> and gift it to
-          someone else.
-        </Product>
-        <Product
-          href={"https://doc.cocalc.com/paygo.html"}
-          icon={PAYASYOUGO_ICON}
-          title="Pay As You Go"
-        >
-          Define resources for a project or service and pay only for what you
-          actually use.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>
