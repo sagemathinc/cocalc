@@ -240,7 +240,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const otherSettings = useRedux(["account", "other_settings"]);
   const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
-  console.log("dark_mode = ", darkMode);
 
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
