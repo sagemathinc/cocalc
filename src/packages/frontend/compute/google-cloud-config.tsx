@@ -896,7 +896,13 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
       </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
         Set the size and type of the compute server's boot disk.
-        {state != "deprovisioned" && <> You can only increase the disk size.</>}
+        {state != "deprovisioned" && (
+          <>
+            {" "}
+            You can only increase the disk size when the VM is off or
+            deprovisioned.
+          </>
+        )}
       </div>
     </div>
   );
