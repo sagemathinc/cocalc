@@ -71,10 +71,10 @@ export async function add({
 }): Promise<string> {
   logger.debug("addDnsRecord", { ipAddress, name });
   if (!name) {
-    throw Error("must specify name");
+    throw Error("add dns - must specify name");
   }
   if (!ipAddress) {
-    throw Error("must specify ipAddress");
+    throw Error("add dns - must specify ipAddress");
   }
   const cf = await getClient();
   const record = {
@@ -99,13 +99,13 @@ export async function edit({
 }) {
   logger.debug("editDnsRecord", { id, ipAddress });
   if (!id) {
-    throw Error("must specify id");
+    throw Error("edit dns - must specify id");
   }
   if (!name) {
-    throw Error("must specify name");
+    throw Error("edit dns - must specify name");
   }
   if (!ipAddress) {
-    throw Error("must specify ipAddress");
+    throw Error("edit dns - must specify ipAddress");
   }
   const cf = await getClient();
   const newData = {
@@ -121,6 +121,9 @@ export async function edit({
 
 export async function remove({ id }: { id: string }) {
   logger.debug("remove", { id });
+  if (!id) {
+    throw Error("remove dns - must specify id");
+  }
   const cf = await getClient();
   try {
     await cf.dnsRecords.del(cf.zoneId, id);
@@ -236,7 +239,7 @@ export async function makeDnsChange({
         `no external ip address has been allocated to compute server ${id} so we can't point DNS at it`,
       );
     }
-    if (cloudflareId == null) {
+    if (!cloudflareId) {
       try {
         logger.debug("makeDnsChange", "create dns record", { name, ipAddress });
         cloudflareId = await add({ name, ipAddress });
