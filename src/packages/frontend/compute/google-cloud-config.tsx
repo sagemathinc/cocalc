@@ -1382,7 +1382,9 @@ function DNS({ setConfig, configuration, loading }) {
               setDns(s);
             }}
           >
-            Set Custom Domain
+            {!dns || configuration.dns != dns
+              ? "Enable Custom Domain"
+              : "Custom Domain Enabled"}
           </Button>
           {dnsError && dns && (
             <div

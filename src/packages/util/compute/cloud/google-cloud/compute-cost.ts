@@ -1,5 +1,6 @@
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
 import debug from "debug";
+import { DNS_COST_PER_HOUR } from "@cocalc/util/compute/dns";
 
 const log = debug("cocalc:util:compute-cost");
 
@@ -69,9 +70,15 @@ function computeRunningCost({ configuration, priceData }) {
   const diskCost = computeDiskCost({ configuration, priceData });
   const externalIpCost = computeExternalIpCost({ configuration, priceData });
   const acceleratorCost = computeAcceleratorCost({ configuration, priceData });
-
-  log("cost", { instanceCost, diskCost, externalIpCost, acceleratorCost });
-  return instanceCost + diskCost + externalIpCost + acceleratorCost;
+  const dnsCost = configuration.dns ? DNS_COST_PER_HOUR : 0;
+  log("cost", {
+    instanceCost,
+    diskCost,
+    externalIpCost,
+    acceleratorCost,
+    dnsCost,
+  });
+  return instanceCost + diskCost + externalIpCost + acceleratorCost + dnsCost;
 }
 
 function computeInstanceCost({ configuration, priceData }) {
