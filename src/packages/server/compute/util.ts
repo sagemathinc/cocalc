@@ -1,5 +1,6 @@
 import { getPool } from "@cocalc/database";
 import type { State, Data } from "@cocalc/util/db-schema/compute-servers";
+import { isEqual } from "lodash";
 
 // set the state. We ONLY make a change to the database updating state_changed
 // if the state actually changes, to avoid a lot of not necessary noise.
@@ -46,4 +47,17 @@ export async function setConfiguration(id: number, newConfiguration: object) {
     `UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb, last_edited=NOW() WHERE id=$2`,
     [JSON.stringify(newConfiguration), id],
   );
+}
+
+export function changedKeys(currentConfiguration, newConfiguration) {
+  const keys = new Set(
+    Object.keys(currentConfiguration).concat(Object.keys(newConfiguration)),
+  );
+  const changed = new Set<string>();
+  for (const key of keys) {
+    if (!isEqual(currentConfiguration[key], newConfiguration[key])) {
+      changed.add(key);
+    }
+  }
+  return changed;
 }

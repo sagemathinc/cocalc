@@ -22,6 +22,7 @@ import {
 import type { Configuration } from "@cocalc/util/db-schema/compute-servers";
 import { getServer } from "./get-servers";
 import updatePurchase from "./update-purchase";
+import { isDnsAvailable } from "./dns";
 
 export default async function setServerConfiguration({
   account_id,
@@ -44,6 +45,16 @@ export default async function setServerConfiguration({
   }
 
   const { cloud, state, configuration: currentConfiguration } = rows[0];
+
+  if (configuration.dns && currentConfiguration.dns != configuration.dns) {
+    // dns is NOT case sensitive, so just in case, we make sure.
+    configuration.dns = configuration.dns.toLowerCase();
+    // changing dns to be nontrivial, so need to check it doesn't equal any *other* dns
+    // We just do linear scan through db for now.
+    if (!(await isDnsAvailable(configuration.dns))) {
+      throw Error(`Subdomain '${configuration.dns}' is not available.`);
+    }
+  }
 
   await validateConfigurationChange({
     cloud,

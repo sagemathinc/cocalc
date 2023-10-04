@@ -63,7 +63,8 @@ export type SiteSettingsKeys =
   | "compute_servers_enabled"
   | "compute_servers_google_enabled"
   | "compute_servers_lambda_enabled"
-  | "compute_servers_dns_enabled";
+  | "compute_servers_dns_enabled"
+  | "compute_servers_dns";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -163,7 +164,7 @@ export const displayJson = (conf) =>
   JSON.stringify(from_json(conf), undefined, 2);
 
 // TODO a cheap'n'dirty validation is good enough
-const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
+export const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 
 export const split_iframe_comm_hosts: ToValFunc<string[]> = (hosts) =>
   (hosts ?? "").match(/[a-z0-9.-]+/g) || [];
@@ -624,5 +625,15 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+  },
+  compute_servers_dns: {
+    name: "Compute Servers: Domain name",
+    desc: "Base domain name for your compute servers, e.g. 'cocalc.io'.  This is used along with the 'CloudFlare API Token' below so that compute servers get a custom stable subdomain name foo.cocalc.io (say) along with an https certificate.  It's more secure for this to be different than the main site dns.",
+    default: "change me!",
+    valid: valid_dns_name,
+    to_val: to_trimmed_str,
+    show: (conf) =>
+      to_bool(conf.compute_servers_enabled) &&
+      to_bool(conf.compute_servers_dns_enabled),
   },
 } as const;

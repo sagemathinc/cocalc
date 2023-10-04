@@ -241,7 +241,14 @@ for (const short in CLOUDS) {
   CLOUDS_BY_NAME[CLOUDS[short].name] = CLOUDS[short];
 }
 
-interface LambdaConfiguration {
+interface BaseConfiguration {
+  // If the string is set and the VM has an external ip address
+  // and dns is configured, then point https://{dns}....
+  // with ssl proxying to this compute server when it is running.
+  dns?: string;
+}
+
+interface LambdaConfiguration extends BaseConfiguration {
   cloud: "lambda-cloud";
   instance_type_name: string;
   region_name: string;
@@ -272,7 +279,7 @@ const COREWEAVE_GPU_TYPES = [
   "A100_NVLINK_80GB",
 ] as const;
 
-interface CoreWeaveConfiguration {
+interface CoreWeaveConfiguration extends BaseConfiguration {
   cloud: "core-weave";
   gpu: {
     type: (typeof COREWEAVE_GPU_TYPES)[number];
@@ -290,7 +297,7 @@ interface CoreWeaveConfiguration {
   };
 }
 
-interface FluidStackConfiguration {
+interface FluidStackConfiguration extends BaseConfiguration {
   cloud: "fluid-stack";
   plan: string;
   region: string;
@@ -309,7 +316,7 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
 
 const GOOGLE_CLOUD_DISK_TYPES = ["pd-standard", "pd-balanced", "pd-ssd"];
 
-export interface GoogleCloudConfiguration {
+export interface GoogleCloudConfiguration extends BaseConfiguration {
   cloud: "google-cloud";
   region: string;
   zone: string;
@@ -346,12 +353,16 @@ export type Configuration =
   | FluidStackConfiguration
   | GoogleCloudConfiguration;
 
-export interface LambdaCloudData {
+interface BaseData {
+  cloudflareId: string;
+}
+
+export interface LambdaCloudData extends BaseData {
   type: "lambda-cloud";
   instance_id: string;
 }
 
-export interface GoogleCloudData {
+export interface GoogleCloudData extends BaseData {
   type: "google-cloud";
   name?: string;
   state?: State;
@@ -368,7 +379,7 @@ export interface ComputeServerUserInfo {
   id: number;
   account_id: string;
   project_id: string;
-  title: string;
+  title?: string;
   color?: string;
   cost_per_hour?: number;
   deleted?: boolean;

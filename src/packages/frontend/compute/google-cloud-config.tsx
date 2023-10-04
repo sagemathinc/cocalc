@@ -6,6 +6,7 @@ import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
   Button,
   Checkbox,
+  Input,
   InputNumber,
   Radio,
   Select,
@@ -18,6 +19,7 @@ import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
   EXTERNAL_IP_COST,
+  EGRESS_COST_PER_GiB,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
@@ -26,6 +28,8 @@ import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 
 const SELECTOR_WIDTH = "350px";
 
@@ -307,17 +311,43 @@ export default function Configuration({
 
     {
       key: "network",
-      label: <>Network</>,
+      label: <></>,
       value: (
         <Network
           disabled={loading || disabled}
           setConfig={setConfig}
           configuration={configuration}
           state={state}
+          loading={loading}
         />
       ),
     },
   ];
+
+  const errDisplay = error ? (
+    <div
+      style={{
+        /*minHeight: "35px", */
+        padding: "5px 10px",
+        background: error ? "red" : undefined,
+        color: "white",
+        borderRadius: "5px",
+      }}
+    >
+      {error}
+      <Button
+        size="small"
+        onClick={() => {
+          setError("");
+          setLocalConfiguration(configuration0);
+        }}
+        style={{ float: "right" }}
+      >
+        Close
+      </Button>
+    </div>
+  ) : undefined;
+
   return (
     <div>
       {loading && (
@@ -325,29 +355,7 @@ export default function Configuration({
           <Spin delay={1000} />
         </div>
       )}
-      {error && (
-        <div
-          style={{
-            /*minHeight: "35px", */
-            padding: "5px 10px",
-            background: error ? "red" : undefined,
-            color: "white",
-            borderRadius: "5px",
-          }}
-        >
-          {error}
-          <Button
-            size="small"
-            onClick={() => {
-              setError("");
-              setLocalConfiguration(configuration0);
-            }}
-            style={{ float: "right" }}
-          >
-            Close
-          </Button>
-        </div>
-      )}
+      {errDisplay}
       {cost ? (
         <div style={{ textAlign: "center" }}>
           <MoneyStatistic value={cost} title="Cost per hour" />
@@ -364,6 +372,12 @@ export default function Configuration({
         dataSource={data}
         pagination={false}
       />
+      {loading && (
+        <div style={{ float: "right" }}>
+          <Spin delay={1000} />
+        </div>
+      )}
+      {errDisplay}
     </div>
   );
 }
@@ -1239,7 +1253,7 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({ setConfig, configuration, disabled, state }) {
+function Network({ setConfig, configuration, disabled, state, loading }) {
   const [externalIp, setExternalIp] = useState<boolean>(
     !!configuration.externalIp,
   );
@@ -1251,6 +1265,10 @@ function Network({ setConfig, configuration, disabled, state }) {
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>Network</b>
+        <br />
+        All compute servers have full network access with unlimited ingress for
+        free. Outgoing{" "}
+        <b>egress traffic costs {currency(EGRESS_COST_PER_GiB)}/GiB</b>.
       </div>
       <Checkbox
         checked={externalIp}
@@ -1262,8 +1280,9 @@ function Network({ setConfig, configuration, disabled, state }) {
       >
         External IP Address
       </Checkbox>
-      <div style={{ color: "#666", marginTop: "5px" }}>
+      <div style={{ marginTop: "5px" }}>
         <Typography.Paragraph
+          style={{ color: "#666" }}
           ellipsis={{
             expandable: true,
             rows: 2,
@@ -1272,16 +1291,116 @@ function Network({ setConfig, configuration, disabled, state }) {
         >
           {/* TODO: we can and will in theory support all this without external
         ip using a gateway. E.g., google cloud shell has ssh to host, etc. */}
-          Set whether or not the VM has an external IP address. This makes it
-          easy to run a public web service and ssh to your compute server, but
-          costs{" "}
+          An external IP address enables you to run a public web service and ssh
+          directly to your compute server, but costs{" "}
           {configuration.spot
             ? `$${EXTERNAL_IP_COST.spot}/hour`
             : `$${EXTERNAL_IP_COST.standard}/hour`}{" "}
-          while the VM is running. The VM can always access the internet without
-          an external IP address.
+          while the VM is running, and is free when it is not running.
         </Typography.Paragraph>
       </div>
+      {externalIp && (
+        <DNS
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      )}
+    </div>
+  );
+}
+
+function DNS({ setConfig, configuration, loading }) {
+  const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
+  const [showDns, setShowDns] = useState<boolean>(
+    !!configuration.externalIp && !!configuration.dns,
+  );
+  const [dnsError, setDnsError] = useState<string>("");
+  const [dns, setDns] = useState<string | undefined>(configuration.dns);
+  useEffect(() => {
+    if (!dns) return;
+    try {
+      checkValidDomain(dns);
+      setDnsError("");
+    } catch (err) {
+      setDnsError(`${err}`);
+    }
+  }, [dns]);
+
+  if (!compute_servers_dns) {
+    return null;
+  }
+
+  return (
+    <div>
+      {showDns && (
+        <A
+          style={{ float: "right" }}
+          href={`https://${configuration.dns}.${compute_servers_dns}`}
+        >
+          <Icon name="external-link" /> https://{dns ?? "*"}.
+          {compute_servers_dns}
+        </A>
+      )}
+      <Checkbox
+        disabled={loading}
+        checked={showDns}
+        onChange={() => {
+          setShowDns(!showDns);
+          if (showDns) {
+            // disable on backend.
+            console.log("disable on backend");
+            setConfig({ dns: "" });
+          }
+        }}
+      >
+        Custom Domain ({currency(DNS_COST_PER_HOUR)}/hour when running)
+      </Checkbox>
+      {showDns && (
+        <div style={{ marginTop: "5px" }}>
+          <Input
+            disabled={loading}
+            style={{ margin: "15px 0" }}
+            maxLength={63}
+            showCount
+            allowClear
+            value={dns}
+            onChange={(e) => {
+              const dns = e.target.value.trim();
+              setDns(dns);
+              if (!dns) {
+                setConfig({ dns: "" });
+              }
+            }}
+          />
+
+          <Button
+            disabled={configuration.dns == dns || dnsError || loading}
+            onClick={() => {
+              const s = (dns ?? "").toLowerCase();
+              setConfig({ dns: s });
+              setDns(s);
+            }}
+          >
+            Set Custom Domain
+          </Button>
+          {dnsError && dns && (
+            <div
+              style={{
+                background: "red",
+                color: "white",
+                padding: "5px",
+                margin: "10px 0",
+              }}
+            >
+              <div>{dnsError}</div>
+              Please enter a valid subdomain name. Subdomains can consist of
+              letters (a-z, A-Z), numbers (0-9), and hyphens (-). They cannot
+              start or end with a hyphen.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

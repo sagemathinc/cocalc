@@ -40,7 +40,7 @@ export async function makeConfigurationChange({
     );
   }
 
-  const name = getServerName({ id });
+  const name = await getServerName({ id });
   const zone = currentConfiguration.zone;
 
   if (currentConfiguration.machineType != newConfiguration.machineType) {

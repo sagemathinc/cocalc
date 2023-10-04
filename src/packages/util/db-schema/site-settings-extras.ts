@@ -130,7 +130,7 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
   | "google_cloud_service_account_json"
-  | "compute_servers_dns"
+  | "google_cloud_compute_servers_prefix"
   | "compute_servers_cloudflare_api_key"
   //   | "coreweave_kubeconfig"
   //   | "fluidstack_api_key"
@@ -549,15 +549,14 @@ export const EXTRAS: SettingsExtras = {
     multiline: 2,
     show: compute_servers_google_enabled,
   },
-  compute_servers_dns: {
-    name: "Compute Servers: Domain name",
-    desc: "Base domain name for your compute servers, e.g. 'cocalc.io'.  This is used along with the 'CloudFlare API Token' below so that compute servers get a custom stable subdomain name foo.cocalc.io (say) along with an https certificate.  It's more secure for this to be different than the main site dns.",
-    default: "",
+  google_cloud_compute_servers_prefix: {
+    name: "Compute Servers: Google Cloud - Resource Prefix",
+    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server. If the prefix is 'cocalc-compute-server', then the compute server with id 17 will be called 'cocalc-compute-server-17'.",
+    default: "cocalc-compute-server",
     to_val: to_trimmed_str,
-    show: (conf) =>
-      to_bool(conf.compute_servers_enabled) &&
-      to_bool(conf.compute_servers_dns_enabled),
+    show: compute_servers_google_enabled,
   },
+
   compute_servers_cloudflare_api_key: {
     name: "Compute Servers: CloudFlare API Token",
     desc: 'A CloudFlare [API Token](https://dash.cloudflare.com/profile/api-tokens) that has the "Edit zone DNS" capability for the domain that you set as "Compute Servers: Domain name" above.  This is used for custom subdomains, i.e., so users can make a compute server and connect to it at https://custom.cocalc.io (say).',

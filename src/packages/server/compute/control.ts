@@ -26,6 +26,9 @@ import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";
 import updatePurchase from "./update-purchase";
+import { changedKeys } from "@cocalc/server/compute/util";
+import { checkValidDomain } from "@cocalc/util/compute/dns";
+import { makeDnsChange } from "./dns";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -401,6 +404,20 @@ export async function validateConfigurationChange({
     return;
   }
 
+  const changed = changedKeys(currentConfiguration, newConfiguration);
+  if (changed.has("dns")) {
+    if (newConfiguration.dns) {
+      // throws an error if domain isn't valid:
+      checkValidDomain(newConfiguration.dns);
+    }
+    // changing dns is allowed in all states
+    changed.delete("dns");
+  }
+  if (changed.size == 0) {
+    // nothing to validate
+    return;
+  }
+
   switch (cloud) {
     case "google-cloud":
       await googleCloud.validateConfigurationChange({
@@ -433,6 +450,23 @@ export async function makeConfigurationChange({
 
   const newConfiguration = { ...currentConfiguration, ...changes };
   if (isEqual(currentConfiguration, newConfiguration)) {
+    return;
+  }
+
+  const changed = changedKeys(currentConfiguration, newConfiguration);
+  if (changed.has("dns")) {
+    if (state == "running") {
+      await makeDnsChange({
+        id,
+        previousName: currentConfiguration.dns,
+        name: newConfiguration.dns,
+        cloud: newConfiguration.cloud,
+      });
+    }
+    changed.delete("dns");
+  }
+  if (changed.size == 0) {
+    // nothing else to change
     return;
   }
 

@@ -3,7 +3,7 @@ import type {
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { SUPPORTED_CHANGES } from "./make-configuration-change";
-import { isEqual } from "lodash";
+import { changedKeys } from "@cocalc/server/compute/util";
 
 export async function validateConfigurationChange({
   state = "deprovisioned",
@@ -37,25 +37,27 @@ export async function validateConfigurationChange({
       (newConfiguration.diskSizeGb ?? 10) <
       (currentConfiguration.diskSizeGb ?? 10)
     ) {
-      throw Error(
-        `cannot shrink disk unless in the 'deprovisioned' state`,
-      );
-    }
-    // TODO: we will support live editing of disk size at some point.
-    if (state != "off") {
-      throw Error("machine must be off to change the configuration");
+      throw Error(`cannot shrink disk unless in the 'deprovisioned' state`);
     }
 
     // state is off -- but still only some changes are supported.
-    const keys = new Set(
-      Object.keys(currentConfiguration).concat(Object.keys(newConfiguration)),
-    );
-    for (const key of keys) {
-      if (
-        !isEqual(currentConfiguration[key], newConfiguration[key]) &&
-        !SUPPORTED_CHANGES.includes(key)
-      ) {
-        throw Error(`changing ${key} is not currently supported`);
+    const changed = changedKeys(currentConfiguration, newConfiguration);
+
+    if (changed.has("dns")) {
+      // changing DNS is allowed in all states.
+      changed.delete("dns");
+    }
+
+    // TODO: we will support live editing of disk size at some point.
+    if (state != "off" && changed.size > 0) {
+      throw Error("machine must be off to change configuration");
+    }
+
+    for (const key of changed) {
+      if (!SUPPORTED_CHANGES.includes(key)) {
+        throw Error(
+          `changing ${key} is not currently supported unless server is deprovisioned`,
+        );
       }
     }
     // You can't go between having and not having a GPU, because the disk image itself has to change
