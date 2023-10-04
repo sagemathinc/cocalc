@@ -22,6 +22,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getArchitecture } from "./images";
 import { getInstanceEgress } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { makeDnsChange } from "@cocalc/server/compute/dns";
 
 export * from "./validate-configuration";
 export * from "./make-configuration-change";
@@ -120,6 +121,20 @@ export async function state(server: ComputeServer): Promise<State> {
       logger.debug("WARNING -- issue saving data about instance", err);
     }
   })();
+  if (server.configuration.dns) {
+    (async () => {
+      try {
+        await makeDnsChange({
+          id: server.id,
+          cloud: server.cloud,
+          name: instance.state == "running" ? server.configuration.dns : "",
+        });
+      } catch (err) {
+        logger.debug("WARNING -- issue setting dns", err);
+      }
+    })();
+  }
+
   return instance.state;
 }
 

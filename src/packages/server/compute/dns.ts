@@ -122,7 +122,15 @@ export async function edit({
 export async function remove({ id }: { id: string }) {
   logger.debug("remove", { id });
   const cf = await getClient();
-  await cf.dnsRecords.del(cf.zoneId, id);
+  try {
+    await cf.dnsRecords.del(cf.zoneId, id);
+  } catch (err) {
+    if (err.message.toLowerCase().includes("not found")) {
+      // deleting something that is already deleted
+      return;
+    }
+    throw err;
+  }
 }
 
 /*
@@ -190,7 +198,7 @@ export async function makeDnsChange({
 }: {
   id: number;
   name: string | undefined;
-  previousName: string | undefined;
+  previousName?: string | undefined;
   cloud;
 }) {
   logger.debug("makeDnsChange", { id, name, previousName });
@@ -218,6 +226,7 @@ export async function makeDnsChange({
     // remove the record
     logger.debug("makeDnsChange", "remove the record");
     await remove({ id: cloudflareId });
+    await setData({ id, cloud, data: { cloudflareId: "" } });
     return;
   } else {
     // setting/adding/changing DNS -- definitely need to have an ip address
