@@ -10,6 +10,7 @@ import {
   InputNumber,
   Radio,
   Select,
+  Space,
   Spin,
   Switch,
   Table,
@@ -20,6 +21,7 @@ import computeCost, {
   GoogleCloudData,
   EXTERNAL_IP_COST,
   EGRESS_COST_PER_GiB,
+  computeDiskCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
@@ -844,23 +846,54 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>Disk</b>
       </div>
-      <InputNumber
-        style={{ width: SELECTOR_WIDTH }}
-        disabled={disabled}
-        min={getMinDiskSizeGb(configuration)}
-        max={65536}
-        value={newDiskSizeGb}
-        addonAfter="GB"
-        onChange={(diskSizeGb) => {
-          setNewDiskSizeGb(diskSizeGb);
-        }}
-        onBlur={() => {
-          // only set on blur or every keystroke rerenders and cause loss of focus.
-          setConfig({
-            diskSizeGb: newDiskSizeGb ?? getMinDiskSizeGb(configuration),
-          });
-        }}
-      />
+      <Space direction="vertical">
+        <InputNumber
+          style={{ width: SELECTOR_WIDTH }}
+          disabled={disabled}
+          min={configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)}
+          max={65536}
+          value={newDiskSizeGb}
+          addonAfter="GB"
+          onChange={(diskSizeGb) => {
+            setNewDiskSizeGb(diskSizeGb);
+          }}
+          onBlur={() => {
+            if (state == "deprovisioned") {
+              // only set on blur or every keystroke rerenders and cause loss of focus.
+              setConfig({
+                diskSizeGb: newDiskSizeGb ?? getMinDiskSizeGb(configuration),
+              });
+            }
+          }}
+        />
+        {state != "deprovisioned" &&
+          !disabled &&
+          newDiskSizeGb != null &&
+          configuration.diskSizeGb != null && (
+            <Button
+              type="primary"
+              disabled={configuration.diskSizeGb == newDiskSizeGb}
+              onClick={() => {
+                setConfig({
+                  diskSizeGb: newDiskSizeGb,
+                });
+              }}
+            >
+              Enlarge by {newDiskSizeGb - configuration.diskSizeGb}GB{" "}
+              (additional cost --{" "}
+              {currency(
+                computeDiskCost({
+                  configuration: {
+                    ...configuration,
+                    diskSizeGb: newDiskSizeGb - configuration.diskSizeGb,
+                  },
+                  priceData,
+                }) * 730,
+              )}
+              /month)
+            </Button>
+          )}
+      </Space>
       <div style={{ marginTop: "15px" }}>
         <Select
           style={{ width: SELECTOR_WIDTH }}

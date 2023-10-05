@@ -103,7 +103,7 @@ function computeInstanceCost({ configuration, priceData }) {
 }
 
 // Compute the total cost of disk for this configuration, including any markup.
-function computeDiskCost({ configuration, priceData }: Options): number {
+export function computeDiskCost({ configuration, priceData }: Options): number {
   const diskType = configuration.diskType ?? "pd-standard";
   const diskCostPerGB = priceData.disks[diskType]?.prices[configuration.region];
   log("disk cost per GB per hour", { diskCostPerGB });
