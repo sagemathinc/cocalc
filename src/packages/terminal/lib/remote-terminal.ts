@@ -93,11 +93,11 @@ export class RemoteTerminal {
     this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);
 
-    localPty.on("data", (data) => {
+    localPty.onData((data) => {
       this.conn.write(data);
     });
 
-    localPty.on("exit", () => {
+    localPty.onExit(() => {
       delete this.localPty; // no longer valid
       this.conn.write({ cmd: "exit" });
     });
