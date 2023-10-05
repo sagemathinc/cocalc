@@ -26,6 +26,7 @@ const L = getLogger("server:auth:sso:extra-strategies");
 // the new one has been added as a non-standard variant
 // https://github.com/sagemathinc/cocalc/pull/6572
 // TODO: some day in the future switch over to the new variant
+// NOTE: this only affects the "saml" type. You can also be explicit by setting type to saml-v3 or saml-v4
 export function getSAMLVariant(): "old" | "new" {
   const ret = process.env.COCALC_SSO_SAML === "new" ? "new" : "old";
   L.debug(`SAML variant: ${ret}`);
@@ -52,6 +53,10 @@ export function getExtraStrategyConstructor(
       return OrcidStrategy;
     case "saml":
       return getSAMLVariant() === "new" ? SAMLStrategyNew : SAMLStrategyOld;
+    case "saml-v3":
+      return SAMLStrategyOld;
+    case "saml-v4":
+      return SAMLStrategyNew;
     case "oidc":
       return OidcStrategy;
     case "azuread":

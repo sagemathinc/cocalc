@@ -66,10 +66,16 @@ export const PassportTypesList = [
   "oidc",
   "orcid",
   "saml",
+  "saml-v3",
+  "saml-v4",
   // the 4 types for google, twitter, github and facebook are not included here – they're hardcoded special cases
 ] as const;
 
 export type PassportTypes = (typeof PassportTypesList)[number];
+
+export function isSAML(type: PassportTypes): boolean {
+  return type === "saml" || type === "saml-v3" || type === "saml-v4";
+}
 
 // the OAuth2 strategies
 export function isOAuth2(type: PassportTypes): boolean {
@@ -143,7 +149,6 @@ export interface PassportStrategyDB {
   conf: PassportStrategyDBConfig;
   info?: PassportStrategyDBInfo;
 }
-
 
 export interface UserProfileCallbackOpts {
   strategy_instance: any;

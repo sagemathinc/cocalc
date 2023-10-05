@@ -88,6 +88,7 @@ import {
   PassportStrategyDBConfig,
   PassportTypes,
   isOAuth2,
+  isSAML,
 } from "@cocalc/database/settings/auth-sso-types";
 import {
   BLACKLISTED_STRATEGIES,
@@ -415,8 +416,19 @@ export class PassportManager {
   }) {
     switch (type) {
       case "saml":
+      case "saml-v3":
+      case "saml-v4":
         // see https://github.com/node-saml/passport-saml#config-parameter-details
         const cachedMS = ms("8 hours");
+        // Upgrading from SAML 3 to node-saml version 4 needs some extra config options.
+        // They're not backwards compatible, so we need to check which version we're using!
+        const samlv4 = getSAMLVariant() === "new" || type === "saml-v4";
+        const patch = samlv4
+          ? {
+              audience: false, // Starting with version 4, this must be set (a string) or false.
+              wantAuthnResponseSigned: false, // if not disabled, got an error with Google's Workspace SAML
+            }
+          : undefined;
         return {
           acceptedClockSkewMs: ms("5 minutes"),
           cacheProvider: getPassportCache(name, cachedMS),
@@ -429,11 +441,7 @@ export class PassportManager {
           signatureAlgorithm: "sha256", // better than default sha1
           validateInResponseTo: true,
           wantAssertionsSigned: true,
-          ...(getSAMLVariant() === "new"
-            ? {
-                audience: false, // Starting with version 4, this must be set (a string) or false.
-              }
-            : undefined),
+          ...patch,
         };
     }
   }
@@ -511,6 +519,8 @@ export class PassportManager {
   private getVerify(type: StrategyConf["type"]) {
     switch (type) {
       case "saml":
+      case "saml-v3":
+      case "saml-v4":
         return (profile, done) => {
           done(undefined, profile);
         };
@@ -589,7 +599,7 @@ export class PassportManager {
         return;
       }
 
-      if (type === "saml") {
+      if (isSAML(type)) {
         // the nameID is set via the conf.identifierFormat parameter – even if we set it to
         // persistent, we might still just get an email address, though
         Lret(`nameID format we actually got is ${req.user.nameIDFormat}`);
@@ -766,7 +776,7 @@ export class PassportManager {
       login_info,
     });
 
-    if (type === "saml") {
+    if (isSAML(type)) {
       this.router.post(
         returnUrl,
         // External use of the body-parser package is deprecated, so we are using express directly.
