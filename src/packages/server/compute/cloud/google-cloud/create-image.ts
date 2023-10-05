@@ -184,6 +184,7 @@ ${installUser()}
 docker pull sagemathinc/compute-filesystem
 docker pull sagemathinc/compute-manager
 docker pull sagemathinc/compute-python
+docker pull sagemathinc/compute-sagemath-10.1
 
 df -h /
 `;
@@ -259,6 +260,7 @@ ${installUser()}
 docker pull sagemathinc/compute-filesystem
 docker pull sagemathinc/compute-manager
 docker pull sagemathinc/compute-python
+docker pull sagemathinc/compute-sagemath-10.1
 
 docker pull sagemathinc/compute-cuda
 docker pull sagemathinc/compute-pytorch
