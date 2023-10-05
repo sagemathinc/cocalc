@@ -10,6 +10,9 @@ import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-se
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
 
+const STANDARD_DISK_SIZE = 20;
+const CUDA_DISK_SIZE = 50;
+
 const logger = getLogger("server:compute:google-cloud:create-image");
 
 interface Options {
@@ -167,12 +170,13 @@ function createStandardConf_x86_64() {
   const maxTimeMinutes = 45;
   const configuration = {
     cloud: "google-cloud",
+    externalIp: true,
     spot: true,
     zone: "us-east1-b",
     region: "us-east1",
     machineType: "c2-standard-4",
     metadata: { "serial-port-logging-enable": true },
-    diskSizeGb: 10,
+    diskSizeGb: STANDARD_DISK_SIZE,
     maxRunDurationSeconds: 60 * maxTimeMinutes,
   } as const;
   const startupScript = `
@@ -202,12 +206,13 @@ function createStandardConf_arm64() {
   const maxTimeMinutes = 45;
   const configuration = {
     cloud: "google-cloud",
+    externalIp: true,
     spot: true,
     region: "us-central1",
     zone: "us-central1-a",
     machineType: "t2a-standard-4",
     metadata: { "serial-port-logging-enable": true },
-    diskSizeGb: 10,
+    diskSizeGb: STANDARD_DISK_SIZE,
     maxRunDurationSeconds: 60 * maxTimeMinutes,
   } as const;
   const startupScript = `
@@ -238,10 +243,11 @@ function createCudaConf() {
   const maxTimeMinutes = 120;
   const configuration = {
     cloud: "google-cloud",
+    externalIp: true,
     spot: true,
     zone: "us-east1-b",
     region: "us-east1",
-    diskSizeGb: 40,
+    diskSizeGb: CUDA_DISK_SIZE,
     maxRunDurationSeconds: 60 * maxTimeMinutes,
     // lots of cores are helpful, cuda drivers get built from
     // source for the kernel.
