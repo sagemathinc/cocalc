@@ -6,12 +6,11 @@
 // inherited legacy SSO defintiions – they're special cases, have their custom wrappers, etc.
 // everything else is defined via a more general framework
 
-import { StrategyConf } from "@cocalc/server/auth/sso/types";
+import { StrategyConf, TwitterWrapper } from "@cocalc/server/auth/sso/types";
 import { Strategy as GoogleStrategyOld } from "@passport-next/passport-google-oauth2";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Strategy as GithubStrategy } from "passport-github2";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { Strategy as TwitterStrategy } from "passport-twitter";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -111,15 +110,6 @@ export const FacebookStrategyConf: StrategyConf = {
 //
 // You must then put them in the database, via
 //   db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-class TwitterWrapper extends TwitterStrategy {
-  constructor(
-    { clientID: consumerKey, clientSecret: consumerSecret, callbackURL },
-    verify
-  ) {
-    super({ consumerKey, consumerSecret, callbackURL }, verify);
-  }
-}
 
 export const TwitterStrategyConf: StrategyConf = {
   name: "twitter",
