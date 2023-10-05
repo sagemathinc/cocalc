@@ -366,6 +366,8 @@ function DetailedPurchaseTable({
               title: "Id",
               dataIndex: "id",
               key: "id",
+              sorter: (a, b) => (a.id ?? 0) - (b.id ?? 0),
+              sortDirections: ["ascend", "descend"],
             },
             {
               title: "Description",
@@ -374,13 +376,7 @@ function DetailedPurchaseTable({
               width: "35%",
               render: (
                 _,
-                {
-                  id,
-                  description,
-                  invoice_id,
-                  notes,
-                  period_end,
-                },
+                { id, description, invoice_id, notes, period_end },
               ) => (
                 <div>
                   <Description
@@ -417,19 +413,22 @@ function DetailedPurchaseTable({
               ),
             },
             {
-              title: "Project",
-              dataIndex: "project_id",
-              key: "project_id",
-              render: (project_id) =>
-                project_id ? (
-                  <ProjectTitle project_id={project_id} trunc={20} />
-                ) : null,
-            },
-            {
               title: "Time",
               dataIndex: "time",
               key: "time",
-              render: (text, record) => {
+              render: (text) => {
+                return <TimeAgo date={text} />;
+              },
+              sorter: (a, b) =>
+                new Date(a.time ?? 0).getTime() -
+                new Date(b.time ?? 0).getTime(),
+              sortDirections: ["ascend", "descend"],
+            },
+            {
+              title: "Period",
+              dataIndex: "period_start",
+              key: "period",
+              render: (_, record) => {
                 if (record.service == "project-upgrade") {
                   let minutes;
                   if (
@@ -447,7 +446,6 @@ function DetailedPurchaseTable({
                   }
                   return (
                     <span>
-                      <TimeAgo date={text} />
                       {record.description?.type == "project-upgrade" &&
                       record.description.stop != null ? (
                         <>
@@ -463,13 +461,39 @@ function DetailedPurchaseTable({
                     </span>
                   );
                 }
-                return <TimeAgo date={text} />;
+                if (record.period_start) {
+                  if (!record.period_end) {
+                    return (
+                      <div>
+                        <TimeAgo date={record.period_start} /> - now
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div>
+                        <TimeAgo date={record.period_start} /> -{" "}
+                        <TimeAgo date={record.period_end} />
+                      </div>
+                    );
+                  }
+                }
+                return null;
               },
               sorter: (a, b) =>
-                new Date(a.time ?? 0).getTime() -
-                new Date(b.time ?? 0).getTime(),
+                new Date(a.period_start ?? 0).getTime() -
+                new Date(b.period_start ?? 0).getTime(),
               sortDirections: ["ascend", "descend"],
             },
+            {
+              title: "Project",
+              dataIndex: "project_id",
+              key: "project_id",
+              render: (project_id) =>
+                project_id ? (
+                  <ProjectTitle project_id={project_id} trunc={20} />
+                ) : null,
+            },
+
             {
               title: "Service",
               dataIndex: "service",
@@ -765,7 +789,7 @@ function Amount({ record }) {
     record.cost_per_hour != null
   ) {
     return (
-      <Space>
+      <Space direction='vertical'>
         <Tag color="green">Active</Tag>
         <DynamicallyUpdatingCost
           costPerHour={record.cost_per_hour}
