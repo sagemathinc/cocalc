@@ -2,7 +2,8 @@ import { valid_dns_name } from "@cocalc/util/db-schema/site-defaults";
 import { isReserved } from "@cocalc/util/db-schema/name-rules";
 
 // cost right now for DNS
-export const DNS_COST_PER_HOUR = 0.005;
+export const DNS_COST_PER_MONTH = 5;
+export const DNS_COST_PER_HOUR = DNS_COST_PER_MONTH / 730;
 
 export function checkValidDomain(name) {
   if (isReserved(name)) {

@@ -121,7 +121,17 @@ export async function state(server: ComputeServer): Promise<State> {
       logger.debug("WARNING -- issue saving data about instance", err);
     }
   })();
-  if (server.configuration.dns) {
+  if (
+    server.configuration.dns &&
+    (instance.state == "running" || instance.state == "deprovisioned")
+  ) {
+    // We only mess with DNS when the instance is running (in which case we make sure it is properly set),
+    // or the instance is deprovisioned, in which case we delete the DNS.
+    // In all other cases, we just leave it alone.  It turns out if you delete the DNS record
+    // whenever the machine stops, it can often take a very long time after you create the
+    // record for clients to become aware of it again, which is very annoying.
+    // TODO: we may want to change dns records for off machines to point to some special
+    // status page (?).
     (async () => {
       try {
         await makeDnsChange({

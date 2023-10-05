@@ -55,7 +55,7 @@ export default function computeCost({
   state = "running",
 }: Options): number {
   if (state == "off") {
-    return computeDiskCost({ configuration, priceData });
+    return computeOffCost({ configuration, priceData });
   } else if (state == "suspended") {
     return computeSuspendedCost({ configuration, priceData });
   } else if (state == "running") {
@@ -70,7 +70,7 @@ function computeRunningCost({ configuration, priceData }) {
   const diskCost = computeDiskCost({ configuration, priceData });
   const externalIpCost = computeExternalIpCost({ configuration, priceData });
   const acceleratorCost = computeAcceleratorCost({ configuration, priceData });
-  const dnsCost = configuration.dns ? DNS_COST_PER_HOUR : 0;
+  const dnsCost = computeDnsCost({ configuration });
   log("cost", {
     instanceCost,
     diskCost,
@@ -79,6 +79,10 @@ function computeRunningCost({ configuration, priceData }) {
     dnsCost,
   });
   return instanceCost + diskCost + externalIpCost + acceleratorCost + dnsCost;
+}
+
+function computeDnsCost({ configuration }) {
+  return configuration.dns ? DNS_COST_PER_HOUR : 0;
 }
 
 function computeInstanceCost({ configuration, priceData }) {
@@ -112,11 +116,19 @@ function computeDiskCost({ configuration, priceData }: Options): number {
   return markup({ cost, priceData });
 }
 
+function computeOffCost({ configuration, priceData }: Options): number {
+  const diskCost = computeDiskCost({ configuration, priceData });
+  const dnsCost = computeDnsCost({ configuration });
+
+  return diskCost + dnsCost;
+}
+
 function computeSuspendedCost({ configuration, priceData }: Options): number {
   const diskCost = computeDiskCost({ configuration, priceData });
   const memoryCost = computeSuspendedMemoryCost({ configuration, priceData });
+  const dnsCost = computeDnsCost({ configuration });
 
-  return diskCost + memoryCost;
+  return diskCost + memoryCost + dnsCost;
 }
 
 function computeSuspendedMemoryCost({ configuration, priceData }) {

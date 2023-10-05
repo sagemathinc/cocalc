@@ -189,7 +189,7 @@ export function getMinDiskSizeGb(configuration) {
   if (configuration.acceleratorType) {
     return 50;
   } else {
-    return 10;
+    return 20;
   }
 }
 

@@ -459,7 +459,8 @@ export async function makeConfigurationChange({
 
   const changed = changedKeys(currentConfiguration, newConfiguration);
   if (changed.has("dns")) {
-    if (state == "running") {
+    if (state == "running" || !newConfiguration.dns) {
+      // if running or removing dns, better update it.
       await makeDnsChange({
         id,
         previousName: currentConfiguration.dns,

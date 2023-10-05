@@ -29,7 +29,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
+import { DNS_COST_PER_MONTH, checkValidDomain } from "@cocalc/util/compute/dns";
 
 const SELECTOR_WIDTH = "350px";
 
@@ -1360,7 +1360,7 @@ function DNS({ setConfig, configuration, loading }) {
           }
         }}
       >
-        Custom Domain ({currency(DNS_COST_PER_HOUR)}/hour when running)
+        Custom Domain ({currency(DNS_COST_PER_MONTH)}/month)
       </Checkbox>
       {showDns && (
         <div style={{ marginTop: "5px" }}>
