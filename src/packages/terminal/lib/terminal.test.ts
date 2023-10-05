@@ -105,9 +105,11 @@ describe("create a shell, connect a client, and communicate with it", () => {
     expect(resp).toContain(process.cwd());
   });
 
-  it("send kill command and see that pid changes", async () => {
+  it("send kill command, send some input (to start new shell), and see that pid changes", async () => {
     const pid = terminal.getPid();
     spark.emit("data", { cmd: "kill" });
+    spark.emit("data", "pwd\n");
+    spark.data = "";
     const newPid = await waitForPidToChange(terminal, pid);
     expect(pid).not.toBe(newPid);
     expect(await isPidRunning(pid)).toBe(false);
