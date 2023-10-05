@@ -177,33 +177,29 @@ async function closePurchase({
     id,
   ]);
 
-  // If server was recently then we also record purchase for
-  // any network usage.
-  if (server.state == "running" || server.state == "stopping") {
-    // [ ] TODO: we may want to wait some minutes before
-    // running the network usage computation, since usage
-    // isn't all reported until a few minutes after it happens.
-    const network = await getNetworkUsage({
-      server,
-      start: period_start,
-      end: new Date(),
+  // TODO: we may want to wait some minutes before
+  // running the network usage computation, since usage
+  // isn't all reported until a few minutes after it happens.
+  const network = await getNetworkUsage({
+    server,
+    start: period_start,
+    end: new Date(),
+  });
+  if (network.cost) {
+    await createPurchase({
+      client: null,
+      account_id: server.account_id,
+      project_id: server.project_id,
+      service: "compute-server-network-usage",
+      period_start,
+      period_end,
+      cost: network.cost,
+      description: {
+        type: "compute-server-network-usage",
+        compute_server_id: server.id,
+        amount: network.amount,
+      },
     });
-    if (network.cost) {
-      await createPurchase({
-        client: null,
-        account_id: server.account_id,
-        project_id: server.project_id,
-        service: "compute-server-network-usage",
-        period_start,
-        period_end,
-        cost: network.cost,
-        description: {
-          type: "compute-server-network-usage",
-          compute_server_id: server.id,
-          amount: network.amount,
-        },
-      });
-    }
   }
 }
 

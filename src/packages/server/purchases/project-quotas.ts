@@ -204,7 +204,7 @@ This function ensures everything is in sync, and close out project purchases onc
 In particular:
 
 - If a project is not running/starting and there is an unclosed purchase, close it.
-  This should always happened automatically by the state change close.  However, maybe
+  This should always happend automatically by the state change close.  However, maybe
   it doesn't due to some weird issue, so this catches it.
 - If there is a purchase of a project-upgrade that is actively being charged, make
   sure the project has the given run quota; otherwise end purchase.

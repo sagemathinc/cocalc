@@ -8,7 +8,7 @@
     "./api/*": "./dist/api/*.js",
     "./accounts/*": "./dist/accounts/*.js",
     "./compute/*": "./dist/compute/*.js",
-    "./compute/maintenance/*": "./dist/compute/maintenance/*.js",
+    "./compute/maintenance": "./dist/compute/maintenance/index.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
     "./purchases/*": "./dist/purchases/*.js",

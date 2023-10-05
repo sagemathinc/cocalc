@@ -5,11 +5,11 @@ this to periodically update aspects of the compute servers.
 
 */
 
-import maintainOngoingPurchases from "./ongoing-purchases";
+import maintainActivePurchases from "./ongoing-purchases";
 
 export const TASKS = [
   {
-    f: maintainOngoingPurchases,
-    desc: "maintain ongoing compute server purchases",
+    f: maintainActivePurchases,
+    desc: "maintain ongoing active compute server purchases",
   },
 ] as const;
