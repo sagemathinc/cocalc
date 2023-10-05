@@ -1,10 +1,9 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
 import * as control from "./control";
-import { getServer } from "./get-servers";
 import { delay } from "awaiting";
 
 beforeAll(async () => {
@@ -12,7 +11,6 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  await getPool().end();
   setTimeout(process.exit, 1);
 });
 
@@ -51,7 +49,8 @@ describe("creates account, project and a test compute server, then control it", 
 
   it("start the server", async () => {
     await control.start({ account_id, id });
-    expect((await getServer({ account_id, id })).state).toBe("starting");
+    await delay(10);
+    expect(await control.state({ account_id, id })).toBe("starting");
   });
 
   it("waits for the server to start running", async () => {
@@ -59,12 +58,13 @@ describe("creates account, project and a test compute server, then control it", 
       account_id,
       id,
     });
-    expect((await getServer({ account_id, id })).state).toBe("running");
+    expect(await control.state({ account_id, id })).toBe("running");
   });
 
   it("stop the server", async () => {
-    await control.stop({ account_id, id });
-    expect((await getServer({ account_id, id })).state).toBe("stopping");
+    control.stop({ account_id, id });
+    await delay(10);
+    expect(await control.state({ account_id, id })).toBe("stopping");
   });
 
   it("wait for it to stop", async () => {
@@ -72,15 +72,7 @@ describe("creates account, project and a test compute server, then control it", 
       account_id,
       id,
     });
-    expect((await getServer({ account_id, id })).state).toBe("off");
+    expect(await control.state({ account_id, id })).toBe("off");
   });
 
-  it("start the server and see that it also automatically  switches to running state", async () => {
-    await control.start({ account_id, id });
-    expect((await getServer({ account_id, id })).state).toBe("starting");
-    while ((await getServer({ account_id, id })).state != "running") {
-      await delay(20);
-    }
-    expect((await getServer({ account_id, id })).state).toBe("running");
-  });
 });

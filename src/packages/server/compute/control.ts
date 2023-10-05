@@ -34,7 +34,7 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:compute:control");
 
-const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
+//const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
 
 async function runTasks(opts, f: () => Promise<void>) {
   try {
@@ -151,17 +151,17 @@ async function doDeprovision(server: ComputeServer) {
   }
 }
 
-const lastCalled: { [id: number]: { time: number; state: State } } = {};
+//const lastCalled: { [id: number]: { time: number; state: State } } = {};
 
 export const state: (opts: {
   account_id: string;
   id: number;
 }) => Promise<State> = reuseInFlight(async ({ account_id, id }) => {
-  const now = Date.now();
-  const last = lastCalled[id];
-  if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
-    return last.state;
-  }
+  //const now = Date.now();
+  //   const last = lastCalled[id];
+  //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
+  //     return last.state;
+  //   }
   const server = await getServer({ account_id, id });
   const state = await getCloudServerState(server);
   doPurchaseUpdate({ server, state });
@@ -169,7 +169,7 @@ export const state: (opts: {
     // don't need it anymore.
     await deleteProjectApiKey({ account_id, server });
   }
-  lastCalled[id] = { time: now, state };
+  //lastCalled[id] = { time: now, state };
   return state;
 });
 
