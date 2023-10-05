@@ -183,13 +183,16 @@ export type Cloud =
   | "fluid-stack"
   | "test";
 
+export const STANDARD_DISK_SIZE = 20;
+export const CUDA_DISK_SIZE = 60;
+
 export function getMinDiskSizeGb(configuration) {
   // TODO: will have to do something based on actual image size, maybe, unless I come up with a clever trick involving
   // one PD mounted on many machines (?).
   if (configuration.acceleratorType) {
-    return 50;
+    return CUDA_DISK_SIZE;
   } else {
-    return 20;
+    return STANDARD_DISK_SIZE;
   }
 }
 

@@ -10,8 +10,10 @@ import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-se
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
 
-const STANDARD_DISK_SIZE = 20;
-const CUDA_DISK_SIZE = 50;
+import {
+  STANDARD_DISK_SIZE,
+  CUDA_DISK_SIZE,
+} from "@cocalc/util/db-schema/compute-servers";
 
 const logger = getLogger("server:compute:google-cloud:create-image");
 
