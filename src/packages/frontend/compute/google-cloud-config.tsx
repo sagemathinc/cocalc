@@ -848,7 +848,7 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
         style={{ width: SELECTOR_WIDTH }}
         disabled={disabled}
         min={getMinDiskSizeGb(configuration)}
-        max={10000}
+        max={65536}
         value={newDiskSizeGb}
         addonAfter="GB"
         onChange={(diskSizeGb) => {
@@ -895,7 +895,7 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
         ></Select>
       </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Set the size and type of the compute server's boot disk.
+        Set the size between {getMinDiskSizeGb(configuration)} GB and 65,536 GB.
         {state != "deprovisioned" && (
           <>
             {" "}

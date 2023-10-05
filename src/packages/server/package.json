@@ -7,6 +7,8 @@
     "./auth/*": "./dist/auth/*.js",
     "./api/*": "./dist/api/*.js",
     "./accounts/*": "./dist/accounts/*.js",
+    "./compute/*": "./dist/compute/*.js",
+    "./compute/maintenance/*": "./dist/compute/maintenance/*.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
     "./purchases/*": "./dist/purchases/*.js",
@@ -19,10 +21,7 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",

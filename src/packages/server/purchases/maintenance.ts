@@ -1,5 +1,6 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { maintainActivePurchases as maintainProjectUpgrades } from "./project-quotas";
+import { TASKS as computeServerTasks } from "@cocalc/server/compute/maintenance";
 import maintainSubscriptions from "./maintain-subscriptions";
 import maintainStatements from "./statements/maintenance";
 import getLogger from "@cocalc/backend/logger";
@@ -23,12 +24,16 @@ const FUNCTIONS = [
   },
 ];
 
+for (const x of computeServerTasks) {
+  FUNCTIONS.push(x);
+}
+
 export default async function init() {
   let running: boolean = false;
   async function f() {
     if (running) {
       logger.debug(
-        "Skipping round of maintenance since previous one already running"
+        "Skipping round of maintenance since previous one already running",
       );
       return;
     }
