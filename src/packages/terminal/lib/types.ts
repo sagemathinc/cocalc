@@ -5,7 +5,6 @@ import type { IPty as IPty0 } from "node-pty";
 
 // upstream typings not quite right
 export interface IPty extends IPty0 {
-  on: (event: string, f: (...args) => void) => void;
   destroy: () => void;
 }
 
