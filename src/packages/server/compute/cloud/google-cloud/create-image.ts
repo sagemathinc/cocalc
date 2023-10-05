@@ -219,6 +219,7 @@ ${installUser()}
 docker pull sagemathinc/compute-filesystem-arm64
 docker pull sagemathinc/compute-manager-arm64
 docker pull sagemathinc/compute-python-arm64
+docker pull sagemathinc/compute-sagemath-10.1-arm64
 
 df -h /
 
