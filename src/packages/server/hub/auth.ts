@@ -35,6 +35,7 @@
 
 import Cookies from "cookies";
 import * as dot from "dot-object";
+import type { NextFunction, Request, Response } from "express";
 import * as express from "express";
 import express_session from "express-session";
 import * as _ from "lodash";
@@ -43,37 +44,32 @@ import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
 import { v4 as uuidv4, v4 } from "uuid";
 const safeJsonStringify = require("safe-json-stringify");
-import type { Request, Response, NextFunction } from "express";
 
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
 import base_path from "@cocalc/backend/base-path";
+import { getLogger } from "@cocalc/backend/logger";
 import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { getLogger } from "@cocalc/backend/logger";
-import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
+import {
+  getExtraStrategyConstructor,
+  getSAMLVariant,
+} from "@cocalc/server/auth/sso/extra-strategies";
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
-import {
-  isOAuth2,
-  PassportLoginOpts,
-  PassportStrategyDBConfig,
-  PassportStrategyDB,
-  PassportTypes,
-  StrategyInstanceOpts,
-} from "@cocalc/database/settings/auth-sso-types";
 import {
   InitPassport,
   PassportManagerOpts,
   StrategyConf,
+  StrategyInstanceOpts,
 } from "@cocalc/server/auth/sso/types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { DNS } from "@cocalc/util/theme";
 import {
-  PassportStrategyFrontend,
   PRIMARY_SSO,
+  PassportStrategyFrontend,
 } from "@cocalc/util/types/passport-types";
 import {
   email_verification_problem,
@@ -87,9 +83,17 @@ import {
   getPassportCache,
 } from "@cocalc/database/postgres/passport-store";
 import {
-  SSO_API_KEY_COOKIE_NAME,
+  PassportLoginOpts,
+  PassportStrategyDB,
+  PassportStrategyDBConfig,
+  PassportTypes,
+  isOAuth2,
+  isSAML,
+} from "@cocalc/database/settings/auth-sso-types";
+import {
   BLACKLISTED_STRATEGIES,
   DEFAULT_LOGIN_INFO,
+  SSO_API_KEY_COOKIE_NAME,
 } from "@cocalc/server/auth/sso/consts";
 import {
   FacebookStrategyConf,
@@ -399,45 +403,61 @@ export class PassportManager {
     });
   }
 
+  /**
+   * Default configuration options for certain authentication types.
+   * Any one of these can be overridden by what's in "conf" in the database.
+   */
   private get_extra_default_opts({
     name,
     type,
   }: {
-    type: PassportTypes;
     name: string;
+    type: PassportTypes;
   }) {
     switch (type) {
       case "saml":
+      case "saml-v3":
+      case "saml-v4":
         // see https://github.com/node-saml/passport-saml#config-parameter-details
         const cachedMS = ms("8 hours");
+        // Upgrading from SAML 3 to node-saml version 4 needs some extra config options.
+        // They're not backwards compatible, so we need to check which version we're using!
+        const samlv4 = getSAMLVariant() === "new" || type === "saml-v4";
+        const patch = samlv4
+          ? {
+              audience: false, // Starting with version 4, this must be set (a string) or false.
+              wantAuthnResponseSigned: false, // if not disabled, got an error with Google's Workspace SAML
+            }
+          : undefined;
         return {
-          issuer: this.auth_url,
-          signatureAlgorithm: "sha256", // better than default sha1
-          digestAlgorithm: "sha256", // better than default sha1
-          wantAssertionsSigned: true,
           acceptedClockSkewMs: ms("5 minutes"),
+          cacheProvider: getPassportCache(name, cachedMS),
+          digestAlgorithm: "sha256", // better than default sha1
           // if "*:persistent" doesn't work, use *:emailAddress
           identifierFormat:
             "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          issuer: this.auth_url,
           requestIdExpirationPeriodMs: cachedMS,
+          signatureAlgorithm: "sha256", // better than default sha1
           validateInResponseTo: true,
-          cacheProvider: getPassportCache(name, cachedMS),
+          wantAssertionsSigned: true,
+          ...patch,
         };
     }
   }
 
-  private get_extra_opts(name, conf: PassportStrategyDBConfig) {
+  private get_extra_opts(name: string, conf: PassportStrategyDBConfig) {
     // "extra_opts" is passed to the passport.js "Strategy" constructor!
     // e.g. arbitrary fields like a tokenURL will be extracted here, and then passed to the constructor
     const extracted = _.omit(conf, [
-      "name", // deprecated
-      "display", // deprecated
-      "type",
-      "icon", // deprecated
-      "login_info", // already extracted, see login_info field above
-      "clientID",
-      "clientSecret",
-      "userinfoURL",
+      "type", // not needed, we use it to pick the constructor
+      "name", // deprecated, this is in the metadata "info" now
+      "display", // --*--
+      "icon", // --*--
+      "login_info", // already extracted, see init_extra_strategies
+      "clientID", // passed directly, follow opts in initStrategy
+      "clientSecret", // --*--
+      "userinfoURL", // --*--
       "public", // we don't need that info for initializing them
       "auth_opts", // we pass them as a separate parameter
     ]);
@@ -499,6 +519,8 @@ export class PassportManager {
   private getVerify(type: StrategyConf["type"]) {
     switch (type) {
       case "saml":
+      case "saml-v3":
+      case "saml-v4":
         return (profile, done) => {
           done(undefined, profile);
         };
@@ -525,10 +547,11 @@ export class PassportManager {
 
   private getStrategyInstance(args: StrategyInstanceOpts) {
     const { type, opts, userinfoURL, PassportStrategyConstructor } = args;
-    const L1 = logger.extend("get_strategy_instance");
+    const L1 = logger.extend("getStrategyInstance");
     const L2 = L1.extend("userProfile").debug;
 
     const verify = this.getVerify(type);
+    L1.silly({ type, opts, userinfoURL });
     const strategy_instance = new PassportStrategyConstructor(opts, verify);
 
     // for OAuth2, set the userinfoURL to get the profile
@@ -576,7 +599,7 @@ export class PassportManager {
         return;
       }
 
-      if (type === "saml") {
+      if (isSAML(type)) {
         // the nameID is set via the conf.identifierFormat parameter – even if we set it to
         // persistent, we might still just get an email address, though
         Lret(`nameID format we actually got is ${req.user.nameIDFormat}`);
@@ -753,7 +776,7 @@ export class PassportManager {
       login_info,
     });
 
-    if (type === "saml") {
+    if (isSAML(type)) {
       this.router.post(
         returnUrl,
         // External use of the body-parser package is deprecated, so we are using express directly.

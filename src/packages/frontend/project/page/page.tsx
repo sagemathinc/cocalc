@@ -83,13 +83,13 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const active_project_tab = useTypedRedux(
     { project_id },
-    "active_project_tab"
+    "active_project_tab",
   );
   const [homePageButtonWidth, setHomePageButtonWidth] =
     React.useState<number>(80);
 
   const [flyoutWidth, setFlyoutWidth] = useState<number>(
-    getFlyoutWidth(project_id)
+    getFlyoutWidth(project_id),
   );
   const [oldFlyoutWidth, setOldFlyoutWidth] = useState(flyoutWidth);
   const { pageWidthPx } = useAppState();
@@ -135,7 +135,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   function updateDrag(e) {
     const newWidth = Math.max(
       flyoutLimit.left,
-      Math.min(oldFlyoutWidth + e.delta.x, flyoutLimit.right)
+      Math.min(oldFlyoutWidth + e.delta.x, flyoutLimit.right),
     );
     setWidth(newWidth);
   }
@@ -167,7 +167,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             }
             tab_name={tab_name}
           />
-        </FrameContext.Provider>
+        </FrameContext.Provider>,
       );
     });
     return v;
@@ -217,6 +217,8 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
   function renderFlyout() {
     if (!flyout) return;
+    if (fullscreen && fullscreen !== "project") return;
+
     return (
       <div style={{ display: "flex", flexDirection: "row" }}>
         <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
@@ -245,18 +247,69 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderTopRow() {
+    if (fullscreen && fullscreen !== "project") return;
+
+    // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
+    // this was part of the container-content div, which makes little sense for e.g. the banner bars
+    return (
+      <div style={{ display: "flex", margin: "0", paddingTop: "3px" }}>
+        <HomePageButton
+          project_id={project_id}
+          active={active_project_tab == "home"}
+          width={homePageButtonWidth}
+        />
+        {renderFlyoutHeader()}
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <Tabs project_id={project_id} />
+        </div>
+      </div>
+    );
+  }
+
+  function renderVerticalActionButtons() {
+    if (hideActionButtons) return;
+    if (fullscreen && fullscreen !== "project") return;
+
+    return (
+      <div
+        style={{
+          background: FIXED_TABS_BG_COLOR,
+          borderRadius: "0",
+          borderTop: FIX_BORDERS.borderTop,
+          borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
+        }}
+      >
+        <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
+      </div>
+    );
+  }
+
+  function renderMainContent() {
+    return (
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflowX: "auto",
+        }}
+      >
+        <StartButton />
+        {renderEditorContent()}
+        {render_project_content()}
+        {render_project_modal()}
+      </div>
+    );
+  }
+
   if (open_files_order == null) {
     return <Loading />;
   }
 
-  const style = {
-    ...PAGE_STYLE,
-    ...(!fullscreen ? { paddingTop: "3px" } : undefined),
-  } as const;
-
   return (
     <ProjectContext.Provider value={projectCtx}>
-      <div className="container-content" style={style}>
+      <div className="container-content" style={PAGE_STYLE}>
         <StudentPayUpgrade project_id={project_id} />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />
@@ -264,50 +317,12 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
-        {(!fullscreen || fullscreen == "project") && (
-          <div style={{ display: "flex", margin: "0" }}>
-            <HomePageButton
-              project_id={project_id}
-              active={active_project_tab == "home"}
-              width={homePageButtonWidth}
-            />
-            {renderFlyoutHeader()}
-            <div style={{ flex: 1, overflow: "hidden" }}>
-              <Tabs project_id={project_id} />
-            </div>
-          </div>
-        )}
+        {renderTopRow()}
         {is_deleted && <DeletedProjectWarning />}
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {!hideActionButtons && (!fullscreen || fullscreen == "project") && (
-            <div
-              style={{
-                background: FIXED_TABS_BG_COLOR,
-                borderRadius: "0",
-                borderTop: FIX_BORDERS.borderTop,
-                borderRight:
-                  flyout == null ? FIX_BORDERS.borderRight : undefined,
-              }}
-            >
-              <VerticalFixedTabs
-                setHomePageButtonWidth={setHomePageButtonWidth}
-              />
-            </div>
-          )}
+          {renderVerticalActionButtons()}
           {renderFlyout()}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              overflowX: "auto",
-            }}
-          >
-            <StartButton />
-            {renderEditorContent()}
-            {render_project_content()}
-            {render_project_modal()}
-          </div>
+          {renderMainContent()}
         </div>
       </div>
     </ProjectContext.Provider>
@@ -328,7 +343,7 @@ function FlyoutDragbar({
   const { attributes, listeners, setNodeRef, transform, active } = useDraggable(
     {
       id: `flyout-drag-${project_id}`,
-    }
+    },
   );
 
   // limit left-right dx movement

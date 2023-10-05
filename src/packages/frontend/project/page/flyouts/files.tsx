@@ -496,16 +496,25 @@ export function FilesFlyout({
     actions?.set_file_action("share");
   }
 
+  function renderTimeAgo(item: DirectoryListingEntry) {
+    const { mtime, isopen = false } = item;
+    if (typeof mtime === "number") {
+      return (
+        <TimeAgo
+          date={1000 * mtime}
+          // don't popup the toggle if you just clicked to open the file
+          click_to_toggle={isopen}
+        />
+      );
+    }
+  }
+
   function renderListItemExtra(item: DirectoryListingEntry) {
     if (!showExtra) return null;
     const col = activeFileSort.get("column_name");
     switch (col) {
       case "time":
-        const { mtime } = item;
-        if (typeof mtime === "number") {
-          return <TimeAgo date={1000 * mtime} />;
-        }
-        break;
+        return renderTimeAgo(item);
       case "type":
         if (item.isdir) return "Folder";
         const { ext } = separate_file_extension(item.name);
@@ -527,10 +536,7 @@ export function FilesFlyout({
         return human_readable_size(item.size, true);
       case "size":
       case "name":
-        const { mtime } = item;
-        if (typeof mtime === "number") {
-          return <TimeAgo date={1000 * mtime} />;
-        }
+        return renderTimeAgo(item);
       default:
         return null;
     }

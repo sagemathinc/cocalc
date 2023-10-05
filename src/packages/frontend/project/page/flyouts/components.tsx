@@ -180,10 +180,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function handleClick(e: React.MouseEvent): void {
-    if (e.target === itemRef.current || e.target === bodyRef.current) {
-      e.stopPropagation();
-      onClick?.(e);
-    }
+    e.stopPropagation();
+    onClick?.(e);
   }
 
   function handleMouseEnter(): void {
