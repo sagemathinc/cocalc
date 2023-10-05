@@ -1,7 +1,6 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
+Compute servers in a specific project.
+*/
 
 import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux } from "@cocalc/frontend/app-framework";

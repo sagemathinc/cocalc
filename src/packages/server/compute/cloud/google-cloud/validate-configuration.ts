@@ -4,6 +4,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { SUPPORTED_CHANGES } from "./make-configuration-change";
 import { changedKeys } from "@cocalc/server/compute/util";
+import { getArchitecture } from "./images";
 
 export async function validateConfigurationChange({
   state = "deprovisioned",
@@ -70,6 +71,15 @@ export async function validateConfigurationChange({
     ) {
       throw Error(
         "cannot change between having and not having a GPU unless in the 'deprovisioned' state",
+      );
+    }
+
+    if (
+      getArchitecture(currentConfiguration.machineType) !=
+      getArchitecture(newConfiguration.machineType)
+    ) {
+      throw Error(
+        "cannot change the the architecture (between x86 and arm64) unless in the 'deprovisioned' state",
       );
     }
   }
