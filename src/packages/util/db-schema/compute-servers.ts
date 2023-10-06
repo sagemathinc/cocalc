@@ -187,6 +187,12 @@ export const STANDARD_DISK_SIZE = 20;
 export const CUDA_DISK_SIZE = 60;
 
 export function getMinDiskSizeGb(configuration) {
+  if (configuration?.image) {
+    const { minDiskSizeGb } = IMAGES[configuration.image] ?? {};
+    if (minDiskSizeGb) {
+      return minDiskSizeGb;
+    }
+  }
   // TODO: will have to do something based on actual image size, maybe, unless I come up with a clever trick involving
   // one PD mounted on many machines (?).
   if (configuration.acceleratorType) {
@@ -588,29 +594,40 @@ export const IMAGES = {
   minimal: {
     label: "Minimal",
     docker: `${DOCKER_USER}/compute-manager`,
+    minDiskSizeGb: 10,
   },
   python: {
     label: "Python 3",
     docker: `${DOCKER_USER}/compute-python`,
+    minDiskSizeGb: 10,
   },
   "sagemath-10.1": {
     label: "SageMath 10.1",
     docker: `${DOCKER_USER}/compute-sagemath-10.1`,
+    minDiskSizeGb: 25,
   },
   pytorch: {
     label: "GPU - PyTorch with CUDA 12.x",
     docker: `${DOCKER_USER}/compute-pytorch`,
     gpu: true,
+    minDiskSizeGb: 30,
   },
   tensorflow: {
     label: "GPU - Tensorflow with CUDA 12.x",
     docker: `${DOCKER_USER}/compute-tensorflow`,
     gpu: true,
+    minDiskSizeGb: 40,
   },
   cuda: {
     label: "GPU - Development Environment with Cuda 12.x",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
+    minDiskSizeGb: 35,
+  },
+  "cocalc-docker": {
+    label: "CoCalc - Personal Server",
+    docker: `${DOCKER_USER}/cocalc-docker`,
+    minDiskSizeGb: 50,
   },
 } as const;
 

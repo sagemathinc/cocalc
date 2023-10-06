@@ -87,7 +87,6 @@ export default function Configuration({
       try {
         setLoading(true);
         const data = await getGoogleCloudPriceData();
-        // window.x = { data, TESTING: (data.markup = 0) };
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
@@ -830,7 +829,13 @@ function RamAndCpu({
   );
 }
 
-function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
+function BootDisk({
+  setConfig,
+  configuration,
+  disabled,
+  priceData,
+  state = "deprovisioned",
+}) {
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
   );
@@ -843,6 +848,16 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
     );
     setNewDiskType(configuration.diskType ?? "pd-standard");
   }, [configuration.diskSizeGb]);
+
+  useEffect(() => {
+    if (newDiskSizeGb == null) {
+      return;
+    }
+    const min = getMinDiskSizeGb(configuration);
+    if (newDiskSizeGb < min) {
+      setNewDiskSizeGb(min);
+    }
+  }, [configuration.image]);
 
   useEffect(() => {
     const min = getMinDiskSizeGb(configuration);
@@ -863,7 +878,11 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
         <InputNumber
           style={{ width: SELECTOR_WIDTH }}
           disabled={disabled}
-          min={configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)}
+          min={
+            state == "deprovisioned"
+              ? getMinDiskSizeGb(configuration)
+              : configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)
+          }
           max={65536}
           value={newDiskSizeGb}
           addonAfter="GB"
@@ -1127,7 +1146,16 @@ function ensureConsistentConfiguration(
 
   ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
 
+  ensureSufficientDiskSize(newConfiguration, newChanges);
+
   return newChanges;
+}
+
+function ensureSufficientDiskSize(configuration, changes) {
+  const min = getMinDiskSizeGb(configuration);
+  if ((configuration.diskSizeGb ?? 0) < min) {
+    changes.diskSizeGb = min;
+  }
 }
 
 function ensureConsistentZoneWithRegion(priceData, configuration, changes) {
