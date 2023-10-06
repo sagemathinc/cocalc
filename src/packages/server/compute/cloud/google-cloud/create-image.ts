@@ -1,3 +1,14 @@
+/*
+a = require('./dist/compute/cloud/google-cloud/create-image')
+
+await a.createImages({type:"standard"})
+await a.createImages({type:"cuda"})
+
+a = require('./dist/compute/cloud/google-cloud/images')
+await a.setImageLabel({key:'prod',value:true, name:'cocalc-compute-cuda-x86-2023-10-05-223157'})
+
+*/
+
 import type { ImageType } from "./images";
 import { imageName, getImagesClient, Architecture } from "./images";
 import getLogger from "@cocalc/backend/logger";
@@ -179,6 +190,7 @@ function createStandardConf_x86_64() {
     machineType: "c2-standard-4",
     metadata: { "serial-port-logging-enable": true },
     diskSizeGb: STANDARD_DISK_SIZE,
+    diskType: "pd-ssd",
     maxRunDurationSeconds: 60 * maxTimeMinutes,
   } as const;
   const startupScript = `
@@ -215,6 +227,7 @@ function createStandardConf_arm64() {
     machineType: "t2a-standard-4",
     metadata: { "serial-port-logging-enable": true },
     diskSizeGb: STANDARD_DISK_SIZE,
+    diskType: "pd-ssd",
     maxRunDurationSeconds: 60 * maxTimeMinutes,
   } as const;
   const startupScript = `
@@ -250,6 +263,7 @@ function createCudaConf() {
     zone: "us-east1-b",
     region: "us-east1",
     diskSizeGb: CUDA_DISK_SIZE,
+    diskType: "pd-ssd",
     maxRunDurationSeconds: 60 * maxTimeMinutes,
     // lots of cores are helpful, cuda drivers get built from
     // source for the kernel.
