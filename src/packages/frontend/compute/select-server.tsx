@@ -12,6 +12,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
+import { delay } from "awaiting";
 
 interface Props {
   project_id: string;
@@ -19,6 +20,7 @@ interface Props {
   frame_id: string;
   style?: CSSProperties;
   actions?;
+  type: "terminal" | "jupyter_cell_notebook";
 }
 
 export default function SelectComputeServer({
@@ -27,13 +29,11 @@ export default function SelectComputeServer({
   frame_id,
   actions,
   style,
+  type,
 }: Props) {
   const getPath = (path) => {
-    if (actions != null && path.endsWith(".term")) {
-      const p = actions.get_terminal(frame_id)?.term_path;
-      if (p != null) {
-        return p;
-      }
+    if (actions != null && type == "terminal") {
+      return actions.terminals.get(frame_id)?.term_path;
     }
     return path;
   };
@@ -50,14 +50,22 @@ export default function SelectComputeServer({
   useEffect(() => {
     const handleChange = async () => {
       try {
-        const id = await computeServerAssociations.getServerIdForPath(
-          getPath(path),
-        );
-        if (id) {
-          setValue(`${id}`);
-        } else {
-          setValue(null);
+        let p = getPath(path);
+        if (p == null) {
+          // have to wait for terminal state to be initialized, which
+          // happens in next render loop:
+          await delay(1);
+          p = getPath(path);
+          if (p == null) {
+            // still nothing -- that's weird
+            return;
+          }
         }
+        const id = await computeServerAssociations.getServerIdForPath(p);
+        if (id == null) {
+          return;
+        }
+        setValue(`${id}`);
       } catch (err) {
         console.log(err);
       }
@@ -75,7 +83,7 @@ export default function SelectComputeServer({
     return () => {
       computeServerAssociations.removeListener("change", handleChange);
     };
-  }, [project_id]);
+  }, [project_id, path]);
 
   const options = useMemo(() => {
     const options: {

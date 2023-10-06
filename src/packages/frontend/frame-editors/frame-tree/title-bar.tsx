@@ -1920,11 +1920,19 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function renderComputeServer() {
-    if (!is_visible("compute_server")) return null;
+    if (!is_visible("compute_server")) {
+      return null;
+    }
+    const { type } = props;
+    if (type != "terminal" && type != "jupyter_cell_notebook") {
+      // ONLY terminal and jupyter are supported
+      return null;
+    }
     return (
       <SelectComputeServer
         actions={props.actions}
         frame_id={props.id}
+        type={type}
         style={{
           marginRight: "3px",
           marginTop: "1px",

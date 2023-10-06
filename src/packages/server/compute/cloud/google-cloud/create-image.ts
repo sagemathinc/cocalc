@@ -13,7 +13,10 @@ a = require('./dist/compute/cloud/google-cloud/images')
 await a.setImageLabel({key:'prod',value:true, name:sourceImage})
 
 
-// This just labels *everything* that is not prod so that it is prod.
+// This just creates ALL images in parallel:
+await a.createImages({})
+
+// This labels *everything* that is not prod=true to instead have prod=true:
 await a.labelSourceImages({filter:{prod:false}})
 
 */
