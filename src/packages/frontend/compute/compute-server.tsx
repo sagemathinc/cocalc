@@ -12,6 +12,7 @@ import Description from "./description";
 import Title from "./title";
 import Configuration from "./configuration";
 import { deleteServer, undeleteServer } from "./api";
+import { DisplayImage } from "./select-image";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -194,7 +195,8 @@ export default function ComputeServer({
           type: undefined,
         })}
       </div>{" "}
-      {editable && id &&
+      {editable &&
+        id &&
         (deleted ? (
           <Button
             key="undelete"
@@ -277,14 +279,11 @@ export default function ComputeServer({
                   purchase_id={purchase_id}
                 />
               </div>
-              {/*<div
-                style={{
-                  margin: "5px 15px",
-                  flex: 1,
-                  height: "15px",
-                  background: color,
-                }}
-              />*/}
+              <div style={{ flex: 1 }} />
+              <div style={{ color: "#666" }}>
+                <DisplayImage image={configuration.image} />
+              </div>
+              <div style={{ flex: 1 }} />
               <Title title={title} editable={false} />
             </div>
           )

@@ -32,6 +32,7 @@ import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_MONTH, checkValidDomain } from "@cocalc/util/compute/dns";
+import SelectImage from "./select-image";
 
 const SELECTOR_WIDTH = "350px";
 
@@ -206,6 +207,18 @@ export default function Configuration({
   ];
 
   const data = [
+    {
+      key: "image",
+      label: "",
+      value: (
+        <Image
+          state={state}
+          disabled={loading || disabled}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
     {
       key: "gpu",
       label: (
@@ -937,6 +950,29 @@ function BootDisk({ setConfig, configuration, disabled, priceData, state }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function Image(props) {
+  const { state = "deprovisioned" } = props;
+  return (
+    <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>Image</b>
+      </div>
+      {state == "deprovisioned" && (
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          Select compute server image. You have full root access and can install
+          any extra software, including commercial software.
+        </div>
+      )}
+      <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />
+      {state != "deprovisioned" && (
+        <div style={{ color: "#666", marginTop: "5px" }}>
+          You can only edit the image when server is deprovisioned.
+        </div>
+      )}
     </div>
   );
 }

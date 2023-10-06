@@ -1,5 +1,5 @@
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
-import getClient from "./client";
+import getClient, { waitUntilOperationComplete } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { supportsStandardNetworkTier } from "./util";
 import { getNewestProdSourceImage } from "./images";
@@ -12,6 +12,7 @@ interface Options {
   startupScript?: string;
   sourceImage?: string;
   metadata?: object;
+  wait?: boolean;
 }
 
 export default async function createInstance({
@@ -20,12 +21,17 @@ export default async function createInstance({
   startupScript,
   sourceImage,
   metadata,
+  wait,
 }: Options) {
   if (configuration?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
   const client = await getClient();
   logger.debug("creating google cloud instance ", { name, configuration });
+
+  if (sourceImage == null && configuration.sourceImage) {
+    sourceImage = configuration.sourceImage;
+  }
 
   if (configuration.acceleratorType == "nvidia-tesla-k80") {
     // it will be deprecated from google cloud soon, and nvidia's recent drivers don't work either.
@@ -109,11 +115,16 @@ export default async function createInstance({
   logger.debug("create instance", instanceResource);
   //console.log(JSON.stringify(instanceResource, undefined, 2));
 
-  await client.insert({
+  const [response] = await client.insert({
     project: client.googleProjectId,
     zone: configuration.zone,
     instanceResource,
   });
+  if (wait) {
+    logger.debug("create instance -- waiting for instance to be created...");
+    await waitUntilOperationComplete({ response, zone: configuration.zone });
+    logger.debug("create instance -- finished creating instance");
+  }
 
   return { diskSizeGb };
 }

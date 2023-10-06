@@ -211,6 +211,7 @@ export const CLOUDS: {
     image:
       "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
     defaultConfiguration: {
+      image: "python",
       cloud: "google-cloud",
       region: "us-east1",
       zone: "us-east1-d",
@@ -226,6 +227,7 @@ export const CLOUDS: {
     image: "https://cloud.lambdalabs.com/static/images/lambda-logo.svg",
     defaultConfiguration: {
       cloud: "lambda-cloud",
+      image: "python",
       instance_type_name: "gpu_1x_a10",
       region_name: "us-west-1",
     },
@@ -249,6 +251,7 @@ interface BaseConfiguration {
   // and dns is configured, then point https://{dns}....
   // with ssl proxying to this compute server when it is running.
   dns?: string;
+  image?: ImageName;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {
@@ -344,8 +347,9 @@ export interface GoogleCloudConfiguration extends BaseConfiguration {
   // before deploying to production, and (2) stability, so a given compute server has the
   // exact same base image every time it is started, instead of being updated. Regarding (2),
   // this might not be needed, but we'll see.  If image is not set, we use the newest
-  // image that is tagged prod:true, or its an error if no such image exists.
-  image?: string;
+  // image that is tagged prod:true, or its an error if no such image exists.  This is
+  // all about Google Cloud images, not the IMAGES object defined elsewhere in this file.
+  sourceImage?: string;
   // If true, then we have an external ip address
   externalIp?: boolean;
 }
@@ -569,3 +573,51 @@ Table({
 //     },
 //   },
 // });
+
+// Compute Server Images
+
+interface Image {
+  label: string;
+  docker: string;
+  gpu?: boolean;
+}
+
+const DOCKER_USER = "sagemathinc";
+
+export const IMAGES = {
+  minimal: {
+    label: "Minimal",
+    docker: `${DOCKER_USER}/compute-manager`,
+  },
+  python: {
+    label: "Python 3",
+    docker: `${DOCKER_USER}/compute-python`,
+  },
+  "sagemath-10.1": {
+    label: "SageMath 10.1",
+    docker: `${DOCKER_USER}/compute-sagemath-10.1`,
+  },
+  pytorch: {
+    label: "GPU - PyTorch with CUDA 12.x",
+    docker: `${DOCKER_USER}/compute-pytorch`,
+    gpu: true,
+  },
+  tensorflow: {
+    label: "GPU - Tensorflow with CUDA 12.x",
+    docker: `${DOCKER_USER}/compute-tensorflow`,
+    gpu: true,
+  },
+  cuda: {
+    label: "GPU - Development Environment with Cuda 12.x",
+    docker: `${DOCKER_USER}/compute-cuda`,
+    gpu: true,
+  },
+} as const;
+
+export type ImageName = keyof typeof IMAGES;
+
+// This is entirely to force the values to be type checked,
+// but without having to explicitly type IMAGES above, so
+// the key types can be got with 'keyof typeof IMAGES',
+// thus avoiding typing the key names twice!
+export const __IMAGES: { [name: string]: Image } = IMAGES;

@@ -60,6 +60,7 @@ export async function start(server: ComputeServer) {
         hostname: `compute-server-${server.id}`,
       }),
       metadata: { "serial-port-logging-enable": true },
+      wait: true,
     });
     if (configuration.diskSizeGb != diskSizeGb) {
       // update config to reflect actual disk size used, so pricing matches this.

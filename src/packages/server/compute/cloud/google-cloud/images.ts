@@ -120,7 +120,7 @@ export function getArchitecture(machineType: string): Architecture {
 
 export async function getNewestProdSourceImage({
   machineType,
-  image,
+  sourceImage,
   acceleratorType,
   test,
 }: GoogleCloudConfiguration): Promise<{
@@ -132,8 +132,8 @@ export async function getNewestProdSourceImage({
   const images = await getAllImages({
     type,
     arch,
-    image,
-    labels: test || image ? undefined : { prod: true },
+    image: sourceImage,
+    labels: test || sourceImage ? undefined : { prod: true },
   });
   if (images.length == 0) {
     throw Error(
