@@ -2,7 +2,10 @@ import type {
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
-import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
+import {
+  getMinDiskSizeGb,
+  IMAGES,
+} from "@cocalc/util/db-schema/compute-servers";
 import {
   Button,
   Checkbox,
@@ -1017,6 +1020,9 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           setConfig({
             acceleratorType: DEFAULT_GPU,
             acceleratorCount: 1,
+            machineType: "n1-standard-1",
+            region: "europe-west2",
+            zone: "europe-west2-a",
           });
         }
       }}
@@ -1134,6 +1140,8 @@ function ensureConsistentConfiguration(
   const newConfiguration = { ...configuration, ...changes };
   const newChanges = { ...changes };
 
+  ensureConsistentImage(newConfiguration, newChanges);
+
   ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
 
   ensureConsistentNvidiaL4(priceData, newConfiguration, newChanges);
@@ -1149,6 +1157,19 @@ function ensureConsistentConfiguration(
   ensureSufficientDiskSize(newConfiguration, newChanges);
 
   return newChanges;
+}
+
+function ensureConsistentImage(configuration, changes) {
+  const { gpu } = IMAGES[configuration.image] ?? {};
+  if (gpu && !configuration.acceleratorType) {
+    // image requires a GPU but we don't have one, so change
+    // configuration to have a GPU.
+    changes.acceleratorType = DEFAULT_GPU;
+    changes.acceleratorCount = 1;
+    changes.machineType = "n1-standard-1";
+    changes.region = "europe-west2";
+    changes.zone = "europe-west2-a";
+  }
 }
 
 function ensureSufficientDiskSize(configuration, changes) {
@@ -1231,15 +1252,7 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
     // If you just explicitly changed the GPU type, then we fix this by changing the zone.
     if (changes["acceleratorType"] != null) {
       // fix the region and zone
-      // first, anything in the same region?
-      for (const zone in prices) {
-        if (zone.startsWith(configuration.region)) {
-          // yes!
-          changes["zone"] = configuration["zone"] = zone;
-          return;
-        }
-      }
-      // find cheapest zone
+      // find cheapest zone in the world.
       let price = 999999999;
       let zoneChoice = "";
       for (const zone in prices) {

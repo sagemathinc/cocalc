@@ -101,7 +101,10 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       <Modal
         destroyOnClose
         width={"900px"}
-        onCancel={() => setEditing(false)}
+        onCancel={() => {
+          setEditing(false);
+          setConfiguration(DEFAULTS.configuration);
+        }}
         open={editing}
         title={"Create Compute Server"}
         footer={[
