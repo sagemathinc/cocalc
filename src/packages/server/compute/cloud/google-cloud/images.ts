@@ -22,29 +22,31 @@ import { getCredentials } from "./client";
 import { ImagesClient } from "@google-cloud/compute";
 import TTLCache from "@isaacs/ttlcache";
 import dayjs from "dayjs";
-import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  GoogleCloudConfiguration,
+  ImageName,
+} from "@cocalc/util/db-schema/compute-servers";
 import { field_cmp } from "@cocalc/util/misc";
+import { getGoogleCloudPrefix } from "./index";
 
-export type ImageType = "cuda" | "standard";
 export type Architecture = "x86_64" | "arm64";
-
-const PREFIX = "cocalc-compute";
 
 // Return the latest available image of the given type on the configured cluster.
 // Returns null if no images of the given type are available.
 
-export function imageName({
-  type,
+export async function imageName({
+  image,
   date,
   tag,
   arch = "x86_64",
 }: {
-  type: ImageType;
+  image: ImageName;
   date?: Date;
   tag?: string;
   arch?: Architecture;
 }) {
-  const prefix = `${PREFIX}-${type}-${arch == "x86_64" ? "x86" : arch}`; // _ not allowed
+  const gcloud_prefix = await getGoogleCloudPrefix();
+  const prefix = `${gcloud_prefix}-${image}-${arch == "x86_64" ? "x86" : arch}`; // _ not allowed
   if (!date) {
     return prefix;
   }
@@ -80,23 +82,23 @@ type ImageList = {
   creationTimestamp: string;
 }[];
 export async function getAllImages({
-  type,
-  arch = "x86_64",
   image,
+  arch = "x86_64",
+  sourceImage,
   labels,
 }: {
-  type: ImageType;
+  image: ImageName;
   arch?: Architecture;
-  image?: string;
+  sourceImage?: string;
   labels?: object;
 }): Promise<ImageList> {
-  const cacheKey = JSON.stringify({ type, arch, labels });
+  const cacheKey = JSON.stringify({ image, arch, labels });
   if (imageCache.has(cacheKey)) {
     return imageCache.get(cacheKey)!;
   }
-  let prefix = imageName({ type, arch });
-  if (image) {
-    prefix = `${prefix}-${image}`;
+  let prefix = await imageName({ image, arch });
+  if (sourceImage) {
+    prefix = `${prefix}-${sourceImage}`;
   }
   const { client, projectId } = await getImagesClient();
   let filter = `name:${prefix}*`;
@@ -119,25 +121,27 @@ export function getArchitecture(machineType: string): Architecture {
 }
 
 export async function getNewestProdSourceImage({
+  image = "python",
   machineType,
   sourceImage,
-  acceleratorType,
   test,
-}: GoogleCloudConfiguration): Promise<{
+  arch,
+}: GoogleCloudConfiguration & { arch?: Architecture }): Promise<{
   sourceImage: string;
   diskSizeGb: number;
 }> {
-  const type = acceleratorType ? "cuda" : "standard";
-  const arch = getArchitecture(machineType);
+  if (arch == null) {
+    arch = machineType ? getArchitecture(machineType) : "x86_64";
+  }
   const images = await getAllImages({
-    type,
+    image,
     arch,
-    image: sourceImage,
+    sourceImage,
     labels: test || sourceImage ? undefined : { prod: true },
   });
   if (images.length == 0) {
     throw Error(
-      `no images are available for ${type} ${arch} compute servers that are labeled prod=true`,
+      `no images are available for ${image} ${arch} compute servers that are labeled prod=true`,
     );
   }
   // sort and get newest -- note that creationTimestamp is a string
@@ -162,6 +166,10 @@ export async function setImageLabel({
   value: string | null | undefined;
 }) {
   const { client, projectId } = await getImagesClient();
+  const i = name.lastIndexOf("/");
+  if (i != -1) {
+    name = name.slice(i + 1);
+  }
   const [image] = await client.get({
     project: projectId,
     image: name,

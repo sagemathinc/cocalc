@@ -1,15 +1,19 @@
 /*
+~/cocalc/src/packages/server$ node
+Welcome to Node.js v18.17.1.
+Type ".help" for more information.
+> 
+
 a = require('./dist/compute/cloud/google-cloud/create-image')
 
-await a.createImages({type:"standard"})
-await a.createImages({type:"cuda"})
+await a.createImages({image:"python", arch:'arm64'})
 
 a = require('./dist/compute/cloud/google-cloud/images')
-await a.setImageLabel({key:'prod',value:true, name:'cocalc-compute-cuda-x86-2023-10-05-223157'})
+{sourceImage} = await a.getNewestProdSourceImage({image:'python',test:true})
+await a.setImageLabel({key:'prod',value:true, name:sourceImage})
 
 */
 
-import type { ImageType } from "./images";
 import { imageName, getImagesClient, Architecture } from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
@@ -17,40 +21,41 @@ import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
 import { installCuda, installDocker, installUser } from "../install";
 import { delay } from "awaiting";
 import getInstance from "./get-instance";
-import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  GoogleCloudConfiguration,
+  ImageName,
+} from "@cocalc/util/db-schema/compute-servers";
+import {
+  getMinDiskSizeGb,
+  IMAGES,
+} from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
-
-import {
-  STANDARD_DISK_SIZE,
-  CUDA_DISK_SIZE,
-} from "@cocalc/util/db-schema/compute-servers";
 
 const logger = getLogger("server:compute:google-cloud:create-image");
 
 interface Options {
-  type?: ImageType;
+  image?: ImageName;
   tag?: string;
   noDelete?: boolean;
   noParallel?: boolean;
-  onlyArch?: Architecture;
+  arch?: Architecture;
 }
 
-const TYPES = ["standard", "cuda"];
-async function createAllTypesOfImages(opts) {
-  async function build(type) {
-    return await createImages({ ...opts, type });
+async function createAllImages(opts) {
+  async function build(image) {
+    return await createImages({ ...opts, image });
   }
   const t0 = Date.now();
 
   let names: string[] = [];
   if (opts.noParallel) {
     // serial
-    for (const type of TYPES) {
-      names = names.concat(await build(type));
+    for (const image in IMAGES) {
+      names = names.concat(await build(image));
     }
   } else {
-    for (const r of await Promise.all(TYPES.map(build))) {
+    for (const r of await Promise.all(Object.keys(IMAGES).map(build))) {
       names = names.concat(r);
     }
   }
@@ -62,27 +67,33 @@ async function createAllTypesOfImages(opts) {
 }
 
 export async function createImages({
-  type,
+  image,
   tag = "",
   noDelete,
   noParallel,
-  onlyArch,
+  arch,
 }: Options = {}): Promise<string[]> {
-  if (type == null) {
+  if (image == null) {
     // create all types
-    return await createAllTypesOfImages({
-      tag,
+    return await createAllImages({
+      image,
       noDelete,
       noParallel,
-      onlyArch,
+      arch,
     });
   }
+
+  if (image == null) {
+    throw Error("bug -- image must not be null");
+  }
+  const onlyArch = arch;
   const t0 = Date.now();
   const names: string[] = [];
   const vms = new Set<string>();
   let maxTime = 0;
   try {
     async function build({
+      image,
       configuration,
       startupScript,
       sourceImage,
@@ -94,10 +105,10 @@ export async function createImages({
         console.log("Skipping ", arch);
         return;
       }
-      if (type == null) {
-        throw Error("bug -- type must not be null");
+      if (image == null) {
+        throw Error("bug -- image must not be null");
       }
-      const name = imageName({ type, date: new Date(), tag, arch });
+      const name = await imageName({ image, date: new Date(), tag, arch });
       console.log("logging to ", logFile(name));
       await logToFile(name, { arch, configuration, sourceImage });
       let zone = "";
@@ -126,7 +137,7 @@ export async function createImages({
       }
       names.push(name);
     }
-    const configs = getConf(type);
+    const configs = getConf(image);
     if (noParallel) {
       // serial
       for (const config of configs) {
@@ -154,6 +165,7 @@ export async function createImages({
 }
 
 interface BuildConfig {
+  image: ImageName;
   configuration: GoogleCloudConfiguration;
   startupScript: string;
   maxTimeMinutes: number;
@@ -161,14 +173,15 @@ interface BuildConfig {
   sourceImage: string;
 }
 
-function getConf(type: ImageType): BuildConfig[] {
-  switch (type) {
-    case "standard":
-      return [createStandardConf_x86_64(), createStandardConf_arm64()];
-    case "cuda":
-      return [createCudaConf()];
-    default:
-      throw Error(`type ${type} not supported`);
+function getConf(image: ImageName): BuildConfig[] {
+  const { gpu } = IMAGES[image] ?? {};
+  if (gpu) {
+    return [createBuildConfiguration({ image, arch: "x86_64" })];
+  } else {
+    return [
+      createBuildConfiguration({ image, arch: "x86_64" }),
+      createBuildConfiguration({ image, arch: "arm64" }),
+    ];
   }
 }
 
@@ -176,130 +189,6 @@ function getSourceImage(arch: Architecture) {
   return `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
     arch == "arm64" ? "arm64-" : ""
   }v20230829`;
-}
-
-function createStandardConf_x86_64() {
-  logger.debug("createStandardConf");
-  const maxTimeMinutes = 45;
-  const configuration = {
-    cloud: "google-cloud",
-    externalIp: true,
-    spot: true,
-    zone: "us-east1-b",
-    region: "us-east1",
-    machineType: "c2-standard-4",
-    metadata: { "serial-port-logging-enable": true },
-    diskSizeGb: STANDARD_DISK_SIZE,
-    diskType: "pd-ssd",
-    maxRunDurationSeconds: 60 * maxTimeMinutes,
-  } as const;
-  const startupScript = `
-#!/bin/bash
-set -ev
-${installDocker()}
-${installUser()}
-
-docker pull sagemathinc/compute-filesystem
-docker pull sagemathinc/compute-manager
-docker pull sagemathinc/compute-python
-docker pull sagemathinc/compute-sagemath-10.1
-
-df -h /
-`;
-  return {
-    configuration,
-    startupScript,
-    maxTimeMinutes,
-    arch: "x86_64",
-    sourceImage: getSourceImage("x86_64"),
-  } as const;
-}
-
-function createStandardConf_arm64() {
-  logger.debug("createStandardConf");
-  const maxTimeMinutes = 45;
-  const configuration = {
-    cloud: "google-cloud",
-    externalIp: true,
-    spot: true,
-    region: "us-central1",
-    zone: "us-central1-a",
-    machineType: "t2a-standard-4",
-    metadata: { "serial-port-logging-enable": true },
-    diskSizeGb: STANDARD_DISK_SIZE,
-    diskType: "pd-ssd",
-    maxRunDurationSeconds: 60 * maxTimeMinutes,
-  } as const;
-  const startupScript = `
-#!/bin/bash
-set -ev
-${installDocker()}
-${installUser()}
-
-docker pull sagemathinc/compute-filesystem-arm64
-docker pull sagemathinc/compute-manager-arm64
-docker pull sagemathinc/compute-python-arm64
-docker pull sagemathinc/compute-sagemath-10.1-arm64
-
-df -h /
-
-`;
-  return {
-    configuration,
-    startupScript,
-    maxTimeMinutes,
-    arch: "arm64",
-    sourceImage: getSourceImage("arm64"),
-  } as const;
-}
-
-function createCudaConf() {
-  logger.debug("createCudaConf");
-  const maxTimeMinutes = 120;
-  const configuration = {
-    cloud: "google-cloud",
-    externalIp: true,
-    spot: true,
-    zone: "us-east1-b",
-    region: "us-east1",
-    diskSizeGb: CUDA_DISK_SIZE,
-    diskType: "pd-ssd",
-    maxRunDurationSeconds: 60 * maxTimeMinutes,
-    // lots of cores are helpful, cuda drivers get built from
-    // source for the kernel.
-    machineType: "c2-standard-8",
-    // We do NOT need a GPU to install the GPU libraries, but if for some
-    // reason we did, use this instead:
-    //     machineType: "n1-standard-4",
-    //     acceleratorType: "nvidia-tesla-t4",
-    //     acceleratorCount: 1,
-  } as const;
-  const startupScript = `
-#!/bin/bash
-
-${installDocker()}
-${installUser()}
-
-docker pull sagemathinc/compute-filesystem
-docker pull sagemathinc/compute-manager
-docker pull sagemathinc/compute-python
-docker pull sagemathinc/compute-sagemath-10.1
-
-docker pull sagemathinc/compute-cuda
-docker pull sagemathinc/compute-pytorch
-docker pull sagemathinc/compute-tensorflow
-
-${installCuda()}
-
-df -h /
-`;
-  return {
-    configuration,
-    startupScript,
-    maxTimeMinutes,
-    arch: "x86_64",
-    sourceImage: getSourceImage("x86_64"),
-  } as const;
 }
 
 const LOGDIR = "logs";
@@ -419,4 +308,76 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
     await delay(n);
   }
   throw Error(`image creation did not finish -- ${name}`);
+}
+
+function createBuildConfiguration({
+  image,
+  arch = "x86_64",
+}: {
+  image: ImageName;
+  arch: Architecture;
+}): BuildConfig {
+  const { label, docker, gpu } = IMAGES[image] ?? {};
+  logger.debug("createBuildConfiguration", { image, label, docker, gpu });
+  if (!docker) {
+    throw Error(`unknown image '${image}'`);
+  }
+  const maxTimeMinutes = gpu ? 120 : 45;
+  const configuration = {
+    ...({
+      cloud: "google-cloud",
+      externalIp: true,
+      spot: true,
+      metadata: { "serial-port-logging-enable": true },
+      // SSD is hugely better in terms of speeding things up, since we're basically
+      // just extracting/copying files around.
+      diskType: "pd-ssd",
+      diskSizeGb: getMinDiskSizeGb({ image }),
+      maxRunDurationSeconds: 60 * maxTimeMinutes,
+    } as const),
+    /* 
+    We do NOT need a GPU to install the GPU libraries, but
+    a lot of code gets built, so we do want a fast CPU.
+    */
+    ...(gpu
+      ? ({
+          zone: "northamerica-northeast2-a",
+          region: "northamerica-northeast2",
+          machineType: "n2-standard-8",
+        } as const)
+      : arch == "x86_64"
+      ? ({
+          region: "us-east1",
+          zone: "us-east1-b",
+          machineType: "c2-standard-4",
+        } as const)
+      : ({
+          region: "us-central1",
+          zone: "us-central1-a",
+          machineType: "t2a-standard-4",
+        } as const)),
+  } as const;
+
+  const startupScript = `
+#!/bin/bash
+
+${installDocker()}
+${installUser()}
+
+docker pull sagemathinc/compute-filesystem
+docker pull ${docker}${arch == "x86_64" ? "" : "-arm64"}
+
+${gpu ? installCuda() : ""}
+
+df -h /
+`;
+
+  return {
+    image,
+    configuration,
+    startupScript,
+    maxTimeMinutes,
+    arch,
+    sourceImage: getSourceImage(arch),
+  } as const;
 }

@@ -183,9 +183,6 @@ export type Cloud =
   | "fluid-stack"
   | "test";
 
-export const STANDARD_DISK_SIZE = 20;
-export const CUDA_DISK_SIZE = 60;
-
 export function getMinDiskSizeGb(configuration) {
   if (configuration?.image) {
     const { minDiskSizeGb } = IMAGES[configuration.image] ?? {};
@@ -580,12 +577,17 @@ Table({
 //   },
 // });
 
+// These are just fallbacks in case something is wrong with the image configuration.
+export const STANDARD_DISK_SIZE = 20;
+export const CUDA_DISK_SIZE = 60;
+
 // Compute Server Images
 
 interface Image {
   label: string;
   docker: string;
-  gpu?: boolean;
+  gpu: boolean;
+  minDiskSizeGb: number;
 }
 
 const DOCKER_USER = "sagemathinc";
@@ -595,16 +597,19 @@ export const IMAGES = {
     label: "Minimal",
     docker: `${DOCKER_USER}/compute-manager`,
     minDiskSizeGb: 10,
+    gpu: false,
   },
   python: {
     label: "Python 3",
     docker: `${DOCKER_USER}/compute-python`,
     minDiskSizeGb: 10,
+    gpu: false,
   },
   "sagemath-10.1": {
     label: "SageMath 10.1",
     docker: `${DOCKER_USER}/compute-sagemath-10.1`,
     minDiskSizeGb: 25,
+    gpu: false,
   },
   pytorch: {
     label: "GPU - PyTorch with CUDA 12.x",
@@ -624,11 +629,11 @@ export const IMAGES = {
     gpu: true,
     minDiskSizeGb: 35,
   },
-  "cocalc-docker": {
-    label: "CoCalc - Personal Server",
-    docker: `${DOCKER_USER}/cocalc-docker`,
-    minDiskSizeGb: 50,
-  },
+  //   "cocalc-docker": {
+  //     label: "CoCalc - Personal Server",
+  //     docker: `${DOCKER_USER}/cocalc-docker`,
+  //     minDiskSizeGb: 50,
+  //   },
 } as const;
 
 export type ImageName = keyof typeof IMAGES;
