@@ -9,8 +9,12 @@ a = require('./dist/compute/cloud/google-cloud/create-image')
 await a.createImages({image:"python", arch:'arm64'})
 
 a = require('./dist/compute/cloud/google-cloud/images')
-{sourceImage} = await a.getNewestProdSourceImage({image:'python',test:true})
+{sourceImage} = await a.getNewestSourceImage({image:'python',test:true})
 await a.setImageLabel({key:'prod',value:true, name:sourceImage})
+
+
+// This just labels *everything* that is not prod so that it is prod.
+await a.labelSourceImages({filter:{prod:false}})
 
 */
 

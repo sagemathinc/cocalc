@@ -2,7 +2,7 @@ import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-se
 import getClient, { waitUntilOperationComplete } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { supportsStandardNetworkTier } from "./util";
-import { getNewestProdSourceImage } from "./images";
+import { getNewestSourceImage } from "./images";
 
 const logger = getLogger("server:compute:google-cloud:create-instance");
 
@@ -175,7 +175,7 @@ async function getDisks(
   let diskSizeGb = 10;
   if (!sourceImage) {
     ({ diskSizeGb, sourceImage } =
-      await getNewestProdSourceImage(configuration));
+      await getNewestSourceImage(configuration));
   }
 
   diskSizeGb = Math.max(diskSizeGb, configuration.diskSizeGb ?? diskSizeGb);

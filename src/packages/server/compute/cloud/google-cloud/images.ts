@@ -26,7 +26,7 @@ import type {
   GoogleCloudConfiguration,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
-import { field_cmp } from "@cocalc/util/misc";
+import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
 
 export type Architecture = "x86_64" | "arm64";
@@ -86,22 +86,29 @@ type ImageList = {
 }[];
 export async function getAllImages({
   image,
-  arch = "x86_64",
+  arch,
   sourceImage,
   labels,
 }: {
-  image: ImageName;
+  image?: ImageName;
   arch?: Architecture;
   sourceImage?: string;
   labels?: object;
 }): Promise<ImageList> {
+  let prefix;
+  if (image == null) {
+    // gets all images
+    prefix = `${await getGoogleCloudPrefix()}-`;
+  } else {
+    // restrict images by image and arch
+    prefix = await imageName({ image, arch });
+    if (sourceImage) {
+      prefix = `${prefix}-${sourceImage}`;
+    }
+  }
   const cacheKey = JSON.stringify({ image, arch, labels });
   if (imageCache.has(cacheKey)) {
     return imageCache.get(cacheKey)!;
-  }
-  let prefix = await imageName({ image, arch });
-  if (sourceImage) {
-    prefix = `${prefix}-${sourceImage}`;
   }
   const { client, projectId } = await getImagesClient();
   let filter = `name:${prefix}*`;
@@ -123,39 +130,68 @@ export function getArchitecture(machineType: string): Architecture {
   return machineType.startsWith("t2a-") ? "arm64" : "x86_64";
 }
 
-export async function getNewestProdSourceImage({
-  image = "python",
-  machineType,
-  sourceImage,
-  test,
-  arch,
-}: GoogleCloudConfiguration & { arch?: Architecture }): Promise<{
+type ImageFilter = Partial<GoogleCloudConfiguration> & {
+  prod?: boolean;
+  arch?: Architecture;
+};
+
+export async function getNewestSourceImage(opts: ImageFilter): Promise<{
   sourceImage: string;
   diskSizeGb: number;
 }> {
+  const images = await getSourceImages(opts);
+  if (images.length == 0) {
+    throw Error(
+      `no images are available for ${opts.image} ${opts.arch} compute servers that are labeled prod=true`,
+    );
+  }
+  return images[0];
+}
+
+export async function getSourceImages({
+  image,
+  machineType,
+  sourceImage,
+  prod = true,
+  arch,
+}: ImageFilter = {}): Promise<
+  {
+    sourceImage: string;
+    diskSizeGb: number;
+  }[]
+> {
   if (arch == null) {
-    arch = machineType ? getArchitecture(machineType) : "x86_64";
+    arch = machineType ? getArchitecture(machineType) : undefined;
   }
   const images = await getAllImages({
     image,
     arch,
     sourceImage,
-    labels: test || sourceImage ? undefined : { prod: true },
+    labels: !prod || sourceImage ? undefined : { prod: true },
   });
-  if (images.length == 0) {
-    throw Error(
-      `no images are available for ${image} ${arch} compute servers that are labeled prod=true`,
-    );
-  }
-  // sort and get newest -- note that creationTimestamp is a string
-  images.sort(field_cmp("creationTimestamp"));
-  const newest = images[images.length - 1];
-  const { name, diskSizeGb } = newest;
+  // sort by newest first; note that creationTimestamp is an iso date string
+  images.sort((a, b) => -cmp(a.creationTimestamp, b.creationTimestamp));
   const { projectId } = await getCredentials();
-  return {
-    sourceImage: `projects/${projectId}/global/images/${name}`,
-    diskSizeGb: parseInt(diskSizeGb),
-  };
+  return images.map(({ name, diskSizeGb }) => {
+    return {
+      sourceImage: `projects/${projectId}/global/images/${name}`,
+      diskSizeGb: parseInt(diskSizeGb),
+    };
+  });
+}
+
+export async function labelSourceImages({
+  filter,
+  key = "prod",
+  value = true,
+}: {
+  filter: ImageFilter;
+  key;
+  value;
+}) {
+  for (const { sourceImage: name } of await getSourceImages(filter)) {
+    await setImageLabel({ name, key, value });
+  }
 }
 
 // name = exact full name of the image
@@ -168,6 +204,7 @@ export async function setImageLabel({
   key: string;
   value: string | null | undefined;
 }) {
+  // console.log("setImageLabel", { name, key, value });
   const { client, projectId } = await getImagesClient();
   const i = name.lastIndexOf("/");
   if (i != -1) {
