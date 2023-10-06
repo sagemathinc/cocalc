@@ -45,8 +45,11 @@ export async function imageName({
   tag?: string;
   arch?: Architecture;
 }) {
+  const image1 = image.replace(".", "-").replace("_", "-");
   const gcloud_prefix = await getGoogleCloudPrefix();
-  const prefix = `${gcloud_prefix}-${image}-${arch == "x86_64" ? "x86" : arch}`; // _ not allowed
+  const prefix = `${gcloud_prefix}-${image1}-${
+    arch == "x86_64" ? "x86" : arch
+  }`; // _ not allowed
   if (!date) {
     return prefix;
   }
