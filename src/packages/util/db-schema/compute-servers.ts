@@ -629,6 +629,19 @@ export const IMAGES = {
     gpu: true,
     minDiskSizeGb: 35,
   },
+  rlang: {
+    label: "R",
+    docker: `${DOCKER_USER}/compute-rlang`,
+    minDiskSizeGb: 10,
+    gpu: false,
+  },
+  julia: {
+    label: "Julia",
+    docker: `${DOCKER_USER}/compute-julia`,
+    minDiskSizeGb: 10,
+    gpu: false,
+  },
+
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",
   //     docker: `${DOCKER_USER}/cocalc-docker`,

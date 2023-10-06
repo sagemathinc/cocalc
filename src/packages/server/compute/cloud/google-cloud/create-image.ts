@@ -8,13 +8,14 @@ a = require('./dist/compute/cloud/google-cloud/create-image')
 
 await a.createImages({image:"python", arch:'arm64'})
 
+// (Danger) This just creates ALL images in parallel:
+await a.createImages({})
+
 a = require('./dist/compute/cloud/google-cloud/images')
 {sourceImage} = await a.getNewestSourceImage({image:'python',test:true})
 await a.setImageLabel({key:'prod',value:true, name:sourceImage})
 
 
-// This just creates ALL images in parallel:
-await a.createImages({})
 
 // This labels *everything* that is not prod=true to instead have prod=true:
 await a.labelSourceImages({filter:{prod:false}})
