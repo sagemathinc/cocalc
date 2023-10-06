@@ -102,7 +102,7 @@ const MAX_TITLE_WIDTH = 25;
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND,
-  margin: "5px",
+  margin: "7.5px 5px",
   fontSize: "10pt",
   whiteSpace: "nowrap",
   display: "inline-block",
@@ -463,16 +463,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
-        {is_visible("compute_server") && (
-          <SelectComputeServer
-            style={{
-              marginRight: "3px",
-              marginTop: "1px",
-            }}
-            project_id={props.project_id}
-            path={props.path}
-          />
-        )}
+
         {render_types()}
       </div>
     );
@@ -1928,6 +1919,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderComputeServer() {
+    if (!is_visible("compute_server")) return null;
+    return (
+      <SelectComputeServer
+        frame_id={props.id}
+        style={{
+          marginRight: "3px",
+          marginTop: "1px",
+        }}
+        project_id={props.project_id}
+        path={props.path}
+      />
+    );
+  }
+
   function render_title(): Rendered {
     let title: string = "";
     let icon: IconName | undefined = undefined;
@@ -2134,6 +2140,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         id={`titlebar-${props.id}`}
         className={"cc-frame-tree-title-bar"}
       >
+        {renderComputeServer()}
         {render_title()}
         {render_main_buttons()}
         {render_connection_status()}

@@ -8,21 +8,32 @@ are available and how they are used for a given project.
 import { SYNCDB_PARAMS, decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import debug from "debug";
+import { once } from "@cocalc/util/async-utils";
+import { EventEmitter } from "events";
 
 const log = debug("cocalc:frontend:compute:manager");
 
-export class ComputeServersManager {
+export class ComputeServersManager extends EventEmitter {
   private sync_db;
   private project_id;
 
   constructor(project_id: string) {
+    super();
     this.project_id = project_id;
     this.sync_db = webapp_client.sync_db({
       project_id,
       ...SYNCDB_PARAMS,
     });
+    this.sync_db.on("change", () => {
+      this.emit("change");
+    });
     log("created", this.project_id);
   }
+
+  close = () => {
+    this.sync_db.close();
+    delete computeServerManagerCache[this.project_id];
+  };
 
   getComputeServers = () => {
     const servers = {};
@@ -56,6 +67,22 @@ export class ComputeServersManager {
   // For interactive debugging -- display in the console how things are configured.
   showStatus = () => {
     console.log(JSON.stringify(this.sync_db.get().toJS(), undefined, 2));
+  };
+
+  getServerIdForPath = async (path: string): Promise<number | null> => {
+    const { sync_db } = this;
+    if (sync_db.get_state() == "init") {
+      await once(sync_db, "ready");
+    }
+    if (sync_db.get_state() != "ready") {
+      throw Error("syncdb not ready");
+    }
+    for (const x of sync_db.get().toJS()) {
+      if (x.path == path) {
+        return x.id;
+      }
+    }
+    return null;
   };
 }
 
