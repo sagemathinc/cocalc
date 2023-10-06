@@ -46,11 +46,17 @@ export default class ObjectModel extends WidgetModel {
           });
         }
       },
-      this
+      this,
     );
 
-    // console.log("object-model.initialize", args[0].id);
-    if (args[0].id != null) {
+    // console.log("object-model.initialize", args);
+    // CRITICAL: do NOT do the set until both id and type
+    // are both set.  I guess sometimes multiple incomplete
+    // versions of the object get created.   I didn't have
+    // the args[0].type check here (and in set below),
+    // which was the root cause of
+    //    https://github.com/sagemathinc/cocalc/issues/6867
+    if (args[0].id && args[0].type) {
       objects[args[0].id] = this;
     }
   }
@@ -61,7 +67,8 @@ export default class ObjectModel extends WidgetModel {
     // pass in the serialized state on construction, due to complexities
     // involving realtime sync.
 
-    if (args[0].id != null) {
+    // don't touch without reading the comment above about args[0].type!
+    if (args[0].id != null && args[0].type) {
       objects[args[0].id] = this;
     }
     super.set.apply(this, args);

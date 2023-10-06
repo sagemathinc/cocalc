@@ -3,23 +3,28 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Popconfirm, Tag } from "antd";
-import { Icon, Loading } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import QuotaRow from "./quota-row";
-import Information from "./information";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
+
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import CostPerHour from "./cost-per-hour";
-import { copy_without } from "@cocalc/util/misc";
+import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
+import { PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import stopProject from "@cocalc/frontend/purchases/pay-as-you-go/stop-project";
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { copy_without, unreachable } from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import CostPerHour from "./cost-per-hour";
+import Information from "./information";
+import QuotaRow from "./quota-row";
+import { isEmpty } from "lodash";
+import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../../context";
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -30,6 +35,8 @@ function track(obj) {
 // admins can set them).
 const EXCLUDE = new Set(["memory_request", "cpu_shares"]);
 
+type Preset = "budget" | "small" | "medium" | "large" | "max";
+
 interface Props {
   project_id: string;
   style: CSSProperties;
@@ -37,6 +44,7 @@ interface Props {
 
 export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const project = useRedux(["projects", "project_map", project_id]);
+  const { isRunning: projectIsRunning } = useProjectContext();
 
   // Slightly subtle -- it's null if not loaded but {} or the thing if loaded, even
   // if there is no data yet in the database.
@@ -45,7 +53,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       ? null
       : project
           .getIn(["pay_as_you_go_quotas", webapp_client.account_id])
-          ?.toJS() ?? {};
+          ?.toJS() ?? getPresetValue("small");
   const [editing, setEditing] = useState<boolean>(false);
   // one we are editing:
   const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
@@ -81,7 +89,11 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
 
   useEffect(() => {
     if (editing) {
-      setQuotaState(savedQuotaState);
+      if (isEmpty(savedQuotaState)) {
+        setQuotaState(getPresetValue("small") ?? {});
+      } else {
+        setQuotaState(savedQuotaState);
+      }
     }
   }, [editing]);
 
@@ -121,41 +133,58 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }
 
-  function handlePreset(preset) {
+  function getPresetValue(preset: Preset) {
+    switch (preset) {
+      case "max":
+        return maxQuotas;
+      case "budget":
+        return {
+          member_host: 0,
+          network: 1,
+          cores: 1,
+          memory: 1000,
+          disk_quota: 3000,
+          mintime: 0.5,
+        };
+      case "small":
+        return {
+          member_host: 1,
+          network: 1,
+          cores: 1,
+          memory: 2000,
+          disk_quota: 3000,
+          mintime: 0.5,
+        };
+      case "medium":
+        return {
+          member_host: 1,
+          network: 1,
+          cores: 2,
+          memory: 6000,
+          disk_quota: 4000,
+          mintime: 2,
+        };
+      case "large":
+        return {
+          member_host: 1,
+          network: 1,
+          always_running: 1,
+          cores: 3,
+          memory: 10000,
+          disk_quota: 6000,
+        };
+
+      default:
+        unreachable(preset);
+    }
+  }
+
+  function handlePreset(preset: Preset) {
     track({ action: "preset", preset, project_id });
     if (maxQuotas == null) return;
-    let x;
-    if (preset == "max") {
-      x = maxQuotas;
-    } else if (preset == "min") {
-      x = {
-        member_host: 0,
-        network: 1,
-        cores: 1,
-        memory: 1000,
-        disk_quota: 3000,
-        mintime: 0.5,
-      };
-    } else if (preset == "medium") {
-      x = {
-        member_host: 1,
-        network: 1,
-        cores: 2,
-        memory: 8000,
-        disk_quota: 4000,
-        mintime: 2,
-      };
-    } else if (preset == "large") {
-      x = {
-        member_host: 1,
-        network: 1,
-        always_running: 1,
-        cores: 3,
-        memory: 10000,
-        disk_quota: 6000,
-      };
-    }
-    x = copy_without(x, Array.from(EXCLUDE));
+    const val = getPresetValue(preset);
+    if (val == null) return;
+    const x = copy_without(val, Array.from(EXCLUDE));
     for (const key in x) {
       if (maxQuotas[key] != null && maxQuotas[key] < x[key]) {
         x[key] = maxQuotas[key];
@@ -194,102 +223,66 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     return <Loading />;
   }
 
-  return (
-    <Card
-      style={style}
-      title={
-        <h4>
-          <Icon name="compass" /> Pay As You Go
-          <RunningStatus project={project} />
-          {runningWithUpgrade && (
-            <>
-              {" "}
-              (Amount:{" "}
-              <DynamicallyUpdatingCost
-                alwaysNonnegative
-                costPerHour={
-                  project?.getIn([
-                    "run_quota",
-                    "pay_as_you_go",
-                    "quota",
-                    "cost",
-                  ]) ?? 0
-                }
-                start={project?.getIn([
-                  "run_quota",
-                  "pay_as_you_go",
-                  "quota",
-                  "start",
-                ])}
-              />
-              )
-            </>
-          )}
-          {status ? (
-            <Tag color="success" style={{ marginLeft: "30px" }}>
-              {status}
-            </Tag>
-          ) : undefined}
-        </h4>
-      }
-      type="inner"
-      extra={<Information />}
-    >
-      {quotaState != null && (editing || runningWithUpgrade) && (
-        <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
-          <CostPerHour quota={quotaState} />
-        </div>
-      )}
-      {runningWithUpgrade && (
+  function renderRunningWithUpgrade() {
+    if (!runningWithUpgrade) return;
+
+    return (
+      <div>
+        This project is running with the pay as you go quota upgrades that{" "}
+        <a
+          onClick={() => {
+            load_target("settings/purchases");
+          }}
+        >
+          you purchased
+        </a>
+        . You will be charged <b>by the second</b> until the project is stopped.
         <div>
-          This project is running with the pay as you go quota upgrades that{" "}
-          <a
-            onClick={() => {
-              load_target("settings/purchases");
-            }}
+          <Popconfirm
+            title={"Stop project?"}
+            description={
+              <div style={{ maxWidth: "400px" }}>
+                When you next start the project, it will be upgraded unless you
+                explicitly disable upgrades. (If a collaborator starts the
+                project you will not be charged.)
+              </div>
+            }
+            onConfirm={() => handleStop(false)}
           >
-            you purchased
-          </a>
-          . You will be charged <b>by the second</b> until the project is
-          stopped.
-          <div>
-            <Popconfirm
-              title={"Stop project?"}
-              description={
-                <div style={{ maxWidth: "400px" }}>
-                  When you next start the project, it will be upgraded unless
-                  you explicitly disable upgrades. (If a collaborator starts the
-                  project you will not be charged.)
-                </div>
-              }
-              onConfirm={() => handleStop(false)}
-            >
-              <Button style={{ marginRight: "8px", marginTop: "15px" }}>
-                <Icon name="stop" /> Stop Project
-              </Button>
-            </Popconfirm>
-            <Popconfirm
-              title={"Stop project and disable upgrades?"}
-              description={
-                <div style={{ maxWidth: "400px" }}>
-                  Project will stop and will not automatically be upgraded until
-                  you explicitly enable upgrades again here.
-                </div>
-              }
-              onConfirm={() => handleStop(true)}
-            >
-              <Button style={{ marginRight: "8px", marginTop: "15px" }}>
-                <Icon name="stop" /> Disable Upgrades...
-              </Button>
-            </Popconfirm>
-            <Button onClick={() => setEditing(!editing)}>
-              {editing ? "Hide" : "Show"} Quotas
+            <Button style={{ marginRight: "8px", marginTop: "15px" }}>
+              <Icon name="stop" /> Stop Project
             </Button>
-          </div>
+          </Popconfirm>
+          <Popconfirm
+            title={"Stop project and disable upgrades?"}
+            description={
+              <div style={{ maxWidth: "400px" }}>
+                Project will stop and will not automatically be upgraded until
+                you explicitly enable upgrades again here.
+              </div>
+            }
+            onConfirm={() => handleStop(true)}
+          >
+            <Button style={{ marginRight: "8px", marginTop: "15px" }}>
+              <Icon name="stop" /> Disable Upgrades...
+            </Button>
+          </Popconfirm>
+          <Button onClick={() => setEditing(!editing)}>
+            {editing ? "Hide" : "Show"} Quotas
+          </Button>
         </div>
-      )}
-      {!editing && !runningWithUpgrade && (
-        <div>
+      </div>
+    );
+  }
+
+  function renderUpgradeOrClear() {
+    if (editing || runningWithUpgrade) return;
+
+    const disabled = quotaState == null || Object.keys(quotaState).length == 0;
+
+    return (
+      <>
+        <Paragraph>
           <Button
             onClick={() => {
               if (!editing) {
@@ -300,12 +293,13 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           >
             <Icon name="credit-card" /> Upgrade...
           </Button>
-          {project?.getIn(["state", "state"]) != "running" && (
+          {!projectIsRunning ? (
             <Button
-              disabled={
-                quotaState == null || Object.keys(quotaState).length == 0
-              }
-              style={{ marginLeft: "8px" }}
+              disabled={disabled}
+              style={{
+                marginLeft: "8px",
+                backgroundColor: disabled ? undefined : COLORS.BG_WARNING,
+              }}
               onClick={async () => {
                 setQuotaState(null);
                 await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
@@ -316,98 +310,178 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
             >
               <Icon name="credit-card" /> Clear Upgrades
             </Button>
-          )}
-        </div>
-      )}
-      {editing && !runningWithUpgrade && (
-        <div style={{ marginTop: "15px" }}>
-          <Button onClick={handleClose}>Close</Button>
-          <Popconfirm
-            title="Run project with exactly these quotas?"
-            description={
-              <div style={{ width: "400px" }}>
-                The project will restart with your quotas applied.{" "}
-                <b>
-                  You will be charged by the second for usage during this
-                  session.
-                </b>
-                <br /> <br />
-                NOTES: No licenses will be applied. Only one person can upgrade
-                a project at once, though all collaborators get to use the
-                upgraded version of the project.
-              </div>
-            }
-            onConfirm={handleRun}
-            okText="Upgrade"
-            cancelText="No"
+          ) : undefined}
+        </Paragraph>
+        {!disabled && !projectIsRunning ? (
+          <Paragraph type="secondary">
+            <strong>Note:</strong> When this project starts, it will run with
+            the currently configured Pay-as-you-go upgrade schema.
+          </Paragraph>
+        ) : undefined}
+      </>
+    );
+  }
+
+  function renderStartWithUpgrades() {
+    if (!editing || runningWithUpgrade) return;
+
+    return (
+      <div style={{ marginTop: "15px" }}>
+        <Button onClick={handleClose}>Close</Button>
+        <Popconfirm
+          title="Run project with exactly these quotas?"
+          description={
+            <div style={{ width: "400px" }}>
+              The project will restart with your quotas applied.{" "}
+              <b>
+                You will be charged by the second for usage during this session.
+              </b>
+              <br /> <br />
+              NOTES: No licenses will be applied. Only one person can upgrade a
+              project at once, though all collaborators get to use the upgraded
+              version of the project.
+            </div>
+          }
+          onConfirm={handleRun}
+          okText="Upgrade"
+          cancelText="No"
+        >
+          <Button style={{ marginLeft: "8px" }} type="primary">
+            <Icon name="save" /> Start With Upgrades...
+          </Button>
+        </Popconfirm>
+      </div>
+    );
+  }
+
+  function renderEditing() {
+    if (!editing) return;
+
+    return (
+      <>
+        {error && (
+          <Alert
+            style={{ margin: "15px" }}
+            type="error"
+            showIcon
+            description={error}
+            closable
+            onClose={() => setError("")}
+          />
+        )}
+        <div style={{ margin: "15px 0" }}>
+          <Tag
+            icon={<Icon name="battery-empty" />}
+            style={{ cursor: "pointer" }}
+            color="blue"
+            onClick={() => handlePreset("budget")}
           >
-            <Button style={{ marginLeft: "8px" }} type="primary">
-              <Icon name="save" /> Start With Upgrades...
-            </Button>
-          </Popconfirm>
+            Budget
+          </Tag>
+          <Tag
+            icon={<Icon name="battery-quarter" />}
+            style={{ cursor: "pointer" }}
+            color="blue"
+            onClick={() => handlePreset("small")}
+          >
+            Small
+          </Tag>
+          <Tag
+            icon={<Icon name="battery-half" />}
+            style={{ cursor: "pointer" }}
+            color="blue"
+            onClick={() => handlePreset("medium")}
+          >
+            Medium
+          </Tag>
+          <Tag
+            icon={<Icon name="battery-three-quarters" />}
+            style={{ cursor: "pointer" }}
+            color="blue"
+            onClick={() => handlePreset("large")}
+          >
+            Large
+          </Tag>
+          <Tag
+            icon={<Icon name="battery-full" />}
+            style={{ cursor: "pointer" }}
+            color="blue"
+            onClick={() => handlePreset("max")}
+          >
+            Max
+          </Tag>
+          <hr />
+        </div>
+        {PROJECT_UPGRADES.field_order
+          .filter((name) => !EXCLUDE.has(name))
+          .map((name) => (
+            <QuotaRow
+              key={name}
+              name={name as any}
+              quotaState={quotaState}
+              setQuotaState={setQuotaState}
+              maxQuotas={maxQuotas}
+              disabled={runningWithUpgrade}
+            />
+          ))}
+      </>
+    );
+  }
+
+  function renderTitle() {
+    return (
+      <h4>
+        <Icon name={PAYASYOUGO_ICON} /> Pay As You Go
+        <RunningStatus project={project} />
+        {runningWithUpgrade && (
+          <>
+            {" "}
+            (Amount:{" "}
+            <DynamicallyUpdatingCost
+              alwaysNonnegative
+              costPerHour={
+                project?.getIn([
+                  "run_quota",
+                  "pay_as_you_go",
+                  "quota",
+                  "cost",
+                ]) ?? 0
+              }
+              start={project?.getIn([
+                "run_quota",
+                "pay_as_you_go",
+                "quota",
+                "start",
+              ])}
+            />
+            )
+          </>
+        )}
+        {status ? (
+          <Tag color="success" style={{ marginLeft: "30px" }}>
+            {status}
+          </Tag>
+        ) : undefined}
+      </h4>
+    );
+  }
+
+  return (
+    <Card
+      style={style}
+      title={renderTitle()}
+      type="inner"
+      extra={<Information />}
+    >
+      {quotaState != null && (editing || runningWithUpgrade) && (
+        <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
+          <CostPerHour quota={quotaState} />
         </div>
       )}
-      {editing && (
-        <>
-          {error && (
-            <Alert
-              style={{ margin: "15px" }}
-              type="error"
-              showIcon
-              description={error}
-              closable
-              onClose={() => setError("")}
-            />
-          )}
-          <div style={{ margin: "15px 0" }}>
-            <Tag
-              icon={<Icon name="battery-quarter" />}
-              style={{ cursor: "pointer" }}
-              color="blue"
-              onClick={() => handlePreset("min")}
-            >
-              Min
-            </Tag>
-            <Tag
-              icon={<Icon name="battery-half" />}
-              style={{ cursor: "pointer" }}
-              color="blue"
-              onClick={() => handlePreset("medium")}
-            >
-              Medium
-            </Tag>
-            <Tag
-              icon={<Icon name="battery-three-quarters" />}
-              style={{ cursor: "pointer" }}
-              color="blue"
-              onClick={() => handlePreset("large")}
-            >
-              Large
-            </Tag>
-            <Tag
-              icon={<Icon name="battery-full" />}
-              style={{ cursor: "pointer" }}
-              color="blue"
-              onClick={() => handlePreset("max")}
-            >
-              Max
-            </Tag>
-            <hr />
-          </div>
-          {PROJECT_UPGRADES.field_order
-            .filter((name) => !EXCLUDE.has(name))
-            .map((name) => (
-              <QuotaRow
-                key={name}
-                name={name as any}
-                quotaState={quotaState}
-                setQuotaState={setQuotaState}
-                maxQuotas={maxQuotas}
-                disabled={runningWithUpgrade}
-              />
-            ))}
-        </>
-      )}
+      {renderRunningWithUpgrade()}
+      {renderUpgradeOrClear()}
+      {renderStartWithUpgrades()}
+      {renderEditing()}
     </Card>
   );
 }

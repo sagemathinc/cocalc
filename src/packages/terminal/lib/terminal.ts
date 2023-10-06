@@ -23,7 +23,7 @@ const logger = getLogger("terminal:terminal");
 const CHECK_INTERVAL_MS = 5 * 1000;
 const MAX_HISTORY_LENGTH = 10 * 1000 * 1000;
 const TRUNCATE_THRESH_MS = 10 * 1000;
-const FREQUENT_RESTART_DELAY_MS = 1 * 1000;
+const FREQUENT_RESTART_DELAY_MS = 1.5 * 1000;
 const FREQUENT_RESTART_INTERVAL_MS = 10 * 1000;
 const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
@@ -63,9 +63,18 @@ export class Terminal {
   };
 
   private initLocalPty = async () => {
-    if (this.state == "closed") return;
+    if (this.state == "closed") {
+      throw Error("terminal is closed");
+    }
+    const dbg = (...args) => {
+      logger.debug("initLocalPty ", ...args);
+    };
     if (this.remotePty != null) {
-      // don't init local pty if there is a remote one.
+      dbg("don't init local pty since there is a remote one.");
+      return;
+    }
+    if (this.localPty != null) {
+      dbg("don't init local pty since there is already a local one.");
       return;
     }
 
@@ -77,7 +86,7 @@ export class Terminal {
         if (typeof arg === "string") {
           args.push(arg);
         } else {
-          logger.debug("WARNING -- discarding invalid non-string arg ", arg);
+          dbg("WARNING -- discarding invalid non-string arg ", arg);
         }
       }
     } else {
@@ -112,40 +121,29 @@ export class Terminal {
     try {
       this.history = (await readFile(this.path)).toString();
     } catch (err) {
-      logger.debug("WARNING: failed to load", this.path, err);
+      dbg("WARNING: failed to load", this.path, err);
     }
-    const localPty = spawn(command, args, { cwd, env }) as IPty;
-    logger.debug("pid=", localPty.pid, { command, args });
+    dbg("spawn", { command, args, cwd });
+    const localPty = spawn(command, args, {
+      cwd,
+      env,
+      rows: this.size?.rows,
+      cols: this.size?.cols,
+    }) as IPty;
+    dbg("pid=", localPty.pid, { command, args });
     this.localPty = localPty;
 
-    localPty.on("data", this.handleDataFromTerminal);
-
-    // Whenever localPty ends, we just respawn it, but potentially
-    // with a pause to avoid weird crash loops bringing down the project.
-    localPty.on("exit", async () => {
-      if (this.state == "closed") return;
-      if (this.remotePty != null) {
-        // do not create a new localPty since we're switching to a remotePty.
-        return;
-      }
-      logger.debug("EXIT -- spawning again");
-      const now = Date.now();
-      if (now - this.last_exit <= FREQUENT_RESTART_INTERVAL_MS) {
-        // frequent exit; we wait a few seconds, since otherwise channel
-        // restarting could burn all cpu and break everything.
-        logger.debug("EXIT -- waiting a few seconds...");
-        await delay(FREQUENT_RESTART_DELAY_MS);
-      }
-      this.last_exit = now;
-      logger.debug("spawning local pty...");
-      await this.initLocalPty();
-      logger.debug("finished spawn");
+    localPty.onData(this.handleDataFromTerminal);
+    localPty.onExit(async (exitInfo) => {
+      dbg("exited with code ", exitInfo);
+      this.handleDataFromTerminal(
+        "\n[Process completed -- hit any key to restart]\r\n",
+      );
+      delete this.localPty;
     });
 
     this.state = "ready";
-
-    // set the size
-    this.resize();
+    return localPty;
   };
 
   close = () => {
@@ -154,11 +152,12 @@ export class Terminal {
       return;
     }
     this.state = "closed";
-    if (this.localPty != null) {
-      this.killPty();
-    }
+    this.killPty();
+    this.localPty?.destroy();
     this.channel.destroy();
     this.remotePtyChannel.destroy();
+    delete this.localPty;
+    delete this.remotePty;
   };
 
   getPid = (): number | undefined => {
@@ -193,6 +192,9 @@ export class Terminal {
       // remote pty
       this.remotePty.write({ cmd: "set_command", command, args });
     } else if (this.localPty != null) {
+      this.localPty.onExit(() => {
+        this.initLocalPty();
+      });
       this.killLocalPty();
     }
   };
@@ -406,9 +408,9 @@ export class Terminal {
 
   private sendCurrentWorkingDirectory = async (spark: Spark) => {
     if (this.localPty != null) {
-      this.sendCurrentWorkingDirectoryLocalPty(spark);
+      await this.sendCurrentWorkingDirectoryLocalPty(spark);
     } else if (this.remotePty != null) {
-      this.sendCurrentWorkingDirectoryRemotePty(spark);
+      await this.sendCurrentWorkingDirectoryRemotePty(spark);
     }
   };
 
@@ -469,11 +471,20 @@ export class Terminal {
     });
   };
 
-  private writeToPty = (data) => {
+  private writeToPty = async (data) => {
+    if (this.state == "closed") return;
+    // only for VERY low level debugging:
+    // logger.debug("writeToPty", { data });
     if (this.localPty != null) {
       this.localPty.write(data);
     } else if (this.remotePty != null) {
       this.remotePty.write(data);
+    } else {
+      logger.debug("no pty active, but got data, so let's spawn one locally");
+      const pty = await this.initLocalPty();
+      if (pty != null) {
+        pty.write(data);
+      }
     }
   };
 
@@ -495,6 +506,9 @@ export class Terminal {
   ) => {
     // control message
     //logger.debug("terminal channel control message", JSON.stringify(data));
+    if (this.localPty == null && this.remotePty == null) {
+      await this.initLocalPty();
+    }
     switch (data.cmd) {
       case "size":
         this.setSize(spark, { rows: data.rows, cols: data.cols });

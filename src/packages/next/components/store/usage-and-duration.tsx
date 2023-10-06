@@ -5,6 +5,7 @@
 
 import { isAcademic } from "@cocalc/util/misc";
 import { Subscription } from "@cocalc/util/licenses/purchase/types";
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { Divider, Form, Input, Radio, Space } from "antd";
 import DateRange from "components/misc/date-range";
 import { ReactNode } from "react";
@@ -19,6 +20,19 @@ interface Props {
   duration?: "all" | "subscriptions" | "monthly" | "yearly" | "range";
   discount?: boolean;
   extraDuration?: ReactNode;
+}
+
+function getTimezoneFromDate(
+  date: Date,
+  format: "long" | "short" = "long",
+): string {
+  return (
+    Intl.DateTimeFormat(undefined, {
+      timeZoneName: format,
+    })
+      .formatToParts(date)
+      .find((x) => x.type === "timeZoneName")?.value || ""
+  );
 }
 
 export function UsageAndDuration(props: Props) {
@@ -70,25 +84,33 @@ export function UsageAndDuration(props: Props) {
     const period = getFieldValue("period");
     if (period !== "range") return;
     const range = getFieldValue("range");
+    const invalidRange = range?.[0] == null || range?.[1] == null;
     return (
-      <>
-        {(range?.[0] == null || range?.[1] == null) && (
-          <div style={{ textAlign: "center", color: "#ff4d4f" }}>
-            Please enter a range of dates.
-          </div>
-        )}
+      <Form.Item
+        label="License Term"
+        name="range"
+        rules={[{ required: true }]}
+        help={invalidRange ? "Please enter a valid license range." : ""}
+        validateStatus={invalidRange ? "error" : "success"}
+        style={{ paddingBottom: "30px" }}
+      >
         <DateRange
           disabled={disabled}
           noPast
           maxDaysInFuture={365 * 4}
-          style={{ margin: "5px 0 30px", textAlign: "center" }}
+          style={{ marginTop: "5px" }}
           initialValues={getFieldValue("range")}
           onChange={(range) => {
             form.setFieldsValue({ range });
             onChange();
           }}
+          suffix={
+            range &&
+            range[0] &&
+            `(${getTimezoneFromDate(range[0] as Date, "long")})`
+          }
         />
-      </>
+      </Form.Item>
     );
   }
 
@@ -105,13 +127,10 @@ export function UsageAndDuration(props: Props) {
     );
   }
 
-  //   function renderSubsDiscount(duration: Subscription) {
-  //     if (!discount) return;
-  //     const pct = Math.round(100 * (1 - COSTS.sub_discount[duration]));
-  //     return ` (discount ${pct}%)`;
-  //   }
-  function renderSubsDiscount(_duration: Subscription) {
-    return null;
+  function renderSubsDiscount(duration: Subscription) {
+    if (!discount) return;
+    const pct = Math.round(100 * (1 - COSTS.sub_discount[duration]));
+    return <b> (discount {pct}%)</b>;
   }
 
   function renderSubsOptions() {
@@ -149,7 +168,8 @@ export function UsageAndDuration(props: Props) {
         You can buy a license either via a subscription or a single purchase for
         specific dates. Once you purchase a license,{" "}
         <b>you can always edit it later, or cancel it for a prorated refund</b>{" "}
-        as credit that you can use to purchase something else.{" "}
+        as credit that you can use to purchase something else. Even
+        subscriptions can be cancelled at any time for a full prorated refund!{" "}
         {duration == "range" && (
           <i>
             Licenses start and end at the indicated times in your local

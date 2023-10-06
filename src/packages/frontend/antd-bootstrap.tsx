@@ -36,6 +36,7 @@ import {
 } from "antd";
 import { MouseEventHandler } from "react";
 
+import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { Gap } from "@cocalc/frontend/components/gap";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { COLORS } from "@cocalc/util/theme";
@@ -91,27 +92,29 @@ function parse_bsStyle(props: {
   let style: React.CSSProperties | undefined = undefined;
   // antd has no analogue of "success" & "warning", it's not clear to me what
   // it should be so for now just copy the style from react-bootstrap.
-  if (props.bsStyle === "warning") {
-    // antd has no analogue of "warning", it's not clear to me what
-    // it should be so for
-    // now just copy the style.
-    style = {
-      backgroundColor: "#f0ad4e",
-      borderColor: "#eea236",
-      color: "#ffffff",
-    };
-  } else if (props.bsStyle === "success") {
-    style = {
-      backgroundColor: "#5cb85c",
-      borderColor: "#4cae4c",
-      color: "#ffffff",
-    };
-  } else if (props.bsStyle == "info") {
-    style = {
-      backgroundColor: "rgb(91, 192, 222)",
-      borderColor: "rgb(70, 184, 218)",
-      color: "#ffffff",
-    };
+  if (!inDarkMode()) {
+    if (props.bsStyle === "warning") {
+      // antd has no analogue of "warning", it's not clear to me what
+      // it should be so for
+      // now just copy the style.
+      style = {
+        backgroundColor: COLORS.BG_WARNING,
+        borderColor: "#eea236",
+        color: "#ffffff",
+      };
+    } else if (props.bsStyle === "success") {
+      style = {
+        backgroundColor: "#5cb85c",
+        borderColor: "#4cae4c",
+        color: "#ffffff",
+      };
+    } else if (props.bsStyle == "info") {
+      style = {
+        backgroundColor: "rgb(91, 192, 222)",
+        borderColor: "rgb(70, 184, 218)",
+        color: "#ffffff",
+      };
+    }
   }
   if (props.disabled && style != null) {
     style.opacity = 0.65;

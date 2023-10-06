@@ -10,6 +10,7 @@ import {
   redux,
   useEffect,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
@@ -27,6 +28,8 @@ interface FlyoutBodyProps {
 
 export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
   const { project_id } = useProjectContext();
+  const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
+
   // No "Ref", because otherwise we don't trigger the useEffect below
   const [bodyDiv, setBodyDiv] = useState<HTMLDivElement | null>(null);
   const Body = FIXED_PROJECT_TABS[flyout].flyout;
@@ -50,7 +53,7 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
       }
     },
     1000,
-    { leading: false, trailing: true }
+    { leading: false, trailing: true },
   );
 
   // use this *once* around a vertically scollable content div in the component, e.g. results in a search.
@@ -71,21 +74,27 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
     );
   }
 
+  const padding = hideActionButtons
+    ? `${FLYOUT_PADDING} 0 0 0`
+    : `${FLYOUT_PADDING} 0 0 ${FLYOUT_PADDING}`;
+
+  const style: CSS = {
+    display: "flex",
+    flexDirection: "column",
+    padding,
+    margin: 0,
+    marginRight: "0",
+    borderRight: FIX_BORDER,
+    width: flyoutWidth,
+    height: "100%",
+    backgroundColor: FIXED_TABS_BG_COLOR,
+    overflowY: "hidden",
+    overflowX: "hidden",
+  };
+
   return (
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        padding: `${FLYOUT_PADDING} 0 0 ${FLYOUT_PADDING}`,
-        margin: 0,
-        marginRight: "0",
-        borderRight: FIX_BORDER,
-        width: flyoutWidth,
-        height: "100%",
-        backgroundColor: FIXED_TABS_BG_COLOR,
-        overflowY: "hidden",
-        overflowX: "hidden",
-      }}
+      style={style}
       onFocus={() => {
         // Remove any active key handler that is next to this side chat.
         // E.g, this is critical for taks lists...

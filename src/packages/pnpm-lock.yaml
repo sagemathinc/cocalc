@@ -1356,6 +1356,9 @@ importers:
       '@google-cloud/compute':
         specifier: ^4.0.1
         version: 4.0.1
+      '@node-saml/passport-saml':
+        specifier: ^4.0.4
+        version: 4.0.4
       '@passport-next/passport-google-oauth2':
         specifier: ^1.0.0
         version: 1.0.0
@@ -1504,7 +1507,7 @@ importers:
         specifier: ^0.0.4
         version: 0.0.4
       passport-saml:
-        specifier: ^3.2.1
+        specifier: ^3.2.4
         version: 3.2.4
       passport-twitter:
         specifier: ^1.0.4
@@ -1787,7 +1790,7 @@ importers:
         version: 18.16.14
       ts-jest:
         specifier: ^29.0.3
-        version: 29.0.3(@babel/core@7.22.19)(jest@29.7.0)(typescript@5.2.2)
+        version: 29.0.3(@babel/core@7.18.13)(jest@29.7.0)(typescript@5.2.2)
 
   sync-client:
     dependencies:
@@ -4618,28 +4621,28 @@ packages:
     resolution: {integrity: sha512-9/kzXFNTmEh8UqNdt8G5NdtfIyAfVYG+7yagk/rh2mh/XFynDGW4DXIYvrWIcMns8HSZxrUgNyNDPva+BUp14w==}
     engines: {node: '>=14.0.0'}
     dependencies:
-      google-gax: 4.0.3
+      google-gax: 4.0.4
     transitivePeerDependencies:
       - encoding
       - supports-color
     dev: false
 
-  /@grpc/grpc-js@1.8.21:
-    resolution: {integrity: sha512-KeyQeZpxeEBSqFVTi3q2K7PiPXmgBfECc4updA1ejCLjYmoAlvvM3ZMp5ztTDUCUQmoY3CpDxvchjO1+rFkoHg==}
+  /@grpc/grpc-js@1.9.5:
+    resolution: {integrity: sha512-iouYNlPxRAwZ2XboDT+OfRKHuaKHiqjB5VFYZ0NFrHkbEF+AV3muIUY9olQsp8uxU4VvRCMiRk9ftzFDGb61aw==}
     engines: {node: ^8.13.0 || >=10.10.0}
     dependencies:
-      '@grpc/proto-loader': 0.7.9
+      '@grpc/proto-loader': 0.7.10
       '@types/node': 18.17.14
     dev: false
 
-  /@grpc/proto-loader@0.7.9:
-    resolution: {integrity: sha512-YJsOehVXzgurc+lLAxYnlSMc1p/Gu6VAvnfx0ATi2nzvr0YZcjhmZDeY8SeAKv1M7zE3aEJH0Xo9mK1iZ8GYoQ==}
+  /@grpc/proto-loader@0.7.10:
+    resolution: {integrity: sha512-CAqDfoaQ8ykFd9zqBDn4k6iWT9loLAlc2ETmDFS9JCD70gDcnA4L3AFEo2iV7KyAtAAHFW9ftq1Fz+Vsgq80RQ==}
     engines: {node: '>=6'}
     hasBin: true
     dependencies:
       lodash.camelcase: 4.3.0
       long: 5.2.1
-      protobufjs: 7.2.4
+      protobufjs: 7.2.5
       yargs: 17.7.2
     dev: false
 
@@ -5593,6 +5596,39 @@ packages:
     requiresBuild: true
     dev: false
     optional: true
+
+  /@node-saml/node-saml@4.0.5:
+    resolution: {integrity: sha512-J5DglElbY1tjOuaR1NPtjOXkXY5bpUhDoKVoeucYN98A3w4fwgjIOPqIGcb6cQsqFq2zZ6vTCeKn5C/hvefSaw==}
+    engines: {node: '>= 14'}
+    dependencies:
+      '@types/debug': 4.1.7
+      '@types/passport': 1.0.11
+      '@types/xml-crypto': 1.4.3
+      '@types/xml-encryption': 1.2.2
+      '@types/xml2js': 0.4.12
+      '@xmldom/xmldom': 0.8.10
+      debug: 4.3.4(supports-color@8.1.1)
+      xml-crypto: 3.2.0
+      xml-encryption: 3.0.2
+      xml2js: 0.5.0
+      xmlbuilder: 15.1.1
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@node-saml/passport-saml@4.0.4:
+    resolution: {integrity: sha512-xFw3gw0yo+K1mzlkW15NeBF7cVpRHN/4vpjmBKzov5YFImCWh/G0LcTZ8krH3yk2/eRPc3Or8LRPudVJBjmYaw==}
+    engines: {node: '>= 14'}
+    dependencies:
+      '@node-saml/node-saml': 4.0.5
+      '@types/express': 4.17.15
+      '@types/passport': 1.0.11
+      '@types/passport-strategy': 0.2.35
+      passport: 0.6.0
+      passport-strategy: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -6631,6 +6667,13 @@ packages:
       '@types/passport': 1.0.11
     dev: false
 
+  /@types/passport-strategy@0.2.35:
+    resolution: {integrity: sha512-o5D19Jy2XPFoX2rKApykY15et3Apgax00RRLf0RUotPDUsYrQa7x4howLYr9El2mlUApHmCMv5CZ1IXqKFQ2+g==}
+    dependencies:
+      '@types/express': 4.17.15
+      '@types/passport': 1.0.11
+    dev: false
+
   /@types/passport@1.0.11:
     resolution: {integrity: sha512-pz1cx9ptZvozyGKKKIPLcVDVHwae4hrH5d6g5J+DkMRRjR3cVETb4jMabhXAUbg3Ov7T22nFHEgaK2jj+5CBpw==}
     dependencies:
@@ -6748,6 +6791,25 @@ packages:
 
   /@types/uuid@8.3.4:
     resolution: {integrity: sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==}
+
+  /@types/xml-crypto@1.4.3:
+    resolution: {integrity: sha512-pnvKYb7vUsUIMc+C6JM/j779YWQgOMcwjnqHJ9cdaWXwWEBE1hAqthzeszRx62V5RWMvS+XS9w9tXMOYyUc8zg==}
+    dependencies:
+      '@types/node': 18.17.14
+      xpath: 0.0.27
+    dev: false
+
+  /@types/xml-encryption@1.2.2:
+    resolution: {integrity: sha512-UeuYOqW3ZzUQfwb/mb3GNZ2/DlVdh5mjJNmB/yFXgQr8/pwlVJ9I2w+AHPfRDzLshe7YpgUB4T1//qgbk6U87Q==}
+    dependencies:
+      '@types/node': 18.17.14
+    dev: false
+
+  /@types/xml2js@0.4.12:
+    resolution: {integrity: sha512-CZPpQKBZ8db66EP5hCjwvYrLThgZvnyZrPXK2W+UI1oOaWezGt34iOaUCX4Jah2X8+rQqjvl9VKEIT8TR1I0rA==}
+    dependencies:
+      '@types/node': 18.17.14
+    dev: false
 
   /@types/yargs-parser@21.0.0:
     resolution: {integrity: sha512-iO9ZQHkZxHn4mSakYV0vFHAVDyEOIJQrV2uZ06HxEPcx+mt8swXoZHIbaaJ2crJYFfErySgktuTZ3BeLz+XmFA==}
@@ -7063,6 +7125,11 @@ packages:
 
   /@xmldom/xmldom@0.7.9:
     resolution: {integrity: sha512-yceMpm/xd4W2a85iqZyO09gTnHvXF6pyiWjD2jcOJs7hRoZtNNOO1eJlhHj1ixA+xip2hOyGn+LgcvLCMo5zXA==}
+    engines: {node: '>=10.0.0'}
+    dev: false
+
+  /@xmldom/xmldom@0.8.10:
+    resolution: {integrity: sha512-2WALfTl4xo2SkGCYRt6rDTFfk9R1czmBvUQy12gK2KuRKIpWEhcbbzy8EZXtz/jkRqHX8bFEc6FC1HjX4TUWYw==}
     engines: {node: '>=10.0.0'}
     dev: false
 
@@ -11409,8 +11476,8 @@ packages:
     resolution: {integrity: sha512-l+8esYHTKOx2G/Aao4lEQ0bnHWg4fWtJbVoZZT9Knxi01pB8C80BR85nONLFwkkQoFRCmXY+BUcGZN3yZ2QsRA==}
     dev: false
 
-  /google-auth-library@9.0.0:
-    resolution: {integrity: sha512-IQGjgQoVUAfOk6khqTVMLvWx26R+yPw9uLyb1MNyMQpdKiKt0Fd9sp4NWoINjyGHR8S3iw12hMTYK7O8J07c6Q==}
+  /google-auth-library@9.1.0:
+    resolution: {integrity: sha512-1M9HdOcQNPV5BwSXqwwT238MTKodJFBxZ/V2JP397ieOLv4FjQdfYb9SooR7Mb+oUT2IJ92mLJQf804dyx0MJA==}
     engines: {node: '>=14'}
     dependencies:
       base64-js: 1.5.1
@@ -11425,20 +11492,20 @@ packages:
       - supports-color
     dev: false
 
-  /google-gax@4.0.3:
-    resolution: {integrity: sha512-gllHYRhZvpz0LcVN+xtyzBeUa/ZYiLGF4JNBECrvL/LxDkaJc09hHoQ+KzRBI2Ewqgrjj7V3QrOC2pGno5ropw==}
+  /google-gax@4.0.4:
+    resolution: {integrity: sha512-Yoey/ABON2HaTUIRUt5tTQAvwQ6E/2etSyFXwHNVcYtIiYDpKix7G4oorZdkp17gFiYovzRCRhRZYrfdCgRK9Q==}
     engines: {node: '>=14'}
     dependencies:
-      '@grpc/grpc-js': 1.8.21
-      '@grpc/proto-loader': 0.7.9
+      '@grpc/grpc-js': 1.9.5
+      '@grpc/proto-loader': 0.7.10
       '@types/long': 4.0.2
       abort-controller: 3.0.0
       duplexify: 4.1.2
-      google-auth-library: 9.0.0
+      google-auth-library: 9.1.0
       node-fetch: 2.6.7
       object-hash: 3.0.0
-      proto3-json-serializer: 1.1.1
-      protobufjs: 7.2.4
+      proto3-json-serializer: 2.0.0
+      protobufjs: 7.2.5
       retry-request: 6.0.0
     transitivePeerDependencies:
       - encoding
@@ -16424,15 +16491,15 @@ packages:
     resolution: {integrity: sha512-kma4U7AFCTwpqq5twzC1YVIDXSqg6qQK6JN0smOw8fgRy1OkMi0CYSzFmsy6dnqSenamAtj0CyXMUJ1Mf6oROg==}
     dev: false
 
-  /proto3-json-serializer@1.1.1:
-    resolution: {integrity: sha512-AwAuY4g9nxx0u52DnSMkqqgyLHaW/XaPLtaAo3y/ZCfeaQB/g4YDH4kb8Wc/mWzWvu0YjOznVnfn373MVZZrgw==}
-    engines: {node: '>=12.0.0'}
+  /proto3-json-serializer@2.0.0:
+    resolution: {integrity: sha512-FB/YaNrpiPkyQNSNPilpn8qn0KdEfkgmJ9JP93PQyF/U4bAiXY5BiUdDhiDO4S48uSQ6AesklgVlrKiqZPzegw==}
+    engines: {node: '>=14.0.0'}
     dependencies:
-      protobufjs: 7.2.4
+      protobufjs: 7.2.5
     dev: false
 
-  /protobufjs@7.2.4:
-    resolution: {integrity: sha512-AT+RJgD2sH8phPmCf7OUZR8xGdcJRga4+1cOaXJ64hvcSkVhNcRHOwIxUatPH15+nj59WAGTDv3LSGZPEQbJaQ==}
+  /protobufjs@7.2.5:
+    resolution: {integrity: sha512-gGXRSXvxQ7UiPgfw8gevrfRWcTlSbOFg+p/N+JVJEK5VhueL2miT6qTymqAmjr1Q5WbOCyJbyrk6JfWKwlFn6A==}
     engines: {node: '>=12.0.0'}
     requiresBuild: true
     dependencies:
@@ -19397,6 +19464,40 @@ packages:
     resolution: {integrity: sha512-AqTiAOLcj85xS7vQ8QkAV41hPDIJ71XJB4RCUrzo/1GM2CQwhkJGaf9Hgr7BOugMRpgGUrqRg/DrBDl4H40+8g==}
     dev: false
 
+  /ts-jest@29.0.3(@babel/core@7.18.13)(jest@29.7.0)(typescript@5.2.2):
+    resolution: {integrity: sha512-Ibygvmuyq1qp/z3yTh9QTwVVAbFdDy/+4BtIQR2sp6baF2SJU/8CKK/hhnGIDY2L90Az2jIqTwZPnN2p+BweiQ==}
+    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+    hasBin: true
+    peerDependencies:
+      '@babel/core': '>=7.0.0-beta.0 <8'
+      '@jest/types': ^29.0.0
+      babel-jest: ^29.0.0
+      esbuild: '*'
+      jest: ^29.0.0
+      typescript: '>=4.3'
+    peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      '@jest/types':
+        optional: true
+      babel-jest:
+        optional: true
+      esbuild:
+        optional: true
+    dependencies:
+      '@babel/core': 7.18.13
+      bs-logger: 0.2.6
+      fast-json-stable-stringify: 2.1.0
+      jest: 29.7.0(@types/node@18.16.14)
+      jest-util: 29.5.0
+      json5: 2.2.3
+      lodash.memoize: 4.1.2
+      make-error: 1.3.6
+      semver: 7.5.0
+      typescript: 5.2.2
+      yargs-parser: 21.1.1
+    dev: true
+
   /ts-jest@29.0.3(@babel/core@7.22.19)(jest@29.7.0)(typescript@5.2.2):
     resolution: {integrity: sha512-Ibygvmuyq1qp/z3yTh9QTwVVAbFdDy/+4BtIQR2sp6baF2SJU/8CKK/hhnGIDY2L90Az2jIqTwZPnN2p+BweiQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -20614,11 +20715,28 @@ packages:
       xpath: 0.0.32
     dev: false
 
+  /xml-crypto@3.2.0:
+    resolution: {integrity: sha512-qVurBUOQrmvlgmZqIVBqmb06TD2a/PpEUfFPgD7BuBfjmoH4zgkqaWSIJrnymlCvM2GGt9x+XtJFA+ttoAufqg==}
+    engines: {node: '>=4.0.0'}
+    dependencies:
+      '@xmldom/xmldom': 0.8.10
+      xpath: 0.0.32
+    dev: false
+
   /xml-encryption@2.0.0:
     resolution: {integrity: sha512-4Av83DdvAgUQQMfi/w8G01aJshbEZP9ewjmZMpS9t3H+OCZBDvyK4GJPnHGfWiXlArnPbYvR58JB9qF2x9Ds+Q==}
     engines: {node: '>=12'}
     dependencies:
       '@xmldom/xmldom': 0.7.9
+      escape-html: 1.0.3
+      xpath: 0.0.32
+    dev: false
+
+  /xml-encryption@3.0.2:
+    resolution: {integrity: sha512-VxYXPvsWB01/aqVLd6ZMPWZ+qaj0aIdF+cStrVJMcFj3iymwZeI0ABzB3VqMYv48DkSpRhnrXqTUkR34j+UDyg==}
+    engines: {node: '>=12'}
+    dependencies:
+      '@xmldom/xmldom': 0.8.10
       escape-html: 1.0.3
       xpath: 0.0.32
     dev: false
@@ -20629,6 +20747,14 @@ packages:
 
   /xml2js@0.4.23:
     resolution: {integrity: sha512-ySPiMjM0+pLDftHgXY4By0uswI3SPKLDw/i3UXbnO8M/p28zqexCUoPmQFrYD+/1BzhGJSs2i1ERWKJAtiLrug==}
+    engines: {node: '>=4.0.0'}
+    dependencies:
+      sax: 1.2.4
+      xmlbuilder: 11.0.1
+    dev: false
+
+  /xml2js@0.5.0:
+    resolution: {integrity: sha512-drPFnkQJik/O+uPKpqSgr22mpuFHqKdbS835iAQrUC73L2F5WkboIRd63ai/2Yg6I1jzifPFKH2NTK+cfglkIA==}
     engines: {node: '>=4.0.0'}
     dependencies:
       sax: 1.2.4
@@ -20668,6 +20794,11 @@ packages:
 
   /xmlserializer@0.6.1:
     resolution: {integrity: sha512-FNb0eEqqUUbnuvxuHqNuKH8qCGKqxu+558Zi8UzOoQk8Z9LdvpONK+v7m3gpKVHrk5Aq+0nNLsKxu/6OYh7Umw==}
+    dev: false
+
+  /xpath@0.0.27:
+    resolution: {integrity: sha512-fg03WRxtkCV6ohClePNAECYsmpKKTv5L8y/X3Dn1hQrec3POx2jHZ/0P2qQ6HvsrU1BmeqXcof3NGGueG6LxwQ==}
+    engines: {node: '>=0.6.0'}
     dev: false
 
   /xpath@0.0.32:

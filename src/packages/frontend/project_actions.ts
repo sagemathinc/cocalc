@@ -42,7 +42,10 @@ import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
 import { FlyoutLogMode, storeFlyoutState } from "./project/page/flyouts/state";
-import { ensure_project_running } from "./project/project-start-warning";
+import {
+  ensure_project_running,
+  is_running_or_starting,
+} from "./project/project-start-warning";
 import { transform_get_url } from "./project/transform-get-url";
 import {
   NewFilenames,
@@ -131,7 +134,7 @@ const LIBRARY = {
 const must_define = function (redux) {
   if (redux == null) {
     throw Error(
-      "you must explicitly pass a redux object into each function in project_store"
+      "you must explicitly pass a redux object into each function in project_store",
     );
   }
 };
@@ -422,7 +425,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } = {
       update_file_listing: true,
       change_history: true,
-    }
+    },
   ): void {
     const store = this.get_store();
     if (store == undefined) return; // project closed
@@ -558,7 +561,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             const { name, Editor } = await this.init_file_react_redux(
               path,
               is_public,
-              this.open_files?.get(path, "ext")
+              this.open_files?.get(path, "ext"),
             );
             if (this.open_files == null) return;
             info.redux_name = name;
@@ -698,11 +701,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   log(
     event: Partial<ProjectEvent>,
     id: string,
-    cb?: (err?: any) => void
+    cb?: (err?: any) => void,
   ): string | undefined;
   log(event: ProjectEvent, id?: string, cb?: Function): string | undefined {
     const my_role = (this.redux.getStore("projects") as any).get_my_group(
-      this.project_id
+      this.project_id,
     );
     if (["public", "admin"].indexOf(my_role) != -1) {
       // Ignore log events for *both* admin and public.
@@ -747,7 +750,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // I copied the {source:?,payload:?} format from react devtools.
       window.parent.postMessage(
         { source: "cocalc-project-log", payload: query },
-        "*"
+        "*",
       );
     }
 
@@ -855,7 +858,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   async initFileRedux(
     path: string,
     is_public: boolean = false,
-    ext?: string // use this extension even instead of path's extension.
+    ext?: string, // use this extension even instead of path's extension.
   ): Promise<string | undefined> {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
@@ -868,7 +871,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.project_id,
       is_public,
       undefined,
-      ext
+      ext,
     );
     return name;
   }
@@ -876,7 +879,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private async init_file_react_redux(
     path: string,
     is_public: boolean,
-    ext?: string
+    ext?: string,
   ): Promise<{ name: string | undefined; Editor: any }> {
     const name = await this.initFileRedux(path, is_public, ext);
 
@@ -886,7 +889,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.redux,
       this.project_id,
       is_public,
-      ext
+      ext,
     );
 
     // Log that we opened the file.
@@ -1123,7 +1126,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     this._activity_indicator_timers[filename] = window.setTimeout(
       set_inactive,
-      1000
+      1000,
     );
 
     this.open_files.set(filename, "has_activity", true);
@@ -1133,7 +1136,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const conf = await this.init_configuration("main");
     if (conf != null && conf.capabilities.pandoc === false) {
       throw new Error(
-        "Pandoc not installed – unable to convert docx to markdown."
+        "Pandoc not installed – unable to convert docx to markdown.",
       );
     }
     const md_fn = misc.change_filename_extension(filename, "md");
@@ -1178,7 +1181,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path,
       this.redux,
       this.project_id,
-      component_data.is_public
+      component_data.is_public,
     );
     this.save_session();
   }
@@ -1191,12 +1194,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         console.warn(
           "error putting project in the foreground: ",
           err,
-          this.project_id
+          this.project_id,
         );
       } else {
         (this.redux.getActions("projects") as any).foreground_project(
           this.project_id,
-          change_history
+          change_history,
         );
       }
     });
@@ -1211,7 +1214,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           "error opening directory in project: ",
           err,
           this.project_id,
-          path
+          path,
         );
       } else {
         if (path[path.length - 1] === "/") {
@@ -1250,7 +1253,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (typeof path !== "string") {
       (window as any).cpath_args = arguments;
       throw Error(
-        "Current path should be a string. Received arguments are available in window.cpath_args"
+        "Current path should be a string. Received arguments are available in window.cpath_args",
       );
     }
     // Set the current path for this project. path is either a string or array of segments.
@@ -1341,7 +1344,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       status = "Loading file list";
     }
-    this.set_activity({ id, status });
+
+    // only show this indicator, if the project is running or starting
+    // if it is stopped, we might get a stale listing from the database!
+    if (is_running_or_starting(this.project_id)) {
+      this.set_activity({ id, status });
+    }
+
     let my_group: any;
     let the_listing: any;
     async.series(
@@ -1374,6 +1383,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             },
           });
         },
+
         async (cb) => {
           store = this.get_store();
           if (store == null) {
@@ -1390,6 +1400,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               hidden: true,
               max_time_s: 15 * 60, // keep trying for up to 15 minutes
               group: my_group,
+              trigger_start_project: false,
             });
           } catch (err) {
             cb(err.message);
@@ -1398,6 +1409,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           cb();
         },
       ],
+
       (err) => {
         this.set_activity({ id, stop: "" });
         // Update the path component of the immutable directory listings map:
@@ -1428,16 +1440,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (typeof opts.cb === "function") {
           opts.cb();
         }
-      }
+      },
     );
   }
 
-  public async fetch_directory_listing_directly(path: string): Promise<void> {
+  public async fetch_directory_listing_directly(
+    path: string,
+    trigger_start_project?: boolean,
+  ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
     const listings = store.get_listings();
     try {
-      const files = await listings.get_listing_directly(path);
+      const files = await listings.get_listing_directly(path, trigger_start_project);
       const directory_listings = store
         .get("directory_listings")
         .set(path, fromJS(files));
@@ -1762,7 +1777,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const args = (opts.zip_args != null ? opts.zip_args : []).concat(
       ["-rq"],
       [opts.dest],
-      opts.src
+      opts.src,
     );
     if (opts.cb == null) {
       id = opts.id != null ? opts.id : misc.uuid();
@@ -1770,7 +1785,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         id,
         status: `Creating ${opts.dest} from ${opts.src.length} ${misc.plural(
           opts.src.length,
-          "file"
+          "file",
         )}`,
       });
     }
@@ -1850,7 +1865,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // also return it as a convenience
   async init_configuration(
     aspect: ConfigurationAspect = "main",
-    no_cache = false
+    no_cache = false,
   ): Promise<Configuration | void> {
     this.setState({ configuration_loading: true });
 
@@ -1884,7 +1899,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             this.project_id,
             aspect,
             prev,
-            no_cache
+            no_cache,
           );
         } catch (e) {
           // not implemented error happens, when the project is still the old one
@@ -1912,7 +1927,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         configuration: next,
         available_features: feature_is_available(next),
         configuration_loading: false,
-      } as any)
+      } as any),
     );
 
     return next.get(aspect) as Configuration;
@@ -2017,7 +2032,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         },
       }).fail((err) =>
         //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
-        cb(err.statusText != null ? err.statusText : "error")
+        cb(err.statusText != null ? err.statusText : "error"),
       );
     };
 
@@ -2132,7 +2147,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       status: `Copying ${opts.src.length} ${misc.plural(
         opts.src.length,
-        "file"
+        "file",
       )} to ${opts.dest}`,
     });
 
@@ -2177,7 +2192,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       status: `Copying ${opts.src.length} ${misc.plural(
         opts.src.length,
-        "path"
+        "path",
       )} to a project`,
     });
     const { src } = opts;
@@ -2205,7 +2220,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // we do this for consistent semantics with file copy
       opts0.target_path = misc.path_to_file(
         opts0.target_path,
-        misc.path_split(src_path).tail
+        misc.path_split(src_path).tail,
       );
       opts0.timeout = 90;
       try {
@@ -2268,7 +2283,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (
       !(await ensure_project_running(
         this.project_id,
-        `move ${opts.src.join(", ")}`
+        `move ${opts.src.join(", ")}`,
       ))
     ) {
       return;
@@ -2276,7 +2291,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = misc.uuid();
     const status = `Moving ${opts.src.length} ${misc.plural(
       opts.src.length,
-      "file"
+      "file",
     )} to ${opts.dest}`;
     this.set_activity({ id, status });
     let error: any = undefined;
@@ -2320,7 +2335,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (
       this.checkForSandboxError(
-        "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
+        "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
       )
     ) {
       return;
@@ -2329,7 +2344,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (
       !(await ensure_project_running(
         this.project_id,
-        `delete ${opts.paths.join(", ")}`
+        `delete ${opts.paths.join(", ")}`,
       ))
     ) {
       return;
@@ -2374,7 +2389,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (
       !(await ensure_project_running(
         this.project_id,
-        `download the file '${opts.name}'`
+        `download the file '${opts.name}'`,
       ))
     ) {
       return;
@@ -2445,7 +2460,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (
       !(await ensure_project_running(
         this.project_id,
-        `create the folder '${opts.name}'`
+        `create the folder '${opts.name}'`,
       ))
     ) {
       return;
@@ -2577,7 +2592,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   private async new_file_from_web(
     url: string,
-    current_path: string
+    current_path: string,
   ): Promise<void> {
     let d = current_path;
     if (d === "") {
@@ -2616,11 +2631,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       disabled?: boolean;
       authenticated?: boolean;
       site_license_id?: string | null;
-    }
+    },
   ) {
     if (
       this.checkForSandboxError(
-        "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
+        "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
       )
     ) {
       console.warn("set_public_path: sandbox");
@@ -2988,7 +3003,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     foreground = true,
     ignore_kiosk = false,
     change_history = true,
-    fragmentId?: FragmentId
+    fragmentId?: FragmentId,
   ): Promise<void> {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");

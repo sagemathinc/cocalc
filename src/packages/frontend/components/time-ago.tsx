@@ -31,7 +31,7 @@ function timeago_formatter(value, unit, suffix, _date) {
 // is a *chance* they are different
 export function is_different_date(
   date0: string | Date | number | undefined | null,
-  date1: string | Date | number | undefined | null
+  date1: string | Date | number | undefined | null,
 ): boolean {
   const t0 = typeof date0;
   const t1 = typeof date1;
@@ -57,6 +57,7 @@ interface TimeAgoElementProps {
   time_ago_absolute?: boolean;
   style?: CSS;
   minPeriod?: number;
+  click_to_toggle?: boolean;
 }
 
 export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
@@ -67,6 +68,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   date,
   style,
   minPeriod,
+  click_to_toggle,
 }) => {
   if (live == null) live = true;
 
@@ -104,13 +106,15 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
     } catch (err) {
       s = `${err}`;
     }
+    const el = render_timeago_element(d);
+    if (!click_to_toggle) return el;
     return (
       <Popover
         trigger="click"
         title={s}
         content={() => (
           <>
-            <div>{render_timeago_element(d)}</div>
+            <div>{el}</div>
             {iso(d)}
             <ToggleRelativeAndAbsolute />
             {tip}
@@ -118,7 +122,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
         )}
         placement={placement}
       >
-        {render_timeago_element(d)}
+        {el}
       </Popover>
     );
   }
@@ -130,6 +134,8 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
     } catch (err) {
       s = `${err}`;
     }
+    const el = <span style={{ cursor: "pointer", ...style }}>{s}</span>;
+    if (!click_to_toggle) return el;
     return (
       <Popover
         trigger="click"
@@ -143,7 +149,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
         )}
         placement={placement}
       >
-        <span style={{ cursor: "pointer", ...style }}>{s}</span>
+        {el}
       </Popover>
     );
   }
@@ -172,12 +178,21 @@ interface TimeAgoProps {
   date?;
   minPeriod?: number;
   time_ago_absolute?: boolean;
+  click_to_toggle?: boolean; // default true
 }
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   (props: TimeAgoElementProps) => {
-    const { placement, tip, live, style, date, minPeriod, time_ago_absolute } =
-      props;
+    const {
+      placement,
+      tip,
+      live,
+      style,
+      date,
+      minPeriod,
+      time_ago_absolute,
+      click_to_toggle = true,
+    } = props;
 
     const other_settings = useTypedRedux("account", "other_settings");
     if (date == null) return <></>;
@@ -193,6 +208,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         }
         style={style}
         minPeriod={minPeriod}
+        click_to_toggle={click_to_toggle}
       />
     );
   },
@@ -200,9 +216,14 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
     // areEqual
     return !(
       is_different_date(props.date, next.date) ||
-      misc_is_different(props, next, ["placement", "tip", "live"])
+      misc_is_different(props, next, [
+        "placement",
+        "tip",
+        "live",
+        "click_to_toggle",
+      ])
     );
-  }
+  },
 );
 
 function ToggleRelativeAndAbsolute({}) {

@@ -4,7 +4,7 @@
  */
 
 import type { TabsProps } from "antd";
-import { Avatar, Popover, Tabs } from "antd";
+import { Avatar, Popover, Tabs, Tooltip } from "antd";
 
 import { Icon, Loading } from "@cocalc/frontend//components";
 import {
@@ -129,38 +129,41 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     }
   }
 
-  function noInternetInfo() {
-    if (showNoInternet)
-      return (
-        <>
-          <div style={{ color: COLORS.ANTD_RED_WARN }}>
-            This project can't connect to the internet: {NO_INTERNET}.
-            {onKucalc && (
-              <>
-                {" "}
-                <BuyLicenseForProject
-                  buyText="Upgrade this project"
-                  asLink={true}
-                  size="small"
-                  style={{
-                    padding: 0,
-                    color: COLORS.ANTD_RED_WARN,
-                    fontWeight: "bold",
-                  }}
-                />{" "}
-                to unblock internet access.
-              </>
-            )}
-          </div>
-          <hr />
-        </>
-      );
+  function noInternetInfo(mode: "tooltip" | "popover") {
+    if (!showNoInternet) return;
+    const fontStyle = {
+      color: mode === "popover" ? COLORS.ANTD_RED_WARN : "white",
+    };
+    return (
+      <>
+        <div style={fontStyle}>
+          This project does not have access to the internet: {NO_INTERNET}.
+          {onKucalc && (
+            <>
+              {" "}
+              <BuyLicenseForProject
+                buyText="Upgrade this project"
+                asLink={true}
+                size="small"
+                style={{
+                  padding: 0,
+                  fontWeight: "bold",
+                  ...fontStyle,
+                }}
+              />{" "}
+              to unblock internet access.
+            </>
+          )}
+        </div>
+        {mode === "popover" ? <hr /> : null}
+      </>
+    );
   }
 
   function renderContent() {
     return (
       <div style={{ maxWidth: "400px", maxHeight: "50vh", overflow: "auto" }}>
-        {noInternetInfo()}
+        {noInternetInfo("popover")}
         <ProjectAvatarImage
           project_id={project_id}
           size={120}
@@ -179,8 +182,15 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   }
 
   function renderNoInternet() {
-    if (showNoInternet)
-      return <Icon name="global" style={{ color: COLORS.ANTD_RED_WARN }} />;
+    if (!showNoInternet) return;
+    const noInternet = (
+      <Icon name="global" style={{ color: COLORS.ANTD_RED_WARN }} />
+    );
+    if (other_settings.get("hide_project_popovers")) {
+      return <Tooltip title={noInternetInfo("tooltip")}>{noInternet}</Tooltip>;
+    } else {
+      return noInternet;
+    }
   }
 
   function renderAvatar() {
@@ -246,7 +256,6 @@ export function ProjectsNav(props: ProjectsNavProps) {
   const projectActions = useActions("projects");
   const activeTopTab = useTypedRedux("page", "active_top_tab");
   const openProjects = useTypedRedux("projects", "open_projects");
-  const isAnonymous = useTypedRedux("account", "is_anonymous");
 
   const items: TabsProps["items"] = useMemo(() => {
     if (openProjects == null) return [];
@@ -309,7 +318,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
             onChange={(project_id) => {
               actions.set_active_tab(project_id);
             }}
-            type={isAnonymous ? "card" : "editable-card"}
+            type={"editable-card"}
             renderTabBar={renderTabBar}
             items={items}
           />

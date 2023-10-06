@@ -3,16 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button } from "antd";
 import { useMemo } from "react";
+
+import { Paragraph, Text } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import { ChatGPTGenerateNotebookButton } from "../../page/home-page/chatgpt-generate-jupyter";
+import { useAvailableFeatures } from "../../use-available-features";
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
-import { FileTypeSelector } from "@cocalc/frontend/project/new";
-import { Button } from "antd";
-import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import { useAvailableFeatures } from "../../use-available-features";
-import { ChatGPTGenerateNotebookButton } from "../../page/home-page/chatgpt-generate-jupyter";
 
 interface Props {
   name: string;
@@ -81,6 +83,12 @@ export default function NoFiles({
       >
         <Icon name="plus-circle" /> {buttonText}
       </Button>
+      <Paragraph
+        type="secondary"
+        style={{ textAlign: "center", marginTop: "10px" }}
+      >
+        (or <Text code>Shift+Return</Text> in the search box)
+      </Paragraph>
       <HelpAlert
         file_search={file_search}
         actual_new_filename={actualNewFilename}

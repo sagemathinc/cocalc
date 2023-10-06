@@ -29,6 +29,18 @@ init();
 
 export async function add_self_to_project_using_token(token_id) {
   if (webapp_client.account_id == null) return;
+
+  const actions = redux.getActions("page");
+  if (
+    !(await actions.popconfirm({
+      title: "Would you like to accept this project invitation?",
+      description:
+        "If you are visiting a link from somebody you trust, click 'Yes, accept invitation'. If this seems suspicious, click 'No'.  You can always open the invite link again if you change your mind.",
+      okText: "Yes, accept invitation",
+    }))
+  ) {
+    return;
+  }
   try {
     const resp = await webapp_client.project_collaborators.add_collaborator({
       account_id: webapp_client.account_id,
@@ -38,8 +50,7 @@ export async function add_self_to_project_using_token(token_id) {
     if (typeof project_id == "string") {
       alert_message({
         type: "info",
-        message:
-          "You have been successfully added to the project!",
+        message: "You have been successfully added to the project!",
         timeout: 10,
       });
       // Wait until the project is available in the store:

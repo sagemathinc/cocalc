@@ -27,7 +27,6 @@ import ProjectList from "./project-list";
 import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
-import { AddToProjectToken } from "./token";
 import ProjectsPageTour from "./tour";
 import { get_visible_hashtags, get_visible_projects } from "./util";
 import { COLORS } from "@cocalc/util/theme";
@@ -174,7 +173,6 @@ export const ProjectsPage: React.FC = () => {
           <Col md={2}>
             <UsersViewing style={{ width: "100%" }} />
           </Col>
-          <Col md={3}>{!is_anonymous && <AddToProjectToken />}</Col>
         </Row>
         <Row>
           <Col sm={4}>

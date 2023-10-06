@@ -33,7 +33,13 @@ export class RemoteTerminal {
 
   constructor(conn, cwd?) {
     this.conn = conn;
-    this.conn.on("data", this.handleData);
+    this.conn.on("data", async (data) => {
+      try {
+        await this.handleData(data);
+      } catch (err) {
+        logger.debug("error handling data -- ", err);
+      }
+    });
     this.cwd = cwd;
     logger.debug("create ", { cwd });
   }
@@ -65,7 +71,7 @@ export class RemoteTerminal {
           break;
 
         case "cwd":
-          this.sendCurrentWorkingDirectoryLocalPty();
+          await this.sendCurrentWorkingDirectoryLocalPty();
           break;
       }
     }
@@ -87,11 +93,11 @@ export class RemoteTerminal {
     this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);
 
-    localPty.on("data", (data) => {
+    localPty.onData((data) => {
       this.conn.write(data);
     });
 
-    localPty.on("exit", () => {
+    localPty.onExit(() => {
       delete this.localPty; // no longer valid
       this.conn.write({ cmd: "exit" });
     });

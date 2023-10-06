@@ -5,14 +5,20 @@ import { editLicenseOwner } from "@cocalc/frontend/purchases/api";
 import ShowError from "@cocalc/frontend/components/error";
 import { redux } from "@cocalc/frontend/app-framework";
 
-export default function Owner({ account_id, license_id }) {
-  const [owner, setOwner] = useState<string>(account_id);
+export default function Owner({ info, license_id }) {
+  const [owner, setOwner] = useState<string>(() => {
+    try {
+      return JSON.parse(info)?.purchased?.account_id;
+    } catch (_) {
+      return "";
+    }
+  });
   const [error, setError] = useState<string>("");
   const [query, setQuery] = useState<string>("");
   const [name, setName] = useState<string>("");
   useEffect(() => {
     (async () => {
-      if (account_id == null) {
+      if (!owner) {
         setName("No Owner Set");
         return;
       }
