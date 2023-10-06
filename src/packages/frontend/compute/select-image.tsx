@@ -46,8 +46,8 @@ export default function SelectImage({
   );
 }
 
-export function DisplayImage({ image }) {
-  console.log(image, IMAGES[image]);
+export function DisplayImage({ configuration }) {
+  const { image } = configuration ?? {};
   if (image == null) return null;
   const data = IMAGES[image];
   if (data == null) {

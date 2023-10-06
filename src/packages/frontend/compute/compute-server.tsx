@@ -281,7 +281,7 @@ export default function ComputeServer({
               </div>
               <div style={{ flex: 1 }} />
               <div style={{ color: "#666" }}>
-                <DisplayImage image={configuration.image} />
+                <DisplayImage configuration={configuration} />
               </div>
               <div style={{ flex: 1 }} />
               <Title title={title} editable={false} />

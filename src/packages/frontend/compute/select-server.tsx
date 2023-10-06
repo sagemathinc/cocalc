@@ -11,6 +11,7 @@ import { cmp } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
+import { DisplayImage } from "./select-image";
 
 interface Props {
   project_id: string;
@@ -86,7 +87,7 @@ export default function SelectComputeServer({
     for (const id in computeServers) {
       const server = computeServers[id];
       if (server.deleted) continue;
-      const { color, title, state } = server;
+      const { color, title, state, configuration } = server;
       const { icon } = STATE_INFO[state ?? "off"] ?? {};
       const label = (
         <div
@@ -103,6 +104,9 @@ export default function SelectComputeServer({
             </Tooltip>
           )}
           {title}
+          <div style={{ marginLeft: "20px" }}>
+            <DisplayImage configuration={configuration} />
+          </div>
         </div>
       );
       options.push({ value: id, sort: title.toLowerCase(), state, label });
@@ -158,7 +162,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value ? "130px" : "64px",
+          width: open ? "300px" : value ? "110px" : "64px",
           background: value ? computeServers[value]?.color : undefined,
           color: "white", // todo
         }}
