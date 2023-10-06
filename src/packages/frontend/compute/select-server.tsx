@@ -17,15 +17,25 @@ interface Props {
   path: string;
   frame_id: string;
   style?: CSSProperties;
+  actions?;
 }
 
 export default function SelectComputeServer({
   project_id,
   path,
   frame_id,
+  actions,
   style,
 }: Props) {
-  console.log({ path, frame_id });
+  const getPath = (path) => {
+    if (actions != null && path.endsWith(".term")) {
+      const p = actions.get_terminal(frame_id)?.term_path;
+      if (p != null) {
+        return p;
+      }
+    }
+    return path;
+  };
   const [loading, setLoading] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
   const computeServers = useTypedRedux(
@@ -39,7 +49,9 @@ export default function SelectComputeServer({
   useEffect(() => {
     const handleChange = async () => {
       try {
-        const id = await computeServerAssociations.getServerIdForPath(path);
+        const id = await computeServerAssociations.getServerIdForPath(
+          getPath(path),
+        );
         if (id) {
           setValue(`${id}`);
         } else {
@@ -108,7 +120,7 @@ export default function SelectComputeServer({
       value: "0",
       sort: "project",
       state: "",
-      label: "Run in this project",
+      label: "This Project",
     });
     return options;
   }, [computeServers]);
@@ -123,7 +135,7 @@ export default function SelectComputeServer({
       <Select
         bordered={false}
         disabled={loading}
-        placeholder={<Icon style={{color:"#666"}} name="server" />}
+        placeholder={<Icon style={{ color: "#666" }} name="server" />}
         open={open}
         onSelect={(id) => {
           setValue(id);
@@ -131,10 +143,12 @@ export default function SelectComputeServer({
           if (idNum) {
             computeServerAssociations.connectComputeServerToPath({
               id: idNum,
-              path,
+              path: getPath(path),
             });
           } else {
-            computeServerAssociations.disconnectComputeServer({ path });
+            computeServerAssociations.disconnectComputeServer({
+              path: getPath(path),
+            });
           }
         }}
         onClear={() => {
@@ -144,7 +158,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : "64px",
+          width: open ? "300px" : value ? "130px" : "64px",
           background: value ? computeServers[value]?.color : undefined,
           color: "white", // todo
         }}

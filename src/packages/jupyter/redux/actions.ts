@@ -2480,7 +2480,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   protected check_select_kernel(): void {
-    const kernel = this.store.get("kernel");
+    const kernel = this.store?.get("kernel");
     if (kernel == null) return;
     let unknown_kernel = false;
     if (kernel === "") {

@@ -1923,10 +1923,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_visible("compute_server")) return null;
     return (
       <SelectComputeServer
+        actions={props.actions}
         frame_id={props.id}
         style={{
           marginRight: "3px",
           marginTop: "1px",
+          height: button_height(),
         }}
         project_id={props.project_id}
         path={props.path}
