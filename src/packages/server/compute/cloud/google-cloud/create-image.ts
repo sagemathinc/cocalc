@@ -9,7 +9,7 @@ a = require('./dist/compute/cloud/google-cloud/create-image')
 await a.createImages({image:"python", arch:'arm64'})
 
 // (Danger) This just creates ALL images in parallel:
-await a.createImages({})
+await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
 
 a = require('./dist/compute/cloud/google-cloud/images')
 {sourceImage} = await a.getNewestSourceImage({image:'python',test:true})

@@ -22,7 +22,8 @@ const STATUS_INTERVAL_MS = 15000;
 
 interface Options {
   project_id: string;
-  // the id number of this manager, should be the id in the database from the compute_servers table.
+  // the id number of the comput server where this manager is running;
+  // it should be the id in the database from the compute_servers table.
   compute_server_id: number;
   // HOME = local home directory.  This should be a network mounted (or local)
   // filesystem that is identical to the home directory of the target project.
