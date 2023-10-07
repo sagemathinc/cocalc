@@ -218,7 +218,7 @@ export function PurchasesTable({
       // Compute incremental balance
       //
       let b = balance;
-      x.forEach((row, i) => {
+      x.forEach((row) => {
         row["balance"] = b;
         b += row["sum"] ?? row["cost"] ?? 0;
       });
