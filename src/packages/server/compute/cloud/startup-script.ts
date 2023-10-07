@@ -5,6 +5,7 @@ import type { ImageName } from "@cocalc/util/db-schema/compute-servers";
 
 export default async function startupScript({
   image = "minimal",
+  compute_server_id,
   api_key,
   project_id,
   gpu,
@@ -12,6 +13,7 @@ export default async function startupScript({
   hostname,
 }: {
   image?: ImageName;
+  compute_server_id: number;
   api_key?: string;
   project_id?: string;
   gpu?: boolean;
@@ -34,6 +36,7 @@ export default async function startupScript({
 #!/bin/bash
 
 ${runCoCalcCompute({
+  compute_server_id,
   api_key,
   project_id,
   gpu,
@@ -57,7 +60,7 @@ ${computeManager(opts)}
 `;
 }
 
-function mountFilesystems({ api_key, project_id, arch, apiServer }) {
+function mountFilesystems({ compute_server_id, api_key, project_id, arch, apiServer }) {
   const image = `sagemathinc/compute-filesystem${
     arch == "arm64" ? "-arm64" : ""
   }`;
@@ -75,6 +78,7 @@ docker run \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
    -e API_SERVER=${apiServer} \
+   -e COMPUTE_SERVER_ID=${compute_server_id} \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
@@ -95,6 +99,7 @@ const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
 function computeManager({
+  compute_server_id,
   api_key,
   project_id,
   arch,
@@ -120,6 +125,7 @@ docker run -d ${gpu ? GPU_FLAGS : ""} \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
+   -e COMPUTE_SERVER_ID=${compute_server_id} \
    -e API_SERVER=${apiServer} \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
