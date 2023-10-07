@@ -128,6 +128,7 @@ function Purchases0({
         day_statement_id={day_statement_id}
         month_statement_id={month_statement_id}
         noStatement={noStatement}
+        showBalance
         showTotal
         showRefresh
       />
@@ -144,6 +145,7 @@ export function PurchasesTable({
   day_statement_id,
   month_statement_id,
   noStatement,
+  showBalance,
   showTotal,
   showRefresh,
   style,
@@ -153,6 +155,7 @@ export function PurchasesTable({
   thisMonth?: boolean;
   cutoff?: Date;
   noStatement?: boolean;
+  showBalance?: boolean;
   showTotal?: boolean;
   showRefresh?: boolean;
   style?: CSSProperties;
@@ -167,6 +170,7 @@ export function PurchasesTable({
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
+  const [balance, setBalance] = useState<number>(0);
 
   const getNextPage = () => {
     setOffset((prevOffset) => prevOffset + limit);
@@ -174,6 +178,15 @@ export function PurchasesTable({
 
   const getPrevPage = () => {
     setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
+  };
+
+  const getBalance = async () => {
+    try {
+      setBalance(0);
+      setBalance(await api.getBalance());
+    } catch (err) {
+      setError(`${err}`);
+    }
   };
 
   const getPurchases = async () => {
@@ -201,6 +214,17 @@ export function PurchasesTable({
       } else {
         setPurchases(x);
       }
+
+      // Compute incremental balance
+      //
+      let b = balance;
+      x.forEach((row, i) => {
+        row["balance"] = b;
+        b += row["sum"] ?? row["cost"] ?? 0;
+      });
+
+      // Compute total cost
+      //
       let t = 0;
       for (const row of x) {
         t += row["sum"] ?? row["cost"] ?? 0;
@@ -212,8 +236,13 @@ export function PurchasesTable({
   };
 
   useEffect(() => {
+    getBalance();
+  }, []);
+
+  useEffect(() => {
     getPurchases();
   }, [limit, offset, group, service, project_id, thisMonth, noStatement]);
+
 
   //const download = (format: "csv" | "json") => {};
 
@@ -271,11 +300,20 @@ export function PurchasesTable({
         )}
         {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
       </div>
-      {showTotal && total != null && (
-        <div style={{ fontSize: "12pt", marginTop: "15px" }}>
-          Total of Displayed Costs: ${(-total).toFixed(2)}
-        </div>
-      )}
+      <div style={{
+        fontSize: "12pt",
+        marginTop: "15px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}>
+        {showTotal && total != null && (
+          <span>Total of Displayed Costs: ${(-total).toFixed(2)}</span>
+        )}
+        {showBalance && balance != null && (
+          <span>Current Balance: ${(balance).toFixed(2)}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -342,7 +380,7 @@ function DetailedPurchaseTable({
   purchases,
   admin,
 }: {
-  purchases: Partial<Purchase>[] | null;
+  purchases: Partial<Purchase & { balance?: number }>[] | null;
   admin: boolean;
 }) {
   if (purchases == null) {
@@ -467,6 +505,16 @@ function DetailedPurchaseTable({
               ),
               sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
+            },
+            {
+              title: "Balance (USD)",
+              align: "right" as "right",
+              dataIndex: "balance",
+              key: "balance",
+              render: (_, {balance}) =>
+                balance != undefined ? (
+                  <Balance balance={balance}/>
+                ) : null,
             },
             {
               title: "Project",
@@ -741,12 +789,9 @@ function Amount({ record }) {
     );
   }
   if (cost != null) {
-    const amount = -cost;
     return (
-      <span style={getAmountStyle(amount)}>
-        {currency(amount, Math.abs(amount) < 0.1 ? 3 : 2)}
-      </span>
-    );
+      <Balance balance={-cost} />
+    )
   }
   return <>-</>;
 }
@@ -762,6 +807,17 @@ function Pending({ record }) {
       </Tooltip>
     </div>
   );
+}
+
+function Balance({ balance }) {
+  if (balance != undefined) {
+    return (
+      <span style={getAmountStyle(balance)}>
+        {currency(balance, Math.abs(balance) < 0.1 ? 3 : 2)}
+      </span>
+    );
+  }
+  return <>-</>;
 }
 
 function getFilename({ thisMonth, cutoff, limit, offset, noStatement }) {
