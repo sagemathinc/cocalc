@@ -116,7 +116,7 @@ function computeManager({
 
   return `
 docker run -d ${gpu ? GPU_FLAGS : ""} \
-   --name=manager \
+   --name=compute-${image} \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
