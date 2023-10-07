@@ -1,14 +1,17 @@
 import type { Architecture } from "./google-cloud/images";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { UID } from "./install";
+import type { ImageName } from "@cocalc/util/db-schema/compute-servers";
 
 export default async function startupScript({
+  image = "minimal",
   api_key,
   project_id,
   gpu,
   arch,
   hostname,
 }: {
+  image?: ImageName;
   api_key?: string;
   project_id?: string;
   gpu?: boolean;
@@ -30,7 +33,15 @@ export default async function startupScript({
   return `
 #!/bin/bash
 
-${runCoCalcCompute({ api_key, project_id, gpu, arch, hostname, apiServer })}
+${runCoCalcCompute({
+  api_key,
+  project_id,
+  gpu,
+  arch,
+  hostname,
+  apiServer,
+  image,
+})}
 `;
 }
 
@@ -77,38 +88,43 @@ docker run \
 NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
 insufficient for TensorFlow.  NVIDIA recommends the use of the following flags:
 docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
-const GPU_FLAGS =
-  " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 docker run  ${gpu ? GPU_FLAGS : ""} \
-
-TODO: I don't think we need gpu here but will for things this launches.
 */
 
-function computeManager({ api_key, project_id, arch, hostname, apiServer }) {
-  const image = `sagemathinc/compute-manager${arch == "arm64" ? "-arm64" : ""}`;
+const GPU_FLAGS =
+  " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
+
+function computeManager({
+  api_key,
+  project_id,
+  arch,
+  hostname,
+  apiServer,
+  image,
+  gpu,
+}) {
+  const docker = `sagemathinc/compute-${image}${
+    arch == "arm64" ? "-arm64" : ""
+  }`;
 
   // Start a container that connects to the project
-  // and manages other containers that provide terminals,
-  // jupyter kernels, etc.
-
-  // for now it just connects to hostname.term as a demo.
+  // and manages providing terminals and jupyter kernels
+  // in this environment.
 
   // The special mount line is necessary in case the filesystem has mounted when this
   // container starts (which is likely).
 
   return `
-docker run \
-   -d \
-   --name=compute-manager \
+docker run -d ${gpu ? GPU_FLAGS : ""} \
+   --name=manager \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
    -e API_SERVER=${apiServer} \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
-   -e TERM_PATH=${hostname}.term \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   ${image}
+   ${docker}
  `;
 }

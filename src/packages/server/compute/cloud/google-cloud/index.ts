@@ -58,6 +58,7 @@ export async function start(server: ComputeServer) {
       name,
       configuration,
       startupScript: await startupScript({
+        image: configuration.image,
         api_key: server.api_key,
         project_id: server.project_id,
         gpu: !!configuration.acceleratorType,
