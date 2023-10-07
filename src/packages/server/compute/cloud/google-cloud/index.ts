@@ -57,7 +57,7 @@ export async function start(server: ComputeServer) {
     const { diskSizeGb } = await createInstance({
       name,
       configuration,
-      startupScript: startupScript({
+      startupScript: await startupScript({
         api_key: server.api_key,
         project_id: server.project_id,
         gpu: !!configuration.acceleratorType,

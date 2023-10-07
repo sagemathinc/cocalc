@@ -63,6 +63,7 @@ export default function PurchasesPage() {
         limit={MAX_API_LIMIT}
         cutoff={dayjs().subtract(1, "day").toDate()}
         showRefresh
+        showBalance
       />
       <Divider style={{ marginTop: "30px" }}>
         All Transactions, Spending Limits, and Plots

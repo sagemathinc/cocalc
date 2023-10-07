@@ -18,7 +18,7 @@ await a.setImageLabel({key:'prod',value:true, name:sourceImage})
 
 
 // This labels *everything* that is not prod=true to instead have prod=true:
-await a.labelSourceImages({filter:{prod:false}})
+await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
 */
 
@@ -372,12 +372,14 @@ function createBuildConfiguration({
 ${installDocker()}
 ${installUser()}
 
+docker system prune -a -f
 docker pull sagemathinc/compute-filesystem
 docker pull ${docker}${arch == "x86_64" ? "" : "-arm64"}
 
 ${gpu ? installCuda() : ""}
 
 df -h /
+sync
 `;
 
   return {

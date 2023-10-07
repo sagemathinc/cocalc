@@ -1,7 +1,8 @@
 import type { Architecture } from "./google-cloud/images";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { UID } from "./install";
 
-export default function startupScript({
+export default async function startupScript({
   api_key,
   project_id,
   gpu,
@@ -20,10 +21,16 @@ export default function startupScript({
   if (!project_id) {
     throw Error("project_id must be specified");
   }
+
+  let { dns: apiServer } = await getServerSettings();
+  if (!apiServer.includes("://")) {
+    apiServer = `https://${apiServer}`;
+  }
+
   return `
 #!/bin/bash
 
-${runCoCalcCompute({ api_key, project_id, gpu, arch, hostname })}
+${runCoCalcCompute({ api_key, project_id, gpu, arch, hostname, apiServer })}
 `;
 }
 
@@ -39,16 +46,12 @@ ${computeManager(opts)}
 `;
 }
 
-function mountFilesystems({ api_key, project_id, arch }) {
+function mountFilesystems({ api_key, project_id, arch, apiServer }) {
   const image = `sagemathinc/compute-filesystem${
     arch == "arm64" ? "-arm64" : ""
   }`;
 
   return `
-
-# Pull latest image
-docker pull ${image}
-
 # Make the home directory
 rm -rf /home/user && mkdir /home/user && chown ${UID}:${UID} -R /home/user
 
@@ -60,6 +63,8 @@ docker run \
    --name=compute-filesystem \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
+   -e API_SERVER=${apiServer} \
+   -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    ${image}
@@ -79,7 +84,7 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 TODO: I don't think we need gpu here but will for things this launches.
 */
 
-function computeManager({ api_key, project_id, arch, hostname }) {
+function computeManager({ api_key, project_id, arch, hostname, apiServer }) {
   const image = `sagemathinc/compute-manager${arch == "arm64" ? "-arm64" : ""}`;
 
   // Start a container that connects to the project
@@ -92,15 +97,14 @@ function computeManager({ api_key, project_id, arch, hostname }) {
   // container starts (which is likely).
 
   return `
-# Pull latest image
-docker pull ${image}
-
 docker run \
    -d \
    --name=compute-manager \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
+   -e API_SERVER=${apiServer} \
+   -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    -e TERM_PATH=${hostname}.term \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
