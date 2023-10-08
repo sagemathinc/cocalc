@@ -483,11 +483,23 @@ export class JupyterActions extends JupyterActions0 {
   // Ensure that the cells listed as running *are* exactly the
   // ones actually running or queued up to run.
   sync_exec_state = () => {
-    if (this.store == null || this._state !== "ready" || !this.isCellRunner()) {
-      // not initialized or we are not the cell runner, so we better not
+    // sync_exec_state is debounced, so it is *expected* to get called
+    // after actions have been closed.
+    if (this.store == null || this._state !== "ready") {
+      // not initialized, so we better not
       // mess with cell state (that is somebody else's responsibility).
       return;
     }
+    try {
+      //  we are not the cell runner
+      if (!this.isCellRunner()) {
+        return;
+      }
+    } catch (_) {
+      // normal since sync_exec_state is debounced.
+      return;
+    }
+
     const dbg = this.dbg("sync_exec_state");
     let change = false;
     const cells = this.store.get("cells");
