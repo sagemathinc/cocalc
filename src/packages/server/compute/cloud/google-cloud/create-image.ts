@@ -389,7 +389,7 @@ docker pull ${DOCKER_USER}/compute-cocalc
 rm -rf /tmp/cocalc
 docker create --name temp-copy-cocalc ${DOCKER_USER}/compute-cocalc${ARCH}
 docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
-rsync -axH --delete /tmp/cocalc /cocalc/
+rsync -axH --delete /tmp/cocalc/ /cocalc/
 rm -rf /tmp/cocalc
 docker rm temp-copy-cocalc
 
