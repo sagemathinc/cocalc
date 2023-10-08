@@ -6,7 +6,7 @@ Type ".help" for more information.
 
 a = require('./dist/compute/cloud/google-cloud/create-image')
 
-await a.createImages({image:"python", arch:'arm64'})
+await a.createImages({image:"python", arch:'x86_64'})
 
 // (Danger) This just creates ALL images in parallel:
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({})

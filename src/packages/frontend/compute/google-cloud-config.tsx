@@ -25,6 +25,7 @@ import computeCost, {
   EXTERNAL_IP_COST,
   EGRESS_COST_PER_GiB,
   computeDiskCost,
+  markup,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
@@ -34,7 +35,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { DNS_COST_PER_MONTH, checkValidDomain } from "@cocalc/util/compute/dns";
+import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage from "./select-image";
 
 const SELECTOR_WIDTH = "350px";
@@ -331,11 +332,10 @@ export default function Configuration({
       label: <></>,
       value: (
         <Network
-          disabled={loading || disabled}
           setConfig={setConfig}
           configuration={configuration}
-          state={state}
           loading={loading}
+          priceData={priceData}
         />
       ),
     },
@@ -629,8 +629,8 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VM's stay running until you stop them, whereas spot VM's may
-        get killed if there is a surge in demand.
+        Standard VM's stay running until you stop them, whereas{" "}
+        <b>spot VM's will get killed when there is a surge in demand</b>.
       </div>
     </div>
   );
@@ -929,7 +929,17 @@ function BootDisk({
             </Button>
           )}
       </Space>
-      <div style={{ marginTop: "15px" }}>
+      <div style={{ color: "#666", margin: "10px 0" }}>
+        Set the size between {getMinDiskSizeGb(configuration)} GB and 65,536 GB.
+        {state != "deprovisioned" && (
+          <>
+            {" "}
+            You can only increase the disk size when the VM is off or
+            deprovisioned.
+          </>
+        )}
+      </div>
+      <div>
         <Select
           style={{ width: SELECTOR_WIDTH }}
           disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
@@ -961,16 +971,6 @@ function BootDisk({
             },
           ]}
         ></Select>
-      </div>
-      <div style={{ color: "#666", marginTop: "5px" }}>
-        Set the size between {getMinDiskSizeGb(configuration)} GB and 65,536 GB.
-        {state != "deprovisioned" && (
-          <>
-            {" "}
-            You can only increase the disk size when the VM is off or
-            deprovisioned.
-          </>
-        )}
       </div>
     </div>
   );
@@ -1369,12 +1369,12 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({ setConfig, configuration, disabled, state, loading }) {
+function Network({ setConfig, configuration, loading, priceData }) {
   const [externalIp, setExternalIp] = useState<boolean>(
-    !!configuration.externalIp,
+    configuration.externalIp ?? true,
   );
   useEffect(() => {
-    setExternalIp(!!configuration.externalIp);
+    setExternalIp(configuration.externalIp ?? true);
   }, [configuration.externalIp]);
 
   return (
@@ -1388,7 +1388,9 @@ function Network({ setConfig, configuration, disabled, state, loading }) {
       </div>
       <Checkbox
         checked={externalIp}
-        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+        disabled={
+          true /* compute servers can't work without external ip or Cloud NAT (which costs a lot), so changing this always disabled.  Before: disabled || (state ?? "deprovisioned") != "deprovisioned"*/
+        }
         onChange={() => {
           setExternalIp(!externalIp);
           setConfig({ externalIp: !externalIp });
@@ -1407,12 +1409,18 @@ function Network({ setConfig, configuration, disabled, state, loading }) {
         >
           {/* TODO: we can and will in theory support all this without external
         ip using a gateway. E.g., google cloud shell has ssh to host, etc. */}
-          An external IP address enables you to run a public web service and ssh
-          directly to your compute server, but costs{" "}
+          An external IP address is required and costs{" "}
           {configuration.spot
-            ? `$${EXTERNAL_IP_COST.spot}/hour`
-            : `$${EXTERNAL_IP_COST.standard}/hour`}{" "}
-          while the VM is running, and is free when it is not running.
+            ? `${currency(
+                markup({ cost: EXTERNAL_IP_COST.spot, priceData }),
+              )}/hour`
+            : `${currency(
+                markup({
+                  cost: EXTERNAL_IP_COST.standard,
+                  priceData,
+                }),
+              )}/hour`}{" "}
+          while the VM is running (there is no charge when not running).
         </Typography.Paragraph>
       </div>
       {externalIp && (
@@ -1449,15 +1457,6 @@ function DNS({ setConfig, configuration, loading }) {
 
   return (
     <div>
-      {showDns && (
-        <A
-          style={{ float: "right" }}
-          href={`https://${configuration.dns}.${compute_servers_dns}`}
-        >
-          <Icon name="external-link" /> https://{dns ?? "*"}.
-          {compute_servers_dns}
-        </A>
-      )}
       <Checkbox
         disabled={loading}
         checked={showDns}
@@ -1470,8 +1469,18 @@ function DNS({ setConfig, configuration, loading }) {
           }
         }}
       >
-        Custom Domain ({currency(DNS_COST_PER_MONTH)}/month)
+        Custom Domain Name with SSL ({currency(DNS_COST_PER_HOUR)}/hour when VM
+        not deprovisioned)
       </Checkbox>
+      {showDns && (
+        <A
+          style={{ float: "right" }}
+          href={`https://${configuration.dns}.${compute_servers_dns}`}
+        >
+          <Icon name="external-link" /> https://{dns ?? "*"}.
+          {compute_servers_dns}
+        </A>
+      )}
       {showDns && (
         <div style={{ marginTop: "5px" }}>
           <Input
@@ -1502,6 +1511,27 @@ function DNS({ setConfig, configuration, loading }) {
               ? "Enable Custom Domain"
               : "Custom Domain Enabled"}
           </Button>
+          <div style={{ color: "#666", margin: "5px 0" }}>
+            <Typography.Paragraph
+              style={{ color: "#666" }}
+              ellipsis={{
+                expandable: true,
+                rows: 2,
+                symbol: "more",
+              }}
+            >
+              A custom DNS A record with{" "}
+              <A href="https://developers.cloudflare.com/dns/manage-dns-records/reference/proxied-dns-records/">
+                https and http proxying will be created at CloudFlare
+              </A>{" "}
+              as long as your VM is not deprovisioned. Whenever your VM starts
+              running it is allocated an external ip address, and CoCalc updates
+              the DNS entry to point at that ip address. A web server with
+              self-signed certificate will appear to have a proper certificate
+              to website visitors. You can enable or disable custom DNS at any
+              time.
+            </Typography.Paragraph>
+          </div>
           {dnsError && dns && (
             <div
               style={{

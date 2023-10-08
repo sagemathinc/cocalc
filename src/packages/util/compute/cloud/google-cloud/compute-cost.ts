@@ -159,6 +159,7 @@ export const EXTERNAL_IP_COST = {
   standard: 0.005,
   spot: 0.0025,
 };
+
 function computeExternalIpCost({ configuration, priceData }) {
   if (!configuration.externalIp) {
     return 0;
@@ -218,7 +219,7 @@ export function computeNetworkCost(egressGiB: number): number {
   return cost;
 }
 
-function markup({ cost, priceData }) {
+export function markup({ cost, priceData }) {
   if (priceData.markup) {
     return cost * (1 + priceData.markup / 100.0);
   }

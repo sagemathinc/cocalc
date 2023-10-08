@@ -130,6 +130,8 @@ docker run -d ${gpu ? GPU_FLAGS : ""} \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+   -p 443:443 \
+   -p 80:80 \
    -v /var/run/docker.sock:/var/run/docker.sock \
    ${docker}
  `;

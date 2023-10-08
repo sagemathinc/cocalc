@@ -222,6 +222,7 @@ export const CLOUDS: {
       spot: true,
       diskSizeGb: getMinDiskSizeGb({}),
       diskType: "pd-standard",
+      externalIp: true,
     },
   },
   lambda: {

@@ -46,28 +46,10 @@ export default async function createInstance({
 
   const machineType = getFullMachineType(configuration);
 
-  const networkInterfaces = [
-    {
-      accessConfigs: configuration.externalIp
-        ? [
-            {
-              name: "External NAT",
-              networkTier: supportsStandardNetworkTier(configuration.region)
-                ? "STANDARD"
-                : "PREMIUM",
-            },
-          ]
-        : [],
-      stackType: "IPV4_ONLY",
-      subnetwork: `projects/${client.googleProjectId}/regions/${configuration.region}/subnetworks/default`,
-    },
-  ];
-
-  const tags = configuration.externalIp
-    ? {
-        items: ["https-server"],
-      }
-    : undefined;
+  const { networkInterfaces, tags } = getNetworkInterfaces(
+    configuration,
+    client,
+  );
 
   const configMetadata = { items: [] as { key: string; value: any }[] };
   if (metadata != null) {
@@ -167,6 +149,39 @@ export function getGuestAccelerators(
   ];
 }
 
+function getNetworkInterfaces(configuration, client) {
+  // if externalIp is not set at all, we default to true.
+  // Without it, compute servers do NOT work at all.
+
+  const networkTier = supportsStandardNetworkTier(configuration.region)
+    ? "STANDARD"
+    : "PREMIUM";
+  const subnetwork = `projects/${client.googleProjectId}/regions/${configuration.region}/subnetworks/default`;
+  const networkInterfaces = [
+    {
+      accessConfigs:
+        configuration.externalIp ?? true
+          ? [
+              {
+                name: "External NAT",
+                networkTier,
+              },
+            ]
+          : [],
+      stackType: "IPV4_ONLY",
+      subnetwork,
+    },
+  ];
+
+  const tags = configuration.externalIp
+    ? {
+        items: ["https-server", "http-server"],
+      }
+    : undefined;
+
+  return { networkInterfaces, tags };
+}
+
 async function getDisks(
   configuration: GoogleCloudConfiguration,
   client,
@@ -174,8 +189,7 @@ async function getDisks(
 ) {
   let diskSizeGb = 10;
   if (!sourceImage) {
-    ({ diskSizeGb, sourceImage } =
-      await getNewestSourceImage(configuration));
+    ({ diskSizeGb, sourceImage } = await getNewestSourceImage(configuration));
   }
 
   diskSizeGb = Math.max(diskSizeGb, configuration.diskSizeGb ?? diskSizeGb);
