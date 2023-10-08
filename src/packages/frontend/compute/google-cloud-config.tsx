@@ -379,7 +379,8 @@ export default function Configuration({
           <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
             Pay above rate by the millisecond while the computer server VM is
             running. Rate is <b>much cheaper</b> when VM is suspended or off,
-            and there is no cost when it is deprovisioned.
+            and there is no cost when it is deprovisioned. Egress networking
+            charges are not included in the above cost.
           </div>
         </div>
       ) : null}

@@ -591,7 +591,7 @@ interface Image {
   minDiskSizeGb: number;
 }
 
-const DOCKER_USER = "sagemathinc";
+export const DOCKER_USER = "sagemathinc";
 
 export const IMAGES = {
   minimal: {

@@ -74,7 +74,7 @@ rm -rf /home/user && mkdir /home/user && chown ${UID}:${UID} -R /home/user
 # makes it so the mount is seen outside the container.
 docker run \
    -d \
-   --name=compute-filesystem \
+   --name=filesystem \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
    -e API_SERVER=${apiServer} \
@@ -82,6 +82,7 @@ docker run \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+   -v /cocalc:/cocalc \
    ${image}
  `;
 }
@@ -121,7 +122,7 @@ function computeManager({
 
   return `
 docker run -d ${gpu ? GPU_FLAGS : ""} \
-   --name=compute-${image} \
+   --name=compute \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
@@ -133,6 +134,7 @@ docker run -d ${gpu ? GPU_FLAGS : ""} \
    -p 443:443 \
    -p 80:80 \
    -v /var/run/docker.sock:/var/run/docker.sock \
+   -v /cocalc:/cocalc \
    ${docker}
  `;
 }

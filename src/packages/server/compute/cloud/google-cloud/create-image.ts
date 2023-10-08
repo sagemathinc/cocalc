@@ -36,6 +36,7 @@ import type {
 import {
   getMinDiskSizeGb,
   IMAGES,
+  DOCKER_USER,
 } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -365,17 +366,47 @@ function createBuildConfiguration({
           machineType: "t2a-standard-4",
         } as const)),
   } as const;
+  
+  const ARCH = arch == "x86_64" ? "" : "-arm64";
 
   const startupScript = `
 #!/bin/bash
+set -ev
 
+# Install docker daemon and client
 ${installDocker()}
+
+# Create the user
 ${installUser()}
 
+# Ensure a clean docker slate
 docker system prune -a -f
-docker pull sagemathinc/compute-filesystem
-docker pull ${docker}${arch == "x86_64" ? "" : "-arm64"}
 
+# Write the script to /root/update-cocalc.sh
+echo '
+set -ev
+docker pull ${DOCKER_USER}/compute-cocalc
+rm -rf /tmp/cocalc
+docker create --name temp-copy-cocalc ${DOCKER_USER}/compute-cocalc${ARCH}
+docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
+rsync -axH --delete /tmp/cocalc /cocalc/
+rm -rf /tmp/cocalc
+docker rm temp-copy-cocalc
+
+# Pre-pull filesystem container
+docker pull ${DOCKER_USER}/compute-filesystem
+
+# Pre-pull code container
+docker pull ${docker}${ARCH}
+' > /root/update-cocalc.sh
+
+# Make the script executable
+chmod +x /root/update-cocalc.sh
+
+# Run the script
+/root/update-cocalc.sh
+
+# On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda() : ""}
 
 df -h /
