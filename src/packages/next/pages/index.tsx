@@ -4,13 +4,13 @@
  */
 
 import { Layout } from "antd";
+import { GetServerSidePropsContext } from "next";
 import { join } from "path";
 
-import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
+import DemoCell from "components/demo-cell";
 import CoCalcComFeatures, {
   Hero,
 } from "components/landing/cocalc-com-features";
@@ -29,7 +29,6 @@ import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
-import DemoCell from "components/demo-cell";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
@@ -41,7 +40,7 @@ interface Props {
 }
 
 export default function Home(props: Props) {
-  const { customize, publicPaths, recentHeadlines, headlineIndex } = props;
+  const { customize, recentHeadlines, headlineIndex } = props;
   const {
     shareServer,
     siteName,
@@ -54,6 +53,8 @@ export default function Home(props: Props) {
     onCoCalcCom,
     openaiEnabled,
     jupyterApiEnabled,
+    account,
+    isCommercial,
   } = customize;
 
   function contentDescription() {
@@ -78,7 +79,7 @@ export default function Home(props: Props) {
   }
 
   function topAccountLinks() {
-    if (!customize.account) return;
+    if (!account) return;
     return (
       <div
         style={{
@@ -89,36 +90,34 @@ export default function Home(props: Props) {
         <Title level={1} style={{ color: COLORS.GRAY }}>
           Signed in as{" "}
           <A href="/config">
-            {`${customize.account.first_name} ${customize.account.last_name} ${
-              customize.account.name ? "(@" + customize.account.name + ")" : ""
+            {`${account.first_name} ${account.last_name} ${
+              account.name ? "(@" + account.name + ")" : ""
             }`}
           </A>
         </Title>
         <Paragraph style={{ fontSize: "11pt", margin: "15px 0" }}>
-          {customize.isCommercial &&
-            customize.account &&
-            !customize.account.is_anonymous && (
-              <>
-                <A href="/store" style={topLinkStyle}>
-                  Store
-                </A>{" "}
-                <a
-                  href={join(basePath, "settings/licenses")}
-                  style={topLinkStyle}
-                >
-                  Licenses
-                </a>{" "}
-                <a
-                  href={join(basePath, "settings/purchases")}
-                  style={topLinkStyle}
-                >
-                  Purchases
-                </a>{" "}
-                <A href={"/vouchers"} style={topLinkStyle}>
-                  Vouchers
-                </A>{" "}
-              </>
-            )}
+          {isCommercial && account && !account.is_anonymous && (
+            <>
+              <A href="/store" style={topLinkStyle}>
+                Store
+              </A>{" "}
+              <a
+                href={join(basePath, "settings/licenses")}
+                style={topLinkStyle}
+              >
+                Licenses
+              </a>{" "}
+              <a
+                href={join(basePath, "settings/purchases")}
+                style={topLinkStyle}
+              >
+                Purchases
+              </a>{" "}
+              <A href={"/vouchers"} style={topLinkStyle}>
+                Vouchers
+              </A>{" "}
+            </>
+          )}
           <a href={join(basePath, "projects")} style={topLinkStyle}>
             Projects
           </a>{" "}
@@ -130,7 +129,7 @@ export default function Home(props: Props) {
               <A href="/software" style={topLinkStyle}>
                 Software
               </A>{" "}
-              {customize.isCommercial && (
+              {isCommercial && (
                 <>
                   <A href="/pricing" style={topLinkStyle}>
                     Pricing
@@ -163,15 +162,14 @@ export default function Home(props: Props) {
   }
 
   function renderCoCalcComFeatures() {
-    if (onCoCalcCom)
-      return (
-        <CoCalcComFeatures
-          siteName={siteName ?? "CoCalc"}
-          shareServer={shareServer ?? false}
-          publicPaths={publicPaths}
-          sandboxProjectId={sandboxProjectId}
-        />
-      );
+    if (!onCoCalcCom) return;
+    return (
+      <CoCalcComFeatures
+        siteName={siteName ?? "CoCalc"}
+        shareServer={shareServer ?? false}
+        sandboxProjectId={sandboxProjectId}
+      />
+    );
   }
 
   function logo(): JSX.Element {
@@ -246,26 +244,8 @@ export default function Home(props: Props) {
   );
 }
 
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const isAuthenticated = (await getAccountId(context.req)) != null;
-  const pool = getPool("long");
-  const { share_server } = await getServerSettings();
-  let publicPaths;
-  if (share_server) {
-    const { rows } = await pool.query(
-      `SELECT id, path, url, description, ${timeInSeconds("last_edited")},
-    counter::INT,
-     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
-    FROM public_paths
-    WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
-    ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
-    ORDER BY last_edited DESC LIMIT $2`,
-      [isAuthenticated, 150],
-    );
-    publicPaths = rows;
-  } else {
-    publicPaths = null;
-  }
 
   // get most recent headlines
   const recentHeadlines = await getRecentHeadlines(5);
@@ -276,7 +256,7 @@ export async function getServerSideProps(context) {
       : 0;
 
   return await withCustomize(
-    { context, props: { publicPaths, recentHeadlines, headlineIndex } },
+    { context, props: {  recentHeadlines, headlineIndex, isAuthenticated } },
     { name: true },
   );
 }

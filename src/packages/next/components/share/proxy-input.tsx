@@ -16,7 +16,7 @@ export default function ProxyInput() {
 
   return (
     <div style={{ margin: "15px 0" }}>
-      <A href="https://doc.cocalc.com/share.html">Share what you create</A> in{" "}
+      <A href="https://doc.cocalc.com/share.html">Publish what you create</A> in{" "}
       <SiteName /> or{" "}
       {show ? (
         <>
