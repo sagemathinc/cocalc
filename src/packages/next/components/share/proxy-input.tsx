@@ -3,11 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useState } from "react";
 import { Alert, Input } from "antd";
+import { useRouter } from "next/router";
+import { useState } from "react";
+
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
-import { useRouter } from "next/router";
 
 export default function ProxyInput() {
   const router = useRouter();
