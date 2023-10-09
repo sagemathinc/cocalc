@@ -72,7 +72,7 @@ rm -rf /home/user && mkdir /home/user && chown ${UID}:${UID} -R /home/user
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
 # makes it so the mount is seen outside the container.
-docker run \
+docker start filesystem || docker run \
    -d \
    --name=filesystem \
    -e API_KEY=${api_key} \
@@ -121,7 +121,7 @@ function computeManager({
   // container starts (which is likely).
 
   return `
-docker run -d ${gpu ? GPU_FLAGS : ""} \
+docker start compute || docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
