@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Grid, Row } from "antd";
+import { Col, Collapse, CollapseProps, Grid, Row } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
@@ -11,12 +11,15 @@ import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
-import { CSS, Paragraph, Text } from "components/misc";
+import { CSS, Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
+import Loading from "components/share/loading";
 import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";
-import { MAX_WIDTH, MAX_WIDTH_LANDING } from "lib/config";
+import { MAX_WIDTH } from "lib/config";
+import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
+import { useEffect } from "react";
 import SignIn from "./sign-in";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 
@@ -24,12 +27,11 @@ interface CCFeatures {
   sandboxProjectId?: string;
   siteName: string;
   shareServer: boolean;
-  publicPaths: any[];
 }
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
-export default function CoCalcComFeatures(props: CCFeatures) {
-  const { sandboxProjectId, siteName, shareServer, publicPaths } = props;
+export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
+  const { sandboxProjectId, siteName, shareServer } = props;
   const width = Grid.useBreakpoint();
 
   function renderCollaboration(): JSX.Element {
@@ -41,6 +43,8 @@ export default function CoCalcComFeatures(props: CCFeatures) {
         anchor="a-realtimesync"
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
+        below={renderShareServer()}
+        belowWide={true}
       >
         <Paragraph>
           Have you ever been frustrated sending files back and forth between
@@ -62,6 +66,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           <strong>synchronized in real time</strong> and your code runs in the
           very same environment.
         </Paragraph>
+        {shareServer ? <ProxyInput /> : undefined}
       </Info>
     );
   }
@@ -112,55 +117,50 @@ export default function CoCalcComFeatures(props: CCFeatures) {
   }
 
   function renderSandbox() {
-    if (sandboxProjectId)
-      return (
-        <Info
-          title={<>The Public {siteName} Sandbox</>}
-          level={2}
-          icon="share-square"
-          anchor="a-sandbox"
-          style={{ backgroundColor: COLORS.GRAY_LLL }}
-        >
-          <Path
-            style={{ marginBottom: "15px" }}
-            project_id={sandboxProjectId}
-            description="Public Sandbox"
-          />
-        </Info>
-      );
+    if (!sandboxProjectId) return;
+    return (
+      <Info
+        title={<>The Public {siteName} Sandbox</>}
+        level={2}
+        icon="share-square"
+        anchor="a-sandbox"
+        style={{ backgroundColor: COLORS.GRAY_LLL }}
+      >
+        <Path
+          style={{ marginBottom: "15px" }}
+          project_id={sandboxProjectId}
+          description="Public Sandbox"
+        />
+      </Info>
+    );
   }
 
   function renderShareServer() {
-    if (shareServer)
-      return (
-        <Info
-          title={
-            <>
-              <A href="/share/public_paths/page/1">
-                Explore what people have published on
-                {siteName}!
-              </A>
-            </>
-          }
-          level={2}
-          icon="share-square"
-          anchor="a-teaching"
-          style={{ backgroundColor: COLORS.GRAY_LLL }}
-        >
-          <div
-            style={{
-              maxHeight: "60vh",
-              overflow: "auto",
-              margin: "0 auto",
-              maxWidth: MAX_WIDTH_LANDING,
-              padding: "15px",
-            }}
-          >
-            <ProxyInput />
-            {publicPaths && <PublicPaths publicPaths={publicPaths} />}
-          </div>
-        </Info>
-      );
+    if (!shareServer) return;
+
+    const items: CollapseProps["items"] = [
+      {
+        key: "public-paths",
+        label: (
+          <Title level={3} style={{ textAlign: "center" }}>
+            <Icon name="plus-square" /> Explore what people have published on
+            {siteName}!
+          </Title>
+        ),
+        children: <PublishedPathsIndex />,
+      },
+    ];
+
+    return (
+      <Collapse
+        destroyInactivePanel
+        bordered={false}
+        ghost
+        style={{ margin: 0 }}
+        expandIcon={() => null}
+        items={items}
+      />
+    );
   }
 
   function renderMore(): JSX.Element {
@@ -258,13 +258,13 @@ export default function CoCalcComFeatures(props: CCFeatures) {
     const link: CSS = {
       color: "white",
       fontWeight: "bold",
-    };
+    } as const;
 
     const bottom: CSS = {
       color: txtCol,
       textAlign: "center",
       fontSize: "150%",
-    };
+    } as const;
 
     const urlProducts = "/pricing/products";
     const urlCourses = "/pricing/courses";
@@ -307,12 +307,16 @@ export default function CoCalcComFeatures(props: CCFeatures) {
             <Tool
               icon="server"
               href={urlProducts}
-              title="Professional use"
-              alt="Professional use"
+              title="Online Service"
+              alt="Online Service"
               textStyle={{ color: toolCol }}
             >
               <Paragraph style={{ color: txtCol }}>
-                You can start using {siteName} for free today. Create a{" "}
+                You can start using {siteName} online for free today.{" "}
+                <A href={"/auth/sign-up"} style={link}>
+                  Create an account
+                </A>
+                , open your{" "}
                 <A style={link} href={"https://doc.cocalc.com/trial.html"}>
                   trial project
                 </A>{" "}
@@ -327,9 +331,13 @@ export default function CoCalcComFeatures(props: CCFeatures) {
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
                 Upgrade your projects at any time, to unlock internet access,
-                better hosting quality, and other upgrades by{" "}
+                better hosting quality, and other upgrades by purchasing a{" "}
                 <A style={link} href={"/store/site-license"}>
-                  purchasing a site license
+                  site license
+                </A>{" "}
+                or upgrade via{" "}
+                <A style={link} href={"https://doc.cocalc.com/paygo.html"}>
+                  pay-as-you-go
                 </A>
                 .
               </Paragraph>
@@ -372,6 +380,8 @@ export default function CoCalcComFeatures(props: CCFeatures) {
             >
               <Paragraph style={{ color: txtCol }}>
                 It is possible to run {siteName} on your own infrastructure.
+              </Paragraph>
+              <Paragraph style={{ color: txtCol }}>
                 There are two options available: an easy to setup{" "}
                 <strong>single-server</strong> variant for a small working group
                 and a highly scalable variant for a{" "}
@@ -395,7 +405,6 @@ export default function CoCalcComFeatures(props: CCFeatures) {
   return (
     <>
       {renderSandbox()}
-      {renderShareServer()}
       {renderCollaboration()}
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />
       {renderTeaching()}
@@ -444,5 +453,36 @@ export function Hero() {
       </A>
       , Markdown, and Linux.
     </Info.Heading>
+  );
+}
+
+function PublishedPathsIndex() {
+  const { result: publicPaths, error } = useAPI("public-paths/listing-cached");
+
+  useEffect(() => {
+    if (error) console.log(error);
+  }, [error]);
+
+  return (
+    <div
+      style={{
+        maxHeight: "60vh",
+        overflow: "auto",
+        margin: "0 auto",
+        padding: "0",
+      }}
+    >
+      {publicPaths ? (
+        <PublicPaths publicPaths={publicPaths} />
+      ) : (
+        <Loading large center />
+      )}
+
+      <Paragraph style={{ textAlign: "center" }}>
+        <A href="/share/public_paths/page/1">
+          <Icon name="share-square" /> Share Server
+        </A>
+      </Paragraph>
+    </div>
   );
 }

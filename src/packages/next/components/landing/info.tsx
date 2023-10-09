@@ -37,6 +37,7 @@ interface Props {
   narrow?: boolean; // emphasis on the text part, not the image.
   level?: TitleProps["level"];
   textStyle?: CSSProperties;
+  belowWide?: boolean;
 }
 
 export default function Info(props: Props) {
@@ -44,6 +45,7 @@ export default function Info(props: Props) {
     alt,
     anchor,
     below,
+    belowWide = false,
     caption,
     children,
     icon,
@@ -58,6 +60,32 @@ export default function Info(props: Props) {
     narrow,
     level = 1,
   } = props;
+
+  function renderBelow() {
+    if (!below) return;
+
+    if (belowWide) {
+      return (
+        <Col
+          lg={{ span: 20, offset: 2 }}
+          md={{ span: 22, offset: 1 }}
+          style={{ paddingTop: "30px" }}
+        >
+          {below}
+        </Col>
+      );
+    } else {
+      return (
+        <Col
+          lg={{ span: 16, offset: 4 }}
+          md={{ span: 18, offset: 3 }}
+          style={{ paddingTop: "30px" }}
+        >
+          {below}
+        </Col>
+      );
+    }
+  }
 
   const head = (
     <Title
@@ -206,15 +234,7 @@ export default function Info(props: Props) {
           }}
         >
           {cols}
-          {below && (
-            <Col
-              lg={{ span: 16, offset: 4 }}
-              md={{ span: 18, offset: 3 }}
-              style={{ paddingTop: "30px" }}
-            >
-              {below}
-            </Col>
-          )}
+          {renderBelow()}
         </Row>
       </>
     </div>
@@ -237,7 +257,7 @@ function verifyHasMp4(video: string[]) {
   }
   console.warn(
     "include mp4 format for the video, so that it is viewable on iOS!!",
-    video
+    video,
   );
 }
 
