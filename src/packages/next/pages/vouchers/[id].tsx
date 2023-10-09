@@ -40,9 +40,7 @@ function RedeemURL({ code }) {
   const [url, setUrl] = useState<string>("");
   useEffect(() => {
     if (typeof window !== "undefined") {
-      let i = window.location.href.lastIndexOf("/");
-      i = window.location.href.lastIndexOf("/", i - 1);
-      setUrl(`${window.location.href.slice(0, i)}/redeem/${code}`);
+      setUrl(codeToUrl(code, window.location.href));
     }
   }, []);
 
@@ -51,7 +49,7 @@ function RedeemURL({ code }) {
       <A href={url}>
         <Icon name="external-link" />
       </A>{" "}
-      <Copyable display={`...${code}`} value={url} />
+      <Copyable display={`…${code}`} value={url} />
     </Space>
   );
 }
@@ -59,9 +57,9 @@ function RedeemURL({ code }) {
 const COLUMNS = [
   {
     title: "Redeem URL (share this)",
-    dataIndex: "code",
+    dataIndex: "url",
     key: "redeem",
-    render: (code) => <RedeemURL code={code} />,
+    render: (_, { code }) => <RedeemURL code={code} />,
   },
   {
     title: "Code",
@@ -289,19 +287,29 @@ export async function getServerSideProps(context) {
 }
 
 function DownloadModal({ type, data, id, onClose }) {
+  const [data0, setData0] = useState<VoucherCode[] | null>(data);
+  useEffect(() => {
+    if (data == null) return;
+    if (typeof window == "undefined") return;
+    setData0(
+      data.map((x) => {
+        return { ...x, url: codeToUrl(x.code, window.location.href) };
+      }),
+    );
+  }, [data]);
   const path = `vouchers-${id}.${type}`;
   const content = useMemo(() => {
-    if (!type) return "";
+    if (!type || data0 == null) return "";
     if (type == "csv") {
       const x = [COLUMNS.map((x) => x.title)].concat(
-        data.map((x) => COLUMNS.map((c) => x[c.dataIndex])),
+        data0.map((x) => COLUMNS.map((c) => x[c.dataIndex])),
       );
       return csvStringify(x);
     } else if (type == "json") {
-      return JSON.stringify(data, undefined, 2);
+      return JSON.stringify(data0, undefined, 2);
     }
     return "";
-  }, [type, data]);
+  }, [type, data0]);
 
   const body = useMemo(() => {
     if (!type || !data) {
@@ -338,4 +346,10 @@ function DownloadModal({ type, data, id, onClose }) {
       {body}
     </Modal>
   );
+}
+
+function codeToUrl(code, href): string {
+  let i = href.lastIndexOf("/");
+  i = href.lastIndexOf("/", i - 1);
+  return `${href.slice(0, i)}/redeem/${code}`;
 }
