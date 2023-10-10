@@ -3,7 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Collapse, CollapseProps, Grid, Row } from "antd";
+import { Button, Col, Collapse, CollapseProps, Grid, Row } from "antd";
+import { join } from "path";
+import { useEffect, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
@@ -16,10 +18,15 @@ import A from "components/misc/A";
 import Loading from "components/share/loading";
 import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";
+import {
+  Testimonial,
+  TestimonialComponent,
+  twoRandomTestimonials,
+} from "components/testimonials";
+import basePath from "lib/base-path";
 import { MAX_WIDTH } from "lib/config";
 import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
-import { useEffect } from "react";
 import SignIn from "./sign-in";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 
@@ -33,6 +40,14 @@ interface CCFeatures {
 export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
   const { sandboxProjectId, siteName, shareServer } = props;
   const width = Grid.useBreakpoint();
+
+  // to avoid next-js hydration errors
+  const [testimonials, setTestimonials] =
+    useState<[Testimonial, Testimonial]>();
+
+  useEffect(() => {
+    setTestimonials(twoRandomTestimonials());
+  }, []);
 
   function renderCollaboration(): JSX.Element {
     return (
@@ -143,7 +158,7 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
         key: "public-paths",
         label: (
           <Title level={3} style={{ textAlign: "center" }}>
-            <Icon name="plus-square" /> Explore what people have published on
+            <Icon name="plus-square" /> Explore what people have published on{" "}
             {siteName}!
           </Title>
         ),
@@ -402,6 +417,38 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
     );
   }
 
+  function tenderTestimonials() {
+    if (!testimonials) return;
+    const [t1, t2] = testimonials;
+    return (
+      <Info
+        title="Testimonials"
+        icon="comment"
+        anchor="testimonials"
+        style={{ backgroundColor: COLORS.BS_GREEN_LL }}
+      >
+        <Row gutter={[15, 15]}>
+          <Col md={12}>
+            <TestimonialComponent testimonial={t1} />
+          </Col>
+          <Col md={12}>
+            <TestimonialComponent testimonial={t2} />
+          </Col>
+          <Col md={24} style={{ textAlign: "center" }}>
+            <Button
+              onClick={() =>
+                (window.location.href = join(basePath, "/testimonials"))
+              }
+              title={`More testimonials from users of ${siteName}`}
+            >
+              More testimonials
+            </Button>
+          </Col>
+        </Row>
+      </Info>
+    );
+  }
+
   return (
     <>
       {renderSandbox()}
@@ -409,6 +456,7 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />
       {renderTeaching()}
       {renderMore()}
+      {tenderTestimonials()}
       {renderAvailableProducts()}
       <SignIn startup={siteName} hideFree={true} />
     </>
