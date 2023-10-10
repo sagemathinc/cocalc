@@ -20,7 +20,7 @@ export default async function handle(req, res) {
   }
 }
 
-async function get(req) {
+export async function get(req) {
   const { api_key, id: id0 } = getParams(req, { allowGet: true });
   // use api_key to get project, and also verify access:
   const id = parseInt(id0);
