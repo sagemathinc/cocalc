@@ -275,7 +275,7 @@ function OnPremGuide({ action, showOnPrem, setShowOnPrem, configuration, id }) {
         <div style={{ marginTop: "15px" }}>
           <CopyToClipBoard
             inputWidth={"700px"}
-            value={`curl -fsSL https://${window.location.host}/compute/onprem?id=${id}&api_key=YOUR_API_KEY | bash`}
+            value={`curl -fsSL 'https://${window.location.host}/compute/onprem?id=${id}&api_key=YOUR_API_KEY' | bash`}
           />
         </div>
       </Modal>
