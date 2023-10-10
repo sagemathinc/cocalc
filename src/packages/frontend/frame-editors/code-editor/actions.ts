@@ -921,6 +921,10 @@ export class Actions<
     return tree_ops.is_leaf(this._get_tree());
   }
 
+  closeChat() {
+    this.redux.getProjectActions(this.project_id).set_chat_state(this.path, "");
+  }
+
   // Delete the frame with given id.
   // If this is the active frame, then the new active frame becomes whichever
   // frame still exists that was most recently active before this frame.
@@ -932,12 +936,18 @@ export class Actions<
       this.reset_local_view_state();
       // Also emit so that the fact it closed is known.
       const type = node.get("type");
+      if (type == "chat") {
+        this.closeChat();
+      }
       this.store.emit("close-frame", { id, type });
       return;
     }
     const node = this._get_frame_node(id);
     if (node == null) return; // does not exist.
     const type = node.get("type");
+    if (type == "chat") {
+      this.closeChat();
+    }
     this._tree_op("delete_node", id);
     this.save_editor_state(id);
     if (this._cm_selections != null) {
