@@ -10,8 +10,8 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Button, Card, Col, Row, Space, Tag } from "antd";
-
+import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -36,6 +36,7 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { search_match, search_split } from "@cocalc/util/misc";
 
 const RESULTS_WELL_STYLE: React.CSSProperties = {
   backgroundColor: "white",
@@ -53,7 +54,7 @@ export const ProjectSearchBody: React.FC<{
   const neural_search = useTypedRedux({ project_id }, "neural_search");
   const neural_search_enabled = useTypedRedux(
     "customize",
-    "neural_search_enabled"
+    "neural_search_enabled",
   );
 
   const actions = useActions({ project_id });
@@ -282,7 +283,7 @@ function ProjectSearchInput({
       autoFocus={true}
       value={user_input}
       placeholder={`Enter your search ${
-        neural ? "(semantic similarity)" : "(supports regular expressions!)"
+        neural ? "(semantic similarity)" : "(supports regular expressions)"
       }`}
       on_change={(value) => actions?.setState({ user_input: value })}
       on_submit={() => actions?.search()}
@@ -334,15 +335,36 @@ function ProjectSearchOutput({
   wrap,
   mode = "project",
 }: ProjectSearchOutputProps) {
+  const [filter, setFilter] = useState<string>("");
+  const [currentFilter, setCurrentFilter] = useState<string>("");
   const isFlyout = mode === "flyout";
   const most_recent_search = useTypedRedux(
     { project_id },
-    "most_recent_search"
+    "most_recent_search",
   );
   const most_recent_path = useTypedRedux({ project_id }, "most_recent_path");
-  const search_results = useTypedRedux({ project_id }, "search_results");
+  const unfiltered_search_results = useTypedRedux(
+    { project_id },
+    "search_results",
+  );
   const search_error = useTypedRedux({ project_id }, "search_error");
   const too_many_results = useTypedRedux({ project_id }, "too_many_results");
+
+  useEffect(() => {
+    setFilter("");
+    setCurrentFilter("");
+  }, [unfiltered_search_results]);
+
+  const search_results = useMemo(() => {
+    const f = filter?.trim();
+    if (!f) {
+      return unfiltered_search_results;
+    }
+    const words = search_split(f.toLowerCase());
+    return unfiltered_search_results?.filter((result) =>
+      search_match(result?.get("filter") ?? "", words),
+    );
+  }, [filter, unfiltered_search_results]);
 
   if (most_recent_search == null || most_recent_path == null) {
     return <span />;
@@ -386,7 +408,7 @@ function ProjectSearchOutput({
           fragment_id={result.get("fragment_id")?.toJS()}
           most_recent_path={most_recent_path}
           mode={mode}
-        />
+        />,
       );
       i += 1;
     }
@@ -406,7 +428,7 @@ function ProjectSearchOutput({
         >
           {render_get_results()}
         </Space>,
-        { borderTop: `1px solid ${COLORS.GRAY_L}` }
+        { borderTop: `1px solid ${COLORS.GRAY_L}` },
       );
     } else {
       return <Well style={RESULTS_WELL_STYLE}>{render_get_results()}</Well>;
@@ -415,6 +437,15 @@ function ProjectSearchOutput({
 
   return (
     <>
+      <Input.Search
+        allowClear
+        value={currentFilter}
+        onChange={(e) => setCurrentFilter(e.target.value)}
+        placeholder="Filter... (regexp in / /)"
+        onSearch={setFilter}
+        enterButton="Filter"
+        style={{ width: "350px", maxWidth:'100%', marginBottom: "15px" }}
+      />
       {too_many_results && (
         <Alert bsStyle="warning" banner={true} style={{ margin: "15px 0" }}>
           There were more results than displayed below. Try making your search
@@ -433,7 +464,7 @@ function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
   const command = useTypedRedux({ project_id }, "command");
   const most_recent_search = useTypedRedux(
     { project_id },
-    "most_recent_search"
+    "most_recent_search",
   );
   const most_recent_path = useTypedRedux({ project_id }, "most_recent_path");
 

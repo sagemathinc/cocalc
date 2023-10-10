@@ -2849,6 +2849,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           filename,
           description: context,
           line_number,
+          filter: `${filename.toLowerCase()} ${context.toLowerCase()}`,
         });
       }
       if (num_results >= max_results) {
