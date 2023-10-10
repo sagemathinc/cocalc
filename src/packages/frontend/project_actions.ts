@@ -1030,9 +1030,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Used by open/close chat below.
-  private set_chat_state(path: string, chatState: ChatState): void {
+  set_chat_state(path: string, chatState: ChatState): void {
     if (this.open_files == null) return;
     this.open_files.set(path, "chatState", chatState);
+    local_storage(this.project_id, path, "chatState", chatState);
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
@@ -1051,11 +1052,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // @ts-ignore -- todo will go away when everything is a frame editor
       editorActions.show_focused_frame_of_type("chat", "col", false, width);
       this.set_chat_state(path, "internal");
-      local_storage(this.project_id, path, "chatState", "internal");
     } else {
       // First create the chat actions:
       initChat(this.project_id, misc.meta_file(path, "chat"));
-      local_storage(this.project_id, path, "chatState", "external");
       // Only then set state to say that the chat is opened!
       // Otherwise when the opened chat is rendered actions is
       // randomly not defined, and things break.
@@ -1084,7 +1083,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       this.set_chat_state(path, "");
     }
-    local_storage(this.project_id, path, "chatState", "");
   }
 
   set_chat_width(opts): void {
@@ -1452,7 +1450,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == null) return;
     const listings = store.get_listings();
     try {
-      const files = await listings.get_listing_directly(path, trigger_start_project);
+      const files = await listings.get_listing_directly(
+        path,
+        trigger_start_project,
+      );
       const directory_listings = store
         .get("directory_listings")
         .set(path, fromJS(files));
@@ -2384,7 +2385,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       auto: true,
       print: false,
       timeout: 45,
-    } as { path: string; log: boolean | string[]; auto: boolean; print: boolean; timeout: number });
+    } as {
+      path: string;
+      log: boolean | string[];
+      auto: boolean;
+      print: boolean;
+      timeout: number;
+    });
 
     if (
       !(await ensure_project_running(
