@@ -1,4 +1,4 @@
-import { Alert, Button, Popconfirm, Popover, Spin } from "antd";
+import { Alert, Button, Modal, Popconfirm, Popover, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import {
   ACTION_INFO,
@@ -10,6 +10,7 @@ import { computeServerAction } from "./api";
 import costPerHour from "./cost";
 import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 export default function getActions({
   id,
@@ -83,6 +84,7 @@ function ActionButton({
   type,
   style,
 }) {
+  const [showOnPrem, setShowOnPrem] = useState<boolean>(false);
   const [cost_per_hour, setCostPerHour] = useState<number | null>(null);
   useEffect(() => {
     if (configuration == null) return;
@@ -101,6 +103,11 @@ function ActionButton({
   }, [configuration]);
   const [doing, setDoing] = useState<boolean>(false);
   const doAction = async () => {
+    if (configuration.cloud == "onprem") {
+      setShowOnPrem(true);
+      // right now user has to copy paste
+      return;
+    }
     try {
       setError("");
       if (action == "start" || action == "resume") {
@@ -177,6 +184,24 @@ function ActionButton({
     );
   }
 
+  const content = (
+    <>
+      {button}
+      {showOnPrem && (
+        <OnPremGuide
+          action={action}
+          showOnPrem={showOnPrem}
+          setShowOnPrem={setShowOnPrem}
+          configuration={configuration}
+          id={id}
+        />
+      )}
+    </>
+  );
+  if (configuration.cloud == "onprem") {
+    return content;
+  }
+
   return (
     <Popover
       placement="bottom"
@@ -198,7 +223,63 @@ function ActionButton({
         </div>
       }
     >
-      {button}
+      {content}
     </Popover>
   );
+}
+
+function OnPremGuide({ action, showOnPrem, setShowOnPrem, configuration, id }) {
+  if (action == "start") {
+    return (
+      <Modal
+        width={800}
+        title={
+          <>
+            <Icon name="server" /> Connect Your On Prem Server to this Project
+          </>
+        }
+        open={showOnPrem}
+        onCancel={() => {
+          setShowOnPrem(false);
+        }}
+        onOk={() => {
+          setShowOnPrem(false);
+        }}
+      >
+        To connect your on premises compute server to this project:
+        <ol style={{ marginTop: "15px" }}>
+          <li>
+            Create your own Linux virtual machine that has Docker installed.
+            This can be anywhere in the world, and needs the ability to create
+            outgoing network connections.{" "}
+            {configuration.gpu && (
+              <span>
+                Since you clicked GPU, you must also have an NVIDIA GPU and the
+                Cuda 12 drivers installed and working.
+              </span>
+            )}
+            {configuration.arch == "arm64" && (
+              <span>
+                Since you selected ARM 64, this should be an ARM64 architecture
+                VM, e.g., on an M1 Mac.
+              </span>
+            )}
+          </li>
+          <li style={{ marginTop: "15px" }}>
+            Create a project api key YOUR_API_KEY in this project's settings
+          </li>
+          <li style={{ marginTop: "15px" }}>
+            Run the following code as root in your virtual machine:
+          </li>
+        </ol>
+        <div style={{ marginTop: "15px" }}>
+          <CopyToClipBoard
+            inputWidth={"700px"}
+            value={`curl -fsSL https://${window.location.host}/compute/onprem?id=${id}&api_key=YOUR_API_KEY | bash`}
+          />
+        </div>
+      </Modal>
+    );
+  }
+  return null;
 }

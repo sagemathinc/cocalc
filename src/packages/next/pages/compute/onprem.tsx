@@ -10,7 +10,7 @@ export async function getServerSideProps(context) {
   try {
     res.write(await get(req));
   } catch (err) {
-    res.write(`ERROR -- ${err}`);
+    res.write(`echo 'ERROR -- ${err}'; exit 1`);
   }
   res.end();
   return { props: {} };
