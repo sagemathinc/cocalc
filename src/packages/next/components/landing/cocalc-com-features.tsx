@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Col, Collapse, CollapseProps, Grid, Row } from "antd";
+import { Button, Col, Grid, Row } from "antd";
 import { join } from "path";
 import { useEffect, useState } from "react";
 
@@ -13,7 +13,7 @@ import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
-import { CSS, Paragraph, Text, Title } from "components/misc";
+import { CSS, Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import ProxyInput from "components/share/proxy-input";
@@ -40,6 +40,7 @@ interface CCFeatures {
 export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
   const { sandboxProjectId, siteName, shareServer } = props;
   const width = Grid.useBreakpoint();
+  const [sharedExpanded, setSharedExpanded] = useState(false);
 
   // to avoid next-js hydration errors
   const [testimonials, setTestimonials] =
@@ -153,51 +154,61 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
   function renderShareServer() {
     if (!shareServer) return;
 
-    const items: CollapseProps["items"] = [
-      {
-        key: "public-paths",
-        label: (
-          <Title level={3} style={{ textAlign: "center" }}>
+    if (sharedExpanded) {
+      return <PublishedPathsIndex />;
+    } else {
+      return (
+        <div style={{ textAlign: "center" }}>
+          <Button
+            size="large"
+            onClick={() => {
+              setSharedExpanded(true);
+            }}
+          >
             <Icon name="plus-square" /> Explore what people have published on{" "}
             {siteName}!
-          </Title>
-        ),
-        children: <PublishedPathsIndex />,
-      },
-    ];
-
-    return (
-      <Collapse
-        destroyInactivePanel
-        bordered={false}
-        ghost
-        style={{ margin: 0 }}
-        expandIcon={() => null}
-        items={items}
-      />
-    );
+          </Button>
+        </div>
+      );
+    }
   }
 
   function renderMore(): JSX.Element {
+    const text = {
+      software: `All available software`,
+      whiteboard: `Computational whiteboard`,
+      features: `Features overview`,
+    };
     const software = (
       <Paragraph style={{ textAlign: "center" }}>
-        <A href="/software">
-          <strong>Learn more about software on {siteName}</strong>
-        </A>
+        <Button
+          onClick={() => (window.location.href = join(basePath, "/software"))}
+          title={text.software}
+        >
+          {text.software}
+        </Button>
       </Paragraph>
     );
     const whiteboard = (
       <Paragraph style={{ textAlign: "center" }}>
-        <A href="/features/whiteboard">
-          <strong>Learn more about the whiteboard</strong>
-        </A>
+        <Button
+          onClick={() =>
+            (window.location.href = join(basePath, "/features/whiteboard"))
+          }
+          title={text.whiteboard}
+        >
+          {text.whiteboard}
+        </Button>
       </Paragraph>
     );
     const features = (
       <Paragraph style={{ textAlign: "center" }}>
-        <A href="/features">
-          <strong>Learn more about all features</strong>
-        </A>
+        <Button
+          onClick={() => (window.location.href = join(basePath, "/features"))}
+          title={text.features}
+        >
+          {text.features}
+        </Button>
       </Paragraph>
     );
     return (
@@ -287,25 +298,43 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
 
     const productsLink = (
       <Paragraph style={bottom}>
-        <A href={urlProducts} style={link}>
-          <strong>Products Overview</strong>
-        </A>
+        <Button
+          ghost
+          size="large"
+          style={{ fontWeight: "bold" }}
+          onClick={() => (window.location.href = join(basePath, urlProducts))}
+          title={"Products Overview"}
+        >
+          Products Overview
+        </Button>
       </Paragraph>
     );
 
     const courseLink = (
       <Paragraph style={bottom}>
-        <A href={urlCourses} style={link}>
-          <strong>Course Licenses</strong>
-        </A>
+        <Button
+          ghost
+          size="large"
+          style={{ fontWeight: "bold" }}
+          onClick={() => (window.location.href = join(basePath, urlCourses))}
+          title={"Course Licenses"}
+        >
+          Course Licenses
+        </Button>
       </Paragraph>
     );
 
     const onpremLink = (
       <Paragraph style={bottom}>
-        <A href={urlOnprem} style={link}>
-          <strong>On-premises Offerings</strong>
-        </A>
+        <Button
+          ghost
+          size="large"
+          style={{ fontWeight: "bold" }}
+          onClick={() => (window.location.href = join(basePath, urlOnprem))}
+          title={"On-premises Offerings"}
+        >
+          On-premises Offerings
+        </Button>
       </Paragraph>
     );
 
@@ -417,7 +446,7 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
     );
   }
 
-  function tenderTestimonials() {
+  function renderTestimonials() {
     if (!testimonials) return;
     const [t1, t2] = testimonials;
     return (
@@ -456,7 +485,7 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />
       {renderTeaching()}
       {renderMore()}
-      {tenderTestimonials()}
+      {renderTestimonials()}
       {renderAvailableProducts()}
       <SignIn startup={siteName} hideFree={true} />
     </>
@@ -511,26 +540,43 @@ function PublishedPathsIndex() {
     if (error) console.log(error);
   }, [error]);
 
-  return (
-    <div
-      style={{
-        maxHeight: "60vh",
-        overflow: "auto",
-        margin: "0 auto",
-        padding: "0",
-      }}
-    >
-      {publicPaths ? (
-        <PublicPaths publicPaths={publicPaths} />
-      ) : (
-        <Loading large center />
-      )}
+  const text = "All published  files …";
 
-      <Paragraph style={{ textAlign: "center" }}>
-        <A href="/share/public_paths/page/1">
-          <Icon name="share-square" /> Share Server
-        </A>
+  return (
+    <>
+      <div
+        style={{
+          maxHeight: "60vh",
+          overflow: "auto",
+          margin: "0 auto",
+          padding: "0",
+        }}
+      >
+        {publicPaths ? (
+          <PublicPaths publicPaths={publicPaths} />
+        ) : (
+          <Loading large center />
+        )}
+      </div>
+      <Paragraph
+        style={{
+          textAlign: "center",
+          marginTop: "15px",
+        }}
+      >
+        <Button
+          size="large"
+          onClick={() =>
+            (window.location.href = join(
+              basePath,
+              "/share/public_paths/page/1",
+            ))
+          }
+          title={text}
+        >
+          <Icon name="share-square" /> {text}
+        </Button>
       </Paragraph>
-    </div>
+    </>
   );
 }

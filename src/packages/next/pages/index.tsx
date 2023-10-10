@@ -31,7 +31,7 @@ import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
-const topLinkStyle: CSS = { marginRight: "20px" };
+const TOP_LINK_STYLE: CSS = { marginRight: "20px" } as const;
 
 interface Props {
   customize: CustomizeType;
@@ -99,61 +99,61 @@ export default function Home(props: Props) {
         <Paragraph style={{ fontSize: "11pt", margin: "15px 0" }}>
           {isCommercial && account && !account.is_anonymous && (
             <>
-              <A href="/store" style={topLinkStyle}>
+              <A href="/store" style={TOP_LINK_STYLE}>
                 Store
               </A>{" "}
               <a
                 href={join(basePath, "settings/licenses")}
-                style={topLinkStyle}
+                style={TOP_LINK_STYLE}
               >
                 Licenses
               </a>{" "}
               <a
                 href={join(basePath, "settings/purchases")}
-                style={topLinkStyle}
+                style={TOP_LINK_STYLE}
               >
                 Purchases
               </a>{" "}
-              <A href={"/vouchers"} style={topLinkStyle}>
+              <A href={"/vouchers"} style={TOP_LINK_STYLE}>
                 Vouchers
               </A>{" "}
             </>
           )}
-          <a href={join(basePath, "projects")} style={topLinkStyle}>
+          <a href={join(basePath, "projects")} style={TOP_LINK_STYLE}>
             Projects
           </a>{" "}
           {customize.landingPages && (
             <>
-              <A href="/features/" style={topLinkStyle}>
+              <A href="/features/" style={TOP_LINK_STYLE}>
                 Features
               </A>{" "}
-              <A href="/software" style={topLinkStyle}>
+              <A href="/software" style={TOP_LINK_STYLE}>
                 Software
               </A>{" "}
               {isCommercial && (
                 <>
-                  <A href="/pricing" style={topLinkStyle}>
+                  <A href="/pricing" style={TOP_LINK_STYLE}>
                     Pricing
                   </A>{" "}
                 </>
               )}
             </>
           )}
-          <A href={"/config"} style={topLinkStyle}>
+          <A href={"/config"} style={TOP_LINK_STYLE}>
             Config
           </A>{" "}
           {customize.shareServer && (
             <>
-              <A style={topLinkStyle} href={"/share/public_paths/page/1"}>
+              <A style={TOP_LINK_STYLE} href={"/share/public_paths/page/1"}>
                 Share
               </A>{" "}
             </>
           )}
           <>
-            <A style={topLinkStyle} href="/support">
+            <A style={TOP_LINK_STYLE} href="/support">
               Support
             </A>{" "}
-            <A style={topLinkStyle} href="/info">
+            <A style={TOP_LINK_STYLE} href="/info">
               Docs
             </A>
           </>
