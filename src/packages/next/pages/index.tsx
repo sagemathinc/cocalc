@@ -18,6 +18,7 @@ import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import Info from "components/landing/info";
 import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
@@ -204,26 +205,74 @@ export default function Home(props: Props) {
     }
   }
 
+  function renderNews() {
+    if (recentHeadlines == null) return;
+    return (
+      <NewsBanner
+        recentHeadlines={recentHeadlines}
+        headlineIndex={headlineIndex}
+      />
+    );
+  }
+
+  function renderChatGPT() {
+    if (!openaiEnabled) return;
+    return (
+      <Info
+        title="LLMs are here to help you"
+        icon="robot"
+        imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
+        anchor="a-realtimesync"
+        alt={"Two browser windows editing the same Jupyter notebook"}
+        style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
+      >
+        <Paragraph>
+          {siteName}'s file editors are enhanced by{" "}
+          <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
+            large language models
+          </A>{" "}
+          like <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A>. They
+          help you{" "}
+          <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
+            fixing errors
+          </A>
+          , generate code or LaTeX snippets, summarize documents, and much more.
+        </Paragraph>
+      </Info>
+    );
+  }
+
+  function renderDemoCell() {
+    if (!jupyterApiEnabled || !onCoCalcCom) return;
+
+    return (
+      <Info
+        title="Many programming languages"
+        icon="flow-chart"
+        imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
+        anchor="a-realtimesync"
+        alt={"Two browser windows editing the same Jupyter notebook"}
+        style={{ backgroundColor: COLORS.YELL_LLL }}
+      >
+        <Paragraph>
+          {siteName} supports many{" "}
+          <A href={"/software"}>programming languages</A>. Edit the demo cell on
+          the left and evaluate it by pressing "Run". You can also select a
+          different "kernel", i.e. the programming language that is used to
+          evaluate the cell.
+        </Paragraph>
+      </Info>
+    );
+  }
+
   return (
     <Customize value={customize}>
       <Head title={siteDescription ?? "Collaborative Calculation"} />
       <Layout>
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
+          {renderNews()}
           {topAccountLinks()}
-          {recentHeadlines != null ? (
-            <NewsBanner
-              recentHeadlines={recentHeadlines}
-              headlineIndex={headlineIndex}
-            />
-          ) : null}
-          {openaiEnabled && (
-            <div
-              style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
-            >
-              <ChatGPTHelp size="large" tag={"index"} />
-            </div>
-          )}
           <Content
             style={{ minHeight: "30vh" }}
             logo={logo()}
@@ -234,8 +283,9 @@ export default function Home(props: Props) {
             alt={"Screenshot showing CoCalc in action!"}
             imageAlternative={imageAlternative()}
           />
-          {jupyterApiEnabled && onCoCalcCom && <DemoCell tag={"sage"} />}
           <Hero />
+          {renderChatGPT()}
+          {renderDemoCell()}
           {renderCoCalcComFeatures()}
           <Footer />
         </Layout.Content>
@@ -256,7 +306,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       : 0;
 
   return await withCustomize(
-    { context, props: {  recentHeadlines, headlineIndex, isAuthenticated } },
+    { context, props: { recentHeadlines, headlineIndex, isAuthenticated } },
     { name: true },
   );
 }
