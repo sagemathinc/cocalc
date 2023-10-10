@@ -558,11 +558,23 @@ export async function getHostname(id: number): Promise<string> {
   return `compute-server-${id}`;
 }
 
-export async function getStartupScript({ id, api_key }): Promise<string> {
+export async function getStartupScript({
+  id,
+  api_key,
+  installCocalc,
+  installUser,
+}: {
+  id;
+  api_key;
+  installCocalc?;
+  installUser?;
+}): Promise<string> {
   return await startupScript({
     compute_server_id: id,
     api_key,
     hostname: await getHostname(id),
     ...(await getStartupParams(id)),
+    installCocalc,
+    installUser,
   });
 }

@@ -1,9 +1,10 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { UID } from "./install";
 import type {
   Architecture,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
+import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
+import { installCoCalc, installUser, UID } from "./install";
 
 export default async function startupScript({
   image = "minimal",
@@ -13,6 +14,8 @@ export default async function startupScript({
   gpu,
   arch,
   hostname,
+  installCocalc: doInstallCoCalc,
+  installUser: doInstallUser,
 }: {
   image?: ImageName;
   compute_server_id: number;
@@ -21,6 +24,8 @@ export default async function startupScript({
   gpu?: boolean;
   arch: Architecture;
   hostname: string;
+  installCocalc?: boolean;
+  installUser?: boolean;
 }) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -36,6 +41,12 @@ export default async function startupScript({
 
   return `
 #!/bin/bash
+
+set -ev
+
+${doInstallCoCalc ? installCoCalc(arch) : ""}
+
+${doInstallUser ? installUser() : ""}
 
 ${runCoCalcCompute({
   compute_server_id,
@@ -69,9 +80,7 @@ function mountFilesystems({
   arch,
   apiServer,
 }) {
-  const image = `sagemathinc/compute-filesystem${
-    arch == "arm64" ? "-arm64" : ""
-  }`;
+  const image = `sagemathinc/compute-filesystem${getImagePostfix(arch)}`;
 
   return `
 # Make the home directory
@@ -117,9 +126,7 @@ function computeManager({
   image,
   gpu,
 }) {
-  const docker = `sagemathinc/compute-${image}${
-    arch == "arm64" ? "-arm64" : ""
-  }`;
+  const docker = `sagemathinc/compute-${image}${getImagePostfix(arch)}`;
 
   // Start a container that connects to the project
   // and manages providing terminals and jupyter kernels

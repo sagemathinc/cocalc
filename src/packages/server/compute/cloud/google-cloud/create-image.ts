@@ -30,7 +30,12 @@ import { imageName, getImagesClient } from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
-import { installCuda, installDocker, installUser } from "../install";
+import {
+  installCuda,
+  installDocker,
+  installUser,
+  installCoCalc,
+} from "../install";
 import { delay } from "awaiting";
 import getInstance from "./get-instance";
 import type {
@@ -38,6 +43,7 @@ import type {
   GoogleCloudConfiguration,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
+import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import {
   getMinDiskSizeGb,
   IMAGES,
@@ -372,8 +378,6 @@ function createBuildConfiguration({
         } as const)),
   } as const;
 
-  const ARCH = arch == "x86_64" ? "" : "-arm64";
-
   const startupScript = `
 #!/bin/bash
 set -ev
@@ -387,29 +391,13 @@ ${installUser()}
 # Ensure a clean docker slate
 docker system prune -a -f
 
-# Write the script to /root/update-cocalc.sh
-echo '
-set -ev
-docker pull ${DOCKER_USER}/compute-cocalc
-rm -rf /tmp/cocalc
-docker create --name temp-copy-cocalc ${DOCKER_USER}/compute-cocalc${ARCH}
-docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
-rsync -axH --delete /tmp/cocalc/ /cocalc/
-rm -rf /tmp/cocalc
-docker rm temp-copy-cocalc
+${installCoCalc(arch)}
 
 # Pre-pull filesystem container
 docker pull ${DOCKER_USER}/compute-filesystem
 
 # Pre-pull code container
-docker pull ${docker}${ARCH}
-' > /root/update-cocalc.sh
-
-# Make the script executable
-chmod +x /root/update-cocalc.sh
-
-# Run the script
-/root/update-cocalc.sh
+docker pull ${docker}${getImagePostfix(arch)}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda() : ""}

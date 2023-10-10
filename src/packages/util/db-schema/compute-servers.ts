@@ -175,6 +175,10 @@ export function getTargetState(x: State | Action): State {
 
 export type Architecture = "x86_64" | "arm64";
 
+export function getImagePostfix(arch: Architecture) {
+  return arch == "x86_64" ? "" : "-arm64";
+}
+
 export type Cloud =
   | "any"
   | "onprem"

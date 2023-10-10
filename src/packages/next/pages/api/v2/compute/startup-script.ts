@@ -2,6 +2,8 @@
 Returns a bash script that when run as root starts 
 a compute server and connects it to a project.
 
+This is meant to be used for on prem compute servers, 
+hence it includes installing the /cocalc code and the "user" user.
 */
 
 import { getStartupScript } from "@cocalc/server/compute/control";
@@ -19,8 +21,9 @@ export default async function handle(req, res) {
 }
 
 async function get(req) {
-  const { api_key, id } = getParams(req);
+  const { api_key, id: id0 } = getParams(req, { allowGet: true });
   // use api_key to get project, and also verify access:
+  const id = parseInt(id0);
   const project_id = await getProjectIdWithApiKey(api_key);
   if (!project_id) {
     throw Error("api_key query param must be a valid project api key");
@@ -35,5 +38,7 @@ async function get(req) {
   return await getStartupScript({
     id,
     api_key,
+    installCocalc: true,
+    installUser: true,
   });
 }

@@ -2,6 +2,11 @@
 This all assume Ubuntu 22.04.
 */
 
+import {
+  DOCKER_USER,
+  getImagePostfix,
+} from "@cocalc/util/db-schema/compute-servers";
+
 // for consistency with cocalc.com
 export const UID = 2001;
 
@@ -34,24 +39,53 @@ service docker start
 }
 
 export function installUser() {
-return `
-# Create the "user".
+  return `
+# Create the "user" if they do not already exist:
 
-/usr/sbin/groupadd --gid=${UID} -o user
-/usr/sbin/useradd  --home-dir=/home/user --gid=${UID} --uid=${UID} --shell=/bin/bash user
-rm -rf /home/user && mkdir /home/user &&  chown ${UID}:${UID} -R /home/user
+if ! id -u user >/dev/null 2>&1; then
 
-# Allow to be root
-echo '%user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+  /usr/sbin/groupadd --gid=${UID} -o user
+  /usr/sbin/useradd  --home-dir=/home/user --gid=${UID} --uid=${UID} --shell=/bin/bash user
+  rm -rf /home/user && mkdir /home/user &&  chown ${UID}:${UID} -R /home/user
 
-# Allow to use FUSE
-sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
+  # Allow to be root
+  echo '%user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-# Add user to the docker group, so that they can
-# use docker without having to do "sudo".
+  # Allow to use FUSE
+  sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
 
-sed -i 's/docker:x:999:/docker:x:999:user/' /etc/group
-`
+  # Add user to the docker group, so that they can
+  # use docker without having to do "sudo".
+
+  sed -i 's/docker:x:999:/docker:x:999:user/' /etc/group
+
+fi
+`;
+}
+
+
+export function installCoCalc(arch) {
+  return `
+# Write the script to /root/update-cocalc.sh so we can easily re-run it later.
+echo '
+set -ev
+docker pull ${DOCKER_USER}/compute-cocalc
+rm -rf /tmp/cocalc
+docker create --name temp-copy-cocalc ${DOCKER_USER}/compute-cocalc${getImagePostfix(
+    arch,
+  )}
+docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
+rsync -axH --delete /tmp/cocalc/ /cocalc/
+rm -rf /tmp/cocalc
+docker rm temp-copy-cocalc
+' > /root/update-cocalc.sh
+
+# Make the script executable
+chmod +x /root/update-cocalc.sh
+
+# Run the script
+/root/update-cocalc.sh
+`;
 }
 
 /*
@@ -77,3 +111,6 @@ apt-get -y install cuda nvidia-container-toolkit
 rm cuda-keyring.deb
 `;
 }
+
+
+
