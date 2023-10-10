@@ -31,13 +31,20 @@ export default function CreateComputeServer({ project_id, onCreate }) {
     DEFAULTS.configuration,
   );
 
+  const resetConfig = () => {
+    setTitle(DEFAULTS.title());
+    setColor(DEFAULTS.color);
+    setCloud(DEFAULTS.cloud);
+    setConfiguration(DEFAULTS.configuration);
+  };
+
   useEffect(() => {
     if (configuration.cloud != cloud) {
       setConfiguration(CLOUDS_BY_NAME[cloud].defaultConfiguration);
     }
   }, [cloud]);
 
-  const handleCreate = async () => {
+  const handleCreate = async (start: boolean) => {
     try {
       setError("");
       onCreate();
@@ -51,16 +58,15 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           configuration,
         });
         setEditing(false);
-        setTitle(DEFAULTS.title());
-        setColor(DEFAULTS.color);
-        setCloud(DEFAULTS.cloud);
-        setConfiguration(DEFAULTS.configuration);
+        resetConfig();
         setCreating(false);
-        (async () => {
-          try {
-            await computeServerAction({ id, action: "start" });
-          } catch (_) {}
-        })();
+        if (start) {
+          (async () => {
+            try {
+              await computeServerAction({ id, action: "start" });
+            } catch (_) {}
+          })();
+        }
       } catch (err) {
         setError(`${err}`);
       }
@@ -68,6 +74,39 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       setCreating(false);
     }
   };
+
+  const footer = [
+    <div style={{ textAlign: "center" }} key="footer">
+      <Button key="cancel" size="large" onClick={() => setEditing(false)}>
+        Cancel
+      </Button>
+      <Button
+        key="start"
+        size="large"
+        type="primary"
+        onClick={() => {
+          handleCreate(true);
+        }}
+        disabled={!!error || !title.trim()}
+      >
+        <Icon name="run" /> Start Compute Server
+        {!!error && "(clear error) "}
+        {!title.trim() && "(set title) "}
+      </Button>
+      <Button
+        key="create"
+        size="large"
+        onClick={() => {
+          handleCreate(false);
+        }}
+        disabled={!!error || !title.trim()}
+      >
+        <Icon name="run" /> Create Server
+        {!!error && "(clear error) "}
+        {!title.trim() && "(set title) "}
+      </Button>
+    </div>,
+  ];
 
   return (
     <div style={{ marginTop: "15px" }}>
@@ -99,31 +138,14 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         Create Compute Server... {creating ? <Spin /> : null}
       </Button>
       <Modal
-        destroyOnClose
         width={"900px"}
         onCancel={() => {
           setEditing(false);
-          setConfiguration(DEFAULTS.configuration);
+          resetConfig();
         }}
         open={editing}
         title={"Create Compute Server"}
-        footer={[
-          <div style={{ textAlign: "center" }}>
-            <Button size="large" onClick={() => setEditing(false)}>
-              Cancel
-            </Button>
-            <Button
-              size="large"
-              type="primary"
-              onClick={handleCreate}
-              disabled={!!error || !title.trim()}
-            >
-              <Icon name="run" /> Start Compute Server
-              {!!error && "(clear error) "}
-              {!title.trim() && "(set title) "}
-            </Button>
-          </div>,
-        ]}
+        footer={footer}
       >
         <div style={{ marginTop: "15px" }}>
           <ShowError error={error} setError={setError} />
@@ -135,7 +157,10 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             }}
           >
             Customize your compute server below, then{" "}
-            <Button onClick={handleCreate} disabled={!!error || !title.trim()}>
+            <Button
+              onClick={() => handleCreate(true)}
+              disabled={!!error || !title.trim()}
+            >
               <Icon name="run" /> Start It
             </Button>
           </div>

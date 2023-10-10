@@ -20,6 +20,11 @@ export default async function costPerHour({
     // always a cost of 0 in this state
     return 0;
   }
+  if (configuration.cloud == "onprem") {
+    // free for now -- but we will charge, e.g., for bandwidth and management when
+    // this has a management layer
+    return 0;
+  }
   if (configuration.cloud != "google-cloud") {
     throw Error("cost computation only implemented for google cloud");
   }

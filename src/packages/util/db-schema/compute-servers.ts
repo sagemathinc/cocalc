@@ -223,7 +223,7 @@ const CLOUDS: {
       machineType: "c2-standard-4",
       spot: true,
       diskSizeGb: getMinDiskSizeGb({}),
-      diskType: "pd-standard",
+      diskType: "pd-balanced",
       externalIp: true,
     },
   },
@@ -245,6 +245,7 @@ const CLOUDS: {
       cloud: "onprem",
       image: "python",
       arch: "x86_64",
+      gpu: false,
     },
   },
 };
@@ -372,6 +373,7 @@ export interface GoogleCloudConfiguration extends BaseConfiguration {
 export interface OnPremCloudConfiguration extends BaseConfiguration {
   cloud: "onprem";
   arch?: Architecture;
+  gpu?: boolean;
 }
 
 export type Configuration =

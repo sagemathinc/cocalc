@@ -18,6 +18,7 @@ interface Props {
   disabled?: boolean;
   state?: State;
   style?: CSSProperties;
+  gpu?: boolean; // if explicitly set, some options may be removed
 }
 
 export default function SelectImage({
@@ -26,10 +27,17 @@ export default function SelectImage({
   disabled,
   state = "deprovisioned",
   style,
+  gpu,
 }: Props) {
   const [value, setValue] = useState<ImageName | undefined>(
     configuration.image,
   );
+  let options;
+  if (gpu != null && gpu == false) {
+    options = OPTIONS.filter((x) => !IMAGES[x.value].gpu);
+  } else {
+    options = OPTIONS;
+  }
   return (
     <Select
       disabled={disabled || state != "deprovisioned"}
@@ -37,7 +45,7 @@ export default function SelectImage({
       defaultOpen={!value && state == "deprovisioned"}
       value={value}
       style={style}
-      options={OPTIONS}
+      options={options}
       onChange={(val) => {
         setValue(val);
         setConfig({ image: val });

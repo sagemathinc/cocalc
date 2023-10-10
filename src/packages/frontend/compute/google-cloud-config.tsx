@@ -38,7 +38,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage from "./select-image";
 
-const SELECTOR_WIDTH = "350px";
+export const SELECTOR_WIDTH = "350px";
 
 const DEFAULT_GPU = "nvidia-tesla-t4";
 const FALLBACK_INSTANCE = "n1-standard-1";
@@ -58,7 +58,7 @@ interface Props {
   state?: State;
 }
 
-export default function Configuration({
+export default function GoogleCloudConfiguration({
   configuration: configuration0,
   editable,
   id,
@@ -843,7 +843,7 @@ function BootDisk({
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
   );
-  const [newDiskType, setNewDiskType] = useState<number | null>(
+  const [newDiskType, setNewDiskType] = useState<string | null>(
     configuration.diskType ?? "pd-standard",
   );
   useEffect(() => {
@@ -951,27 +951,49 @@ function BootDisk({
           }}
           options={[
             {
-              value: "pd-standard",
-              label: `Standard (HDD) disk - ${currency(
-                priceData.disks["pd-standard"]?.prices[configuration.region] *
-                  730,
-              )}/GB per month`,
-            },
-            {
               value: "pd-balanced",
               label: `Balanced (SSD) disks - ${currency(
-                priceData.disks["pd-balanced"]?.prices[configuration.region] *
-                  730,
+                markup({
+                  cost:
+                    priceData.disks["pd-balanced"]?.prices[
+                      configuration.region
+                    ] * 730,
+                  priceData,
+                }),
               )}/GB per month`,
             },
             {
               value: "pd-ssd",
               label: `Performance (SSD) disks - ${currency(
-                priceData.disks["pd-ssd"]?.prices[configuration.region] * 730,
+                markup({
+                  cost:
+                    priceData.disks["pd-ssd"]?.prices[configuration.region] *
+                    730,
+                  priceData,
+                }),
+              )}/GB per month`,
+            },
+            {
+              value: "pd-standard",
+              label: `Standard (HDD) disk - ${currency(
+                markup({
+                  cost:
+                    priceData.disks["pd-standard"]?.prices[
+                      configuration.region
+                    ] * 730,
+                  priceData,
+                }),
               )}/GB per month`,
             },
           ]}
         ></Select>
+        {newDiskType == "pd-standard" && (
+          <div style={{ marginTop: "10px", color: "#666" }}>
+            <b>WARNING:</b> Small standard disks are slow. Expect an extra
+            10s-30s of startup time and slower application start. Balanced disks
+            are much faster.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -986,8 +1008,9 @@ function Image(props) {
       </div>
       {state == "deprovisioned" && (
         <div style={{ color: "#666", marginBottom: "5px" }}>
-          Select compute server image. You have full root access and can install
-          any extra software, including commercial software.
+          Select compute server image. You will be able to use sudo as root with
+          no password, and can easily install anything into the Ubuntu Linux
+          image, including commercial software.
         </div>
       )}
       <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />

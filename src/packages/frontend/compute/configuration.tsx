@@ -3,6 +3,7 @@ import type {
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import GoogleCloudConfiguration from "./google-cloud-config";
+import OnPremConfiguration from "./onprem-config";
 
 interface Props {
   configuration: ConfigurationType;
@@ -19,12 +20,14 @@ export default function Configuration({
   onChange,
   state,
 }: Props) {
-  const disabled = (state ?? "deprovisioned") != "deprovisioned" && state != "off";
+  const disabled =
+    (state ?? "deprovisioned") != "deprovisioned" && state != "off";
   return (
     <>
       {editable && disabled && (
         <div style={{ fontWeight: 250 }}>
-          You can only change the configuration when the VM is off or deprovisioned.
+          You can only change the configuration when the VM is off or
+          deprovisioned.
         </div>
       )}
       <Config
@@ -43,6 +46,17 @@ function Config({ configuration, editable, id, onChange, disabled, state }) {
   if (configuration?.cloud == "google-cloud") {
     return (
       <GoogleCloudConfiguration
+        configuration={configuration}
+        editable={editable}
+        id={id}
+        onChange={onChange}
+        disabled={disabled}
+        state={state}
+      />
+    );
+  } else if (configuration?.cloud == "onprem") {
+    return (
+      <OnPremConfiguration
         configuration={configuration}
         editable={editable}
         id={id}
