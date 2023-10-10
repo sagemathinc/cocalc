@@ -87,6 +87,9 @@ export default function ComputeServer({
             editable={editable}
             setError={setError}
             onChange={onColorChange}
+            style={{
+              marginLeft: "10px",
+            }}
           />
           <Cloud
             cloud={cloud}
@@ -95,7 +98,7 @@ export default function ComputeServer({
             setError={setError}
             setCloud={onCloudChange}
             id={id}
-            style={{ marginTop: "-5px" }}
+            style={{ marginTop: "-5px", marginLeft: "10px" }}
           />
         </div>
       ),

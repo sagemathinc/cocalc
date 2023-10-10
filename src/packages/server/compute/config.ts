@@ -1,4 +1,4 @@
-import { CLOUDS, Cloud } from "@cocalc/util/db-schema/compute-servers";
+import { CLOUDS_BY_NAME, Cloud } from "@cocalc/util/db-schema/compute-servers";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 export async function computeServersEnabled(): Promise<boolean> {
@@ -6,7 +6,7 @@ export async function computeServersEnabled(): Promise<boolean> {
   if (!settings.compute_servers_enabled) {
     return false;
   }
-  for (const cloud in CLOUDS) {
+  for (const cloud in CLOUDS_BY_NAME) {
     if (settings[`compute_servers_${cloud}_enabled`]) {
       return true;
     }
@@ -18,9 +18,9 @@ export async function availableClouds(): Promise<Cloud[]> {
   const settings = await getServerSettings();
   const v: Cloud[] = [];
 
-  for (const cloud in CLOUDS) {
+  for (const cloud in CLOUDS_BY_NAME) {
     if (settings[`compute_servers_${cloud}_enabled`]) {
-      v.push(CLOUDS[cloud].name);
+      v.push(CLOUDS_BY_NAME[cloud].name);
     }
   }
   return v;

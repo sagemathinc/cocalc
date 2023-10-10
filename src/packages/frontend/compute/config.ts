@@ -1,5 +1,5 @@
 import { redux } from "@cocalc/frontend/app-framework";
-import { CLOUDS, Cloud } from "@cocalc/util/db-schema/compute-servers";
+import { CLOUDS_BY_NAME, Cloud } from "@cocalc/util/db-schema/compute-servers";
 
 export function computeServersEnabled() {
   const customize = redux.getStore("customize");
@@ -9,7 +9,7 @@ export function computeServersEnabled() {
   if (!customize.get("compute_servers_enabled")) {
     return false;
   }
-  for (const cloud in CLOUDS) {
+  for (const cloud in CLOUDS_BY_NAME) {
     if (customize.get(`compute_servers_${cloud}_enabled`)) {
       return true;
     }
@@ -23,11 +23,10 @@ export function availableClouds(): Cloud[] {
   if (customize == null) {
     return v;
   }
-  for (const cloud in CLOUDS) {
+  for (const cloud in CLOUDS_BY_NAME) {
     if (customize.get(`compute_servers_${cloud}_enabled`)) {
-      v.push(CLOUDS[cloud].name);
+      v.push(CLOUDS_BY_NAME[cloud].name);
     }
   }
   return v;
 }
-

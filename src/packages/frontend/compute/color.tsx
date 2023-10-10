@@ -9,6 +9,7 @@ interface Props {
   editable?: boolean;
   setError;
   onChange?;
+  style?;
 }
 
 export default function Color({
@@ -17,6 +18,7 @@ export default function Color({
   editable,
   setError,
   onChange,
+  style,
 }: Props) {
   const [saving, setSaving] = useState<boolean>(false);
   const [edit, setEdit] = useState<boolean>(false);
@@ -33,6 +35,8 @@ export default function Color({
         width: "125px",
         height: "30px",
         background: choice ?? "#aaa",
+        borderRadius: "5px",
+        border: `1px solid {choice ?? "#aaa"}`,
       }}
     />
   );
@@ -63,7 +67,7 @@ export default function Color({
   };
 
   return (
-    <div>
+    <div style={style}>
       {strip}
       {saving && <Spin delay={1000} />}
       {edit && (

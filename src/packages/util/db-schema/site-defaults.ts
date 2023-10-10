@@ -61,8 +61,9 @@ export type SiteSettingsKeys =
   | "sandbox_project_id"
   | "new_project_pool"
   | "compute_servers_enabled"
-  | "compute_servers_google_enabled"
-  | "compute_servers_lambda_enabled"
+  | "compute_servers_google-cloud_enabled"
+  | "compute_servers_lambda-cloud_enabled"
+  | "compute_servers_onprem_enabled"
   | "compute_servers_dns_enabled"
   | "compute_servers_dns";
 
@@ -605,14 +606,21 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
   },
-  compute_servers_google_enabled: {
+  "compute_servers_google-cloud_enabled": {
     name: "Enable Compute Servers - Google Cloud",
-    desc: "Whether or not to include google cloud compute servers.  You must also configure a service account below.",
+    desc: "Whether or not to include google cloud compute servers.  You must also configure a Google service account below.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
   },
-  compute_servers_lambda_enabled: {
+  compute_servers_onprem_enabled: {
+    name: "Enable Compute Servers - On Prem",
+    desc: "Whether or not to include on prem compute servers.  Right now, these are VM's that must be manually managed by a user and involve copy/paste, but someday they will be much more automated.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  "compute_servers_lambda-cloud_enabled": {
     name: "Enable Compute Servers - Lambda Cloud",
     desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.  **WARNING:** As of October 2023, there is no legal way to use Lambda cloud  without a reseller agreement with Lambda cloud, if you're selling use of a CoCalc server.  Such agreements don't exist yet.",
     default: "no",

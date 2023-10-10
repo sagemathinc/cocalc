@@ -67,9 +67,9 @@ const openai_enabled = (conf) => to_bool(conf.openai_enabled);
 
 const compute_servers_enabled = (conf) => to_bool(conf.compute_servers_enabled);
 const compute_servers_google_enabled = (conf) =>
-  to_bool(conf.compute_servers_google_enabled);
+  to_bool(conf["compute_servers_google-cloud_enabled"]);
 const compute_servers_lambda_enabled = (conf) =>
-  to_bool(conf.compute_servers_lambda_enabled);
+  to_bool(conf["compute_servers_lambda-cloud_enabled"]);
 
 const neural_search_enabled = (conf) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);

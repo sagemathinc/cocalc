@@ -23,13 +23,12 @@ import { ImagesClient } from "@google-cloud/compute";
 import TTLCache from "@isaacs/ttlcache";
 import dayjs from "dayjs";
 import type {
+  Architecture,
   GoogleCloudConfiguration,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
-
-export type Architecture = "x86_64" | "arm64";
 
 // Return the latest available image of the given type on the configured cluster.
 // Returns null if no images of the given type are available.

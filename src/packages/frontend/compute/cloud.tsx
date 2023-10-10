@@ -6,6 +6,7 @@ import {
 import { Select, Space, Spin, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { setServerCloud } from "./api";
+import { useStore } from "@cocalc/frontend/app-framework";
 
 interface Props {
   cloud: CloudType;
@@ -31,6 +32,7 @@ export default function Cloud({
 }: Props) {
   const [newCloud, setNewCloud] = useState<CloudType>(cloud);
   const [saving, setSaving] = useState<boolean>(false);
+  const customize = useStore("customize");
   useEffect(() => {
     setNewCloud(cloud);
   }, [cloud]);
@@ -49,12 +51,15 @@ export default function Cloud({
     return label;
   }
 
-  const options: { value: string; label: JSX.Element }[] = [];
+  const options: { value: string; label: JSX.Element; key: string }[] = [];
   for (const cloud in CLOUDS_BY_NAME) {
-    options.push({
-      value: cloud,
-      label: <Cloud editable={false} cloud={cloud as CloudType} />,
-    });
+    if (customize?.get(`compute_servers_${cloud}_enabled`)) {
+      options.push({
+        key: cloud,
+        value: cloud,
+        label: <Cloud editable={false} cloud={cloud as CloudType} />,
+      });
+    }
   }
 
   if (state != "deprovisioned" && setCloud == null) {

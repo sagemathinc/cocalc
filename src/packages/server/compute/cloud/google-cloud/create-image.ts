@@ -26,7 +26,7 @@ await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({fil
 
 */
 
-import { imageName, getImagesClient, Architecture } from "./images";
+import { imageName, getImagesClient } from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
@@ -34,6 +34,7 @@ import { installCuda, installDocker, installUser } from "../install";
 import { delay } from "awaiting";
 import getInstance from "./get-instance";
 import type {
+  Architecture,
   GoogleCloudConfiguration,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
@@ -370,7 +371,7 @@ function createBuildConfiguration({
           machineType: "t2a-standard-4",
         } as const)),
   } as const;
-  
+
   const ARCH = arch == "x86_64" ? "" : "-arm64";
 
   const startupScript = `

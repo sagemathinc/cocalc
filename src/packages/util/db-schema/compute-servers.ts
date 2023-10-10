@@ -173,9 +173,11 @@ export function getTargetState(x: State | Action): State {
   throw Error(`x =${x} must be a state or action`);
 }
 
+export type Architecture = "x86_64" | "arm64";
+
 export type Cloud =
   | "any"
-  | "user"
+  | "onprem"
   | "core-weave"
   | "lambda-cloud"
   | "google-cloud"
@@ -200,7 +202,7 @@ export function getMinDiskSizeGb(configuration) {
 }
 
 // The ones that are at all potentially worth exposing to users.
-export const CLOUDS: {
+const CLOUDS: {
   [short: string]: {
     name: Cloud;
     label: string;
@@ -234,6 +236,15 @@ export const CLOUDS: {
       image: "python",
       instance_type_name: "gpu_1x_a10",
       region_name: "us-west-1",
+    },
+  },
+  onprem: {
+    name: "onprem",
+    label: "On Prem",
+    defaultConfiguration: {
+      cloud: "onprem",
+      image: "python",
+      arch: "x86_64",
     },
   },
 };
@@ -358,11 +369,17 @@ export interface GoogleCloudConfiguration extends BaseConfiguration {
   externalIp?: boolean;
 }
 
+export interface OnPremCloudConfiguration extends BaseConfiguration {
+  cloud: "onprem";
+  arch?: Architecture;
+}
+
 export type Configuration =
   | LambdaConfiguration
   | CoreWeaveConfiguration
   | FluidStackConfiguration
-  | GoogleCloudConfiguration;
+  | GoogleCloudConfiguration
+  | OnPremCloudConfiguration;
 
 interface BaseData {
   cloudflareId: string;

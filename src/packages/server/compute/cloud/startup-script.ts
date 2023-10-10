@@ -1,7 +1,9 @@
-import type { Architecture } from "./google-cloud/images";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { UID } from "./install";
-import type { ImageName } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  Architecture,
+  ImageName,
+} from "@cocalc/util/db-schema/compute-servers";
 
 export default async function startupScript({
   image = "minimal",
@@ -60,7 +62,13 @@ ${computeManager(opts)}
 `;
 }
 
-function mountFilesystems({ compute_server_id, api_key, project_id, arch, apiServer }) {
+function mountFilesystems({
+  compute_server_id,
+  api_key,
+  project_id,
+  arch,
+  apiServer,
+}) {
   const image = `sagemathinc/compute-filesystem${
     arch == "arm64" ? "-arm64" : ""
   }`;
