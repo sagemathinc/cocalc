@@ -5,7 +5,7 @@ How this works will start simple, but is obviously going to get very complicated
 over time, with multiple clouds, heuristics, api client code, etc.
 */
 
-import { getServer } from "./get-servers";
+import { getServer, getServerNoCheck } from "./get-servers";
 import { setState, setError } from "./util";
 import * as testCloud from "./cloud/testcloud";
 import * as fluidStack from "./cloud/fluid-stack";
@@ -13,9 +13,11 @@ import * as coreWeave from "./cloud/core-weave";
 import * as lambdaCloud from "./cloud/lambda-cloud";
 import * as googleCloud from "./cloud/google-cloud";
 import type {
+  Architecture,
   Cloud,
   ComputeServer,
   Configuration,
+  ImageName,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getTargetState } from "@cocalc/util/db-schema/compute-servers";
@@ -29,6 +31,7 @@ import updatePurchase from "./update-purchase";
 import { changedKeys } from "@cocalc/server/compute/util";
 import { checkValidDomain } from "@cocalc/util/compute/dns";
 import { makeDnsChange } from "./dns";
+import startupScript from "@cocalc/server/compute/cloud/startup-script";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -520,4 +523,46 @@ export async function getNetworkUsage(opts: {
         `cloud '${opts.server.cloud}' network usage not currently implemented`,
       );
   }
+}
+
+async function getStartupParams(id: number): Promise<{
+  project_id: string;
+  gpu?: boolean;
+  arch: Architecture;
+  image: ImageName;
+}> {
+  const server = await getServerNoCheck(id);
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.getStartupParams(server);
+    case "onprem":
+      const { configuration } = server;
+      if (configuration.cloud != "onprem") {
+        throw Error("inconsistent configuration -- must be onprem");
+      }
+      return {
+        project_id: server.project_id,
+        gpu: !!configuration.gpu,
+        arch: configuration.arch ?? "x86_64",
+        image: configuration.image ?? "minimal",
+      };
+    default:
+      throw Error(
+        `getStartupParams for '${server.cloud}' not currently implemented`,
+      );
+  }
+}
+
+export async function getHostname(id: number): Promise<string> {
+  // we might make this more customizable
+  return `compute-server-${id}`;
+}
+
+export async function getStartupScript({ id, api_key }): Promise<string> {
+  return await startupScript({
+    compute_server_id: id,
+    api_key,
+    hostname: await getHostname(id),
+    ...(await getStartupParams(id)),
+  });
 }

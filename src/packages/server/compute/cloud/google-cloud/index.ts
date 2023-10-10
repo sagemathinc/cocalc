@@ -23,6 +23,7 @@ import { getArchitecture } from "./images";
 import { getInstanceEgress } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { makeDnsChange } from "@cocalc/server/compute/dns";
+import { getHostname } from "@cocalc/server/compute/control";
 
 export * from "./validate-configuration";
 export * from "./make-configuration-change";
@@ -38,6 +39,19 @@ export async function getGoogleCloudPrefix() {
 export async function getServerName(server: { id: number }) {
   const prefix = await getGoogleCloudPrefix();
   return `${prefix}-${server.id}`;
+}
+
+export function getStartupParams(server: ComputeServer) {
+  const { configuration } = server;
+  if (configuration?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  return {
+    project_id: server.project_id,
+    gpu: !!configuration.acceleratorType,
+    arch: getArchitecture(configuration.machineType),
+    image: configuration.image ?? "minimal",
+  };
 }
 
 export async function start(server: ComputeServer) {
@@ -59,12 +73,9 @@ export async function start(server: ComputeServer) {
       configuration,
       startupScript: await startupScript({
         compute_server_id: server.id,
-        image: configuration.image,
         api_key: server.api_key,
-        project_id: server.project_id,
-        gpu: !!configuration.acceleratorType,
-        arch: getArchitecture(configuration.machineType),
-        hostname: `compute-server-${server.id}`,
+        hostname: await getHostname(server.id),
+        ...getStartupParams(server),
       }),
       metadata: { "serial-port-logging-enable": true },
       wait: true,
