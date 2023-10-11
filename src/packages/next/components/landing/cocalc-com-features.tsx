@@ -11,10 +11,12 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
+import DemoCell from "components/demo-cell";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
 import { CSS, Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 import Loading from "components/share/loading";
 import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";
@@ -25,20 +27,21 @@ import {
 } from "components/testimonials";
 import basePath from "lib/base-path";
 import { MAX_WIDTH } from "lib/config";
+import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
 import SignIn from "./sign-in";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 
-interface CCFeatures {
-  sandboxProjectId?: string;
-  siteName: string;
-  shareServer: boolean;
-}
-
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
-export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
-  const { sandboxProjectId, siteName, shareServer } = props;
+export default function CoCalcComFeatures() {
+  const {
+    siteName = "CoCalc",
+    openaiEnabled,
+    sandboxProjectId,
+    jupyterApiEnabled,
+    shareServer = false,
+  } = useCustomize();
   const width = Grid.useBreakpoint();
   const [sharedExpanded, setSharedExpanded] = useState(false);
 
@@ -90,7 +93,7 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
   function renderTeaching() {
     return (
       <Info
-        title="Made for Teaching"
+        title="Teach a Course"
         icon="graduation-cap"
         image={assignments}
         anchor="a-teaching"
@@ -123,10 +126,13 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
           and help them by editing the file or using side-chat communication.
         </Paragraph>
         <Paragraph>
-          <A href="/features/teaching">
-            <strong>Learn more about teaching with {siteName}</strong>
-          </A>
-          .
+          <Button
+            onClick={() =>
+              (window.location.href = join(basePath, "/features/teaching"))
+            }
+          >
+            More about teaching on {siteName}
+          </Button>
         </Paragraph>
       </Info>
     );
@@ -159,12 +165,7 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
     } else {
       return (
         <div style={{ textAlign: "center" }}>
-          <Button
-            size="large"
-            onClick={() => {
-              setSharedExpanded(true);
-            }}
-          >
+          <Button size="large" onClick={() => setSharedExpanded(true)}>
             <Icon name="plus-square" /> Explore what people have published on{" "}
             {siteName}!
           </Button>
@@ -230,8 +231,13 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
                 {siteName} comes with a variety of software pre-installed, e.g.{" "}
                 <A href={"/features/python"}>Python</A>,{" "}
                 <A href={"/features/sage"}>SageMath</A> and{" "}
-                <A href={"/features/octave"}>Octave</A>. You can install
-                additional software locally in your project as well.
+                <A href={"/features/octave"}>Octave</A>. You can{" "}
+                <A
+                  href={"https://doc.cocalc.com/howto/install-python-lib.html"}
+                >
+                  install additional software
+                </A>{" "}
+                directly in your project as well.
               </Paragraph>
               {!width.md && software}
             </Tool>
@@ -392,16 +398,16 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
             <Tool
               icon="graduation-cap"
               href={urlCourses}
-              title="Teaching a Course"
-              alt="Teaching a Course"
+              title="Teach a Course"
+              alt="Teach a Course"
               textStyle={{ color: toolCol }}
             >
               <Paragraph style={{ color: txtCol }}>
-                {siteName} is made for{" "}
+                You can{" "}
                 <A style={link} href="/features/teaching">
-                  teaching a course online
-                </A>
-                .
+                  teach a course
+                </A>{" "}
+                on {siteName} online!
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
                 The{" "}
@@ -478,8 +484,60 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
     );
   }
 
+  function renderChatGPT() {
+    if (!openaiEnabled) return;
+    return (
+      <Info
+        title="LLMs are here to help you"
+        icon="robot"
+        imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
+        anchor="a-realtimesync"
+        alt={"Two browser windows editing the same Jupyter notebook"}
+        style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
+      >
+        <Paragraph>
+          {siteName}'s file editors are enhanced by{" "}
+          <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
+            large language models
+          </A>{" "}
+          like <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A>. They
+          help you{" "}
+          <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
+            fixing errors
+          </A>
+          , generate code or LaTeX snippets, summarize documents, and much more.
+        </Paragraph>
+      </Info>
+    );
+  }
+
+  function renderDemoCell() {
+    if (!jupyterApiEnabled) return;
+
+    return (
+      <Info
+        title="Many programming languages"
+        icon="flow-chart"
+        imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
+        anchor="a-realtimesync"
+        alt={"Two browser windows editing the same Jupyter notebook"}
+        style={{ backgroundColor: COLORS.YELL_LLL }}
+      >
+        <Paragraph>
+          {siteName} supports many{" "}
+          <A href={"/software"}>programming languages</A>. Edit the demo cell on
+          the left and evaluate it by pressing "Run". You can also select a
+          different "kernel", i.e. the programming language that is used to
+          evaluate the cell.
+        </Paragraph>
+      </Info>
+    );
+  }
+
   return (
     <>
+      {renderChatGPT()}
+      {renderDemoCell()}
       {renderSandbox()}
       {renderCollaboration()}
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />

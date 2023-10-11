@@ -10,7 +10,6 @@ import { join } from "path";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
-import DemoCell from "components/demo-cell";
 import CoCalcComFeatures, {
   Hero,
 } from "components/landing/cocalc-com-features";
@@ -18,12 +17,10 @@ import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
-import Info from "components/landing/info";
 import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
@@ -43,17 +40,13 @@ interface Props {
 export default function Home(props: Props) {
   const { customize, recentHeadlines, headlineIndex } = props;
   const {
-    shareServer,
     siteName,
     siteDescription,
     organizationName,
     organizationURL,
     splashImage,
     indexInfo,
-    sandboxProjectId,
     onCoCalcCom,
-    openaiEnabled,
-    jupyterApiEnabled,
     account,
     isCommercial,
   } = customize;
@@ -164,13 +157,7 @@ export default function Home(props: Props) {
 
   function renderCoCalcComFeatures() {
     if (!onCoCalcCom) return;
-    return (
-      <CoCalcComFeatures
-        siteName={siteName ?? "CoCalc"}
-        shareServer={shareServer ?? false}
-        sandboxProjectId={sandboxProjectId}
-      />
-    );
+    return <CoCalcComFeatures />;
   }
 
   function logo(): JSX.Element {
@@ -215,56 +202,6 @@ export default function Home(props: Props) {
     );
   }
 
-  function renderChatGPT() {
-    if (!openaiEnabled) return;
-    return (
-      <Info
-        title="LLMs are here to help you"
-        icon="robot"
-        imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
-        anchor="a-realtimesync"
-        alt={"Two browser windows editing the same Jupyter notebook"}
-        style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
-      >
-        <Paragraph>
-          {siteName}'s file editors are enhanced by{" "}
-          <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
-            large language models
-          </A>{" "}
-          like <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A>. They
-          help you{" "}
-          <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
-            fixing errors
-          </A>
-          , generate code or LaTeX snippets, summarize documents, and much more.
-        </Paragraph>
-      </Info>
-    );
-  }
-
-  function renderDemoCell() {
-    if (!jupyterApiEnabled || !onCoCalcCom) return;
-
-    return (
-      <Info
-        title="Many programming languages"
-        icon="flow-chart"
-        imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
-        anchor="a-realtimesync"
-        alt={"Two browser windows editing the same Jupyter notebook"}
-        style={{ backgroundColor: COLORS.YELL_LLL }}
-      >
-        <Paragraph>
-          {siteName} supports many{" "}
-          <A href={"/software"}>programming languages</A>. Edit the demo cell on
-          the left and evaluate it by pressing "Run". You can also select a
-          different "kernel", i.e. the programming language that is used to
-          evaluate the cell.
-        </Paragraph>
-      </Info>
-    );
-  }
-
   return (
     <Customize value={customize}>
       <Head title={siteDescription ?? "Collaborative Calculation"} />
@@ -284,8 +221,6 @@ export default function Home(props: Props) {
             imageAlternative={imageAlternative()}
           />
           <Hero />
-          {renderChatGPT()}
-          {renderDemoCell()}
           {renderCoCalcComFeatures()}
           <Footer />
         </Layout.Content>
