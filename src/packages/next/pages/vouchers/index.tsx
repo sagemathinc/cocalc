@@ -7,7 +7,6 @@ import { Layout } from "antd";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import {
@@ -36,44 +35,38 @@ export default function Overview({ customize }) {
             <div style={{ fontSize: "12pt" }}>
               <div style={{ maxWidth: "700px", margin: "auto" }}>
                 <A href="https://doc.cocalc.com/vouchers.html">Vouchers</A> are
-                a convenient way to share and resell <SiteName /> licenses. You
-                can <A href="/redeem">redeem a voucher</A>, see{" "}
-                <A href="/vouchers/redeemed">the vouchers you have redeemed</A>,
-                browse and download{" "}
-                <A href="/vouchers/created">vouchers you have created</A>, and
-                create or purchase <A href="/store/vouchers">new vouchers</A>.
+                a convenient way to send <A href="/settings/purchases">money</A>{" "}
+                to somebody or to resell <SiteName />{" "}
+                <A href="/settings/licenses">licenses</A>.
               </div>
             </div>
             <OverviewRow>
               <Product icon="gift2" title="Redeem a Voucher" href="/redeem">
-                Redeem a voucher code that you or somebody else created for one
-                or more licenses.
+                Redeem a voucher code to add{" "}
+                <A href="/settings/purchases">money</A> or{" "}
+                <A href="/settings/licenses">licenses</A> to your account.
               </Product>
               <Product
                 icon="table"
                 title="Vouchers You Redeemed"
                 href="/vouchers/redeemed"
               >
-                See a list of all vouchers you have redeemed, their status, and
-                links to the corresponding licenses.
+                See a list of all vouchers you have redeemed and links to the
+                corresponding <A href="/settings/licenses">licenses</A>.
               </Product>
               <Product
                 href={"/vouchers/created"}
                 icon="csv"
                 title="Your Vouchers"
               >
-                Browse all vouchers you have created, see their status, and
-                exports your vouchers to CSV or JSON.
+                Browse all vouchers you have created and see their status.
               </Product>
               <Product
                 href={"/store/vouchers"}
                 icon="shopping-cart"
                 title="Create New Vouchers"
               >
-                Add licenses with a range of time to your cart, then create
-                voucher codes that you can share, resell, or use later. These
-                can be redeemed for the contents of your cart, with dates
-                shifted to when the voucher is redeemed.
+                Create voucher codes that you can share, resell, or use later.
               </Product>
             </OverviewRow>
             {profile?.is_admin && (
@@ -94,12 +87,6 @@ export default function Overview({ customize }) {
                 </Product>
               </div>
             )}
-            <Paragraph>
-              You can also{" "}
-              <A href="/store">visit the store to buy licenses directly</A>,
-              browse your <A href="/billing">billing records</A> and see the
-              status of your <A href="/licenses">licenses</A>.
-            </Paragraph>
           </div>
         </Layout.Content>
       </Layout>
