@@ -573,6 +573,13 @@ export class PassportManager {
       // usually, we pick the "profile", but in some cases like SAML this is in "attributes".
       // finally, as a fallback, we just take the ".user"
       // technically, req.user should never be undefined, though.
+      // Example: 2023-10-11 for SAML v4 this is
+      // req.user = {"issuer":"http://adfs.cornellcollege.edu/adfs/services/trust",
+      // "inResponseTo":"_341e8226b4....","sessionIndex":"_...$...",
+      // "nameID":"1234567890","email":"....@cornellcollege.edu",
+      // "first_name":"[name]","last_name":"[name]"
+      // "attributes":{"email":"...@cornellcollege.edu","first_name":"[name]","last_name":"[name]"}}
+
       Lret(`req.user = ${safeJsonStringify(req.user)}`);
 
       const profile_raw =
