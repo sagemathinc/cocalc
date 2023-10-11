@@ -82,6 +82,29 @@ They just type code directly in, hit shift+enter and it runs, and they can see i
 It provides immediate feedback.
 The course management features work really well.`,
   },
+
+  // https://sagemathcloud.zendesk.com/agent/tickets/13676
+  {
+    name: "Scott Smith",
+    website:
+      "https://www.wlu.ca/academics/faculties/faculty-of-science/faculty-profiles/scott-smith/index.html",
+    affiliation: {
+      name: "Dept. of Chemistry and Biochemistry, Wilfrid Laurier University",
+      url: "https://www.wlu.ca/",
+    },
+    date: "May 2023",
+    content: `
+Amazing!  Now a chemistry nerd like me can do some pretty fancy things
+without having to also become a computer scientist.
+And share those things with those even less computer-programmy than myself.
+So that chemistry advances without “getting lost in the weeds”.
+
+Time travel !!! wow !! I love that.  (I could have used that many many times.  Haha).
+
+I was pretty sad when mybinder stopped working. [...] I know that CoCalc will be a new and improved replacement for mybinder.  And does not seem like a steep learning curve at all.
+
+The documentation (and support!) is fabulous !!`,
+  },
 ] as const;
 
 export function twoRandomTestimonials(): [Testimonial, Testimonial] {
