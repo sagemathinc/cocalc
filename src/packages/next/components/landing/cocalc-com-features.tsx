@@ -56,7 +56,7 @@ export default function CoCalcComFeatures() {
   function renderCollaboration(): JSX.Element {
     return (
       <Info
-        title="Collaborative editing"
+        title="Collaborative Computational Documents"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
@@ -66,26 +66,27 @@ export default function CoCalcComFeatures() {
         belowWide={true}
       >
         <Paragraph>
-          Have you ever been frustrated sending files back and forth between
-          your collaborators? Do you spend too much time on reviewing changes
-          and merging documents?
-        </Paragraph>
-        <Paragraph>
-          Share your computational documents like{" "}
+          {siteName} makes it possible to collaboratively edit computational
+          documents with your colleagues, students, or friends. Edit{" "}
           <A href={"/features/jupyter-notebook"}>
             <strong>Jupyter Notebooks</strong>
           </A>
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
           <A href="/features/sage">SageMath Worksheets</A>,{" "}
           <A href={"/features/whiteboard"}>Computational Whiteboards</A> and
-          many more with your collaborators.
+          many more with your collaborators in a real-time.
         </Paragraph>
+
         <Paragraph>
-          Everyone always stays on the same page, because all modifications are{" "}
-          <strong>synchronized in real time</strong> and your code runs in the
-          very same environment.
+          The code code runs in the same environment for everyone, giving
+          consistent results. All changes are synchronized in real-time.
         </Paragraph>
-        {shareServer ? <ProxyInput /> : undefined}
+
+        <Paragraph>
+          Therefore, you can forget the frustration of sending files back and
+          forth between your collaborators. You no longer waste time reviewing
+          changes and merging documents.
+        </Paragraph>
       </Info>
     );
   }
@@ -166,9 +167,10 @@ export default function CoCalcComFeatures() {
       return (
         <div style={{ textAlign: "center" }}>
           <Button size="large" onClick={() => setSharedExpanded(true)}>
-            <Icon name="plus-square" /> Explore what people have published on{" "}
+            <Icon name="plus-square" /> Explore published documents on{" "}
             {siteName}!
           </Button>
+          <ProxyInput />
         </div>
       );
     }
@@ -516,7 +518,7 @@ export default function CoCalcComFeatures() {
 
     return (
       <Info
-        title="Many programming languages"
+        title="Many Programming Languages"
         icon="flow-chart"
         imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
         anchor="a-realtimesync"
