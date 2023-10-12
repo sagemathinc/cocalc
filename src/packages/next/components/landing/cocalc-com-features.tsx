@@ -3,41 +3,60 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Collapse, CollapseProps, Grid, Row } from "antd";
+import { Button, Col, Grid, Row } from "antd";
+import { join } from "path";
+import { useEffect, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
+import DemoCell from "components/demo-cell";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
-import { CSS, Paragraph, Text, Title } from "components/misc";
+import { CSS, Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 import Loading from "components/share/loading";
 import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";
+import {
+  Testimonial,
+  TestimonialComponent,
+  twoRandomTestimonials,
+} from "components/testimonials";
+import basePath from "lib/base-path";
 import { MAX_WIDTH } from "lib/config";
+import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
-import { useEffect } from "react";
 import SignIn from "./sign-in";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 
-interface CCFeatures {
-  sandboxProjectId?: string;
-  siteName: string;
-  shareServer: boolean;
-}
-
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
-export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
-  const { sandboxProjectId, siteName, shareServer } = props;
+export default function CoCalcComFeatures() {
+  const {
+    siteName = "CoCalc",
+    openaiEnabled,
+    sandboxProjectId,
+    jupyterApiEnabled,
+    shareServer = false,
+  } = useCustomize();
   const width = Grid.useBreakpoint();
+  const [sharedExpanded, setSharedExpanded] = useState(false);
+
+  // to avoid next-js hydration errors
+  const [testimonials, setTestimonials] =
+    useState<[Testimonial, Testimonial]>();
+
+  useEffect(() => {
+    setTestimonials(twoRandomTestimonials());
+  }, []);
 
   function renderCollaboration(): JSX.Element {
     return (
       <Info
-        title="Collaborative editing"
+        title="Collaborative Computational Documents"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
@@ -47,26 +66,27 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
         belowWide={true}
       >
         <Paragraph>
-          Have you ever been frustrated sending files back and forth between
-          your collaborators? Do you spend too much time on reviewing changes
-          and merging documents?
-        </Paragraph>
-        <Paragraph>
-          Share your computational documents like{" "}
+          {siteName} makes it possible to collaboratively edit computational
+          documents with your colleagues, students, or friends. Edit{" "}
           <A href={"/features/jupyter-notebook"}>
             <strong>Jupyter Notebooks</strong>
           </A>
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
           <A href="/features/sage">SageMath Worksheets</A>,{" "}
           <A href={"/features/whiteboard"}>Computational Whiteboards</A> and
-          many more with your collaborators.
+          many more with your collaborators in a real-time.
         </Paragraph>
+
         <Paragraph>
-          Everyone always stays on the same page, because all modifications are{" "}
-          <strong>synchronized in real time</strong> and your code runs in the
-          very same environment.
+          The code code runs in the same environment for everyone, giving
+          consistent results. All changes are synchronized in real-time.
         </Paragraph>
-        {shareServer ? <ProxyInput /> : undefined}
+
+        <Paragraph>
+          Therefore, you can forget the frustration of sending files back and
+          forth between your collaborators. You no longer waste time reviewing
+          changes and merging documents.
+        </Paragraph>
       </Info>
     );
   }
@@ -74,7 +94,7 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
   function renderTeaching() {
     return (
       <Info
-        title="Made for Teaching"
+        title="Teach a Course"
         icon="graduation-cap"
         image={assignments}
         anchor="a-teaching"
@@ -107,10 +127,13 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
           and help them by editing the file or using side-chat communication.
         </Paragraph>
         <Paragraph>
-          <A href="/features/teaching">
-            <strong>Learn more about teaching with {siteName}</strong>
-          </A>
-          .
+          <Button
+            onClick={() =>
+              (window.location.href = join(basePath, "/features/teaching"))
+            }
+          >
+            More about teaching on {siteName}
+          </Button>
         </Paragraph>
       </Info>
     );
@@ -138,51 +161,57 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
   function renderShareServer() {
     if (!shareServer) return;
 
-    const items: CollapseProps["items"] = [
-      {
-        key: "public-paths",
-        label: (
-          <Title level={3} style={{ textAlign: "center" }}>
-            <Icon name="plus-square" /> Explore what people have published on
+    if (sharedExpanded) {
+      return <PublishedPathsIndex />;
+    } else {
+      return (
+        <div style={{ textAlign: "center" }}>
+          <Button size="large" onClick={() => setSharedExpanded(true)}>
+            <Icon name="plus-square" /> Explore published documents on{" "}
             {siteName}!
-          </Title>
-        ),
-        children: <PublishedPathsIndex />,
-      },
-    ];
-
-    return (
-      <Collapse
-        destroyInactivePanel
-        bordered={false}
-        ghost
-        style={{ margin: 0 }}
-        expandIcon={() => null}
-        items={items}
-      />
-    );
+          </Button>
+          <ProxyInput />
+        </div>
+      );
+    }
   }
 
   function renderMore(): JSX.Element {
+    const text = {
+      software: `All available software`,
+      whiteboard: `Computational whiteboard`,
+      features: `Features overview`,
+    };
     const software = (
       <Paragraph style={{ textAlign: "center" }}>
-        <A href="/software">
-          <strong>Learn more about software on {siteName}</strong>
-        </A>
+        <Button
+          onClick={() => (window.location.href = join(basePath, "/software"))}
+          title={text.software}
+        >
+          {text.software}
+        </Button>
       </Paragraph>
     );
     const whiteboard = (
       <Paragraph style={{ textAlign: "center" }}>
-        <A href="/features/whiteboard">
-          <strong>Learn more about the whiteboard</strong>
-        </A>
+        <Button
+          onClick={() =>
+            (window.location.href = join(basePath, "/features/whiteboard"))
+          }
+          title={text.whiteboard}
+        >
+          {text.whiteboard}
+        </Button>
       </Paragraph>
     );
     const features = (
       <Paragraph style={{ textAlign: "center" }}>
-        <A href="/features">
-          <strong>Learn more about all features</strong>
-        </A>
+        <Button
+          onClick={() => (window.location.href = join(basePath, "/features"))}
+          title={text.features}
+        >
+          {text.features}
+        </Button>
       </Paragraph>
     );
     return (
@@ -204,8 +233,13 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
                 {siteName} comes with a variety of software pre-installed, e.g.{" "}
                 <A href={"/features/python"}>Python</A>,{" "}
                 <A href={"/features/sage"}>SageMath</A> and{" "}
-                <A href={"/features/octave"}>Octave</A>. You can install
-                additional software locally in your project as well.
+                <A href={"/features/octave"}>Octave</A>. You can{" "}
+                <A
+                  href={"https://doc.cocalc.com/howto/install-python-lib.html"}
+                >
+                  install additional software
+                </A>{" "}
+                directly in your project as well.
               </Paragraph>
               {!width.md && software}
             </Tool>
@@ -272,25 +306,43 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
 
     const productsLink = (
       <Paragraph style={bottom}>
-        <A href={urlProducts} style={link}>
-          <strong>Products Overview</strong>
-        </A>
+        <Button
+          ghost
+          size="large"
+          style={{ fontWeight: "bold" }}
+          onClick={() => (window.location.href = join(basePath, urlProducts))}
+          title={"Products Overview"}
+        >
+          Products Overview
+        </Button>
       </Paragraph>
     );
 
     const courseLink = (
       <Paragraph style={bottom}>
-        <A href={urlCourses} style={link}>
-          <strong>Course Licenses</strong>
-        </A>
+        <Button
+          ghost
+          size="large"
+          style={{ fontWeight: "bold" }}
+          onClick={() => (window.location.href = join(basePath, urlCourses))}
+          title={"Course Licenses"}
+        >
+          Course Licenses
+        </Button>
       </Paragraph>
     );
 
     const onpremLink = (
       <Paragraph style={bottom}>
-        <A href={urlOnprem} style={link}>
-          <strong>On-premises Offerings</strong>
-        </A>
+        <Button
+          ghost
+          size="large"
+          style={{ fontWeight: "bold" }}
+          onClick={() => (window.location.href = join(basePath, urlOnprem))}
+          title={"On-premises Offerings"}
+        >
+          On-premises Offerings
+        </Button>
       </Paragraph>
     );
 
@@ -348,16 +400,16 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
             <Tool
               icon="graduation-cap"
               href={urlCourses}
-              title="Teaching a Course"
-              alt="Teaching a Course"
+              title="Teach a Course"
+              alt="Teach a Course"
               textStyle={{ color: toolCol }}
             >
               <Paragraph style={{ color: txtCol }}>
-                {siteName} is made for{" "}
+                You can{" "}
                 <A style={link} href="/features/teaching">
-                  teaching a course online
-                </A>
-                .
+                  teach a course
+                </A>{" "}
+                on {siteName} online!
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
                 The{" "}
@@ -402,13 +454,98 @@ export default function CoCalcComFeatures(props: Readonly<CCFeatures>) {
     );
   }
 
+  function renderTestimonials() {
+    if (!testimonials) return;
+    const [t1, t2] = testimonials;
+    return (
+      <Info
+        title="Testimonials"
+        icon="comment"
+        anchor="testimonials"
+        style={{ backgroundColor: COLORS.BS_GREEN_LL }}
+      >
+        <Row gutter={[15, 15]}>
+          <Col md={12}>
+            <TestimonialComponent testimonial={t1} />
+          </Col>
+          <Col md={12}>
+            <TestimonialComponent testimonial={t2} />
+          </Col>
+          <Col md={24} style={{ textAlign: "center" }}>
+            <Button
+              onClick={() =>
+                (window.location.href = join(basePath, "/testimonials"))
+              }
+              title={`More testimonials from users of ${siteName}`}
+            >
+              More testimonials
+            </Button>
+          </Col>
+        </Row>
+      </Info>
+    );
+  }
+
+  function renderChatGPT() {
+    if (!openaiEnabled) return;
+    return (
+      <Info
+        title="LLMs are here to help you"
+        icon="robot"
+        imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
+        anchor="a-realtimesync"
+        alt={"Two browser windows editing the same Jupyter notebook"}
+        style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
+      >
+        <Paragraph>
+          {siteName}'s file editors are enhanced by{" "}
+          <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
+            large language models
+          </A>{" "}
+          like <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A>. They
+          help you{" "}
+          <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
+            fixing errors
+          </A>
+          , generate code or LaTeX snippets, summarize documents, and much more.
+        </Paragraph>
+      </Info>
+    );
+  }
+
+  function renderDemoCell() {
+    if (!jupyterApiEnabled) return;
+
+    return (
+      <Info
+        title="Many Programming Languages"
+        icon="flow-chart"
+        imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
+        anchor="a-realtimesync"
+        alt={"Two browser windows editing the same Jupyter notebook"}
+        style={{ backgroundColor: COLORS.YELL_LLL }}
+      >
+        <Paragraph>
+          {siteName} supports many{" "}
+          <A href={"/software"}>programming languages</A>. Edit the demo cell on
+          the left and evaluate it by pressing "Run". You can also select a
+          different "kernel", i.e. the programming language that is used to
+          evaluate the cell.
+        </Paragraph>
+      </Info>
+    );
+  }
+
   return (
     <>
+      {renderChatGPT()}
+      {renderDemoCell()}
       {renderSandbox()}
       {renderCollaboration()}
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />
       {renderTeaching()}
       {renderMore()}
+      {renderTestimonials()}
       {renderAvailableProducts()}
       <SignIn startup={siteName} hideFree={true} />
     </>
@@ -463,26 +600,43 @@ function PublishedPathsIndex() {
     if (error) console.log(error);
   }, [error]);
 
-  return (
-    <div
-      style={{
-        maxHeight: "60vh",
-        overflow: "auto",
-        margin: "0 auto",
-        padding: "0",
-      }}
-    >
-      {publicPaths ? (
-        <PublicPaths publicPaths={publicPaths} />
-      ) : (
-        <Loading large center />
-      )}
+  const text = "All published  files …";
 
-      <Paragraph style={{ textAlign: "center" }}>
-        <A href="/share/public_paths/page/1">
-          <Icon name="share-square" /> Share Server
-        </A>
+  return (
+    <>
+      <div
+        style={{
+          maxHeight: "60vh",
+          overflow: "auto",
+          margin: "0 auto",
+          padding: "0",
+        }}
+      >
+        {publicPaths ? (
+          <PublicPaths publicPaths={publicPaths} />
+        ) : (
+          <Loading large center />
+        )}
+      </div>
+      <Paragraph
+        style={{
+          textAlign: "center",
+          marginTop: "15px",
+        }}
+      >
+        <Button
+          size="large"
+          onClick={() =>
+            (window.location.href = join(
+              basePath,
+              "/share/public_paths/page/1",
+            ))
+          }
+          title={text}
+        >
+          <Icon name="share-square" /> {text}
+        </Button>
       </Paragraph>
-    </div>
+    </>
   );
 }

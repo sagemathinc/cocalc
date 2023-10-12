@@ -24,23 +24,24 @@ interface Props {
   alt?: string;
   anchor: string;
   below?: ReactNode;
+  belowWide?: boolean;
   caption?: ReactNode;
   children: ReactNode;
   icon?: IconName;
   image?: string | StaticImageData;
+  imageComponent?: ReactNode; // if set, this replaces the image!
+  level?: TitleProps["level"];
+  narrow?: boolean; // emphasis on the text part, not the image.
   style?: CSSProperties;
   swapCols?: boolean; // if true, then put text on left and image on right.
+  textStyle?: CSSProperties;
   textStyleExtra?: CSSProperties;
   title: ReactNode;
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
-  narrow?: boolean; // emphasis on the text part, not the image.
-  level?: TitleProps["level"];
-  textStyle?: CSSProperties;
-  belowWide?: boolean;
 }
 
-export default function Info(props: Props) {
+export default function Info(props: Readonly<Props>): JSX.Element {
   const {
     alt,
     anchor,
@@ -50,15 +51,16 @@ export default function Info(props: Props) {
     children,
     icon,
     image,
+    imageComponent,
+    level = 1,
+    narrow = false,
     style,
-    textStyle,
     swapCols,
+    textStyle,
     textStyleExtra,
     title,
     video,
     wide,
-    narrow,
-    level = 1,
   } = props;
 
   function renderBelow() {
@@ -129,6 +131,8 @@ export default function Info(props: Props) {
         </video>
       </div>
     );
+  } else if (imageComponent != null) {
+    graphic = imageComponent;
   }
 
   if (graphic != null && caption != null) {

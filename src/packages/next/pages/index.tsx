@@ -10,7 +10,6 @@ import { join } from "path";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
-import DemoCell from "components/demo-cell";
 import CoCalcComFeatures, {
   Hero,
 } from "components/landing/cocalc-com-features";
@@ -22,7 +21,6 @@ import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
@@ -30,7 +28,7 @@ import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
-const topLinkStyle: CSS = { marginRight: "20px" };
+const TOP_LINK_STYLE: CSS = { marginRight: "20px" } as const;
 
 interface Props {
   customize: CustomizeType;
@@ -42,17 +40,13 @@ interface Props {
 export default function Home(props: Props) {
   const { customize, recentHeadlines, headlineIndex } = props;
   const {
-    shareServer,
     siteName,
     siteDescription,
     organizationName,
     organizationURL,
     splashImage,
     indexInfo,
-    sandboxProjectId,
     onCoCalcCom,
-    openaiEnabled,
-    jupyterApiEnabled,
     account,
     isCommercial,
   } = customize;
@@ -98,61 +92,61 @@ export default function Home(props: Props) {
         <Paragraph style={{ fontSize: "11pt", margin: "15px 0" }}>
           {isCommercial && account && !account.is_anonymous && (
             <>
-              <A href="/store" style={topLinkStyle}>
+              <A href="/store" style={TOP_LINK_STYLE}>
                 Store
               </A>{" "}
               <a
                 href={join(basePath, "settings/licenses")}
-                style={topLinkStyle}
+                style={TOP_LINK_STYLE}
               >
                 Licenses
               </a>{" "}
               <a
                 href={join(basePath, "settings/purchases")}
-                style={topLinkStyle}
+                style={TOP_LINK_STYLE}
               >
                 Purchases
               </a>{" "}
-              <A href={"/vouchers"} style={topLinkStyle}>
+              <A href={"/vouchers"} style={TOP_LINK_STYLE}>
                 Vouchers
               </A>{" "}
             </>
           )}
-          <a href={join(basePath, "projects")} style={topLinkStyle}>
+          <a href={join(basePath, "projects")} style={TOP_LINK_STYLE}>
             Projects
           </a>{" "}
           {customize.landingPages && (
             <>
-              <A href="/features/" style={topLinkStyle}>
+              <A href="/features/" style={TOP_LINK_STYLE}>
                 Features
               </A>{" "}
-              <A href="/software" style={topLinkStyle}>
+              <A href="/software" style={TOP_LINK_STYLE}>
                 Software
               </A>{" "}
               {isCommercial && (
                 <>
-                  <A href="/pricing" style={topLinkStyle}>
+                  <A href="/pricing" style={TOP_LINK_STYLE}>
                     Pricing
                   </A>{" "}
                 </>
               )}
             </>
           )}
-          <A href={"/config"} style={topLinkStyle}>
+          <A href={"/config"} style={TOP_LINK_STYLE}>
             Config
           </A>{" "}
           {customize.shareServer && (
             <>
-              <A style={topLinkStyle} href={"/share/public_paths/page/1"}>
+              <A style={TOP_LINK_STYLE} href={"/share/public_paths/page/1"}>
                 Share
               </A>{" "}
             </>
           )}
           <>
-            <A style={topLinkStyle} href="/support">
+            <A style={TOP_LINK_STYLE} href="/support">
               Support
             </A>{" "}
-            <A style={topLinkStyle} href="/info">
+            <A style={TOP_LINK_STYLE} href="/info">
               Docs
             </A>
           </>
@@ -163,13 +157,7 @@ export default function Home(props: Props) {
 
   function renderCoCalcComFeatures() {
     if (!onCoCalcCom) return;
-    return (
-      <CoCalcComFeatures
-        siteName={siteName ?? "CoCalc"}
-        shareServer={shareServer ?? false}
-        sandboxProjectId={sandboxProjectId}
-      />
-    );
+    return <CoCalcComFeatures />;
   }
 
   function logo(): JSX.Element {
@@ -204,26 +192,24 @@ export default function Home(props: Props) {
     }
   }
 
+  function renderNews() {
+    if (recentHeadlines == null) return;
+    return (
+      <NewsBanner
+        recentHeadlines={recentHeadlines}
+        headlineIndex={headlineIndex}
+      />
+    );
+  }
+
   return (
     <Customize value={customize}>
       <Head title={siteDescription ?? "Collaborative Calculation"} />
       <Layout>
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
+          {renderNews()}
           {topAccountLinks()}
-          {recentHeadlines != null ? (
-            <NewsBanner
-              recentHeadlines={recentHeadlines}
-              headlineIndex={headlineIndex}
-            />
-          ) : null}
-          {openaiEnabled && (
-            <div
-              style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
-            >
-              <ChatGPTHelp size="large" tag={"index"} />
-            </div>
-          )}
           <Content
             style={{ minHeight: "30vh" }}
             logo={logo()}
@@ -234,7 +220,6 @@ export default function Home(props: Props) {
             alt={"Screenshot showing CoCalc in action!"}
             imageAlternative={imageAlternative()}
           />
-          {jupyterApiEnabled && onCoCalcCom && <DemoCell tag={"sage"} />}
           <Hero />
           {renderCoCalcComFeatures()}
           <Footer />
@@ -256,7 +241,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       : 0;
 
   return await withCustomize(
-    { context, props: {  recentHeadlines, headlineIndex, isAuthenticated } },
+    { context, props: { recentHeadlines, headlineIndex, isAuthenticated } },
     { name: true },
   );
 }
