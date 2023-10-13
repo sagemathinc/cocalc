@@ -539,7 +539,8 @@ export const EXTRAS: SettingsExtras = {
     name: "Compute Servers - Google Cloud Service Account Json (not implemented)",
     desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud, and you must enable the Compute Engine API for this project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
     default: "",
-    multiline: 2,
+    multiline: 5,
+    password: true,
     show: compute_servers_enabled,
   },
   fluidstack_api_key: {
