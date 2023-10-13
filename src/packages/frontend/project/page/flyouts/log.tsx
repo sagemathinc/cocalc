@@ -38,7 +38,7 @@ import { debounce } from "lodash";
 import { handle_log_click } from "../../history/utils";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
-import { FileListItem, fileItemStyle } from "./components";
+import { FileListItem, fileItemStyle } from "./file-list-item";
 import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
 import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
 
@@ -56,7 +56,7 @@ interface HeaderProps {
 
 export function LogHeader({ project_id }: HeaderProps): JSX.Element {
   const [mode, setModeState] = useState<FlyoutLogMode>(
-    getFlyoutLogMode(project_id)
+    getFlyoutLogMode(project_id),
   );
 
   function setMode(mode: FlyoutLogMode) {
@@ -108,7 +108,7 @@ function deriveFiles(project_log, searchTerm: string, max: number) {
     .filter(
       (entry: EventRecordMap) =>
         entry.getIn(["event", "filename"]) &&
-        entry.getIn(["event", "event"]) === "open"
+        entry.getIn(["event", "event"]) === "open",
     )
     .sort((a, b) => getTime(b) - getTime(a))
     .filter((entry: EventRecordMap) => {
@@ -143,7 +143,7 @@ function deriveHistory(project_log, searchTerm: string, max: number) {
         !(
           entry.getIn(["event", "filename"]) &&
           entry.getIn(["event", "event"]) === "open"
-        )
+        ),
     )
     .filter((entry: EventRecordMap) => {
       if (searchTerm === "") return true;
@@ -206,7 +206,7 @@ export function LogFlyout({
 
   const showExtra = useMemo(
     () => flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
-    [flyoutWidth]
+    [flyoutWidth],
   );
 
   // trigger a search state change, only once and with a debounce
@@ -215,7 +215,7 @@ export function LogFlyout({
       actions?.setState({ search: val });
     },
     20,
-    { leading: false, trailing: true }
+    { leading: false, trailing: true },
   );
 
   const handleOnChange = useCallback((val: string) => {
@@ -310,7 +310,7 @@ export function LogFlyout({
   function doScroll(dx: -1 | 1) {
     const nextIdx = strictMod(
       scrollIdx == null ? (dx === 1 ? 0 : -1) : scrollIdx + dx,
-      log.length
+      log.length,
     );
     setScrollIdx(nextIdx);
     virtuosoRef.current?.scrollToIndex({
