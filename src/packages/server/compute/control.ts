@@ -30,7 +30,7 @@ import { isEqual } from "lodash";
 import updatePurchase from "./update-purchase";
 import { changedKeys } from "@cocalc/server/compute/util";
 import { checkValidDomain } from "@cocalc/util/compute/dns";
-import { makeDnsChange } from "./dns";
+import { hasDNS, makeDnsChange } from "./dns";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
 
 import getLogger from "@cocalc/backend/logger";
@@ -464,12 +464,17 @@ export async function makeConfigurationChange({
   if (changed.has("dns")) {
     if (state == "running" || !newConfiguration.dns) {
       // if running or removing dns, better update it.
-      await makeDnsChange({
-        id,
-        previousName: currentConfiguration.dns,
-        name: newConfiguration.dns,
-        cloud: newConfiguration.cloud,
-      });
+      if (await hasDNS()) {
+        // .. but only if DNS is actually configured and enabled (otherwise, there is nothing that we can do, and
+        // the frontend client is not honoring our published config, or config is incomplete).
+        // TODO: maybe we should just throw an error in this case?
+        await makeDnsChange({
+          id,
+          previousName: currentConfiguration.dns,
+          name: newConfiguration.dns,
+          cloud: newConfiguration.cloud,
+        });
+      }
     }
     changed.delete("dns");
   }

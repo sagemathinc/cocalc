@@ -38,7 +38,7 @@ export async function getClient() {
   return cf;
 }
 
-export async function hasDNS() {
+export async function hasDNS() : Promise<boolean> {
   const { token, dns } = await getConfig();
   return !!token && !!dns;
 }

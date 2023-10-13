@@ -22,7 +22,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getArchitecture } from "./images";
 import { getInstanceEgress } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { makeDnsChange } from "@cocalc/server/compute/dns";
+import { hasDNS, makeDnsChange } from "@cocalc/server/compute/dns";
 import { getHostname } from "@cocalc/server/compute/control";
 
 export * from "./validate-configuration";
@@ -153,11 +153,19 @@ export async function state(server: ComputeServer): Promise<State> {
     // status page (?).
     (async () => {
       try {
-        await makeDnsChange({
-          id: server.id,
-          cloud: server.cloud,
-          name: instance.state == "running" ? server.configuration.dns : "",
-        });
+        if (await hasDNS()) {
+          await makeDnsChange({
+            id: server.id,
+            cloud: server.cloud,
+            name: instance.state == "running" ? server.configuration.dns : "",
+          });
+        } else {
+          if (server.configuration.dns) {
+            logger.debug(
+              `WARNING -- not setting dns subdomain ${server.configuration.dns} because cloudflare api token and compute server dns not fully configured.  Please configure it.`,
+            );
+          }
+        }
       } catch (err) {
         logger.debug("WARNING -- issue setting dns", err);
       }
