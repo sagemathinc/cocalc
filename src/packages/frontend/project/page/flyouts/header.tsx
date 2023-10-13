@@ -78,6 +78,13 @@ export function FlyoutHeader(_: Readonly<Props>) {
     );
   }
 
+  function markFullpageTourDone() {
+    if (!highlightFullpage) return;
+    const actions = redux.getActions("account");
+    actions.setTourDone(FLYOUT_FULLPAGE_TOUR_NAME);
+    setHighlightFullpage(false);
+  }
+
   function renderFullpagePopupTitle() {
     return (
       <>
@@ -90,13 +97,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
               vertical menu layout button selector at the bottom left.
             </div>
             <div style={{ textAlign: "center", marginTop: "10px" }}>
-              <Button
-                onClick={() => {
-                  const actions = redux.getActions("account");
-                  actions.setTourDone(FLYOUT_FULLPAGE_TOUR_NAME);
-                  setHighlightFullpage(false);
-                }}
-              >
+              <Button onClick={markFullpageTourDone}>
                 Don't show this again
               </Button>
             </div>
@@ -116,17 +117,9 @@ export function FlyoutHeader(_: Readonly<Props>) {
         : undefined),
     };
 
-    // force the tooltip to be open if we're highlighting the full page button
-    // using the tooltip or clicking on the "don't show this again" button,
-    // will disable its forced open state.
-    const extraProps = highlightFullpage ? { open: true } : {};
     return (
       <>
-        <Tooltip
-          title={renderFullpagePopupTitle()}
-          placement="bottom"
-          {...extraProps}
-        >
+        <Tooltip title={renderFullpagePopupTitle()} placement="bottom">
           <Icon
             name="expand"
             className="cc-project-fixedtab-fullpage"
@@ -139,11 +132,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 flyout,
                 how: "click-on-flyout-expand-button",
               });
-              if (highlightFullpage) {
-                const actions = redux.getActions("account");
-                actions.setTourDone(FLYOUT_FULLPAGE_TOUR_NAME);
-                setHighlightFullpage(false);
-              }
+              markFullpageTourDone();
               // now, close the flyout panel, to finish the transition
               actions?.toggleFlyout(flyout);
             }}

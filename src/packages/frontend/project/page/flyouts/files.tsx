@@ -49,7 +49,7 @@ import {
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
-import { FileListItem, fileItemStyle } from "./components";
+import { FileListItem, fileItemStyle } from "./file-list-item";
 import {
   FLYOUT_EXTRA2_WIDTH_PX,
   FLYOUT_EXTRA_WIDTH_PX,
@@ -57,6 +57,11 @@ import {
 } from "./consts";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
+
+type PartialClickEvent = Pick<
+  React.MouseEvent | React.KeyboardEvent,
+  "detail" | "shiftKey" | "ctrlKey" | "stopPropagation"
+>;
 
 const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
   [],
@@ -356,11 +361,11 @@ export function FilesFlyout({
   }
 
   function open(
-    e: React.MouseEvent | React.KeyboardEvent,
+    e: PartialClickEvent,
     index: number,
     skip = false, // to exclude directories
   ) {
-    e.stopPropagation();
+    e?.stopPropagation();
     const file = directoryFiles[index];
     if (file == null) return;
 
@@ -411,11 +416,17 @@ export function FilesFlyout({
     }
   }
 
-  function handleFileClick(e: React.MouseEvent, index: number) {
+  function handleFileClick(e: PartialClickEvent | undefined, index: number) {
+    e ??= {
+      detail: 1, // single click
+      shiftKey: false,
+      ctrlKey: false,
+      stopPropagation: () => {},
+    };
     // "hack" from explorer/file-listing/file-row.tsx to avoid a click,
     // if the user selects the filename -- ignore double clicks, though.
     if (
-      e.detail !== 2 &&
+      e?.detail !== 2 &&
       (window.getSelection()?.toString() ?? "") !== selectionOnMouseDown
     ) {
       return;
@@ -582,6 +593,7 @@ export function FilesFlyout({
         onChecked={(nextState: boolean) => {
           toggleSelected(index, item.name, nextState);
         }}
+        checked_files={checked_files}
       />
     );
   }

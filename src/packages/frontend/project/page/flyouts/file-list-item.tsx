@@ -8,12 +8,38 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
-import { Button, Tooltip } from "antd";
+import { Button, Dropdown, MenuProps, Tooltip } from "antd";
+import immutable from "immutable";
 
-import { CSS, React, useRef } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import {
+  CSS,
+  React,
+  useActions,
+  useRef,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { A, Icon } from "@cocalc/frontend/components";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { hexColorToRGBA, separate_file_extension } from "@cocalc/util/misc";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import {
+  ACTION_BUTTONS_DIR,
+  ACTION_BUTTONS_FILE,
+  ACTION_BUTTONS_MULTI,
+  isDisabledSnapshots,
+} from "@cocalc/frontend/project/explorer/action-bar";
+import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import { url_href } from "@cocalc/frontend/project/utils";
+import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
+import {
+  filename_extension,
+  hexColorToRGBA,
+  human_readable_size,
+  path_to_file,
+  plural,
+  separate_file_extension,
+  trunc_middle,
+} from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
@@ -85,41 +111,50 @@ interface Item {
 }
 
 interface FileListItemProps {
-  onClick?: (e: React.MouseEvent) => void;
-  onClose?: (e: React.MouseEvent | undefined, name: string) => void;
-  onPublic?: (e: React.MouseEvent) => void;
-  onMouseDown?: (e: React.MouseEvent, name: string) => void;
-  onChecked?: (state: boolean) => void;
-  itemStyle?: CSS;
-  item: Item;
-  index?: number;
-  tooltip?: JSX.Element | string;
-  selected?: boolean;
-  multiline?: boolean;
-  showCheckbox?: boolean;
-  setShowCheckboxIndex?: (index: number | null) => void;
+  // we only set this from the "files" flyout, not "log", since in the log you can't select multiple files
+  checked_files?: immutable.Set<string>;
   extra?: JSX.Element | string | null; // null means don't show anything
   extra2?: JSX.Element | string | null; // null means don't show anything
+  index?: number;
+  item: Item;
+  itemStyle?: CSS;
+  multiline?: boolean;
+  onChecked?: (state: boolean) => void;
+  onClick?: (e?: React.MouseEvent) => void;
+  onClose?: (e: React.MouseEvent | undefined, name: string) => void;
+  onMouseDown?: (e: React.MouseEvent, name: string) => void;
+  onPublic?: (e?: React.MouseEvent) => void;
+  selected?: boolean;
+  setShowCheckboxIndex?: (index: number | null) => void;
+  showCheckbox?: boolean;
+  tooltip?: JSX.Element | string;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const {
-    onClick,
-    onClose,
-    onPublic,
-    onChecked,
-    item,
-    index,
-    itemStyle,
-    tooltip,
-    selected,
-    onMouseDown,
-    multiline = false,
-    showCheckbox,
-    setShowCheckboxIndex,
+    checked_files,
     extra,
     extra2,
+    index,
+    item,
+    itemStyle,
+    multiline = false,
+    onChecked,
+    onClick,
+    onClose,
+    onMouseDown,
+    onPublic,
+    selected,
+    setShowCheckboxIndex,
+    showCheckbox,
+    tooltip,
   } = props;
+  const { project_id } = useProjectContext();
+  const current_path = useTypedRedux({ project_id }, "current_path");
+  const actions = useActions({ project_id });
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
+
   const selectable = onChecked != null;
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -296,24 +331,141 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
+  function makeContextMenuEntries(
+    ctx: NonNullable<MenuProps["items"]>,
+    item: Item,
+    multiple: boolean,
+  ) {
+    const { isdir, name: fileName } = item;
+    const actionNames = multiple
+      ? ACTION_BUTTONS_MULTI
+      : isdir
+      ? ACTION_BUTTONS_DIR
+      : ACTION_BUTTONS_FILE;
+    for (const name of actionNames) {
+      if (name === "download" && !item.isdir) continue;
+      const disabled =
+        isDisabledSnapshots(name) &&
+        (current_path?.startsWith(".snapshots") ?? false);
+
+      const { name: nameStr, icon, hideFlyout } = FILE_ACTIONS[name];
+      if (hideFlyout) return;
+
+      ctx.push({
+        key: nameStr,
+        label: nameStr,
+        icon: <Icon name={icon} />,
+        disabled,
+        onClick: () => {
+          if (!multiple) {
+            onChecked?.(true); // we have to check the file, otherwise the explorer's file action won't show it
+          }
+          actions?.set_active_tab("files");
+          actions?.set_file_action(name, () => fileName);
+        },
+      });
+    }
+  }
+
+  function getContextMenu(): MenuProps["items"] {
+    const { name, isdir, is_public, size } = item;
+    const n = checked_files?.size ?? 0;
+    const multiple = n > 1;
+
+    const sizeStr = size ? human_readable_size(size) : "";
+    const nameStr = trunc_middle(item.name, 30);
+    const typeStr = isdir ? "Folder" : "File";
+
+    const ctx: NonNullable<MenuProps["items"]> = [];
+
+    if (multiple) {
+      ctx.push({
+        key: "header",
+        icon: <Icon name={"files"} />,
+        label: `${n} ${plural(n, "file")}`,
+        style: { fontWeight: "bold" },
+      });
+    } else {
+      ctx.push({
+        key: "header",
+        icon: <Icon name={isdir ? "folder-open" : "file"} />,
+        label: `${typeStr} ${nameStr}${sizeStr ? ` (${sizeStr})` : ""}`,
+        title: `${name}`,
+        style: { fontWeight: "bold" },
+      });
+      ctx.push({
+        key: "open",
+        icon: <Icon name="edit-filled" />,
+        label: isdir ? "Open folder" : "Open file",
+        onClick: () => onClick?.(),
+      });
+    }
+
+    ctx.push({ key: "divider-header", type: "divider" });
+
+    if (is_public && typeof onPublic === "function") {
+      ctx.push({
+        key: "public",
+        label: "Item is published",
+        icon: <Icon name="bullhorn" />,
+        onClick: () => onPublic?.(),
+      });
+    }
+
+    // the file or directory actions
+    makeContextMenuEntries(ctx, item, multiple);
+
+    // view/download buttons at the bottom
+    const showDownload = !student_project_functionality.disableActions;
+    if (name !== ".." && !isdir && showDownload && !multiple) {
+      const full_path = path_to_file(current_path, name);
+      const ext = (filename_extension(name) ?? "").toLowerCase();
+      const showView = VIEWABLE_FILE_EXT.includes(ext);
+      const url = url_href(project_id, full_path);
+
+      ctx.push({ key: "divide-download", type: "divider" });
+
+      if (showView) {
+        ctx.push({
+          key: "view",
+          icon: <Icon name="eye" />,
+          label: <A href={url}>View file</A>,
+        });
+      }
+
+      ctx.push({
+        key: "download",
+        label: "Download",
+        icon: <Icon name="cloud-download" />,
+        onClick: () => {
+          actions?.download_file({ path: full_path, log: true });
+        },
+      });
+    }
+
+    return ctx;
+  }
+
   return (
-    <div
-      className="cc-project-flyout-file-item"
-      // additional mouseLeave to prevent stale hover state icon
-      onMouseLeave={handleMouseLeave}
-      style={{
-        ...FILE_ITEM_LINE_STYLE,
-        ...(item.isopen
-          ? item.isactive
-            ? FILE_ITEM_ACTIVE_STYLE
-            : FILE_ITEM_OPENED_STYLE
-          : {}),
-        ...itemStyle,
-        ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
-      }}
-    >
-      {renderBody()}
-    </div>
+    <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>
+      <div
+        className="cc-project-flyout-file-item"
+        // additional mouseLeave to prevent stale hover state icon
+        onMouseLeave={handleMouseLeave}
+        style={{
+          ...FILE_ITEM_LINE_STYLE,
+          ...(item.isopen
+            ? item.isactive
+              ? FILE_ITEM_ACTIVE_STYLE
+              : FILE_ITEM_OPENED_STYLE
+            : {}),
+          ...itemStyle,
+          ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
+        }}
+      >
+        {renderBody()}
+      </div>
+    </Dropdown>
   );
 });
 
