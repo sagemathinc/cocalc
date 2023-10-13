@@ -5,7 +5,9 @@
 
 import { Input, Select } from "antd";
 import { CSSProperties } from "react";
-
+import Password, {
+  PasswordTextArea,
+} from "@cocalc/frontend/components/password";
 import { ConfigValid } from "@cocalc/util/db-schema/site-defaults";
 
 export function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
@@ -49,16 +51,30 @@ export function RowEntryInner({
     );
   } else {
     if (password) {
-      return (
-        <Input.Password
-          autoComplete="off"
-          style={rowEntryStyle(value, valid)}
-          defaultValue={value}
-          visibilityToggle={true}
-          disabled={disabled}
-          onChange={(e) => onChangeEntry(name, e.target.value)}
-        />
-      );
+      if (multiline != null) {
+        return (
+          <PasswordTextArea
+            rows={multiline}
+            autoComplete="off"
+            style={rowEntryStyle(value, valid)}
+            defaultValue={value}
+            visibilityToggle={true}
+            disabled={disabled}
+            onChange={(e) => onChangeEntry(name, e.target.value)}
+          />
+        );
+      } else {
+        return (
+          <Password
+            autoComplete="off"
+            style={rowEntryStyle(value, valid)}
+            defaultValue={value}
+            visibilityToggle={true}
+            disabled={disabled}
+            onChange={(e) => onChangeEntry(name, e.target.value)}
+          />
+        );
+      }
     } else {
       if (multiline != null) {
         const style = {
