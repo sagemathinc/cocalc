@@ -152,6 +152,7 @@ export default function ChatGPTHelp({
               message="Error"
               showIcon
               closable
+              banner
               onClose={() => setError("")}
               description={
                 <>
@@ -188,6 +189,7 @@ export default function ChatGPTHelp({
             <Alert
               type="success"
               closable
+              banner
               onClose={() => setOutput("")}
               style={{ margin: "15px 0" }}
               description={

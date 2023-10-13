@@ -8,11 +8,11 @@ import { should_open_in_foreground } from "@cocalc/util/misc";
 
 // used when clicking/opening a file open entry in the project activity log
 export function handle_log_click(
-  e: React.MouseEvent | React.KeyboardEvent,
+  e: React.MouseEvent | React.KeyboardEvent | undefined,
   path: string,
-  project_id: string
+  project_id: string,
 ): void {
-  e.preventDefault();
+  e?.preventDefault();
   const switch_to = should_open_in_foreground(e);
   redux.getProjectActions(project_id).open_file({
     path,

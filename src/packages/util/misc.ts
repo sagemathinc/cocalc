@@ -420,7 +420,11 @@ export function assert_valid_email_address(email: string): void {
 export const to_json = JSON.stringify;
 
 // gives the plural form of the word if the number should be plural
-export function plural(number, singular, plural = `${singular}s`) {
+export function plural(
+  number: number = 0,
+  singular: string,
+  plural: string = `${singular}s`,
+) {
   if (["GB", "G", "MB"].includes(singular)) {
     return singular;
   }
