@@ -159,7 +159,7 @@ export function TerminalFlyout({
       parent,
       undefined,
       undefined,
-      "" // cwd=home directory, we'll send cd commands later
+      "", // cwd=home directory, we'll send cd commands later
     );
     console.log("getTerminal", `$HOME/${currentPathRef.current}`);
     newTerminal.connect();
@@ -182,7 +182,6 @@ export function TerminalFlyout({
     terminalRef.current.is_visible = true;
     set_font_size();
     measure_size();
-    terminalRef.current.focus();
     // Get rid of browser context menu, which makes no sense on a canvas.
     // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
@@ -196,7 +195,6 @@ export function TerminalFlyout({
   }
 
   useEffect(() => {
-    terminalRef.current?.focus();
     return delete_terminal; // clean up on unmount
   }, []);
 
@@ -252,7 +250,7 @@ export function TerminalFlyout({
       }
     },
     200,
-    { leading: false, trailing: true }
+    { leading: false, trailing: true },
   );
 
   useEffect(set_font_size, [font_size]);
