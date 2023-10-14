@@ -11,6 +11,7 @@ import costPerHour from "./cost";
 import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export default function getActions({
   id,
@@ -249,9 +250,9 @@ function OnPremGuide({ action, showOnPrem, setShowOnPrem, configuration, id }) {
         To connect your on premises compute server to this project:
         <ol style={{ marginTop: "15px" }}>
           <li>
-            Create your own Linux virtual machine that has Docker installed.
-            This can be anywhere in the world, and needs the ability to create
-            outgoing network connections.{" "}
+            Create your own Linux virtual machine (VM) that has Docker installed.
+            This VM can be anywhere, but needs the ability to create outgoing
+            network connections.{" "}
             {configuration.gpu && (
               <span>
                 Since you clicked GPU, you must also have an NVIDIA GPU and the
@@ -275,7 +276,7 @@ function OnPremGuide({ action, showOnPrem, setShowOnPrem, configuration, id }) {
         <div style={{ marginTop: "15px" }}>
           <CopyToClipBoard
             inputWidth={"700px"}
-            value={`curl -fsSL 'https://${window.location.host}/compute/onprem?id=${id}&api_key=YOUR_API_KEY' | bash`}
+            value={`curl -fsS https://${window.location.host}${appBasePath}/compute/${id}/onprem/YOUR_API_KEY | bash`}
           />
         </div>
       </Modal>

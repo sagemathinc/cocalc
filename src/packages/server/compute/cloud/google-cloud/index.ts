@@ -68,6 +68,9 @@ export async function start(server: ComputeServer) {
 
   if (currentState == "deprovisioned") {
     // create it
+    if (!server.api_key) {
+      throw Error(`server ${server.id}'s api_key must be set`);
+    }
     const { diskSizeGb } = await createInstance({
       name,
       configuration,

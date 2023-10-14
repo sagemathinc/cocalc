@@ -66,7 +66,7 @@ fi
 
 export function installCoCalc(arch) {
   return `
-# Write the script to /root/update-cocalc.sh so we can easily re-run it later.
+# Write script to install /cocalc to /root/update-cocalc.sh, so we can re-run it later to update it.
 echo '
 set -ev
 docker pull ${DOCKER_USER}/compute-cocalc
@@ -75,6 +75,8 @@ docker create --name temp-copy-cocalc ${DOCKER_USER}/compute-cocalc${getImagePos
     arch,
   )}
 docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
+mkdir -p /cocalc/conf
+mv /cocalc/conf /tmp/cocalc/conf
 rsync -axH --delete /tmp/cocalc/ /cocalc/
 rm -rf /tmp/cocalc
 docker rm temp-copy-cocalc
@@ -85,6 +87,25 @@ chmod +x /root/update-cocalc.sh
 
 # Run the script
 /root/update-cocalc.sh
+`;
+}
+
+export function installConf({
+  api_key,
+  api_server,
+  project_id,
+  compute_server_id,
+  hostname,
+}) {
+  return `
+# Setup Current CoCalc Connection Configuration --
+
+mkdir -p /cocalc/conf
+echo "${api_key}" > /cocalc/conf/api_key
+echo "${api_server}" > /cocalc/conf/api_server
+echo "${project_id}" > /cocalc/conf/project_id
+echo "${compute_server_id}" > /cocalc/conf/compute_server_id
+echo "${hostname}" > /cocalc/conf/hostname
 `;
 }
 

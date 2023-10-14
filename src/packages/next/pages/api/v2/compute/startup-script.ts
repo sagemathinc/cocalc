@@ -24,6 +24,16 @@ export async function get(req) {
   const { api_key, id: id0 } = getParams(req, { allowGet: true });
   // use api_key to get project, and also verify access:
   const id = parseInt(id0);
+  return await getScript({ api_key, id });
+}
+
+export async function getScript({
+  api_key,
+  id,
+}: {
+  api_key: string;
+  id: number;
+}): Promise<string> {
   const project_id = await getProjectIdWithApiKey(api_key);
   if (!project_id) {
     throw Error("api_key query param must be a valid project api key");

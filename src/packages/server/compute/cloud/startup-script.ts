@@ -4,7 +4,7 @@ import type {
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
-import { installCoCalc, installUser, UID } from "./install";
+import { installCoCalc, installConf, installUser, UID } from "./install";
 
 export default async function startupScript({
   image = "minimal",
@@ -19,8 +19,8 @@ export default async function startupScript({
 }: {
   image?: ImageName;
   compute_server_id: number;
-  api_key?: string;
-  project_id?: string;
+  api_key: string;
+  project_id: string;
   gpu?: boolean;
   arch: Architecture;
   hostname: string;
@@ -46,16 +46,19 @@ set -ev
 
 ${doInstallCoCalc ? installCoCalc(arch) : ""}
 
+${installConf({
+  api_key,
+  api_server: apiServer,
+  project_id,
+  compute_server_id,
+  hostname,
+})}
+
 ${doInstallUser ? installUser() : ""}
 
 ${runCoCalcCompute({
-  compute_server_id,
-  api_key,
-  project_id,
   gpu,
   arch,
-  hostname,
-  apiServer,
   image,
 })}
 `;
@@ -65,37 +68,37 @@ ${runCoCalcCompute({
 // TODO: we could set the hostname in a more useful way!
 function runCoCalcCompute(opts) {
   return `
-# Mount the filesystem
 ${mountFilesystems(opts)}
-
-# Start the manager
 ${computeManager(opts)}
 `;
 }
 
-function mountFilesystems({
-  compute_server_id,
-  api_key,
-  project_id,
-  arch,
-  apiServer,
-}) {
+function mountFilesystems({ arch }) {
   const image = `sagemathinc/compute-filesystem${getImagePostfix(arch)}`;
 
   return `
+# Docker container that mounts the filesystem(s)
+
+# Ensure that a data directory exists.  
+# TODO: soon we'll setup any S3, GCS, sshfs mounts here.
+mkdir -p /data
+chown ${UID}:${UID} /data
+
 # Make the home directory
 rm -rf /home/user && mkdir /home/user && chown ${UID}:${UID} -R /home/user
+
 
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
 # makes it so the mount is seen outside the container.
+
+# NOTE: It's best for this docker run to NOT hardcode anything particular
+# to auth or the target project, in case we want to make it easy to rotate
+# keys and move data.
+
 docker start filesystem || docker run \
    -d \
    --name=filesystem \
-   -e API_KEY=${api_key} \
-   -e PROJECT_ID=${project_id} \
-   -e API_SERVER=${apiServer} \
-   -e COMPUTE_SERVER_ID=${compute_server_id} \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
@@ -116,16 +119,7 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function computeManager({
-  compute_server_id,
-  api_key,
-  project_id,
-  arch,
-  hostname,
-  apiServer,
-  image,
-  gpu,
-}) {
+function computeManager({ arch, image, gpu }) {
   const docker = `sagemathinc/compute-${image}${getImagePostfix(arch)}`;
 
   // Start a container that connects to the project
@@ -136,19 +130,22 @@ function computeManager({
   // container starts (which is likely).
 
   return `
+# Docker container that starts the compute manager, which is where the user
+# runs code.  They are potentially likely to change data in this container.
+
+# NOTE: It's best for this docker run to NOT hardcode anything particular
+# to auth or the target project, in case we want to make it easy to rotate
+# keys and move data.
+
 docker start compute || docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
-   --hostname="${hostname}" \
-   -e API_KEY=${api_key} \
-   -e PROJECT_ID=${project_id} \
-   -e COMPUTE_SERVER_ID=${compute_server_id} \
-   -e API_SERVER=${apiServer} \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -p 443:443 \
    -p 80:80 \
    -v /var/run/docker.sock:/var/run/docker.sock \
+   -v /data:/data \
    -v /cocalc:/cocalc \
    ${docker}
  `;

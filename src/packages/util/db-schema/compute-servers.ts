@@ -668,13 +668,14 @@ export const IMAGES0 = {
     minDiskSizeGb: 35,
     cudaVersion: "12.2",
   },
-  cuda11: {
-    label: "GPU - Dev Environment with Cuda 11.8",
-    docker: `${DOCKER_USER}/compute-cuda`,
-    gpu: true,
-    minDiskSizeGb: 35,
-    cudaVersion: "11.8",
-  },
+  // Disabled -- not sure if it is worthwhile:
+  //   cuda11: {
+  //     label: "GPU - Dev Environment with Cuda 11.8",
+  //     docker: `${DOCKER_USER}/compute-cuda`,
+  //     gpu: true,
+  //     minDiskSizeGb: 35,
+  //     cudaVersion: "11.8",
+  //   },
   rlang: {
     label: "R",
     docker: `${DOCKER_USER}/compute-rlang`,
