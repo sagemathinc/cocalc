@@ -64,22 +64,32 @@ fi
 `;
 }
 
+// TODO for now we do this, but it takes about 6s to install, and we could
+// do this much faster probably by just putting the 400MB on the cocalc server itself (?).  I don't know.
+
 export function installCoCalc(arch) {
-  return `
+  const image = `${DOCKER_USER}/compute-cocalc${getImagePostfix(arch)}`;
+ return `
 # Write script to install /cocalc to /root/update-cocalc.sh, so we can re-run it later to update it.
 echo '
 set -ev
-docker pull ${DOCKER_USER}/compute-cocalc
-rm -rf /tmp/cocalc
-docker create --name temp-copy-cocalc ${DOCKER_USER}/compute-cocalc${getImagePostfix(
-    arch,
-  )}
-docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
-mkdir -p /cocalc/conf
-mv /cocalc/conf /tmp/cocalc/conf
-rsync -axH --delete /tmp/cocalc/ /cocalc/
-rm -rf /tmp/cocalc
-docker rm temp-copy-cocalc
+
+# Get the existing local image ID
+old_id=$(docker inspect --format='{{.Id}}' ${image} || echo 'none')
+
+docker pull ${image}
+new_id=$(docker images --digests --no-trunc --quiet ${image}:latest)
+
+if [ "$new_id" != "$old_id" ]; then
+  rm -rf /tmp/cocalc
+  docker create --name temp-copy-cocalc ${image}
+  docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
+  mkdir -p /cocalc/conf
+  mv /cocalc/conf /tmp/cocalc/conf
+  rsync -axH --delete /tmp/cocalc/ /cocalc/
+  rm -rf /tmp/cocalc
+  docker rm temp-copy-cocalc
+fi
 ' > /root/update-cocalc.sh
 
 # Make the script executable
