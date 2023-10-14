@@ -607,16 +607,28 @@ export const CUDA_DISK_SIZE = 60;
 
 // Compute Server Images
 
-interface Image {
+interface ImageBase {
   label: string;
   docker: string;
-  gpu: boolean;
   minDiskSizeGb: number;
 }
 
+interface NonGPUImage extends ImageBase {
+  gpu: false;
+}
+
+export type CudaVersion = "11.8" | "12.2";
+
+interface GPUImage extends ImageBase {
+  gpu: true;
+  cudaVersion?: CudaVersion;
+}
+
+type Image = NonGPUImage | GPUImage;
+
 export const DOCKER_USER = "sagemathinc";
 
-export const IMAGES = {
+export const IMAGES0 = {
   minimal: {
     label: "Minimal",
     docker: `${DOCKER_USER}/compute-manager`,
@@ -636,22 +648,32 @@ export const IMAGES = {
     gpu: false,
   },
   pytorch: {
-    label: "GPU - PyTorch with CUDA 12.x",
+    label: "GPU - PyTorch with CUDA 12.2",
     docker: `${DOCKER_USER}/compute-pytorch`,
     gpu: true,
     minDiskSizeGb: 30,
+    cudaVerstion: "12.2",
   },
   tensorflow: {
-    label: "GPU - Tensorflow with CUDA 12.x",
+    label: "GPU - Tensorflow with CUDA 12.2",
     docker: `${DOCKER_USER}/compute-tensorflow`,
     gpu: true,
     minDiskSizeGb: 40,
+    cudaVerstion: "12.2",
   },
-  cuda: {
-    label: "GPU - Development Environment with Cuda 12.x",
+  cuda12: {
+    label: "GPU - Development Environment with Cuda 12.2",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
     minDiskSizeGb: 35,
+    cudaVersion: "12.2",
+  },
+  cuda11: {
+    label: "GPU - Development Environment with Cuda 11.8",
+    docker: `${DOCKER_USER}/compute-cuda`,
+    gpu: true,
+    minDiskSizeGb: 35,
+    cudaVersion: "11.8",
   },
   rlang: {
     label: "R",
@@ -673,7 +695,9 @@ export const IMAGES = {
   //   },
 } as const;
 
-export type ImageName = keyof typeof IMAGES;
+export type ImageName = keyof typeof IMAGES0;
+
+export const IMAGES = IMAGES0 as { [name: string]: Image };
 
 // This is entirely to force the values to be type checked,
 // but without having to explicitly type IMAGES above, so

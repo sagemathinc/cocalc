@@ -3,6 +3,7 @@ This all assume Ubuntu 22.04.
 */
 
 import {
+  CudaVersion,
   DOCKER_USER,
   getImagePostfix,
 } from "@cocalc/util/db-schema/compute-servers";
@@ -63,7 +64,6 @@ fi
 `;
 }
 
-
 export function installCoCalc(arch) {
   return `
 # Write the script to /root/update-cocalc.sh so we can easily re-run it later.
@@ -100,17 +100,33 @@ seem to work.
 
 NOTE: We also install nvidia-container-toolkit, which isn't in the instructions linked to above,
 because we want to support using Nvidia inside of Docker.
+
+Links to all versions: https://developer.nvidia.com/cuda-toolkit-archive
 */
 
-export function installCuda() {
+const cudaVersionToUrl = {
+  "12.2":
+    "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb",
+  "11.8":
+    "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb",
+} as const;
+
+export const CUDA_VERSIONS: CudaVersion[] = Object.keys(
+  cudaVersionToUrl,
+) as (keyof typeof cudaVersionToUrl)[];
+
+export function installCuda(cudaVersion: CudaVersion) {
+  const url = cudaVersionToUrl[cudaVersion];
+  if (!url) {
+    throw Error(
+      `cudaVersion must be one of ${Object.keys(cudaVersionToUrl).join(", ")}`,
+    );
+  }
   return `
-curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+curl -o cuda-keyring.deb ${url}
 dpkg -i cuda-keyring.deb
 apt-get update -y
 apt-get -y install cuda nvidia-container-toolkit
 rm cuda-keyring.deb
 `;
 }
-
-
-

@@ -10,6 +10,8 @@ await a.createImages({image:"python", arch:'x86_64'})
 
 await a.createImages({image:"pytorch"}); await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
+await a.createImages({image:"cuda11"})
+
 await a.createImages({image:"sagemath-10.1", arch:'x86_64'});
 
 // (Danger) This just creates ALL images in parallel:
@@ -42,6 +44,7 @@ import type {
   Architecture,
   GoogleCloudConfiguration,
   ImageName,
+  CudaVersion,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import {
@@ -194,9 +197,10 @@ interface BuildConfig {
 }
 
 function getConf(image: ImageName): BuildConfig[] {
-  const { gpu } = IMAGES[image] ?? {};
-  if (gpu) {
-    return [createBuildConfiguration({ image, arch: "x86_64" })];
+  const data = IMAGES[image];
+  if (data.gpu) {
+    const { cudaVersion } = data;
+    return [createBuildConfiguration({ image, arch: "x86_64", cudaVersion })];
   } else {
     return [
       createBuildConfiguration({ image, arch: "x86_64" }),
@@ -333,12 +337,20 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
 function createBuildConfiguration({
   image,
   arch = "x86_64",
+  cudaVersion = "12.2",
 }: {
   image: ImageName;
   arch: Architecture;
+  cudaVersion?: CudaVersion;
 }): BuildConfig {
   const { label, docker, gpu } = IMAGES[image] ?? {};
-  logger.debug("createBuildConfiguration", { image, label, docker, gpu });
+  logger.debug("createBuildConfiguration", {
+    image,
+    label,
+    docker,
+    gpu,
+    cudaVersion,
+  });
   if (!docker) {
     throw Error(`unknown image '${image}'`);
   }
@@ -400,7 +412,7 @@ docker pull ${DOCKER_USER}/compute-filesystem
 docker pull ${docker}${getImagePostfix(arch)}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
-${gpu ? installCuda() : ""}
+${gpu ? installCuda(cudaVersion) : ""}
 
 df -h /
 sync
