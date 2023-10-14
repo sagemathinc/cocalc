@@ -662,14 +662,14 @@ export const IMAGES0 = {
     cudaVerstion: "12.2",
   },
   cuda12: {
-    label: "GPU - Development Environment with Cuda 12.2",
+    label: "GPU - Dev Environment with Cuda 12.2",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
     minDiskSizeGb: 35,
     cudaVersion: "12.2",
   },
   cuda11: {
-    label: "GPU - Development Environment with Cuda 11.8",
+    label: "GPU - Dev Environment with Cuda 11.8",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
     minDiskSizeGb: 35,
