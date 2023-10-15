@@ -3,6 +3,7 @@ import type {
   Architecture,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
+import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import { installCoCalc, installConf, installUser, UID } from "./install";
 
@@ -79,7 +80,7 @@ function mountFilesystems({ arch }) {
   return `
 # Docker container that mounts the filesystem(s)
 
-# Ensure that a data directory exists.  
+# Ensure that a data directory exists.
 # TODO: soon we'll setup any S3, GCS, sshfs mounts here.
 mkdir -p /data
 chown ${UID}:${UID} /data
@@ -120,7 +121,7 @@ const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
 function computeManager({ arch, image, gpu }) {
-  const docker = `sagemathinc/compute-${image}${getImagePostfix(arch)}`;
+  const docker = IMAGES[image]?.docker ?? `sagemathinc/compute-${image}`;
 
   // Start a container that connects to the project
   // and manages providing terminals and jupyter kernels
@@ -147,6 +148,6 @@ docker start compute || docker run -d ${gpu ? GPU_FLAGS : ""} \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v /data:/data \
    -v /cocalc:/cocalc \
-   ${docker}
+   ${docker}${getImagePostfix(arch)}
  `;
 }
