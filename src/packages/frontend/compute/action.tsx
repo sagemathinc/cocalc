@@ -65,6 +65,7 @@ export default function getActions({
         configuration={configuration}
         danger={danger}
         type={type}
+        state={state ?? "off"}
       />,
     );
   }
@@ -84,6 +85,7 @@ function ActionButton({
   danger,
   type,
   style,
+  state,
 }) {
   const [showOnPrem, setShowOnPrem] = useState<boolean>(false);
   const [cost_per_hour, setCostPerHour] = useState<number | null>(null);
@@ -102,7 +104,7 @@ function ActionButton({
       }
     })();
   }, [configuration]);
-  const [doing, setDoing] = useState<boolean>(false);
+  const [doing, setDoing] = useState<boolean>(!STATE_INFO[state]?.stable);
   const doAction = async () => {
     if (configuration.cloud == "onprem") {
       setShowOnPrem(true);
@@ -111,6 +113,7 @@ function ActionButton({
     }
     try {
       setError("");
+      setDoing(true);
       if (action == "start" || action == "resume") {
         if (cost_per_hour == null) {
           throw Error(
@@ -119,7 +122,6 @@ function ActionButton({
         }
         await confirmStartComputeServer({ id, cost_per_hour });
       }
-      setDoing(true);
       await computeServerAction({ id, action });
     } catch (err) {
       setError(`${err}`);
@@ -128,8 +130,8 @@ function ActionButton({
     }
   };
   useEffect(() => {
-    setDoing(false);
-  }, [action]);
+    setDoing(!STATE_INFO[state]?.stable);
+  }, [action, state]);
 
   let button = (
     <Button
@@ -250,9 +252,9 @@ function OnPremGuide({ action, showOnPrem, setShowOnPrem, configuration, id }) {
         To connect your on premises compute server to this project:
         <ol style={{ marginTop: "15px" }}>
           <li>
-            Create your own Linux virtual machine (VM) that has Docker installed.
-            This VM can be anywhere, but needs the ability to create outgoing
-            network connections.{" "}
+            Create your own Linux virtual machine (VM) that has Docker
+            installed. This VM can be anywhere, but needs the ability to create
+            outgoing network connections.{" "}
             {configuration.gpu && (
               <span>
                 Since you clicked GPU, you must also have an NVIDIA GPU and the

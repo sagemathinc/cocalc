@@ -65,7 +65,7 @@ export const ACTION_INFO: {
     icon: "refresh",
     tip: "Hard reboot the virtual machine.",
     description:
-      "Perform a HARD reset on the virtual machine, which wipes the memory contents and resets the virtual machine to its initial state. This can lead to filesystem corruption.",
+      "Perform a HARD reset on the virtual machine, which wipes the memory contents and resets the virtual machine to its initial state. This should not delete data from the disk, but can lead to filesystem corruption.",
     confirm: true,
     target: "running",
   },
@@ -116,7 +116,7 @@ export const STATE_INFO: {
   },
   suspending: {
     label: "Suspending",
-    actions: [],
+    actions: ["suspend"],
     icon: "pause",
     color: "#00bcd4",
     stable: false,
@@ -125,7 +125,7 @@ export const STATE_INFO: {
   starting: {
     label: "Starting",
     color: "#388e3c",
-    actions: [],
+    actions: ["start"],
     icon: "bolt",
     stable: false,
     target: "running",
@@ -140,7 +140,7 @@ export const STATE_INFO: {
   stopping: {
     label: "Stopping",
     color: "#ff9800",
-    actions: [],
+    actions: ["stop"],
     icon: "hand",
     stable: false,
     target: "off",
