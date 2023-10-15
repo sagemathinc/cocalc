@@ -6,12 +6,13 @@ import {
   getTargetState,
 } from "@cocalc/util/db-schema/compute-servers";
 import { useEffect, useState } from "react";
-import { computeServerAction } from "./api";
+import { computeServerAction, getApiKey } from "./api";
 import costPerHour from "./cost";
 import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import ShowError from "@cocalc/frontend/components/error";
 
 export default function getActions({
   id,
@@ -190,10 +191,8 @@ function ActionButton({
   const content = (
     <>
       {button}
-      {showOnPrem && (
-        <OnPremGuide
-          action={action}
-          showOnPrem={showOnPrem}
+      {showOnPrem && action == "start" && (
+        <OnPremStartGuide
           setShowOnPrem={setShowOnPrem}
           configuration={configuration}
           id={id}
@@ -231,58 +230,67 @@ function ActionButton({
   );
 }
 
-function OnPremGuide({ action, showOnPrem, setShowOnPrem, configuration, id }) {
-  if (action == "start") {
-    return (
-      <Modal
-        width={800}
-        title={
-          <>
-            <Icon name="server" /> Connect Your On Prem Server to this Project
-          </>
-        }
-        open={showOnPrem}
-        onCancel={() => {
-          setShowOnPrem(false);
-        }}
-        onOk={() => {
-          setShowOnPrem(false);
-        }}
-      >
-        To connect your on premises compute server to this project:
-        <ol style={{ marginTop: "15px" }}>
-          <li>
-            Create your own Linux virtual machine (VM) that has Docker
-            installed. This VM can be anywhere, but needs the ability to create
-            outgoing network connections.{" "}
-            {configuration.gpu && (
-              <span>
-                Since you clicked GPU, you must also have an NVIDIA GPU and the
-                Cuda 12 drivers installed and working.
-              </span>
-            )}
-            {configuration.arch == "arm64" && (
-              <span>
-                Since you selected ARM 64, this should be an ARM64 architecture
-                VM, e.g., on an M1 Mac.
-              </span>
-            )}
-          </li>
-          <li style={{ marginTop: "15px" }}>
-            Create a project api key YOUR_API_KEY in this project's settings
-          </li>
-          <li style={{ marginTop: "15px" }}>
-            Run the following code as root in your virtual machine:
-          </li>
-        </ol>
-        <div style={{ marginTop: "15px" }}>
+function OnPremStartGuide({ setShowOnPrem, configuration, id }) {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
+  useEffect(() => {
+    (async () => {
+      try {
+        setError("");
+        setApiKey(await getApiKey({ id }));
+      } catch (err) {
+        setError(`${err}`);
+      }
+    })();
+  }, []);
+  return (
+    <Modal
+      width={800}
+      title={
+        <>
+          <Icon name="server" /> Connect Your Virtual Machine to this Project
+        </>
+      }
+      open={true}
+      onCancel={() => {
+        setShowOnPrem(false);
+      }}
+      onOk={() => {
+        setShowOnPrem(false);
+      }}
+    >
+      To connect your own Linux Virtual Machine (VM) to this project:
+      <ol style={{ marginTop: "15px" }}>
+        <li>
+          Create a VM that has Docker installed. This VM can be anywhere, but
+          needs the ability to create outgoing network connections.{" "}
+          {configuration.gpu && (
+            <span>
+              Since you clicked GPU, you must also have an NVIDIA GPU and the
+              Cuda 12 drivers installed and working.
+            </span>
+          )}
+          {configuration.arch == "arm64" && (
+            <span>
+              Since you selected ARM 64, this should be an ARM64 architecture
+              VM, e.g., on an M1 Mac.
+            </span>
+          )}
+        </li>
+        <li style={{ marginTop: "15px" }}>
+          Paste the following code into a terminal in your VM:
+        </li>
+      </ol>
+      <div style={{ marginTop: "15px" }}>
+        {apiKey && (
           <CopyToClipBoard
             inputWidth={"700px"}
-            value={`curl -fsS https://${window.location.host}${appBasePath}/compute/${id}/onprem/YOUR_API_KEY | bash`}
+            value={`curl -fsS https://${window.location.host}${appBasePath}/compute/${id}/onprem/${apiKey} | sudo bash`}
           />
-        </div>
-      </Modal>
-    );
-  }
-  return null;
+        )}
+        {!apiKey && !error && <Spin />}
+        {error && <ShowError error={error} setError={setError} />}
+      </div>
+    </Modal>
+  );
 }

@@ -8,7 +8,10 @@ interface Options {
   server: ComputeServer;
 }
 
-export async function setProjectApiKey({ account_id, server }: Options) {
+export async function setProjectApiKey({
+  account_id,
+  server,
+}: Options): Promise<string> {
   if (server.api_key) {
     // delete the existing one and create a new one below -- this is for maximal security.
     await deleteProjectApiKey({ account_id, server });
@@ -27,9 +30,12 @@ export async function setProjectApiKey({ account_id, server }: Options) {
     expire: dayjs().add(10, "year").toDate(),
   });
   if (x == null) {
-    return;
+    throw Error("failed to create api key");
   }
   const [apiKey] = x;
+  if (!apiKey.secret) {
+    throw Error("api key failed");
+  }
   const pool = getPool();
   await pool.query(
     "UPDATE compute_servers SET api_key=$1, api_key_id=$2 WHERE id=$3",
@@ -37,11 +43,12 @@ export async function setProjectApiKey({ account_id, server }: Options) {
   );
   server.api_key = apiKey.secret;
   server.api_key_id = apiKey.id;
+  return apiKey.secret;
 }
 
 export async function deleteProjectApiKey({ account_id, server }: Options) {
   if (!server.api_key || !server.api_key_id) {
-    // nothing we can do
+    // nothing we need to do
     return;
   }
   await manageApiKeys({

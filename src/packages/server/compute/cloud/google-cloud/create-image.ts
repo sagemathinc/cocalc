@@ -2,7 +2,7 @@
 ~/cocalc/src/packages/server$ node
 Welcome to Node.js v18.17.1.
 Type ".help" for more information.
-> 
+>
 
 a = require('./dist/compute/cloud/google-cloud/create-image')
 
@@ -10,7 +10,7 @@ await a.createImages({image:"python", arch:'x86_64'})
 
 await a.createImages({image:"pytorch"}); await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
-await a.createImages({image:"cuda11"})
+await a.createImages({image:"cuda12"})
 
 await a.createImages({image:"sagemath-10.1", arch:'x86_64'});
 
@@ -367,7 +367,7 @@ function createBuildConfiguration({
       diskSizeGb: getMinDiskSizeGb({ image }),
       maxRunDurationSeconds: 60 * maxTimeMinutes,
     } as const),
-    /* 
+    /*
     We do NOT need a GPU to install the GPU libraries, but
     a lot of code gets built, so we do want a fast CPU.
     */

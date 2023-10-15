@@ -84,3 +84,13 @@ export async function getNetworkUsage(opts: {
 }): Promise<{ amount: number; cost: number }> {
   return await api("compute/get-network-usage", opts);
 }
+
+// Get the current api key for a specific (on prem) server.
+// We only need this for on prem, so we are restricting to that right now.
+// If no key is allocated, one will be created.
+export async function getApiKey(opts: { id }): Promise<string> {
+  return await api("compute/get-api-key", opts);
+}
+export async function deleteApiKey(opts: { id }): Promise<string> {
+  return await api("compute/delete-api-key", opts);
+}

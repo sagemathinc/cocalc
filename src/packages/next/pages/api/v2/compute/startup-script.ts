@@ -1,8 +1,8 @@
 /*
-Returns a bash script that when run as root starts 
+Returns a bash script that when run as root starts
 a compute server and connects it to a project.
 
-This is meant to be used for on prem compute servers, 
+This is meant to be used for on prem compute servers,
 hence it includes installing the /cocalc code and the "user" user.
 */
 
@@ -36,7 +36,7 @@ export async function getScript({
 }): Promise<string> {
   const project_id = await getProjectIdWithApiKey(api_key);
   if (!project_id) {
-    throw Error("api_key query param must be a valid project api key");
+    throw Error("api_key must be a valid project api key");
   }
   const { rows } = await getPool().query(
     "SELECT COUNT(*) AS count FROM compute_servers WHERE id=$1 AND project_id=$2",
