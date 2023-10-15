@@ -285,7 +285,9 @@ function OnPremStartGuide({ setShowOnPrem, configuration, id }) {
         {apiKey && (
           <CopyToClipBoard
             inputWidth={"700px"}
-            value={`curl -fsS https://${window.location.host}${appBasePath}/compute/${id}/onprem/${apiKey} | sudo bash`}
+            value={`curl -fsS https://${window.location.host}${
+              appBasePath.length > 1 ? appBasePath : ""
+            }/compute/${id}/onprem/${apiKey} | sudo bash`}
           />
         )}
         {!apiKey && !error && <Spin />}

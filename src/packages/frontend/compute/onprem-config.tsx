@@ -63,7 +63,12 @@ export default function OnPremCloudConfiguration({
       <b>WARNING:</b> On Prem Compute Servers are free and only minimally
       implemented at present. You must manually create a Linux VM that has
       Docker installed, then manually paste a command in to connect it to this
-      project.
+      project.{" "}
+      {configuration.gpu
+        ? " You must also install CUDA drivers to support your GPU. "
+        : " "}
+      You can try running directly on a Linux computer without creating a VM,
+      but this is less secure.
     </div>
   );
 
@@ -83,7 +88,11 @@ export default function OnPremCloudConfiguration({
         style={{ width: SELECTOR_WIDTH }}
         options={[
           { label: "x86_64 (e.g., Linux VM on Intel)", value: "x86_64" },
-          { label: "ARM 64 (e.g., Linux VM on an M1 Mac)", value: "arm64" },
+          {
+            label: "ARM 64 (e.g., Linux VM on an M1 Mac)",
+            value: "arm64",
+            disabled: configuration.gpu,
+          },
         ]}
         value={configuration.arch ?? "x86_64"}
         onChange={(arch) => {
@@ -92,7 +101,12 @@ export default function OnPremCloudConfiguration({
       />
       <div style={{ margin: "15px 0" }}>
         <Checkbox
-          disabled={loading || disabled}
+          disabled={
+            loading ||
+            disabled ||
+            configuration.arch ==
+              "arm64" /* we only have x86_64 docker images */
+          }
           style={{ width: SELECTOR_WIDTH }}
           checked={configuration.gpu}
           onChange={() => {
