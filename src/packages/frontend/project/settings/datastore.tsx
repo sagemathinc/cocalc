@@ -49,6 +49,9 @@ import { useProjectState } from "../page/project-state-hook";
 import { useProjectHasInternetAccess } from "./has-internet-access-hook";
 import { RestartProject } from "./restart-project";
 import { DatastoreConfig as Config } from "./types";
+import Password, {
+  PasswordTextArea,
+} from "@cocalc/frontend/components/password";
 
 const SECRET_TOOLTIP = `\nSecrets can't be edited. Keep the field empty to retain the current value, or enter a new secret to replace the existing one.`;
 
@@ -721,7 +724,7 @@ function NewSSHF({
         <Input placeholder="login.server.edu" />
       </Form.Item>
       <Form.Item
-        label="Remote path"
+        label="Remote Path"
         name="path"
         tooltip="The full remote path to mount, defaults to '/home/[user]'"
       >
@@ -732,7 +735,7 @@ function NewSSHF({
         name="secret"
         tooltip={pk_help + SECRET_TOOLTIP}
       >
-        <Input.TextArea rows={5} placeholder={pk_example} />
+        <PasswordTextArea rows={5} placeholder={pk_example} visibilityToggle />
       </Form.Item>
       <FormBottom
         form_layout={form_layout}
@@ -780,7 +783,7 @@ function NewGCS({
         name="secret"
         tooltip={creds_help + SECRET_TOOLTIP}
       >
-        <Input.TextArea rows={5} placeholder={creds_help} />
+        <PasswordTextArea rows={5} placeholder={creds_help} visibilityToggle />
       </Form.Item>
       <FormBottom
         form_layout={form_layout}
@@ -833,7 +836,7 @@ function NewS3({
         name="secret"
         tooltip={`The secret key ${SECRET_TOOLTIP}`}
       >
-        <Input placeholder="fie$kf2&ifw..." />
+        <Password placeholder="fie$kf2&ifw..." visibilityToggle />
       </Form.Item>
       <FormBottom
         form_layout={form_layout}
