@@ -3,6 +3,17 @@ Start, stop, etc. a particular compute server, generically, for any cloud...
 
 How this works will start simple, but is obviously going to get very complicated
 over time, with multiple clouds, heuristics, api client code, etc.
+
+Console testing:
+
+cd packages/server
+DEBUG=cocalc:* DEBUG_CONSOLE=yes node
+
+a = require('./dist/compute/control')
+
+// you have to look up an account_id to use this:
+await a.start({account_id:'fd9d855b-9245-473d-91a0-cdd1e69410e4', id:8})
+
 */
 
 import { getServer, getServerNoCheck } from "./get-servers";

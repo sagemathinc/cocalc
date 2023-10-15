@@ -10,6 +10,7 @@ import getClient, {
   stopInstance,
   suspendInstance,
   resumeInstance,
+  setMetadata,
 } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
@@ -63,8 +64,17 @@ export async function start(server: ComputeServer) {
   if (configuration?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
+  if (!server.api_key) {
+    throw Error("api_key must be set");
+  }
   const currentState = await state(server);
   const name = await getServerName(server);
+  const startup = await startupScript({
+    compute_server_id: server.id,
+    api_key: server.api_key,
+    hostname: await getHostname(server.id),
+    ...getStartupParams(server),
+  });
 
   if (currentState == "deprovisioned") {
     // create it
@@ -74,12 +84,7 @@ export async function start(server: ComputeServer) {
     const { diskSizeGb } = await createInstance({
       name,
       configuration,
-      startupScript: await startupScript({
-        compute_server_id: server.id,
-        api_key: server.api_key,
-        hostname: await getHostname(server.id),
-        ...getStartupParams(server),
-      }),
+      startupScript: startup,
       metadata: { "serial-port-logging-enable": true },
       wait: true,
     });
@@ -88,7 +93,16 @@ export async function start(server: ComputeServer) {
       await setConfiguration(server.id, { ...configuration, diskSizeGb });
     }
   } else {
-    // start it
+    // set startup script - it's critical to set this first, because it has
+    // the latest api-key, and the api key that was used when the VM was created
+    // could have expired or been deleted.
+    await setMetadata({
+      name,
+      zone: configuration.zone,
+      wait: true,
+      metadata: { "startup-script": startup },
+    });
+    // then start it
     await startInstance({ name, zone: configuration.zone, wait: true });
   }
   await setData({ id: server.id, data: { name }, cloud: "google-cloud" });

@@ -10,18 +10,21 @@ interface Options {
 
 export async function setProjectApiKey({ account_id, server }: Options) {
   if (server.api_key) {
-    // one is already set, so just stick with that
-    // TODO: or we could delete it and create a new one...
-    //  await deleteProjectApiKey({ account_id, server });
-    // [ ] TODO: the expire below is one year!
-    return;
+    // delete the existing one and create a new one below -- this is for maximal security.
+    await deleteProjectApiKey({ account_id, server });
   }
   const x = await manageApiKeys({
     action: "create",
     account_id,
     project_id: server.project_id,
     name: `Computer Server ${server.id}`,
-    expire: dayjs().add(1, "year").toDate(),
+    // TODO: we don't have any notion of in place api key rotation implemented yet,
+    // so a compute server running nonstop for this long just stop working with
+    // no automated way to fix itself.  So we make this very long for now.  When we
+    // implement key rotation, we will make this very short.
+    // Note that we manually delete the key ALWAYS whenever the VM stops or
+    // deprovisioned, so it's not like this key gets left around to cause trouble.
+    expire: dayjs().add(10, "year").toDate(),
   });
   if (x == null) {
     return;

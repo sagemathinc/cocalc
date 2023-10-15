@@ -253,3 +253,42 @@ export async function increaseBootDiskSize({
     await waitUntilOperationComplete({ response, zone });
   }
 }
+
+interface MetadataOptions extends Options {
+  metadata: { [key: string]: string | null };
+}
+
+export async function setMetadata({
+  name,
+  zone,
+  wait,
+  metadata,
+}: MetadataOptions) {
+  const items: { key: string; value: string | null }[] = [];
+  for (const key in metadata) {
+    items.push({ key, value: metadata[key] });
+    // not logging value, since it usually has sensitive info in it, e.g., api key.
+    logger.debug("setMetadata", { name, key });
+  }
+  const client = await getClient();
+
+  // First, fetch the current metadata of the instance
+  const [instance] = await client.get({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+
+  // Extract the current fingerprint from the instance metadata
+  const fingerprint = instance.metadata?.fingerprint;
+
+  const [response] = await client.setMetadata({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+    metadataResource: { items, fingerprint },
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
