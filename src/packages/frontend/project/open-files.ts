@@ -29,8 +29,9 @@ The point of this code here is ensure that these objects stay in sync properly.
 */
 
 import { List, Map } from "immutable";
-import { ProjectActions } from "../project_actions";
-import { ProjectStore } from "../project_store";
+
+import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { ProjectStore } from "@cocalc/frontend/project_store";
 import { close } from "@cocalc/util/misc";
 
 type OpenFilesType = Map<string, Map<string, any>>;
@@ -53,7 +54,7 @@ export class OpenFiles {
 
   private setState(
     open_files: OpenFilesType | undefined,
-    open_files_order?: OpenFilesOrderType
+    open_files_order?: OpenFilesOrderType,
   ): void {
     const x: any = {};
     if (open_files != null) x.open_files = open_files;
@@ -94,7 +95,7 @@ export class OpenFiles {
       let open_files_order = this.store.get("open_files_order");
       this.setState(
         open_files.set(path, Map({ [key]: val })),
-        open_files_order.push(path)
+        open_files_order.push(path),
       );
     } else {
       this.setState(open_files.set(path, cur.set(key, val)));
@@ -116,7 +117,7 @@ export class OpenFiles {
       opts.new_index >= open_files_order.size
     ) {
       throw Error(
-        `invalid indexes in moving tabs -- ${opts.old_index}, ${opts.new_index}`
+        `invalid indexes in moving tabs -- ${opts.old_index}, ${opts.new_index}`,
       );
     }
 

@@ -10,6 +10,7 @@ top right hand side in a project.
 import type { MenuProps } from "antd";
 import { Button as AntdButton, Dropdown, Space, Tooltip } from "antd";
 import { throttle } from "lodash";
+// import { delay } from "awaiting";
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
@@ -38,7 +39,7 @@ import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-butto
 import { TimeTravelActions } from "@cocalc/frontend/frame-editors/time-travel-editor/actions";
 import { getJupyterActions } from "@cocalc/frontend/frame-editors/whiteboard-editor/elements/code/actions";
 import { useMeasureDimensions } from "@cocalc/frontend/hooks";
-import { tab_to_path } from "@cocalc/util/misc";
+import { path_to_tab, tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { ChatButton } from "./chat-button";
@@ -99,7 +100,7 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
       }
     },
     50,
-    { leading: false, trailing: true }
+    { leading: false, trailing: true },
   );
 
   useLayoutEffect(() => {
@@ -137,16 +138,18 @@ type EditorActions =
   | TimeTravelActions;
 
 function TopTabBarActions(
-  props: Readonly<{ path: string; compact: boolean; width: number }>
+  props: Readonly<{ path: string; compact: boolean; width: number }>,
 ) {
   const { path, compact, width } = props;
   const { project_id, active_project_tab: activeTab } = useProjectContext();
-  const isMounted = useIsMountedRef();
+  const open_files_order = useTypedRedux({ project_id }, "open_files_order");
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
+  // const isMounted = useIsMountedRef();
   const [loading, setLoading] = useState(true);
   const [loadingShow, setLoadingShow] = useState(false);
   const [actions, setActions] = useState<EditorActions | null>(null);
   const [topBarActions, setTopBarActions] = useState<TopBarActions | null>(
-    null
+    null,
   );
 
   // if path/project_id changes, we need to reset the state
@@ -166,38 +169,65 @@ function TopTabBarActions(
   }, [loading, width]);
 
   useAsyncEffect(async () => {
-    const t0 = Date.now();
-    let actionsNext: EditorActions | null = null;
-    while (isMounted.current) {
-      if (Date.now() - t0 > 500) setLoadingShow(true);
-      if (!isMounted.current) return;
-      // first, we try to get the actions
-      if (actionsNext == null) {
-        actionsNext = await redux.getEditorActions(project_id, path);
-        if (!isMounted.current) return;
-      } else {
-        // we have the actions, now try to get the store as well
-        const store = await redux.getEditorStore(project_id, path);
-        if (!isMounted.current) return;
-        if (store != null) {
-          setTopBarActions(actionsNext.getTopBarActions?.());
-          setActions(actionsNext);
-          break;
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 10));
+    // we start with a reset
+    setActions(null);
+    setTopBarActions(null);
+
+    // now we try to get the actions and the store
+    for (const path of open_files_order) {
+      if (!path) continue;
+      if (active_top_tab != project_id) continue;
+      const tab_name = path_to_tab(path);
+      if (activeTab !== tab_name) continue;
+
+      const actionsNext = redux.getEditorActions(project_id, path);
+      setActions(actionsNext);
+      setTopBarActions(actionsNext.getTopBarActions?.());
+      setActions(actionsNext);
+
+      setLoading(false);
+      setLoadingShow(false);
+
+      return;
     }
-    if (!isMounted.current) return;
-    // this comes last, because only then buttons will be rendered, which in turn use the redux store
-    setLoading(false);
-    setLoadingShow(false);
-  }, [project_id, path]);
+
+    // if we get here, we have not found any actions
+    console.log(`no actions found for ${project_id} ${path}`);
+  }, [open_files_order, project_id, path]);
+
+  // useAsyncEffect(async () => {
+  //   const t0 = Date.now();
+  //   let actionsNext: EditorActions | null = null;
+  //   while (isMounted.current) {
+  //     if (Date.now() - t0 > 500) setLoadingShow(true);
+  //     if (!isMounted.current) return;
+  //     // first, we try to get the actions
+  //     if (actionsNext == null) {
+  //       actionsNext = await redux.getEditorActions(project_id, path);
+  //       if (!isMounted.current) return;
+  //     } else {
+  //       // we have the actions, now try to get the store as well
+  //       const store = await redux.getEditorStore(project_id, path);
+  //       if (!isMounted.current) return;
+  //       if (store != null) {
+  //         setTopBarActions(actionsNext.getTopBarActions?.());
+  //         setActions(actionsNext);
+  //         break;
+  //       }
+  //     }
+  //     await delay(10)
+  //   }
+  //   if (!isMounted.current) return;
+  //   // this comes last, because only then buttons will be rendered, which in turn use the redux store
+  //   setLoading(false);
+  //   setLoadingShow(false);
+  // }, [project_id, path]);
 
   const name = redux_name(project_id, path);
   const prevName = usePrevious(name);
 
-  // the name !== prevName test is an additional guard to avoid accessing a not yet initilaized store.
-  // why is this necessary? the very first time the component renders with the new values,
+  // the name !== prevName test is an additional guard to avoid accessing a not yet initialized store.
+  // why is this necessary? the very first time the component renders with new values,
   // none of the hooks above has fired yet → $loading is still false, although the names differ.
   // TODO: feels like a hack, but it works
   if (loading || name !== prevName || actions == null) {
@@ -267,13 +297,13 @@ function ExtraButtons(props: Readonly<ExtraButtonsProps>): JSX.Element | null {
   // re-render this component if that happens.
   const [top, items]: [
     TopBarActions[0] | null,
-    NonNullable<MenuProps["items"]>
+    NonNullable<MenuProps["items"]>,
   ] = useMemo(() => {
     if (topBarActions == null) return [null, []];
 
     // pick the first action from topBarActions, which has the highest priority attribute
     const sorted = topBarActions.sort(
-      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0),
     );
     const top = sorted[0];
     const remainder = sorted.slice(1) ?? [];

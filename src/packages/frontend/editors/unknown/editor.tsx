@@ -3,22 +3,27 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useTypedRedux, CSS } from "../../app-framework";
+import { Alert, Button, Col, Row } from "antd";
 import { delay } from "awaiting";
-import { webapp_client } from "../../webapp-client";
-import { Button, Alert, Typography, Row, Col } from "antd";
-const { Text } = Typography;
-import { register_file_editor } from "../../frame-editors/frame-tree/register";
+
+import {
+  CSS,
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Loading, Text } from "@cocalc/frontend/components";
+import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { Editor as CodeEditor } from "@cocalc/frontend/frame-editors/code-editor/editor";
+import { register_file_editor } from "@cocalc/frontend/frame-editors/frame-tree/register";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { filename_extension_notilde } from "@cocalc/util/misc";
-import { Loading } from "../../components";
-import { Editor as CodeEditor } from "../../frame-editors/code-editor/editor";
-import { Actions as CodeEditorActions } from "../../frame-editors/code-editor/actions";
 
 const STYLE: CSS = {
   margin: "0 auto",
   padding: "20px",
   maxWidth: "1000px",
-};
+} as const;
 
 interface Props {
   path: string;
@@ -71,7 +76,7 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
             .slice(0, 20 * 80)
             .split(/(.{0,80})/g)
             .filter((x) => !!x)
-            .join("")
+            .join(""),
         );
       }
     }
@@ -176,7 +181,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     }
     if (actions == null) {
       console.warn(
-        `Project Actions for ${project_id} not available – shouldn't happen.`
+        `Project Actions for ${project_id} not available – shouldn't happen.`,
       );
       return;
     }

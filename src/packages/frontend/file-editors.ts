@@ -3,19 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
+
 import {
+  defaults,
   filename_extension_notilde,
   meta_file,
   path_split,
-  defaults,
   required,
 } from "@cocalc/util/misc";
 
-import { React } from "./app-framework";
-
-import { delay } from "awaiting";
+import { React } from "@cocalc/frontend/app-framework";
+import { IconName } from "@cocalc/frontend/components/icon";
 import { getStudentProjectFunctionality } from "./course";
-import { IconName } from "./components/icon";
 
 declare let DEBUG: boolean;
 
@@ -39,19 +39,19 @@ interface FileEditorSpec {
   generator?: (
     path: string,
     redux: any,
-    project_id: string | undefined
+    project_id: string | undefined,
   ) => Elt | Function;
   initAsync?: (
     path: string,
     redux: any,
     project_id: string | undefined,
-    content?: string
+    content?: string,
   ) => Promise<string>; // returned string = redux name
   init?: (
     path: string,
     redux: any,
     project_id: string | undefined,
-    content?: string
+    content?: string,
   ) => string; // returned string = redux name
   remove?:
     | ((path: string, redux: any, project_id: string | undefined) => string) // returned string = redux name  or undefined if not using redux
@@ -60,7 +60,7 @@ interface FileEditorSpec {
     path: string,
     redux: any,
     project_id: string,
-    is_public?: boolean
+    is_public?: boolean,
   ) => void;
 }
 
@@ -113,7 +113,7 @@ export function register_file_editor(opts: FileEditorInfo): void {
     const pub: string = `${!!opts.is_public}`;
     if (DEBUG && file_editors[pub] && file_editors[pub][ext] != null) {
       console.warn(
-        `duplicate registered extension '${pub}/${ext}' in register_file_editor`
+        `duplicate registered extension '${pub}/${ext}' in register_file_editor`,
       );
     }
     file_editors[pub][ext] = {
@@ -135,7 +135,7 @@ function get_ed(
   project_id: string | undefined,
   path: string,
   is_public?: boolean,
-  ext?: string
+  ext?: string,
 ): FileEditorSpec {
   const is_pub = `${!!is_public}`;
   const noext = `noext-${path_split(path).tail}`.toLowerCase();
@@ -184,7 +184,7 @@ export async function initializeAsync(
   project_id: string | undefined,
   is_public: boolean,
   content?: string,
-  ext?: string
+  ext?: string,
 ): Promise<string | undefined> {
   const editor = get_ed(project_id, path, is_public, ext);
   if (editor.init != null) {
@@ -200,7 +200,7 @@ export function initialize(
   redux,
   project_id: string | undefined,
   is_public: boolean,
-  content?: string
+  content?: string,
 ): string | undefined {
   const editor = get_ed(project_id, path, is_public);
   if (editor.init == null) {
@@ -220,7 +220,7 @@ export async function generateAsync(
   redux,
   project_id: string | undefined,
   is_public: boolean,
-  ext?: string // use instead of path ext
+  ext?: string, // use instead of path ext
 ) {
   altExt[key(project_id, path)] = ext;
   const e = get_ed(project_id, path, is_public, ext);
@@ -236,7 +236,7 @@ export async function generateAsync(
     return () =>
       React.createElement(
         "div",
-        `No editor for ${path} or fallback editor yet`
+        `No editor for ${path} or fallback editor yet`,
       );
   }
   return component;
@@ -247,7 +247,7 @@ export async function remove(
   path: string,
   redux,
   project_id: string | undefined,
-  is_public: boolean
+  is_public: boolean,
 ): Promise<void> {
   if (path == null) {
     return; // TODO: remove when all typescript
@@ -257,7 +257,7 @@ export async function remove(
     console.warn(
       `BUG -- remove called on path of type '${typeof path}'`,
       path,
-      project_id
+      project_id,
     );
     // see https://github.com/sagemathinc/cocalc/issues/1275
     return;
@@ -273,7 +273,7 @@ export async function remove(
     require("./chat/register").remove(
       meta_file(path, "chat"),
       redux,
-      project_id
+      project_id,
     );
   }
 
@@ -295,7 +295,7 @@ export function save(
   path: string,
   redux,
   project_id: string,
-  is_public: boolean
+  is_public: boolean,
 ): void {
   if (path == null) {
     console.warn("WARNING: save(undefined path)"); // TODO: remove when all typescript

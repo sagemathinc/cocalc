@@ -30,4 +30,3 @@ export function special_filenames_with_no_extension(): string[] {
   }
   return v;
 }
-

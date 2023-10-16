@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { register_file_editor } from "../../project-file";
+import { register_file_editor } from "@cocalc/frontend/project-file";
 
 register_file_editor({
   ext: [""],
