@@ -13,6 +13,7 @@ import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 interface Props {
   project_id: string;
@@ -101,17 +102,25 @@ export default function SelectComputeServer({
         <div
           style={{
             backgroundColor: color,
-            color: "white",
+            color: avatar_fontcolor(color),
             overflow: "hidden",
             padding: "0 5px",
           }}
         >
-          {icon && (
-            <Tooltip title={capitalize(state)}>
-              <Icon name={icon} style={{ marginRight: "5px" }} />
-            </Tooltip>
-          )}
-          {title}
+          <div style={{ width: "100%", display: "flex" }}>
+            {icon && (
+              <Tooltip title={capitalize(state)}>
+                <div>
+                  <Icon name={icon} style={{ marginRight: "5px" }} />
+                </div>
+              </Tooltip>
+            )}
+            <div style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              {title}
+            </div>
+            <div style={{ flex: 1, minWidth: "15px" }} />
+            <div>Id: {id}</div>
+          </div>
           <div style={{ marginLeft: "20px" }}>
             <DisplayImage configuration={configuration} />
           </div>
