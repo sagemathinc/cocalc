@@ -5,7 +5,7 @@
 
 import { Layout, Typography } from "antd";
 
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -29,7 +29,7 @@ export default function Products({ customize }) {
             backgroundColor: "white",
           }}
         >
-          <Body />
+          <Body siteName={siteName} />
           <Footer />
         </Layout.Content>
       </Layout>
@@ -37,7 +37,7 @@ export default function Products({ customize }) {
   );
 }
 
-function Body(): JSX.Element {
+function Body({ siteName }): JSX.Element {
   return (
     <div
       style={{
@@ -48,12 +48,15 @@ function Body(): JSX.Element {
       }}
     >
       <Title level={1} style={{ textAlign: "center" }}>
-        <Icon name="credit-card" style={{ marginRight: "30px" }} /> CoCalc -
+        <Icon name="credit-card" style={{ marginRight: "30px" }} /> CoCalc –
         Products
       </Title>
-      <Title level={2}>Collaborative projects</Title>
+
+      <Title level={2}>
+        <Icon name="edit" /> {siteName} projects
+      </Title>
       <Paragraph>
-        Your work on <span>CoCalc</span> happens inside one or more{" "}
+        Your work on <span>{siteName}</span> happens inside one or more{" "}
         <A href="https://doc.cocalc.com/project.html">projects</A>. They form
         your personal workspaces, where you privately store your files,
         computational worksheets, and data. You typically run computations
@@ -74,37 +77,24 @@ function Body(): JSX.Element {
         .
       </Paragraph>
 
-      <Title level={2}>Teaching Courses</Title>
+      <Title level={2}>
+        <Icon name="gears" /> Upgrading projects
+      </Title>
       <Paragraph>
-        Teaching a course on CoCalc usually involves one{" "}
-        <Text italic>instructor project</Text> hosting the course and one
-        project for each student. Additionally, a shared project could be set up
-        as a common space. Please check out{" "}
-        <Text strong>
-          <A href="./courses">course licenses</A>
-        </Text>{" "}
-        for more details.
-      </Paragraph>
-
-      <Title level={2}>Project resources</Title>
-      <Paragraph>
-        Each project runs on a server, where it shares disk space, CPU, and RAM
-        with other projects. Initially, you work in a{" "}
-        <A href="https://doc.cocalc.com/trial.html">trial project</A>, which
-        runs with default quotas on heavily used machines that are rebooted
-        frequently. Upgrading to "member hosting" moves your project to a
-        machine with higher-quality hosting and less competition for resources.
-      </Paragraph>
-
-      <Title level={2}>Upgrading projects</Title>
-      <Paragraph>
-        Each license you purchase provides upgrades to the project{" "}
+        By default, a{" "}
+        <A href="https://doc.cocalc.com/trial.html">project without upgrades</A>{" "}
+        has no internet access, less CPU power, and only a small amount of RAM.
+        Purchasing a license and{" "}
         <A href="https://doc.cocalc.com/project-settings.html#add-a-license-to-a-project">
-          the license is assigned to
+          assigning it to a project
+        </A>{" "}
+        improves hosting quality ("
+        <A href={"https://doc.cocalc.com/upgrades.html#upg-mhost"}>
+          member hosting
         </A>
-        . This improves hosting quality, enables internet access from within a
-        project or increases quotas for CPU and RAM in order to work on larger
-        problems and do more computations simultaneously. On top of that, your{" "}
+        "), enables internet access from within a project and increases quotas
+        for CPU and RAM. This allows you to work on larger problems and do more
+        computations simultaneously. On top of that, your{" "}
         <A href="mailto:help@cocalc.com">support questions</A> are prioritized.
       </Paragraph>
       <Paragraph>
@@ -112,7 +102,9 @@ function Body(): JSX.Element {
         project — their contributions benefit all project collaborators equally.
       </Paragraph>
 
-      <Title level={2}>License Keys</Title>
+      <Title level={2}>
+        <Icon name="key" /> License keys
+      </Title>
       <Paragraph>
         <A href="https://doc.cocalc.com/licenses.html">License Keys</A> are
         applied to projects. One license key can upgrade up to a certain number
@@ -142,6 +134,50 @@ function Body(): JSX.Element {
         </ul>
       </Paragraph>
 
+      <Title level={2}>
+        <Icon name="graduation-cap" /> Teaching Courses
+      </Title>
+      <Paragraph>
+        Teaching a course on CoCalc usually involves one{" "}
+        <Text italic>instructor project</Text> hosting the course and one
+        project for each student. Additionally, a shared project could be set up
+        as a common space.
+      </Paragraph>
+      <Paragraph>
+        Essentially, either you or your institution purchases a license key to
+        cover all involved projects, or you configure your course in such a way
+        that all students have to purchase an upgrade for their projects on
+        their own. Please check out{" "}
+        <Text strong>
+          <A href="./courses">course licenses</A>
+        </Text>{" "}
+        for more details.
+      </Paragraph>
+
+      <Title level={2}>
+        <Icon name={PAYASYOUGO_ICON} /> Pay-as-you-go Upgrades
+      </Title>
+      <Paragraph>
+        Alternatively, without committing to a full license and an ongoing
+        subscription, you can upgrade a project just for the period of time when
+        you actually use it. You are only charged for the time when the project
+        is actually running. You can tweak the resource configuration any time
+        you are about to start the project.
+      </Paragraph>
+      <Paragraph>
+        Learn more about{" "}
+        <A href={"https://doc.cocalc.com/paygo.html"}>Pay-as-you-go upgrades</A>{" "}
+        in our documentation.
+      </Paragraph>
+
+      <Title level={2}>
+        <Icon name="network-wired" /> On premises
+      </Title>
+      <Paragraph>
+        It's also possible to run CoCalc on your own hardware. Please see{" "}
+        <A href={"./onprem"}>on premises options</A> for more information.
+      </Paragraph>
+
       <Title level={2}>Frequently Asked Questions</Title>
       <Paragraph>
         <A id="faq"></A>
@@ -155,12 +191,6 @@ function Body(): JSX.Element {
             <A href="https://doc.cocalc.com/project-faq.html">Projects FAQ</A>
           </li>
         </ul>
-      </Paragraph>
-
-      <Title level={2}>On premises</Title>
-      <Paragraph>
-        It's also possible to run CoCalc on your own hardware. Please see{" "}
-        <A href={"./onprem"}>on premises options</A> for more information.
       </Paragraph>
     </div>
   );

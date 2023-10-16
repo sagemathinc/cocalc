@@ -52,14 +52,14 @@ export function ChatButton({ project_id, path, compact }: Props) {
       }
     },
     1000,
-    { leading: true }
+    { leading: true },
   );
 
   const isNewChat = useMemo(
     () =>
       !!redux.getStore("file_use")?.get_file_info(project_id, path)
         ?.is_unseenchat,
-    [fileUse, project_id, path]
+    [fileUse, project_id, path],
   );
 
   if (filename_extension(path) === "sage-chat") {
@@ -91,6 +91,7 @@ export function ChatButton({ project_id, path, compact }: Props) {
         bsStyle={isNewChat ? "danger" : "default"}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={toggleChat}
+        style={{ color: chatState ? "orange" : undefined }}
       >
         <Icon name="comment" />
         {renderLabel()}

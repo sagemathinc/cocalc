@@ -4,6 +4,7 @@ import getLogger from "@cocalc/backend/logger";
 import renewSubscription from "@cocalc/server/purchases/renew-subscription";
 import cancelSubscription from "./cancel-subscription";
 import sendSubscriptionRenewalEmails from "./subscription-renewal-emails";
+import { isEmailConfigured } from "@cocalc/server/email/send-email";
 
 const logger = getLogger("purchases:maintain-subscriptions");
 
@@ -25,7 +26,9 @@ export default async function maintainSubscriptions() {
     logger.debug("nonfatal ERROR in cancelAllPendingSubscriptions- ", err);
   }
   try {
-    await sendSubscriptionRenewalEmails();
+    if (await isEmailConfigured()) {
+      await sendSubscriptionRenewalEmails();
+    }
   } catch (err) {
     logger.debug("nonfatal ERROR in sendSubscriptionRenewalEmails- ", err);
   }
@@ -49,12 +52,12 @@ async function renewSubscriptions() {
 
   const { rows } = await pool.query(
     `SELECT id, cost, account_id FROM subscriptions WHERE status != 'canceled' AND
-    current_period_end <= NOW() + INTERVAL '1' DAY`
+    current_period_end <= NOW() + INTERVAL '1' DAY`,
   );
   logger.debug(
     "renewSubscriptions -- there are ",
     rows.length,
-    "subscriptions that we will try to renew"
+    "subscriptions that we will try to renew",
   );
   for (const { id: subscription_id, cost, account_id } of rows) {
     logger.debug("renewSubscriptions -- considering one:", {
@@ -73,7 +76,7 @@ async function renewSubscriptions() {
         {
           subscription_id,
           err,
-        }
+        },
       );
       if (test.failOnError) {
         throw err;
@@ -107,7 +110,7 @@ async function updateStatus() {
    SET status = 'unpaid'
    WHERE status = 'active'
    AND current_period_end <= NOW() + INTERVAL '1' DAY * $1`,
-    [subscription_maintenance.request ?? 6]
+    [subscription_maintenance.request ?? 6],
   );
 
   // unpaid --> past_due
@@ -124,7 +127,7 @@ async function updateStatus() {
    SET status = 'canceled'
    WHERE status = 'past_due'
    AND current_period_end < NOW() - INTERVAL '1' DAY * $1`,
-    [subscription_maintenance.grace ?? 3]
+    [subscription_maintenance.grace ?? 3],
   );
 }
 
@@ -149,7 +152,7 @@ SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time 
 `);
   logger.debug(
     "cancelPendingSubscriptions -- pending subscription purchases = ",
-    rows
+    rows,
   );
   for (const obj of rows) {
     try {
@@ -170,12 +173,12 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
   try {
     const x = await client.query(
       "SELECT id FROM subscriptions WHERE latest_purchase_id=$1",
-      [purchase_id]
+      [purchase_id],
     );
     const subscription_id = x.rows[0]?.id;
     if (!subscription_id) {
       throw Error(
-        `there is no subscription with latest purchase id ${purchase_id}`
+        `there is no subscription with latest purchase id ${purchase_id}`,
       );
     }
     await cancelSubscription({

@@ -24,40 +24,70 @@ interface Props {
   alt?: string;
   anchor: string;
   below?: ReactNode;
+  belowWide?: boolean;
   caption?: ReactNode;
   children: ReactNode;
   icon?: IconName;
   image?: string | StaticImageData;
+  imageComponent?: ReactNode; // if set, this replaces the image!
+  level?: TitleProps["level"];
+  narrow?: boolean; // emphasis on the text part, not the image.
   style?: CSSProperties;
   swapCols?: boolean; // if true, then put text on left and image on right.
+  textStyle?: CSSProperties;
   textStyleExtra?: CSSProperties;
   title: ReactNode;
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
-  narrow?: boolean; // emphasis on the text part, not the image.
-  level?: TitleProps["level"];
-  textStyle?: CSSProperties;
 }
 
-export default function Info(props: Props) {
+export default function Info(props: Readonly<Props>): JSX.Element {
   const {
     alt,
     anchor,
     below,
+    belowWide = false,
     caption,
     children,
     icon,
     image,
+    imageComponent,
+    level = 1,
+    narrow = false,
     style,
-    textStyle,
     swapCols,
+    textStyle,
     textStyleExtra,
     title,
     video,
     wide,
-    narrow,
-    level = 1,
   } = props;
+
+  function renderBelow() {
+    if (!below) return;
+
+    if (belowWide) {
+      return (
+        <Col
+          lg={{ span: 20, offset: 2 }}
+          md={{ span: 22, offset: 1 }}
+          style={{ paddingTop: "30px" }}
+        >
+          {below}
+        </Col>
+      );
+    } else {
+      return (
+        <Col
+          lg={{ span: 16, offset: 4 }}
+          md={{ span: 18, offset: 3 }}
+          style={{ paddingTop: "30px" }}
+        >
+          {below}
+        </Col>
+      );
+    }
+  }
 
   const head = (
     <Title
@@ -101,6 +131,8 @@ export default function Info(props: Props) {
         </video>
       </div>
     );
+  } else if (imageComponent != null) {
+    graphic = imageComponent;
   }
 
   if (graphic != null && caption != null) {
@@ -206,15 +238,7 @@ export default function Info(props: Props) {
           }}
         >
           {cols}
-          {below && (
-            <Col
-              lg={{ span: 16, offset: 4 }}
-              md={{ span: 18, offset: 3 }}
-              style={{ paddingTop: "30px" }}
-            >
-              {below}
-            </Col>
-          )}
+          {renderBelow()}
         </Row>
       </>
     </div>
@@ -237,7 +261,7 @@ function verifyHasMp4(video: string[]) {
   }
   console.warn(
     "include mp4 format for the video, so that it is viewable on iOS!!",
-    video
+    video,
   );
 }
 

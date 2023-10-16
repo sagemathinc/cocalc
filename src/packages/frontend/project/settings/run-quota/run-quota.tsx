@@ -10,11 +10,10 @@ import { React, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { plural } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { DedicatedResources } from "@cocalc/util/types/dedicated";
-import { upgrade2quota_key, Upgrades } from "@cocalc/util/upgrades/quota";
+import { Upgrades, upgrade2quota_key } from "@cocalc/util/upgrades/quota";
 import { Project } from "../types";
 import { renderBoolean } from "./components";
 import {
@@ -24,13 +23,13 @@ import {
   useRunQuota,
 } from "./hooks";
 import {
-  booleanValueStr,
-  QuotaData,
   QUOTAS_BOOLEAN,
+  QuotaData,
   RunQuotaType,
   SHOW_MAX,
   Usage,
   Value,
+  booleanValueStr,
 } from "./misc";
 
 const { Text } = Typography;
@@ -169,11 +168,7 @@ export const RunQuota: React.FC<Props> = React.memo(
         return `This quota is ${booleanValueStr(quota)}.`;
       } else if (key === "patch") {
         return usage != null
-          ? `There are ${usage.display} ${plural(
-              usage.display,
-              "patch",
-              "patches"
-            )} in total.`
+          ? `There are ${usage.display} patch(es) in total.`
           : ``;
       } else {
         const curStr =
@@ -330,5 +325,5 @@ export const RunQuota: React.FC<Props> = React.memo(
     }
 
     return <div>{renderQuotas()}</div>;
-  }
+  },
 );

@@ -59,7 +59,7 @@ interface Props {
 }
 
 export const SiteLicensePublicInfo: React.FC<Props> = (
-  props: Readonly<Props>
+  props: Readonly<Props>,
 ) => {
   const {
     license_id,
@@ -859,8 +859,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_manager(account_id: string): JSX.Element | void {
-    if (account_id == redux.getStore("account").get("account_id")) return;
+  function render_manager(account_id: string): JSX.Element | null {
+    if (account_id == redux.getStore("account").get("account_id")) return null;
     return (
       <span key={account_id}>
         ,{" "}

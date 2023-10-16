@@ -16,7 +16,7 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 export default async function sendEmail(
   message: Message,
-  account_id?: string // account that we are sending this email *on behalf of*, if any (used for throttling).
+  account_id?: string, // account that we are sending this email *on behalf of*, if any (used for throttling).
 ): Promise<void> {
   await sendEmailThrottle(account_id);
 
@@ -31,5 +31,14 @@ export default async function sendEmail(
       return await sendViaSendgrid(message);
     default:
       throw Error(`no valid email backend configured: ${email_backend}`);
+  }
+}
+
+export async function isEmailConfigured() {
+  const { email_backend } = await getServerSettings();
+  if (!email_backend || email_backend == "none") {
+    return false;
+  } else {
+    return true;
   }
 }
