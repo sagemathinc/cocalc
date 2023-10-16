@@ -70,33 +70,25 @@ fi
 export function installCoCalc(arch) {
   const image = `${DOCKER_USER}/compute-cocalc${getImagePostfix(arch)}`;
  return `
-# Write script to install /cocalc to /root/update-cocalc.sh, so we can re-run it later to update it.
-echo '
-set -ev
-
-# Get the existing local image ID
-old_id=$(docker inspect --format='{{.Id}}' ${image} || echo 'none')
+if [ -z "$COCALC" ]; then
+  export COCALC=/cocalc
+fi
 
 docker pull ${image}
 new_id=$(docker images --digests --no-trunc --quiet ${image}:latest)
 
-if [ "$new_id" != "$old_id" ]; then
+if [ ! -f "$COCALC"/.versions/"$new_id" ]; then
   rm -rf /tmp/cocalc
   docker create --name temp-copy-cocalc ${image}
   docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
-  mkdir -p /cocalc/conf
-  mv /cocalc/conf /tmp/cocalc/conf
-  rsync -axH --delete /tmp/cocalc/ /cocalc/
+  mkdir -p "$COCALC"/conf
+  mv "$COCALC"/conf /tmp/cocalc/conf
+  rsync -axH --delete /tmp/cocalc/ "$COCALC"/
   rm -rf /tmp/cocalc
   docker rm temp-copy-cocalc
+  mkdir -p "$COCALC"/.versions
+  touch "$COCALC"/.versions/"$new_id"
 fi
-' > /root/update-cocalc.sh
-
-# Make the script executable
-chmod +x /root/update-cocalc.sh
-
-# Run the script
-/root/update-cocalc.sh
 `;
 }
 
@@ -110,12 +102,12 @@ export function installConf({
   return `
 # Setup Current CoCalc Connection Configuration --
 
-mkdir -p /cocalc/conf
-echo "${api_key}" > /cocalc/conf/api_key
-echo "${api_server}" > /cocalc/conf/api_server
-echo "${project_id}" > /cocalc/conf/project_id
-echo "${compute_server_id}" > /cocalc/conf/compute_server_id
-echo "${hostname}" > /cocalc/conf/hostname
+mkdir -p "$COCALC"/conf
+echo "${api_key}" > "$COCALC"/conf/api_key
+echo "${api_server}" > "$COCALC"/conf/api_server
+echo "${project_id}" > "$COCALC"/conf/project_id
+echo "${compute_server_id}" > "$COCALC"/conf/compute_server_id
+echo "${hostname}" > "$COCALC"/conf/hostname
 `;
 }
 

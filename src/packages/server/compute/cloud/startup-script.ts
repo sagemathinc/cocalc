@@ -15,7 +15,6 @@ export default async function startupScript({
   gpu,
   arch,
   hostname,
-  installCocalc: doInstallCoCalc,
   installUser: doInstallUser,
 }: {
   image?: ImageName;
@@ -25,7 +24,6 @@ export default async function startupScript({
   gpu?: boolean;
   arch: Architecture;
   hostname: string;
-  installCocalc?: boolean;
   installUser?: boolean;
 }) {
   if (!api_key) {
@@ -45,7 +43,7 @@ export default async function startupScript({
 
 set -ev
 
-${doInstallCoCalc ? installCoCalc(arch) : ""}
+${installCoCalc(arch)}
 
 ${installConf({
   api_key,
@@ -103,7 +101,7 @@ docker start filesystem || docker run \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
-   -v /cocalc:/cocalc \
+   -v "$COCALC":/cocalc \
    ${image}
  `;
 }
@@ -147,7 +145,7 @@ docker start compute || docker run -d ${gpu ? GPU_FLAGS : ""} \
    -p 80:80 \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v /data:/data \
-   -v /cocalc:/cocalc \
+   -v "$COCALC":/cocalc \
    ${docker}${getImagePostfix(arch)}
  `;
 }
