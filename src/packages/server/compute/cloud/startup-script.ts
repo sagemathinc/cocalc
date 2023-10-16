@@ -95,7 +95,7 @@ rm -rf /home/user && mkdir /home/user && chown ${UID}:${UID} -R /home/user
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-docker start filesystem || docker run \
+docker start filesystem || docker pull ${image} && docker run \
    -d \
    --name=filesystem \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
@@ -136,7 +136,7 @@ function computeManager({ arch, image, gpu }) {
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-docker start compute || docker run -d ${gpu ? GPU_FLAGS : ""} \
+docker start compute || docker pull ${docker}${getImagePostfix(arch)} && docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \

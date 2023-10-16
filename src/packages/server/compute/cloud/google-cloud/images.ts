@@ -151,7 +151,7 @@ export async function getSourceImages({
   image,
   machineType,
   sourceImage,
-  prod = true,
+  prod,
   arch,
 }: ImageFilter = {}): Promise<
   {
