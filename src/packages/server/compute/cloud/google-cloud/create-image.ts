@@ -8,7 +8,7 @@ a = require('./dist/compute/cloud/google-cloud/create-image')
 
 await a.createImages({image:"python", arch:'x86_64'})
 
-await a.createImages({image:"pytorch"}); await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
+await a.createImages({image:"pytorch"}); 
 
 await a.createImages({image:"cuda12"})
 
