@@ -4,7 +4,7 @@
  */
 
 import { redux } from "@cocalc/frontend/app-framework";
-import { should_open_in_foreground } from "@cocalc/util/misc";
+import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 
 // used when clicking/opening a file open entry in the project activity log
 export function handle_log_click(
