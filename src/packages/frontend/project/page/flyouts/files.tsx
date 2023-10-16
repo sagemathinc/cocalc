@@ -27,6 +27,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
@@ -45,16 +46,15 @@ import {
   search_match,
   search_split,
   separate_file_extension,
-  should_open_in_foreground,
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
-import { FileListItem, fileItemStyle } from "./file-list-item";
 import {
   FLYOUT_EXTRA2_WIDTH_PX,
   FLYOUT_EXTRA_WIDTH_PX,
   FLYOUT_PADDING,
 } from "./consts";
+import { FileListItem, fileItemStyle } from "./file-list-item";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
 
@@ -377,7 +377,7 @@ export function FilesFlyout({
         actions?.open_directory(fullPath, true, false);
         setSearchState("");
       } else {
-        const foreground = should_open_in_foreground(e);
+        const foreground = should_open_in_foreground(e as React.MouseEvent);
         track("open-file", {
           project_id,
           path: fullPath,

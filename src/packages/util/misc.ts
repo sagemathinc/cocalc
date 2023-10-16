@@ -1864,16 +1864,6 @@ export function range(n: number): number[] {
   return v;
 }
 
-// foreground; otherwise, return false.
-export function should_open_in_foreground(e): boolean {
-  // for react.js synthetic mouse events, where e.which is undefined!
-  if (e.constructor.name === "SyntheticMouseEvent") {
-    e = e.nativeEvent;
-  }
-  //console.log("e: #{e}, e.which: #{e.which}", e)
-  return !(e.which === 2 || e.metaKey || e.altKey || e.ctrlKey);
-}
-
 // Like Python's enumerate
 export function enumerate(v: any[]) {
   const w: [number, any][] = [];
