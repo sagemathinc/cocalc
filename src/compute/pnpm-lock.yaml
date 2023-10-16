@@ -110,8 +110,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
       websocketfs:
-        specifier: ^0.7.3
-        version: 0.7.3
+        specifier: ^0.8.0
+        version: 0.8.0
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -1865,8 +1865,8 @@ packages:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
 
-  /@cocalc/fuse-native@2.3.1:
-    resolution: {integrity: sha512-mtXdWF/FmnD24BX76DQOegNTfdRxx8hLvLY7BJ3Hqz0KGV7xHSDrn4QhE5ngog/3RFX12+jD2O+9/FtU/X9AdA==}
+  /@cocalc/fuse-native@2.4.0:
+    resolution: {integrity: sha512-mhg+JZZkGq6cGN9Icy7Uu1J5/M1gR44t38DpxjZlRH4oyFcwpH2090/CFv2jGVaTOPrjgvxlb0jHNx9J7WUing==}
     hasBin: true
     requiresBuild: true
     dependencies:
@@ -6307,13 +6307,13 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.7.3:
-    resolution: {integrity: sha512-xqeHVxPqk60TwUqdgwJ/51TJoskZvtG5MU/6rDLXjz7Yh8Kcbei5k37089y8OKYdgGvtNYw163GAlBO6htMX2A==}
+  /websocketfs@0.8.0:
+    resolution: {integrity: sha512-4DyYfF5yd50yF8iZBMr972H+cbOIV98IJpOi4SdeT2x8GTc5VFFl3gxgTTbVac/+8v/dKRbZHdha3ZU+GO2Y8Q==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
     dependencies:
-      '@cocalc/fuse-native': 2.3.1
+      '@cocalc/fuse-native': 2.4.0
       '@isaacs/ttlcache': 1.4.1
       awaiting: 3.0.0
       cookie: 0.5.0

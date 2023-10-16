@@ -78,6 +78,7 @@ export async function mountProject({
     remote,
     path,
     connectOptions,
+    mountOptions: { nonEmpty: true },
     ...options,
   });
   return unmount;
