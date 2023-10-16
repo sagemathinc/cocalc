@@ -358,7 +358,16 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         disabled,
         onClick: () => {
           if (!multiple) {
-            onChecked?.(true); // we have to check the file, otherwise the explorer's file action won't show it
+            // we have to check the file, otherwise the explorer's file action won't show it
+            if (onChecked != null) {
+              onChecked(true);
+            } else {
+              // if there is no handler for checking a file, only check this file (e.g. "flyout/Log")
+              if (fileName === "..") return;
+              const pathFn = path_to_file(current_path, fileName);
+              actions?.set_all_files_unchecked();
+              actions?.set_file_list_checked([pathFn]);
+            }
           }
           actions?.set_active_tab("files");
           actions?.set_file_action(name, () => fileName);
