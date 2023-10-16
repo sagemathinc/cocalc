@@ -48,7 +48,6 @@ export async function getScript({
   return await getStartupScript({
     id,
     api_key,
-    installCocalc: true,
     installUser: true,
   });
 }
