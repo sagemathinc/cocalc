@@ -15,7 +15,7 @@ await a.createImages({image:"cuda12"})
 await a.createImages({image:"sagemath-10.1", arch:'x86_64'});
 
 
-await a.createImages({image:"cuda12"})
+await a.createImages({gpu:true})
 
 // (Danger) This just creates ALL images in parallel:
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
@@ -128,10 +128,9 @@ export async function createImages({
       sourceImage,
       maxTimeMinutes,
       arch,
-      gpu,
     }: {
       image: ImageName;
-      configuration:GoogleCloudConfiguration;
+      configuration: GoogleCloudConfiguration;
       startupScript: string;
       sourceImage: string;
       maxTimeMinutes: number;
@@ -141,10 +140,6 @@ export async function createImages({
       maxTime = Math.max(maxTime, maxTimeMinutes);
       if (onlyArch && onlyArch != arch) {
         console.log("Skipping ", arch);
-        return;
-      }
-      if (gpu && !IMAGES[image]?.gpu) {
-        console.log("Skipping non-GPU", image);
         return;
       }
       if (image == null) {
@@ -179,7 +174,7 @@ export async function createImages({
       }
       names.push(name);
     }
-    const configs = getConf(image);
+    const configs = getConf(image, gpu);
     if (noParallel) {
       // serial
       for (const config of configs) {
@@ -215,8 +210,12 @@ interface BuildConfig {
   sourceImage: string;
 }
 
-function getConf(image: ImageName): BuildConfig[] {
+function getConf(image: ImageName, gpu?: boolean): BuildConfig[] {
   const data = IMAGES[image];
+  if (gpu != null && gpu != data.gpu) {
+    // skip.
+    return [];
+  }
   if (data.gpu) {
     const { cudaVersion } = data;
     return [createBuildConfiguration({ image, arch: "x86_64", cudaVersion })];
