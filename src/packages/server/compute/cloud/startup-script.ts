@@ -98,7 +98,7 @@ mkdir -p /home/user && chown ${UID}:${UID} -R /home/user
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-docker start filesystem || docker pull ${image} && docker run \
+docker start filesystem >/dev/null 2>&1 || /cocalc/docker_pull.py ${image} && docker run \
    -d \
    --name=filesystem \
    --privileged \
@@ -138,7 +138,7 @@ function computeManager({ arch, image, gpu }) {
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-docker start compute || docker pull ${docker}${getImagePostfix(arch)} && docker run -d ${gpu ? GPU_FLAGS : ""} \
+docker start compute >/dev/null 2>&1 || /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)} && docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \

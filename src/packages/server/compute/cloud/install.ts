@@ -85,6 +85,9 @@ if [ ! -f "$COCALC"/.versions/"$new_id" ]; then
   docker rm temp-copy-cocalc
   mkdir -p "$COCALC"/.versions
   touch "$COCALC"/.versions/"$new_id"
+
+  # delete all but the newest image to save disk space
+  docker images --filter=reference=${image} --format='{{.ID}}\t{{.CreatedAt}}' | sort -r -k2 | awk 'NR>1 {print $1}' | xargs docker rmi -f 2>/dev/null || true
 fi
 `;
 }
