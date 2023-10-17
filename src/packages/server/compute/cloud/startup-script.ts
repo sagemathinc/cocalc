@@ -101,7 +101,6 @@ mkdir -p /home/user && chown ${UID}:${UID} -R /home/user
 docker start filesystem || docker pull ${image} && docker run \
    -d \
    --name=filesystem \
-   -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v "$COCALC":/cocalc \
@@ -141,7 +140,6 @@ function computeManager({ arch, image, gpu }) {
 
 docker start compute || docker pull ${docker}${getImagePostfix(arch)} && docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
-   -e DEBUG=cocalc:* -e DEBUG_CONSOLE=yes  -e DEBUG_FILE=/tmp/log \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -p 443:443 \
