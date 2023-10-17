@@ -235,7 +235,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     this._actions = _actions;
 
     this.store = key_value_store();
-    const { head, tail } = path_split(this._path);
+    const { head, tail } = path_split(getAbsolutePathFromHome(this._path));
     this._directory = head;
     this._filename = tail;
     this._set_state("off");
@@ -315,7 +315,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
 
     // !!! WARNING: do NOT add anything new here that depends on that path!!!!
-    // Otherwise the pool will switch to fallling back to not being used, and
+    // Otherwise the pool will switch to falling back to not being used, and
     // cocalc would then be massively slower.
     // Non-uniform customization.
     // launchJupyterKernel is explicitly smart enough to deal with opts.cwd

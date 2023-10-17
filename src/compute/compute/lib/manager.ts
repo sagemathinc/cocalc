@@ -15,6 +15,7 @@ import { jupyter } from "./jupyter";
 import { terminal } from "./terminal";
 import { once } from "@cocalc/util/async-utils";
 import { dirname, join } from "path";
+import { userInfo } from "os";
 
 const logger = debug("cocalc:compute:manager");
 
@@ -57,7 +58,10 @@ class Manager {
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.home = home;
-    process.env.HOME = home;
+    const env = this.env();
+    for (const key in env) {
+      process.env[key] = env[key];
+    }
   }
 
   init = async () => {
@@ -112,10 +116,8 @@ class Manager {
         this.connections[path] = terminal({
           websocket: this.websocket,
           path,
-          cwd: join(this.home, dirname(path)),
-          home: this.home,
-          project_id: this.project_id,
-          compute_server_id: this.compute_server_id,
+          cwd: this.cwd(path),
+          env: this.env(),
         });
       } else if (path.endsWith(".ipynb")) {
         this.connections[path] = jupyter({
@@ -160,5 +162,18 @@ class Manager {
           "00:04:17 up 10 days,  6:39,  0 users,  load average: 2.65, 2.74, 2.72",
       },
     ]);
+  };
+
+  private env = () => {
+    return {
+      HOME: this.home ?? "/home/user",
+      COCALC_PROJECT_ID: this.project_id,
+      COCALC_USERNAME: userInfo().username,
+      COMPUTE_SERVER_ID: `${this.compute_server_id}`,
+    };
+  };
+
+  private cwd = (path) => {
+    return join(this.home, dirname(path));
   };
 }

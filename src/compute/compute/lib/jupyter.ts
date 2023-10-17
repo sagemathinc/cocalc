@@ -78,7 +78,9 @@ class RemoteJupyter {
       if (this.sync_db == null) {
         return;
       }
-      this.sync_db.setCursorLocsNoThrottle([{ type: COMPUTER_SERVER_CURSOR_TYPE }]);
+      this.sync_db.setCursorLocsNoThrottle([
+        { type: COMPUTER_SERVER_CURSOR_TYPE },
+      ]);
     };
     const interval = setInterval(registerAsCellRunner, COMPUTE_THRESH_MS / 2);
     this.sync_db.once("closed", () => {
