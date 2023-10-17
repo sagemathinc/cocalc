@@ -27,11 +27,12 @@ export class RemoteTerminal {
   private state: State = "init";
   private conn: Spark;
   private cwd?: string;
+  private env?: object;
   private localPty?: IPty;
   private options?: Options;
   private size?: { rows: number; cols: number };
 
-  constructor(conn, cwd?) {
+  constructor(conn, { cwd, env }: { cwd?: string; env?: object } = {}) {
     this.conn = conn;
     this.conn.on("data", async (data) => {
       try {
@@ -41,6 +42,7 @@ export class RemoteTerminal {
       }
     });
     this.cwd = cwd;
+    this.env = env;
     logger.debug("create ", { cwd });
   }
 
@@ -88,7 +90,10 @@ export class RemoteTerminal {
     const localPty = spawn(
       this.options.command ?? "/bin/bash",
       this.options.args ?? [],
-      { cwd: this.cwd ?? this.options.cwd, env: this.options.env },
+      {
+        cwd: this.cwd ?? this.options.cwd,
+        env: { ...this.options.env, ...this.env },
+      },
     ) as IPty;
     this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);

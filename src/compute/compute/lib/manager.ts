@@ -14,7 +14,7 @@ import debug from "debug";
 import { jupyter } from "./jupyter";
 import { terminal } from "./terminal";
 import { once } from "@cocalc/util/async-utils";
-import { dirname } from "path";
+import { dirname, join } from "path";
 
 const logger = debug("cocalc:compute:manager");
 
@@ -112,7 +112,9 @@ class Manager {
         this.connections[path] = terminal({
           websocket: this.websocket,
           path,
-          cwd: dirname(path),
+          cwd: join(this.home, dirname(path)),
+          home: this.home,
+          project_id: this.project_id,
         });
       } else if (path.endsWith(".ipynb")) {
         this.connections[path] = jupyter({
