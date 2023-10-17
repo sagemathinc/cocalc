@@ -12,17 +12,17 @@ import { capitalize, plural } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
 import { loadPatch } from "../upgrades/quota";
 import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
-import { PurchaseInfo } from "./purchase/types";
+import type { PurchaseInfo } from "./purchase/types";
 
 export function describeQuotaFromInfo(
   info: Partial<PurchaseInfo>,
-  withName = true
+  withName = true,
 ): string {
   const { type } = info;
   switch (type) {
     case "quota":
       const { idle_timeout, always_running } = untangleUptime(
-        info.custom_uptime
+        info.custom_uptime,
       );
       return describe_quota({
         ram: info.custom_ram,
@@ -74,7 +74,7 @@ function fixUptime(quota) {
 
 export function describe_quota(
   quota: SiteLicenseQuota & { uptime?: Uptime },
-  short?: boolean
+  short?: boolean,
 ): string {
   //console.log(`describe_quota (short=${short})`, quota);
 
@@ -124,7 +124,7 @@ export function describe_quota(
   }
   if (quota.dedicated_cpu) {
     v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`,
     );
   }
 
@@ -135,8 +135,8 @@ export function describe_quota(
     hideNetwork = true;
     v.push(
       `hosting on a Dedicated VM providing ${dedicatedVmDisplay(
-        quota.dedicated_vm
-      )}`
+        quota.dedicated_vm,
+      )}`,
     );
   } else {
     if (quota.member) {
@@ -171,7 +171,7 @@ export function describe_quota(
 // similar to the above, but very short for the info bar on those store purchase pages.
 // instead of overloading the above with even more special cases, this brings it quickly to the point
 export function describeQuotaOnLine(
-  quota: SiteLicenseQuota & { uptime?: Uptime }
+  quota: SiteLicenseQuota & { uptime?: Uptime },
 ): string {
   fixUptime(quota);
 
@@ -191,7 +191,7 @@ export function describeQuotaOnLine(
   }
   if (quota.dedicated_cpu) {
     v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`,
     );
   }
 
@@ -211,7 +211,7 @@ export function describeQuotaOnLine(
     typeof quota.dedicated_disk !== "boolean"
   ) {
     v.push(
-      `Dedicated Disk (${dedicatedDiskDisplay(quota.dedicated_disk, "short")})`
+      `Dedicated Disk (${dedicatedDiskDisplay(quota.dedicated_disk, "short")})`,
     );
   }
 
