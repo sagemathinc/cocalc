@@ -651,21 +651,24 @@ export const IMAGES0 = {
     label: "GPU - PyTorch with CUDA 12.2",
     docker: `${DOCKER_USER}/compute-pytorch`,
     gpu: true,
-    minDiskSizeGb: 15,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 15 + 10,
     cudaVersion: "12.2",
   },
   tensorflow: {
     label: "GPU - Tensorflow with CUDA 12.2",
     docker: `${DOCKER_USER}/compute-tensorflow`,
     gpu: true,
-    minDiskSizeGb: 25,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 25 + 10,
     cudaVersion: "12.2",
   },
   cuda12: {
     label: "GPU - Dev Environment with Cuda 12.2",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
-    minDiskSizeGb: 15,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 15 + 10,
     cudaVersion: "12.2",
   },
   // Disabled -- not sure if it is worthwhile:
