@@ -6,6 +6,7 @@
 import { Alert, Button, Input, Popconfirm, Popover } from "antd";
 import { fromJS } from "immutable";
 import { DebounceInput } from "react-debounce-input";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -28,6 +29,8 @@ import {
   query,
   user_search,
 } from "@cocalc/frontend/frame-editors/generic/client";
+import EditLicense from "@cocalc/frontend/purchases/edit-license";
+import Subscription from "@cocalc/frontend/purchases/subscription";
 import { User } from "@cocalc/frontend/users";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
@@ -39,13 +42,11 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { LICENSE_ACTIVATION_RULES } from "./rules";
-import {
+import type {
   SiteLicensePublicInfo as Info,
   SiteLicensePublicInfo as SiteLicensePublicInfoType,
 } from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
-import EditLicense from "@cocalc/frontend/purchases/edit-license";
-import Subscription from "@cocalc/frontend/purchases/subscription";
 
 interface Props {
   license_id: string;
