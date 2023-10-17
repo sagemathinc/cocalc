@@ -64,9 +64,6 @@ fi
 `;
 }
 
-// TODO for now we do this, but it takes about 6s to install, and we could
-// do this much faster probably by just putting the 400MB on the cocalc server itself (?).  I don't know.
-
 export function installCoCalc(arch) {
   const image = `${DOCKER_USER}/compute-cocalc${getImagePostfix(arch)}`;
  return `

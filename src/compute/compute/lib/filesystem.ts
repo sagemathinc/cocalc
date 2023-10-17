@@ -61,25 +61,20 @@ export async function mountProject({
   log("connecting to ", remote);
   const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
   // SECURITY: DO NOT log headers and connectOptions, obviously!
-  const connectOptions = { perMessageDeflate: false, headers };
-  if (options?.connectOptions) {
-    // ensure that connectOptions contains perMessageDeflate: false, headers no matter what:
-    options = {
-      ...options,
-      connectOptions: {
-        ...options.connectOptions,
-        perMessageDeflate: false,
-        headers,
-      },
-    };
-  }
-
   const { unmount } = await mount({
     remote,
     path,
-    connectOptions,
-    mountOptions: { nonEmpty: true },
     ...options,
+    connectOptions: {
+      perMessageDeflate: false,
+      headers,
+      ...options.connectOptions,
+    },
+    mountOptions: {
+      allowOther: true,
+      nonEmpty: true,
+      ...options.mountOptions,
+    },
   });
   return unmount;
 }

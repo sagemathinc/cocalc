@@ -84,7 +84,10 @@ mkdir -p /data
 chown ${UID}:${UID} /data
 
 # Make the home directory
-rm -rf /home/user && mkdir /home/user && chown ${UID}:${UID} -R /home/user
+# Note the filesystem mount is with the option nonempty, so
+# we don't have to worry anymore about deleting /home/user/*,
+# which is scary.
+mkdir -p /home/user && chown ${UID}:${UID} -R /home/user
 
 
 # Mount the home directory using websocketfs by running a docker container.
