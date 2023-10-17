@@ -110,8 +110,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
       websocketfs:
-        specifier: ^0.8.0
-        version: 0.8.0
+        specifier: ^0.8.1
+        version: 0.8.1
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -6307,8 +6307,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.8.0:
-    resolution: {integrity: sha512-4DyYfF5yd50yF8iZBMr972H+cbOIV98IJpOi4SdeT2x8GTc5VFFl3gxgTTbVac/+8v/dKRbZHdha3ZU+GO2Y8Q==}
+  /websocketfs@0.8.1:
+    resolution: {integrity: sha512-UA5PftBEg7qscdknUUhkJrKDOWDihiWR9K2G8e6pWdn91ZiYY54cSsU4CJIQysk8QdIOqLrq3USRGpvZX1c2Bw==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
