@@ -7,7 +7,14 @@ import { getRemotePtyChannelName, RemoteTerminal } from "@cocalc/terminal";
 import { userInfo } from "os";
 
 // path is something like "foo/.bar.term"
-export function terminal({ websocket, path, cwd, home, project_id }) {
+export function terminal({
+  websocket,
+  path,
+  cwd,
+  home,
+  project_id,
+  compute_server_id,
+}) {
   const name = getRemotePtyChannelName(path);
   const channel = websocket.channel(name);
   return new RemoteTerminal(channel, {
@@ -17,6 +24,7 @@ export function terminal({ websocket, path, cwd, home, project_id }) {
       COCALC_USERNAME: userInfo().username,
       HOME: home ?? "/home/user",
       TERM: "screen",
+      COMPUTE_SERVER_ID: `${compute_server_id}`,
     },
   });
 }

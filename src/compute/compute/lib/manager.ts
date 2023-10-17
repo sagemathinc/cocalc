@@ -115,6 +115,7 @@ class Manager {
           cwd: join(this.home, dirname(path)),
           home: this.home,
           project_id: this.project_id,
+          compute_server_id: this.compute_server_id,
         });
       } else if (path.endsWith(".ipynb")) {
         this.connections[path] = jupyter({
