@@ -644,28 +644,28 @@ export const IMAGES0 = {
   "sagemath-10.1": {
     label: "SageMath 10.1",
     docker: `${DOCKER_USER}/compute-sagemath-10.1`,
-    minDiskSizeGb: 20,
+    minDiskSizeGb: 15,
     gpu: false,
   },
   pytorch: {
     label: "GPU - PyTorch with CUDA 12.2",
     docker: `${DOCKER_USER}/compute-pytorch`,
     gpu: true,
-    minDiskSizeGb: 20,
+    minDiskSizeGb: 15,
     cudaVersion: "12.2",
   },
   tensorflow: {
     label: "GPU - Tensorflow with CUDA 12.2",
     docker: `${DOCKER_USER}/compute-tensorflow`,
     gpu: true,
-    minDiskSizeGb: 30,
+    minDiskSizeGb: 25,
     cudaVersion: "12.2",
   },
   cuda12: {
     label: "GPU - Dev Environment with Cuda 12.2",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
-    minDiskSizeGb: 20,
+    minDiskSizeGb: 15,
     cudaVersion: "12.2",
   },
   // Disabled -- not sure if it is worthwhile:
