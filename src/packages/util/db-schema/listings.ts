@@ -21,7 +21,9 @@ export const MAX_PATHS = 50;
 // Maximum number of entries in a directory listing.  If this is exceeded
 // we sort by last modification time, take only the first MAX_FILES_PER_PATH
 // most recent entries, and set missing to the number that are missing.
-export const MAX_FILES_PER_PATH = 100;
+// This was 100 for a long time -- I'm upping it to 200 since at a 100
+// it has worked very well without any excessive load issues.
+export const MAX_FILES_PER_PATH = 200;
 
 Table({
   name: "listings",
@@ -32,8 +34,7 @@ Table({
     },
     path: {
       type: "string",
-      desc:
-        "The directory that this is a listing of.  Should not start or end with a slash and is relative to home directory of project.",
+      desc: "The directory that this is a listing of.  Should not start or end with a slash and is relative to home directory of project.",
     },
     time: {
       type: "timestamp",
@@ -41,8 +42,7 @@ Table({
     },
     interest: {
       type: "timestamp",
-      desc:
-        "When a browser last said 'I care about contents of this directory'.",
+      desc: "When a browser last said 'I care about contents of this directory'.",
     },
     listing: {
       type: "array",
@@ -51,19 +51,16 @@ Table({
     },
     missing: {
       type: "number",
-      desc:
-        "If the listing is truncated due to being too large this is the number of missing entries.  The oldest entries are missing.",
+      desc: "If the listing is truncated due to being too large this is the number of missing entries.  The oldest entries are missing.",
     },
     error: {
       type: "string",
-      desc:
-        "Set if there is an error computing the directory listing, e.g., if there is no directory this may happen.  This will be cleared once the listing is successfully computed.",
+      desc: "Set if there is an error computing the directory listing, e.g., if there is no directory this may happen.  This will be cleared once the listing is successfully computed.",
     },
     deleted: {
       type: "array",
       pg_type: "TEXT[]",
-      desc:
-        "Paths within this directory that have been explicitly deleted by a user",
+      desc: "Paths within this directory that have been explicitly deleted by a user",
     },
   },
   rules: {

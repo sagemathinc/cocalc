@@ -6,7 +6,7 @@
 // Show a file listing.
 
 import * as immutable from "immutable";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useInterval } from "react-interval-hook";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
@@ -101,6 +101,20 @@ export const FileListing: React.FC<Props> = (props: Props) => {
   }, [current_path, prev_current_path]);
 
   useInterval(watch, WATCH_THROTTLE_MS);
+
+  const [missing, setMissing] = useState<number>(0);
+
+  useEffect(() => {
+    if (isRunning) return;
+    if (listing.length == 0) return;
+    (async () => {
+      const missing = await redux
+        .getProjectStore(project_id)
+        .get_listings()
+        .getMissingUsingDatabase(current_path);
+      setMissing(missing ?? 0);
+    })();
+  }, [current_path, isRunning]);
 
   function render_row(
     name,
@@ -217,6 +231,10 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         <div
           style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
         >
+          <>
+            Showing stale directory listing{" "}
+            {missing > 0 && <b>missing {missing} files</b>}.{" "}
+          </>
           To update the directory listing,{" "}
           <a
             onClick={() => {
