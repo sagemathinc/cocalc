@@ -43,7 +43,7 @@ const openedFilesColumns = [
     sorter: (a, b) =>
       cmp(
         extensionToInfo[a.ext]?.desc ?? a.ext,
-        extensionToInfo[b.ext]?.desc ?? b.ext
+        extensionToInfo[b.ext]?.desc ?? b.ext,
       ),
   },
   {
@@ -96,11 +96,12 @@ const extensionToInfo: { [ext: string]: { desc: string; link?: string } } = {
   },
   "sage-chat": { desc: "Chatroom" },
   board: { desc: "Whiteboard", link: "/features/whiteboard" },
+  slides: { desc: "Slides", link: "/features/slides" },
 } as const;
 
 function processFilesOpened(
   filesOpened,
-  distinct: boolean
+  distinct: boolean,
 ): {
   rows: {
     ext: string;
@@ -160,7 +161,7 @@ export default function OpenedFiles({
   const [distinct, setDistinct] = useState<boolean>(true);
   const { rows, lastHour } = useMemo(
     () => processFilesOpened(filesOpened, distinct),
-    [distinct, filesOpened]
+    [distinct, filesOpened],
   );
 
   return (

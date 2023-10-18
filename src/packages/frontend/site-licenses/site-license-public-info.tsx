@@ -7,6 +7,7 @@ import { QuestionCircleOutlined } from "@ant-design/icons";
 import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
+
 import Export from "@cocalc/frontend/purchases/export";
 
 import {
@@ -25,7 +26,7 @@ import {
 } from "@cocalc/frontend/components";
 import { useProjectState } from "@cocalc/frontend/project/page/project-state-hook";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
-import { trunc, unreachable, cmp } from "@cocalc/util/misc";
+import { cmp, plural, trunc, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
@@ -37,7 +38,7 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { alert_message } from "../alerts";
 import { SiteLicensePublicInfo } from "./site-license-public-info-component";
-import { SiteLicensePublicInfo as Info, SiteLicenses } from "./types";
+import type { SiteLicensePublicInfo as Info, SiteLicenses } from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
 
 interface PropsTable {
@@ -64,7 +65,7 @@ interface TableRow {
 }
 
 export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
-  props: Readonly<PropsTable>
+  props: Readonly<PropsTable>,
 ) => {
   const {
     site_licenses,
@@ -113,7 +114,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }, [site_licenses]);
 
   const fetchInfos = reuseInFlight(async function (
-    force: boolean = false
+    force: boolean = false,
   ): Promise<void> {
     await redux.getActions("billing").update_managed_licenses();
     setLoading(true);
@@ -131,7 +132,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         } catch (err) {
           errors[license_id] = `${err}`;
         }
-      })
+      }),
     );
 
     if (!isMountedRef.current) return;
@@ -242,7 +243,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
             expires: v.expires,
             expired,
           };
-        })
+        }),
     );
   }, [site_licenses, infos]);
 
@@ -301,15 +302,32 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function activatesExpires(rec: TableRow): JSX.Element {
+  function runLimitAndExpiration(rec: TableRow): JSX.Element {
+    const delimiter = isFlyout ? <br /> : " ";
+    const runLimit = infos?.[rec.license_id]?.run_limit ?? 1;
+
+    const runLimitTxt = `Upgrades up to ${runLimit} running ${plural(
+      runLimit,
+      "project",
+    )}.`;
+
     if (rec.activates != null && rec.activates > new Date()) {
       return (
         <>
-          Will activate in <TimeAgo date={rec.activates} />.
+          {runLimitTxt}
+          {delimiter}Will activate in <TimeAgo date={rec.activates} />.
         </>
       );
     } else {
-      const word = rec.expired ? "EXPIRED" : "Will expire";
+      if (rec?.expires == null) {
+        return (
+          <>
+            {runLimitTxt}
+            {delimiter}Has no expiration date.
+          </>
+        );
+      }
+
       const when =
         rec?.expires != null ? (
           <TimeAgo date={rec.expires} />
@@ -320,16 +338,29 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         ) : (
           "never"
         );
+
+      if (rec.expired) {
+        return (
+          <>
+            Has expired {when}.{delimiter}Could update {runLimit} running{" "}
+            {plural(runLimit, "project")}.
+          </>
+        );
+      }
+
       return (
         <>
-          {word} {when}.
+          {runLimitTxt} Will expire {when}.
         </>
       );
     }
   }
 
   function renderStatusText(rec: TableRow): JSX.Element {
-    const quota: SiteLicenseQuota | undefined = infos?.[rec.license_id]?.quota;
+    const licenseInfo = infos?.[rec.license_id];
+    if (!licenseInfo) return <></>;
+    const quota: SiteLicenseQuota | undefined = licenseInfo.quota;
+
     if (quota?.dedicated_disk || quota?.dedicated_vm) {
       return <>{describe_quota(quota)}</>;
     }
@@ -365,9 +396,9 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
           </>
         )}
         <div>
-          {renderStatusText(rec)}
+          {runLimitAndExpiration(rec)}
           <br />
-          {activatesExpires(rec)}
+          {renderStatusText(rec)}
           {isFlyout ? renderRemove(rec.license_id) : undefined}
         </div>
       </>

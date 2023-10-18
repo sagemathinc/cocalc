@@ -284,6 +284,7 @@ export class Listings extends EventEmitter {
           project_id: this.project_id,
           path,
           listing: null,
+          error: null,
         },
       },
     });
@@ -293,11 +294,29 @@ export class Listings extends EventEmitter {
     return q.query.listings?.listing;
   }
 
+  public async getMissingUsingDatabase(
+    path: string,
+  ): Promise<number | undefined> {
+    const q = await query({
+      query: {
+        listings: {
+          project_id: this.project_id,
+          path,
+          missing: null,
+        },
+      },
+    });
+    return q.query.listings?.missing;
+  }
+
   public get_missing(path: string): number | undefined {
-    if (this.state != "ready") return;
-    return this.get_table()
+    if (this.state != "ready") {
+      return;
+    }
+    const missing = this.get_table()
       .get(JSON.stringify([this.project_id, path]))
       ?.get("missing");
+    return missing;
   }
 
   public async get_listing_directly(

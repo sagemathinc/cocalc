@@ -5,12 +5,15 @@
 
 import { debounce } from "lodash";
 import { createContext, useContext } from "react";
+import type { SizeType } from "antd/es/config-provider/SizeContext";
+import { ThemeConfig, theme } from "antd";
 
 import {
   CSS,
   useEffect,
   useMemo,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -25,6 +28,8 @@ import {
 export interface AppState {
   pageWidthPx: number;
   pageStyle: PageStyle;
+  antdComponentSize?: SizeType;
+  antdTheme?: ThemeConfig;
 }
 
 export const AppContext = createContext<AppState>({
@@ -66,6 +71,52 @@ export function useAppStateProvider() {
   return {
     pageWidthPx,
     pageStyle,
+  };
+}
+
+export function useAntdStyleProvider() {
+  const other_settings = useTypedRedux("account", "other_settings");
+  const rounded = other_settings?.get("antd_rounded", true);
+  const animate = other_settings?.get("antd_animate", true);
+  const branded = other_settings?.get("antd_brandcolors", false);
+  const compact = other_settings?.get("antd_compact", false);
+
+  const borderStyle = rounded
+    ? undefined
+    : { borderRadius: 0, borderRadiusLG: 0, borderRadiusSM: 0 };
+
+  const animationStyle = animate
+    ? undefined
+    : {
+        motionDurationMid: "0s",
+        motionDurationSlow: "0s",
+        motionEaseInOut: "none",
+        motionEaseInQuint: "none",
+        motionEaseOutQuint: "none",
+      };
+
+  const brandedColors = branded
+    ? { colorPrimary: COLORS.COCALC_BLUE }
+    : undefined;
+
+  const algorithm = compact ? { algorithm: theme.compactAlgorithm } : undefined;
+
+  const antdTheme: ThemeConfig = {
+    ...algorithm,
+    token: {
+      ...brandedColors,
+      ...borderStyle,
+      ...animationStyle,
+    },
+    components: {
+      Button: {
+        ...brandedColors,
+      },
+    },
+  };
+
+  return {
+    antdTheme,
   };
 }
 
