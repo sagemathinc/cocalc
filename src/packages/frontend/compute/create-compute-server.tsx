@@ -39,9 +39,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   };
 
   useEffect(() => {
-    // TODO: sometimes CLOUDS_BY_NAME[cloud] is null which causes crash if
-    // we don't test for that. Weird.
-    if (configuration.cloud != cloud && CLOUDS_BY_NAME[cloud] != null) {
+    if (configuration != null && configuration.cloud != cloud) {
       setConfiguration(CLOUDS_BY_NAME[cloud].defaultConfiguration);
     }
   }, [cloud]);
