@@ -131,7 +131,7 @@ export default function ComputeServer({
       editable,
       setError,
       configuration,
-      includeDangerous: false,
+      includeDangerous: true,
       type: "text",
     });
     if (editable) {
