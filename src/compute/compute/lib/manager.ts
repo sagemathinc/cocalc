@@ -30,7 +30,7 @@ interface Options {
   // filesystem that is identical to the home directory of the target project.
   // The ipynb file will be loaded and saved from here, and must exist, and
   // process.env.HOME gets set to this.
-  home?: string;
+  home: string;
 }
 
 process.on("exit", () => {
@@ -52,10 +52,16 @@ class Manager {
 
   constructor({
     project_id,
-    compute_server_id,
+    compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
     home = process.env.HOME ?? "/home/user",
   }: Options) {
+    if (!project_id) {
+      throw Error("project_id or process.env.PROJECT_ID must be given");
+    }
     this.project_id = project_id;
+    if (!compute_server_id) {
+      throw Error("set the compute_server_id or process.env.COMPUTE_SERVER_ID");
+    }
     this.compute_server_id = compute_server_id;
     this.home = home;
     const env = this.env();

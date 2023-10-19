@@ -14,6 +14,7 @@ import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { execa } from "execa";
+import filesystemCache from "./filesystem-cache";
 
 const logger = getLogger("compute:filesystem");
 
@@ -22,9 +23,14 @@ interface Options {
   project_id?: string;
   // path to mount at -- defaults to '/home/user'
   path?: string;
-  // passed on to the websocketfs mount command
+  // these options are passed on to the websocketfs mount command
   options?;
+  // options used for unionfs caching, which is used only if these two directories are set.
+  // They should be empty directories that exists and user has write access to, and they
+  //    - lower = where websocketfs is mounted
+  //    - upper = local directory used for caching.
   unionfs?: { upper: string; lower: string };
+  compute_server_id?: number;
 }
 
 export async function mountProject({
@@ -32,10 +38,13 @@ export async function mountProject({
   path = "/home/user", // where to mount the project's HOME directory
   unionfs,
   options,
+  compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
   log();
-
+  if (!compute_server_id) {
+    throw Error("set the compute_server_id or process.env.COMPUTE_SERVER_ID");
+  }
   if (!project_id) {
     throw Error("project_id or process.env.PROJECT_ID must be given");
   }
@@ -88,6 +97,7 @@ export async function mountProject({
     },
   });
 
+  let cache;
   if (unionfs != null) {
     if (/\s/.test(unionfs.lower) || /\s/.test(unionfs.upper)) {
       throw Error("paths cannot contain whitespace");
@@ -99,9 +109,21 @@ export async function mountProject({
       `${unionfs.upper}=RW:${unionfs.lower}=RO`,
       path,
     ]);
+    cache = filesystemCache({
+      lower: unionfs.lower,
+      upper: unionfs.upper,
+      mount: path,
+      project_id,
+      compute_server_id,
+    });
+  } else {
+    cache = null;
   }
 
   return async () => {
+    if (cache != null) {
+      await cache.close();
+    }
     if (unionfs != null) {
       await execa("fusermount", ["-u", path]);
     }
