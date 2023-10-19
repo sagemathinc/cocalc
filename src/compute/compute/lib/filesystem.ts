@@ -126,7 +126,9 @@ export async function mountProject({
       await cache.close();
     }
     if (unionfs != null) {
-      await execa("fusermount", ["-u", path]);
+      const args = ["-uz", path];
+      logger.debug("fusermount", args.join(" "));
+      await execa("fusermount", args);
     }
     unmount();
   };

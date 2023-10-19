@@ -16,7 +16,7 @@ import mkdirp from "mkdirp";
 import { touch } from "./util";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { execa } from "execa";
-import { open } from "fs/promises";
+import { open, unlink } from "fs/promises";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import type {
@@ -58,9 +58,11 @@ class FilesystemCache {
   private projectWhiteoutdir: string;
   private computeWorkdir: string;
 
+  private computeAllFilesList: string;
   private computeEditedFilesList: string;
   private computeEditedFilesTar: string;
   private relComputeEditedFilesTar: string;
+  private projectEditedFilesTar: string;
 
   private last: string;
 
@@ -86,7 +88,7 @@ class FilesystemCache {
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.projectWhiteoutdir = join(this.upper, ".unionfs-fuse");
-    this.computeWorkdir = join(this.upper, ".filesystem-cache");
+    this.computeWorkdir = join(this.upper, ".compute-server");
     this.relProjectWorkdir = join(
       ".compute-servers",
       `${this.compute_server_id}`,
@@ -96,9 +98,17 @@ class FilesystemCache {
       this.computeWorkdir,
       "compute-edited-files-list",
     );
+    this.computeAllFilesList = join(
+      this.projectWorkdir,
+      "compute-all-files-list",
+    );
     this.computeEditedFilesTar = join(
       this.projectWorkdir,
       "compute-edited-files.tar.xz",
+    );
+    this.projectEditedFilesTar = join(
+      this.relProjectWorkdir,
+      "project-edited-files.tar.xz",
     );
     this.relComputeEditedFilesTar = join(
       this.relProjectWorkdir,
@@ -140,6 +150,7 @@ class FilesystemCache {
       // idea is to sync at least all changes from this.last until cur
       const cur = new Date();
       await this.syncWritesFromComputeToProject();
+      await this.syncWritesFromProjectToCompute();
       await touch(this.last, cur);
     } finally {
       if (this.state != ("closed" as State)) {
@@ -157,14 +168,23 @@ class FilesystemCache {
   };
 
   private syncWritesFromComputeToProject = async () => {
-    await this.updateComputeEditedFilesList();
+    if (!(await this.updateComputeFilesList("edited"))) {
+      // nothing changed
+      return;
+    }
     await this.updateComputeEditedFilesTar();
     await this.extractComputeEditedFilesInProject();
+    await unlink(this.computeEditedFilesTar);
+    await unlink(this.computeEditedFilesList);
   };
 
-  private updateComputeEditedFilesList = async () => {
-    // find files that aren't hidden top level, and also not ~/compute-server, and changed
-    // after last (if it exists).
+  // returns true if there is at least 1 file.
+  // returns false and does NOT write the file if there are no files in the list.
+  private updateComputeFilesList = async (
+    type: "all" | "edited",
+  ): Promise<boolean> => {
+    // find files that aren't hidden top level, and also not ~/compute-server, and
+    // (if type == 'edited') changed after last (if it exists).
     // TODO: for now we just find, since it's generic and fast enough (since this is a local
     // filesystem), but we may change this to use inotify and be event driven and much faster!
     // This would also make it easy to do the sync only once changing files stabilizes (e.g.,
@@ -180,7 +200,7 @@ class FilesystemCache {
       "-path",
       "./.*",
     ];
-    if (await exists(this.last)) {
+    if (type == "edited" && (await exists(this.last))) {
       args.push("-newer");
       args.push(this.last);
     }
@@ -190,13 +210,23 @@ class FilesystemCache {
       args.join(" "),
     );
     const { stdout } = await execa("find", args, { cwd: this.upper });
-    const out = await open(this.computeEditedFilesList, "w");
+    const out = await open(
+      type == "edited" ? this.computeEditedFilesList : this.computeAllFilesList,
+      "w",
+    );
+    if (!stdout.length) {
+      return false;
+    }
     // nulls since filenames could contain spaces
     await out.write(stdout.replace(/\n/g, "\0"));
     await out.close();
+    return true;
   };
 
   private updateComputeEditedFilesTar = async () => {
+    // TODO: unclear what compression is optimal for our usage. At least make it configurable.
+    // need to balance speed to make tarball (which slows down sync and uses CPU) with bandwidth
+    // time and costs.
     const args = [
       "-cJf",
       this.computeEditedFilesTar,
@@ -226,6 +256,29 @@ class FilesystemCache {
     }
     // what to do?
     logger.debug("WARNING -- something went wrong!", stderr);
+  };
+
+  private syncWritesFromProjectToCompute = async () => {
+    if (!(await this.updateComputeFilesList("all"))) {
+      // no files at all, so nothing to worry about
+      return;
+    }
+    await this.updateProjectEditedFilesTar();
+  };
+
+  private updateProjectEditedFilesTar = async () => {
+    // TODO: unclear what compression is optimal for our usage. At least make it configurable.
+    // need to balance speed to make tarball (which slows down sync and uses CPU) with bandwidth
+    // time and costs.
+    const args = [
+      "-cJf",
+      this.projectEditedFilesTar,
+      "--null",
+      "--files-from",
+      this.computeAllFilesList,
+    ];
+    logger.debug("updateComputeEditedFilesTar:", "tar", args.join(" "));
+    await this.execInProject({ command: "tar", args });
   };
 
   private execInProject = async (
