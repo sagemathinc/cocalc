@@ -17,6 +17,12 @@ import { touch } from "./util";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { execa } from "execa";
 import { open } from "fs/promises";
+import { encodeIntToUUID } from "@cocalc/util/compute/manager";
+import SyncClient from "@cocalc/sync-client/lib/index";
+import type {
+  ExecuteCodeOptions,
+  ExecuteCodeOutput,
+} from "@cocalc/util/types/execute-code";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -47,15 +53,18 @@ class FilesystemCache {
   private project_id: string;
   private compute_server_id: number;
 
+  private relProjectWorkdir: string;
   private projectWorkdir: string;
   private projectWhiteoutdir: string;
   private computeWorkdir: string;
 
   private computeEditedFilesList: string;
   private computeEditedFilesTar: string;
+  private relComputeEditedFilesTar: string;
 
-  private cur: string;
   private last: string;
+
+  private client: SyncClient;
 
   private interval;
 
@@ -70,6 +79,7 @@ class FilesystemCache {
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
+    logger.debug("created FilesystemCache", { mount: this.mount });
     if (/\s/.test(lower) || /\s/.test(upper) || /\s/.test(mount)) {
       throw Error("not whitespace is allowed in any paths");
     }
@@ -77,11 +87,11 @@ class FilesystemCache {
     this.compute_server_id = compute_server_id;
     this.projectWhiteoutdir = join(this.upper, ".unionfs-fuse");
     this.computeWorkdir = join(this.upper, ".filesystem-cache");
-    this.projectWorkdir = join(
-      this.lower,
+    this.relProjectWorkdir = join(
       ".compute-servers",
       `${this.compute_server_id}`,
     );
+    this.projectWorkdir = join(this.lower, this.relProjectWorkdir);
     this.computeEditedFilesList = join(
       this.computeWorkdir,
       "compute-edited-files-list",
@@ -90,10 +100,18 @@ class FilesystemCache {
       this.projectWorkdir,
       "compute-edited-files.tar.xz",
     );
-    this.cur = join(this.computeWorkdir, "cur");
+    this.relComputeEditedFilesTar = join(
+      this.relProjectWorkdir,
+      "compute-edited-files.tar.xz",
+    );
     this.last = join(this.computeWorkdir, "last");
+
+    this.client = new SyncClient({
+      project_id: this.project_id,
+      client_id: encodeIntToUUID(this.compute_server_id),
+    });
+
     this.state = "ready";
-    logger.debug("created FilesystemCache", { mount: this.mount });
 
     this.interval = setInterval(this.sync, 1000 * cacheTimeout);
     this.sync();
@@ -119,10 +137,10 @@ class FilesystemCache {
     try {
       this.state = "sync";
       await this.makeDirs();
-      // idea is to sync at least all changes from this.last until this.cur
-      await touch(this.cur);
-      await this.updateComputeEditedFilesList();
-      await this.updateComputeEditedFilesTar();
+      // idea is to sync at least all changes from this.last until cur
+      const cur = new Date();
+      await this.syncWritesFromComputeToProject();
+      await touch(this.last, cur);
     } finally {
       if (this.state != ("closed" as State)) {
         this.state = "ready";
@@ -138,9 +156,19 @@ class FilesystemCache {
     ]);
   };
 
+  private syncWritesFromComputeToProject = async () => {
+    await this.updateComputeEditedFilesList();
+    await this.updateComputeEditedFilesTar();
+    await this.extractComputeEditedFilesInProject();
+  };
+
   private updateComputeEditedFilesList = async () => {
     // find files that aren't hidden top level, and also not ~/compute-server, and changed
     // after last (if it exists).
+    // TODO: for now we just find, since it's generic and fast enough (since this is a local
+    // filesystem), but we may change this to use inotify and be event driven and much faster!
+    // This would also make it easy to do the sync only once changing files stabilizes (e.g.,
+    // debounce it).
     const args = [
       ".",
       "-type",
@@ -178,5 +206,33 @@ class FilesystemCache {
     ];
     logger.debug("updateComputeEditedFilesTar:", "tar", args.join(" "));
     await execa("tar", args, { cwd: this.upper });
+  };
+
+  private extractComputeEditedFilesInProject = async () => {
+    // We use --keep-newer-files so that if a file is changed in the
+    // project and it is newer than on compute, we just keep the project one.
+    const { exit_code, stderr } = await this.execInProject({
+      command: "tar",
+      args: ["--keep-newer-files", "-xf", this.relComputeEditedFilesTar],
+      err_on_exit: false,
+    });
+    if (
+      exit_code == 0 ||
+      stderr.includes("failure status due to previous errors")
+    ) {
+      // this is going to happen in case of conflicts, e.g., create a file x on one side
+      // and create a directory x on the other side.
+      return;
+    }
+    // what to do?
+    logger.debug("WARNING -- something went wrong!", stderr);
+  };
+
+  private execInProject = async (
+    opts: ExecuteCodeOptions,
+  ): Promise<ExecuteCodeOutput> => {
+    logger.debug("execInProject:", `"${opts.command} ${opts.args?.join(" ")}"`);
+    const api = await this.client.project_client.api(this.project_id);
+    return await api.exec(opts);
   };
 }
