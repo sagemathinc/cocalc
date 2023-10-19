@@ -28,6 +28,7 @@ import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
 import { delete_files } from "./delete-files";
 import { eval_code } from "./eval-code";
+import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files, rename_file } from "./move-files";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
@@ -109,7 +110,7 @@ async function handleApiCall0(data: Mesg): Promise<any> {
     case "query":
       return await query(client, data.opts);
     case "eval_code":
-      return eval_code(data.code);
+      return await eval_code(data.code);
     case "terminal":
       return await terminal(primus, data.path, data.options);
     case "lean":
@@ -140,6 +141,8 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       return realpath(data.path);
     case "project_info":
       return await project_info_ws(primus, log);
+    case "compute_filesystem_cache":
+      return await computeFilesystemCache(data.opts);
     default:
       throw Error(
         `command "${

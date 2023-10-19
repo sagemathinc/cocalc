@@ -16,7 +16,6 @@ import type { Channel } from "@cocalc/sync/client/types";
 import type { Options } from "@cocalc/util/code-formatter";
 export type { Channel };
 
-
 export type ConfigurationAspect = "main" | "x11";
 
 export interface NbconvertParams {
@@ -165,6 +164,15 @@ interface MesgQuery {
   opts: any;
 }
 
+export type ComputeFilesystemOptions = {
+  func: "filesToDelete";
+  allComputeFiles: string;
+};
+interface MesgComputeFilesystemCache {
+  cmd: "compute_filesystem_cache";
+  opts: ComputeFilesystemOptions;
+}
+
 export type Mesg =
   | MesgExec
   | MesgDeleteFiles
@@ -190,4 +198,5 @@ export type Mesg =
   | MesgNBGrader
   | MesgJupyterNbconvert
   | MesgJupyterRunNotebook
-  | MesgProjectInfo;
+  | MesgProjectInfo
+  | MesgComputeFilesystemCache;

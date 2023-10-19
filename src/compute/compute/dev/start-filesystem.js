@@ -6,7 +6,7 @@ process.env.API_BASE_PATH = process.env.API_BASE_PATH ?? "/";
 
 const { mountProject } = require("../dist/lib");
 
-const PROJECT_HOME = "/tmp/home";
+const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
 
 async function main() {
   let unmount = null;
@@ -26,6 +26,15 @@ async function main() {
   process.on("SIGTERM", exitHandler);
 
   const { apiKey } = require("@cocalc/backend/data");
+  let unionfs;
+  if (process.env.UNIONFS_UPPER && process.env.UNIONFS_LOWER) {
+    unionfs = {
+      lower: process.env.UNIONFS_LOWER,
+      upper: process.env.UNIONFS_UPPER,
+    };
+  } else {
+    unionfs = undefined;
+  }
 
   console.log("Mounting project", process.env.PROJECT_ID, "at", PROJECT_HOME);
   try {
@@ -33,7 +42,7 @@ async function main() {
       project_id: process.env.PROJECT_ID,
       path: PROJECT_HOME,
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
-      unionfs: { lower: "/tmp/lower", upper: "/tmp/upper" },
+      unionfs,
     });
   } catch (err) {
     console.log("something went wrong ", err);

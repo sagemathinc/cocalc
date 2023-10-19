@@ -85,7 +85,7 @@ async function logLaunchParams(params): Promise<void> {
     await writeFile(path, JSON.stringify(params, undefined, 2));
   } catch (err) {
     winston.debug(
-      `WARNING: failed to write ${path}, which is ONLY used for debugging -- ${err}`
+      `WARNING: failed to write ${path}, which is ONLY used for debugging -- ${err}`,
     );
   }
 }
@@ -103,7 +103,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
     blobstore,
   ];
   winston.debug(
-    `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`
+    `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
   logLaunchParams({ cwd, env, cmd, args, uid });
   await promisify((cb: Function) => {
@@ -136,7 +136,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
 
 async function exec(
   command: string,
-  verbose?: boolean
+  verbose?: boolean,
 ): Promise<{ stdout: string; stderr: string }> {
   winston.debug(`exec '${command}'`);
   const output = await promisify(exec0)(command);
@@ -159,9 +159,9 @@ export async function createUser(project_id: string): Promise<void> {
   winston.debug("createUser: adding user");
   await exec(
     `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -m -d ${homePath(
-      project_id
+      project_id,
     )} -s /bin/bash`,
-    true
+    true,
   );
 }
 
@@ -200,6 +200,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     "LINES",
     "COLUMNS",
     "LS_COLORS",
+    "INIT_CWD",
   ]) {
     delete env2[key];
   }
@@ -225,14 +226,14 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
 }
 
 export async function getEnvironment(
-  project_id: string
+  project_id: string,
 ): Promise<{ [key: string]: any }> {
   const extra: { [key: string]: any } = await callback2(
     db().get_project_extra_env,
-    { project_id }
+    { project_id },
   );
   const extra_env: string = Buffer.from(JSON.stringify(extra ?? {})).toString(
-    "base64"
+    "base64",
   );
 
   const USER = getUsername(project_id);
@@ -316,7 +317,7 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
 
 export async function ensureConfFilesExists(
   HOME: string,
-  uid?: number
+  uid?: number,
 ): Promise<void> {
   for (const path of ["bashrc", "bash_profile"]) {
     const target = join(HOME, `.${path}`);
@@ -328,7 +329,7 @@ export async function ensureConfFilesExists(
         root,
         "smc_pyutil/smc_pyutil/templates",
         process.platform,
-        path
+        path,
       );
       try {
         await copyFile(source, target);
@@ -349,10 +350,10 @@ export async function ensureConfFilesExists(
 export async function copyPath(
   opts: CopyOptions,
   project_id: string,
-  target_uid?: number
+  target_uid?: number,
 ): Promise<void> {
   winston.info(
-    `copyPath(source="${project_id}"): opts=${JSON.stringify(opts)}`
+    `copyPath(source="${project_id}"): opts=${JSON.stringify(opts)}`,
   );
   const { path, overwrite_newer, delete_missing, backup, timeout, bwlimit } =
     opts;
@@ -483,7 +484,7 @@ export async function copyPath(
       throw Error(
         `WARNING: copy exited with an error -- ${
           err.stderr
-        } -- "rsync ${args.join(" ")}"`
+        } -- "rsync ${args.join(" ")}"`,
       );
     }
   } else {

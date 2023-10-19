@@ -55,7 +55,7 @@ class FilesystemCache {
 
   private relProjectWorkdir: string;
   private projectWorkdir: string;
-  private projectWhiteoutdir: string;
+  //private projectWhiteoutdir: string;
   private computeWorkdir: string;
 
   private computeAllFilesList: string;
@@ -64,8 +64,7 @@ class FilesystemCache {
   private relComputeEditedFilesTar: string;
   private projectEditedFilesTar: string;
   private projectEditedFilesTarFromCompute: string;
-  private projectDeletedFiles: string;
-  private projectDeletedFilesFromCompute: string;
+  private computeAllFilesListOnProject: string;
 
   private last: string;
 
@@ -90,7 +89,7 @@ class FilesystemCache {
     }
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
-    this.projectWhiteoutdir = join(this.upper, ".unionfs-fuse");
+    //this.projectWhiteoutdir = join(this.upper, ".unionfs-fuse");
     this.computeWorkdir = join(this.upper, ".compute-server");
     this.relProjectWorkdir = join(
       ".compute-servers",
@@ -105,6 +104,10 @@ class FilesystemCache {
       this.projectWorkdir,
       "compute-all-files-list",
     );
+    this.computeAllFilesListOnProject = join(
+      this.relProjectWorkdir,
+      "compute-all-files-list",
+    );
     this.computeEditedFilesTar = join(
       this.projectWorkdir,
       "compute-edited-files.tar.xz",
@@ -116,15 +119,6 @@ class FilesystemCache {
     this.projectEditedFilesTarFromCompute = join(
       this.lower,
       this.projectEditedFilesTar,
-    );
-
-    this.projectDeletedFiles = join(
-      this.relProjectWorkdir,
-      "project-deleted-files",
-    );
-    this.projectDeletedFilesFromCompute = join(
-      this.lower,
-      this.projectDeletedFiles,
     );
 
     this.relComputeEditedFilesTar = join(
@@ -169,8 +163,10 @@ class FilesystemCache {
       const last = await getmtime(this.last);
       await this.updateComputeFilesList("all");
       await this.syncDeletesFromProjectToCompute();
-      await this.syncWritesFromComputeToProject();
-      await this.syncWritesFromProjectToCompute(last);
+      if (0) {
+        await this.syncWritesFromComputeToProject();
+        await this.syncWritesFromProjectToCompute(last);
+      }
       await touch(this.last, cur);
     } finally {
       if (this.state != ("closed" as State)) {
@@ -298,10 +294,13 @@ class FilesystemCache {
   };
 
   private syncDeletesFromProjectToCompute = async () => {
-    const numDeleted = await this.updateProjectDeletedFiles();
-    if (numDeleted > 0) {
-      await this.deleteProjectDeletedFilesInCompute();
-    }
+    logger.debug("syncDeletesFromProjectToCompute");
+    const api = await this.client.project_client.api(this.project_id);
+    const toDelete = await api.compute_filesystem_cache({
+      func: "filesToDelete",
+      allComputeFiles: this.computeAllFilesListOnProject,
+    });
+    console.log("toDelete = ", toDelete);
   };
 
   // make a tarball of files that are newer than the last time
@@ -348,36 +347,37 @@ class FilesystemCache {
     }
   };
 
-  private updateProjectDeletedFiles = async (): Promise<number> => {
-    // The IFS is because of the possibility of funny characters in filenames.
-    // TEST -- does this work robustly?
-    // TODO: it would be natural to add this to the project api and do the same
-    // thing from nodejs instead.
-    const command = `
-cat ${this.computeAllFilesList} | while IFS= read -r line; do
-  if [ ! -e "$line" ]; then
-    echo "$line";
-  fi;
-done > ${this.projectDeletedFiles};
-wc -l ${this.projectDeletedFiles}
-`;
-    logger.debug("updateProjectDeletedFiles", command);
-    const { stdout } = await this.execInProject({ command });
-    return parseInt(stdout.split(/\s/)[0]);
-  };
+  //   private updateProjectDeletedFiles = async (): Promise<number> => {
+  //     // The IFS is because of the possibility of funny characters in filenames.
+  //     // TEST -- does this work robustly?
+  //     // TODO: it would be natural to add this to the project api and do the same
+  //     // thing from nodejs instead.
+  //     const command = `
+  // cat ${this.computeAllFilesList} | while IFS= read -r line; do
+  //   if [ ! -e "$line" ]; then
+  //     echo "$line";
+  //   fi;
+  // done > ${this.projectDeletedFiles};
+  // wc -l ${this.projectDeletedFiles}
+  // `;
+  //     logger.debug("updateProjectDeletedFiles", command);
+  //     const { stdout } = await this.execInProject({ command });
+  //     return parseInt(stdout.split(/\s/)[0]);
+  //   };
 
-  private deleteProjectDeletedFilesInCompute = async () => {
-    const file = await open(this.projectDeletedFilesFromCompute);
-    for await (const path of file.readLines()) {
-      const abspath = join(this.upper, path);
-      try {
-        await rm(abspath, { recursive: true });
-      } catch (err) {
-        console.log("WARNING", err);
-      }
-    }
-    await file.close();
-  };
+  //   private deleteProjectDeletedFilesInCompute = async () => {
+  //     const file = await open(this.projectDeletedFilesFromCompute);
+  //     for await (const path of file.readLines()) {
+  //       const abspath = join(this.upper, path);
+  //       try {
+  //         await rm(abspath, { recursive: true });
+  //       } catch (err) {
+  //         console.log("WARNING", err);
+  //       }
+  //     }
+  //     await file.close();
+  //   };
+
 
   private execInProject = async (
     opts: ExecuteCodeOptions,

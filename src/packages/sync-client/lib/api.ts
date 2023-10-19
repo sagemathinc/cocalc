@@ -26,7 +26,7 @@ export default class API implements API_Interface {
   async listing(
     path: string,
     hidden: boolean = false,
-    timeout: number = 15000
+    timeout: number = 15000,
   ) {
     return await this.call({ cmd: "listing", path, hidden }, timeout);
   }
@@ -39,11 +39,11 @@ export default class API implements API_Interface {
     path: string,
     endpoint: string,
     query: any = undefined,
-    timeout_ms: number = 20000
+    timeout_ms: number = 20000,
   ) {
     return await this.call(
       { cmd: "jupyter", path, endpoint, query },
-      timeout_ms
+      timeout_ms,
     );
   }
 
@@ -66,7 +66,7 @@ export default class API implements API_Interface {
         path: path,
         options,
       },
-      60000
+      60000,
     );
     return this.conn.channel(channel_name);
   }
@@ -79,7 +79,7 @@ export default class API implements API_Interface {
   // Get the sync *channel* for the given SyncTable project query.
   async synctable_channel(
     query: { [field: string]: any },
-    options: { [field: string]: any }[]
+    options: { [field: string]: any }[],
   ): Promise<Channel> {
     const channel_name = await this.call(
       {
@@ -87,7 +87,7 @@ export default class API implements API_Interface {
         query,
         options,
       },
-      10000
+      10000,
     );
     // console.log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
@@ -98,7 +98,7 @@ export default class API implements API_Interface {
   async syncdoc_call(
     path: string,
     mesg: { [field: string]: any },
-    timeout_ms: number = 30000 // ms timeout for call
+    timeout_ms: number = 30000, // ms timeout for call
   ): Promise<any> {
     return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
   }
@@ -109,7 +109,7 @@ export default class API implements API_Interface {
         cmd: "symmetric_channel",
         name,
       },
-      30000
+      30000,
     );
     return this.conn.channel(channel_name);
   }
@@ -120,5 +120,9 @@ export default class API implements API_Interface {
     }
     const timeout_ms = opts.timeout * 1000 + 2000;
     return await this.call({ cmd: "query", opts }, timeout_ms);
+  }
+
+  async compute_filesystem_cache(opts) {
+    return await this.call({ cmd: "compute_filesystem_cache", opts }, 30000);
   }
 }

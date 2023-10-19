@@ -233,7 +233,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
         callbacks: {},
         activity: new Date(),
       };
-      let heartbeat_interval: NodeJS.Timer | undefined = undefined;
+      let heartbeat_interval: ReturnType<typeof setInterval> | undefined =
+        undefined;
       const socket_end = (): void => {
         if (heartbeat_interval == null) {
           return;
