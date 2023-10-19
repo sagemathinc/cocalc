@@ -242,6 +242,7 @@ export default function ComputeServer({
       style={{
         opacity: deleted ? 0.5 : undefined,
         width: "100%",
+        minWidth: "550px",
         border: `0.5px solid ${color ?? "#f0f0f0"}`,
         borderRight: `10px solid ${color ?? "#aaa"}`,
         borderLeft: `10px solid ${color ?? "#aaa"}`,
