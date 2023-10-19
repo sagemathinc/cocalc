@@ -6,7 +6,7 @@ process.env.API_BASE_PATH = process.env.API_BASE_PATH ?? "/";
 
 const { manager } = require("../dist/lib");
 
-const PROJECT_HOME = "/home/user";
+const PROJECT_HOME = "/tmp/home";
 
 async function main() {
   const exitHandler = async () => {
@@ -22,7 +22,7 @@ async function main() {
   process.on("SIGTERM", exitHandler);
 
   const M = manager({
-    home: "/home/user",
+    home: PROJECT_HOME,
     project_id: process.env.PROJECT_ID,
     compute_server_id: process.env.COMPUTE_SERVER_ID,
   });
