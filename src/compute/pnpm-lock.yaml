@@ -109,6 +109,9 @@ importers:
       execa:
         specifier: npm:@esm2cjs/execa@6.1.1-cjs.1
         version: /@esm2cjs/execa@6.1.1-cjs.1
+      mkdirp:
+        specifier: ^1.0.4
+        version: 1.0.4
       tmp-promise:
         specifier: ^3.0.3
         version: 3.0.3
