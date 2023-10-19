@@ -13,7 +13,7 @@ See ./unionfs-cache.md for a discussion of what this is.
 
 import { join } from "path";
 import mkdirp from "mkdirp";
-import { touch } from "./util";
+import { getmtime, touch } from "./util";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { execa } from "execa";
 import { open, unlink } from "fs/promises";
@@ -63,6 +63,7 @@ class FilesystemCache {
   private computeEditedFilesTar: string;
   private relComputeEditedFilesTar: string;
   private projectEditedFilesTar: string;
+  private projectEditedFilesTarFromCompute: string;
 
   private last: string;
 
@@ -110,6 +111,10 @@ class FilesystemCache {
       this.relProjectWorkdir,
       "project-edited-files.tar.xz",
     );
+    this.projectEditedFilesTarFromCompute = join(
+      this.lower,
+      this.projectEditedFilesTar,
+    );
     this.relComputeEditedFilesTar = join(
       this.relProjectWorkdir,
       "compute-edited-files.tar.xz",
@@ -149,8 +154,9 @@ class FilesystemCache {
       await this.makeDirs();
       // idea is to sync at least all changes from this.last until cur
       const cur = new Date();
+      const last = await getmtime(this.last);
       await this.syncWritesFromComputeToProject();
-      await this.syncWritesFromProjectToCompute();
+      await this.syncWritesFromProjectToCompute(last);
       await touch(this.last, cur);
     } finally {
       if (this.state != ("closed" as State)) {
@@ -174,9 +180,7 @@ class FilesystemCache {
     }
     await this.updateComputeEditedFilesTar();
     await this.extractComputeEditedFilesInProject();
-    // TODO: temporary for debugging
-    //    await unlink(this.computeEditedFilesTar);
-    //    await unlink(this.computeEditedFilesList);
+    await unlink(this.computeEditedFilesTar);
   };
 
   // returns true if there is at least 1 file.
@@ -227,6 +231,21 @@ class FilesystemCache {
     // TODO: unclear what compression is optimal for our usage. At least make it configurable.
     // need to balance speed to make tarball (which slows down sync and uses CPU) with bandwidth
     // time and costs.
+    //
+    // We do not just  use --newer for this because of
+    //   https://serverfault.com/questions/536219/is-it-possible-to-exclude-empty-directories-when-creating-a-tar
+    /*const args = [
+      "-cJf",
+      this.computeEditedFilesTar,
+      "--exclude",
+      "./.*",
+      "--exclude",
+      "./compute-server",
+      "--newer",
+      last.toISOString(),
+      ".",
+    ];*/
+
     const args = [
       "-cJf",
       this.computeEditedFilesTar,
@@ -260,26 +279,33 @@ class FilesystemCache {
     }
   };
 
-  private syncWritesFromProjectToCompute = async () => {
+  private syncWritesFromProjectToCompute = async (last: Date) => {
     if (!(await this.updateComputeFilesList("all"))) {
       // no files at all, so nothing to worry about
       return;
     }
-    await this.updateProjectEditedFilesTar();
+    await this.updateProjectEditedFilesTar(last);
+    await this.extractProjectEditedFilesInCompute();
+    await unlink(this.projectEditedFilesTarFromCompute);
   };
 
-  private updateProjectEditedFilesTar = async () => {
-    // TODO: unclear what compression is optimal for our usage. At least make it configurable.
-    // need to balance speed to make tarball (which slows down sync and uses CPU) with bandwidth
-    // time and costs.
+  // make a tarball of files that are newer than the last time
+  // we did sync *and* are in the upper layer of the compute server.
+  private updateProjectEditedFilesTar = async (last: Date) => {
     const args = [
       "-cJf",
       this.projectEditedFilesTar,
+      "--exclude",
+      "./.*",
+      "--exclude",
+      "./compute-server",
+      "--newer",
+      last.toISOString(),
       "--verbatim-files-from",
       "--files-from",
       this.computeAllFilesList,
     ];
-    logger.debug("updateComputeEditedFilesTar:", "tar", args.join(" "));
+    logger.debug("updateProjectEditedFilesTar:", "tar", args.join(" "));
     const { stderr, exit_code } = await this.execInProject({
       command: "tar",
       args,
@@ -287,6 +313,23 @@ class FilesystemCache {
     });
     if (exit_code) {
       logger.debug("WARNING -- updateProjectEditedFilesTar -- ", stderr);
+    }
+  };
+
+  private extractProjectEditedFilesInCompute = async () => {
+    // We use --keep-newer-files so that if a file is changed in
+    // compute and it is newer than one from the project, we just
+    // keep the newer one.
+    const args = [
+      "--keep-newer-files",
+      "-xf",
+      this.projectEditedFilesTarFromCompute,
+    ];
+    logger.debug("extractProjectEditedFilesInCompute", "tar", args.join(" "));
+    try {
+      await execa("tar", args, { cwd: this.upper });
+    } catch (err) {
+      logger.debug("WARNING -- extractProjectEditedFilesInCompute -- ", err);
     }
   };
 
