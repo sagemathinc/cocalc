@@ -13,6 +13,7 @@ import { project } from "@cocalc/api-client";
 import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import { execa } from "execa";
 
 const logger = getLogger("compute:filesystem");
 
@@ -23,11 +24,13 @@ interface Options {
   path?: string;
   // passed on to the websocketfs mount command
   options?;
+  unionfs?: { upper: string; lower: string };
 }
 
 export async function mountProject({
   project_id = process.env.PROJECT_ID,
   path = "/home/user", // where to mount the project's HOME directory
+  unionfs,
   options,
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
@@ -61,9 +64,17 @@ export async function mountProject({
   log("connecting to ", remote);
   const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
   // SECURITY: DO NOT log headers and connectOptions, obviously!
+
+  let homeMountPoint;
+  if (unionfs == null) {
+    homeMountPoint = path;
+  } else {
+    homeMountPoint = unionfs.lower;
+  }
+
   const { unmount } = await mount({
     remote,
-    path,
+    path: homeMountPoint,
     ...options,
     connectOptions: {
       perMessageDeflate: false,
@@ -76,5 +87,24 @@ export async function mountProject({
       ...options.mountOptions,
     },
   });
-  return unmount;
+
+  if (unionfs != null) {
+    if (/\s/.test(unionfs.lower) || /\s/.test(unionfs.upper)) {
+      throw Error("paths cannot contain whitespace");
+    }
+    // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
+    await execa("unionfs-fuse", [
+      "-o",
+      "allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768",
+      `${unionfs.upper}=RW:${unionfs.lower}=RO`,
+      path,
+    ]);
+  }
+
+  return async () => {
+    if (unionfs != null) {
+      await execa("fusermount", ["-u", path]);
+    }
+    unmount();
+  };
 }

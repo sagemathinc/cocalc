@@ -33,6 +33,7 @@ async function main() {
       project_id: process.env.PROJECT_ID,
       path: PROJECT_HOME,
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
+      unionfs: { lower: "/tmp/lower", upper: "/tmp/upper" },
     });
   } catch (err) {
     console.log("something went wrong ", err);

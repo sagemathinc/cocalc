@@ -34,7 +34,7 @@ interface Options {
 }
 
 process.on("exit", () => {
-  console.trace("manager has exited");
+  console.log("manager has exited");
 });
 
 export function manager(opts: Options) {

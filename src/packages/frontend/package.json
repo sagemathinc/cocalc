@@ -90,7 +90,6 @@
     "domhandler": "^4.3.1",
     "dropzone": "^5.9.2",
     "entities": "^4.3.1",
-    "esm": "^3.2.25",
     "events": "3.3.0",
     "expect": "^26.6.2",
     "fflate": "0.7.3",
