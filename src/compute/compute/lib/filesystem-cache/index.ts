@@ -16,7 +16,7 @@ import mkdirp from "mkdirp";
 import { getmtime, touch } from "./util";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { execa } from "execa";
-import { open, unlink } from "fs/promises";
+import { open, rm } from "fs/promises";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import type {
@@ -64,6 +64,8 @@ class FilesystemCache {
   private relComputeEditedFilesTar: string;
   private projectEditedFilesTar: string;
   private projectEditedFilesTarFromCompute: string;
+  private projectDeletedFiles: string;
+  private projectDeletedFilesFromCompute: string;
 
   private last: string;
 
@@ -115,6 +117,16 @@ class FilesystemCache {
       this.lower,
       this.projectEditedFilesTar,
     );
+
+    this.projectDeletedFiles = join(
+      this.relProjectWorkdir,
+      "project-deleted-files",
+    );
+    this.projectDeletedFilesFromCompute = join(
+      this.lower,
+      this.projectDeletedFiles,
+    );
+
     this.relComputeEditedFilesTar = join(
       this.relProjectWorkdir,
       "compute-edited-files.tar.xz",
@@ -155,6 +167,8 @@ class FilesystemCache {
       // idea is to sync at least all changes from this.last until cur
       const cur = new Date();
       const last = await getmtime(this.last);
+      await this.updateComputeFilesList("all");
+      await this.syncDeletesFromProjectToCompute();
       await this.syncWritesFromComputeToProject();
       await this.syncWritesFromProjectToCompute(last);
       await touch(this.last, cur);
@@ -180,7 +194,7 @@ class FilesystemCache {
     }
     await this.updateComputeEditedFilesTar();
     await this.extractComputeEditedFilesInProject();
-    await unlink(this.computeEditedFilesTar);
+    await rm(this.computeEditedFilesTar);
   };
 
   // returns true if there is at least 1 file.
@@ -196,8 +210,6 @@ class FilesystemCache {
     // debounce it).
     const args = [
       ".",
-      "-type",
-      "f",
       "-not",
       "-path",
       "./compute-server*",
@@ -280,13 +292,16 @@ class FilesystemCache {
   };
 
   private syncWritesFromProjectToCompute = async (last: Date) => {
-    if (!(await this.updateComputeFilesList("all"))) {
-      // no files at all, so nothing to worry about
-      return;
-    }
     await this.updateProjectEditedFilesTar(last);
     await this.extractProjectEditedFilesInCompute();
-    await unlink(this.projectEditedFilesTarFromCompute);
+    await rm(this.projectEditedFilesTarFromCompute);
+  };
+
+  private syncDeletesFromProjectToCompute = async () => {
+    const numDeleted = await this.updateProjectDeletedFiles();
+    if (numDeleted > 0) {
+      await this.deleteProjectDeletedFilesInCompute();
+    }
   };
 
   // make a tarball of files that are newer than the last time
@@ -331,6 +346,37 @@ class FilesystemCache {
     } catch (err) {
       logger.debug("WARNING -- extractProjectEditedFilesInCompute -- ", err);
     }
+  };
+
+  private updateProjectDeletedFiles = async (): Promise<number> => {
+    // The IFS is because of the possibility of funny characters in filenames.
+    // TEST -- does this work robustly?
+    // TODO: it would be natural to add this to the project api and do the same
+    // thing from nodejs instead.
+    const command = `
+cat ${this.computeAllFilesList} | while IFS= read -r line; do
+  if [ ! -e "$line" ]; then
+    echo "$line";
+  fi;
+done > ${this.projectDeletedFiles};
+wc -l ${this.projectDeletedFiles}
+`;
+    logger.debug("updateProjectDeletedFiles", command);
+    const { stdout } = await this.execInProject({ command });
+    return parseInt(stdout.split(/\s/)[0]);
+  };
+
+  private deleteProjectDeletedFilesInCompute = async () => {
+    const file = await open(this.projectDeletedFilesFromCompute);
+    for await (const path of file.readLines()) {
+      const abspath = join(this.upper, path);
+      try {
+        await rm(abspath, { recursive: true });
+      } catch (err) {
+        console.log("WARNING", err);
+      }
+    }
+    await file.close();
   };
 
   private execInProject = async (
