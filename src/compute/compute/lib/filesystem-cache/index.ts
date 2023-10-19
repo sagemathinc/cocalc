@@ -174,8 +174,9 @@ class FilesystemCache {
     }
     await this.updateComputeEditedFilesTar();
     await this.extractComputeEditedFilesInProject();
-    await unlink(this.computeEditedFilesTar);
-    await unlink(this.computeEditedFilesList);
+    // TODO: temporary for debugging
+    //    await unlink(this.computeEditedFilesTar);
+    //    await unlink(this.computeEditedFilesList);
   };
 
   // returns true if there is at least 1 file.
@@ -217,8 +218,7 @@ class FilesystemCache {
     if (!stdout.length) {
       return false;
     }
-    // nulls since filenames could contain spaces
-    await out.write(stdout.replace(/\n/g, "\0"));
+    await out.write(stdout);
     await out.close();
     return true;
   };
@@ -230,7 +230,7 @@ class FilesystemCache {
     const args = [
       "-cJf",
       this.computeEditedFilesTar,
-      "--null",
+      "--verbatim-files-from",
       "--files-from",
       this.computeEditedFilesList,
     ];
@@ -255,7 +255,9 @@ class FilesystemCache {
       return;
     }
     // what to do?
-    logger.debug("WARNING -- something went wrong!", stderr);
+    if (exit_code) {
+      logger.debug("WARNING -- updateProjectEditedFilesTar -- ", stderr);
+    }
   };
 
   private syncWritesFromProjectToCompute = async () => {
@@ -273,12 +275,19 @@ class FilesystemCache {
     const args = [
       "-cJf",
       this.projectEditedFilesTar,
-      "--null",
+      "--verbatim-files-from",
       "--files-from",
       this.computeAllFilesList,
     ];
     logger.debug("updateComputeEditedFilesTar:", "tar", args.join(" "));
-    await this.execInProject({ command: "tar", args });
+    const { stderr, exit_code } = await this.execInProject({
+      command: "tar",
+      args,
+      err_on_exit: false,
+    });
+    if (exit_code) {
+      logger.debug("WARNING -- updateProjectEditedFilesTar -- ", stderr);
+    }
   };
 
   private execInProject = async (
