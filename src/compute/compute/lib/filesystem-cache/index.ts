@@ -164,7 +164,6 @@ class FilesystemCache {
     this.state = "ready";
 
     this.interval = setInterval(this.sync, 1000 * cacheTimeout);
-    this.sync();
   }
 
   close = async () => {
