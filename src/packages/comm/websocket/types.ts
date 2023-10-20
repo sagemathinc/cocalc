@@ -164,10 +164,13 @@ interface MesgQuery {
   opts: any;
 }
 
-export type ComputeFilesystemOptions = {
-  func: "filesToDelete";
-  allComputeFiles: string;
-};
+export type ComputeFilesystemOptions =
+  | {
+      func: "filesToDelete";
+      allComputeFiles: string;
+    }
+  | { func: "deleteWhiteouts"; whiteouts: { [path: string]: number } };
+
 interface MesgComputeFilesystemCache {
   cmd: "compute_filesystem_cache";
   opts: ComputeFilesystemOptions;

@@ -115,6 +115,9 @@ importers:
       tmp-promise:
         specifier: ^3.0.3
         version: 3.0.3
+      walkdir:
+        specifier: ^0.4.1
+        version: 0.4.1
       websocketfs:
         specifier: ^0.8.1
         version: 0.8.1
@@ -6407,6 +6410,11 @@ packages:
 
   /voucher-code-generator@1.3.0:
     resolution: {integrity: sha512-t4wnI91KC58LtjX2I0rJDhRm1JTXD+G7A+7iqp0sRSgpeJP4eKLexDRDLe2nedR7xFQcVlZudDZRBLrMP5+KTA==}
+    dev: false
+
+  /walkdir@0.4.1:
+    resolution: {integrity: sha512-3eBwRyEln6E1MSzcxcVpQIhRG8Q1jLvEqRmCZqS3dsfXEDR/AhOF4d+jHg1qvDCpYaVRZjENPQyrVxAkQqxPgQ==}
+    engines: {node: '>=6.0.0'}
     dev: false
 
   /walker@1.0.8:

@@ -12,6 +12,16 @@ This is a local caching filesystem on top of any slow network mounted filesystem
 
 I think I have a way to do all of this by combining websocketfs and unionfs\-fuse with a syncing protocol, and I think it's really critical. Otherwise, we end up with complicated awkward instructions and lots of things feeling impossibly slow and broken, and we're not providing any real value added over GCP \(or any other cloud\). This is a detour from just finishing what I have, but based on trying out some CUDA, etc., tutorials recently, I think without something like this, compute\-servers won't be a success. There are filesystems like this using NFSv4 and block devices, but there doesn't seem to be anything anybody has ever done using FUSE \(or everything was abandoned many years ago\), since it's hard to generically.
 
+## Sync GOAL / Definition
+
+Fix a compute server $C$ and a project $P$.   The compute server has three file systems: $C_\ell, C_u, C$ where $C_\ell$ is the lower filesystem, which is a very slow high latency network mount of $P$, $C_u$ is a very fast low latency local filesystem, and $C = C_\ell \cup C_u$, where by "union" I mean the ordered unionfs\-fuse filesystem.
+
+Fix a time $t_0$ and assume that $C = P$ at time $t_0$, i.e., $C_{t_0} = P_{t_0}$.  Let $t_1 = t_0 + N$ be a time after $t_0$, and of course assume $C_{t_1} \neq P_{t_1}$.  Our goal is a sequence of efficient operations that quickly make it so $C_{t_2} = P_{t_2}$, unless new operations happen after $t_1$ \(so if users stop changing the filesystem on both sides, then they converge\).
+
+When there is a conflict for a given path during $(t_0, t_1)$, we want to resolve it by choosing the last modified version of a file, if possible.  When a file is deleted on one side, but not the other, and there is _no way to know_ when that delete happened, we assume the delete was last.  If the timestamps are identical to the precision we have, then we always choose the project \(or maybe always the compute server?\).
+
+For the project, we don't currently by default know when deletes happen.  We might sometimes know though \(in the future\) via `inotify.` 
+
 ## Sync Protocol
 
 This is _**VERY MUCH AN ONLINE SYNC PROTOCOL**_, which would happen frequently \(several times per minute\) for every single connected client, and we assume we have at most a handful of clients at once.
@@ -22,7 +32,7 @@ last = last time we did a sync with the project
 
 cur = time sync starts
 
-1. **Sync Deletes from Computer Server to Project:** compute server makes a list of _all_ files we deleted since last, which is exactly the whiteout files, sends it to project, and project deletes those files. Compute server then deletes those whiteouts. **message: delete these files**
+1. **Sync Deletes from Computer Server to Project:** compute server makes a list of _all_ files we deleted since last, which is exactly the whiteout files, sends it to project, and project deletes those files. Compute server then deletes those whiteouts. **message: delete these files.**  We know when the deletes happened since it's the timestamp of the whiteout file, so we only delete files in the project if they don't have a timestamp after the deletion timestamp.
 
 2. **Sync Deletes from Project to Compute Server:** compute server makes a list of _all_ files in our upper layer, sends it over, and gets back a list of files in that list that are not in the project anymore. Compute server then deletes them from the upper layer. **message: which of these files need to be deleted?** We have to do this, since the project filesystem.  We already need this list anyways in step 4 below, since we need to know which files to include there.
 

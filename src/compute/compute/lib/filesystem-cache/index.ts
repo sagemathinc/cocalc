@@ -23,10 +23,12 @@ import type {
   ExecuteCodeOptions,
   ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
+import walkdir from "walkdir";
 
-import getLogger from "@cocalc/backend/logger";
-
-const logger = getLogger("compute:filesystem-cache");
+//import getLogger from "@cocalc/backend/logger";
+//const logger = getLogger("compute:filesystem-cache");
+//const log = logger.debug;
+const log = console.log;
 
 interface Options {
   lower: string;
@@ -38,7 +40,7 @@ interface Options {
 }
 
 export default function filesystemCache(opts: Options) {
-  logger.debug("filesystemCache: ", opts);
+  log("filesystemCache: ", opts);
   const cache = new FilesystemCache(opts);
   return cache;
 }
@@ -55,7 +57,7 @@ class FilesystemCache {
 
   private relProjectWorkdir: string;
   private projectWorkdir: string;
-  //private projectWhiteoutdir: string;
+  private whiteouts: string;
   private computeWorkdir: string;
 
   private computeAllFilesList: string;
@@ -83,13 +85,13 @@ class FilesystemCache {
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
-    logger.debug("created FilesystemCache", { mount: this.mount });
+    log("created FilesystemCache", { mount: this.mount });
     if (/\s/.test(lower) || /\s/.test(upper) || /\s/.test(mount)) {
       throw Error("not whitespace is allowed in any paths");
     }
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
-    //this.projectWhiteoutdir = join(this.upper, ".unionfs-fuse");
+    this.whiteouts = join(this.upper, ".unionfs-fuse");
     this.computeWorkdir = join(this.upper, ".compute-server");
     this.relProjectWorkdir = join(
       ".compute-servers",
@@ -139,7 +141,7 @@ class FilesystemCache {
   }
 
   close = async () => {
-    logger.debug("close FilesystemCache");
+    log("close FilesystemCache");
     if (this.state == "closed") {
       return;
     }
@@ -154,7 +156,7 @@ class FilesystemCache {
     if (this.state != "ready") {
       return;
     }
-    logger.debug("sync");
+    log("sync");
     const t0 = Date.now();
     try {
       this.state = "sync";
@@ -162,8 +164,8 @@ class FilesystemCache {
       // idea is to sync at least all changes from this.last until cur
       const cur = new Date();
       const last = await getmtime(this.last);
-      await this.syncDeletesFromProjectToCompute();
       await this.syncDeletesFromComputeToProject();
+      await this.syncDeletesFromProjectToCompute();
       await this.updateComputeFilesList("all");
       await this.syncWritesFromComputeToProject();
       await this.syncWritesFromProjectToCompute(last);
@@ -172,16 +174,12 @@ class FilesystemCache {
       console.trace(err);
       // This will happen if there is a lot of filesystem activity
       // which changes things during the sync.
-      logger.debug(
-        Date.now() - t0,
-        "sync - WARNING: sync loop failed -- ",
-        err,
-      );
+      log(Date.now() - t0, "sync - WARNING: sync loop failed -- ", err);
     } finally {
       if (this.state != ("closed" as State)) {
         this.state = "ready";
       }
-      logger.debug(Date.now() - t0, "sync - SUCCESS");
+      log(Date.now() - t0, "sync - SUCCESS");
     }
   };
 
@@ -230,7 +228,7 @@ class FilesystemCache {
       args.push("-newer");
       args.push(this.last);
     }
-    logger.debug(
+    log(
       `updateComputeEditedFilesList (in ${this.upper}):`,
       "find",
       args.join(" "),
@@ -280,7 +278,7 @@ class FilesystemCache {
       "--files-from",
       this.computeEditedFilesList,
     ];
-    logger.debug("updateComputeEditedFilesTar:", "tar", args.join(" "));
+    log("updateComputeEditedFilesTar:", "tar", args.join(" "));
     await execa("tar", args, { cwd: this.upper });
   };
 
@@ -302,7 +300,7 @@ class FilesystemCache {
     }
     // what to do?
     if (exit_code) {
-      logger.debug("WARNING -- updateProjectEditedFilesTar -- ", stderr);
+      log("WARNING -- updateProjectEditedFilesTar -- ", stderr);
     }
   };
 
@@ -314,7 +312,7 @@ class FilesystemCache {
 
   // delete every file in compute that was deleted from the project since last.
   private syncDeletesFromProjectToCompute = async () => {
-    logger.debug("syncDeletesFromProjectToCompute");
+    log("syncDeletesFromProjectToCompute");
     const api = await this.client.project_client.api(this.project_id);
     const toDelete = await api.compute_filesystem_cache({
       func: "filesToDelete",
@@ -325,7 +323,7 @@ class FilesystemCache {
       try {
         await rm(abspath, { recursive: true });
       } catch (err) {
-        logger.debug("syncDeletesFromProjectToCompute -- WARNING ", {
+        log("syncDeletesFromProjectToCompute -- WARNING ", {
           abspath,
           err,
         });
@@ -349,14 +347,14 @@ class FilesystemCache {
       "--files-from",
       this.computeAllFilesList,
     ];
-    logger.debug("updateProjectEditedFilesTar:", "tar", args.join(" "));
+    log("updateProjectEditedFilesTar:", "tar", args.join(" "));
     const { stderr, exit_code } = await this.execInProject({
       command: "tar",
       args,
       err_on_exit: false,
     });
     if (exit_code) {
-      logger.debug("WARNING -- updateProjectEditedFilesTar -- ", stderr);
+      log("WARNING -- updateProjectEditedFilesTar -- ", stderr);
     }
   };
 
@@ -369,20 +367,50 @@ class FilesystemCache {
       "-xf",
       this.projectEditedFilesTarFromCompute,
     ];
-    logger.debug("extractProjectEditedFilesInCompute", "tar", args.join(" "));
+    log("extractProjectEditedFilesInCompute", "tar", args.join(" "));
     try {
       await execa("tar", args, { cwd: this.upper });
     } catch (err) {
-      logger.debug("WARNING -- extractProjectEditedFilesInCompute -- ", err);
+      log("WARNING -- extractProjectEditedFilesInCompute -- ", err);
     }
   };
 
-  private syncDeletesFromComputeToProject = async () => {};
+  private syncDeletesFromComputeToProject = async () => {
+    // Project deletes all these files, unless project modified a file more
+    // recently.  Get back response that it was all done.
+
+    // Get all whiteouts along with their timestamp to the project as a map
+    // path |--> ms since epoch.
+    const stats = await walkdir.async(this.whiteouts, {
+      return_object: true,
+    });
+    const whiteouts: { [path: string]: number } = {};
+    const n = "_HIDDEN~".length;
+    for (const path in stats) {
+      if (path.endsWith("_HIDDEN~")) {
+        whiteouts[path.slice(0, -n)] = stats[path].mtimeMs;
+      }
+    }
+    // Send them to the project to be deleted (unless conflict)
+    const api = await this.client.project_client.api(this.project_id);
+    await api.compute_filesystem_cache({
+      func: "deleteWhiteouts",
+      whiteouts,
+    });
+
+    // Delete all of these whiteout files locally, since they
+    // are no longer needed.
+    for (const path in whiteouts) {
+      try {
+        await rm(join(this.upper, path), { recursive: true });
+      } catch (_) {}
+    }
+  };
 
   private execInProject = async (
     opts: ExecuteCodeOptions,
   ): Promise<ExecuteCodeOutput> => {
-    logger.debug("execInProject:", `"${opts.command} ${opts.args?.join(" ")}"`);
+    log("execInProject:", `"${opts.command} ${opts.args?.join(" ")}"`);
     const api = await this.client.project_client.api(this.project_id);
     return await api.exec(opts);
   };
