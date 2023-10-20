@@ -87,7 +87,9 @@ chown ${UID}:${UID} /data
 # Note the filesystem mount is with the option nonempty, so
 # we don't have to worry anymore about deleting /home/user/*,
 # which is scary.
-mkdir -p /home/user && chown ${UID}:${UID} -R /home/user
+mkdir -p /home/user && chown ${UID}:${UID} /home/user
+mkdir -p /home/unionfs/lower && chown ${UID}:${UID} /home/unionfs/lower
+mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
 
 
 # Mount the home directory using websocketfs by running a docker container.
@@ -138,7 +140,9 @@ function computeManager({ arch, image, gpu }) {
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-docker start compute >/dev/null 2>&1 || /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)} && docker run -d ${gpu ? GPU_FLAGS : ""} \
+docker start compute >/dev/null 2>&1 || /cocalc/docker_pull.py ${docker}${getImagePostfix(
+    arch,
+  )} && docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
