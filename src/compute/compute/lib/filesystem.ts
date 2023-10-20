@@ -53,7 +53,7 @@ export async function mountProject({
   options,
   compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
   cacheTimeout = 10,
-  exclude = ["scratch", "tmp"],
+  exclude = [],
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
   log();

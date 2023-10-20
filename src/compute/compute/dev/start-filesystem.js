@@ -44,6 +44,7 @@ async function main() {
       path: PROJECT_HOME,
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
       unionfs,
+      exclude: ["scratch", "tmp"],
     });
   } catch (err) {
     console.log("something went wrong ", err);
