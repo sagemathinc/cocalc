@@ -16,7 +16,7 @@ import mkdirp from "mkdirp";
 import { getmtime, touch } from "./util";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { execa } from "execa";
-import { copyFile, open, rm } from "fs/promises";
+import { copyFile, open, rm, stat } from "fs/promises";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import type {
@@ -38,6 +38,7 @@ interface Options {
   compute_server_id: number;
   // sync every this many  seconds
   cacheTimeout?: number;
+  settleTimeout?: number;
   // list of paths that are completely excluded from sync.
   // NOTE: hidden fils in HOME are always excluded
   exclude?: string[];
@@ -76,6 +77,8 @@ class FilesystemCache {
   private findExclude: string[];
 
   private last: string;
+  private cur: string;
+  private settleTimeMs: number;
 
   private client: SyncClient;
 
@@ -88,6 +91,7 @@ class FilesystemCache {
     project_id,
     compute_server_id,
     cacheTimeout = 20,
+    settleTimeout = 3,
     exclude = [],
   }: Options) {
     this.lower = lower;
@@ -155,6 +159,7 @@ class FilesystemCache {
     }
 
     this.last = join(this.computeWorkdir, "last");
+    this.cur = join(this.computeWorkdir, "cur");
 
     this.client = new SyncClient({
       project_id: this.project_id,
@@ -162,6 +167,7 @@ class FilesystemCache {
     });
 
     this.state = "ready";
+    this.settleTimeMs = settleTimeout * 1000;
 
     this.interval = setInterval(this.sync, 1000 * cacheTimeout);
   }
@@ -188,12 +194,13 @@ class FilesystemCache {
       this.state = "sync";
       await this.makeDirs();
       // idea is to sync at least all changes from this.last until cur
-      const cur = new Date();
+      const cur = new Date(Date.now() - this.settleTimeMs);
+      await touch(this.cur, cur);
       const last = await getmtime(this.last);
-      await this.syncDeletesFromComputeToProject();
-      await this.updateComputeFilesList("all");
+      await this.syncDeletesFromComputeToProject(cur);
       await this.syncWritesFromComputeToProject();
       await this.syncWritesFromProjectToCompute(last);
+      await this.updateComputeFilesList("all");
       await this.syncDeletesFromProjectToCompute();
       await touch(this.last, cur);
     } catch (err) {
@@ -244,9 +251,14 @@ class FilesystemCache {
     // debounce it).
     const args = [".", ...this.findExclude];
     if (type == "edited" && (await exists(this.last))) {
-      args.push("-newer");
+      args.push("-cnewer");
       args.push(this.last);
     }
+
+    args.push("!");
+    args.push("-cnewer");
+    args.push(this.cur);
+
     if (type == "edited") {
       // critical to ONLY include files in the edited one. Otherwise,
       // we end up including every *directory* that has any file in it
@@ -254,11 +266,7 @@ class FilesystemCache {
       args.push("-type");
       args.push("f");
     }
-    log(
-      `updateComputeEditedFilesList (in ${this.upper}):`,
-      "find",
-      args.join(" "),
-    );
+    log(`updateComputeFilesList (in ${this.upper}):`, "find", args.join(" "));
     const { stdout } = await execa("find", args, { cwd: this.upper });
     let out;
     try {
@@ -268,11 +276,11 @@ class FilesystemCache {
           : this.computeAllFilesList,
         "w",
       );
-      //log("updateComputeEditedFilesList: output", stdout);
+      //log("updateComputeFilesList: output", stdout);
+      await out.write(stdout);
       if (!stdout.length) {
         return false;
       }
-      await out.write(stdout);
       return true;
     } finally {
       await out?.close();
@@ -339,10 +347,12 @@ class FilesystemCache {
     // We use --keep-newer-files so that if a file is changed in the
     // project and it is newer than on compute, we just keep the project one.
     const MAX_TRIES = 5;
+    const args = ["--keep-newer-files", "-xf", this.relComputeEditedFilesTar];
     for (let i = 0; i < MAX_TRIES; i++) {
+      log("extractComputeEditedFilesInProject: tar ", args.join(" "));
       const { exit_code, stderr } = await this.execInProject({
         command: "tar",
-        args: ["--keep-newer-files", "-xf", this.relComputeEditedFilesTar],
+        args,
         err_on_exit: false,
         timeout: 1800, // timeout in seconds.
       });
@@ -355,12 +365,12 @@ class FilesystemCache {
         // and create a directory x on the other side.
         return;
       }
-      log("WARNING -- updateProjectEditedFilesTar -- ", stderr);
+      log("WARNING -- extractComputeEditedFilesInProject -- ", stderr);
       // try again
       await delay(250);
     }
     // failed every time.
-    throw Error("updateProjectEditedFilesTar -- unable to extract");
+    throw Error("extractComputeEditedFilesInProject -- unable to extract");
   };
 
   private syncWritesFromProjectToCompute = async (last: Date) => {
@@ -377,10 +387,20 @@ class FilesystemCache {
       func: "filesToDelete",
       allComputeFiles: this.computeAllFilesListOnProject,
     });
+    log("********");
+    log("syncDeletesFromProjectToCompute: toDelete = ", toDelete);
+    log("********");
+    const cutoff = Date.now() - this.settleTimeMs;
     for (const path of toDelete) {
       const abspath = join(this.upper, path);
       try {
-        await rm(abspath, { recursive: true });
+        const { ctimeMs } = await stat(abspath);
+        console.log({ abspath, ctimeMs, cutoff });
+        if (ctimeMs < cutoff) {
+          console.log("DELETE ", abspath);
+          // only try to delete if file didn't change too recently locally
+          await rm(abspath, { recursive: true });
+        }
       } catch (_err) {
         //         log("syncDeletesFromProjectToCompute -- WARNING ", {
         //           abspath,
@@ -412,7 +432,20 @@ class FilesystemCache {
       timeout: 1800, // timeout in seconds.
     });
     if (exit_code) {
-      log("WARNING -- updateProjectEditedFilesTar -- ", stderr);
+      // it is normal to have a bunch of Cannot stat: No such file or directory
+      // lines - that happens when files in this.computeAllFilesList aren't
+      // in the project, because they got deleted. Lots of process (e.g., git clone)
+      // create a bunch of files then delete them a moment later.
+      const v = stderr.split("\n");
+      const w = v.filter(
+        (x) =>
+          x.trim() &&
+          !x.includes("Exiting with failure status due to previous errors") &&
+          !x.includes("Cannot stat: No such file or directory"),
+      );
+      if (w.length > 0) {
+        log("WARNING -- updateProjectEditedFilesTar -- ", w.join("\n"));
+      }
     }
   };
 
@@ -429,7 +462,7 @@ class FilesystemCache {
     await execa("tar", args, { cwd: this.upper });
   };
 
-  private syncDeletesFromComputeToProject = async () => {
+  private syncDeletesFromComputeToProject = async (cur: Date) => {
     log("syncDeletesFromComputeToProject");
     // Project deletes all these files, unless project modified a file more
     // recently.  Get back response that it was all done.
@@ -446,8 +479,9 @@ class FilesystemCache {
     const whiteouts: { [path: string]: number } = {};
     const n = "_HIDDEN~".length;
     let j = 0;
+    const cutoff = cur.valueOf();
     for (const path in stats) {
-      if (path.endsWith("_HIDDEN~")) {
+      if (path.endsWith("_HIDDEN~") && stats[path].mtimeMs <= cutoff) {
         j += 1;
         whiteouts[path.slice(this.whiteouts.length + 1, -n)] =
           stats[path].mtimeMs;

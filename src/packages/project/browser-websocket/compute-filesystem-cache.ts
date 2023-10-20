@@ -54,14 +54,12 @@ async function deleteWhiteouts(whiteouts: { [path: string]: number }) {
     try {
       const abspath = join(process.env.HOME, path);
       // if file already gone, this throws, which is fine
-      const { mtimeMs } = await stat(abspath);
-      if (mtimeMs >= whiteouts[path]) {
-        // file was modified in the project *after* the delete, so don't delete.
+      const { ctimeMs } = await stat(abspath);
+      if (ctimeMs >= whiteouts[path]) {
+        // file changed in the project *after* the delete, so don't delete.
         continue;
       }
       await rm(join(process.env.HOME, path), { recursive: true });
     } catch (_) {}
   }
 }
-
-
