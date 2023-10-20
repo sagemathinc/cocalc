@@ -31,6 +31,7 @@ async function main() {
     unionfs = {
       lower: process.env.UNIONFS_LOWER,
       upper: process.env.UNIONFS_UPPER,
+      waitLowerFilesystemType: "fuse",
     };
   } else {
     unionfs = undefined;

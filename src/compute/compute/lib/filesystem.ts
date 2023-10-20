@@ -15,6 +15,7 @@ import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { execa } from "execa";
 import filesystemCache from "./filesystem-cache";
+import { waitUntilFilesystemIsOfType } from "./util";
 
 const logger = getLogger("compute:filesystem");
 
@@ -29,7 +30,17 @@ interface Options {
   // They should be empty directories that exists and user has write access to, and they
   //    - lower = where websocketfs is mounted
   //    - upper = local directory used for caching.
-  unionfs?: { upper: string; lower: string };
+  unionfs?: {
+    upper: string;
+    lower: string;
+    // If true, doesn't do anything until the type of the filesystem that lower is
+    // mounted on is of this type, e.g., "fuse". This is done *INSTEAD OF* just
+    // trying to mount that filesystem.  Why? because in docker we hit a deadlock
+    // when trying to do both in the same process (?), which I can't solve -- maybe
+    // a bug in node.  In any case, separating the unionfs into a separate container
+    // is nice anyways.
+    waitLowerFilesystemType?: string;
+  };
   compute_server_id?: number;
   cacheTimeout?: number;
   exclude?: string[];
@@ -83,24 +94,38 @@ export async function mountProject({
     homeMountPoint = path;
   } else {
     homeMountPoint = unionfs.lower;
+    if (!unionfs.lower || !unionfs.upper) {
+      throw Error("if unionfs is specified, both lower and upper must be set");
+    }
   }
 
-  const { unmount } = await mount({
-    remote,
-    path: homeMountPoint,
-    ...options,
-    connectOptions: {
-      perMessageDeflate: false,
-      headers,
-      ...options.connectOptions,
-    },
-    mountOptions: {
-      allowOther: true,
-      nonEmpty: true,
-      ...options.mountOptions,
-    },
-    cacheTimeout,
-  });
+  let unmount;
+  if (unionfs?.waitLowerFilesystemType) {
+    // we just wait for it to get mounted in some other way
+    unmount = null;
+    await waitUntilFilesystemIsOfType(
+      unionfs.lower,
+      unionfs?.waitLowerFilesystemType,
+    );
+  } else {
+    // we mount it outselvs.
+    ({ unmount } = await mount({
+      remote,
+      path: homeMountPoint,
+      ...options,
+      connectOptions: {
+        perMessageDeflate: false,
+        headers,
+        ...options.connectOptions,
+      },
+      mountOptions: {
+        allowOther: true,
+        nonEmpty: true,
+        ...options.mountOptions,
+      },
+      cacheTimeout,
+    }));
+  }
 
   let cache;
   if (unionfs != null) {
@@ -136,6 +161,9 @@ export async function mountProject({
       logger.debug("fusermount", args.join(" "));
       await execa("fusermount", args);
     }
-    unmount();
+    if (unmount != null) {
+      logger.debug("unmount");
+      unmount();
+    }
   };
 }
