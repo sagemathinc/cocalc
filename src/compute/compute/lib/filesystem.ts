@@ -43,6 +43,7 @@ interface Options {
   };
   compute_server_id?: number;
   cacheTimeout?: number;
+  syncInterval?: number;
   exclude?: string[];
 }
 
@@ -52,7 +53,8 @@ export async function mountProject({
   unionfs,
   options,
   compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
-  cacheTimeout = 10,
+  cacheTimeout,
+  syncInterval,
   exclude = [],
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
@@ -145,7 +147,7 @@ export async function mountProject({
       mount: path,
       project_id,
       compute_server_id,
-      cacheTimeout,
+      syncInterval,
       exclude,
     });
   } else {

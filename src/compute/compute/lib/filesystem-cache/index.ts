@@ -28,7 +28,6 @@ import { delay } from "awaiting";
 
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("compute:filesystem-cache").debug;
-//const log = console.log;
 
 interface Options {
   lower: string;
@@ -36,8 +35,8 @@ interface Options {
   mount: string;
   project_id: string;
   compute_server_id: number;
-  // sync every this many  seconds
-  cacheTimeout?: number;
+  // sync at most every this many seconds
+  syncInterval?: number;
   settleTimeout?: number;
   // list of paths that are completely excluded from sync.
   // NOTE: hidden fils in HOME are always excluded
@@ -90,8 +89,8 @@ class FilesystemCache {
     mount,
     project_id,
     compute_server_id,
-    cacheTimeout = 20,
-    settleTimeout = 3,
+    syncInterval = 15,
+    settleTimeout = 5,
     exclude = [],
   }: Options) {
     this.lower = lower;
@@ -169,7 +168,7 @@ class FilesystemCache {
     this.state = "ready";
     this.settleTimeMs = settleTimeout * 1000;
 
-    this.interval = setInterval(this.sync, 1000 * cacheTimeout);
+    this.interval = setInterval(this.sync, 1000 * syncInterval);
   }
 
   close = async () => {
@@ -395,9 +394,9 @@ class FilesystemCache {
       const abspath = join(this.upper, path);
       try {
         const { ctimeMs } = await stat(abspath);
-        console.log({ abspath, ctimeMs, cutoff });
+        // log({ abspath, ctimeMs, cutoff });
         if (ctimeMs < cutoff) {
-          console.log("DELETE ", abspath);
+          // log("DELETE ", abspath);
           // only try to delete if file didn't change too recently locally
           await rm(abspath, { recursive: true });
         }
