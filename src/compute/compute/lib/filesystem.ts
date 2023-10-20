@@ -115,7 +115,7 @@ export async function mountProject({
       mount: path,
       project_id,
       compute_server_id,
-      cacheTimeout: 15,
+      cacheTimeout: 5,
     });
   } else {
     cache = null;

@@ -162,12 +162,15 @@ class FilesystemCache {
       const cur = new Date();
       const last = await getmtime(this.last);
       await this.updateComputeFilesList("all");
+      await this.syncWritesFromComputeToProject();
+      await this.syncWritesFromProjectToCompute(last);
       await this.syncDeletesFromProjectToCompute();
-      if (0) {
-        await this.syncWritesFromComputeToProject();
-        await this.syncWritesFromProjectToCompute(last);
-      }
       await touch(this.last, cur);
+    } catch (err) {
+      console.trace(err);
+      // This will happen if there is a lot of filesystem activity
+      // which changes things during the sync.
+      logger.debug("WARNING: sync loop failed -- ", err);
     } finally {
       if (this.state != ("closed" as State)) {
         this.state = "ready";
@@ -208,10 +211,13 @@ class FilesystemCache {
       ".",
       "-not",
       "-path",
-      "./compute-server*",
+      "./compute-server*", // [ ] TODO: list of configurable non-sync'd paths!
       "-not",
       "-path",
       "./.*",
+      "-not",
+      "-path",
+      ".",
     ];
     if (type == "edited" && (await exists(this.last))) {
       args.push("-newer");
@@ -223,16 +229,22 @@ class FilesystemCache {
       args.join(" "),
     );
     const { stdout } = await execa("find", args, { cwd: this.upper });
-    const out = await open(
-      type == "edited" ? this.computeEditedFilesList : this.computeAllFilesList,
-      "w",
-    );
-    if (!stdout.length) {
-      return false;
+    let out;
+    try {
+      out = await open(
+        type == "edited"
+          ? this.computeEditedFilesList
+          : this.computeAllFilesList,
+        "w",
+      );
+      if (!stdout.length) {
+        return false;
+      }
+      await out.write(stdout);
+      return true;
+    } finally {
+      await out?.close();
     }
-    await out.write(stdout);
-    await out.close();
-    return true;
   };
 
   private updateComputeEditedFilesTar = async () => {
@@ -301,6 +313,17 @@ class FilesystemCache {
       allComputeFiles: this.computeAllFilesListOnProject,
     });
     console.log("toDelete = ", toDelete);
+    for (const path of toDelete) {
+      const abspath = join(this.upper, path);
+      try {
+        await rm(abspath, { recursive: true });
+      } catch (err) {
+        logger.debug("syncDeletesFromProjectToCompute -- WARNING ", {
+          abspath,
+          err,
+        });
+      }
+    }
   };
 
   // make a tarball of files that are newer than the last time
@@ -346,38 +369,6 @@ class FilesystemCache {
       logger.debug("WARNING -- extractProjectEditedFilesInCompute -- ", err);
     }
   };
-
-  //   private updateProjectDeletedFiles = async (): Promise<number> => {
-  //     // The IFS is because of the possibility of funny characters in filenames.
-  //     // TEST -- does this work robustly?
-  //     // TODO: it would be natural to add this to the project api and do the same
-  //     // thing from nodejs instead.
-  //     const command = `
-  // cat ${this.computeAllFilesList} | while IFS= read -r line; do
-  //   if [ ! -e "$line" ]; then
-  //     echo "$line";
-  //   fi;
-  // done > ${this.projectDeletedFiles};
-  // wc -l ${this.projectDeletedFiles}
-  // `;
-  //     logger.debug("updateProjectDeletedFiles", command);
-  //     const { stdout } = await this.execInProject({ command });
-  //     return parseInt(stdout.split(/\s/)[0]);
-  //   };
-
-  //   private deleteProjectDeletedFilesInCompute = async () => {
-  //     const file = await open(this.projectDeletedFilesFromCompute);
-  //     for await (const path of file.readLines()) {
-  //       const abspath = join(this.upper, path);
-  //       try {
-  //         await rm(abspath, { recursive: true });
-  //       } catch (err) {
-  //         console.log("WARNING", err);
-  //       }
-  //     }
-  //     await file.close();
-  //   };
-
 
   private execInProject = async (
     opts: ExecuteCodeOptions,
