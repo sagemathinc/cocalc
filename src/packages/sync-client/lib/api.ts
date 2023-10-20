@@ -122,7 +122,10 @@ export default class API implements API_Interface {
     return await this.call({ cmd: "query", opts }, timeout_ms);
   }
 
-  async compute_filesystem_cache(opts) {
-    return await this.call({ cmd: "compute_filesystem_cache", opts }, 30000);
+  async compute_filesystem_cache(opts, timeout_ms = 30000) {
+    return await this.call(
+      { cmd: "compute_filesystem_cache", opts },
+      timeout_ms,
+    );
   }
 }
