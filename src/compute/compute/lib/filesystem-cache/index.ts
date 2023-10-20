@@ -110,11 +110,11 @@ class FilesystemCache {
     );
     this.computeEditedFilesTar = join(
       this.projectWorkdir,
-      "compute-edited-files.tar.xz",
+      "compute-edited-files.tar",
     );
     this.projectEditedFilesTar = join(
       this.relProjectWorkdir,
-      "project-edited-files.tar.xz",
+      "project-edited-files.tar",
     );
     this.projectEditedFilesTarFromCompute = join(
       this.lower,
@@ -123,7 +123,7 @@ class FilesystemCache {
 
     this.relComputeEditedFilesTar = join(
       this.relProjectWorkdir,
-      "compute-edited-files.tar.xz",
+      "compute-edited-files.tar",
     );
     this.last = join(this.computeWorkdir, "last");
 
@@ -151,30 +151,37 @@ class FilesystemCache {
   };
 
   private sync = async () => {
-    logger.debug("sync");
     if (this.state != "ready") {
       return;
     }
+    logger.debug("sync");
+    const t0 = Date.now();
     try {
       this.state = "sync";
       await this.makeDirs();
       // idea is to sync at least all changes from this.last until cur
       const cur = new Date();
       const last = await getmtime(this.last);
+      await this.syncDeletesFromProjectToCompute();
+      await this.syncDeletesFromComputeToProject();
       await this.updateComputeFilesList("all");
       await this.syncWritesFromComputeToProject();
       await this.syncWritesFromProjectToCompute(last);
-      await this.syncDeletesFromProjectToCompute();
       await touch(this.last, cur);
     } catch (err) {
       console.trace(err);
       // This will happen if there is a lot of filesystem activity
       // which changes things during the sync.
-      logger.debug("WARNING: sync loop failed -- ", err);
+      logger.debug(
+        Date.now() - t0,
+        "sync - WARNING: sync loop failed -- ",
+        err,
+      );
     } finally {
       if (this.state != ("closed" as State)) {
         this.state = "ready";
       }
+      logger.debug(Date.now() - t0, "sync - SUCCESS");
     }
   };
 
@@ -255,7 +262,7 @@ class FilesystemCache {
     // We do not just  use --newer for this because of
     //   https://serverfault.com/questions/536219/is-it-possible-to-exclude-empty-directories-when-creating-a-tar
     /*const args = [
-      "-cJf",
+      "-cf",
       this.computeEditedFilesTar,
       "--exclude",
       "./.*",
@@ -267,7 +274,7 @@ class FilesystemCache {
     ];*/
 
     const args = [
-      "-cJf",
+      "-cf",
       this.computeEditedFilesTar,
       "--verbatim-files-from",
       "--files-from",
@@ -305,6 +312,7 @@ class FilesystemCache {
     await rm(this.projectEditedFilesTarFromCompute);
   };
 
+  // delete every file in compute that was deleted from the project since last.
   private syncDeletesFromProjectToCompute = async () => {
     logger.debug("syncDeletesFromProjectToCompute");
     const api = await this.client.project_client.api(this.project_id);
@@ -312,7 +320,6 @@ class FilesystemCache {
       func: "filesToDelete",
       allComputeFiles: this.computeAllFilesListOnProject,
     });
-    console.log("toDelete = ", toDelete);
     for (const path of toDelete) {
       const abspath = join(this.upper, path);
       try {
@@ -330,7 +337,7 @@ class FilesystemCache {
   // we did sync *and* are in the upper layer of the compute server.
   private updateProjectEditedFilesTar = async (last: Date) => {
     const args = [
-      "-cJf",
+      "-cf",
       this.projectEditedFilesTar,
       "--exclude",
       "./.*",
@@ -369,6 +376,8 @@ class FilesystemCache {
       logger.debug("WARNING -- extractProjectEditedFilesInCompute -- ", err);
     }
   };
+
+  private syncDeletesFromComputeToProject = async () => {};
 
   private execInProject = async (
     opts: ExecuteCodeOptions,
