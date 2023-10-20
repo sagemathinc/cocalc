@@ -31,6 +31,7 @@ interface Options {
   //    - upper = local directory used for caching.
   unionfs?: { upper: string; lower: string };
   compute_server_id?: number;
+  cacheTimeout?: number;
 }
 
 export async function mountProject({
@@ -39,6 +40,7 @@ export async function mountProject({
   unionfs,
   options,
   compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
+  cacheTimeout = 10,
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
   log();
@@ -95,6 +97,7 @@ export async function mountProject({
       nonEmpty: true,
       ...options.mountOptions,
     },
+    cacheTimeout,
   });
 
   let cache;
@@ -115,7 +118,7 @@ export async function mountProject({
       mount: path,
       project_id,
       compute_server_id,
-      cacheTimeout: 10,
+      cacheTimeout,
     });
   } else {
     cache = null;

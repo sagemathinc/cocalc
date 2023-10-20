@@ -25,10 +25,9 @@ import type {
 } from "@cocalc/util/types/execute-code";
 import walkdir from "walkdir";
 
-//import getLogger from "@cocalc/backend/logger";
-//const logger = getLogger("compute:filesystem-cache");
-//const log = logger.debug;
-const log = console.log;
+import getLogger from "@cocalc/backend/logger";
+const log = getLogger("compute:filesystem-cache").debug;
+//const log = console.log;
 
 interface Options {
   lower: string;
@@ -376,20 +375,30 @@ class FilesystemCache {
   };
 
   private syncDeletesFromComputeToProject = async () => {
+    log("syncDeletesFromComputeToProject");
     // Project deletes all these files, unless project modified a file more
     // recently.  Get back response that it was all done.
-
     // Get all whiteouts along with their timestamp to the project as a map
     // path |--> ms since epoch.
     const stats = await walkdir.async(this.whiteouts, {
       return_object: true,
     });
+    // log("syncDeletesFromComputeToProject", { stats });
     const whiteouts: { [path: string]: number } = {};
     const n = "_HIDDEN~".length;
+    let j = 0;
     for (const path in stats) {
       if (path.endsWith("_HIDDEN~")) {
-        whiteouts[path.slice(0, -n)] = stats[path].mtimeMs;
+        j += 1;
+        whiteouts[path.slice(this.whiteouts.length + 1, -n)] =
+          stats[path].mtimeMs;
       }
+    }
+    // log("syncDeletesFromComputeToProject", { whiteouts });
+    if (j == 0) {
+      // nothing to do
+      log("syncDeletesFromComputeToProject: nothing to do");
+      return;
     }
     // Send them to the project to be deleted (unless conflict)
     const api = await this.client.project_client.api(this.project_id);
@@ -400,10 +409,12 @@ class FilesystemCache {
 
     // Delete all of these whiteout files locally, since they
     // are no longer needed.
-    for (const path in whiteouts) {
-      try {
-        await rm(join(this.upper, path), { recursive: true });
-      } catch (_) {}
+    for (const path in stats) {
+      if (path.endsWith("_HIDDEN~")) {
+        try {
+          await rm(path, { recursive: true });
+        } catch (_) {}
+      }
     }
   };
 
