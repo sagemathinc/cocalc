@@ -16,6 +16,7 @@ import { terminal } from "./terminal";
 import { once } from "@cocalc/util/async-utils";
 import { dirname, join } from "path";
 import { userInfo } from "os";
+import { waitUntilFilesystemIsOfType } from "./util";
 
 const logger = debug("cocalc:compute:manager");
 
@@ -31,6 +32,9 @@ interface Options {
   // The ipynb file will be loaded and saved from here, and must exist, and
   // process.env.HOME gets set to this.
   home: string;
+  // If true, doesn't do anything until the type of the filesystem that home is
+  // mounted on is of this type, e.g., "fuse".
+  waitHomeFilesystemType?: string;
 }
 
 process.on("exit", () => {
@@ -45,6 +49,7 @@ class Manager {
   private sync_db;
   private project_id: string;
   private home: string;
+  private waitHomeFilesystemType?: string;
   private compute_server_id: number;
   private connections: { [path: string]: any } = {};
   private websocket;
@@ -54,6 +59,7 @@ class Manager {
     project_id,
     compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
     home = process.env.HOME ?? "/home/user",
+    waitHomeFilesystemType,
   }: Options) {
     if (!project_id) {
       throw Error("project_id or process.env.PROJECT_ID must be given");
@@ -64,6 +70,7 @@ class Manager {
     }
     this.compute_server_id = compute_server_id;
     this.home = home;
+    this.waitHomeFilesystemType = waitHomeFilesystemType;
     const env = this.env();
     for (const key in env) {
       process.env[key] = env[key];
@@ -71,6 +78,9 @@ class Manager {
   }
 
   init = async () => {
+    if (this.waitHomeFilesystemType) {
+      await waitUntilFilesystemIsOfType(this.home, this.waitHomeFilesystemType);
+    }
     const client_id = encodeIntToUUID(this.compute_server_id);
     this.client = new SyncClient({
       project_id: this.project_id,
