@@ -128,6 +128,7 @@ export async function mountProject({
         ...options.mountOptions,
       },
       cacheTimeout,
+      hidePath: "/.unionfs",
       readTracking: readTrackingPath
         ? { path: readTrackingPath, timeout: 15, interval: 5 }
         : undefined,

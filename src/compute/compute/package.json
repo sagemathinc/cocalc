@@ -44,7 +44,7 @@
     "mkdirp": "^1.0.4",
     "tmp-promise": "^3.0.3",
     "walkdir": "^0.4.1",
-    "websocketfs": "^0.9.1"
+    "websocketfs": "^0.10.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {
