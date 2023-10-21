@@ -96,8 +96,8 @@ class FilesystemCache {
     mount,
     project_id,
     compute_server_id,
-    syncInterval = 15,
-    settleTimeout = 5,
+    syncInterval = 7,
+    settleTimeout = 3,
     exclude = [],
     readTrackingPath,
   }: Options) {
@@ -113,8 +113,6 @@ class FilesystemCache {
     this.compute_server_id = compute_server_id;
     this.whiteouts = join(this.upper, ".unionfs-fuse");
     this.computeWorkdir = join(this.upper, ".compute-server");
-    // ATTN!: this directory UPPER/.compute-server/read-tracking
-    // is also set in ../filesystem.ts
     this.relProjectWorkdir = join(
       ".compute-servers",
       `${this.compute_server_id}`,
@@ -217,6 +215,9 @@ class FilesystemCache {
     try {
       this.state = "sync";
       await this.makeDirs();
+      // Critical to do this read tracking cache *before* the sync below.
+      // If we do it as part of the sync, it screws up the assumptions of doing sync.
+      await this.updateReadTracking();
       // idea is to sync at least all changes from this.last until cur
       const cur = new Date(Date.now() - this.settleTimeMs);
       await touch(this.cur, cur);
@@ -226,7 +227,6 @@ class FilesystemCache {
       await this.syncWritesFromProjectToCompute(last);
       await this.updateComputeFilesList("all");
       await this.syncDeletesFromProjectToCompute();
-      await this.updateReadTracking();
       await touch(this.last, cur);
     } catch (err) {
       console.trace(err);
