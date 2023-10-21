@@ -128,21 +128,32 @@ export default function SelectComputeServer({
       );
       options.push({ value: id, sort: title.toLowerCase(), state, label });
     }
-    options.sort((a, b) => {
-      if (a.state == "running" && b.state != "running") {
-        return -1;
-      }
-      if (b.state == "running" && a.state != "running") {
-        return 1;
-      }
-      return cmp(a.sort, b.sort);
-    });
-    options.unshift({
-      value: "0",
-      sort: "project",
-      state: "",
-      label: "The Project",
-    });
+    const running = options
+      .filter((a) => a.state == "running")
+      .sort((a, b) => cmp(a.sort, b.sort));
+    const notRunning = options
+      .filter((a) => a.state != "running")
+      .sort((a, b) => cmp(a.sort, b.sort));
+    options = [
+      {
+        value: "0",
+        sort: "project",
+        state: "",
+        label: "Move back to project",
+      },
+      {
+        label: (
+          <div style={{ fontSize: "12pt" }}>
+            Running Compute Servers {running.length == 0 ? "(none)" : ""}
+          </div>
+        ),
+        options: running,
+      },
+      {
+        label: <div style={{ fontSize: "12pt" }}>Not Running {notRunning.length == 0 ? "(none)" : ""}</div>,
+        options: notRunning,
+      },
+    ];
     return options;
   }, [computeServers]);
 
