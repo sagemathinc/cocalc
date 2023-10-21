@@ -11,6 +11,7 @@ export HOSTNAME=`cat conf/hostname`
 export UNIONFS_UPPER=/tmp/upper
 export UNIONFS_LOWER=/tmp/lower
 export PROJECT_HOME=/tmp/home
+export READ_TRACKING_PATH=/tmp/reads
 
 
 echo API_KEY=$API_KEY

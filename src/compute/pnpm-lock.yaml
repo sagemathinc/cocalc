@@ -122,8 +122,8 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1
       websocketfs:
-        specifier: ^0.8.1
-        version: 0.8.1
+        specifier: ^0.9.1
+        version: 0.9.1
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -6426,8 +6426,8 @@ packages:
       makeerror: 1.0.12
     dev: true
 
-  /websocket-sftp@0.7.0:
-    resolution: {integrity: sha512-oI++Xti0h/vqPp1t5J7lcTltsGY0QpFxAw/OwKuKDXnPQ5nuAxGLTDMuvaKpibTUOMNLXCa7ZjBKpe+48lYxNg==}
+  /websocket-sftp@0.7.2:
+    resolution: {integrity: sha512-g1E8GCHu0CdAe3GTBmxfP1uH1h8h21d029O+tYpCMvFUqVher+rbi2Dfp4OEjOXyfgr7qquAxwulDUXvy0+iKg==}
     engines: {node: '>=0.16.0'}
     requiresBuild: true
     dependencies:
@@ -6442,8 +6442,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.8.1:
-    resolution: {integrity: sha512-UA5PftBEg7qscdknUUhkJrKDOWDihiWR9K2G8e6pWdn91ZiYY54cSsU4CJIQysk8QdIOqLrq3USRGpvZX1c2Bw==}
+  /websocketfs@0.9.1:
+    resolution: {integrity: sha512-gKzBNNr0L+uRaJLY6DWXjRQPJ82hNdey56XlJ8mFwJVlwvbGLRi5+JiowCsPnMo0Rv9VqHhBbM2eDzM+5S3Blg==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
@@ -6454,7 +6454,7 @@ packages:
       cookie: 0.5.0
       debug: 4.3.4(supports-color@9.4.0)
       port-get: 1.0.0
-      websocket-sftp: 0.7.0
+      websocket-sftp: 0.7.2
     transitivePeerDependencies:
       - bufferutil
       - supports-color

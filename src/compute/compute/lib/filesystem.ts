@@ -45,6 +45,7 @@ interface Options {
   cacheTimeout?: number;
   syncInterval?: number;
   exclude?: string[];
+  readTrackingPath?: string;
 }
 
 export async function mountProject({
@@ -56,6 +57,7 @@ export async function mountProject({
   cacheTimeout,
   syncInterval,
   exclude = [],
+  readTrackingPath,
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
   log();
@@ -126,6 +128,9 @@ export async function mountProject({
         ...options.mountOptions,
       },
       cacheTimeout,
+      readTracking: readTrackingPath
+        ? { path: readTrackingPath, timeout: 15, interval: 5 }
+        : undefined,
     }));
   }
 
@@ -149,6 +154,7 @@ export async function mountProject({
       compute_server_id,
       syncInterval,
       exclude,
+      readTrackingPath,
     });
   } else {
     cache = null;

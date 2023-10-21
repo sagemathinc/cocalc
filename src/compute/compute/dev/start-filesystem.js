@@ -45,6 +45,7 @@ async function main() {
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
       unionfs,
       exclude: ["scratch", "tmp"],
+      readTrackingPath: process.env.READ_TRACKING_PATH,
     });
   } catch (err) {
     console.log("something went wrong ", err);

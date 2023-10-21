@@ -41,6 +41,7 @@ interface Options {
   // list of paths that are completely excluded from sync.
   // NOTE: hidden fils in HOME are always excluded
   exclude?: string[];
+  readTrackingPath?: string;
 }
 
 export default function filesystemCache(opts: Options) {
@@ -74,6 +75,7 @@ class FilesystemCache {
   private computeAllFilesListOnProject: string;
   private tarExclude: string[];
   private findExclude: string[];
+  private readTrackingPath?: string;
 
   private last: string;
   private cur: string;
@@ -92,10 +94,12 @@ class FilesystemCache {
     syncInterval = 15,
     settleTimeout = 5,
     exclude = [],
+    readTrackingPath,
   }: Options) {
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
+    this.readTrackingPath = readTrackingPath;
     log("created FilesystemCache", { mount: this.mount });
     if (/\s/.test(lower) || /\s/.test(upper) || /\s/.test(mount)) {
       throw Error("not whitespace is allowed in any paths");
@@ -104,6 +108,8 @@ class FilesystemCache {
     this.compute_server_id = compute_server_id;
     this.whiteouts = join(this.upper, ".unionfs-fuse");
     this.computeWorkdir = join(this.upper, ".compute-server");
+    // ATTN!: this directory UPPER/.compute-server/read-tracking
+    // is also set in ../filesystem.ts
     this.relProjectWorkdir = join(
       ".compute-servers",
       `${this.compute_server_id}`,
