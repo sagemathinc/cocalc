@@ -63,12 +63,9 @@ export default function SelectComputeServer({
           }
         }
         const id = await computeServerAssociations.getServerIdForPath(p);
-        if (id == null) {
-          return;
-        }
-        setValue(`${id}`);
+        setValue(id == null ? null : `${id}`);
       } catch (err) {
-        console.log(err);
+        console.warn(err);
       }
     };
     computeServerAssociations.on("change", handleChange);
@@ -84,7 +81,7 @@ export default function SelectComputeServer({
     return () => {
       computeServerAssociations.removeListener("change", handleChange);
     };
-  }, [project_id, path]);
+  }, [project_id, path, type]);
 
   const options = useMemo(() => {
     const options: {
@@ -134,7 +131,7 @@ export default function SelectComputeServer({
     const notRunning = options
       .filter((a) => a.state != "running")
       .sort((a, b) => cmp(a.sort, b.sort));
-    options = [
+    return [
       {
         value: "0",
         sort: "project",
@@ -150,11 +147,14 @@ export default function SelectComputeServer({
         options: running,
       },
       {
-        label: <div style={{ fontSize: "12pt" }}>Not Running {notRunning.length == 0 ? "(none)" : ""}</div>,
+        label: (
+          <div style={{ fontSize: "12pt" }}>
+            Not Running {notRunning.length == 0 ? "(none)" : ""}
+          </div>
+        ),
         options: notRunning,
       },
     ];
-    return options;
   }, [computeServers]);
 
   return (
