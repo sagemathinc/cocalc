@@ -76,6 +76,10 @@ class FilesystemCache {
   private tarExclude: string[];
   private findExclude: string[];
   private readTrackingPath?: string;
+  private readTrackingLower: string;
+  private readTrackingOnProject: string;
+  private readTrackingFilesTar: string;
+  private readTrackingFilesTarOnProject: string;
 
   private last: string;
   private cur: string;
@@ -123,6 +127,8 @@ class FilesystemCache {
       this.projectWorkdir,
       "compute-all-files-list",
     );
+    this.readTrackingLower = join(this.projectWorkdir, "read-tracking");
+    this.readTrackingOnProject = join(this.relProjectWorkdir, "read-tracking");
     this.computeAllFilesListOnProject = join(
       this.relProjectWorkdir,
       "compute-all-files-list",
@@ -139,6 +145,14 @@ class FilesystemCache {
     this.projectEditedFilesTar = join(
       this.relProjectWorkdir,
       `project-edited-files${TAR_EXT}`,
+    );
+    this.readTrackingFilesTarOnProject = join(
+      this.relProjectWorkdir,
+      `read-tracking${TAR_EXT}`,
+    );
+    this.readTrackingFilesTar = join(
+      this.projectWorkdir,
+      `read-tracking${TAR_EXT}`,
     );
     this.projectEditedFilesTarFromCompute = join(
       this.lower,
@@ -207,6 +221,7 @@ class FilesystemCache {
       await this.syncWritesFromProjectToCompute(last);
       await this.updateComputeFilesList("all");
       await this.syncDeletesFromProjectToCompute();
+      await this.updateReadTracking();
       await touch(this.last, cur);
     } catch (err) {
       console.trace(err);
@@ -522,5 +537,65 @@ class FilesystemCache {
     log("execInProject:", `"${opts.command} ${opts.args?.join(" ")}"`);
     const api = await this.client.project_client.api(this.project_id);
     return await api.exec(opts);
+  };
+
+  private updateReadTracking = async () => {
+    if (!this.readTrackingPath) {
+      return;
+    }
+    log("updateReadTracking");
+    let file;
+    try {
+      file = await open(this.readTrackingPath);
+    } catch (_) {
+      // completely reasonable that the file doesn't exist.
+      return;
+    }
+    const files = await file.readFile({ encoding: "utf8" });
+    await file.close();
+    const v = files
+      .split("\n")
+      .filter((x) => !x.startsWith("/.compute-server") && x.trim())
+      .map((x) => x.slice(1));
+    if (v.length == 0) {
+      return;
+    }
+    const file2 = await open(this.readTrackingLower, "w");
+    await file2.write(v.join("\n"));
+    await file2.close();
+
+    const args = [
+      "-zcf",
+      this.readTrackingFilesTarOnProject,
+      "--verbatim-files-from",
+      "--files-from",
+      this.readTrackingOnProject,
+    ];
+    log("updateReadTracking:", "tar", args.join(" "));
+    const { stderr, exit_code } = await this.execInProject({
+      command: "tar",
+      args,
+      err_on_exit: false,
+      timeout: 1800, // timeout in seconds.
+    });
+    if (exit_code) {
+      // it is normal to have a bunch of Cannot stat: No such file or directory
+      // lines - that happens when files in this.computeAllFilesList aren't
+      // in the project, because they got deleted. Lots of process (e.g., git clone)
+      // create a bunch of files then delete them a moment later.
+      const v = stderr.split("\n");
+      const w = v.filter(
+        (x) =>
+          x.trim() &&
+          !x.includes("Exiting with failure status due to previous errors") &&
+          !x.includes("Cannot stat: No such file or directory"),
+      );
+      if (w.length > 0) {
+        log("WARNING -- updateReadTracking -- ", w.join("\n"));
+      }
+    }
+    const args2 = ["--keep-newer-files", "-xf", this.readTrackingFilesTar];
+    log("updateReadTracking", "tar", args2.join(" "));
+    await execa("tar", args2, { cwd: this.upper });
   };
 }
