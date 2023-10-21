@@ -122,8 +122,8 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1
       websocketfs:
-        specifier: ^0.10.1
-        version: 0.10.1
+        specifier: ^0.10.2
+        version: 0.10.2
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -6442,8 +6442,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.10.1:
-    resolution: {integrity: sha512-gni1qHP2avi6o7Cm5oZ7Nx+l7BH3GvgebekBIJ+X6LrToR+1MskWIHOumMoJ+/MoRDVnFiMgDa4O6LEpVI1MnA==}
+  /websocketfs@0.10.2:
+    resolution: {integrity: sha512-7qiz8CnuKRRQoKJVjaHqGtYAg3s99vCd6752K4NjrGE5r+i3qUKuMZ9yRnzuaw5fp1+LIGxbTzDTOsBWkxy0Vg==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
