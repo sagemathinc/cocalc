@@ -16,7 +16,7 @@ import mkdirp from "mkdirp";
 import { getmtime, touch } from "./util";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { execa } from "execa";
-import { copyFile, open, rm, stat } from "fs/promises";
+import { copyFile, cp, open, rm, stat } from "fs/promises";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import type {
@@ -80,6 +80,7 @@ class FilesystemCache {
   private readTrackingOnProject: string;
   private readTrackingFilesTar: string;
   private readTrackingFilesTarOnProject: string;
+  private readTrackingFilesTarLocalCopy: string;
 
   private last: string;
   private cur: string;
@@ -152,6 +153,10 @@ class FilesystemCache {
     );
     this.readTrackingFilesTar = join(
       this.projectWorkdir,
+      `read-tracking${TAR_EXT}`,
+    );
+    this.readTrackingFilesTarLocalCopy = join(
+      this.computeWorkdir,
       `read-tracking${TAR_EXT}`,
     );
     this.projectEditedFilesTarFromCompute = join(
@@ -407,9 +412,8 @@ class FilesystemCache {
       func: "filesToDelete",
       allComputeFiles: this.computeAllFilesListOnProject,
     });
-    log("********");
-    log("syncDeletesFromProjectToCompute: toDelete = ", toDelete);
-    log("********");
+    //log("syncDeletesFromProjectToCompute: toDelete = ", toDelete);
+    log("syncDeletesFromProjectToCompute: delete ", toDelete.length, "files");
     const cutoff = Date.now() - this.settleTimeMs;
     for (const path of toDelete) {
       const abspath = join(this.upper, path);
@@ -543,25 +547,26 @@ class FilesystemCache {
     if (!this.readTrackingPath) {
       return;
     }
-    log("updateReadTracking");
-    let file;
+    const recentFiles = await this.getRecentlyReadFiles();
+    if (recentFiles.length == 0) {
+      return;
+    }
     try {
-      file = await open(this.readTrackingPath);
-    } catch (_) {
-      // completely reasonable that the file doesn't exist.
-      return;
+      await this.updateReadTrackingTarball(recentFiles);
+      await this.extractRecentlyReadFiles();
+    } catch (err) {
+      log("updateReadTracking: not updating due to err", err);
+    } finally {
+      // always clean up to avoid wasting disk space
+      try {
+        await rm(this.readTrackingFilesTarLocalCopy);
+      } catch (_) {}
     }
-    const files = await file.readFile({ encoding: "utf8" });
-    await file.close();
-    const v = files
-      .split("\n")
-      .filter((x) => !x.startsWith("/.compute-server") && x.trim())
-      .map((x) => x.slice(1));
-    if (v.length == 0) {
-      return;
-    }
+  };
+
+  private updateReadTrackingTarball = async (recentFiles: string[]) => {
     const file2 = await open(this.readTrackingLower, "w");
-    await file2.write(v.join("\n"));
+    await file2.write(recentFiles.join("\n"));
     await file2.close();
 
     const args = [
@@ -571,31 +576,53 @@ class FilesystemCache {
       "--files-from",
       this.readTrackingOnProject,
     ];
-    log("updateReadTracking:", "tar", args.join(" "));
-    const { stderr, exit_code } = await this.execInProject({
+    log("updateReadTrackingTarball:", "tar", args.join(" "));
+    await this.execInProject({
       command: "tar",
       args,
-      err_on_exit: false,
-      timeout: 1800, // timeout in seconds.
+      // very important that ANY error, e.g., file modified during write,
+      // etc. throw exception, since we don't want to copy over a corrupted
+      // file... and this tracking is 100% only for performance.
+      err_on_exit: true,
+      timeout: 60 * 2, // timeout in seconds.
     });
-    if (exit_code) {
-      // it is normal to have a bunch of Cannot stat: No such file or directory
-      // lines - that happens when files in this.computeAllFilesList aren't
-      // in the project, because they got deleted. Lots of process (e.g., git clone)
-      // create a bunch of files then delete them a moment later.
-      const v = stderr.split("\n");
-      const w = v.filter(
-        (x) =>
-          x.trim() &&
-          !x.includes("Exiting with failure status due to previous errors") &&
-          !x.includes("Cannot stat: No such file or directory"),
-      );
-      if (w.length > 0) {
-        log("WARNING -- updateReadTracking -- ", w.join("\n"));
-      }
+  };
+
+  private getRecentlyReadFiles = async (): Promise<string[]> => {
+    if (!this.readTrackingPath) {
+      return [];
     }
-    const args2 = ["--keep-newer-files", "-xf", this.readTrackingFilesTar];
-    log("updateReadTracking", "tar", args2.join(" "));
+    let file;
+    try {
+      file = await open(this.readTrackingPath);
+    } catch (_) {
+      // completely reasonable that the file doesn't exist.
+      log("getRecentlyReadFiles: ", this.readTrackingPath, " not available");
+      return [];
+    }
+    const files = await file.readFile({ encoding: "utf8" });
+    await file.close();
+    const v = files
+      .split("\n")
+      .filter((x) => !x.startsWith("/.compute-server") && x.trim())
+      .map((x) => x.slice(1));
+    log("getRecentlyReadFiles: ", v.length, " files");
+    return v;
+  };
+
+  private extractRecentlyReadFiles = async () => {
+    // We copy the tarball over locally first, to maximize speed of extraction,
+    // since during extract file can be "corrupted" due to being partly written.
+    await cp(this.readTrackingFilesTar, this.readTrackingFilesTarLocalCopy);
+    try {
+      await rm(this.readTrackingFilesTar);
+    } catch (_) {}
+    const args2 = [
+      "--keep-newer-files",
+      "-xf",
+      this.readTrackingFilesTarLocalCopy,
+    ];
+    log("extractRecentlyReadFiles", "tar", args2.join(" "));
     await execa("tar", args2, { cwd: this.upper });
   };
 }
