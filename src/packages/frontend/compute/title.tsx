@@ -10,6 +10,7 @@ interface Props {
   editable?: boolean;
   setError?;
   onChange?;
+  style?;
 }
 
 export default function Title({
@@ -18,6 +19,7 @@ export default function Title({
   editable,
   setError,
   onChange,
+  style,
 }: Props) {
   const titleRef = useRef<any>(null);
   const [saving, setSaving] = useState<boolean>(false);
@@ -37,7 +39,7 @@ export default function Title({
   }, []);
 
   if (!editable) {
-    return <>{newTitle}</>;
+    return <div style={style}>{newTitle}</div>;
   }
 
   const handleSave = async () => {
@@ -64,7 +66,7 @@ export default function Title({
     <Input
       placeholder={"Title..."}
       ref={titleRef}
-      style={{ width: "350px" }}
+      style={{ width: "350px", ...style }}
       value={newTitle}
       onChange={(e) => setNewTitle(e.target.value)}
       onPressEnter={handleSave}

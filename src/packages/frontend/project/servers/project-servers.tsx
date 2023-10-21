@@ -151,6 +151,13 @@ export function ProjectServers(props: Props) {
       <Title level={2}>
         <Icon name={ICON_NAME} /> {TITLE}
       </Title>
+      {computeServersEnabled() && (
+        <>
+          <h2>Compute Servers</h2>
+          <ComputeServers project_id={project_id} />
+        </>
+      )}
+      <Divider plain />
       <h2>Notebook and Code Editing Servers</h2>
       <Paragraph>
         You can run various servers inside this project. They run in the same
@@ -162,13 +169,6 @@ export function ProjectServers(props: Props) {
         .
       </Paragraph>
       {renderNamedServers()}
-      {computeServersEnabled() && (
-        <>
-          <Divider plain />
-          <h2>Compute Servers</h2>
-          <ComputeServers project_id={project_id} />
-        </>
-      )}
       <Divider plain />
       {renderSageServerControl()}
     </div>

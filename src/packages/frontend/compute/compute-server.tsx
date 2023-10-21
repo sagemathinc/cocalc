@@ -187,6 +187,9 @@ export default function ComputeServer({
 
   const buttons = (
     <div style={{ width: "100%", display: "flex" }}>
+      <Button onClick={() => setEdit(false)} style={{ marginRight: "5px" }}>
+        <Icon name="save" /> Save
+      </Button>
       <div style={{ marginRight: "5px" }}>
         {getActions({
           id,
@@ -267,12 +270,14 @@ export default function ComputeServer({
                 display: "flex",
                 width: "100%",
                 justifyContent: "space-between",
+                color: "#666",
+                border: `1px solid ${color}`,
+                padding: "0 10px",
               }}
             >
-              <div style={{ color: "#666" }}>
+              <div>
                 <State
                   data={data}
-                  style={{ marginRight: "5px" }}
                   state={state}
                   state_changed={state_changed}
                   editable={editable}
@@ -283,12 +288,33 @@ export default function ComputeServer({
                   purchase_id={purchase_id}
                 />
               </div>
-              <div style={{ flex: 1 }} />
-              <div style={{ color: "#666" }}>
+              <div
+                style={{
+                  margin: "0 10px",
+                  flex: 1,
+                  textAlign: "center",
+                  background: color,
+                }}
+              ></div>
+              <Title
+                title={title}
+                editable={false}
+                style={{
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                }}
+              />
+              <div
+                style={{
+                  margin: "0 10px",
+                  flex: 1,
+                  textAlign: "center",
+                  background: color,
+                }}
+              ></div>
+              <div>
                 <DisplayImage configuration={configuration} />
               </div>
-              <div style={{ flex: 1 }} />
-              <Title title={title} editable={false} />
             </div>
           )
         }

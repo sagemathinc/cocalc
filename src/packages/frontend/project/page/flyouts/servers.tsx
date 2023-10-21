@@ -64,16 +64,16 @@ export function ServersFlyout({ project_id, wrap }) {
 
   return wrap(
     <>
-      {renderEmbeddedServers()}
       {computeServersEnabled() && (
         <div>
-          <Divider />
           <Title level={5}>
             <Icon name="server" /> Compute Servers
           </Title>
           <ComputeServers project_id={project_id} />
         </div>
       )}
+      <Divider />
+      {renderEmbeddedServers()}
       {renderSageServerControl()}
     </>,
   );

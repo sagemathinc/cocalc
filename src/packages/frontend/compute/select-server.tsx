@@ -141,7 +141,7 @@ export default function SelectComputeServer({
       value: "0",
       sort: "project",
       state: "",
-      label: "This Project",
+      label: "The Project",
     });
     return options;
   }, [computeServers]);
@@ -154,6 +154,7 @@ export default function SelectComputeServer({
       } in this project or on a powerful dedicated compute server`}
     >
       <Select
+        allowClear
         bordered={false}
         disabled={loading}
         placeholder={<Icon style={{ color: "#666" }} name="server" />}
@@ -179,7 +180,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value ? "110px" : "64px",
+          width: open ? "300px" : value ? "140px" : "64px",
           background: value ? computeServers[value]?.color : undefined,
           color: "white", // todo
         }}
