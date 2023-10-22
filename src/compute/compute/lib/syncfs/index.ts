@@ -10,23 +10,35 @@ ALGORITHM:
 Periodically sync a compute server and the project as follows.  This will result in the filesystems
 being equal if there is no activity for a few seconds.
 
-- In the project, we must track all deletes.  We have an in memory data structure:
+The actual sync works as follows.  For now, we will do this periodically, possibly triggered
+by active usage in the UI, but with a button to force it.
 
-     project_deletes = {[path:string]:time when file was deleted}.
-
-  This can be done using polling, inotify, periodic scans, whatever, but MUST be done.  Sync is
-  provably impossible without it.  If a file is deleted then created later, it can be removed
-  from the deletes map to save memory, but doesn't have to be.
-
-- The actual sync works as follows.  We could do this periodically, or triggered by filesystem activity.
-
-  1. In the compute server, make a map from all paths in upper (both directories and files and whiteouts),
+- On the compute server, make a map from all paths in upper (both directories and files and whiteouts),
   except ones excluded from sync, to the ctime for the path (or negative ctime for deleted paths):
 
       computeState = {[path:string]:ctime of last change to file metadata}
 
-  2. Send computeState to the project via the api (via the project websocket).  The project iterates
-  over each path and decides if any of the following apply:
+  We store this in memory.
+
+- There is a project api call that takes as input:
+
+   - computeState or computeStatePatch, sent as lz4 compressed json string since highly compressible and
+     could easily be over 20MB... but compresses in ms to 2MB.
+
+  If the project gets a patch but doesn't already have the last state in memory, it returns an error,
+  and the compute server then calls again with the computeState.
+
+- The project applies the patch (if applicable).
+  The project then updates its own projectState record, which is identical in format, and is updated
+  the same code, except that the project can only mark paths as deleted by comparing with
+  last time it computed state, since there's no special filesystem tracking deletes (like unionfs).
+  The delete timestamp will just be considered to be "now".
+  
+  
+
+
+then iterates over each path and decides
+  if any of the following apply:
 
      - delete on compute
      - delete on project
