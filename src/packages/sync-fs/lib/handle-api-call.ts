@@ -18,7 +18,7 @@ export default async function handleApiCall({
   log("handleApiCall");
   let computeState;
   if (computeStateJson) {
-    computeState = computeState;
+    computeState = computeStateJson;
     //computeState = fromCompressedJSON(computeStateJson);
   } else {
     throw Error("not implemented");
@@ -69,7 +69,7 @@ async function createCopyFromProjectTar(
 // they should often be similar or the same (?).
 let lastProjectState: { [exclude: string]: FilesystemState } = {};
 let lastCallTime: { [exclude: string]: number } = {};
-async function getProjectState(exclude) {
+export async function getProjectState(exclude) {
   const now = Math.floor(Date.now() / 1000); // in integers seconds
   const key = JSON.stringify(exclude);
   const lastTime = lastCallTime[key] ?? 0;
