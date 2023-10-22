@@ -245,7 +245,7 @@ export default function ComputeServer({
       style={{
         opacity: deleted ? 0.5 : undefined,
         width: "100%",
-        minWidth: "550px",
+        minWidth: "400px",
         border: `0.5px solid ${color ?? "#f0f0f0"}`,
         borderRight: `10px solid ${color ?? "#aaa"}`,
         borderLeft: `10px solid ${color ?? "#aaa"}`,
@@ -271,11 +271,19 @@ export default function ComputeServer({
                 width: "100%",
                 justifyContent: "space-between",
                 color: "#666",
-                border: `1px solid ${color}`,
+                //border: `1px solid ${color}`,
+                // borderRadius: "5px",
+                borderBottom: `1px solid ${color}`,
                 padding: "0 10px",
               }}
             >
-              <div>
+              <div
+                style={{
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  flex: 1,
+                }}
+              >
                 <State
                   data={data}
                   state={state}
@@ -288,31 +296,22 @@ export default function ComputeServer({
                   purchase_id={purchase_id}
                 />
               </div>
-              <div
-                style={{
-                  margin: "0 10px",
-                  flex: 1,
-                  textAlign: "center",
-                  background: color,
-                }}
-              ></div>
               <Title
                 title={title}
                 editable={false}
                 style={{
                   textOverflow: "ellipsis",
                   overflow: "hidden",
+                  flex: 1,
                 }}
               />
               <div
                 style={{
-                  margin: "0 10px",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
                   flex: 1,
-                  textAlign: "center",
-                  background: color,
                 }}
-              ></div>
-              <div>
+              >
                 <DisplayImage configuration={configuration} />
               </div>
             </div>

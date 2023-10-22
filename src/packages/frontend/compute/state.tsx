@@ -66,7 +66,7 @@ export default function State({
     cost = ""; // no info
   } else if (stable) {
     if (state == "deprovisioned") {
-      cost = " - $0/month";
+      cost = "";
     } else {
       const cost_per_month = `${currency(cost_per_hour * 730)}/month`;
       if (state == "running") {
