@@ -3,24 +3,18 @@
 import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
-import { createTarball, mtimeDirTree } from "./util";
+import { createTarball, mtimeDirTree, remove } from "./util";
 import { join } from "path";
-import { mkdir, open, rm } from "fs/promises";
+import { mkdir } from "fs/promises";
+import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
-
-interface Options {
-  compute_server_id: number;
-  computeStateJson?: string;
-  computeStateDiffJson?: string; // not implemented yet
-  exclude?: string[];
-}
 
 export default async function handleApiCall({
   computeStateJson,
   exclude,
   compute_server_id,
-}: Options) {
+}: MesgSyncFSOptions) {
   log("handleApiCall");
   let computeState;
   if (computeStateJson) {
@@ -42,7 +36,7 @@ export default async function handleApiCall({
   } = getOperations({ computeState, projectState });
 
   if (removeFromProject.length > 0) {
-    await remove(removeFromProject);
+    await remove(removeFromProject, process.env.HOME);
   }
 
   return {
@@ -53,20 +47,6 @@ export default async function handleApiCall({
         ? createCopyFromProjectTar(copyFromProject, compute_server_id)
         : undefined,
   };
-}
-
-async function remove(paths: string[]) {
-  if (!process.env.HOME) {
-    throw Error("HOME must be defined");
-  }
-  // TODO/guess -- by sorting we remove files in directory, then containing directory (?).
-  for (const path of paths.sort().reverse()) {
-    try {
-      await rm(join(process.env.HOME, path), { recursive: true });
-    } catch (err) {
-      log(`WARNING: issue removing '${path}' -- ${err}`);
-    }
-  }
 }
 
 async function createCopyFromProjectTar(

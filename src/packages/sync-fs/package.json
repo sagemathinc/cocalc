@@ -8,25 +8,18 @@
     "./*": "./dist/*.js",
     "./lib/*": "./dist/lib/*.js"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc --build",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/comm": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/lz4": "^0.6.3",

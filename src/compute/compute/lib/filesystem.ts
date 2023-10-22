@@ -150,7 +150,6 @@ export async function mountProject({
     cache = syncFS({
       lower: unionfs.lower,
       upper: unionfs.upper,
-      mount: path,
       project_id,
       compute_server_id,
       syncInterval,

@@ -1,5 +1,6 @@
 import { dynamicImport } from "tsimportlib";
-import { open } from "fs/promises";
+import { open, rm } from "fs/promises";
+import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("sync-fs:util").debug;
 
@@ -55,6 +56,8 @@ function findExclude(exclude: string[]): string[] {
   return v;
 }
 
+// [ ] TODO: we have to remove any files that got changed while the tarball
+// was getting created!
 export async function createTarball(
   target: string,
   paths: string[],
@@ -74,4 +77,18 @@ export async function createTarball(
   ];
   await execa("tar", args);
   return tarball;
+}
+
+export async function remove(paths: string[], rel?: string) {
+  if (!rel) {
+    throw Error("rel must be defined");
+  }
+  // TODO/guess -- by sorting we remove files in directory, then containing directory (?).
+  for (const path of paths.sort().reverse()) {
+    try {
+      await rm(join(rel, path), { recursive: true });
+    } catch (err) {
+      log(`WARNING: issue removing '${path}' -- ${err}`);
+    }
+  }
 }

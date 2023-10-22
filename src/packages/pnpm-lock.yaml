@@ -1859,6 +1859,9 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
+      '@cocalc/comm':
+        specifier: workspace:*
+        version: link:../comm
       '@cocalc/sync-client':
         specifier: workspace:*
         version: link:../sync-client

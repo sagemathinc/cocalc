@@ -176,6 +176,18 @@ interface MesgComputeFilesystemCache {
   opts: ComputeFilesystemOptions;
 }
 
+export interface MesgSyncFSOptions {
+  compute_server_id: number;
+  computeStateJson?: string;
+  computeStateDiffJson?: string;
+  exclude?: string[];
+}
+
+interface MesgSyncFS {
+  cmd: "sync_fs";
+  opts: MesgSyncFSOptions;
+}
+
 export type Mesg =
   | MesgExec
   | MesgDeleteFiles
@@ -202,4 +214,5 @@ export type Mesg =
   | MesgJupyterNbconvert
   | MesgJupyterRunNotebook
   | MesgProjectInfo
-  | MesgComputeFilesystemCache;
+  | MesgComputeFilesystemCache
+  | MesgSyncFS;
