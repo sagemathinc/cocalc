@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "exclude": ["node_modules", "dist", "test"],
+  "references": [
+    { "path": "../sync-client" },
+    { "path": "../backend" },
+    { "path": "../util" }
+  ]
+}

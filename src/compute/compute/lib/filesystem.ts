@@ -14,7 +14,7 @@ import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { execa } from "execa";
-import syncFS from "./syncfs";
+import syncFS from "@cocalc/sync-fs";
 import { waitUntilFilesystemIsOfType } from "./util";
 
 const logger = getLogger("compute:filesystem");

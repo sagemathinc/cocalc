@@ -26,6 +26,7 @@
     "@cocalc/project": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
+    "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@nteract/messaging": "^7.0.20",

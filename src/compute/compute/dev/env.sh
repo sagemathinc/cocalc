@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -v
-
 unset COCALC_PROJECT_ID
 export API_KEY=`cat conf/api_key`
 export API_SERVER=`cat conf/api_server`
