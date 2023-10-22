@@ -186,6 +186,9 @@ export default function SelectComputeServer({
         }}
         onClear={() => {
           setValue(null);
+          computeServerAssociations.disconnectComputeServer({
+            path: getPath(path),
+          });
         }}
         value={value}
         onDropdownVisibleChange={setOpen}

@@ -98,10 +98,6 @@ export class RemoteTerminal {
     this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);
 
-    localPty.onData((data) => {
-      this.conn.write(data);
-    });
-
     localPty.onExit(() => {
       delete this.localPty; // no longer valid
       this.conn.write({ cmd: "exit" });
@@ -111,6 +107,16 @@ export class RemoteTerminal {
     if (this.size) {
       this.localPty.resize(this.size.cols, this.size.rows);
     }
+
+    localPty.onData((data) => {
+      this.conn.write(data);
+    });
+
+    // set the prompt to show the remote hostname explicitly,
+    // then clear the screen.  This ends up showing the prompt
+    // twice and is kind of hackish, but at least it's easy
+    // to see where you are, which is crucial.
+    this.localPty.write('PS1="🖥️ (\\h) \\w$ " \r\nprintf "\\x1b[2J"\r\n');
   };
 
   private sendCurrentWorkingDirectoryLocalPty = async () => {
