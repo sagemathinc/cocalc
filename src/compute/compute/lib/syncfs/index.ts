@@ -95,6 +95,8 @@ much faster.
 import walkdir from "walkdir";
 import { join } from "path";
 import { execa } from "execa";
+import { makePatch } from "./patch";
+import type { FilesystemState, FilesystemStatePatch } from "./types";
 
 //import getLogger from "@cocalc/backend/logger";
 //const log = getLogger("compute:filesystem-cache").debug;
@@ -158,9 +160,22 @@ class SyncFS {
 
   close = () => {};
 
-  private getComputeState = async (
-    implementation: "find" | "walkdir" = "find",
-  ) => {
+  private getComputeStatePatch = async ({
+    lastState,
+    implementation,
+  }: {
+    lastState: FilesystemState;
+    implementation?;
+  }): Promise<FilesystemStatePatch> => {
+    const newState = await this.getComputeState({ implementation });
+    return makePatch(lastState, newState);
+  };
+
+  private getComputeState = async ({
+    implementation = "find",
+  }: {
+    implementation?: "find" | "walkdir";
+  } = {}): Promise<FilesystemState> => {
     // Create the map from all paths in upper (both directories and files and whiteouts),
     // except ones excluded from sync, to the ctime for the path (or negative ctime
     // for deleted paths):  {[path:string]:ctime of last change to file metadata}
