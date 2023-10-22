@@ -116,7 +116,7 @@ export class RemoteTerminal {
     // then clear the screen.  This ends up showing the prompt
     // twice and is kind of hackish, but at least it's easy
     // to see where you are, which is crucial.
-    this.localPty.write('PS1="🖥️ (\\h) \\w$ " \r\nprintf "\\x1b[2J"\r\n');
+    this.localPty.write('PS1="🖥️ (\\h) \\w$ "; clear\n');
   };
 
   private sendCurrentWorkingDirectoryLocalPty = async () => {
