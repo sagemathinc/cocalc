@@ -90,21 +90,25 @@ function ActionButton({
 }) {
   const [showOnPrem, setShowOnPrem] = useState<boolean>(false);
   const [cost_per_hour, setCostPerHour] = useState<number | null>(null);
+  const updateCost = async () => {
+    try {
+      const c = await costPerHour({
+        configuration,
+        state: getTargetState(action),
+      });
+      setCostPerHour(c);
+      return c;
+    } catch (err) {
+      setError(`Unable to compute cost: ${err}`);
+      setCostPerHour(null);
+      return null;
+    }
+  };
   useEffect(() => {
     if (configuration == null) return;
-    (async () => {
-      try {
-        const c = await costPerHour({
-          configuration,
-          state: getTargetState(action),
-        });
-        setCostPerHour(c);
-      } catch (err) {
-        console.log(err);
-        setCostPerHour(null);
-      }
-    })();
-  }, [configuration]);
+    updateCost();
+  }, [configuration, action]);
+
   const [doing, setDoing] = useState<boolean>(!STATE_INFO[state]?.stable);
   const doAction = async () => {
     if (configuration.cloud == "onprem") {
@@ -116,12 +120,15 @@ function ActionButton({
       setError("");
       setDoing(true);
       if (action == "start" || action == "resume") {
-        if (cost_per_hour == null) {
-          throw Error(
-            "unable to compute cost -- please update the configuration",
-          );
+        let c = cost_per_hour;
+        if (c == null) {
+          c = await updateCost();
+          if (c == null) {
+            // error would be displayed above.
+            return;
+          }
         }
-        await confirmStartComputeServer({ id, cost_per_hour });
+        await confirmStartComputeServer({ id, cost_per_hour: c });
       }
       await computeServerAction({ id, action });
     } catch (err) {
