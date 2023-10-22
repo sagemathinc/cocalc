@@ -1865,9 +1865,15 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@types/lz4':
+        specifier: ^0.6.3
+        version: 0.6.3
       execa:
         specifier: ^8.0.1
         version: 8.0.1
+      lz4:
+        specifier: ^0.6.5
+        version: 0.6.5
       tsimportlib:
         specifier: ^0.0.5
         version: 0.0.5
@@ -6800,6 +6806,12 @@ packages:
     resolution: {integrity: sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==}
     dev: false
 
+  /@types/lz4@0.6.3:
+    resolution: {integrity: sha512-TCGanK06VNqwiP+i18csbaF8YwEFCHXA69PWCPjdg0b9jT+O2BBtKTmoNuX3TuXDfcQHUdPiH/y0Ig9NZjKWkQ==}
+    dependencies:
+      '@types/node': 18.18.6
+    dev: false
+
   /@types/markdown-it@12.2.3:
     resolution: {integrity: sha512-GKMHFfv3458yYy+v/N8gjufHO6MSZKCOXpZc5GXIWWy8uldwfmPn98vp81gZ5f9SVw8YYBctgfJ22a2d7AOMeQ==}
     dependencies:
@@ -9665,6 +9677,10 @@ packages:
 
   /csv-stringify@6.3.0:
     resolution: {integrity: sha512-kTnnBkkLmAR1G409aUdShppWUClNbBQZXhrKrXzKYBGw4yfROspiFvVmjbKonCrdGfwnqwMXKLQG7ej7K/jwjg==}
+    dev: false
+
+  /cuint@0.2.2:
+    resolution: {integrity: sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw==}
     dev: false
 
   /d3-array@1.2.4:
@@ -14763,6 +14779,17 @@ packages:
     dependencies:
       es5-ext: 0.10.62
     dev: true
+
+  /lz4@0.6.5:
+    resolution: {integrity: sha512-KSZcJU49QZOlJSItaeIU3p8WoAvkTmD9fJqeahQXNu1iQ/kR0/mQLdbrK8JY9MY8f6AhJoMrihp1nu1xDbscSQ==}
+    engines: {node: '>= 0.10'}
+    requiresBuild: true
+    dependencies:
+      buffer: 5.7.1
+      cuint: 0.2.2
+      nan: 2.17.0
+      xxhashjs: 0.2.2
+    dev: false
 
   /make-dir@2.1.0:
     resolution: {integrity: sha512-LS9X+dc8KLxXCb8dni79fLIIUA5VyZoyjSMCwTluaXA0o27cCK0bhXkpgw+sTXVpPy/lSO57ilRixqk0vDmtRA==}
@@ -21293,6 +21320,12 @@ packages:
     engines: {node: '>= 0.4.0'}
     dependencies:
       xmldom: 0.1.31
+    dev: false
+
+  /xxhashjs@0.2.2:
+    resolution: {integrity: sha512-AkTuIuVTET12tpsVIQo+ZU6f/qDmKuRUcjaqR+OIvm+aCBsZ95i7UVY5WJ9TMsSaZ0DA2WxoZ4acu0sPH+OKAw==}
+    dependencies:
+      cuint: 0.2.2
     dev: false
 
   /y18n@4.0.3:

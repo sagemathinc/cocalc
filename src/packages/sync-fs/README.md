@@ -28,11 +28,13 @@ The actual sync works as follows. For now, we will do this periodically, possibl
 by active usage signals from the user.
 
 **STEP 1:** On the compute server, make a map from all paths in upper \(both directories and files and whiteouts\),
-except ones excluded from sync, to the ctime for the path \(or negative ctime for deleted paths\):
+except ones excluded from sync, to the mtime for the path \(or negative mtime for deleted paths\):
 
 ```javascript {kernel="javascript"}
-computeState = {[path:string]:ctime of last change to file metadata}
+computeState = {[path:string]:mtime of last change to file metadata}
 ```
+
+**IMPORTANT: We use mtimes in integer seconds, rounding down, since that's what tar does.** Also, a 1second resolution is more than enough for our application.
 
 We store this in memory.
 
@@ -55,25 +57,24 @@ if any of the following apply:
 - copy from project to compute
 - copy from compute to project
 
-The decision about which is based on knowing the `ctime` of that path on compute, in the project,
+The decision about which is based on knowing the `mtime` of that path on compute, in the project,
 and whether or not the file was deleted \(and when\) on both sides. We know all this information
 for each path, so we _can_ make this decision. It is tricky for directories and files in them,
 but the information is all there, so we can make the decision. If there is a conflict, we resolve it
 by "last timestamp wins, with preference to the project in case of a tie". Note also that all
-ctimes are defined and this all happens on local filesystems \(not websocketfs\). It's also possible
+mtimes are defined and this all happens on local filesystems \(not websocketfs\). It's also possible
 to just decide not to do anything regarding a given path and wait until later, which is critical
 since we do not have point in time snapshots; if a file is actively being changed, we just wait until
 next time to deal with it.
 
-The above results in four maps from paths to ctime \(which is taken from the latest ctime when
-deciding the above, in each case\).
+The above results in four lists of paths:
 
 - delete_on_compute
 - delete_on_project
 - copy_from_project_to_compute
 - copy_from_compute_to_project
 
-These maps are handled as follows:
+These are handled as follows:
 
 **STEP 4:**
 
@@ -112,4 +113,3 @@ fine, and all that matters is bandwidth.
 Complementary to the above, we also have read file tracking for websocketfs. Using that, we periodically
 copy a tarball of files over from the project and extract them to upper, in order to make local reads
 much faster.
-

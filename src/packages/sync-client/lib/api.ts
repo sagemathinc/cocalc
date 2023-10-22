@@ -128,4 +128,11 @@ export default class API implements API_Interface {
       timeout_ms,
     );
   }
+
+  async syncFS(opts, timeout_ms = 1000*15*60) {
+    return await this.call(
+      { cmd: "sync_fs", opts },
+      timeout_ms,
+    );
+  }
 }

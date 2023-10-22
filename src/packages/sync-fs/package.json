@@ -29,7 +29,9 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@types/lz4": "^0.6.3",
     "execa": "^8.0.1",
+    "lz4": "^0.6.5",
     "tsimportlib": "^0.0.5"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-fs",

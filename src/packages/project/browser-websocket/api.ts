@@ -36,6 +36,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";
+import handleSyncFsApiCall from "@cocalc/sync-fs/lib/handle-api-call";
 
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("websocket-api");
@@ -143,6 +144,8 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       return await project_info_ws(primus, log);
     case "compute_filesystem_cache":
       return await computeFilesystemCache(data.opts);
+    case "sync_fs":
+      return await handleSyncFsApiCall(data.opts);
     default:
       throw Error(
         `command "${

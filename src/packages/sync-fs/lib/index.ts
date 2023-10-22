@@ -6,7 +6,10 @@
 import { join } from "path";
 import { makePatch } from "./patch";
 import type { FilesystemState, FilesystemStatePatch } from "./types";
-import { ctimeMsDirTree } from "./util";
+import { mtimeDirTree } from "./util";
+import { toCompressedJSON } from "./compressed-json";
+import SyncClient from "@cocalc/sync-client/lib/index";
+import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 
 //import getLogger from "@cocalc/backend/logger";
 //const log = getLogger("compute:filesystem-cache").debug;
@@ -46,6 +49,7 @@ class SyncFS {
   private readTrackingPath?: string;
 
   private whiteouts: string;
+  private client: SyncClient;
 
   constructor({
     lower,
@@ -66,6 +70,11 @@ class SyncFS {
     this.readTrackingPath = readTrackingPath;
 
     this.whiteouts = join(this.upper, UNIONFS);
+
+    this.client = new SyncClient({
+      project_id: this.project_id,
+      client_id: encodeIntToUUID(this.compute_server_id),
+    });
   }
 
   close = () => {};
@@ -79,25 +88,34 @@ class SyncFS {
 
   private getComputeState = async (): Promise<FilesystemState> => {
     // Create the map from all paths in upper (both directories and files and whiteouts),
-    // except ones excluded from sync, to the ctime for the path (or negative ctime
-    // for deleted paths):  {[path:string]:ctime of last change to file metadata}
+    // except ones excluded from sync, to the ctime for the path (or negative mtime
+    // for deleted paths):  {[path:string]:mtime of last change to file metadata}
     const whiteLen = "_HIDDEN~".length;
     const unionLen = UNIONFS.length;
     const computeState: { [path: string]: number } = {};
-    const ctimes = await ctimeMsDirTree({
+    const mtimes = await mtimeDirTree({
       path: this.upper,
       exclude: this.exclude,
     });
-    for (const path in ctimes) {
-      const ctime = ctimes[path];
+    for (const path in mtimes) {
+      const mtime = mtimes[path];
       if (path.startsWith(UNIONFS)) {
         if (path.endsWith("_HIDDEN~")) {
-          computeState[path.slice(unionLen + 1, -whiteLen)] = -ctime;
+          computeState[path.slice(unionLen + 1, -whiteLen)] = -mtime;
         }
       } else {
-        computeState[path] = ctime;
+        computeState[path] = mtime;
       }
     }
     return computeState;
+  };
+
+  private sendState = async () => {
+    const api = await this.client.project_client.api(this.project_id);
+    const computeState = toCompressedJSON(await this.getComputeState());
+    const operations = await api.syncFS({
+      computeState,
+      exclude: this.exclude,
+    });
   };
 }
