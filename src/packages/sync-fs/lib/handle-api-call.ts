@@ -45,7 +45,7 @@ export default async function handleApiCall({
     copyFromCompute,
     copyFromProjectTar:
       copyFromProject.length > 0
-        ? createCopyFromProjectTar(copyFromProject, compute_server_id)
+        ? await createCopyFromProjectTar(copyFromProject, compute_server_id)
         : undefined,
   };
 }
@@ -62,6 +62,7 @@ async function createCopyFromProjectTar(
   return await createTarball(
     join(process.env.HOME, stateDir, "copy-from-project"),
     paths,
+    process.env.HOME,
   );
 }
 

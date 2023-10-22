@@ -191,6 +191,7 @@ class SyncFS {
     const tarball = await createTarball(
       join(scratch, "copy-to-project"),
       files,
+      this.upper,
     );
     const i = tarball.lastIndexOf(".compute-servers");
 
@@ -207,6 +208,7 @@ class SyncFS {
   };
 
   private receiveFiles = async (tarball: string) => {
+    log("receiveFiles", tarball);
     const target = join(this.lower, tarball);
     const args = ["--keep-newer-files", "-xf", target];
     log("receiveFiles", "tar", args.join(" "));

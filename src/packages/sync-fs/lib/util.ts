@@ -61,6 +61,7 @@ function findExclude(exclude: string[]): string[] {
 export async function createTarball(
   target: string,
   paths: string[],
+  cwd: string,
 ): Promise<string> {
   log("createTarball: ", target, " paths.length = ", paths.length);
   const file = await open(target, "w");
@@ -75,7 +76,7 @@ export async function createTarball(
     "--files-from",
     target,
   ];
-  await execa("tar", args);
+  await execa("tar", args, { cwd });
   return tarball;
 }
 
