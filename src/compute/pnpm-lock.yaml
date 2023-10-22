@@ -112,6 +112,9 @@ importers:
       execa:
         specifier: npm:@esm2cjs/execa@6.1.1-cjs.1
         version: /@esm2cjs/execa@6.1.1-cjs.1
+      lz4:
+        specifier: ^0.6.5
+        version: 0.6.5
       mkdirp:
         specifier: ^1.0.4
         version: 1.0.4
@@ -3199,6 +3202,10 @@ packages:
     resolution: {integrity: sha512-mCxBlsHFYh9C+HVpiEacem8FEBnMXgU9gy4zmNC+SXAZNB/1idgp/aulFJ4FgCi7GPEVbfyng092GqL2k2rmow==}
     dev: false
 
+  /cuint@0.2.2:
+    resolution: {integrity: sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw==}
+    dev: false
+
   /dayjs@1.11.10:
     resolution: {integrity: sha512-vjAczensTgRcqDERK0SR2XMwsF/tSvnvlv6VcF2GIhg6Sx4yOIt/irsr1RDJsKiIyBzJDpCoXiWWq28MqH2cnQ==}
     dev: false
@@ -4823,6 +4830,17 @@ packages:
   /lru-cache@7.18.3:
     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
     engines: {node: '>=12'}
+    dev: false
+
+  /lz4@0.6.5:
+    resolution: {integrity: sha512-KSZcJU49QZOlJSItaeIU3p8WoAvkTmD9fJqeahQXNu1iQ/kR0/mQLdbrK8JY9MY8f6AhJoMrihp1nu1xDbscSQ==}
+    engines: {node: '>= 0.10'}
+    requiresBuild: true
+    dependencies:
+      buffer: 5.7.1
+      cuint: 0.2.2
+      nan: 2.18.0
+      xxhashjs: 0.2.2
     dev: false
 
   /make-dir@3.1.0:
@@ -6535,6 +6553,12 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+    dev: false
+
+  /xxhashjs@0.2.2:
+    resolution: {integrity: sha512-AkTuIuVTET12tpsVIQo+ZU6f/qDmKuRUcjaqR+OIvm+aCBsZ95i7UVY5WJ9TMsSaZ0DA2WxoZ4acu0sPH+OKAw==}
+    dependencies:
+      cuint: 0.2.2
     dev: false
 
   /y18n@4.0.3:

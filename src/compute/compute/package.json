@@ -41,6 +41,7 @@
     "cookie": "^0.5.0",
     "debug": "^4.3.2",
     "execa": "npm:@esm2cjs/execa@6.1.1-cjs.1",
+    "lz4": "^0.6.5",
     "mkdirp": "^1.0.4",
     "tmp-promise": "^3.0.3",
     "walkdir": "^0.4.1",

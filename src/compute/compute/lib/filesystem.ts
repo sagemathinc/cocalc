@@ -14,7 +14,7 @@ import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { execa } from "execa";
-import filesystemCache from "./filesystem-cache";
+import syncFS from "./syncfs";
 import { waitUntilFilesystemIsOfType } from "./util";
 
 const logger = getLogger("compute:filesystem");
@@ -147,7 +147,7 @@ export async function mountProject({
       `${unionfs.upper}=RW:${unionfs.lower}=RO`,
       path,
     ]);
-    cache = filesystemCache({
+    cache = syncFS({
       lower: unionfs.lower,
       upper: unionfs.upper,
       mount: path,
@@ -161,18 +161,21 @@ export async function mountProject({
     cache = null;
   }
 
-  return async () => {
-    if (cache != null) {
-      await cache.close();
-    }
-    if (unionfs != null) {
-      const args = ["-uz", path];
-      logger.debug("fusermount", args.join(" "));
-      await execa("fusermount", args);
-    }
-    if (unmount != null) {
-      logger.debug("unmount");
-      unmount();
-    }
+  return {
+    cache,
+    unmount: async () => {
+      if (cache != null) {
+        await cache.close();
+      }
+      if (unionfs != null) {
+        const args = ["-uz", path];
+        logger.debug("fusermount", args.join(" "));
+        await execa("fusermount", args);
+      }
+      if (unmount != null) {
+        logger.debug("unmount");
+        unmount();
+      }
+    },
   };
 }

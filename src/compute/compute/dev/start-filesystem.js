@@ -39,7 +39,7 @@ async function main() {
 
   console.log("Mounting project", process.env.PROJECT_ID, "at", PROJECT_HOME);
   try {
-    unmount = await mountProject({
+    exports.fs = await mountProject({
       project_id: process.env.PROJECT_ID,
       path: PROJECT_HOME,
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
@@ -47,6 +47,7 @@ async function main() {
       exclude: ["scratch", "tmp"],
       readTrackingPath: process.env.READ_TRACKING_PATH,
     });
+    unmount = exports.fs.unmount;
   } catch (err) {
     console.log("something went wrong ", err);
     exitHandler();
