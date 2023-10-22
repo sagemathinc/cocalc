@@ -8,7 +8,7 @@ import { join } from "path";
 //import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
 import { createTarball, execa, mtimeDirTree, remove } from "./util";
-import { toCompressedJSON } from "./compressed-json";
+//import { toCompressedJSON } from "./compressed-json";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import type {
@@ -120,10 +120,10 @@ class SyncFS {
   private doSync = async () => {
     const api = await this.client.project_client.api(this.project_id);
     const { computeState, whiteouts } = await this.getComputeState();
-    const computeStateJson = toCompressedJSON(computeState);
+    //const computeStateJson = toCompressedJSON(computeState);
     const { removeFromCompute, copyFromCompute, copyFromProjectTar } =
       await api.syncFS({
-        computeStateJson,
+        computeStateJson: computeState,
         exclude: this.exclude,
         compute_server_id: this.compute_server_id,
       });

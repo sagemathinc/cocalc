@@ -1,6 +1,6 @@
 /* This runs in the project and handles api calls. */
 
-import { fromCompressedJSON } from "./compressed-json";
+//import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
 import { createTarball, mtimeDirTree, remove } from "./util";
@@ -18,7 +18,8 @@ export default async function handleApiCall({
   log("handleApiCall");
   let computeState;
   if (computeStateJson) {
-    computeState = fromCompressedJSON(computeStateJson);
+    computeState = computeState;
+    //computeState = fromCompressedJSON(computeStateJson);
   } else {
     throw Error("not implemented");
   }
