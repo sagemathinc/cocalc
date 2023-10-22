@@ -59,11 +59,13 @@ async function createCopyFromProjectTar(
   }
   const stateDir = join(".compute-servers", `${compute_server_id}`);
   await mkdir(stateDir, { recursive: true });
-  return await createTarball(
+  const fullPath = await createTarball(
     join(process.env.HOME, stateDir, "copy-from-project"),
     paths,
     process.env.HOME,
   );
+  const i = fullPath.lastIndexOf(stateDir);
+  return fullPath.slice(i);
 }
 
 // we have to use separate cache/state for each exclude list, unfortunatley. in practice,
