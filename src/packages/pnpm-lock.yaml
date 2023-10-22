@@ -1871,9 +1871,6 @@ importers:
       tsimportlib:
         specifier: ^0.0.5
         version: 0.0.5
-      walkdir:
-        specifier: ^0.4.1
-        version: 0.4.1
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -20685,11 +20682,6 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       xml-name-validator: 3.0.0
-    dev: false
-
-  /walkdir@0.4.1:
-    resolution: {integrity: sha512-3eBwRyEln6E1MSzcxcVpQIhRG8Q1jLvEqRmCZqS3dsfXEDR/AhOF4d+jHg1qvDCpYaVRZjENPQyrVxAkQqxPgQ==}
-    engines: {node: '>=6.0.0'}
     dev: false
 
   /walker@1.0.8:
