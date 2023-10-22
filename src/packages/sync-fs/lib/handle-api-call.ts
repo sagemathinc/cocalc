@@ -3,21 +3,28 @@
 import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
-import { mtimeDirTree } from "./util";
+import { createTarball, mtimeDirTree } from "./util";
+import { join } from "path";
+import { mkdir, open, rm } from "fs/promises";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
 
 interface Options {
+  compute_server_id: number;
   computeStateJson?: string;
   computeStateDiffJson?: string; // not implemented yet
   exclude?: string[];
 }
 
-export default async function handleApiCall(opts: Options) {
+export default async function handleApiCall({
+  computeStateJson,
+  exclude,
+  compute_server_id,
+}: Options) {
   log("handleApiCall");
   let computeState;
-  if (opts.computeStateJson) {
-    computeState = fromCompressedJSON(opts.computeStateJson);
+  if (computeStateJson) {
+    computeState = fromCompressedJSON(computeStateJson);
   } else {
     throw Error("not implemented");
   }
@@ -25,19 +32,72 @@ export default async function handleApiCall(opts: Options) {
     throw Error("HOME must be defined");
   }
 
-  const projectState = await getProjectState(opts.exclude);
+  const projectState = await getProjectState(exclude ?? []);
 
-  const operations = getOperations({ computeState, projectState });
+  const {
+    removeFromCompute,
+    removeFromProject,
+    copyFromProject,
+    copyFromCompute,
+  } = getOperations({ computeState, projectState });
+
+  if (removeFromProject.length > 0) {
+    await remove(removeFromProject);
+  }
+
+  return {
+    removeFromCompute,
+    copyFromCompute,
+    copyFromProjectTar:
+      copyFromProject.length > 0
+        ? createCopyFromProjectTar(copyFromProject, compute_server_id)
+        : undefined,
+  };
 }
 
-let lastProjectState: FilesystemState = {};
-let lastCallTime = 0;
+async function remove(paths: string[]) {
+  if (!process.env.HOME) {
+    throw Error("HOME must be defined");
+  }
+  // TODO/guess -- by sorting we remove files in directory, then containing directory (?).
+  for (const path of paths.sort().reverse()) {
+    try {
+      await rm(join(process.env.HOME, path), { recursive: true });
+    } catch (err) {
+      log(`WARNING: issue removing '${path}' -- ${err}`);
+    }
+  }
+}
+
+async function createCopyFromProjectTar(
+  paths: string[],
+  compute_server_id: number,
+): Promise<string> {
+  if (!process.env.HOME) {
+    throw Error("HOME must be defined");
+  }
+  const stateDir = join(".compute-servers", `${compute_server_id}`);
+  await mkdir(stateDir, { recursive: true });
+  return await createTarball(
+    join(process.env.HOME, stateDir, "copy-from-project"),
+    paths,
+  );
+}
+
+// we have to use separate cache/state for each exclude list, unfortunatley. in practice,
+// they should often be similar or the same (?).
+let lastProjectState: { [exclude: string]: FilesystemState } = {};
+let lastCallTime: { [exclude: string]: number } = {};
 async function getProjectState(exclude) {
   const now = Math.floor(Date.now() / 1000); // in integers seconds
-  if (now - lastCallTime <= 5) {
+  const key = JSON.stringify(exclude);
+  const lastTime = lastCallTime[key] ?? 0;
+  const lastState = lastProjectState[key] ?? {};
+  if (now - lastTime <= 5) {
     // don't update too frequently
-    return lastProjectState;
+    return lastState;
   }
+  lastCallTime[key] = now;
   if (!process.env.HOME) {
     throw Error("HOME must be defined");
   }
@@ -46,54 +106,79 @@ async function getProjectState(exclude) {
     exclude,
   });
 
-  for (const path in lastProjectState) {
+  // figure out what got deleted in the project
+  for (const path in lastState) {
     if (projectState[path] === undefined) {
       // it is currently deleted.  If it was already marked deleted at a point in time,
       // just stay with that time.  If now, consider it deleted now (negative sign means "deleted").
-      projectState[path] =
-        lastProjectState[path] < 0 ? lastProjectState[path] : -now;
+      // NOTE: it's impossible to know exactly when path was actually deleted.
+      projectState[path] = lastState[path] < 0 ? lastState[path] : -now;
     }
   }
+  lastProjectState[key] = projectState;
 
-  lastProjectState = projectState;
-  lastCallTime = now;
   return projectState;
 }
 
+// [ ] TODO: worry about files versus directories!
 function getOperations({ computeState, projectState }): {
-  deleteOnCompute: string[];
-  deleteOnProject: string[];
+  removeFromCompute: string[];
+  removeFromProject: string[];
   copyFromProject: string[];
   copyFromCompute: string[];
 } {
-  const deleteOnCompute: string[] = [];
-  const deleteOnProject: string[] = [];
+  const removeFromCompute: string[] = [];
+  const removeFromProject: string[] = [];
   const copyFromProject: string[] = [];
   const copyFromCompute: string[] = [];
 
-  for (const path in projectState) {
+  const handlePath = (path) => {
     const projectMtime = projectState[path];
     const computeMtime = computeState[path];
     if (projectMtime == computeMtime) {
       // definitely nothing to do
-      continue;
+      return;
     }
     if (projectMtime !== undefined && computeMtime === undefined) {
       // file is NOT stored on compute server, so no need to worry about it
-      continue;
+      return;
     }
-    // something must be done!  What?
-
+    // something must be done!  What:
     if (projectMtime === undefined) {
       if (computeMtime < 0) {
         // it's supposed to be deleted and it's gone, so nothing to do.
-        continue;
+        return;
       }
       // it's definitely NOT on the project but it is on the compute server, so we need it.
       copyFromCompute.push(path);
-      continue;
+      return;
+    }
+
+    // now both projectMtime and computeMtime are defined and different
+    if (projectMtime > computeMtime) {
+      // project version is newer
+      copyFromProject.push(path);
+      return;
+    } else {
+      // compute version is newer
+      copyFromCompute.push(path);
+    }
+  };
+
+  for (const path in projectState) {
+    handlePath(path);
+  }
+  for (const path in computeState) {
+    if (projectState[path] === undefined) {
+      // NOT already handled above
+      handlePath(path);
     }
   }
 
-  return { deleteOnCompute, deleteOnProject, copyFromProject, copyFromCompute };
+  return {
+    removeFromCompute,
+    removeFromProject,
+    copyFromProject,
+    copyFromCompute,
+  };
 }

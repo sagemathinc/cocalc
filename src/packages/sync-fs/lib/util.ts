@@ -1,4 +1,5 @@
 import { dynamicImport } from "tsimportlib";
+import { open } from "fs/promises";
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("sync-fs:util").debug;
 
@@ -52,4 +53,25 @@ function findExclude(exclude: string[]): string[] {
     v.push(`./${path}/*`);
   }
   return v;
+}
+
+export async function createTarball(
+  target: string,
+  paths: string[],
+): Promise<string> {
+  log("createTarball: ", target, " paths.length = ", paths.length);
+  const file = await open(target, "w");
+  await file.write(paths.join("\n"));
+  await file.close();
+
+  const tarball = target + ".tar.xz";
+  const args = [
+    "-zcf",
+    tarball,
+    "--verbatim-files-from",
+    "--files-from",
+    target,
+  ];
+  await execa("tar", args);
+  return tarball;
 }
