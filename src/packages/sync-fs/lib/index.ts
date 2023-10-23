@@ -204,13 +204,16 @@ class SyncFS {
       `${this.compute_server_id}`,
     );
     await mkdir(scratch, { recursive: true });
+    const tmpdir = join(this.upper, UNIONFS, ".compute-servers");
+    await mkdir(tmpdir, { recursive: true });
     const tarball = await createTarball(
       join(scratch, "copy-to-project"),
       files,
       this.upper,
+      tmpdir,
     );
-    const i = tarball.lastIndexOf(".compute-servers");
 
+    const i = tarball.lastIndexOf(".compute-servers");
     const args = [
       // --delay-directory-restore is so that directories don't
       // have WRONG mtimes, and also do NOT do --keep-newer-files,

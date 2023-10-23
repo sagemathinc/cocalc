@@ -121,6 +121,11 @@ function getOperations({ computeState, projectState }): {
   const copyFromProject: string[] = [];
   const copyFromCompute: string[] = [];
 
+  // We ONLY copy files if their last mtime is
+  // at least 3s in the past, to reduce the chance
+  // of having to deal with actively modified files.
+  const cutoff = Math.floor(Date.now() / 1000) - 3;
+
   const handlePath = (path) => {
     const projectMtime = projectState[path];
     const computeMtime = computeState[path];
@@ -139,7 +144,9 @@ function getOperations({ computeState, projectState }): {
         return;
       }
       // it's definitely NOT on the project but it is on the compute server, so we need it.
-      copyFromCompute.push(path);
+      if (computeMtime <= cutoff) {
+        copyFromCompute.push(path);
+      }
       return;
     }
 
@@ -148,7 +155,9 @@ function getOperations({ computeState, projectState }): {
       // project version is newer
       if (projectMtime > 0) {
         // it was edited later on the project
-        copyFromProject.push(path);
+        if (projectMtime <= cutoff) {
+          copyFromProject.push(path);
+        }
       } else {
         // it was deleted from the project, so now need to delete on compute
         removeFromCompute.push(path);
@@ -158,7 +167,9 @@ function getOperations({ computeState, projectState }): {
       // compute version is newer
       if (computeMtime > 0) {
         // edited on compute later
-        copyFromCompute.push(path);
+        if (computeMtime <= cutoff) {
+          copyFromCompute.push(path);
+        }
       } else {
         // deleted on compute, so now also need to delete in project
         removeFromProject.push(path);

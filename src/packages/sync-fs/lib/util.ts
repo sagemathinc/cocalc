@@ -1,5 +1,5 @@
 import { dynamicImport } from "tsimportlib";
-import { open, rm } from "fs/promises";
+import { cp, open, rm } from "fs/promises";
 import { join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 
@@ -61,36 +61,80 @@ function findExclude(exclude: string[]): string[] {
   return v;
 }
 
-// [ ] TODO: we have to remove any files that got changed while the tarball
-// was getting created!
-/*
-  stderr:
-    'tar: cocalc/.git/objects/pack: file changed as we read it\n' +
-    'tar: cocalc/.git: file changed as we read it\n' +
-    'tar: cocalc: file changed as we read it\n' +
-    'tar: cocalc/.git/objects/pack/tmp_pack_N9Q9Gf: Cannot stat: No such file or directory\n' +
-    'tar: Exiting with failure status due to previous errors',
-*/
 export async function createTarball(
   target: string,
   paths: string[],
   cwd: string,
+  tmpdir?: string,
 ): Promise<string> {
   log("createTarball: ", target, " paths.length = ", paths.length);
   const file = await open(target, "w");
   await file.write(paths.join("\n"));
   await file.close();
 
-  const tarball = target + ".tar.xz";
+  const final = target + ".tar";
+  const tarball = tmpdir ? join(tmpdir, "a.tar") : final;
+  const finish = async () => {
+    if (tmpdir) {
+      await cp(tarball, final);
+      await rm(tarball);
+    }
+  };
   const args = [
-    "-zcf",
+    "-cf",
     tarball,
     "--verbatim-files-from",
     "--files-from",
     target,
   ];
-  await execa("tar", args, { cwd });
-  return tarball;
+  try {
+    await execa("tar", args, { cwd });
+  } catch (err) {
+    const v = err.stderr
+      .split("\n")
+      .filter(
+        (x) =>
+          !x.includes("due to previous errors") &&
+          !x.includes("Cannot stat: No such file or directory"),
+      );
+    if (v.length == 0) {
+      // no serious error
+      await finish();
+      return final;
+    }
+    throw err;
+    // This removes bad files from the tarball.
+    const changed = v.filter((x) => x.includes("file changed as we read it"));
+    if (changed.length == v.length) {
+      // only issues are files that changed; we remove them all from the archive.
+      const args = ["-f", tarball];
+      const seen = new Set<string>([]);
+      for (const mesg of changed) {
+        // mesg = 'tar: cocalc/.git/objects/pack: file changed as we read it
+        const path = mesg.split(":")[1].trim();
+        if (seen.has(path)) {
+          // same path appears multiple times in tar
+          continue;
+        }
+        seen.add(path);
+        args.push("--delete");
+        args.push(path);
+      }
+      log(
+        "createTarball: removing files that changed during tarball creation -- ",
+        changed,
+      );
+      await execa("tar", args, { cwd });
+    } else {
+      try {
+        await rm(tarball);
+      } catch (_) {}
+      // do NOT corrupt files, obviously
+      throw err;
+    }
+  }
+  await finish();
+  return final;
 }
 
 export async function remove(paths: string[], rel?: string) {
