@@ -102,7 +102,6 @@ export async function createTarball(
       await finish();
       return final;
     }
-    throw err;
     // This removes bad files from the tarball.
     const changed = v.filter((x) => x.includes("file changed as we read it"));
     if (changed.length == v.length) {

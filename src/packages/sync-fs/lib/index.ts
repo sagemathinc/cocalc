@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { mkdir, rm, stat, writeFile } from "fs/promises";
+import { cp, mkdir, rm, stat, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 //import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
@@ -49,7 +49,7 @@ class SyncFS {
   private compute_server_id: number;
   private syncInterval: number;
   private exclude: string[];
-  //private readTrackingPath?: string;
+  private readTrackingPath?: string;
 
   private client: SyncClient;
 
@@ -61,7 +61,8 @@ class SyncFS {
     project_id,
     compute_server_id,
     syncInterval = 5,
-    exclude = [], //readTrackingPath,
+    exclude = [],
+    readTrackingPath,
   }: Options) {
     this.lower = lower;
     this.upper = upper;
@@ -69,7 +70,7 @@ class SyncFS {
     this.compute_server_id = compute_server_id;
     this.exclude = exclude;
     this.syncInterval = syncInterval;
-    //this.readTrackingPath = readTrackingPath;
+    this.readTrackingPath = readTrackingPath;
 
     this.client = new SyncClient({
       project_id: this.project_id,
@@ -154,6 +155,8 @@ class SyncFS {
     if (copyFromProjectTar) {
       await this.receiveFiles(copyFromProjectTar);
     }
+
+    await this.updateReadTracking();
   };
 
   //   private getComputeStatePatch = async (
@@ -248,5 +251,95 @@ class SyncFS {
     log("execInProject:", `"${opts.command} ${opts.args?.join(" ")}"`);
     const api = await this.client.project_client.api(this.project_id);
     return await api.exec(opts);
+  };
+
+  private getRecentlyReadFiles = async (): Promise<string[]> => {
+    if (!this.readTrackingPath) {
+      return [];
+    }
+    let files;
+    try {
+      files = await readFile(this.readTrackingPath, { encoding: "utf8" });
+    } catch (err) {
+      // completely reasonable that the file doesn't exist.
+      log("getRecentlyReadFiles: ", this.readTrackingPath, err);
+      return [];
+    }
+    const v = files
+      .split("\n")
+      .filter((x) => !x.startsWith("/.compute-server") && x.trim())
+      .map((x) => x.slice(1));
+    log("getRecentlyReadFiles: ", v.length, " files");
+    return v;
+  };
+
+  private createReadTrackingTarball = async (recentFiles: string[]) => {
+    const readTrackingOnProject = join(
+      ".compute-servers",
+      `${this.compute_server_id}`,
+      "read-tracking",
+    );
+    const readTrackingFilesTarOnProject = join(
+      ".compute-servers",
+      `${this.compute_server_id}`,
+      "read-tracking.tar",
+    );
+    await writeFile(
+      join(this.lower, readTrackingOnProject),
+      recentFiles.join("\n"),
+    );
+    const args = [
+      "-cf",
+      readTrackingFilesTarOnProject,
+      "--verbatim-files-from",
+      "--files-from",
+      readTrackingOnProject,
+    ];
+    log("updateReadTrackingTarball:", "tar", args.join(" "));
+    await this.execInProject({
+      command: "tar",
+      args,
+      // very important that ANY error, e.g., file modified during write,
+      // etc. throw exception, since we don't want to copy over a corrupted
+      // file... and this tracking is 100% only for performance.
+      err_on_exit: true,
+      timeout: 60 * 2, // timeout in seconds.
+    });
+    return readTrackingFilesTarOnProject;
+  };
+
+  private extractRecentlyReadFiles = async (tarball) => {
+    // We copy the tarball over locally first, to maximize speed of extraction,
+    // since during extract file can be "corrupted" due to being partly written.
+    const local = join(this.upper, UNIONFS, ".compute-servers", "recent.tar");
+    try {
+      await cp(join(this.lower, tarball), local);
+      try {
+        await rm(join(this.lower, tarball));
+      } catch (_) {}
+      const args2 = ["--keep-newer-files", "-xf", local];
+      log("extractRecentlyReadFiles", "tar", args2.join(" "));
+      await execa("tar", args2, { cwd: this.upper });
+    } finally {
+      try {
+        await rm(local);
+      } catch (_) {}
+    }
+  };
+
+  private updateReadTracking = async () => {
+    if (!this.readTrackingPath) {
+      return;
+    }
+    const recentFiles = await this.getRecentlyReadFiles();
+    if (recentFiles.length == 0) {
+      return;
+    }
+    try {
+      const tarball = await this.createReadTrackingTarball(recentFiles);
+      await this.extractRecentlyReadFiles(tarball);
+    } catch (err) {
+      log("updateReadTracking: not updating due to err", err);
+    }
   };
 }
