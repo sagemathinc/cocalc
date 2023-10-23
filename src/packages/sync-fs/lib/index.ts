@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { mkdir, rm } from "fs/promises";
+import { mkdir, rm, stat } from "fs/promises";
 import { join } from "path";
 //import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
@@ -59,7 +59,7 @@ class SyncFS {
     upper,
     project_id,
     compute_server_id,
-    syncInterval = 10,
+    syncInterval = 5,
     exclude = [], //readTrackingPath,
   }: Options) {
     this.lower = lower;
@@ -76,6 +76,7 @@ class SyncFS {
     this.state = "ready";
 
     this.interval = setInterval(this.sync, 1000 * syncInterval);
+    this.sync();
   }
 
   close = async () => {
@@ -118,8 +119,10 @@ class SyncFS {
   };
 
   private doSync = async () => {
+    log("doSync");
     const api = await this.client.project_client.api(this.project_id);
     const { computeState, whiteouts } = await this.getComputeState();
+    // log("doSync", computeState, whiteouts);
     //const computeStateJson = toCompressedJSON(computeState);
     const { removeFromCompute, copyFromCompute, copyFromProjectTar } =
       await api.syncFS({
@@ -128,8 +131,9 @@ class SyncFS {
         compute_server_id: this.compute_server_id,
       });
 
+    // log("doSync", { removeFromCompute, copyFromCompute, copyFromProjectTar });
     if (whiteouts.length > 0) {
-      await remove(whiteouts, this.upper);
+      await remove(whiteouts, join(this.upper, UNIONFS));
     }
     if (removeFromCompute?.length ?? 0 > 0) {
       await remove(removeFromCompute, this.upper);
@@ -158,26 +162,28 @@ class SyncFS {
     // except ones excluded from sync, to the ctime for the path (or negative mtime
     // for deleted paths):  {[path:string]:mtime of last change to file metadata}
     const whiteLen = "_HIDDEN~".length;
-    const unionLen = UNIONFS.length;
-    const computeState: { [path: string]: number } = {};
-    const mtimes = await mtimeDirTree({
+    const computeState = await mtimeDirTree({
       path: this.upper,
       exclude: this.exclude,
     });
     const whiteouts: string[] = [];
+    const unionfs = join(this.upper, UNIONFS);
+    const mtimes = await mtimeDirTree({
+      path: unionfs,
+      exclude: [],
+    });
     for (const path in mtimes) {
       const mtime = mtimes[path];
-      if (path.startsWith(UNIONFS)) {
-        if (path.endsWith("_HIDDEN~")) {
-          const p = path.slice(unionLen + 1, -whiteLen);
-          whiteouts.push(path);
-          whiteouts.push(p); // [ ] TODO: is it every necessary to include this?
-          computeState[p] = -mtime;
+      if (path.endsWith("_HIDDEN~")) {
+        const p = path.slice(0, -whiteLen);
+        whiteouts.push(path);
+        if ((await stat(join(unionfs, path))).isDirectory()) {
+          whiteouts.push(p);
         }
-      } else {
-        computeState[path] = mtime;
+        computeState[p] = -mtime;
       }
     }
+
     return { computeState, whiteouts };
   };
 

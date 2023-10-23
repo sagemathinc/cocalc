@@ -1,6 +1,8 @@
 import { dynamicImport } from "tsimportlib";
 import { open, rm } from "fs/promises";
 import { join } from "path";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("sync-fs:util").debug;
 
@@ -26,6 +28,9 @@ export async function mtimeDirTree({
   exclude: string[];
 }): Promise<{ [path: string]: number }> {
   log("mtimeDirTree", path, exclude);
+  if (!(await exists(path))) {
+    return {};
+  }
   const { stdout } = await execa(
     "find",
     [".", ...findExclude(exclude), "-printf", "%P\n%C@\n"],

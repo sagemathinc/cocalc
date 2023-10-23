@@ -139,13 +139,25 @@ function getOperations({ computeState, projectState }): {
     }
 
     // now both projectMtime and computeMtime are defined and different
-    if (projectMtime > computeMtime) {
+    if (Math.abs(projectMtime) > Math.abs(computeMtime)) {
       // project version is newer
-      copyFromProject.push(path);
+      if (projectMtime > 0) {
+        // it was edited later on the project
+        copyFromProject.push(path);
+      } else {
+        // it was deleted from the project, so now need to delete on compute
+        removeFromCompute.push(path);
+      }
       return;
     } else {
       // compute version is newer
-      copyFromCompute.push(path);
+      if (computeMtime > 0) {
+        // edited on compute later
+        copyFromCompute.push(path);
+      } else {
+        // deleted on compute, so now also need to delete in project
+        removeFromProject.push(path);
+      }
     }
   };
 
