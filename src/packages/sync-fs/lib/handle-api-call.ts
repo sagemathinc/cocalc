@@ -1,11 +1,11 @@
 /* This runs in the project and handles api calls. */
 
-//import { fromCompressedJSON } from "./compressed-json";
+import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
 import { createTarball, mtimeDirTree, remove } from "./util";
 import { join } from "path";
-import { mkdir } from "fs/promises";
+import { mkdir, readFile /* writeFile */ } from "fs/promises";
 import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
@@ -18,8 +18,7 @@ export default async function handleApiCall({
   log("handleApiCall");
   let computeState;
   if (computeStateJson) {
-    computeState = computeStateJson;
-    //computeState = fromCompressedJSON(computeStateJson);
+    computeState = fromCompressedJSON(await readFile(computeStateJson));
   } else {
     throw Error("not implemented");
   }
@@ -100,6 +99,12 @@ export async function getProjectState(exclude) {
     }
   }
   lastProjectState[key] = projectState;
+
+  //   // this is for DEBUGING ONLY!
+  //   await writeFile(
+  //     join(process.env.HOME, ".compute-servers", "project-state.json"),
+  //     JSON.stringify(projectState),
+  //   );
 
   return projectState;
 }

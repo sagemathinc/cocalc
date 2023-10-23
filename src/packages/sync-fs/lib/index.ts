@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { mkdir, rm, stat } from "fs/promises";
+import { mkdir, rm, stat, writeFile } from "fs/promises";
 import { join } from "path";
 //import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
 import { createTarball, execa, mtimeDirTree, remove } from "./util";
-//import { toCompressedJSON } from "./compressed-json";
+import { toCompressedJSON } from "./compressed-json";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import type {
@@ -47,6 +47,7 @@ class SyncFS {
   private upper: string;
   private project_id: string;
   private compute_server_id: number;
+  private syncInterval: number;
   private exclude: string[];
   //private readTrackingPath?: string;
 
@@ -67,6 +68,7 @@ class SyncFS {
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.exclude = exclude;
+    this.syncInterval = syncInterval;
     //this.readTrackingPath = readTrackingPath;
 
     this.client = new SyncClient({
@@ -75,7 +77,6 @@ class SyncFS {
     });
     this.state = "ready";
 
-    this.interval = setInterval(this.sync, 1000 * syncInterval);
     this.sync();
   }
 
@@ -113,9 +114,10 @@ class SyncFS {
       log(
         "sync - SUCCESS, time=",
         (Date.now() - t0) / 1000,
-        " seconds.  Sleeping...",
+        ` seconds.  Sleeping ${this.syncInterval} seconds...`,
       );
     }
+    setTimeout(this.sync, this.syncInterval * 1000);
   };
 
   private doSync = async () => {
@@ -123,10 +125,18 @@ class SyncFS {
     const api = await this.client.project_client.api(this.project_id);
     const { computeState, whiteouts } = await this.getComputeState();
     // log("doSync", computeState, whiteouts);
-    //const computeStateJson = toCompressedJSON(computeState);
+    const computeStateJson = join(
+      ".compute-servers",
+      `${this.compute_server_id}`,
+      "compute-state.json.lz4",
+    );
+    await writeFile(
+      join(this.lower, computeStateJson),
+      toCompressedJSON(computeState),
+    );
     const { removeFromCompute, copyFromCompute, copyFromProjectTar } =
       await api.syncFS({
-        computeStateJson: computeState,
+        computeStateJson,
         exclude: this.exclude,
         compute_server_id: this.compute_server_id,
       });
@@ -201,7 +211,14 @@ class SyncFS {
     );
     const i = tarball.lastIndexOf(".compute-servers");
 
-    const args = ["--keep-newer-files", "-xf", tarball.slice(i)];
+    const args = [
+      // --delay-directory-restore is so that directories don't
+      // have WRONG mtimes, and also do NOT do --keep-newer-files,
+      // which horribly breaks things.
+      "--delay-directory-restore",
+      "-xf",
+      tarball.slice(i),
+    ];
     log("sendFiles", "tar", args.join(" "));
     await this.execInProject({
       command: "tar",
@@ -216,7 +233,7 @@ class SyncFS {
   private receiveFiles = async (tarball: string) => {
     log("receiveFiles", tarball);
     const target = join(this.lower, tarball);
-    const args = ["--keep-newer-files", "-xf", target];
+    const args = ["--delay-directory-restore", "-xf", target];
     log("receiveFiles", "tar", args.join(" "));
     await execa("tar", args, { cwd: this.upper });
     await rm(target);

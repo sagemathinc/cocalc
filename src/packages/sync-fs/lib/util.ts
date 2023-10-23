@@ -33,7 +33,7 @@ export async function mtimeDirTree({
   }
   const { stdout } = await execa(
     "find",
-    [".", ...findExclude(exclude), "-printf", "%P\n%C@\n"],
+    [".", ...findExclude(exclude), "-printf", "%P\n%T@\n"],
     {
       cwd: path,
     },
@@ -63,6 +63,14 @@ function findExclude(exclude: string[]): string[] {
 
 // [ ] TODO: we have to remove any files that got changed while the tarball
 // was getting created!
+/*
+  stderr:
+    'tar: cocalc/.git/objects/pack: file changed as we read it\n' +
+    'tar: cocalc/.git: file changed as we read it\n' +
+    'tar: cocalc: file changed as we read it\n' +
+    'tar: cocalc/.git/objects/pack/tmp_pack_N9Q9Gf: Cannot stat: No such file or directory\n' +
+    'tar: Exiting with failure status due to previous errors',
+*/
 export async function createTarball(
   target: string,
   paths: string[],
