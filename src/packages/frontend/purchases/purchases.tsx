@@ -162,10 +162,8 @@ export function PurchasesTable({
   limit?: number;
   filename?: string;
 }) {
+  const [purchaseRecords, setPurchaseRecords] = useState<Partial<Purchase>[] | null>(null);
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
-  const [groupedPurchases, setGroupedPurchases] = useState<
-    Partial<Purchase>[] | null
-  >(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
@@ -182,54 +180,38 @@ export function PurchasesTable({
 
   const getBalance = async () => {
     try {
-      setBalance(0);
-      setBalance(await api.getBalance());
+      const userBalance = account_id
+          ? await api.getBalanceAdmin(account_id)
+          : await api.getBalance();
+
+      setBalance(userBalance);
     } catch (err) {
       setError(`${err}`);
     }
   };
 
-  const getPurchases = async () => {
+  const getPurchaseRecords = async () => {
     try {
-      setTotal(null);
-      setPurchases(null);
-      setGroupedPurchases(null);
+      setPurchaseRecords(null);
+
       const opts = {
-        thisMonth,
         cutoff,
-        limit,
-        offset,
-        group,
-        service,
-        project_id,
         day_statement_id,
         month_statement_id,
+
+        group,
+        limit,
         no_statement: noStatement,
+        offset,
+        project_id,
+        service,
+        thisMonth,
       };
       const x = account_id
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
-      if (group) {
-        setGroupedPurchases(x);
-      } else {
-        setPurchases(x);
-      }
 
-      // Compute incremental balance
-      //
-      let b = balance;
-      x.forEach((row) => {
-        row["balance"] = b;
-        b += row["sum"] ?? row["cost"] ?? 0;
-      });
-
-      // Compute total cost
-      //
-      let t = 0;
-      for (const row of x) {
-        t += row["sum"] ?? row["cost"] ?? 0;
-      }
-      setTotal(t);
+      setPurchaseRecords(x);
     } catch (err) {
       setError(`${err}`);
     }
@@ -240,15 +222,48 @@ export function PurchasesTable({
   }, []);
 
   useEffect(() => {
-    getPurchases();
-  }, [limit, offset, group, service, project_id, thisMonth, noStatement]);
+    getPurchaseRecords();
+  }, [
+    group,
+    limit,
+    noStatement,
+    offset,
+    project_id,
+    service,
+    thisMonth,
+  ]);
+
+  useEffect(() => {
+    if (!purchaseRecords?.length) {
+      return;
+    }
+
+    setPurchases(null);
+    setTotal(null);
+
+    let b = balance;
+    let t = 0;
+    for (const row of purchaseRecords) {
+      // Compute incremental balance
+      //
+      row["balance"] = b;
+      b += row["sum"] ?? row["cost"] ?? 0;
+
+      // Compute total cost
+      //
+      t += row["sum"] ?? row["cost"] ?? 0;
+    }
+
+    setPurchases(purchaseRecords);
+    setTotal(t);
+  }, [balance, purchaseRecords]);
 
 
   //const download = (format: "csv" | "json") => {};
 
   return (
     <div style={style}>
-      {showRefresh && <Refresh refresh={getPurchases} />}
+      {showRefresh && <Refresh refresh={getPurchaseRecords} />}
       <ShowError error={error} setError={setError} />
       <div
         style={{
@@ -295,10 +310,10 @@ export function PurchasesTable({
         )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
-        {!group && (
+        {group ?
+          <GroupedPurchaseTable purchases={purchases} /> :
           <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
-        )}
-        {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
+        }
       </div>
       <div style={{
         fontSize: "12pt",
