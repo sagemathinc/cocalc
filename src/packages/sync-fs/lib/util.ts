@@ -83,6 +83,7 @@ export async function createTarball(
   const args = [
     "-cf",
     tarball,
+    "--no-recursion",
     "--verbatim-files-from",
     "--files-from",
     target,

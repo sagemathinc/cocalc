@@ -315,6 +315,7 @@ class SyncFS {
     );
     const args = [
       "-cf",
+      "--no-recursion",
       readTrackingFilesTarOnProject,
       "--verbatim-files-from",
       "--files-from",
