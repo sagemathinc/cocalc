@@ -33,7 +33,9 @@ interface Options {
   project_id: string;
   compute_server_id: number;
   // sync at most every this many seconds
-  syncInterval?: number;
+  syncIntervalMin?: number;
+  // but up to this long if there is no activity (exponential backoff)
+  syncIntervalMax?: number;
   // list of top-level directory names that are excluded from sync.
   // do not use wildcards.
   // NOTE: hidden files in HOME are *always* excluded.
@@ -42,6 +44,10 @@ interface Options {
 }
 
 const UNIONFS = ".unionfs-fuse";
+const DEFAULT_SYNC_INTERVAL_MIN_S = 3;
+// no idea what this should be.  It might be even 60s, but with
+// more UI and other queues to ping us.
+const DEFAULT_SYNC_INTERVAL_MAX_S = 15;
 
 class SyncFS {
   private state: State = "init";
@@ -51,6 +57,8 @@ class SyncFS {
   private project_id: string;
   private compute_server_id: number;
   private syncInterval: number;
+  private syncIntervalMin: number;
+  private syncIntervalMax: number;
   private exclude: string[];
   private readTrackingPath?: string;
   private scratch: string;
@@ -65,7 +73,8 @@ class SyncFS {
     mount,
     project_id,
     compute_server_id,
-    syncInterval = 5,
+    syncIntervalMin = DEFAULT_SYNC_INTERVAL_MIN_S,
+    syncIntervalMax = DEFAULT_SYNC_INTERVAL_MAX_S,
     exclude = [],
     readTrackingPath,
   }: Options) {
@@ -75,7 +84,9 @@ class SyncFS {
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.exclude = exclude;
-    this.syncInterval = syncInterval;
+    this.syncInterval = syncIntervalMin;
+    this.syncIntervalMin = syncIntervalMin;
+    this.syncIntervalMax = syncIntervalMax;
     this.readTrackingPath = readTrackingPath;
     this.scratch = join(
       this.lower,
@@ -107,7 +118,7 @@ class SyncFS {
 
   init = async () => {
     await this.mountUnionFS();
-    await this.sync();
+    await this.syncLoop();
   };
 
   mountUnionFS = async () => {
@@ -120,33 +131,61 @@ class SyncFS {
     ]);
   };
 
-  private sync = async () => {
-    if (this.state != "ready") {
-      return;
+  public sync = async () => {
+    if (this.state == "sync") {
+      throw Error("sync currently in progress");
     }
-    log("sync");
+    if (this.state != "ready") {
+      throw Error(
+        `can only sync when state is ready but state is "${this.state}"`,
+      );
+    }
+    log("sync: doing a sync");
     const t0 = Date.now();
     try {
       this.state = "sync";
-      // await this.updateReadTracking();
       await this.doSync();
     } catch (err) {
-      console.trace(err);
-      // This will happen if there is a lot of filesystem activity
-      // which changes things during the sync.
-      log(Date.now() - t0, `sync - WARNING: sync loop failed -- ${err}`);
       await this.logSyncError(`${err}`);
+      throw err;
     } finally {
       if (this.state != ("closed" as State)) {
         this.state = "ready";
       }
-      log(
-        "sync - SUCCESS, time=",
-        (Date.now() - t0) / 1000,
-        ` seconds.  Sleeping ${this.syncInterval} seconds...`,
-      );
+      log("sync - SUCCESS, time=", (Date.now() - t0) / 1000);
     }
-    this.timeout = setTimeout(this.sync, this.syncInterval * 1000);
+  };
+
+  private syncLoop = async () => {
+    const t0 = Date.now();
+    if (this.state == "ready") {
+      log("syncLoop: ready");
+      try {
+        await this.sync();
+      } catch (err) {
+        // This will happen if there is a lot of filesystem activity
+        // which changes things during the sync.
+        log(`sync - WARNING: sync loop failed -- ${err}`);
+        // In case of error, we aggressively back off to reduce impact.
+        this.syncInterval = Math.min(
+          this.syncIntervalMax,
+          1.5 * this.syncInterval,
+        );
+      }
+    } else {
+      log("sync: skipping since state = ", this.state);
+    }
+    // We always wait as long as the last sync took plus the
+    // next interval. This way if sync is taking a long time
+    // due to huge files or load, we spread it out, up to a point,
+    // which is maybe a good idea.   If sync is fast, it's fine
+    // to do it frequently.
+    const wait = Math.min(
+      this.syncIntervalMax * 1000,
+      this.syncInterval * 1000 + (Date.now() - t0),
+    );
+    log(`syncLoop -- sleeping ${wait / 1000} seconds...`);
+    this.timeout = setTimeout(this.syncLoop, wait);
   };
 
   private makeScratchDir = async () => {
@@ -185,17 +224,32 @@ class SyncFS {
       });
 
     // log("doSync", { removeFromCompute, copyFromCompute, copyFromProjectTar });
+    let isActive = false;
     if (whiteouts.length > 0) {
+      isActive = true;
       await remove(whiteouts, join(this.upper, UNIONFS));
     }
     if (removeFromCompute?.length ?? 0 > 0) {
+      isActive = true;
       await remove(removeFromCompute, this.upper);
     }
     if (copyFromCompute?.length ?? 0 > 0) {
+      isActive = true;
       await this.sendFiles(copyFromCompute);
     }
     if (copyFromProjectTar) {
+      isActive = true;
       await this.receiveFiles(copyFromProjectTar);
+    }
+
+    if (isActive) {
+      this.syncInterval = this.syncIntervalMin;
+    } else {
+      // exponential backoff when not active
+      this.syncInterval = Math.min(
+        this.syncIntervalMax,
+        1.3 * this.syncInterval,
+      );
     }
 
     await this.updateReadTracking();

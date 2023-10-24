@@ -42,7 +42,8 @@ interface Options {
   };
   compute_server_id?: number;
   cacheTimeout?: number;
-  syncInterval?: number;
+  syncIntervalMin?: number;
+  syncIntervalMax?: number;
   exclude?: string[];
   readTrackingPath?: string;
 }
@@ -54,7 +55,8 @@ export async function mountProject({
   options,
   compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
   cacheTimeout,
-  syncInterval,
+  syncIntervalMin,
+  syncIntervalMax,
   exclude = [],
   readTrackingPath,
 }: Options = {}) {
@@ -146,7 +148,8 @@ export async function mountProject({
       mount: path,
       project_id,
       compute_server_id,
-      syncInterval,
+      syncIntervalMin,
+      syncIntervalMax,
       exclude,
       readTrackingPath,
     });

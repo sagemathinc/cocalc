@@ -10,7 +10,7 @@ import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
 
-const SETTLE_TIMEOUT_S = 3;
+const SETTLE_TIMEOUT_S = 2;
 const CLOCK_THRESH_MS = 5 * 1000;
 
 export default async function handleApiCall({
