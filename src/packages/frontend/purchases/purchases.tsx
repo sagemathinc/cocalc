@@ -202,7 +202,6 @@ export function PurchasesTable({
         cutoff,
         day_statement_id,
         month_statement_id,
-
         group,
         limit,
         no_statement: noStatement,
@@ -238,7 +237,7 @@ export function PurchasesTable({
   ]);
 
   useEffect(() => {
-    if (!purchaseRecords?.length) {
+    if (purchaseRecords == null) {
       return;
     }
 
