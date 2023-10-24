@@ -10,6 +10,8 @@ import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
 
+const SETTLE_TIMEOUT_S = 3;
+
 export default async function handleApiCall({
   computeStateJson,
   exclude,
@@ -122,9 +124,10 @@ function getOperations({ computeState, projectState }): {
   const copyFromCompute: string[] = [];
 
   // We ONLY copy files if their last mtime is
-  // at least 3s in the past, to reduce the chance
+  // at least a few seconds in the past, to reduce the chance
   // of having to deal with actively modified files.
-  const cutoff = Math.floor(Date.now() / 1000) - 3;
+  // Of course, this means more "lag".
+  const cutoff = Math.floor(Date.now() / 1000) - SETTLE_TIMEOUT_S;
 
   const handlePath = (path) => {
     const projectMtime = projectState[path];
