@@ -24,6 +24,12 @@ export async function getBalance(): Promise<number> {
   return await api("purchases/get-balance");
 }
 
+// Admins can get balance for any specified user -- error if called by non-admin.
+// account_id is required.
+export async function getBalanceAdmin(account_id: string) {
+  return await api("purchases/get-balance-admin", { account_id });
+}
+
 export async function getPendingBalance(): Promise<number> {
   return await api("purchases/get-pending-balance");
 }
