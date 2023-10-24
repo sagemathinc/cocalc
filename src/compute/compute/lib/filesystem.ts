@@ -13,7 +13,6 @@ import { project } from "@cocalc/api-client";
 import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
-import { execa } from "execa";
 import syncFS from "@cocalc/sync-fs";
 import { waitUntilFilesystemIsOfType } from "./util";
 
@@ -135,41 +134,32 @@ export async function mountProject({
     }));
   }
 
-  let cache;
+  let syncfs;
   if (unionfs != null) {
     if (/\s/.test(unionfs.lower) || /\s/.test(unionfs.upper)) {
       throw Error("paths cannot contain whitespace");
     }
-    // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
-    await execa("unionfs-fuse", [
-      "-o",
-      "allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768",
-      `${unionfs.upper}=RW:${unionfs.lower}=RO`,
-      path,
-    ]);
-    cache = syncFS({
+
+    syncfs = syncFS({
       lower: unionfs.lower,
       upper: unionfs.upper,
+      mount: path,
       project_id,
       compute_server_id,
       syncInterval,
       exclude,
       readTrackingPath,
     });
+    await syncfs.init();
   } else {
-    cache = null;
+    syncfs = null;
   }
 
   return {
-    cache,
+    syncfs,
     unmount: async () => {
-      if (cache != null) {
-        await cache.close();
-      }
-      if (unionfs != null) {
-        const args = ["-uz", path];
-        logger.debug("fusermount", args.join(" "));
-        await execa("fusermount", args);
+      if (syncfs != null) {
+        await syncfs.close();
       }
       if (unmount != null) {
         logger.debug("unmount");

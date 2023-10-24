@@ -29,6 +29,7 @@ type State = "init" | "ready" | "sync" | "closed";
 interface Options {
   lower: string;
   upper: string;
+  mount: string;
   project_id: string;
   compute_server_id: number;
   // sync at most every this many seconds
@@ -45,6 +46,7 @@ class SyncFS {
   private state: State = "init";
   private lower: string;
   private upper: string;
+  private mount: string;
   private project_id: string;
   private compute_server_id: number;
   private syncInterval: number;
@@ -54,11 +56,12 @@ class SyncFS {
 
   private client: SyncClient;
 
-  private interval;
+  private timeout;
 
   constructor({
     lower,
     upper,
+    mount,
     project_id,
     compute_server_id,
     syncInterval = 5,
@@ -67,6 +70,7 @@ class SyncFS {
   }: Options) {
     this.lower = lower;
     this.upper = upper;
+    this.mount = mount;
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.exclude = exclude;
@@ -83,8 +87,6 @@ class SyncFS {
       client_id: encodeIntToUUID(this.compute_server_id),
     });
     this.state = "ready";
-
-    this.sync();
   }
 
   close = async () => {
@@ -93,10 +95,28 @@ class SyncFS {
       return;
     }
     this.state = "closed";
-    if (this.interval != null) {
-      clearInterval(this.interval);
-      delete this.interval;
+    if (this.timeout != null) {
+      clearTimeout(this.timeout);
+      delete this.timeout;
     }
+    const args = ["-uz", this.mount];
+    log("fusermount", args.join(" "));
+    await execa("fusermount", args);
+  };
+
+  init = async () => {
+    await this.mountUnionFS();
+    await this.sync();
+  };
+
+  mountUnionFS = async () => {
+    // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
+    await execa("unionfs-fuse", [
+      "-o",
+      "allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768",
+      `${this.upper}=RW:${this.lower}=RO`,
+      this.mount,
+    ]);
   };
 
   private sync = async () => {
@@ -124,7 +144,7 @@ class SyncFS {
         ` seconds.  Sleeping ${this.syncInterval} seconds...`,
       );
     }
-    setTimeout(this.sync, this.syncInterval * 1000);
+    this.timeout = setTimeout(this.sync, this.syncInterval * 1000);
   };
 
   private makeScratchDir = async () => {

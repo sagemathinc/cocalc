@@ -4,5 +4,5 @@ This is helpful for developing the compute\-server manager, which is defined in 
 
 2. Make the conf directory exist here, with the same files as on /cocalc/conf in an actual compute\-server
 
-3. Type `./go.sh` to then make this be the compute manager for some target project.
+3. Run each of ./filesystem.sh, ./syncfs.sh, and ./compute.sh in different terminals.
 
