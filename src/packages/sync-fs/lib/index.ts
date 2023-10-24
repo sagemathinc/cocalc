@@ -50,6 +50,7 @@ class SyncFS {
   private syncInterval: number;
   private exclude: string[];
   private readTrackingPath?: string;
+  private scratch: string;
 
   private client: SyncClient;
 
@@ -71,6 +72,11 @@ class SyncFS {
     this.exclude = exclude;
     this.syncInterval = syncInterval;
     this.readTrackingPath = readTrackingPath;
+    this.scratch = join(
+      this.lower,
+      ".compute-servers",
+      `${this.compute_server_id}`,
+    );
 
     this.client = new SyncClient({
       project_id: this.project_id,
@@ -121,8 +127,13 @@ class SyncFS {
     setTimeout(this.sync, this.syncInterval * 1000);
   };
 
+  private makeScratchDir = async () => {
+    await mkdir(this.scratch, { recursive: true });
+  };
+
   private doSync = async () => {
     log("doSync");
+    await this.makeScratchDir();
     const api = await this.client.project_client.api(this.project_id);
     const { computeState, whiteouts } = await this.getComputeState();
     // log("doSync", computeState, whiteouts);
@@ -201,16 +212,10 @@ class SyncFS {
   };
 
   private sendFiles = async (files: string[]) => {
-    const scratch = join(
-      this.lower,
-      ".compute-servers",
-      `${this.compute_server_id}`,
-    );
-    await mkdir(scratch, { recursive: true });
     const tmpdir = join(this.upper, UNIONFS, ".compute-servers");
     await mkdir(tmpdir, { recursive: true });
     const tarball = await createTarball(
-      join(scratch, "copy-to-project"),
+      join(this.scratch, "copy-to-project"),
       files,
       this.upper,
       tmpdir,

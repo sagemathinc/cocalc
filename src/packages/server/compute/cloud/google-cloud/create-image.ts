@@ -4,6 +4,9 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 >
 
+await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
+
+
 a = require('./dist/compute/cloud/google-cloud/create-image')
 
 await a.createImages({image:"python", arch:'x86_64'})
@@ -15,7 +18,7 @@ await a.createImages({image:"cuda12"})
 await a.createImages({image:"sagemath-10.1", arch:'x86_64'});
 
 
-await a.createImages({gpu:true})
+await require('./dist/compute/cloud/google-cloud/create-image').createImages({gpu:true})
 
 // (Danger) This just creates ALL images in parallel:
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
