@@ -113,3 +113,18 @@ fine, and all that matters is bandwidth.
 Complementary to the above, we also have read file tracking for websocketfs. Using that, we periodically
 copy a tarball of files over from the project and extract them to upper, in order to make local reads
 much faster.
+
+## Time
+
+This is a sync algorithm that depends on the existence of clocks.  Therefore we do have to consider the possibility that either party \(or both\) have their clocks set improperly.   We only require resolution of "a few seconds accuracy" for this algorithm, so nothing particular clever is needed \(this isn't Google Spanner\).  We only even store times to the level of 1 second precision in this algorithm. 
+
+We amend the above protocol as follows.  The compute server's message to the project also includes $t_c$ which is the number of ms since the epoch as far as the compute server is concerned.   When the project receives the message, it computes its own time $t_p$.  If  $|t_c - t_p|$ is small, e.g., less than maybe 3 seconds, we just assume the clocks are properly sync'd and do nothing different.  Otherwise, we assume the clock on $t_c$ is wrong.  Instead of trying to fix it, we just shift all timestamps _provided by the compute server_  by adding $\delta = t_p - t_c$ to them.  Also, when sending timestamps computed on the project to the compute server, we subtract $\delta$ from them.  In this way everything should work and the compute server should be none the wiser.
+
+Except that all the files in the tarballs have the wrong timestamps, so we would have to adjust the mtimes of all these files.  And of course all the lower layer filesystem timestamps are just going to be wrong no matter what.  This is not something that can reasonably be done.  
+
+OK, so our protocol instead is that if the time is off by at least 10s \(say\), then instead of doing sync, the project responds with an error message.  This can then be surfaced to the user.
+
+## Notes
+
+- mtime versus ctime.  We do not use ctime at all. We do use mtime, but it is used to decide in which direction to sync files when there is a conflict.  It is NOT used as a threshold for whether or not to copy files at all.  E.g., if you have an old file `a.c` and type `cp -a a.c a2.c` on the compute server, then `a2.c` does still get copied back to the project.
+

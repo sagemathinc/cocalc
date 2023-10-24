@@ -179,8 +179,9 @@ interface MesgComputeFilesystemCache {
 export interface MesgSyncFSOptions {
   compute_server_id: number;
   computeStateJson?: string;
-  computeStateDiffJson?: string;
+  computeStateDiffJson?: string;  // TODO: this is NOT fully implemented
   exclude?: string[];
+  now: number;
 }
 
 interface MesgSyncFS {

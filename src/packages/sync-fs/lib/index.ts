@@ -134,7 +134,8 @@ class SyncFS {
       console.trace(err);
       // This will happen if there is a lot of filesystem activity
       // which changes things during the sync.
-      log(Date.now() - t0, "sync - WARNING: sync loop failed -- ", err);
+      log(Date.now() - t0, `sync - WARNING: sync loop failed -- ${err}`);
+      await this.logSyncError(`${err}`);
     } finally {
       if (this.state != ("closed" as State)) {
         this.state = "ready";
@@ -150,6 +151,14 @@ class SyncFS {
 
   private makeScratchDir = async () => {
     await mkdir(this.scratch, { recursive: true });
+  };
+
+  private logSyncError = async (mesg: string) => {
+    try {
+      await writeFile(join(this.scratch, "error.txt"), mesg);
+    } catch (err) {
+      log(`UNABLE to log sync err -- ${err}`);
+    }
   };
 
   private doSync = async () => {
@@ -172,6 +181,7 @@ class SyncFS {
         computeStateJson,
         exclude: this.exclude,
         compute_server_id: this.compute_server_id,
+        now: Date.now(),
       });
 
     // log("doSync", { removeFromCompute, copyFromCompute, copyFromProjectTar });

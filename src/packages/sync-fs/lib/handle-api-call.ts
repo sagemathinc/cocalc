@@ -11,11 +11,13 @@ import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 const log = getLogger("sync-fs:handle-api-call").debug;
 
 const SETTLE_TIMEOUT_S = 3;
+const CLOCK_THRESH_MS = 5 * 1000;
 
 export default async function handleApiCall({
   computeStateJson,
   exclude,
   compute_server_id,
+  now, // time in ms since epoch on compute server
 }: MesgSyncFSOptions) {
   log("handleApiCall");
   let computeState;
@@ -26,6 +28,12 @@ export default async function handleApiCall({
   }
   if (!process.env.HOME) {
     throw Error("HOME must be defined");
+  }
+  const clockSkew = Math.abs((now ?? 0) - Date.now());
+  if (clockSkew >= CLOCK_THRESH_MS) {
+    throw Error(
+      `Compute server clock is off by ${clockSkew}ms, which exceeds the ${CLOCK_THRESH_MS}ms threshhold.  Set your clock!`,
+    );
   }
 
   const projectState = await getProjectState(exclude ?? []);
@@ -154,7 +162,9 @@ function getOperations({ computeState, projectState }): {
     }
 
     // now both projectMtime and computeMtime are defined and different
-    if (Math.abs(projectMtime) > Math.abs(computeMtime)) {
+    // We use >= instead of > so that ties are broken in favor of the project,
+    // which is an arbitrary but consistent choice.
+    if (Math.abs(projectMtime) >= Math.abs(computeMtime)) {
       // project version is newer
       if (projectMtime > 0) {
         // it was edited later on the project
