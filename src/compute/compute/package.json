@@ -15,17 +15,9 @@
   "bin": {
     "cocalc-compute-start": "./bin/start.js"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
@@ -37,14 +29,9 @@
     "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/cookie": "^0.5.1",
     "awaiting": "^3.0.0",
     "cookie": "^0.5.0",
     "debug": "^4.3.2",
-    "execa": "npm:@esm2cjs/execa@6.1.1-cjs.1",
-    "mkdirp": "^1.0.4",
-    "tmp-promise": "^3.0.3",
-    "walkdir": "^0.4.1",
     "websocketfs": "^0.10.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
@@ -54,6 +41,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.16.14",
+    "@types/cookie": "^0.5.1",
     "typescript": "^5.2.2"
   }
 }
