@@ -409,6 +409,11 @@ export interface GoogleCloudData extends BaseData {
 
 export type Data = GoogleCloudData | LambdaCloudData;
 
+export interface ComponentState {
+  state: string;
+  time: number;
+}
+
 export interface ComputeServerUserInfo {
   id: number;
   account_id: string;
@@ -431,6 +436,7 @@ export interface ComputeServerUserInfo {
   data?: Data;
   purchase_id?: number;
   last_edited?: Date;
+  detailed_state?: { [name: string]: ComponentState };
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -466,6 +472,7 @@ Table({
           avatar_image_tiny: null,
           last_edited: null,
           purchase_id: null,
+          detailed_state: null,
         },
       },
     },
@@ -522,7 +529,7 @@ Table({
     },
     state: {
       type: "string",
-      desc: "One of - 'off', 'starting', 'running', 'stopping'",
+      desc: "One of - 'off', 'starting', 'running', 'stopping'.  This is the underlying VM's state.",
       pg_type: "VARCHAR(16)",
     },
     idle_timeout: {
@@ -572,6 +579,11 @@ Table({
     last_edited: {
       type: "timestamp",
       desc: "Last time the configuration, state, etc., changed.",
+    },
+    detailed_state: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Map from component name to something like {state:'running',time:Date.now()}, e.g., {vm: {state:'running', time:393939938484}}, filesystem: {state:'updating', time:939398484892}, uptime:{state:'22:56:33 up 3 days,  9:28,  0 users,  load average: 0.93, 0.73, 0.56', time:?}}.  This is used to provide users with insight into what's currently happening on their compute server.",
     },
   },
 });
