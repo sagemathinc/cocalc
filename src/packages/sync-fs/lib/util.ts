@@ -50,7 +50,9 @@ export async function mtimeDirTree({
 
 function findExclude(exclude: string[]): string[] {
   const v = ["-not", "-path", "."];
-  for (const path of exclude) {
+  // the .* is to exclude all hidden files/directories in home directory,
+  // which we always do no matter what.
+  for (const path of exclude.concat([".*"])) {
     v.push("-not");
     v.push("-path");
     v.push(`./${path}`);

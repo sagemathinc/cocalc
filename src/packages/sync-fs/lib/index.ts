@@ -34,8 +34,9 @@ interface Options {
   compute_server_id: number;
   // sync at most every this many seconds
   syncInterval?: number;
-  // list of paths that are excluded from sync.
-  // NOTE: hidden files in HOME are always excluded
+  // list of top-level directory names that are excluded from sync.
+  // do not use wildcards.
+  // NOTE: hidden files in HOME are *always* excluded.
   exclude?: string[];
   readTrackingPath?: string;
 }
@@ -278,6 +279,18 @@ class SyncFS {
     return await api.exec(opts);
   };
 
+  private isExcluded = (path: string) => {
+    if (!path || path.startsWith(".")) {
+      return true;
+    }
+    for (const e of this.exclude) {
+      if (path == e || path.startsWith(e + "/")) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   private getRecentlyReadFiles = async (): Promise<string[]> => {
     if (!this.readTrackingPath) {
       return [];
@@ -292,9 +305,10 @@ class SyncFS {
     }
     const v = files
       .split("\n")
-      .filter((x) => !x.startsWith("/.compute-server") && x.trim())
-      .map((x) => x.slice(1));
+      .map((x) => x.slice(1))
+      .filter((x) => !this.isExcluded(x));
     log("getRecentlyReadFiles: ", v.length, " files");
+    //log("getRecentlyReadFiles: ", v);  // low level debug
     return v;
   };
 
@@ -315,8 +329,8 @@ class SyncFS {
     );
     const args = [
       "-cf",
-      "--no-recursion",
       readTrackingFilesTarOnProject,
+      "--no-recursion",
       "--verbatim-files-from",
       "--files-from",
       readTrackingOnProject,
@@ -365,7 +379,7 @@ class SyncFS {
       const tarball = await this.createReadTrackingTarball(recentFiles);
       await this.extractRecentlyReadFiles(tarball);
     } catch (err) {
-      log("updateReadTracking: not updating due to err", err);
+      log("updateReadTracking: not updating due to err", `${err}`);
     }
   };
 }

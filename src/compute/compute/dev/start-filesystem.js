@@ -44,7 +44,7 @@ async function main() {
       path: PROJECT_HOME,
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
       unionfs,
-      exclude: [".*", "scratch", "tmp"],
+      exclude: ["scratch", "tmp"],
       readTrackingPath: process.env.READ_TRACKING_PATH,
     });
     unmount = exports.fs.unmount;
