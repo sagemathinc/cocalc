@@ -62,6 +62,7 @@ class SyncFS {
   private exclude: string[];
   private readTrackingPath?: string;
   private scratch: string;
+  private error_txt: string;
 
   private client: SyncClient;
 
@@ -93,13 +94,22 @@ class SyncFS {
       ".compute-servers",
       `${this.compute_server_id}`,
     );
-
     this.client = new SyncClient({
       project_id: this.project_id,
       client_id: encodeIntToUUID(this.compute_server_id),
     });
     this.state = "ready";
+    this.error_txt = join(this.scratch, "error.txt");
   }
+
+  init = async () => {
+    await this.mountUnionFS();
+    await this.makeScratchDir();
+    try {
+      await rm(this.error_txt);
+    } catch (_) {}
+    await this.syncLoop();
+  };
 
   close = async () => {
     log("close");
@@ -114,11 +124,6 @@ class SyncFS {
     const args = ["-uz", this.mount];
     log("fusermount", args.join(" "));
     await execa("fusermount", args);
-  };
-
-  init = async () => {
-    await this.mountUnionFS();
-    await this.syncLoop();
   };
 
   mountUnionFS = async () => {
@@ -194,7 +199,7 @@ class SyncFS {
 
   private logSyncError = async (mesg: string) => {
     try {
-      await writeFile(join(this.scratch, "error.txt"), mesg);
+      await writeFile(this.error_txt, mesg);
     } catch (err) {
       log(`UNABLE to log sync err -- ${err}`);
     }
