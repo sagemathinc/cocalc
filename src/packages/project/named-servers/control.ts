@@ -51,7 +51,7 @@ export async function start(name: NamedServerName): Promise<number> {
   const p = await paths(name);
   await writeFile(p.port, `${port}`);
   await writeFile(p.pid, `${child.pid}`);
-  await writeFile(p.command, `$!/bin/sh\n${cmd}\n`);
+  await writeFile(p.command, `#!/bin/sh\n${cmd}\n`);
   return port;
 }
 
