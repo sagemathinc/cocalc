@@ -33,19 +33,22 @@ New -- Feb 2022:  If you want to work on something at https://github.com/sagemat
 
 ### Contributors
 
-- Harald Schilly
-- Hal Snyder
-- William Stein
-- Travis Scholl
-- John Jeng
 - Greg Bard
 - Rob Beezer
+- Blaec Bejarano
 - Keith Clawson
 - Tim Clemans
 - Andy Huchala
+- John Jeng
 - Jon Lee
 - Simon Luu
+- Andrey Novoseltsev
 - Nicholas Ruhland
+- Harald Schilly
+- Travis Scholl
+- Hal Snyder
+- William Stein
+- Jonathan Thompson 
 - Todd Zimmerman
 
 ... and _many_ others: See https://github.com/sagemathinc/cocalc/graphs/contributors
