@@ -114,9 +114,11 @@ mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
+set +e
 docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
+  set -e
   ${setState("filesystem", "pull")}
   /cocalc/docker_pull.py ${image}
   ${setState("filesystem", "init")}
@@ -128,6 +130,7 @@ if [ $? -ne 0 ]; then
    -v "$COCALC":/cocalc \
    ${image}
 else;
+  set -e
   ${setState("filesystem", "init")}
 fi
  `;
@@ -163,10 +166,11 @@ function compute({ arch, image, gpu, setState }) {
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-
+set +e
 docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
+  set -e
   ${setState("compute", "pull")}
    /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
   ${setState("compute", "run")}
@@ -180,7 +184,8 @@ if [ $? -ne 0 ]; then
    -v "$COCALC":/cocalc \
    ${docker}${getImagePostfix(arch)}
 else;
-   ${setState("compute", "run")}
+  set -e
+  ${setState("compute", "run")}
 fi
  `;
 }
