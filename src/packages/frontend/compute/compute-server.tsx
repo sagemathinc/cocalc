@@ -6,6 +6,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components";
 import Color from "./color";
 import State from "./state";
+import DetailedState from "./detailed-state";
 import getActions from "./action";
 import Cloud from "./cloud";
 import Description from "./description";
@@ -34,6 +35,7 @@ export default function ComputeServer({
   color = "#888",
   state,
   state_changed,
+  detailed_state,
   cloud,
   cost_per_hour,
   purchase_id,
@@ -327,6 +329,7 @@ export default function ComputeServer({
               state={state}
               short
             />
+            <DetailedState detailed_state={detailed_state} />
           </div>
         }
       />
