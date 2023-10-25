@@ -41,7 +41,7 @@ export default async function startupScript({
   return `
 #!/bin/bash
 
-set -ev
+set -v
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
@@ -49,6 +49,10 @@ setState vm init
 
 setState cocalc install
 ${installCoCalc(arch)}
+if [ $? -ne 0 ]; then
+   setState cocalc install-error
+   exit 1
+fi
 setState cocalc ready
 
 setState conf install
@@ -59,7 +63,15 @@ ${installConf({
   compute_server_id,
   hostname,
 })}
+if [ $? -ne 0 ]; then
+   setState conf install-conf-error
+   exit 1
+fi
 ${doInstallUser ? installUser() : ""}
+if [ $? -ne 0 ]; then
+   setState conf install-user-error
+   exit 1
+fi
 setState conf ready
 
 ${runCoCalcCompute({
@@ -68,7 +80,7 @@ ${runCoCalcCompute({
   image,
 })}
 
-setState vm running
+setState vm ready
 `;
 }
 
@@ -93,9 +105,21 @@ setState filesystem init
 # we don't have to worry anymore about deleting /home/user/*,
 # which is scary.
 mkdir -p /home/user && chown ${UID}:${UID} /home/user
-mkdir -p /home/unionfs/lower && chown ${UID}:${UID} /home/unionfs/lower
-mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
+if [ $? -ne 0 ]; then
+   setState filesystem mkdir-home-error
+   exit 1
+fi
 
+mkdir -p /home/unionfs/lower && chown ${UID}:${UID} /home/unionfs/lower
+if [ $? -ne 0 ]; then
+   setState filesystem mkdir-unionfs-lower-error
+   exit 1
+fi
+mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
+if [ $? -ne 0 ]; then
+   setState filesystem mkdir-unionfs-upper-error
+   exit 1
+fi
 
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
@@ -105,13 +129,15 @@ mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-set +e
 docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  set -e
   setState filesystem pull
   /cocalc/docker_pull.py ${image}
+  if [ $? -ne 0 ]; then
+     setState filesystem pull-error
+     exit 1
+  fi
   setState filesystem run
   docker run \
    -d \
@@ -120,11 +146,15 @@ if [ $? -ne 0 ]; then
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v "$COCALC":/cocalc \
    ${image}
+  if [ $? -ne 0 ]; then
+     setState filesystem run-error
+     exit 1
+  fi
+  setState filesystem running
 
 else
 
-  set -e
-  setState filesystem run
+  setState filesystem running
 fi
  `;
 }
@@ -159,13 +189,15 @@ function compute({ arch, image, gpu }) {
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-set +e
 docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  set -e
   setState compute pull
-   /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
+  /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
+  if [ $? -ne 0 ]; then
+     setState compute pull-error
+     exit 1
+  fi
   setState compute run
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
@@ -176,11 +208,15 @@ if [ $? -ne 0 ]; then
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v "$COCALC":/cocalc \
    ${docker}${getImagePostfix(arch)}
+  if [ $? -ne 0 ]; then
+     setState compute run-error
+     exit 1
+  fi
+  setState compute running
 
 else
 
-  set -e
-  setState compute run
+  setState compute running
 fi
  `;
 }
@@ -192,7 +228,7 @@ function setState {
   compname=$1
   compvalue=$2
 
-  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\"id\":$idnum,\"name\":\"$compname\",\"value\":\"$compvalue\"}" ${apiServer}/api/v2/compute/set-component-state
+  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d '{\"id\":$idnum,\"name\":\"$compname\",\"value\":\"$compvalue\"}' '${apiServer}/api/v2/compute/set-component-state
 }
   `;
 }
