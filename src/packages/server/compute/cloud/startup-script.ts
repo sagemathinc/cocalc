@@ -38,28 +38,20 @@ export default async function startupScript({
     apiServer = `https://${apiServer}`;
   }
 
-  const setState = (name, value) => {
-    return setComponentState({
-      api_key,
-      apiServer,
-      compute_server_id,
-      name,
-      value,
-    });
-  };
-
   return `
 #!/bin/bash
 
 set -ev
 
-${setState("vm", "init")}
+${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
-${setState("cocalc", "install")}
+setState vm init
+
+setState cocalc install
 ${installCoCalc(arch)}
-${setState("cocalc", "ready")}
+setState cocalc ready
 
-${setState("conf", "install")}
+setState conf install
 ${installConf({
   api_key,
   api_server: apiServer,
@@ -68,16 +60,15 @@ ${installConf({
   hostname,
 })}
 ${doInstallUser ? installUser() : ""}
-${setState("conf", "ready")}
+setState conf ready
 
 ${runCoCalcCompute({
-  setState,
   gpu,
   arch,
   image,
 })}
 
-${setState("vm", "running")}
+setState vm running
 `;
 }
 
@@ -90,12 +81,12 @@ ${compute(opts)}
 `;
 }
 
-function filesystem({ arch, setState }) {
+function filesystem({ arch }) {
   const image = `sagemathinc/compute-filesystem${getImagePostfix(arch)}`;
 
   return `
 # Docker container that mounts the filesystem(s)
-${setState("filesystem", "mkdir")}
+setState filesystem init
 
 # Make the home directory
 # Note the filesystem mount is with the option nonempty, so
@@ -119,9 +110,9 @@ docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   set -e
-  ${setState("filesystem", "pull")}
+  setState filesystem pull
   /cocalc/docker_pull.py ${image}
-  ${setState("filesystem", "init")}
+  setState filesystem run
   docker run \
    -d \
    --name=filesystem \
@@ -129,9 +120,11 @@ if [ $? -ne 0 ]; then
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v "$COCALC":/cocalc \
    ${image}
-else;
+
+else
+
   set -e
-  ${setState("filesystem", "init")}
+  setState filesystem run
 fi
  `;
 }
@@ -148,7 +141,7 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function compute({ arch, image, gpu, setState }) {
+function compute({ arch, image, gpu }) {
   const docker = IMAGES[image]?.docker ?? `sagemathinc/compute-${image}`;
 
   // Start a container that connects to the project
@@ -171,9 +164,9 @@ docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   set -e
-  ${setState("compute", "pull")}
+  setState compute pull
    /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
-  ${setState("compute", "run")}
+  setState compute run
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --privileged \
@@ -183,21 +176,23 @@ if [ $? -ne 0 ]; then
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v "$COCALC":/cocalc \
    ${docker}${getImagePostfix(arch)}
-else;
+
+else
+
   set -e
-  ${setState("compute", "run")}
+  setState compute run
 fi
  `;
 }
 
-function setComponentState({
-  api_key,
-  apiServer,
-  compute_server_id,
-  name,
-  value,
-}) {
-  return `curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d '${JSON.stringify(
-    { id: compute_server_id, name, value },
-  )}' ${apiServer}/api/v2/compute/set-component-state`;
+function defineSetStateFunction({ api_key, apiServer, compute_server_id }) {
+  return `
+function setState {
+  idnum=${compute_server_id}
+  compname=$1
+  compvalue=$2
+
+  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\"id\":$idnum,\"name\":\"$compname\",\"value\":\"$compvalue\"}" ${apiServer}/api/v2/compute/set-component-state
+}
+  `;
 }
