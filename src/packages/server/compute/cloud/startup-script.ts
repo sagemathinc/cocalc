@@ -38,13 +38,28 @@ export default async function startupScript({
     apiServer = `https://${apiServer}`;
   }
 
+  const setState = (name, value) => {
+    return setComponentState({
+      api_key,
+      apiServer,
+      compute_server_id,
+      name,
+      value,
+    });
+  };
+
   return `
 #!/bin/bash
 
 set -ev
 
-${installCoCalc(arch)}
+${setState("vm", "init")}
 
+${setState("cocalc", "install")}
+${installCoCalc(arch)}
+${setState("cocalc", "ready")}
+
+${setState("conf", "install")}
 ${installConf({
   api_key,
   api_server: apiServer,
@@ -52,14 +67,17 @@ ${installConf({
   compute_server_id,
   hostname,
 })}
-
 ${doInstallUser ? installUser() : ""}
+${setState("conf", "ready")}
 
 ${runCoCalcCompute({
+  setState,
   gpu,
   arch,
   image,
 })}
+
+${setState("vm", "running")}
 `;
 }
 
@@ -67,21 +85,17 @@ ${runCoCalcCompute({
 // TODO: we could set the hostname in a more useful way!
 function runCoCalcCompute(opts) {
   return `
-${mountFilesystems(opts)}
-${computeManager(opts)}
+${filesystem(opts)}
+${compute(opts)}
 `;
 }
 
-function mountFilesystems({ arch }) {
+function filesystem({ arch, setState }) {
   const image = `sagemathinc/compute-filesystem${getImagePostfix(arch)}`;
 
   return `
 # Docker container that mounts the filesystem(s)
-
-# Ensure that a data directory exists.
-# TODO: soon we'll setup any S3, GCS, sshfs mounts here.
-mkdir -p /data
-chown ${UID}:${UID} /data
+${setState("filesystem", "mkdir")}
 
 # Make the home directory
 # Note the filesystem mount is with the option nonempty, so
@@ -100,13 +114,22 @@ mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-docker start filesystem >/dev/null 2>&1 || /cocalc/docker_pull.py ${image} && docker run \
+docker start filesystem >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+  ${setState("filesystem", "pull")}
+  /cocalc/docker_pull.py ${image}
+  ${setState("filesystem", "init")}
+  docker run \
    -d \
    --name=filesystem \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v "$COCALC":/cocalc \
    ${image}
+else;
+  ${setState("filesystem", "init")}
+fi
  `;
 }
 
@@ -122,7 +145,7 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function computeManager({ arch, image, gpu }) {
+function compute({ arch, image, gpu, setState }) {
   const docker = IMAGES[image]?.docker ?? `sagemathinc/compute-${image}`;
 
   // Start a container that connects to the project
@@ -140,17 +163,36 @@ function computeManager({ arch, image, gpu }) {
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
-docker start compute >/dev/null 2>&1 || /cocalc/docker_pull.py ${docker}${getImagePostfix(
-    arch,
-  )} && docker run -d ${gpu ? GPU_FLAGS : ""} \
+
+docker start compute >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+  ${setState("compute", "pull")}
+   /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
+  ${setState("compute", "run")}
+  docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -p 443:443 \
    -p 80:80 \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   -v /data:/data \
    -v "$COCALC":/cocalc \
    ${docker}${getImagePostfix(arch)}
+else;
+   ${setState("compute", "run")}
+fi
  `;
+}
+
+function setComponentState({
+  api_key,
+  apiServer,
+  compute_server_id,
+  name,
+  value,
+}) {
+  return `curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d '${JSON.stringify(
+    { id: compute_server_id, name, value },
+  )}' ${apiServer}/api/v2/compute/set-component-state`;
 }
