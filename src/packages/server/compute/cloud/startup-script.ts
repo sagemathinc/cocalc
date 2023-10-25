@@ -104,13 +104,13 @@ setState filesystem init
 # Note the filesystem mount is with the option nonempty, so
 # we don't have to worry anymore about deleting /home/user/*,
 # which is scary.
-mkdir -p /home/user && chown ${UID}:${UID} /home/user
+fusermount -u /home/user 2>/dev/null; mkdir -p /home/user && chown ${UID}:${UID} /home/user
 if [ $? -ne 0 ]; then
    setState filesystem mkdir-home-error
    exit 1
 fi
 
-mkdir -p /home/unionfs/lower && chown ${UID}:${UID} /home/unionfs/lower
+fusermount -u /home/unionfs/lower 2>/dev/null; mkdir -p /home/unionfs/lower && chown ${UID}:${UID} /home/unionfs/lower
 if [ $? -ne 0 ]; then
    setState filesystem mkdir-unionfs-lower-error
    exit 1
@@ -228,7 +228,7 @@ function setState {
   compname=$1
   compvalue=$2
 
-  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d '{\"id\":$idnum,\"name\":\"$compname\",\"value\":\"$compvalue\"}' '${apiServer}/api/v2/compute/set-component-state
+  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$idnum,\\"name\\":\\"$compname\\",\\"value\\":\\"$compvalue\\"}" ${apiServer}/api/v2/compute/set-component-state
 }
   `;
 }
