@@ -45,12 +45,14 @@ set -v
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
+setState state running
+
 setState vm init
 
 setState cocalc install
 ${installCoCalc(arch)}
 if [ $? -ne 0 ]; then
-   setState cocalc install-error
+   setState cocalc error "problem with installation"
    exit 1
 fi
 setState cocalc ready
@@ -64,12 +66,12 @@ ${installConf({
   hostname,
 })}
 if [ $? -ne 0 ]; then
-   setState conf install-conf-error
+   setState conf error "problem installing configuration"
    exit 1
 fi
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
-   setState conf install-user-error
+   setState conf error "problem creating user"
    exit 1
 fi
 setState conf ready
@@ -106,18 +108,18 @@ setState filesystem init
 # which is scary.
 fusermount -u /home/user 2>/dev/null; mkdir -p /home/user && chown ${UID}:${UID} /home/user
 if [ $? -ne 0 ]; then
-   setState filesystem mkdir-home-error
+   setState filesystem error "problem making /home/user directory"
    exit 1
 fi
 
 fusermount -u /home/unionfs/lower 2>/dev/null; mkdir -p /home/unionfs/lower && chown ${UID}:${UID} /home/unionfs/lower
 if [ $? -ne 0 ]; then
-   setState filesystem mkdir-unionfs-lower-error
+   setState filesystem error "problem creating /home/unionfs/lower"
    exit 1
 fi
 mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
 if [ $? -ne 0 ]; then
-   setState filesystem mkdir-unionfs-upper-error
+   setState filesystem error "problem creating /home/unionfs/upper"
    exit 1
 fi
 
@@ -135,7 +137,7 @@ if [ $? -ne 0 ]; then
   setState filesystem pull
   /cocalc/docker_pull.py ${image}
   if [ $? -ne 0 ]; then
-     setState filesystem pull-error
+     setState filesystem error "problem pulling Docker image ${image}"
      exit 1
   fi
   setState filesystem run
@@ -147,7 +149,7 @@ if [ $? -ne 0 ]; then
    -v "$COCALC":/cocalc \
    ${image}
   if [ $? -ne 0 ]; then
-     setState filesystem run-error
+     setState filesystem error "problem creating filesystem Docker container"
      exit 1
   fi
   setState filesystem running
@@ -195,7 +197,9 @@ if [ $? -ne 0 ]; then
   setState compute pull
   /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
   if [ $? -ne 0 ]; then
-     setState compute pull-error
+     setState compute error "problem pulling Docker image ${docker}${getImagePostfix(
+       arch,
+     )}"
      exit 1
   fi
   setState compute run
@@ -209,7 +213,7 @@ if [ $? -ne 0 ]; then
    -v "$COCALC":/cocalc \
    ${docker}${getImagePostfix(arch)}
   if [ $? -ne 0 ]; then
-     setState compute run-error
+     setState compute error "problem creating compute Docker container"
      exit 1
   fi
   setState compute running
@@ -227,8 +231,9 @@ function setState {
   idnum=${compute_server_id}
   compname=$1
   compvalue=$2
+  compextra=$3
 
-  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$idnum,\\"name\\":\\"$compname\\",\\"value\\":\\"$compvalue\\"}" ${apiServer}/api/v2/compute/set-component-state
+  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$idnum,\\"name\\":\\"$compname\\",\\"value\\":\\"$compvalue\\",\\"extra\\":\\"$compextra\\"}" ${apiServer}/api/v2/compute/set-component-state
 }
   `;
 }

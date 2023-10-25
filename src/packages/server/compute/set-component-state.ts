@@ -16,6 +16,15 @@ export default async function setComponentState({
   name,
   value,
 }: Options) {
+  const pool = getPool();
+  if (name == "state") {
+    // special case to set the overall compute server state
+    await pool.query(
+      "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND state != $1 AND project_id=$3",
+      [value, id, project_id],
+    );
+    return;
+  }
   if (!name) {
     throw Error("name must be specified");
   }
@@ -25,7 +34,6 @@ export default async function setComponentState({
   if (value && value.length >= MAX_VALUE_LENGTH) {
     throw Error(`name must be at most ${MAX_VALUE_LENGTH} characters`);
   }
-  const pool = getPool();
   const args = [project_id, id];
   let query;
   if (!value) {
