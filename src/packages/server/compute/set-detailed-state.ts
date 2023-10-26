@@ -14,7 +14,7 @@ interface Options {
   progress?: number;
 }
 
-export default async function setComponentState({
+export default async function setDetailedState({
   project_id,
   id,
   name,
@@ -27,7 +27,7 @@ export default async function setComponentState({
   if (name == "state") {
     // special case to set the overall compute server state
     await pool.query(
-      "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND state != $1 AND project_id=$3",
+      "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE  (state is null or state != $1) AND id=$2 AND project_id=$3",
       [state, id, project_id],
     );
     return;

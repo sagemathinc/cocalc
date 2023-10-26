@@ -249,8 +249,8 @@ function setState {
   timeout=$4
   progress=$5
 
-  echo "name is $state"
-  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"state\\":\\"$state\\",\\"extra\\":\\"$extra\\",\\"timeout\\":$timeout,\\"progress\\":$progress}" ${apiServer}/api/v2/compute/set-component-state
+  echo "$name is $state"
+  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"state\\":\\"$state\\",\\"extra\\":\\"$extra\\",\\"timeout\\":$timeout,\\"progress\\":$progress}" ${apiServer}/api/v2/compute/set-detailed-state
 }
   `;
 }

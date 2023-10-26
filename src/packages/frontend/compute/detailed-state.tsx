@@ -2,21 +2,25 @@ import { Progress } from "antd";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 
-const ICONS = {
-  compute: "server",
-  filesystem: "files",
-  "filesystem-network": "network-wired",
-  "filesystem-cache": "microchip",
-  vm: "desktop",
-  cocalc: "cocalc-ring",
+const SPEC = {
+  compute: { icon: "server", label: "Jupyter and Terminals" },
+  filesystem: { icon: "files", label: "/home/user" },
+  "filesystem-network": {
+    icon: "network-wired",
+    label: "Network Filesystem",
+  },
+  "filesystem-cache": { icon: "microchip", label: "Filesystem Cache" },
+  vm: { icon: "desktop", label: "VM" },
+  cocalc: { icon: "cocalc-ring", label: "CoCalc" },
 };
 
 // order the components
 const COMPONENTS = [
+  "filesystem-sync",
+  "compute",
   "filesystem",
   "filesystem-cache",
   "filesystem-network",
-  "compute",
   "cocalc",
   "vm",
 ];
@@ -43,6 +47,9 @@ export default function DetailedState({ detailed_state, color }) {
 
 function toLabel(name: string) {
   if (!name) return "";
+  if (SPEC[name]?.label) {
+    return SPEC[name].label;
+  }
   return name
     .split("-")
     .map((x) => capitalize(x))
@@ -54,7 +61,10 @@ function State({ name, state, time, expire, progress, extra }) {
   return (
     <div style={{ display: "flex" }}>
       <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
-        <Icon name={ICONS[name] ?? "cube"} style={{ marginRight: "5px" }} />{" "}
+        <Icon
+          name={SPEC[name]?.icon ?? "cube"}
+          style={{ marginRight: "5px" }}
+        />{" "}
         {toLabel(name)}
       </div>
       {!expired && (

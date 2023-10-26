@@ -47,6 +47,7 @@ import {
   stopScript,
   deprovisionScript,
 } from "@cocalc/server/compute/cloud/off-scripts";
+import setDetailedState from "@cocalc/server/compute/set-detailed-state";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -85,6 +86,14 @@ export const start: (opts: {
     await doStart(server);
     await setState(id, "running");
     await saveProvisionedConfiguration(server);
+    await setDetailedState({
+      project_id: server.project_id,
+      id,
+      name: "vm",
+      state: "booting",
+      timeout: 60,
+      progress: 10,
+    });
   });
 });
 

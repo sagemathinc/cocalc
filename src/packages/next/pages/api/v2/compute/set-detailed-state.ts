@@ -4,12 +4,12 @@ about what is going on in a compute server.
 
 Example use, where 'sk-eTUKbl2lkP9TgvFJ00001n' is a project api key.
 
-curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"id":"13","name":"foo","value":"bar389"}' -H 'Content-Type: application/json' https://cocalc.com/api/v2/compute/set-component-state
+curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"id":"13","name":"foo","value":"bar389"}' -H 'Content-Type: application/json' https://cocalc.com/api/v2/compute/set-detailed-state
 */
 
 // api_key resolvs to a project id.
 import getProjectId from "lib/account/get-account";
-import setComponentState from "@cocalc/server/compute/set-component-state";
+import setDetailedState from "@cocalc/server/compute/set-detailed-state";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -27,7 +27,7 @@ async function get(req) {
     throw Error("invalid api key");
   }
   const { id, name, state, extra, timeout, progress } = getParams(req);
-  await setComponentState({
+  await setDetailedState({
     project_id,
     id,
     name,

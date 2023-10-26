@@ -7,7 +7,7 @@ import { isEqual } from "lodash";
 export async function setState(id: number, state: State) {
   const pool = getPool();
   await pool.query(
-    "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND state != $1",
+    "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND (state is null or state != $1)",
     [state, id],
   );
 }
