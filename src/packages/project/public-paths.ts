@@ -117,7 +117,12 @@ class MonitorPublicPaths {
     let changed: boolean = false; // don't know yet
     let stats: any;
     d("lstat");
-    stats = await callback(lstat, path);
+    try {
+      stats = await callback(lstat, path);
+    } catch (err) {
+      d(err);
+      return;
+    }
     if (stats.mtime.valueOf() > last_edited) {
       d("clearly modified, since path changed");
       changed = true;
