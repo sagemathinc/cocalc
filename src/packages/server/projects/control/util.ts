@@ -150,8 +150,16 @@ export async function createUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   try {
     await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
-  } catch (_) {
-    // it's fine -- we delete just in case it is left over.
+  } catch (err) {
+    winston.debug(
+      `WARNING: cannot delete user ${username} -- assuming user already exists`,
+    );
+    // See https://github.com/sagemathinc/cocalc/issues/6967
+    // If we try to create group, etc., below everything crashes.  But we can't
+    // remove the user if processes are running as the user, which can happen,
+    // since we don't do killall before starting the project (to nicely allow for
+    // leaving things running using tmux, say).
+    return;
   }
   const uid = `${getUid(project_id)}`;
   winston.debug("createUser: adding group");
