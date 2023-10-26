@@ -8,6 +8,8 @@ interface Options {
   id: number;
   name: string;
   value?: string;
+  timeout?: number;
+  progress?: number;
 }
 
 export default async function setComponentState({
@@ -15,6 +17,8 @@ export default async function setComponentState({
   id,
   name,
   value,
+  timeout,
+  progress,
 }: Options) {
   const pool = getPool();
   if (name == "state") {
@@ -25,14 +29,23 @@ export default async function setComponentState({
     );
     return;
   }
-  if (!name) {
+  if (!name || typeof name != "string") {
     throw Error("name must be specified");
   }
   if (name.length >= MAX_NAME_LENGTH) {
     throw Error(`name must be at most ${MAX_NAME_LENGTH} characters`);
   }
-  if (value && value.length >= MAX_VALUE_LENGTH) {
+  if (value && (typeof value != "string" || value.length >= MAX_VALUE_LENGTH)) {
     throw Error(`name must be at most ${MAX_VALUE_LENGTH} characters`);
+  }
+  if (timeout && (typeof timeout != "number" || timeout <= 0)) {
+    throw Error("if given, timeout must be a positive number (of seconds)");
+  }
+  if (
+    progress &&
+    (typeof progress != "number" || progress < 0 || progress > 100)
+  ) {
+    throw Error("if given, progress must be a number between 0 and 100");
   }
   const args = [project_id, id];
   let query;
@@ -44,7 +57,16 @@ export default async function setComponentState({
     // set it
     query =
       "detailed_state = COALESCE(detailed_state, '{}'::jsonb) || $3::jsonb";
-    args.push(JSON.stringify({ [name]: { value, time: Date.now() } }));
+    args.push(
+      JSON.stringify({
+        [name]: {
+          value,
+          time: Date.now(),
+          expire: timeout ? Date.now() + 1000 * timeout : undefined,
+          progress,
+        },
+      }),
+    );
   }
   const { rowCount } = await pool.query(
     `UPDATE compute_servers SET ${query}, last_edited=NOW() WHERE project_id=$1 AND id=$2`,

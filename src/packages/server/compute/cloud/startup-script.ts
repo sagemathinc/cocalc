@@ -228,12 +228,14 @@ fi
 function defineSetStateFunction({ api_key, apiServer, compute_server_id }) {
   return `
 function setState {
-  idnum=${compute_server_id}
-  compname=$1
-  compvalue=$2
-  compextra=$3
+  id=${compute_server_id}
+  component=$1
+  value=$2
+  extra=$3
+  timeout=$4
+  progress=$5
 
-  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$idnum,\\"name\\":\\"$compname\\",\\"value\\":\\"$compvalue\\",\\"extra\\":\\"$compextra\\"}" ${apiServer}/api/v2/compute/set-component-state
+  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"value\\":\\"$value\\",\\"extra\\":\\"$extra\\",\\"timeout\\":\\"$timeout\\",\\"progress\\":\\"$progress\\"}" ${apiServer}/api/v2/compute/set-component-state
 }
   `;
 }

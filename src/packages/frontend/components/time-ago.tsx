@@ -56,7 +56,6 @@ interface TimeAgoElementProps {
   date;
   time_ago_absolute?: boolean;
   style?: CSS;
-  minPeriod?: number;
   click_to_toggle?: boolean;
 }
 
@@ -67,25 +66,22 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   time_ago_absolute,
   date,
   style,
-  minPeriod,
   click_to_toggle,
 }) => {
   if (live == null) live = true;
 
-  // "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
-  // Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
-  if (minPeriod == null) minPeriod = 45;
   if (placement == null) placement = "top";
   if (time_ago_absolute == null) time_ago_absolute = false;
 
   function render_timeago_element(d) {
+    // See this bug -- https://github.com/nmn/react-timeago/issues/181
     return (
       <UpstreamTimeAgo
+        key={d}
         title=""
         date={d}
         style={{ cursor: "pointer", ...style }}
         formatter={timeago_formatter}
-        minPeriod={minPeriod}
         live={live}
       />
     );
@@ -176,7 +172,6 @@ interface TimeAgoProps {
   live?: boolean; // whether or not to auto-update
   style?: CSS;
   date?;
-  minPeriod?: number;
   time_ago_absolute?: boolean;
   click_to_toggle?: boolean; // default true
 }
@@ -189,7 +184,6 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
       live,
       style,
       date,
-      minPeriod,
       time_ago_absolute,
       click_to_toggle = true,
     } = props;
@@ -207,7 +201,6 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
           time_ago_absolute ?? other_settings.get("time_ago_absolute") ?? false
         }
         style={style}
-        minPeriod={minPeriod}
         click_to_toggle={click_to_toggle}
       />
     );

@@ -2,7 +2,7 @@
 Set the state of a component.   This is mainly used from the backend to convey information to user
 about what is going on in a compute server.
 
-Example use, where 'sk-eTUKbl2lkP9TgvFJ00001n' is a project api key.  
+Example use, where 'sk-eTUKbl2lkP9TgvFJ00001n' is a project api key.
 
 curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"id":"13","name":"foo","value":"bar389"}' -H 'Content-Type: application/json' https://cocalc.com/api/v2/compute/set-component-state
 */
@@ -26,12 +26,14 @@ async function get(req) {
   if (!project_id) {
     throw Error("invalid api key");
   }
-  const { id, name, value } = getParams(req);
+  const { id, name, value, extra, timeout, progress } = getParams(req);
   await setComponentState({
     project_id,
     id,
     name,
     value,
+    timeout,
+    progress,
   });
   return { status: "ok" };
 }
