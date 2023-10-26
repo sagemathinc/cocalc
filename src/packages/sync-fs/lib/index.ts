@@ -17,6 +17,7 @@ import type {
 } from "@cocalc/util/types/execute-code";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
+import { plural } from "@cocalc/util/misc";
 
 const log = getLogger("sync-fs:index").debug;
 
@@ -271,7 +272,10 @@ class SyncFS {
       this.reportState({
         state: "send-files-to-project",
         progress: 50,
-        extra: `${copyFromCompute?.length} files`,
+        extra: `${copyFromCompute?.length ?? 0} ${plural(
+          copyFromCompute?.length ?? 0,
+          "file",
+        )}`,
       });
       await this.sendFiles(copyFromCompute);
     }
