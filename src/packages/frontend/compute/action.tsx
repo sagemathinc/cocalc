@@ -364,7 +364,7 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
           NOTE: This does not delete Docker or any Docker images. Run this to
           delete all unused Docker images:
           <br />
-          <CopyToClipBoard value="sudo docker images purge" />
+          <CopyToClipBoard value="docker image prune -a" />
         </div>
       )}
     </Modal>
