@@ -13,12 +13,12 @@ const ICONS = {
 
 // order the components
 const COMPONENTS = [
-  "vm",
-  "cocalc",
-  "filesystem-network",
-  "filesystem-cache",
   "filesystem",
+  "filesystem-cache",
+  "filesystem-network",
   "compute",
+  "cocalc",
+  "vm",
 ];
 
 export default function DetailedState({ detailed_state, color }) {
