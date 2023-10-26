@@ -271,7 +271,6 @@ class SyncFS {
       this.reportState({
         state: "send-files-to-project",
         progress: 50,
-        timeout: 300,
         extra: `${copyFromCompute?.length} files`,
       });
       await this.sendFiles(copyFromCompute);
@@ -280,8 +279,7 @@ class SyncFS {
       isActive = true;
       this.reportState({
         state: "receive-files-from-project",
-        progress: 75,
-        timeout: 300,
+        progress: 70,
       });
       await this.receiveFiles(copyFromProjectTar);
     }
@@ -295,13 +293,13 @@ class SyncFS {
         1.3 * this.syncInterval,
       );
     }
+    await this.updateReadTracking();
+
     this.reportState({
       state: "ready",
       progress: 100,
       timeout: 3 + this.syncInterval,
     });
-
-    await this.updateReadTracking();
   };
 
   //   private getComputeStatePatch = async (
@@ -448,7 +446,7 @@ class SyncFS {
       "--files-from",
       readTrackingOnProject,
     ];
-    log("updateReadTrackingTarball:", "tar", args.join(" "));
+    log("createReadTrackingTarball:", "tar", args.join(" "));
     await this.execInProject({
       command: "tar",
       args,
@@ -488,6 +486,10 @@ class SyncFS {
     if (recentFiles.length == 0) {
       return;
     }
+    this.reportState({
+      state: "cache-files-from-project",
+      progress: 85,
+    });
     try {
       const tarball = await this.createReadTrackingTarball(recentFiles);
       await this.extractRecentlyReadFiles(tarball);
