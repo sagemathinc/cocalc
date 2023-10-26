@@ -42,6 +42,7 @@ export default function DetailedState({ detailed_state, color }) {
 }
 
 function toLabel(name: string) {
+  if (!name) return "";
   return name
     .split("-")
     .map((x) => capitalize(x))
