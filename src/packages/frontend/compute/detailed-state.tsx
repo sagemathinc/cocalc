@@ -1,6 +1,7 @@
 import { Progress } from "antd";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
+import { DisplayImage } from "./select-image";
 
 const SPEC = {
   compute: { icon: "server", label: "Jupyter and Terminals" },
@@ -26,19 +27,37 @@ const COMPONENTS = [
   "vm",
 ];
 
-export default function DetailedState({ detailed_state, color }) {
+export default function DetailedState({
+  detailed_state,
+  color,
+  configuration,
+}) {
   if (!detailed_state) {
     return null;
   }
   const v: JSX.Element[] = [];
   for (const name of COMPONENTS) {
     if (detailed_state[name]) {
-      v.push(<State key={name} name={name} {...detailed_state[name]} />);
+      v.push(
+        <State
+          key={name}
+          name={name}
+          configuration={configuration}
+          {...detailed_state[name]}
+        />,
+      );
     }
   }
   for (const name in detailed_state) {
     if (!COMPONENTS.includes(name)) {
-      v.push(<State key={name} name={name} {...detailed_state[name]} />);
+      v.push(
+        <State
+          key={name}
+          name={name}
+          configuration={configuration}
+          {...detailed_state[name]}
+        />,
+      );
     }
   }
   return (
@@ -48,17 +67,23 @@ export default function DetailedState({ detailed_state, color }) {
 
 function toLabel(name: string) {
   if (!name) return "";
-  if (SPEC[name]?.label) {
-    return SPEC[name].label;
-  }
   return name
     .split("-")
     .map((x) => capitalize(x))
     .join(" ");
 }
 
-function State({ name, state, time, expire, progress, extra }) {
+function State({ name, state, time, expire, progress, extra, configuration }) {
   const expired = expire && expire < Date.now();
+  let label;
+  if (name == "compute") {
+    label = <DisplayImage configuration={configuration} />;
+  } else if (SPEC[name]?.label) {
+    label = SPEC[name].label;
+  } else {
+    label = toLabel(name);
+  }
+
   return (
     <div style={{ display: "flex" }}>
       <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
@@ -66,7 +91,7 @@ function State({ name, state, time, expire, progress, extra }) {
           name={SPEC[name]?.icon ?? "cube"}
           style={{ marginRight: "5px" }}
         />{" "}
-        {toLabel(name)}
+        {label}
       </div>
       {!expired && (
         <>

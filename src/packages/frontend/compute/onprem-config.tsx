@@ -2,7 +2,7 @@ import type {
   State,
   OnPremCloudConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Divider, Select, Spin, Checkbox } from "antd";
+import { Select, Spin, Checkbox } from "antd";
 import { setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import SelectImage from "./select-image";
