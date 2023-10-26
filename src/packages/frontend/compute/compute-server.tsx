@@ -259,7 +259,7 @@ export default function ComputeServer({
         avatar={
           <div>
             <Icon
-              name="server"
+              name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
             />
             {id != null && <div style={{ color: "#888" }}>Id: {id}</div>}

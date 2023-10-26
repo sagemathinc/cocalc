@@ -155,7 +155,7 @@ export const STATE_INFO: {
     label: "Deprovisioned",
     actions: ["start"],
     color: "#888",
-    icon: "global",
+    icon: "minus-square",
     stable: true,
   },
 };

@@ -1,4 +1,4 @@
-import { getScript } from "pages/api/v2/compute/startup-script";
+import { getScript } from "pages/api/v2/compute/scripts";
 
 // not used but required by nextjs
 export default function OnPrem() {
@@ -14,7 +14,7 @@ export async function getServerSideProps(context) {
     if (!api_key) {
       throw Error("invalid api key");
     }
-    res.write(await getScript({ api_key, id }));
+    res.write(await getScript({ api_key, id, action: "start" }));
   } catch (err) {
     res.write(`echo 'ERROR -- ${err}'; exit 1`);
   }

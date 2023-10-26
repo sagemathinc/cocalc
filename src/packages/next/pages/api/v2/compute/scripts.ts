@@ -6,7 +6,11 @@ This is meant to be used for on prem compute servers,
 hence it includes installing the /cocalc code and the "user" user.
 */
 
-import { getStartupScript } from "@cocalc/server/compute/control";
+import {
+  getStartupScript,
+  getStopScript,
+  getDeprovisionScript,
+} from "@cocalc/server/compute/control";
 import { getAccountWithApiKey as getProjectIdWithApiKey } from "@cocalc/server/api/manage";
 import getParams from "lib/api/get-params";
 import getPool from "@cocalc/database/pool";
@@ -21,18 +25,20 @@ export default async function handle(req, res) {
 }
 
 export async function get(req) {
-  const { api_key, id: id0 } = getParams(req, { allowGet: true });
+  const { api_key, id: id0, action } = getParams(req, { allowGet: true });
   // use api_key to get project, and also verify access:
   const id = parseInt(id0);
-  return await getScript({ api_key, id });
+  return await getScript({ api_key, id, action });
 }
 
 export async function getScript({
   api_key,
   id,
+  action,
 }: {
   api_key: string;
   id: number;
+  action: "start" | "stop" | "deprovision";
 }): Promise<string> {
   const project_id = await getProjectIdWithApiKey(api_key);
   if (!project_id) {
@@ -45,9 +51,23 @@ export async function getScript({
   if (rows[0]?.count != 1) {
     throw Error(`no compute server with id=${id} in project with this api key`);
   }
-  return await getStartupScript({
-    id,
-    api_key,
-    installUser: true,
-  });
+  if (action == "start") {
+    return await getStartupScript({
+      id,
+      api_key,
+      installUser: true,
+    });
+  } else if (action == "stop") {
+    return await getStopScript({
+      id,
+      api_key,
+    });
+  } else if (action == "deprovision") {
+    return await getDeprovisionScript({
+      id,
+      api_key,
+    });
+  } else {
+    throw Error(`unknown action=${action}`);
+  }
 }

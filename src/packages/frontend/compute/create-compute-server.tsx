@@ -80,19 +80,21 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       <Button key="cancel" size="large" onClick={() => setEditing(false)}>
         Cancel
       </Button>
-      <Button
-        key="start"
-        size="large"
-        type="primary"
-        onClick={() => {
-          handleCreate(true);
-        }}
-        disabled={!!error || !title.trim()}
-      >
-        <Icon name="run" /> Start Compute Server
-        {!!error && "(clear error) "}
-        {!title.trim() && "(set title) "}
-      </Button>
+      {cloud != "onprem" && (
+        <Button
+          key="start"
+          size="large"
+          type="primary"
+          onClick={() => {
+            handleCreate(true);
+          }}
+          disabled={!!error || !title.trim()}
+        >
+          <Icon name="run" /> Start Compute Server
+          {!!error && "(clear error) "}
+          {!title.trim() && "(set title) "}
+        </Button>
+      )}
       <Button
         key="create"
         size="large"

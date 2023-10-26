@@ -5,7 +5,13 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
-import { installCoCalc, installConf, installUser, UID } from "./install";
+import {
+  installCoCalc,
+  installConf,
+  installDocker,
+  installUser,
+  UID,
+} from "./install";
 
 export default async function startupScript({
   image = "minimal",
@@ -47,7 +53,12 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
-setState vm init '' 60 20
+docker
+if [ $? -ne 0 ]; then
+setState vm install-docker 120 20
+${installDocker()}
+fi
+setState vm install '' 120 40
 
 setState cocalc install-code '' 30 15
 ${installCoCalc(arch)}
@@ -73,6 +84,8 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 setState cocalc ready '' 0  100
+
+setState vm start '' 60 60
 
 ${runCoCalcCompute({
   gpu,
@@ -226,7 +239,7 @@ fi
  `;
 }
 
-function defineSetStateFunction({ api_key, apiServer, compute_server_id }) {
+export function defineSetStateFunction({ api_key, apiServer, compute_server_id }) {
   return `
 function setState {
   id=${compute_server_id}
@@ -241,3 +254,5 @@ function setState {
 }
   `;
 }
+
+

@@ -43,6 +43,10 @@ import { changedKeys } from "@cocalc/server/compute/util";
 import { checkValidDomain } from "@cocalc/util/compute/dns";
 import { hasDNS, makeDnsChange } from "./dns";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
+import {
+  stopScript,
+  deprovisionScript,
+} from "@cocalc/server/compute/cloud/off-scripts";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -589,5 +593,31 @@ export async function getStartupScript({
     hostname: await getHostname(id),
     ...(await getStartupParams(id)),
     installUser,
+  });
+}
+
+export async function getStopScript({
+  id,
+  api_key,
+}: {
+  id;
+  api_key;
+}): Promise<string> {
+  return await stopScript({
+    compute_server_id: id,
+    api_key,
+  });
+}
+
+export async function getDeprovisionScript({
+  id,
+  api_key,
+}: {
+  id;
+  api_key;
+}): Promise<string> {
+  return await deprovisionScript({
+    compute_server_id: id,
+    api_key,
   });
 }
