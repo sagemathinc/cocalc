@@ -18,7 +18,7 @@ export default function initWebsocketFs(
 ): void {
   const path = join(basePath, ".smc", "websocketfs");
   log.info(
-    `Initalizing websocketfs filesystem server at "ws://${host}:${port}${path}"...`,
+    `Initializing websocketfs filesystem server at "ws://${host}:${port}${path}"...`,
   );
 
   const wss = new WebSocketServer({ noServer: true });

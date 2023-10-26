@@ -15,7 +15,7 @@ import initPublicPaths from "./public-paths";
 import initServers from "./servers/init";
 
 import { getLogger } from "./logger";
-const winston = getLogger("project-main");
+const logger = getLogger("project-main");
 
 function checkEnvVariables() {
   const { HOME } = process.env;
@@ -33,22 +33,22 @@ function checkEnvVariables() {
 }
 
 export async function main() {
+  initBugCounter();
   checkEnvVariables();
   const options = getOptions();
   if (options.daemon) {
-    winston.info("daemonize the process");
+    logger.info("daemonize the process");
     daemonizeProcess();
   }
-  initBugCounter();
   cleanupEnvironmentVariables();
   initKucalc(); // must be after cleanupEnvironmentVariables, since this *adds* custom environment variables.
-  winston.info("main init function");
-  winston.info("initialize INFO.json file");
+  logger.info("main init function");
+  logger.info("initialize INFO.json file");
   await initInfoJson();
-  winston.info("create Client interface");
+  logger.info("create Client interface");
   initClient();
-  winston.info("create all the servers...");
+  logger.info("create all the servers...");
   await initServers();
-  winston.info("create public paths watcher...");
+  logger.info("create public paths watcher...");
   initPublicPaths();
 }

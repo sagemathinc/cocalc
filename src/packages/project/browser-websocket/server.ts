@@ -26,7 +26,7 @@ export default function init(server: Server, basePath: string): Router {
     pathname: join(basePath, ".smc", "ws"),
     transformer: "websockets",
   } as const;
-  winston.info(`Initalizing primus websocket server at "${opts.pathname}"...`);
+  winston.info(`Initializing primus websocket server at "${opts.pathname}"...`);
   const primus = new Primus(server, opts);
 
   // add multiplex to Primus so we have channels.
