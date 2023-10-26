@@ -329,7 +329,7 @@ export default function ComputeServer({
               state={state}
               short
             />
-            <DetailedState detailed_state={detailed_state} />
+            <DetailedState detailed_state={detailed_state} color={color} />
           </div>
         }
       />
