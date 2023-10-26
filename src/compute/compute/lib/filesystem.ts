@@ -15,6 +15,7 @@ import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import syncFS from "@cocalc/sync-fs";
 import { waitUntilFilesystemIsOfType } from "./util";
+import { apiCall } from "@cocalc/api-client";
 
 const logger = getLogger("compute:filesystem");
 
@@ -61,113 +62,157 @@ export async function mountProject({
   readTrackingPath,
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
-  log();
-  if (!compute_server_id) {
-    throw Error("set the compute_server_id or process.env.COMPUTE_SERVER_ID");
-  }
-  if (!project_id) {
-    throw Error("project_id or process.env.PROJECT_ID must be given");
-  }
-  if (!apiKey) {
-    throw Error("api key must be set (e.g., set API_KEY env variable)");
-  }
-
-  // Ping to start the project:
-  await project.ping({ project_id });
-
-  let protocol, host;
-  if (apiServer.startsWith("https://")) {
-    protocol = "wss://";
-    host = apiServer.slice("https://".length);
-  } else if (apiServer.startsWith("http://")) {
-    protocol = "ws://";
-    host = apiServer.slice("http://".length);
-  } else {
-    throw Error("API_SERVER must start with http:// or https://");
-  }
-  const remote = `${protocol}${host}${join(
-    apiBasePath,
-    project_id,
-    "raw/.smc/websocketfs",
-  )}`;
-  log("connecting to ", remote);
-  const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
-  // SECURITY: DO NOT log headers and connectOptions, obviously!
-
-  let homeMountPoint;
-  if (unionfs == null) {
-    homeMountPoint = path;
-  } else {
-    homeMountPoint = unionfs.lower;
-    if (!unionfs.lower || !unionfs.upper) {
-      throw Error("if unionfs is specified, both lower and upper must be set");
+  const reportState = async (
+    type: "cache" | "network" | "filesystem",
+    opts: { state; extra?; timeout?; progress? },
+  ) => {
+    log("reportState", { type, opts });
+    try {
+      await apiCall("v2/compute/set-component-state", {
+        id: compute_server_id,
+        name: type == "filesystem" ? "filesystem" : `filesystem-${type}`,
+        ...opts,
+      });
+    } catch (err) {
+      log("reportState: WARNING -- ", err);
     }
-  }
-
-  let unmount;
-  if (unionfs?.waitLowerFilesystemType) {
-    // we just wait for it to get mounted in some other way
-    unmount = null;
-    await waitUntilFilesystemIsOfType(
-      unionfs.lower,
-      unionfs?.waitLowerFilesystemType,
-    );
-  } else {
-    // we mount it outselvs.
-    ({ unmount } = await mount({
-      remote,
-      path: homeMountPoint,
-      ...options,
-      connectOptions: {
-        perMessageDeflate: false,
-        headers,
-        ...options.connectOptions,
-      },
-      mountOptions: {
-        allowOther: true,
-        nonEmpty: true,
-        ...options.mountOptions,
-      },
-      cacheTimeout,
-      hidePath: "/.unionfs",
-      readTracking: readTrackingPath
-        ? { path: readTrackingPath, timeout: 15, interval: 5 }
-        : undefined,
-    }));
-  }
-
-  let syncfs;
-  if (unionfs != null) {
-    if (/\s/.test(unionfs.lower) || /\s/.test(unionfs.upper)) {
-      throw Error("paths cannot contain whitespace");
-    }
-
-    syncfs = syncFS({
-      lower: unionfs.lower,
-      upper: unionfs.upper,
-      mount: path,
-      project_id,
-      compute_server_id,
-      syncIntervalMin,
-      syncIntervalMax,
-      exclude,
-      readTrackingPath,
-    });
-    await syncfs.init();
-  } else {
-    syncfs = null;
-  }
-
-  return {
-    syncfs,
-    unmount: async () => {
-      if (syncfs != null) {
-        await syncfs.close();
-      }
-      if (unmount != null) {
-        logger.debug("unmount");
-        unmount();
-      }
-    },
   };
+  log();
+  try {
+    if (!compute_server_id) {
+      throw Error("set the compute_server_id or process.env.COMPUTE_SERVER_ID");
+    }
+    if (!project_id) {
+      throw Error("project_id or process.env.PROJECT_ID must be given");
+    }
+    if (!apiKey) {
+      throw Error("api key must be set (e.g., set API_KEY env variable)");
+    }
+
+    // Ping to start the project:
+    await project.ping({ project_id });
+
+    let protocol, host;
+    if (apiServer.startsWith("https://")) {
+      protocol = "wss://";
+      host = apiServer.slice("https://".length);
+    } else if (apiServer.startsWith("http://")) {
+      protocol = "ws://";
+      host = apiServer.slice("http://".length);
+    } else {
+      throw Error("API_SERVER must start with http:// or https://");
+    }
+    const remote = `${protocol}${host}${join(
+      apiBasePath,
+      project_id,
+      "raw/.smc/websocketfs",
+    )}`;
+    log("connecting to ", remote);
+    const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
+    // SECURITY: DO NOT log headers and connectOptions, obviously!
+
+    let homeMountPoint;
+    if (unionfs == null) {
+      homeMountPoint = path;
+    } else {
+      homeMountPoint = unionfs.lower;
+      if (!unionfs.lower || !unionfs.upper) {
+        throw Error(
+          "if unionfs is specified, both lower and upper must be set",
+        );
+      }
+    }
+
+    let unmount;
+    if (unionfs?.waitLowerFilesystemType) {
+      // we just wait for it to get mounted in some other way
+      unmount = null;
+      reportState("cache", {
+        state: "waiting",
+        extra: `for ${unionfs.lower}`,
+        timeout: 120,
+        progress: 30,
+      });
+      await waitUntilFilesystemIsOfType(
+        unionfs.lower,
+        unionfs?.waitLowerFilesystemType,
+      );
+    } else {
+      // we mount it ourselves.
+      reportState("network", {
+        state: "mounting",
+        extra: remote,
+        timeout: 120,
+        progress: 30,
+      });
+
+      ({ unmount } = await mount({
+        remote,
+        path: homeMountPoint,
+        ...options,
+        connectOptions: {
+          perMessageDeflate: false,
+          headers,
+          ...options.connectOptions,
+        },
+        mountOptions: {
+          allowOther: true,
+          nonEmpty: true,
+          ...options.mountOptions,
+        },
+        cacheTimeout,
+        hidePath: "/.unionfs",
+        readTracking: readTrackingPath
+          ? { path: readTrackingPath, timeout: 15, interval: 5 }
+          : undefined,
+      }));
+      reportState("network", { state: "ready", progress: 100 });
+    }
+
+    let syncfs;
+    if (unionfs != null) {
+      if (/\s/.test(unionfs.lower) || /\s/.test(unionfs.upper)) {
+        throw Error("paths cannot contain whitespace");
+      }
+
+      syncfs = syncFS({
+        lower: unionfs.lower,
+        upper: unionfs.upper,
+        mount: path,
+        project_id,
+        compute_server_id,
+        syncIntervalMin,
+        syncIntervalMax,
+        exclude,
+        readTrackingPath,
+      });
+      await syncfs.init();
+      reportState("cache", { state: "ready", progress: 100 });
+    } else {
+      syncfs = null;
+    }
+
+    reportState("filesystem", { state: "ready", progress: 100 });
+
+    return {
+      syncfs,
+      unmount: async () => {
+        if (syncfs != null) {
+          await syncfs.close();
+        }
+        if (unmount != null) {
+          logger.debug("unmount");
+          unmount();
+        }
+      },
+    };
+  } catch (err) {
+    const e = `${err}`;
+    reportState(unionfs != null ? "cache" : "network", {
+      state: "error",
+      extra: e,
+    });
+    log(e);
+    throw err;
+  }
 }

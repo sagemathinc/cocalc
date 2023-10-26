@@ -18,6 +18,7 @@
   "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/comm": "workspace:*",
     "@cocalc/sync-client": "workspace:*",

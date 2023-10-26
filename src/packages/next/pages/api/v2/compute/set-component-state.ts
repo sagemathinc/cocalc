@@ -26,12 +26,13 @@ async function get(req) {
   if (!project_id) {
     throw Error("invalid api key");
   }
-  const { id, name, value, extra, timeout, progress } = getParams(req);
+  const { id, name, state, extra, timeout, progress } = getParams(req);
   await setComponentState({
     project_id,
     id,
     name,
-    value,
+    state,
+    extra,
     timeout,
     progress,
   });

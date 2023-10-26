@@ -47,17 +47,15 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
-setState vm init
+setState vm init '' 60 20
 
-setState cocalc install
+setState cocalc install-code '' 30 15
 ${installCoCalc(arch)}
 if [ $? -ne 0 ]; then
    setState cocalc error "problem with installation"
    exit 1
 fi
-setState cocalc ready
-
-setState conf install
+setState cocalc install-conf '' 30 40
 ${installConf({
   api_key,
   api_server: apiServer,
@@ -66,15 +64,15 @@ ${installConf({
   hostname,
 })}
 if [ $? -ne 0 ]; then
-   setState conf error "problem installing configuration"
+   setState cocalc error "problem installing configuration"
    exit 1
 fi
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
-   setState conf error "problem creating user"
+   setState cocalc error "problem creating user"
    exit 1
 fi
-setState conf ready
+setState cocalc ready '' 0  100
 
 ${runCoCalcCompute({
   gpu,
@@ -82,7 +80,10 @@ ${runCoCalcCompute({
   image,
 })}
 
-setState vm ready
+while true; do
+  setState vm ready '' 35 100
+  sleep 30
+done
 `;
 }
 
@@ -100,7 +101,7 @@ function filesystem({ arch }) {
 
   return `
 # Docker container that mounts the filesystem(s)
-setState filesystem init
+setState filesystem init '' 30 15
 
 # Make the home directory
 # Note the filesystem mount is with the option nonempty, so
@@ -134,13 +135,13 @@ fi
 docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  setState filesystem pull
+  setState filesystem pull '' 20 20
   /cocalc/docker_pull.py ${image}
   if [ $? -ne 0 ]; then
      setState filesystem error "problem pulling Docker image ${image}"
      exit 1
   fi
-  setState filesystem run
+  setState filesystem run '' 20 60
   docker run \
    -d \
    --name=filesystem \
@@ -152,11 +153,11 @@ if [ $? -ne 0 ]; then
      setState filesystem error "problem creating filesystem Docker container"
      exit 1
   fi
-  setState filesystem running
+  setState filesystem running '' 20 80
 
 else
 
-  setState filesystem running
+  setState filesystem running '' 20 80
 fi
  `;
 }
@@ -194,7 +195,7 @@ function compute({ arch, image, gpu }) {
 docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  setState compute pull
+  setState compute pull '' 30 20
   /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
   if [ $? -ne 0 ]; then
      setState compute error "problem pulling Docker image ${docker}${getImagePostfix(
@@ -202,7 +203,7 @@ if [ $? -ne 0 ]; then
      )}"
      exit 1
   fi
-  setState compute run
+  setState compute run '' 20 60
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --privileged \
@@ -216,11 +217,11 @@ if [ $? -ne 0 ]; then
      setState compute error "problem creating compute Docker container"
      exit 1
   fi
-  setState compute running
+  setState compute running '' 30 80
 
 else
 
-  setState compute running
+  setState compute running '' 30 80
 fi
  `;
 }
@@ -230,12 +231,13 @@ function defineSetStateFunction({ api_key, apiServer, compute_server_id }) {
 function setState {
   id=${compute_server_id}
   component=$1
-  value=$2
+  state=$2
   extra=$3
   timeout=$4
   progress=$5
 
-  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"value\\":\\"$value\\",\\"extra\\":\\"$extra\\",\\"timeout\\":\\"$timeout\\",\\"progress\\":\\"$progress\\"}" ${apiServer}/api/v2/compute/set-component-state
+  echo "$component is $state"
+  curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"state\\":\\"$state\\",\\"extra\\":\\"$extra\\",\\"timeout\\":\\"$timeout\\",\\"progress\\":\\"$progress\\"}" ${apiServer}/api/v2/compute/set-component-state
 }
   `;
 }

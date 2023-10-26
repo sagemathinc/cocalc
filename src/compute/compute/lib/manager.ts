@@ -17,6 +17,7 @@ import { once } from "@cocalc/util/async-utils";
 import { dirname, join } from "path";
 import { userInfo } from "os";
 import { waitUntilFilesystemIsOfType } from "./util";
+import { apiCall } from "@cocalc/api-client";
 
 const logger = debug("cocalc:compute:manager");
 
@@ -79,6 +80,12 @@ class Manager {
 
   init = async () => {
     if (this.waitHomeFilesystemType) {
+      this.reportComponentState({
+        state: "waiting",
+        extra: `for ${this.home} to mount`,
+        timeout: 60,
+        progress: 15,
+      });
       await waitUntilFilesystemIsOfType(this.home, this.waitHomeFilesystemType);
     }
     const client_id = encodeIntToUUID(this.compute_server_id);
@@ -86,6 +93,12 @@ class Manager {
       project_id: this.project_id,
       client_id,
       home: this.home,
+    });
+    this.reportComponentState({
+      state: "connecting",
+      extra: "to project",
+      progress: 30,
+      timeout: 30,
     });
     this.websocket = await this.client.project_client.websocket(
       this.project_id,
@@ -98,6 +111,11 @@ class Manager {
     if (this.sync_db.get_state() == "init") {
       await once(this.sync_db, "ready");
     }
+    this.reportComponentState({
+      state: "ready",
+      progress: 100,
+      timeout: STATUS_INTERVAL_MS + 3,
+    });
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
   };
 
@@ -109,6 +127,24 @@ class Manager {
 
   private log = (func, ...args) => {
     logger(`Manager.${func}`, ...args);
+  };
+
+  private reportComponentState = async (opts: {
+    state;
+    extra?;
+    timeout?;
+    progress?;
+  }) => {
+    this.log("reportState", opts);
+    try {
+      await apiCall("v2/compute/set-component-state", {
+        id: this.compute_server_id,
+        name: "compute",
+        ...opts,
+      });
+    } catch (err) {
+      this.log("reportState: WARNING -- ", err);
+    }
   };
 
   private handleSyncdbChange = (changes) => {
@@ -173,11 +209,16 @@ class Manager {
     this.sync_db.set_cursor_locs([
       {
         status: "running",
-        // fake for dev
-        uptime:
-          "00:04:17 up 10 days,  6:39,  0 users,  load average: 2.65, 2.74, 2.72",
+        //// fake for dev
+        //uptime:
+        //  "00:04:17 up 10 days,  6:39,  0 users,  load average: 2.65, 2.74, 2.72",
       },
     ]);
+    this.reportComponentState({
+      state: "ready",
+      progress: 100,
+      timeout: STATUS_INTERVAL_MS + 3,
+    });
   };
 
   private env = () => {

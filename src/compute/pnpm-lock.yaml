@@ -35,9 +35,6 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
-      '@types/cookie':
-        specifier: ^0.5.1
-        version: 0.5.1
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -51,6 +48,9 @@ importers:
         specifier: ^0.10.2
         version: 0.10.2
     devDependencies:
+      '@types/cookie':
+        specifier: ^0.5.1
+        version: 0.5.1
       '@types/node':
         specifier: ^18.16.14
         version: 18.16.14
@@ -111,7 +111,7 @@ packages:
 
   /@types/cookie@0.5.1:
     resolution: {integrity: sha512-COUnqfB2+ckwXXSFInsFdOAWQzCCx+a5hq2ruyj+Vjund94RJQd4LG2u9hnvJrTgunKAaax7ancBYlDrNYxA0g==}
-    dev: false
+    dev: true
 
   /@types/node@18.16.14:
     resolution: {integrity: sha512-+ImzUB3mw2c5ISJUq0punjDilUQ5GnUim0ZRvchHIWJmOC0G+p0kzhXBqj6cDjK0QdPFwzrHWgrJp3RPvCG5qg==}

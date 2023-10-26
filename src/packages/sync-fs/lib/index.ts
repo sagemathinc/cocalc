@@ -16,6 +16,7 @@ import type {
   ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
 import getLogger from "@cocalc/backend/logger";
+import { apiCall } from "@cocalc/api-client";
 
 const log = getLogger("sync-fs:index").debug;
 
@@ -151,7 +152,9 @@ class SyncFS {
       this.state = "sync";
       await this.doSync();
     } catch (err) {
-      await this.logSyncError(`${err}`);
+      const e = `${err}`;
+      this.reportState({ state: "error", extra: e });
+      await this.logSyncError(e);
       throw err;
     } finally {
       if (this.state != ("closed" as State)) {
@@ -205,8 +208,28 @@ class SyncFS {
     }
   };
 
+  // save current state to database; useful to inform user as to what is going on.
+  private reportState = async (opts: {
+    state;
+    extra?;
+    timeout?;
+    progress?;
+  }) => {
+    log("reportState", opts);
+    try {
+      await apiCall("v2/compute/set-component-state", {
+        id: this.compute_server_id,
+        name: "filesystem-sync",
+        ...opts,
+      });
+    } catch (err) {
+      log("reportState: WARNING -- ", err);
+    }
+  };
+
   private doSync = async () => {
     log("doSync");
+    this.reportState({ state: "get-compute-state", progress: 0, timeout: 10 });
     await this.makeScratchDir();
     const api = await this.client.project_client.api(this.project_id);
     const { computeState, whiteouts } = await this.getComputeState();
@@ -220,6 +243,11 @@ class SyncFS {
       join(this.lower, computeStateJson),
       toCompressedJSON(computeState),
     );
+    this.reportState({
+      state: "send-state-to-project",
+      progress: 20,
+      timeout: 10,
+    });
     const { removeFromCompute, copyFromCompute, copyFromProjectTar } =
       await api.syncFS({
         computeStateJson,
@@ -240,10 +268,21 @@ class SyncFS {
     }
     if (copyFromCompute?.length ?? 0 > 0) {
       isActive = true;
+      this.reportState({
+        state: "send-files-to-project",
+        progress: 50,
+        timeout: 300,
+        extra: `${copyFromCompute?.length} files`,
+      });
       await this.sendFiles(copyFromCompute);
     }
     if (copyFromProjectTar) {
       isActive = true;
+      this.reportState({
+        state: "receive-files-from-project",
+        progress: 75,
+        timeout: 300,
+      });
       await this.receiveFiles(copyFromProjectTar);
     }
 
@@ -256,6 +295,11 @@ class SyncFS {
         1.3 * this.syncInterval,
       );
     }
+    this.reportState({
+      state: "ready",
+      progress: 100,
+      timeout: 3 + this.syncInterval,
+    });
 
     await this.updateReadTracking();
   };

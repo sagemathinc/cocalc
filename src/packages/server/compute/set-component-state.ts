@@ -1,13 +1,15 @@
 import getPool from "@cocalc/database/pool";
 
 const MAX_NAME_LENGTH = 32;
-const MAX_VALUE_LENGTH = 1024;
+const MAX_STATE_LENGTH = 128;
+const MAX_EXTRA_LENGTH = 1024;
 
 interface Options {
   project_id: string;
   id: number;
   name: string;
-  value?: string;
+  state?: string;
+  extra?: string;
   timeout?: number;
   progress?: number;
 }
@@ -16,7 +18,8 @@ export default async function setComponentState({
   project_id,
   id,
   name,
-  value,
+  state,
+  extra,
   timeout,
   progress,
 }: Options) {
@@ -25,7 +28,7 @@ export default async function setComponentState({
     // special case to set the overall compute server state
     await pool.query(
       "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND state != $1 AND project_id=$3",
-      [value, id, project_id],
+      [state, id, project_id],
     );
     return;
   }
@@ -35,11 +38,14 @@ export default async function setComponentState({
   if (name.length >= MAX_NAME_LENGTH) {
     throw Error(`name must be at most ${MAX_NAME_LENGTH} characters`);
   }
-  if (value && (typeof value != "string" || value.length >= MAX_VALUE_LENGTH)) {
-    throw Error(`name must be at most ${MAX_VALUE_LENGTH} characters`);
+  if (state && (typeof state != "string" || state.length >= MAX_STATE_LENGTH)) {
+    throw Error(`name must be at most ${MAX_STATE_LENGTH} characters`);
   }
-  if (timeout && (typeof timeout != "number" || timeout <= 0)) {
-    throw Error("if given, timeout must be a positive number (of seconds)");
+  if (extra && (typeof extra != "string" || extra.length >= MAX_EXTRA_LENGTH)) {
+    throw Error(`name must be at most ${MAX_EXTRA_LENGTH} characters`);
+  }
+  if (timeout && (typeof timeout != "number" || timeout < 0)) {
+    throw Error("if given, timeout must be a nonnegative number (of seconds)");
   }
   if (
     progress &&
@@ -49,7 +55,7 @@ export default async function setComponentState({
   }
   const args = [project_id, id];
   let query;
-  if (!value) {
+  if (!state) {
     // delete it
     query = "detailed_state = detailed_state - $3";
     args.push(name);
@@ -60,7 +66,8 @@ export default async function setComponentState({
     args.push(
       JSON.stringify({
         [name]: {
-          value,
+          state,
+          extra,
           time: Date.now(),
           expire: timeout ? Date.now() + 1000 * timeout : undefined,
           progress,
