@@ -115,7 +115,14 @@ function ActionButton({
   const [doing, setDoing] = useState<boolean>(!STATE_INFO[state]?.stable);
   const doAction = async () => {
     if (configuration.cloud == "onprem") {
-      setShowOnPremStart(true);
+      if (action == "start") {
+        setShowOnPremStart(true);
+      } else if (action == "stop") {
+        setShowOnPremStop(true);
+      } else if (action == "deprovision") {
+        setShowOnPremDeprovision(true);
+      }
+
       // right now user has to copy paste
       return;
     }
@@ -223,8 +230,7 @@ function ActionButton({
           id={id}
           title={
             <>
-              <Icon name="stop" /> Disconnect Your Virtual Machine from this
-              project
+              <Icon name="stop" /> Disconnect Your Virtual Machine from CoCalc
             </>
           }
         />
@@ -238,7 +244,7 @@ function ActionButton({
           title={
             <div style={{ color: "darkred" }}>
               <Icon name="trash" /> Disconnect Your Virtual Machine and Remove
-              Docker Containers
+              Files
             </div>
           }
         />
@@ -324,16 +330,16 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
       )}
       {action == "stop" && (
         <div>
-          Disconnect your virtual machine and stop the Docker containers that
-          are syncing files and running code. You can start them later and files
-          and software you installed should be as you left it.
+          This will disconnect your VM from CoCalc and stop it from syncing
+          files, running terminals and Jupyter notebooks. Files and software you
+          installed will not be deleted and you can start the compute server
+          later.
         </div>
       )}
       {action == "deprovision" && (
         <div>
-          Delete the Docker containers that are syncing files and running code.
-          You can start them later, but any local files software you installed
-          will be gone.
+          This will disconnect your VM from CoCalc, and permanently delete any
+          local files and software you installed into your compute server.
         </div>
       )}
       <div style={{ marginTop: "15px" }}>
@@ -352,6 +358,12 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
         )}
         {!apiKey && !error && <Spin />}
         {error && <ShowError error={error} setError={setError} />}
+      </div>
+      <div style={{ marginTop: "15px" }}>
+        NOTE: This does not delete Docker or any Docker images. Run this to
+        delete all unused Docker images:
+        <br />
+        <CopyToClipBoard value="sudo docker images purge" />
       </div>
     </Modal>
   );

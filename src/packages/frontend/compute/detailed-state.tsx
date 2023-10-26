@@ -4,14 +4,15 @@ import { capitalize } from "@cocalc/util/misc";
 
 const SPEC = {
   compute: { icon: "server", label: "Jupyter and Terminals" },
-  filesystem: { icon: "files", label: "/home/user" },
+  filesystem: { icon: "files", label: "Filesystem" },
+  "filesystem-sync": { icon: "sync", label: "Sync /home/user" },
   "filesystem-network": {
     icon: "network-wired",
-    label: "Network Filesystem",
+    label: "Mount /home/user",
   },
-  "filesystem-cache": { icon: "microchip", label: "Filesystem Cache" },
-  vm: { icon: "desktop", label: "VM" },
-  cocalc: { icon: "cocalc-ring", label: "CoCalc" },
+  "filesystem-cache": { icon: "microchip", label: "Cache /home/user" },
+  vm: { icon: "desktop", label: "Virtual Machine" },
+  cocalc: { icon: "cocalc-ring", label: "Install CoCalc" },
 };
 
 // order the components
