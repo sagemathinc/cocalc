@@ -150,27 +150,24 @@ export async function createUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   try {
     await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
-  } catch (err) {
-    winston.debug(
-      `WARNING: cannot delete user ${username} -- assuming user already exists`,
-    );
-    // See https://github.com/sagemathinc/cocalc/issues/6967
-    // If we try to create group, etc., below everything crashes.  But we can't
-    // remove the user if processes are running as the user, which can happen,
-    // since we don't do killall before starting the project (to nicely allow for
-    // leaving things running using tmux, say).
-    return;
+  } catch (_) {
+    // See https://github.com/sagemathinc/cocalc/issues/6967 for why we try/catch everything and
+    // that is fine. The user may or may not already exist.
   }
   const uid = `${getUid(project_id)}`;
   winston.debug("createUser: adding group");
-  await exec(`/usr/sbin/groupadd -g ${uid} -o ${username}`, true);
+  try {
+    await exec(`/usr/sbin/groupadd -g ${uid} -o ${username}`, true);
+  } catch (_) {}
   winston.debug("createUser: adding user");
-  await exec(
-    `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -m -d ${homePath(
-      project_id,
-    )} -s /bin/bash`,
-    true,
-  );
+  try {
+    await exec(
+      `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -m -d ${homePath(
+        project_id,
+      )} -s /bin/bash`,
+      true,
+    );
+  } catch (_) {}
 }
 
 export async function stopProjectProcesses(project_id: string): Promise<void> {

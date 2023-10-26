@@ -111,6 +111,15 @@ export async function getTarget({
     }
   }
 
+  // https://github.com/sagemathinc/cocalc/issues/7009#issuecomment-1781950765
+  if ((
+    port_desc == "jupyter" || // Jupyter Classic
+    port_desc == "jupyterlab" || // JupyterLab
+    port_desc == "code" // VSCode = "code-server"
+  ) && host == "localhost") {
+    host = "127.0.0.1";
+  }
+
   if (host == null) {
     throw Error("host is undefined -- project not running");
   }
