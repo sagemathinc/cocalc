@@ -239,20 +239,22 @@ fi
  `;
 }
 
-export function defineSetStateFunction({ api_key, apiServer, compute_server_id }) {
+export function defineSetStateFunction({
+  api_key,
+  apiServer,
+  compute_server_id,
+}) {
   return `
 function setState {
   id=${compute_server_id}
   name=$1
-  state=$2
-  extra=$3
-  timeout=$4
-  progress=$5
+  state=\${2:-'ready'}
+  extra=\${3:-''}
+  timeout=\${4:-0}
+  progress=\${5:-100}
 
   echo "$name is $state"
   curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"state\\":\\"$state\\",\\"extra\\":\\"$extra\\",\\"timeout\\":$timeout,\\"progress\\":$progress}" ${apiServer}/api/v2/compute/set-detailed-state
 }
   `;
 }
-
-

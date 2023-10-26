@@ -329,7 +329,9 @@ export default function ComputeServer({
               state={state}
               short
             />
-            {state == "running" && (
+            {(state == "running" ||
+              state == "stopping" ||
+              state == "starting") && (
               <DetailedState detailed_state={detailed_state} color={color} />
             )}
           </div>

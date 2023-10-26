@@ -359,12 +359,14 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
         {!apiKey && !error && <Spin />}
         {error && <ShowError error={error} setError={setError} />}
       </div>
-      <div style={{ marginTop: "15px" }}>
-        NOTE: This does not delete Docker or any Docker images. Run this to
-        delete all unused Docker images:
-        <br />
-        <CopyToClipBoard value="sudo docker images purge" />
-      </div>
+      {action == "deprovision" && (
+        <div style={{ marginTop: "15px" }}>
+          NOTE: This does not delete Docker or any Docker images. Run this to
+          delete all unused Docker images:
+          <br />
+          <CopyToClipBoard value="sudo docker images purge" />
+        </div>
+      )}
     </Modal>
   );
 }

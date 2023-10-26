@@ -14,7 +14,7 @@ export async function getServerSideProps(context) {
     if (!api_key) {
       throw Error("invalid api key");
     }
-    res.write(await getScript({ api_key, id, action: "deprovision" }));
+    res.write(await getScript({ api_key, id, action: "stop" }));
   } catch (err) {
     res.write(`echo 'ERROR -- ${err}'; exit 1`);
   }
