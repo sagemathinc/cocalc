@@ -68,7 +68,7 @@ export async function mountProject({
   ) => {
     log("reportState", { type, opts });
     try {
-      await apiCall("v2/compute/set-component-state", {
+      await apiCall("v2/compute/set-detailed-state", {
         id: compute_server_id,
         name: type == "filesystem" ? "filesystem" : `filesystem-${type}`,
         ...opts,

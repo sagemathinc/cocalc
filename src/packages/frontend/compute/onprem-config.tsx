@@ -58,25 +58,11 @@ export default function OnPremCloudConfiguration({
     }
   };
 
-  const warning = (
-    <div style={{ color: "#666", margin: "5px 0" }}>
-      <b>WARNING:</b> On Prem Compute Servers are free and only minimally
-      implemented at present. You must manually create a Linux VM that has
-      Docker installed, then manually paste a command in to connect it to this
-      project.{" "}
-      {configuration.gpu
-        ? " You must also install CUDA drivers to support your GPU. "
-        : " "}
-      You can try running directly on a Linux computer without creating a VM,
-      but this is less secure.
-    </div>
-  );
-
   if (!editable) {
     return (
       <div>
         On Prem {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
-        {configuration.gpu ? " that has an NVIDIA GPU" : ""}.{warning}
+        {configuration.gpu ? " that has an NVIDIA GPU" : ""}.
       </div>
     );
   }
@@ -122,8 +108,6 @@ export default function OnPremCloudConfiguration({
         setConfig={setConfig}
         configuration={configuration}
       />
-      <Divider>Warning</Divider>
-      {warning}
       <ShowError error={error} setError={setError} />
       {loading && <Spin style={{ marginLeft: "15px" }} />}
     </div>

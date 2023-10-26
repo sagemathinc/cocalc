@@ -49,13 +49,15 @@ export default async function startupScript({
 
 set -v
 
+export DEBIAN_FRONTEND=noninteractive
+
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
 docker
 if [ $? -ne 0 ]; then
-setState vm install-docker 120 20
+setState vm install-docker '' 120 20
 ${installDocker()}
 fi
 setState vm install '' 120 40
@@ -148,7 +150,7 @@ fi
 docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  setState filesystem pull '' 20 20
+  setState filesystem pull '' 240 20
   /cocalc/docker_pull.py ${image}
   if [ $? -ne 0 ]; then
      setState filesystem error "problem pulling Docker image ${image}"
@@ -208,7 +210,7 @@ function compute({ arch, image, gpu }) {
 docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  setState compute pull '' 30 20
+  setState compute pull '' 600 20
   /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
   if [ $? -ne 0 ]; then
      setState compute error "problem pulling Docker image ${docker}${getImagePostfix(
