@@ -120,6 +120,9 @@ class Manager {
       ...SYNCDB_PARAMS,
     });
     this.sync_db.on("change", this.handleSyncdbChange);
+    this.sync_db.on("error", (err) => {
+      this.log("sync_db", "ERROR -- ", `${err}`);
+    });
     if (this.sync_db.get_state() == "init") {
       await once(this.sync_db, "ready");
     }

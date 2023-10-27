@@ -22,14 +22,20 @@ type Connection = any;
 
 const CACHE: { [project_id: string]: Connection } = {};
 
-const EndEvents = ["end", "close", "error"];
+const END_EVENTS = ["end", "close", "error"];
 
 async function connect(project_id: string): Promise<Connection> {
   logger.info("connect to ", project_id);
   const dbg = (...args) => logger.debug(project_id, ...args);
   if (CACHE[project_id]) {
-    dbg("got ", project_id, " from cache");
-    return CACHE[project_id];
+    const socket = CACHE[project_id];
+    if (socket.destroyed || socket.readyState != "open") {
+      delete CACHE[project_id];
+      socket.unref();
+    } else {
+      dbg("got connection to ", project_id, " from cache");
+      return CACHE[project_id];
+    }
   }
 
   const project = getProject(project_id);
@@ -59,19 +65,19 @@ async function connect(project_id: string): Promise<Connection> {
   }
   initialize(project_id, socket);
 
-  function free() {
+  const free = () => {
+    delete CACHE[project_id];
     logger.info("disconnect from ", project_id);
     // don't want free to be triggered more than once.
-    for (const evt of EndEvents) {
+    for (const evt of END_EVENTS) {
       socket.removeListener(evt, free);
     }
-    delete CACHE[project_id];
     try {
       socket.end();
     } catch (_) {}
     cancelAll(project_id);
-  }
-  for (const evt of EndEvents) {
+  };
+  for (const evt of END_EVENTS) {
     socket.on(evt, free);
   }
 

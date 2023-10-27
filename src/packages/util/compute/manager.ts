@@ -1,4 +1,4 @@
-export const COMPUTER_SERVER_DB_NAME = ".compute-server.syncdb";
+const COMPUTER_SERVER_DB_NAME = ".compute-server.syncdb";
 
 export const SYNCDB_PARAMS = {
   path: COMPUTER_SERVER_DB_NAME,

@@ -29,10 +29,12 @@ export default async function handleApiCall({
   if (!process.env.HOME) {
     throw Error("HOME must be defined");
   }
+  // This can also happen if the network connection breaks for a bit, e.g., when
+  // restarting the project.
   const clockSkew = Math.abs((now ?? 0) - Date.now());
   if (clockSkew >= CLOCK_THRESH_MS) {
     throw Error(
-      `Compute server clock is off by ${clockSkew}ms, which exceeds the ${CLOCK_THRESH_MS}ms threshhold.  Set your clock!`,
+      `Compute server sync time is off by ${clockSkew}ms, which exceeds the ${CLOCK_THRESH_MS}ms threshhold.  Try again and possibly double check your clock settings.`,
     );
   }
 

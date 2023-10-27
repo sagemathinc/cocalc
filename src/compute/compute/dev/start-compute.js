@@ -29,6 +29,7 @@ async function main() {
         ? "fuse.unionfs-fuse"
         : "fuse",
   });
+  exports.manager = M;
   await M.init();
 }
 

@@ -95,9 +95,9 @@ function State({ name, state, time, expire, progress, extra, configuration }) {
       </div>
       {!expired && (
         <>
-          {!extra && !expired && (
+          {!expired && (
             <div style={{ flex: 1 }}>
-              <Progress percent={progress} size="small" />
+              <Progress percent={progress ?? 0} size="small" />
             </div>
           )}
           <div style={{ flex: 1, textAlign: "center" }}>{toLabel(state)}</div>
