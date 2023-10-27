@@ -27,6 +27,7 @@ import ProjectClient from "./project-client";
 import debug from "debug";
 import { bind_methods, isValidUUID, uuid } from "@cocalc/util/misc";
 import { project } from "@cocalc/api-client";
+import { reuseInFlight } from "async-await-utils/hof";
 
 interface Options {
   project_id: string;
@@ -125,15 +126,17 @@ export default class Client extends EventEmitter implements AppClient {
     return true;
   };
 
-  touch_project = (project_id: string) => {
+  private _touchProject = reuseInFlight(async (project_id: string) => {
     const dbg = this.dbg("touch_project");
     dbg(project_id);
-    (async () => {
-      try {
-        await project.touch({ project_id });
-      } catch (err) {
-        dbg("error ", err);
-      }
-    })();
+    try {
+      await project.touch({ project_id });
+    } catch (err) {
+      dbg("error ", err);
+    }
+  });
+
+  touch_project = (project_id: string) => {
+    this._touchProject(project_id);
   };
 }

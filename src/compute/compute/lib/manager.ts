@@ -11,6 +11,7 @@
 import { ClientFs as SyncClient } from "@cocalc/sync-client/lib/client-fs";
 import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
 import debug from "debug";
+import { project } from "@cocalc/api-client";
 import { jupyter } from "./jupyter";
 import { terminal } from "./terminal";
 import { once } from "@cocalc/util/async-utils";
@@ -21,7 +22,7 @@ import { apiCall } from "@cocalc/api-client";
 
 const logger = debug("cocalc:compute:manager");
 
-const STATUS_INTERVAL_MS = 15000;
+const STATUS_INTERVAL_MS = 20 * 1000;
 
 interface Options {
   project_id: string;
@@ -59,6 +60,7 @@ export function manager(opts: Options) {
 }
 
 class Manager {
+  private state: "new" | "init" | "ready" = "new";
   private sync_db;
   private project_id: string;
   private home: string;
@@ -91,6 +93,13 @@ class Manager {
   }
 
   init = async () => {
+    if (this.state != "new") {
+      throw Error("init can only be run once");
+    }
+    this.log("initialize the Manager");
+    this.state = "init";
+    // Ping to start the project and ensure there is a hub connection to it.
+    await project.ping({ project_id: this.project_id });
     if (this.waitHomeFilesystemType) {
       this.reportComponentState({
         state: "waiting",
@@ -126,10 +135,11 @@ class Manager {
     if (this.sync_db.get_state() == "init") {
       await once(this.sync_db, "ready");
     }
+    this.state = "ready";
     this.reportComponentState({
       state: "ready",
       progress: 100,
-      timeout: STATUS_INTERVAL_MS + 3,
+      timeout: Math.ceil(STATUS_INTERVAL_MS / 1000 + 3),
     });
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
   };
@@ -220,6 +230,8 @@ class Manager {
 
   private reportStatus = () => {
     this.log("reportStatus");
+    // Ping to start the project and ensure there is a hub connection to it.
+    project.ping({ project_id: this.project_id });
     // todo -- will put system load and other info here too
     this.sync_db.set_cursor_locs([
       {

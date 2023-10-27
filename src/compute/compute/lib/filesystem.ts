@@ -89,7 +89,7 @@ export async function mountProject({
       throw Error("api key must be set (e.g., set API_KEY env variable)");
     }
 
-    // Ping to start the project:
+    // Ping to start project so it's possible to mount.
     await project.ping({ project_id });
 
     let protocol, host;
@@ -123,6 +123,7 @@ export async function mountProject({
     }
 
     let unmount;
+    let pingInterval: null | ReturnType<typeof setInterval> = null;
     if (unionfs?.waitLowerFilesystemType) {
       // we just wait for it to get mounted in some other way
       unmount = null;
@@ -165,6 +166,14 @@ export async function mountProject({
           ? { path: readTrackingPath, timeout: 15, interval: 5 }
           : undefined,
       }));
+      pingInterval = setInterval(async () => {
+        try {
+          await project.ping({ project_id });
+          log("ping project -- SUCCESS");
+        } catch (err) {
+          log(`ping project -- ERROR '${err}'`);
+        }
+      }, 30000);
       reportState("network", { state: "ready", progress: 100 });
     }
 
@@ -196,6 +205,10 @@ export async function mountProject({
     return {
       syncfs,
       unmount: async () => {
+        if (pingInterval) {
+          clearInterval(pingInterval);
+          pingInterval = null;
+        }
         if (syncfs != null) {
           await syncfs.close();
         }
