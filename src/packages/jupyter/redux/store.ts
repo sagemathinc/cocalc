@@ -109,7 +109,6 @@ export const initial_jupyter_store_state: {
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {
-  private _is_project: any;
   // manipulated in jupyter/project-actions.ts
   public _more_output: any;
 
@@ -313,11 +312,12 @@ export class JupyterStore extends Store<JupyterStoreState> {
   }
 
   get_more_output = (id: string) => {
-    if (this._is_project) {
-      // This is ONLY used by the backend project for storing extra output.
-      if (this._more_output == null) {
-        this._more_output = {};
-      }
+    // this._more_output only gets set in project-actions in
+    // set_more_output, for the project or compute server that
+    // has that extra output.
+    if (this._more_output != null) {
+      // This is ONLY used by the backend for storing and retrieving
+      // extra output messages.
       const output = this._more_output[id];
       if (output == null) {
         return;

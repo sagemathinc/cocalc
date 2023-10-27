@@ -42,6 +42,18 @@ process.on("exit", () => {
   console.log("manager has exited");
 });
 
+const STARS =
+  "\nBUG ****************************************************************************\n";
+
+const uncaught = (err) => {
+  console.error(STARS);
+  console.error(`Uncaught exception: ${err}`);
+  console.error(err.stack);
+  console.error(STARS);
+};
+process.on("uncaughtException", uncaught);
+process.on("unhandledRejection", uncaught);
+
 export function manager(opts: Options) {
   return new Manager(opts);
 }

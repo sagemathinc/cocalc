@@ -106,8 +106,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb = syncdb;
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
-    store._is_project = this.is_project;
-
     this.is_compute_server = !!client.is_compute_server;
 
     let directory: any;
@@ -1910,7 +1908,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // the file manager, so gives a step to confirm, etc.
   // The path may optionally be *any* file in this project.
   public async file_action(action_name: string, path?: string): Promise<void> {
-    const a = this.redux.getProjectActions(this.store.get("project_id"));
+    if (this._state == "closed") return;
+    const a = this.redux.getProjectActions(this.project_id);
     if (path == null) {
       path = this.store.get("path");
       if (path == null) {
