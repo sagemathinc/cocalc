@@ -6,10 +6,11 @@ import type {
   ProjectWebsocket,
   WebsocketState,
 } from "@cocalc/sync/client/types";
-import { apiKey, apiServer, apiBasePath } from "@cocalc/backend/data";
+import { apiKey, apiServer } from "@cocalc/backend/data";
 import versionCookie from "./version-cookie";
 import { toCookieHeader } from "./cookies";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import basePath from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("sync-client:connect");
@@ -25,9 +26,9 @@ export default async function connectToProject(
     throw Error("api key must be set (e.g., set API_KEY env variable)");
   }
   const server = apiServer;
-  const pathname = join(apiBasePath, project_id, "raw/.smc/ws");
-  const target = `${server}${pathname}`;
-  log("connecting to ", target);
+  const pathname = join(basePath, project_id, "raw/.smc/ws");
+  const target = join(server, project_id, "raw/.smc/ws");
+  log("connectToProject -- ", { pathname, target });
   const opts = {
     pathname,
     transformer: "websockets",

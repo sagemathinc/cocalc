@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-process.env.BASE_PATH = process.env.BASE_PATH ?? "/";
 process.env.API_SERVER = process.env.API_SERVER ?? "https://cocalc.com";
-process.env.API_BASE_PATH = process.env.API_BASE_PATH ?? "/";
+
+console.log("API_SERVER=", process.env.API_SERVER);
 
 const { mountProject } = require("../dist/lib");
 

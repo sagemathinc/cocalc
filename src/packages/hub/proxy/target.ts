@@ -58,7 +58,7 @@ export async function getTarget({
   const { key, type, project_id, port_desc, internal_url } = parseReq(
     url,
     remember_me,
-    api_key
+    api_key,
   );
 
   if (cache.has(key)) {
@@ -100,7 +100,7 @@ export async function getTarget({
       // to worry about the cocalc project.
       dbg(
         "project not running and jupyter requested, so starting to run",
-        port_desc
+        port_desc,
       );
       await project.start();
       state = await project.state();
@@ -112,11 +112,12 @@ export async function getTarget({
   }
 
   // https://github.com/sagemathinc/cocalc/issues/7009#issuecomment-1781950765
-  if ((
-    port_desc == "jupyter" || // Jupyter Classic
-    port_desc == "jupyterlab" || // JupyterLab
-    port_desc == "code" // VSCode = "code-server"
-  ) && host == "localhost") {
+  if (
+    (port_desc == "jupyter" || // Jupyter Classic
+      port_desc == "jupyterlab" || // JupyterLab
+      port_desc == "code") && // VSCode = "code-server"
+    host == "localhost"
+  ) {
     host = "127.0.0.1";
   }
 
@@ -142,7 +143,7 @@ export async function getTarget({
       port = status["browser-server.port"];
     } else {
       throw Error(
-        "project browser server port not available -- project might not be opened or running"
+        "project browser server port not available -- project might not be opened or running",
       );
     }
   } else {
@@ -165,7 +166,7 @@ const namedServerPortCache = new LRU<string, number>({
 async function _namedServerPort(
   project_id: string,
   name: NamedServerName,
-  projectControl
+  projectControl,
 ): Promise<number> {
   const key = project_id + name;
   const p = namedServerPortCache.get(key);
@@ -176,7 +177,7 @@ async function _namedServerPort(
     // NOT @cocalc/server/projects/control like above...
     project_id,
     database,
-    projectControl
+    projectControl,
   );
   const port = await project.named_server_port(name);
   namedServerPortCache.set(key, port);

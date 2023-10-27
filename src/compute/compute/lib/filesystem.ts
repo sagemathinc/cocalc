@@ -6,7 +6,7 @@ Mount a remote CoCalc project's filesystem locally over a websocket using FUSE.
 
 */
 
-import { apiKey, apiServer, apiBasePath } from "@cocalc/backend/data";
+import { apiKey, apiServer } from "@cocalc/backend/data";
 import { mount } from "websocketfs";
 import getLogger from "@cocalc/backend/logger";
 import { project } from "@cocalc/api-client";
@@ -102,8 +102,7 @@ export async function mountProject({
     } else {
       throw Error("API_SERVER must start with http:// or https://");
     }
-    const remote = `${protocol}${host}${join(
-      apiBasePath,
+    const remote = `${protocol}${host}/${join(
       project_id,
       "raw/.smc/websocketfs",
     )}`;
