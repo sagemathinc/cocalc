@@ -335,9 +335,15 @@ export class SyncDoc extends EventEmitter {
     locs: any,
     side_effect: boolean = false,
   ) => {
-    if (this.state != "ready") return;
+    if (this.state != "ready") {
+      return;
+    }
     if (this.cursors_table == null) {
-      throw Error("cursors are not enabled");
+      if (!this.cursors) {
+        throw Error("cursors are not enabled");
+      }
+      // table not initialized yet
+      return;
     }
     const x: {
       string_id: string;
@@ -1612,6 +1618,7 @@ export class SyncDoc extends EventEmitter {
     maxAge?: number;
     excludeSelf?: boolean;
   } = {}): Map<string, any> {
+    this.assert_not_closed("get_cursors");
     if (!this.cursors) {
       throw Error("cursors are not enabled");
     }
