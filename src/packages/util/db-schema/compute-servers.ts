@@ -643,7 +643,7 @@ export const DOCKER_USER = "sagemathinc";
 export const IMAGES0 = {
   minimal: {
     label: "Minimal",
-    docker: `${DOCKER_USER}/compute-manager`,
+    docker: `${DOCKER_USER}/compute-base`,
     minDiskSizeGb: 10,
     gpu: false,
   },
