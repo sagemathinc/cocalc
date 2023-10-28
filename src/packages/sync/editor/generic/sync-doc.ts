@@ -49,6 +49,7 @@ const CURSOR_THROTTLE_MS = 750;
 
 type XPatch = any;
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import {
   callback2,
@@ -817,7 +818,7 @@ export class SyncDoc extends EventEmitter {
 
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
-  public async close(): Promise<void> {
+  public close = reuseInFlight(async () => {
     const dbg = this.dbg("close");
     dbg("close");
     if (this.state == "closed") {
@@ -897,7 +898,8 @@ export class SyncDoc extends EventEmitter {
 
     // after doing that close, we need to keep the state (which just got deleted) as 'closed'
     this.set_state("closed");
-  }
+    dbg("close done");
+  });
 
   private async async_close() {
     const promises: Promise<any>[] = [];
@@ -1083,7 +1085,7 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (f: string = ""): Function => {
-    return this.client.dbg(`SyncDoc('${this.path}').${f}`);
+    return this.client?.dbg(`SyncDoc('${this.path}').${f}`);
   };
 
   private async init_all(): Promise<void> {
@@ -1262,7 +1264,10 @@ export class SyncDoc extends EventEmitter {
   */
   public async wait(until: Function, timeout: number = 30): Promise<any> {
     await this.wait_until_ready();
-    return await wait({ obj: this, until, timeout, change_event: "change" });
+    //console.trace("SYNC WAIT -- start...");
+    const result = await wait({ obj: this, until, timeout, change_event: "change" });
+    //console.trace("SYNC WAIT -- got it!");
+    return result;
   }
 
   /* Delete the synchronized string and **all** patches from the database
@@ -1442,7 +1447,8 @@ export class SyncDoc extends EventEmitter {
     this.patches_table.on("saved", this.handle_offline.bind(this));
     this.patch_list = patch_list;
 
-    // this only potentially happens for tables in the project, e.g., jupyter.
+    // this only potentially happens for tables in the project,
+    // e.g., jupyter and compute servers:
     // see packages/project/sync/server.ts
     this.patches_table.on("message", (...args) => {
       dbg("received message", args);
@@ -1676,16 +1682,14 @@ export class SyncDoc extends EventEmitter {
   }
 
   /*
-  Commits and saves current live syncdoc to backend.  It's safe to
-  call this frequently or multiple times at once, since
-  it is wrapped in reuseInFlight in the constructor.
+  Commits and saves current live syncdoc to backend.
 
   Function only returns when there is nothing needing
   saving.
 
   Save any changes we have as a new patch.
   */
-  public async save(): Promise<void> {
+  public save = reuseInFlight(async () => {
     const dbg = this.dbg("save");
     dbg();
     if (this.client.is_deleted(this.path, this.project_id)) {
@@ -1747,7 +1751,7 @@ export class SyncDoc extends EventEmitter {
     // to save current state without having to wait on an async, which is
     // useful to ensure specific undo points (e.g., right before a paste).
     await this.patches_table.save();
-  }
+  });
 
   private next_patch_time(): Date {
     let time = this.client.server_time();

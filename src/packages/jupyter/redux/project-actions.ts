@@ -198,6 +198,9 @@ export class JupyterActions extends JupyterActions0 {
   private async _first_load() {
     const dbg = this.dbg("_first_load");
     dbg("doing load");
+    if (this.is_closed()) {
+      throw Error("actions must not be closed");
+    }
     try {
       await this._load_from_disk_if_newer();
     } catch (err) {
@@ -227,6 +230,9 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   _backend_syncdb_change = (changes: any) => {
+    if (this.is_closed()) {
+      return;
+    }
     const dbg = this.dbg("_backend_syncdb_change");
     if (changes != null) {
       changes.forEach((key) => {
@@ -751,7 +757,7 @@ export class JupyterActions extends JupyterActions0 {
         delete this._running_cells[id];
       }
       this.syncdb.save();
-      setTimeout(() => this.syncdb.save(), 100);
+      setTimeout(() => this.syncdb?.save(), 100);
     });
 
     if (this.jupyter_kernel == null) {
@@ -1313,6 +1319,10 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   protected isCellRunner = (): boolean => {
+    if (this.is_closed()) {
+      // it's closed, so obviously not the cell runner.
+      return false;
+    }
     const dbg = this.dbg("isCellRunner");
     const id = this.getRemoteComputeServerId();
     dbg("id = ", id);
@@ -1335,6 +1345,9 @@ export class JupyterActions extends JupyterActions0 {
 
   private lastRemoteComputeServerId = 0;
   private checkForRemoteComputeServerStateChange = (client_id) => {
+    if (this.is_closed()) {
+      return;
+    }
     if (!isEncodedNumUUID(client_id)) {
       return;
     }
@@ -1353,7 +1366,7 @@ export class JupyterActions extends JupyterActions0 {
   1. Handles api requests from the user via the generic websocket message channel
      provided by the syncdb.
 
-  2. In case a remote compuete server connectsand registers to handle api messages,
+  2. In case a remote compute server connects and registers to handle api messages,
      then those are proxied to the remote server, handled there, and proxied back.
   */
 
@@ -1381,7 +1394,7 @@ export class JupyterActions extends JupyterActions0 {
     // compute server, it forwards them to the remote compute server,
     // then proxies the response back to the client.
 
-    const dbg = this.dbg("message from client");
+    const dbg = this.dbg("handleMessageFromClient");
     dbg();
     // potentially very verbose
     // dbg(data);
@@ -1389,7 +1402,14 @@ export class JupyterActions extends JupyterActions0 {
       case "register-to-handle-api": {
         // a compute server client is volunteering to handle all api requests until they disconnect
         this.remoteApiHandler = { spark, id: 0, responseCallbacks: {} };
+        dbg("register-to-handle-api -- spark.id = ", spark.id);
         spark.on("end", () => {
+          dbg(
+            "register-to-handle-api -- spark ended, spark.id = ",
+            spark.id,
+            " and this.remoteApiHandler?.spark.id=",
+            this.remoteApiHandler?.spark.id,
+          );
           if (this.remoteApiHandler?.spark.id == spark.id) {
             this.remoteApiHandler = null;
           }
@@ -1445,10 +1465,14 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   private handleMessageFromProject = async (data) => {
-    // This call in the the remote compute server to handle api requests.
-    const dbg = this.dbg("message from project");
+    const dbg = this.dbg("handleMessageFromProject");
+    if (this.is_closed()) {
+      dbg("called AFTER closed");
+      return;
+    }
+    // This is call on the remote compute server to handle api requests.
     dbg();
-    // BIG
+    // output could be very BIG:
     // dbg(data);
     if (data.event == "api-request") {
       const response = await this.handleApiRequest(data.request);
@@ -1483,7 +1507,6 @@ export class JupyterActions extends JupyterActions0 {
       }
       // Send a message to the remote asking it to handle this api request,
       // which calls the function handleMessageFromProject from above in that remote process.
-      this.remoteApiHandler.spark.id += 1;
       const { id, spark, responseCallbacks } = this.remoteApiHandler;
       spark.write({
         event: "message",
@@ -1492,6 +1515,7 @@ export class JupyterActions extends JupyterActions0 {
       const waitForResponse = (cb) => {
         responseCallbacks[id] = cb;
       };
+      this.remoteApiHandler.id += 1; // increment sequential protocol message tracker id
       return (await callback(waitForResponse)).response;
     } catch (err) {
       return { event: "error", message: err.message };

@@ -45,15 +45,21 @@ process.on("exit", () => {
 
 const STARS =
   "\nBUG ****************************************************************************\n";
-
-const uncaught = (err) => {
+process.on("uncaughtException", (err) => {
+  console.trace(err);
   console.error(STARS);
-  console.error(`Uncaught exception: ${err}`);
+  console.error(`uncaughtException: ${err}`);
   console.error(err.stack);
   console.error(STARS);
-};
-process.on("uncaughtException", uncaught);
-process.on("unhandledRejection", uncaught);
+});
+process.on("unhandledRejection", (err) => {
+  console.trace(err);
+  console.error(STARS);
+  console.error(typeof err);
+  console.error(`unhandledRejection: ${err}`);
+  console.error((err as any)?.stack);
+  console.error(STARS);
+});
 
 export function manager(opts: Options) {
   return new Manager(opts);

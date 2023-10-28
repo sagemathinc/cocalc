@@ -25,6 +25,7 @@ class RemoteJupyter {
   private sync_db;
   private actions;
   private store;
+  private interval;
 
   constructor({ client, path }: { client: SyncClient; path: string }) {
     log("creating remote jupyter session");
@@ -46,7 +47,7 @@ class RemoteJupyter {
   }
 
   private log = (...args) => {
-    log(this.path, ...args);
+    log(`RemoteJupyter("${this.path}")`, ...args);
   };
 
   close = async () => {
@@ -54,13 +55,28 @@ class RemoteJupyter {
       return;
     }
     this.log("close");
+    clearInterval(this.interval);
     const { sync_db } = this;
     delete this.sync_db;
-    sync_db.setCursorLocsNoThrottle([]);
-    sync_db.close();
-    // TODO
-    this.actions;
-    this.store;
+    sync_db.removeAllListeners("message");
+
+    // Stop listening for messages, since as we start to close
+    // things before, handling messages would lead to a crash.
+    // clear our cursor, so project immediately knows that we disconnected.
+    this.log("close: clearing cursors...");
+    await sync_db.setCursorLocsNoThrottle([]);
+    this.log("close: closing actions...");
+    // we have to explicitly disable save here, since things are just
+    // too complicated to properly do the close with a save after
+    // we already started doing the close.
+    await this.actions.close({ noSave: true });
+    this.log("close: actions closed. Now destroying actions and store");
+    this.actions.destroy();
+    delete this.actions;
+    this.store.destroy();
+    delete this.store;
+    await sync_db.close();
+    this.log("close: done");
   };
 
   private registerWithProject = async () => {
@@ -75,6 +91,7 @@ class RemoteJupyter {
     // Periodically update cursor to indicate that we would like
     // to handle code evaluation, i.e., we are the cell running.
     const registerAsCellRunner = () => {
+      this.log("registerAsCellRunner");
       if (this.sync_db == null) {
         return;
       }
@@ -82,10 +99,7 @@ class RemoteJupyter {
         { type: COMPUTER_SERVER_CURSOR_TYPE },
       ]);
     };
-    const interval = setInterval(registerAsCellRunner, COMPUTE_THRESH_MS / 2);
-    this.sync_db.once("closed", () => {
-      clearInterval(interval);
-    });
+    this.interval = setInterval(registerAsCellRunner, COMPUTE_THRESH_MS / 2);
     registerAsCellRunner();
   };
 
@@ -95,6 +109,11 @@ class RemoteJupyter {
     const { project_id } = this.client;
     const { path } = this;
     this.actions = redux.getEditorActions(project_id, path);
+    if (this.actions.is_closed()) {
+      throw Error(
+        `initRedux -- actions can't be closed already (path="${path}")`,
+      );
+    }
     this.store = redux.getEditorStore(project_id, path);
   };
 }

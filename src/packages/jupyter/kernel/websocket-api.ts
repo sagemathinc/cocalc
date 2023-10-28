@@ -14,7 +14,7 @@ import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 export async function handleApiRequest(
   path: string,
   endpoint: string,
-  query?: any
+  query?: any,
 ): Promise<any> {
   // First handle endpoints that do not depend on a specific kernel.
   switch (endpoint) {
@@ -85,9 +85,10 @@ export async function handleApiRequest(
   }
 }
 
-function get_code_and_cursor_pos(
-  query: any
-): { code: string; cursor_pos: number } {
+function get_code_and_cursor_pos(query: any): {
+  code: string;
+  cursor_pos: number;
+} {
   const code: string = query.code;
   if (!code) {
     throw Error("must specify code");

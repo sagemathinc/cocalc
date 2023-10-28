@@ -60,7 +60,7 @@ export async function wait({
 
     async function f() {
       if (obj.get_state() === "closed") {
-        done("closed");
+        done(`closed - wait-until - ${change_event}`);
         return;
       }
       let x;

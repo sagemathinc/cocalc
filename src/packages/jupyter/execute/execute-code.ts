@@ -283,7 +283,7 @@ export class CodeExecutionEmitter
     if (this.kernel.get_state() === "closed") {
       log.silly("_execute_code", "kernel.get_state() is closed");
       this.close();
-      cb("closed");
+      cb("closed - jupyter - execute_code");
       return;
     }
 

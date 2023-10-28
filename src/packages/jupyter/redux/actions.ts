@@ -13,7 +13,13 @@ This can be used both on the frontend and the backend.
 // It seems like 50000 provides a better tradeoff.  With 10000 we got about
 // four support messages *per year* about this...
 const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
-export const COMPUTE_THRESH_MS = 30 * 1000; // 30s
+
+// This is relevant for compute servers. It's how long until we give up
+// on the compute server if it doesn't actively update its cursor state.
+// Note that in most cases the compute server will explicitly delete its
+// cursor on termination so switching is instant. This is a "just in case",
+// so things aren't broken forever, e.g., in case of a crash.
+export const COMPUTE_THRESH_MS = 30 * 1000;
 
 declare const localStorage: any;
 
@@ -187,7 +193,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       const cb = responseCallbacks[data.id];
       if (cb != null) {
         delete responseCallbacks[data.id];
-        if (data.response.event == "error") {
+        if (data.response?.event == "error") {
           cb(data.response.message ?? "error");
         } else {
           cb(undefined, data.response);
@@ -202,7 +208,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     timeout_ms?: number,
   ): Promise<any> {
     if (this._state === "closed" || this.syncdb == null) {
-      throw Error("closed");
+      throw Error("closed -- jupyter actions -- api_call");
     }
     if (this.syncdb.get_state() == "init") {
       await once(this.syncdb, "ready");
@@ -258,7 +264,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this._state === "closed";
   }
 
-  public async close(): Promise<void> {
+  public close = async ({ noSave }: { noSave?: boolean } = {}) => {
     if (this.is_closed()) {
       return;
     }
@@ -266,7 +272,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     //   - it will automatically happen for the sync-doc file, but
     //     we also need it for the ipynb file... as ipynb is unique
     //     in having two formats.
-    await this.save();
+    if (!noSave) {
+      await this.save();
+    }
 
     if (this.syncdb != null) {
       this.syncdb.close();
@@ -281,7 +289,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
     close(this);
     this._state = "closed";
-  }
+  };
 
   public close_project_only() {
     // real version is in derived class that project runs.
@@ -1813,7 +1821,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       const t = s.get_one({ type: "settings" });
       return t != null && t.get("backend_state") != "running";
     };
-    await this.syncdb.wait(not_running, 30);
+    try {
+      await this.syncdb.wait(not_running, 30);
+    } catch (err) {
+      this.set_error(err);
+    }
   });
 
   restart = reuseInFlight(async (): Promise<void> => {
@@ -1822,7 +1834,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.clear_all_cell_run_state();
     // Actually start it running again (rather than waiting for
     // user to do something), since this is called "restart".
-    await this.set_backend_kernel_info(); // causes kernel to start
+    try {
+      await this.set_backend_kernel_info(); // causes kernel to start
+    } catch (err) {
+      this.set_error(err);
+    }
   });
 
   public shutdown = reuseInFlight(async (): Promise<void> => {

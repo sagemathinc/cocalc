@@ -117,6 +117,9 @@ export function initJupyterRedux(syncdb: SyncDB, client: Client): void {
   if (project_id == null) {
     throw Error("project_id must be defined");
   }
+  if (syncdb.get_state() == "closed") {
+    throw Error("syncdb must not be closed");
+  }
 
   // This path is the file we will watch for changes and save to, which is in the original
   // official ipynb format:
@@ -271,7 +274,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   async spawn(spawn_opts?: { env?: { [key: string]: string } }): Promise<void> {
     if (this._state === "closed") {
       // game over!
-      throw Error("closed");
+      throw Error("closed -- kernel spawn");
     }
     if (!this.name) {
       // spawning not allowed.
@@ -332,7 +335,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       await this.finish_spawn();
     } catch (err) {
       if (this._state === "closed") {
-        throw Error("closed");
+        throw Error("closed -- kernel spawn later");
       }
       this._set_state("off");
       throw err;
@@ -441,6 +444,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     });
 
     this._kernel.spawn.on("exit", (exit_code, signal) => {
+      if (this._state === "closed") {
+        return;
+      }
       this.dbg("kernel_exit")(
         `spawned kernel terminated with exit code ${exit_code} (signal=${signal}); stderr=${this.stderr}`,
       );
@@ -463,7 +469,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     this._set_state("starting");
 
     if (this._state === "closed") {
-      throw Error("closed");
+      throw Error("closed -- finish_spawn ");
     }
   }
 
@@ -572,7 +578,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       opts.halt_on_error = true;
     }
     if (this._state === "closed") {
-      throw Error("closed");
+      throw Error("closed -- kernel -- execute_code");
     }
     const code = new CodeExecutionEmitter(this, opts);
     if (skipToFront) {
@@ -679,7 +685,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
     this.dbg("execute_code_now")();
     if (this._state === "closed") {
-      throw Error("closed");
+      throw Error("closed -- kernel -- execute_code_now");
     }
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
@@ -779,7 +785,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       const g = () => {
         this.removeListener("shell", f);
         this.removeListener("closed", g);
-        cb("closed");
+        cb("closed - jupyter - kernel - call");
       };
       this.on("shell", f);
       this.on("closed", g);

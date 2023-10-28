@@ -132,7 +132,7 @@ export class ProjectAndUserTracker extends EventEmitter {
         const callbacks = this.register_todo[account_id];
         if (callbacks != null) {
           for (const cb of callbacks) {
-            cb("closed");
+            cb("closed - project-and-user-tracker");
           }
         }
       }
