@@ -56,6 +56,12 @@ class RemoteJupyter {
     }
     this.log("close");
     clearInterval(this.interval);
+
+    this.log("save_asap");
+    await this.actions.save_asap();
+    this.log("halt kernel");
+    await this.actions.halt();
+
     const { sync_db } = this;
     delete this.sync_db;
     sync_db.removeAllListeners("message");
@@ -63,18 +69,16 @@ class RemoteJupyter {
     // Stop listening for messages, since as we start to close
     // things before, handling messages would lead to a crash.
     // clear our cursor, so project immediately knows that we disconnected.
-    this.log("close: clearing cursors...");
-    await sync_db.setCursorLocsNoThrottle([]);
     this.log("close: closing actions...");
     // we have to explicitly disable save here, since things are just
     // too complicated to properly do the close with a save after
     // we already started doing the close.
-    await this.actions.close({ noSave: true });
-    this.log("close: actions closed. Now destroying actions and store");
-    this.actions.destroy();
+    this.actions.close({ noSave: true });
+    this.log("close: actions closed");
     delete this.actions;
-    this.store.destroy();
     delete this.store;
+    this.log("close: clearing cursors...");
+    await sync_db.setCursorLocsNoThrottle([]);
     await sync_db.close();
     this.log("close: done");
   };

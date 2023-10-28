@@ -105,7 +105,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 });
 
 // Initialize the actions and store for working with a specific
-// ipython notebook.  The syncdb is the syncdoc associated to
+// Jupyter notebook.  The syncdb is the syncdoc associated to
 // the ipynb file, and this function creates the corresponding
 // actions and store, which make it possible to work with this
 // notebook.

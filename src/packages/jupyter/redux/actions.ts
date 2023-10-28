@@ -80,6 +80,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected _client: Client;
   protected _file_watcher: any;
   protected _state: any;
+  protected restartKernelOnClose?: (...args: any[]) => void;
 
   public _complete_request?: number;
   public store: JupyterStore;
@@ -97,7 +98,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
-      return;
     }
     store.dbg = (f) => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
@@ -261,7 +261,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public is_closed(): boolean {
-    return this._state === "closed";
+    return this._state === "closed" || this._state === undefined;
   }
 
   public close = async ({ noSave }: { noSave?: boolean } = {}) => {
@@ -287,6 +287,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       this.close_client_only();
     }
+    // We *must* destroy the action before calling close,
+    // since otherwise this.redux and this.name are gone,
+    // which makes destroying the actions properly impossible.
+    this.destroy();
+    this.store.destroy();
     close(this);
     this._state = "closed";
   };
@@ -320,7 +325,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
     // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
     const kernels = immutable
-      .fromJS(data)
+      .fromJS(data ?? [])
       .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
     const key: string = await this.store.jupyter_kernel_key();
     jupyter_kernels = jupyter_kernels.set(key, kernels); // global
@@ -1811,7 +1816,12 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
+  // Kill the running kernel and does NOT start it up again.
   halt = reuseInFlight(async (): Promise<void> => {
+    if (this.restartKernelOnClose != null && this.jupyter_kernel != null) {
+      this.jupyter_kernel.removeListener("closed", this.restartKernelOnClose);
+      delete this.restartKernelOnClose;
+    }
     this.clear_all_cell_run_state();
     await this.signal("SIGKILL");
     // Wait a little, since SIGKILL has to really happen on backend,

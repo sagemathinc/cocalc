@@ -287,7 +287,7 @@ export class JupyterActions extends JupyterActions0 {
   // ensure_backend_kernel_setup ensures that we have a connection
   // to the proper type of kernel.
   // If running is true, starts the kernel and waits until running.
-  ensure_backend_kernel_setup() {
+  ensure_backend_kernel_setup = () => {
     const dbg = this.dbg("ensure_backend_kernel_setup");
     const kernel = this.store.get("kernel");
 
@@ -301,7 +301,6 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     dbg(`kernel='${kernel}', current='${current}'`);
-
     if (
       this.jupyter_kernel != null &&
       this.jupyter_kernel.get_state() != "closed"
@@ -339,7 +338,7 @@ export class JupyterActions extends JupyterActions0 {
     this._running_cells = {};
     this.clear_all_cell_run_state();
 
-    this.jupyter_kernel.once("closed", () => {
+    this.restartKernelOnClose = () => {
       // When the kernel closes, make sure a new kernel gets setup.
       if (this.store == null || this._state !== "ready") {
         // This event can also happen when this actions is being closed,
@@ -348,7 +347,9 @@ export class JupyterActions extends JupyterActions0 {
       }
       dbg("kernel closed -- make new one.");
       this.ensure_backend_kernel_setup();
-    });
+    };
+
+    this.jupyter_kernel.once("closed", this.restartKernelOnClose);
 
     // Track backend state changes other than closing, so they
     // are visible to user etc.
@@ -372,7 +373,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
-  }
+  };
 
   set_connection_file = () => {
     const connection_file = this.jupyter_kernel?.get_connection_file() ?? "";

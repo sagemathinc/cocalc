@@ -284,8 +284,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   // don't forget the close() in the parent
-  close = async () => {
-    // console.log("jupyter close_browser_actions", this.path);
+  public async close(): Promise<void> {
     if (this.is_closed()) return;
     if (this.usage_info != null) {
       const key = this.usage_info.event_key(this.path);
