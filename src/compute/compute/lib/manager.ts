@@ -19,6 +19,7 @@ import { dirname, join } from "path";
 import { userInfo } from "os";
 import { waitUntilFilesystemIsOfType } from "./util";
 import { apiCall } from "@cocalc/api-client";
+import { get_blob_store as initJupyterBlobStore } from "@cocalc/jupyter/blobs";
 
 const logger = debug("cocalc:compute:manager");
 
@@ -106,6 +107,7 @@ class Manager {
     this.state = "init";
     // Ping to start the project and ensure there is a hub connection to it.
     await project.ping({ project_id: this.project_id });
+    // wait for home direcotry filesystem to be mounted:
     if (this.waitHomeFilesystemType) {
       this.reportComponentState({
         state: "waiting",
@@ -115,6 +117,9 @@ class Manager {
       });
       await waitUntilFilesystemIsOfType(this.home, this.waitHomeFilesystemType);
     }
+    // initialize the blobstore
+    await initJupyterBlobStore();
+    // connect to the project for participating in realtime sync
     const client_id = encodeIntToUUID(this.compute_server_id);
     this.client = new SyncClient({
       project_id: this.project_id,

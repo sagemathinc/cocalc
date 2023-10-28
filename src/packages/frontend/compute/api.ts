@@ -5,6 +5,7 @@ import type {
   Cloud,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import { reuseInFlight } from "async-await-utils/hof";
 
 export async function createServer(opts: {
   project_id: string;
@@ -61,19 +62,22 @@ export async function setServerCloud(opts: { id: number; cloud: string }) {
 
 // Cache for 12 hours
 let googleCloudPriceData: GoogleCloudData | null = null;
-let googleCloudPriceDataTime: number = 0;
-export async function getGoogleCloudPriceData(): Promise<GoogleCloudData> {
-  if (
-    googleCloudPriceData == null ||
-    Date.now() - googleCloudPriceDataTime >= 1000 * 60 * 60 * 12
-  ) {
-    googleCloudPriceData = await api("compute/google-cloud/get-pricing-data");
-  }
-  if (googleCloudPriceData == null) {
-    throw Error("bug");
-  }
-  return googleCloudPriceData;
-}
+let googleCloudPriceDataExpire: number = 0;
+export const getGoogleCloudPriceData = reuseInFlight(
+  async (): Promise<GoogleCloudData> => {
+    if (
+      googleCloudPriceData == null ||
+      Date.now() >= googleCloudPriceDataExpire
+    ) {
+      googleCloudPriceData = await api("compute/google-cloud/get-pricing-data");
+      googleCloudPriceDataExpire = Date.now() + 1000 * 60 * 60 * 12; // 12 hour cache
+    }
+    if (googleCloudPriceData == null) {
+      throw Error("bug");
+    }
+    return googleCloudPriceData;
+  },
+);
 
 // Returns network usage during the given interval.  Returns
 // amount in GiB and cost at our current rate.

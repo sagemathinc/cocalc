@@ -654,7 +654,7 @@ export class JupyterActions extends JupyterActions0 {
       dbg,
     });
 
-    dbg("adding closed handler to jupyter_kernel");
+    dbg("setting up jupyter_kernel.once('closed', ...) handler");
     const handleKernelClose = () => {
       dbg("output handler -- closing due to jupyter kernel closed");
       handler.close();
@@ -674,12 +674,15 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     handler.on("process", (mesg) => {
+      dbg("handler.on('process')", mesg);
       if (
         this.jupyter_kernel == null ||
         this.jupyter_kernel.get_state() == "closed"
-      )
+      ) {
         return;
+      }
       this.jupyter_kernel.process_output(mesg);
+      dbg("handler -- after processing ", mesg);
     });
 
     return handler;

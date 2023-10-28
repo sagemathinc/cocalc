@@ -28,9 +28,8 @@ export function is_likely_iframe(content: string): boolean {
 
 export function process(
   content: string,
-  blob_store: BlobStoreInterface | undefined
-) {
-  // TODO: type
+  blob_store: BlobStoreInterface,
+): string {
   const content_lower = content.toLowerCase();
   const i = content_lower.indexOf("<html>");
   const j = content_lower.lastIndexOf("</html>");
@@ -43,7 +42,7 @@ export function process(
   } else {
     src = `<html>${content}</html>`;
   }
-  return blob_store?.save?.(unescape(src), "text/html", content);
+  return blob_store.save(unescape(src), "text/html", content);
 }
 
 const entity_map = {

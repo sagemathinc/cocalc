@@ -700,12 +700,12 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       return;
     }
     const dbg = this.dbg("process_output");
-    // https://github.com/sagemathinc/cocalc/issues/6665
-    // NO do not do this sort of thing.  This is exactly the sort of situation where
-    // content could be very large, and JSON.stringify could use huge amounts of memory.
-    // If you need to see this for debugging, uncomment it.
-    // dbg(trunc(JSON.stringify(content), 300));
     if (content.data == null) {
+      // No data -- https://github.com/sagemathinc/cocalc/issues/6665
+      // NO do not do this sort of thing.  This is exactly the sort of situation where
+      // content could be very large, and JSON.stringify could use huge amounts of memory.
+      // If you need to see this for debugging, uncomment it.
+      // dbg(trunc(JSON.stringify(content), 300));
       // todo: FOR now -- later may remove large stdout, stderr, etc...
       dbg("no data, so nothing to do");
       return;
@@ -713,28 +713,30 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     remove_redundant_reps(content.data);
 
+    let blob_store;
+    try {
+      blob_store = get_blob_store_sync();
+    } catch (err) {
+      dbg(`WARNING: Jupyter blob store is not available -- ${err}`);
+      // there is nothing to process without the blob store to save
+      // data in!
+      return;
+    }
+
     let type: string;
     for (type of JUPYTER_MIMETYPES) {
-      if (content.data[type] != null) {
-        if (type.split("/")[0] === "image" || type === "application/pdf") {
-          const blob_store = get_blob_store_sync();
-          if (blob_store != null) {
-            content.data[type] = blob_store.save(content.data[type], type);
-          }
-        } else if (
-          type === "text/html" &&
-          is_likely_iframe(content.data[type])
-        ) {
-          // Likely iframe, so we treat it as such.  This is very important, e.g.,
-          // because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
-          // and remove these and serve them from the backend.
-          //  {iframe: sha1 of srcdoc}
-          content.data["iframe"] = iframe_process(
-            content.data[type],
-            get_blob_store_sync(),
-          );
-          delete content.data[type];
-        }
+      if (content.data[type] == null) {
+        continue;
+      }
+      if (type.split("/")[0] === "image" || type === "application/pdf") {
+        content.data[type] = blob_store.save(content.data[type], type);
+      } else if (type === "text/html" && is_likely_iframe(content.data[type])) {
+        // Likely iframe, so we treat it as such.  This is very important, e.g.,
+        // because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
+        // and remove these and serve them from the backend.
+        //  {iframe: sha1 of srcdoc}
+        content.data["iframe"] = iframe_process(content.data[type], blob_store);
+        delete content.data[type];
       }
     }
   }
