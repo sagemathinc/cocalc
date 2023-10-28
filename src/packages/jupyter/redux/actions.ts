@@ -264,7 +264,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this._state === "closed" || this._state === undefined;
   }
 
-  public close = async ({ noSave }: { noSave?: boolean } = {}) => {
+  public async close({ noSave }: { noSave?: boolean } = {}): Promise<void> {
     if (this.is_closed()) {
       return;
     }
@@ -294,7 +294,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.store.destroy();
     close(this);
     this._state = "closed";
-  };
+  }
 
   public close_project_only() {
     // real version is in derived class that project runs.
