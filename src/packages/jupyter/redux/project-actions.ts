@@ -32,6 +32,7 @@ import {
 } from "@cocalc/util/compute/manager";
 import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
 import { callback } from "awaiting";
+import { get_blob_store } from "@cocalc/jupyter/blobs";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -1454,6 +1455,19 @@ export class JupyterActions extends JupyterActions0 {
         return;
       }
 
+      case "save-blob-to-project": {
+        if (!this.is_project) {
+          throw Error(
+            "message save-blob-to-project should only be sent to the project",
+          );
+        }
+        // A compute server sent the project a blob to store
+        // in the local blob store.
+        const blobStore = await get_blob_store();
+        blobStore.save(data.data, data.type, data.ipynb);
+        return;
+      }
+
       default: {
         // unknown event so send back error
         spark.write({
@@ -1466,6 +1480,30 @@ export class JupyterActions extends JupyterActions0 {
         });
       }
     }
+  };
+
+  // this should only be called on a compute server.
+  public saveBlobToProject = (data: string, type: string, ipynb?: string) => {
+    if (!this.is_compute_server) {
+      throw Error(
+        "saveBlobToProject should only be called on a compute server",
+      );
+    }
+    const dbg = this.dbg("saveBlobToProject");
+    if (this.is_closed()) {
+      dbg("called AFTER closed");
+      return;
+    }
+    // This is call on a compute server whenever something is
+    // written to its local blob store.  TODO: We do not wait for
+    // confirmation that blob was sent yet though.
+    dbg();
+    this.syncdb.sendMessageToProject({
+      event: "save-blob-to-project",
+      data,
+      type,
+      ipynb,
+    });
   };
 
   private handleMessageFromProject = async (data) => {

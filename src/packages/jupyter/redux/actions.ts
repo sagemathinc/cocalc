@@ -67,8 +67,8 @@ const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export abstract class JupyterActions extends Actions<JupyterStoreState> {
-  protected is_project: boolean;
-  protected is_compute_server?: boolean;
+  public is_project: boolean;
+  public is_compute_server?: boolean;
   readonly path: string;
   readonly project_id: string;
   private _last_start?: number;

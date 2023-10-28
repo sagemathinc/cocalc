@@ -713,9 +713,20 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     remove_redundant_reps(content.data);
 
-    let blob_store;
+    let saveToBlobStore;
     try {
-      blob_store = get_blob_store_sync();
+      const blob_store = get_blob_store_sync();
+      saveToBlobStore = (
+        data: string,
+        type: string,
+        ipynb?: string,
+      ): string => {
+        const sha1 = blob_store.save(data, type, ipynb);
+        if (this._actions?.is_compute_server) {
+          this._actions?.saveBlobToProject(data, type, ipynb);
+        }
+        return sha1;
+      };
     } catch (err) {
       dbg(`WARNING: Jupyter blob store is not available -- ${err}`);
       // there is nothing to process without the blob store to save
@@ -729,13 +740,17 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         continue;
       }
       if (type.split("/")[0] === "image" || type === "application/pdf") {
-        content.data[type] = blob_store.save(content.data[type], type);
+        // Store all images and PDF in the blob store:
+        content.data[type] = saveToBlobStore(content.data[type], type);
       } else if (type === "text/html" && is_likely_iframe(content.data[type])) {
         // Likely iframe, so we treat it as such.  This is very important, e.g.,
         // because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
         // and remove these and serve them from the backend.
         //  {iframe: sha1 of srcdoc}
-        content.data["iframe"] = iframe_process(content.data[type], blob_store);
+        content.data["iframe"] = iframe_process(
+          content.data[type],
+          saveToBlobStore,
+        );
         delete content.data[type];
       }
     }
