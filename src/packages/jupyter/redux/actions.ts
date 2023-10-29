@@ -1833,7 +1833,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     };
     try {
       await this.syncdb.wait(not_running, 30);
+      // worked -- and also no need to show "kernel got killed" message since this was intentional.
+      this.set_error("");
     } catch (err) {
+      // failed
       this.set_error(err);
     }
   });
