@@ -303,7 +303,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   fetch_jupyter_kernels = async (): Promise<void> => {
     let data;
     const f = async () => {
-      data = await this.api_call("kernels", undefined, 3000);
+      data = await this.api_call("kernels", undefined, 5000);
       if (this._state === "closed") {
         return;
       }

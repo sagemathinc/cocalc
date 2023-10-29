@@ -474,19 +474,22 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
     const customize = this.redux.getStore("customize");
+    const computeServerId = this.redux
+      .getActions(this.name)
+      .getRemoteComputeServerId();
     if (customize == null) {
       // the customize store doesn't exist, e.g., in a compute server.
       // In that case no need for a complicated jupyter kernel key as
       // there is only one image.
       // (??)
-      return `${project_id}-default`;
+      return `${project_id}-${computeServerId}-default`;
     }
     const dflt_img = await customize.getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
       dflt_img,
     );
-    const key = [project_id, compute_image].join("::");
+    const key = [project_id, `${computeServerId}`, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
   }
