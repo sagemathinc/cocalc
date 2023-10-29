@@ -10,10 +10,10 @@ import {
 import ShowError from "@cocalc/frontend/components/error";
 import ComputeServer from "./compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { randomColor } from "./color";
 
 const DEFAULTS = {
   title: () => `Untitled ${new Date().toISOString().split("T")[0]}`,
-  color: "#2196f3",
   cloud: availableClouds()[0],
   configuration: CLOUDS_BY_NAME[availableClouds()[0]]?.defaultConfiguration,
 };
@@ -25,7 +25,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const [error, setError] = useState<string>("");
 
   const [title, setTitle] = useState<string>(DEFAULTS.title);
-  const [color, setColor] = useState<string>(DEFAULTS.color);
+  const [color, setColor] = useState<string>(randomColor());
   const [cloud, setCloud] = useState<CloudType>(DEFAULTS.cloud);
   const [configuration, setConfiguration] = useState<any>(
     DEFAULTS.configuration,
@@ -33,7 +33,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
 
   const resetConfig = () => {
     setTitle(DEFAULTS.title());
-    setColor(DEFAULTS.color);
+    setColor(randomColor());
     setCloud(DEFAULTS.cloud);
     setConfiguration(DEFAULTS.configuration);
   };
@@ -134,12 +134,16 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       >
         <Icon
           name="server"
-          style={{ color: "rgb(66, 139, 202)", fontSize: "200%" }}
+          style={{
+            color: "rgb(66, 139, 202)",
+            fontSize: "200%",
+          }}
         />
         <br />
         Create Compute Server... {creating ? <Spin /> : null}
       </Button>
       <Modal
+        maskStyle={{ background: color, opacity: 0.5 }}
         width={"900px"}
         onCancel={() => {
           setEditing(false);

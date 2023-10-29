@@ -1,7 +1,8 @@
-import { Card, Spin } from "antd";
+import { Button, Card, Spin } from "antd";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useEffect, useState } from "react";
 import { setServerColor } from "./api";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props {
   color: string;
@@ -33,10 +34,10 @@ export default function Color({
       style={{
         cursor: editable ? "pointer" : undefined,
         width: "125px",
-        height: "30px",
+        height: "32px",
         background: choice ?? "#aaa",
         borderRadius: "5px",
-        border: `1px solid {choice ?? "#aaa"}`,
+        border: `1px solid #ddd`,
       }}
     />
   );
@@ -67,7 +68,17 @@ export default function Color({
   };
 
   return (
-    <div style={style}>
+    <div style={{ display: "flex", ...style }}>
+      {editable && (
+        <Button
+          type="text"
+          onClick={() => {
+            handleChange(randomColor());
+          }}
+        >
+          <Icon name="sync-alt" />
+        </Button>
+      )}
       {strip}
       {saving && <Spin delay={1000} />}
       {edit && (
@@ -87,4 +98,10 @@ export default function Color({
       )}
     </div>
   );
+}
+
+export function randomColor() {
+  return `rgb(${Math.floor(Math.random() * 256)},${Math.floor(
+    Math.random() * 256,
+  )},${Math.floor(Math.random() * 256)})`;
 }

@@ -66,7 +66,7 @@ export default function Title({
     <Input
       placeholder={"Title..."}
       ref={titleRef}
-      style={{ width: "350px", ...style }}
+      style={{ width: "275px", ...style }}
       value={newTitle}
       onChange={(e) => setNewTitle(e.target.value)}
       onPressEnter={handleSave}

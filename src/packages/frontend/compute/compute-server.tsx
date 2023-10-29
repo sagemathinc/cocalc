@@ -14,6 +14,7 @@ import Title from "./title";
 import Configuration from "./configuration";
 import { deleteServer, undeleteServer } from "./api";
 import { DisplayImage } from "./select-image";
+import { randomColor } from "./color";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -32,7 +33,7 @@ interface Props extends Omit<ComputeServerUserInfo, "id"> {
 export default function ComputeServer({
   id,
   title,
-  color = "#888",
+  color = randomColor(),
   state,
   state_changed,
   detailed_state,
@@ -67,7 +68,7 @@ export default function ComputeServer({
 
   const dataSource = [
     {
-      label: "Title & Color",
+      label: "",
       value: (
         <div
           style={{
@@ -100,7 +101,7 @@ export default function ComputeServer({
             setError={setError}
             setCloud={onCloudChange}
             id={id}
-            style={{ marginTop: "-5px", marginLeft: "10px" }}
+            style={{ marginTop: "-2.5px", marginLeft: "10px" }}
           />
         </div>
       ),
