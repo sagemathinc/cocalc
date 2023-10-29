@@ -104,7 +104,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     parent: HTMLElement,
     command?: string,
     args?: string[],
-    workingDir?: string
+    workingDir?: string,
   ) {
     bind_methods(this);
     this.ask_for_cwd = debounce(this.ask_for_cwd);
@@ -372,7 +372,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.history += data;
     if (this.history.length > MAX_HISTORY_LENGTH) {
       this.history = this.history.slice(
-        this.history.length - Math.round(MAX_HISTORY_LENGTH / 1.5)
+        this.history.length - Math.round(MAX_HISTORY_LENGTH / 1.5),
       );
     }
     try {
@@ -419,6 +419,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_keyhandler(): void {
+    if (this.state === "closed") {
+      return;
+    }
     if (this.keyhandler_initialized) {
       return;
     }
@@ -595,6 +598,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         }
         // cause render to actually appear now.
         await delay(0);
+        if (this.state === "closed") {
+          return;
+        }
         try {
           this.terminal.refresh(0, this.terminal.rows - 1);
         } catch (err) {
