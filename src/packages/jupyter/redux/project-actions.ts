@@ -34,13 +34,16 @@ import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
 import { callback } from "awaiting";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 
+// We never try to read the file on disk if we wrote it out
+// this recently:
+const FILE_CHANGE_THRESH_MS = 7500;
+
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
 export class JupyterActions extends JupyterActions0 {
   private _backend_state: BackendState = "init";
   private _initialize_manager_already_done: any;
   private _kernel_state: any;
-  private _last_save_ipynb_file: any;
   private _manager_run_cell_queue: any;
   private _running_cells: { [id: string]: string };
   private _throttled_ensure_positions_are_unique: any;
@@ -203,7 +206,7 @@ export class JupyterActions extends JupyterActions0 {
       throw Error("actions must not be closed");
     }
     try {
-      await this._load_from_disk_if_newer();
+      await this.loadFromDiskIfNewer();
     } catch (err) {
       dbg(`load failed -- ${err}; wait for file change and try again`);
       const path = this.store.get("path");
@@ -675,7 +678,8 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     handler.on("process", (mesg) => {
-      dbg("handler.on('process')", mesg);
+      // Do not enable -- mesg often very large!
+      //        dbg("handler.on('process')", mesg);
       if (
         this.jupyter_kernel == null ||
         this.jupyter_kernel.get_state() == "closed"
@@ -683,7 +687,7 @@ export class JupyterActions extends JupyterActions0 {
         return;
       }
       this.jupyter_kernel.process_output(mesg);
-      dbg("handler -- after processing ", mesg);
+      //  dbg("handler -- after processing ", mesg);
     });
 
     return handler;
@@ -955,13 +959,8 @@ export class JupyterActions extends JupyterActions0 {
         return;
       }
       dbg("change");
-      if (new Date().getTime() - this._last_save_ipynb_file <= 10000) {
-        // Guard against reacting to saving file to disk, which would
-        // be inefficient and could lead to corruption.
-        return;
-      }
       try {
-        await this.load_ipynb_file();
+        await this.loadFromDiskIfNewer();
       } catch (err) {
         dbg("failed to load on change", err);
       }
@@ -1015,9 +1014,12 @@ export class JupyterActions extends JupyterActions0 {
         )
     */
 
-  _load_from_disk_if_newer = async () => {
-    const dbg = this.dbg("load_from_disk_if_newer");
-    // Get ctime of last .ipynb file that we explicitly saved.
+  // Load file from disk if it is sufficiently newer than
+  // the last we saved to disk *and* any changes we've made
+  // to the syncdb representation.
+  private loadFromDiskIfNewer = async () => {
+    const dbg = this.dbg("loadFromDiskIfNewer");
+    // Get mtime of last .ipynb file that we explicitly saved.
 
     // TODO: breaking the syncdb typescript data hiding.  The
     // right fix will be to move
@@ -1027,29 +1029,41 @@ export class JupyterActions extends JupyterActions0 {
       .getIn(["save", "last_ipynb_save"], 0);
 
     dbg(`syncdb last_ipynb_save=${last_ipynb_save}`);
-    const path = this.store.get("path");
-    let stats;
-    try {
-      stats = await callback2(this._client.path_stat, { path });
-      dbg(`stats.ctime = ${stats.ctime}`);
-    } catch (err) {
-      // This err just means the file doesn't exist.
-      // We set the 'last load' to now in this case, since
-      // the frontend clients need to know that we
-      // have already scanned the disk.
-      this.set_last_load();
-      return;
+    let file_changed;
+    if (last_ipynb_save == 0) {
+      // we MUST load from file the first time, of course.
+      file_changed = true;
+    } else {
+      const path = this.store.get("path");
+      let stats;
+      try {
+        stats = await callback2(this._client.path_stat, { path });
+        dbg(`stats.mtime = ${stats.mtime}`);
+      } catch (err) {
+        // This err just means the file doesn't exist.
+        // We set the 'last load' to now in this case, since
+        // the frontend clients need to know that we
+        // have already scanned the disk.
+        this.set_last_load();
+        return;
+      }
+      const last_syncdb_change = this.syncdb.last_changed().valueOf();
+      const mtime = stats.mtime.getTime();
+      file_changed =
+        mtime > last_syncdb_change + FILE_CHANGE_THRESH_MS &&
+        mtime > last_ipynb_save + FILE_CHANGE_THRESH_MS;
     }
-    const file_changed = stats.ctime.getTime() !== last_ipynb_save;
     if (file_changed) {
-      dbg(".ipynb disk file changed since last load, so loading");
+      dbg(".ipynb disk file changed ==> loading state from disk");
       try {
         await this.load_ipynb_file();
       } catch (err) {
         dbg("failed to load on change", err);
       }
     } else {
-      dbg(".ipynb disk file NOT changed since last load, so NOT loading");
+      dbg(
+        "disk file NOT changed, but newer changes in memory or we recently save ==> NOT loading",
+      );
     }
   };
 
@@ -1173,7 +1187,6 @@ export class JupyterActions extends JupyterActions0 {
         data,
       });
       dbg("succeeded at saving");
-      this._last_save_ipynb_file = new Date();
       this.set_last_ipynb_save();
     } catch (err) {
       const e = `error writing file: ${err}`;
@@ -1245,6 +1258,9 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   private handle_ipywidgets_state_change(keys): void {
+    if (this.is_closed()) {
+      return;
+    }
     const dbg = this.dbg("handle_ipywidgets_state_change");
     dbg(keys);
     if (this.jupyter_kernel == null) {
@@ -1518,11 +1534,16 @@ export class JupyterActions extends JupyterActions0 {
     // dbg(data);
     if (data.event == "api-request") {
       const response = await this.handleApiRequest(data.request);
-      this.syncdb.sendMessageToProject({
-        event: "api-response",
-        id: data.id,
-        response,
-      });
+      try {
+        this.syncdb.sendMessageToProject({
+          event: "api-response",
+          id: data.id,
+          response,
+        });
+      } catch (err) {
+        // this happens when the websocket is disconnected
+        dbg(`WARNING -- issue responding to message ${err}`);
+      }
       return;
     }
   };
