@@ -113,6 +113,14 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       uid,
       gid: uid,
     });
+    child.stdout.on('data', (data) => {
+      // Lets's log stdout of process that running daemon
+      winston.debug(`Running project —  stdout ${data.toString("utf8")}`);
+    });     
+    child.stderr.on('data', (data) => {
+      // Lets's log stderr of process that running daemon
+      winston.debug(`Running project — stderr ${data.toString("utf8")}`);
+    });     
     child.on("error", (err) => {
       winston.debug(`project daemon error ${err}`);
       cb(err);
@@ -205,6 +213,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     "LINES",
     "COLUMNS",
     "LS_COLORS",
+    "DEBUG_FILE",
   ]) {
     delete env2[key];
   }
