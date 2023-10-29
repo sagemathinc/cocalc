@@ -115,7 +115,7 @@ export default function SelectComputeServer({
             <div style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
               {title}
             </div>
-            <div style={{ flex: 1, minWidth: "15px" }} />
+            <div style={{ flex: 1, minWidth: "5px" }} />
             <div>Id: {id}</div>
           </div>
           <div style={{ marginLeft: "20px" }}>
@@ -133,10 +133,19 @@ export default function SelectComputeServer({
       .sort((a, b) => cmp(a.sort, b.sort));
     return [
       {
-        value: "0",
-        sort: "project",
-        state: "",
-        label: "Move back to project",
+        label: <div style={{ fontSize: "12pt" }}>The Project</div>,
+        options: [
+          {
+            value: "0",
+            sort: "project",
+            state: "",
+            label: (
+              <div>
+                <Icon name="edit" /> Run in the Project
+              </div>
+            ),
+          },
+        ],
       },
       {
         label: (
@@ -149,7 +158,7 @@ export default function SelectComputeServer({
       {
         label: (
           <div style={{ fontSize: "12pt" }}>
-            Not Running {notRunning.length == 0 ? "(none)" : ""}
+            Not Running Compute Servers {notRunning.length == 0 ? "(none)" : ""}
           </div>
         ),
         options: notRunning,
@@ -194,7 +203,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value ? "140px" : "64px",
+          width: open ? "300px" : value ? "175px" : "64px",
           background: value ? computeServers[value]?.color : undefined,
           color: "white", // todo
         }}

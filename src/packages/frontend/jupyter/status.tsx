@@ -25,7 +25,12 @@ import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { Mode } from "./mode";
-import { AlertLevel, BackendState, NotebookMode, Usage } from "@cocalc/jupyter/types";
+import {
+  AlertLevel,
+  BackendState,
+  NotebookMode,
+  Usage,
+} from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 import ProgressEstimate from "../components/progress-estimate";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
@@ -79,7 +84,8 @@ const BACKEND_STATE_STYLE: CSS = {
   display: "flex",
   marginRight: "5px",
   color: KERNEL_NAME_STYLE.color,
-  paddingTop: "2.5px",
+  marginTop: "-2.5px",
+  fontSize: "18px",
 } as const;
 
 const BACKEND_STATE_HUMAN = {
@@ -167,7 +173,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         // Definitely an unknown kernel
         const closestKernel = closest_kernel_match(
           kernel,
-          kernels as any // TODO
+          kernels as any, // TODO
         );
         if (closestKernel == null) {
           return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;
@@ -359,7 +365,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       if (kernel_info != null) {
         const name = kernel_info.get(
           "display_name",
-          kernel_info.get("name", "No Kernel")
+          kernel_info.get("name", "No Kernel"),
         );
         return <div>Kernel: {name}</div>;
       } else {
@@ -435,7 +441,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       ]);
       const language = capitalize(kernel_info?.get("language", "Unknown"));
       const langTxt = `${language}${description ? ` (${description})` : ""}`;
-      const langURL = kernel_info?.getIn(["metadata", "cocalc", "url"]) as string|undefined;
+      const langURL = kernel_info?.getIn(["metadata", "cocalc", "url"]) as
+        | string
+        | undefined;
       const lang = (
         <>
           Language:{" "}
@@ -518,7 +526,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       // we calibrate "100%" at the median – color changes at 2 x timings_q
       const cpu_val = Math.min(
         100,
-        100 * (usage.cpu_runtime / expected_cell_runtime)
+        100 * (usage.cpu_runtime / expected_cell_runtime),
       );
 
       return (
@@ -667,5 +675,5 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         {renderMode()}
       </div>
     );
-  }
+  },
 );
