@@ -2650,6 +2650,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const dbg = this.dbg("getRemoteComputeServerId");
     dbg("num cursors = ", cursors.size);
     let minId = Infinity;
+    // NOTE: similar code is in frontend/jupyter/cursor-manager.ts
     for (const [client_id, cursor] of cursors) {
       if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
         try {

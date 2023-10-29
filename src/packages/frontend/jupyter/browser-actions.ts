@@ -45,6 +45,7 @@ export class JupyterActions extends JupyterActions0 {
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
   private usage_info?: UsageInfoWS;
+  private lastComputeServerId?: number;
 
   protected init2(): void {
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
@@ -291,7 +292,7 @@ export class JupyterActions extends JupyterActions0 {
       this.usage_info.off(key, this.usage_info_handler);
     }
     await super.close();
-  };
+  }
 
   private activity(): void {
     if (this._state === "closed") return;
@@ -340,14 +341,18 @@ export class JupyterActions extends JupyterActions0 {
       this.store == null ||
       this.syncdb == null ||
       this.cursor_manager == null
-    )
+    ) {
       return;
-    const cells = this.cursor_manager.process(
-      this.store.get("cells"),
-      this.syncdb.get_cursors() as any /* typescript is being dumb */,
-    );
+    }
+    const cursors = this.syncdb.get_cursors();
+    const cells = this.cursor_manager.process(this.store.get("cells"), cursors);
     if (cells != null) {
       this.setState({ cells });
+    }
+    const computeServerId = this.cursor_manager.computeServerId(cursors);
+    if (computeServerId != this.lastComputeServerId) {
+      this.lastComputeServerId = computeServerId;
+      this.fetch_jupyter_kernels();
     }
   };
 
