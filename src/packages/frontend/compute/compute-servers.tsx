@@ -7,6 +7,11 @@ import { Input, Checkbox, Radio, Typography } from "antd";
 import { useState } from "react";
 const { Search } = Input;
 import { search_match, search_split } from "@cocalc/util/misc";
+import {
+  SortableList,
+  SortableItem,
+  DragHandle,
+} from "@cocalc/frontend/components/sortable-list";
 
 export default function ComputeServers({ project_id }: { project_id: string }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
@@ -59,8 +64,8 @@ function computeServerToSearch(computeServers, id) {
 function ComputeServerTable({ computeServers, project_id, account_id }) {
   const [search, setSearch] = useState<string>("");
   const [showDeleted, setShowDeleted] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<"id" | "title" | "changed">(
-    localStorage.compute_server_sort ?? "id",
+  const [sortBy, setSortBy] = useState<"id" | "title" | "custom">(
+    localStorage.compute_server_sort ?? "custom",
   );
   if (!computeServers || computeServers.size == 0) {
     return (
@@ -70,14 +75,6 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
       />
     );
   }
-  const v: JSX.Element[] = [
-    <div style={{ margin: "15px 0" }} key="create">
-      <CreateComputeServer
-        project_id={project_id}
-        onCreate={() => setSearch("")}
-      />
-    </div>,
-  ];
   const search_words = search_split(search.toLowerCase());
   const ids: number[] = [];
   let numDeleted = 0;
@@ -102,19 +99,7 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
     if (a == b) return 0;
     const cs_a = computeServers.get(a);
     const cs_b = computeServers.get(b);
-    //     if (
-    //       cs_a.get("account_id") == account_id &&
-    //       cs_b.get("account_id") != account_id
-    //     ) {
-    //       return -1;
-    //     }
-    //     if (
-    //       cs_a.get("account_id") != account_id &&
-    //       cs_b.get("account_id") == account_id
-    //     ) {
-    //       return 1;
-    //     }
-    if (sortBy == "changed") {
+    if (sortBy == "custom") {
       return -cmp(cs_a.get("last_edited") ?? 0, cs_b.get("last_edited") ?? 0);
     } else if (sortBy == "title") {
       return cmp(
@@ -126,42 +111,58 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
       return -cmp(cs_a.get("id"), cs_b.get("id"));
     }
   });
-  for (const id of ids) {
+  const renderItem = (id) => {
     const data = computeServers.get(id).toJS();
-    v.push(
-      <ComputeServer
-        style={{ marginBottom: "15px" }}
-        key={`${id}`}
-        editable={account_id == data.account_id}
-        {...data}
-        setShowDeleted={setShowDeleted}
-        setSearch={setSearch}
-      />,
+
+    return (
+      <div style={{ display: "flex" }}>
+        {sortBy == "custom" && (
+          <div
+            style={{
+              fontSize: "20px",
+              color: "#888",
+              display: "flex",
+              justifyContent: "center",
+              flexDirection: "column",
+              marginRight: "5px",
+            }}
+          >
+            <DragHandle id={id} />
+          </div>
+        )}
+        <ComputeServer
+          id={id}
+          style={{ marginBottom: "15px" }}
+          key={`${id}`}
+          editable={account_id == data.account_id}
+          {...data}
+          setShowDeleted={setShowDeleted}
+          setSearch={setSearch}
+        />
+      </div>
     );
+  };
+
+  const v: JSX.Element[] = [];
+  for (const id of ids) {
+    v.push(<SortableItem id={id}>{renderItem(id)}</SortableItem>);
   }
+
   return (
     <div style={{ margin: "5px" }}>
-      <div style={{ float: "right", marginBottom: "15px" }}>
+      <div style={{ marginBottom: "15px" }}>
         {computeServers.size > 1 && (
           <Search
             allowClear
-            placeholder="Filter compute servers..."
+            placeholder="Filter servers..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 300 }}
+            style={{ width: 250 }}
           />
         )}
-        {numDeleted > 0 && (
-          <Checkbox
-            style={{ marginLeft: "10px", marginTop: "5px" }}
-            checked={showDeleted}
-            onChange={() => setShowDeleted(!showDeleted)}
-          >
-            Deleted ({numDeleted})
-          </Checkbox>
-        )}
         {computeServers.size > 1 && (
-          <>
+          <span style={{ marginLeft: "15px" }}>
+            Sort:{" "}
             <Radio.Group
               value={sortBy}
               size="small"
@@ -173,14 +174,36 @@ function ComputeServerTable({ computeServers, project_id, account_id }) {
                 } catch (_) {}
               }}
             >
+              <Radio.Button value="custom">Custom</Radio.Button>
               <Radio.Button value="id">Id</Radio.Button>
               <Radio.Button value="title">Title</Radio.Button>
-              <Radio.Button value="changed">Changed</Radio.Button>
             </Radio.Group>
-          </>
+          </span>
+        )}
+        {numDeleted > 0 && (
+          <Checkbox
+            style={{ marginLeft: "10px", marginTop: "5px" }}
+            checked={showDeleted}
+            onChange={() => setShowDeleted(!showDeleted)}
+          >
+            Deleted ({numDeleted})
+          </Checkbox>
         )}
       </div>
-      {v}
+      <div style={{ margin: "15px 0", textAlign: "center" }} key="create">
+        <CreateComputeServer
+          project_id={project_id}
+          onCreate={() => setSearch("")}
+        />
+      </div>
+      <SortableList
+        disabled={sortBy != "custom"}
+        items={ids}
+        Item={({ id }) => renderItem(id)}
+        onDragStop={(oldIndex, newIndex) => console.log(oldIndex, newIndex)}
+      >
+        {v}
+      </SortableList>
     </div>
   );
 }
