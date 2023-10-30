@@ -56,6 +56,7 @@ class ComputeServersTable extends Table {
           last_edited: null,
           purchase_id: null,
           detailed_state: null,
+          position: null,
         },
       ],
     };

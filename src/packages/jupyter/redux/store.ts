@@ -474,9 +474,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
     const customize = this.redux.getStore("customize");
-    const computeServerId = this.redux
-      .getActions(this.name)
-      .getRemoteComputeServerId();
+    const computeServerId =
+      this.redux.getActions(this.name)?.getRemoteComputeServerId() ?? 0;
     if (customize == null) {
       // the customize store doesn't exist, e.g., in a compute server.
       // In that case no need for a complicated jupyter kernel key as

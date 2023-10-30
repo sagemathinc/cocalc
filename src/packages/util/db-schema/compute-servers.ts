@@ -436,6 +436,7 @@ export interface ComputeServerUserInfo {
   data?: Data;
   purchase_id?: number;
   last_edited?: Date;
+  position?: number; // used for UI sorting.
   detailed_state?: { [name: string]: ComponentState };
 }
 
@@ -472,7 +473,15 @@ Table({
           avatar_image_tiny: null,
           last_edited: null,
           purchase_id: null,
+          position: null,
           detailed_state: null,
+        },
+      },
+      set: {
+        fields: {
+          project_id: "project_write",
+          id: true,
+          position: true,
         },
       },
     },
@@ -575,6 +584,10 @@ Table({
     purchase_id: {
       type: "number",
       desc: "if there is a current active purchase related to this compute server, this is the id of that purchase in the purchases table",
+    },
+    position: {
+      type: "number",
+      desc: "Used for sorting a list of compute servers in the UI.",
     },
     last_edited: {
       type: "timestamp",

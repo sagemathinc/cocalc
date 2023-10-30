@@ -151,6 +151,10 @@ function ActionButton({
     setDoing(!STATE_INFO[state]?.stable);
   }, [action, state]);
 
+   if(configuration == null) {
+    return null;
+  }
+
   let button = (
     <Button
       style={style}

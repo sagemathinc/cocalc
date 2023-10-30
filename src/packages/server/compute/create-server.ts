@@ -26,10 +26,11 @@ interface Options {
   color?: string;
   idle_timeout?: number;
   autorestart?: boolean;
+  position?: number;
 }
 
 const FIELDS =
-  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration".split(
+  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position".split(
     ",",
   );
 
@@ -48,6 +49,9 @@ export default async function createServer(opts: Options): Promise<number> {
     if (opts.configuration.cloud != opts.cloud) {
       throw Error("configuration must be for the same cloud");
     }
+  }
+  if (opts.position == null) {
+    opts.position = await getPositionAtTop(opts.project_id);
   }
   const push = (field, param) => {
     fields.push(field);
@@ -78,4 +82,18 @@ export default async function createServer(opts: Options): Promise<number> {
   const { rows } = await pool.query(query, params);
   const { id } = rows[0];
   return id;
+}
+
+async function getPositionAtTop(project_id: string): Promise<number> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `SELECT COALESCE(MAX(number)+1, 0) AS result
+FROM (
+  SELECT id AS number FROM compute_servers WHERE project_id=$1
+  UNION ALL
+  SELECT position AS number FROM compute_servers WHERE position IS NOT NULL AND project_id=$1
+) AS numbers`,
+    [project_id],
+  );
+  return rows[0].result;
 }
