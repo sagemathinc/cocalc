@@ -206,6 +206,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     "COLUMNS",
     "LS_COLORS",
     "INIT_CWD",
+    "DEBUG_FILE",
   ]) {
     delete env2[key];
   }
