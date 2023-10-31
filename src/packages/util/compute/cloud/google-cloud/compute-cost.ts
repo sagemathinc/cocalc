@@ -13,7 +13,7 @@ interface PriceData {
   memory?: number;
   count?: number; // for gpu's only
   max?: number; // for gpu's only
-  machineType?: string; // for gpu's only
+  machineType?: string | { [count: number]: string[] }; // for gpu's only
 }
 
 interface ZoneData {
@@ -179,7 +179,7 @@ function computeAcceleratorCost({ configuration, priceData }) {
   }
   // we have 1 or more GPU's:
   const acceleratorCount = configuration.acceleratorCount ?? 1;
-  // sometimes google has "tesla-" in the name, sometimest they don't,
+  // sometimes google has "tesla-" in the name, sometimes they don't,
   // but our pricing data doesn't.
   const acceleratorData =
     priceData.accelerators[configuration.acceleratorType] ??
@@ -187,12 +187,25 @@ function computeAcceleratorCost({ configuration, priceData }) {
   if (acceleratorData == null) {
     throw Error(`unknown GPU accelerator ${configuration.acceleratorType}`);
   }
+
   if (
-    !configuration.machineType.startsWith(acceleratorData.machineType ?? "")
+    typeof acceleratorData.machineType == "string" &&
+    !configuration.machineType.startsWith(acceleratorData.machineType)
   ) {
     throw Error(
       `machine type for ${configuration.acceleratorType} must be ${acceleratorData.machineType}. Change the machine type.`,
     );
+  }
+  if (typeof acceleratorData.machineType == "object") {
+    const s = acceleratorData.machineType[acceleratorCount];
+    let v: string[] = typeof s == "string" ? [s] : s;
+    console.log("v = ", v, { v });
+    if (v == null) {
+      throw Error(`invalid number of GPUs`);
+    }
+    if (!v.includes(configuration.machineType)) {
+      throw Error(`machine type must be one of ${v.join(", ")}`);
+    }
   }
   let costPer =
     acceleratorData[configuration.spot ? "spot" : "prices"]?.[

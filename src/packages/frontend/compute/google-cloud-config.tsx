@@ -1299,7 +1299,7 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
   }
 }
 
-// The Nvidia L4 is a little weirder.
+// The Nvidia L4 and A100 are a little more complicated.
 function ensureConsistentNvidiaL4(priceData, configuration, changes) {
   const { machineType, acceleratorType } = configuration;
   if (machineType.startsWith("g2-") && !acceleratorType) {
@@ -1309,17 +1309,19 @@ function ensureConsistentNvidiaL4(priceData, configuration, changes) {
       configuration.acceleratorType = changes.acceleratorType = "nvidia-l4";
     }
   }
-  const TYPES = ["nvidia-l4", "nvidia-l4-x2", "nvidia-l4-x4", "nvidia-l4-x8"];
-  if (acceleratorType == "nvidia-l4") {
-    for (const other of TYPES) {
-      if (other != "nvidia-l4") {
-        if (machineType == priceData.accelerators[other].machineType) {
-          configuration.machineType = changes["machineType"] = "g2-standard-4";
-          return;
-        }
-      }
-    }
-  }
+
+  // TODO!
+//   const TYPES = ["nvidia-l4", "nvidia-l4-x2", "nvidia-l4-x4", "nvidia-l4-x8"];
+//   if (acceleratorType == "nvidia-l4") {
+//     for (const other of TYPES) {
+//       if (other != "nvidia-l4") {
+//         if (machineType == priceData.accelerators[other].machineType) {
+//           configuration.machineType = changes["machineType"] = "g2-standard-4";
+//           return;
+//         }
+//       }
+//     }
+//   }
   if (machineType.startsWith("a2-") && !acceleratorType) {
     if (changes.acceleratorType !== undefined) {
       configuration.machineType = changes.machineType = FALLBACK_INSTANCE;
