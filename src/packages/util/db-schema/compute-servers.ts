@@ -585,6 +585,10 @@ Table({
       type: "number",
       desc: "if there is a current active purchase related to this compute server, this is the id of that purchase in the purchases table",
     },
+    update_purchase: {
+      type: "boolean",
+      desc: "This is set to true if activity with this server is happening that warrants creating/ending a purchase.",
+    },
     position: {
       type: "number",
       desc: "Used for sorting a list of compute servers in the UI.",

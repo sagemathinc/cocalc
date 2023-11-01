@@ -1,11 +1,11 @@
 /*
-This function ensures everything is in sync, and closes out compute server purchases 
+This function ensures everything is in sync, and closes out compute server purchases
 periodically, similar to what is done in server/purchases/project-quotas for PAYG
 project upgrades.
 */
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { closeAndContinuePurchase } from "@cocalc/server/compute/update-purchase";
+import { closeAndContinuePurchase } from "./manage-purchases";
 
 const logger = getLogger("server:compute:maintain-purchases");
 
