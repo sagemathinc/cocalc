@@ -1168,7 +1168,7 @@ function ensureConsistentConfiguration(
 
   ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
 
-  ensureConsistentNvidiaL4(priceData, newConfiguration, newChanges);
+  ensureConsistentNvidiaL4andA100(priceData, newConfiguration, newChanges);
 
   ensureConsistentRegionAndZoneWithMachineType(
     priceData,
@@ -1222,11 +1222,21 @@ function ensureConsistentZoneWithRegion(priceData, configuration, changes) {
 }
 
 function ensureConsistentAccelerator(priceData, configuration, changes) {
-  if (!configuration.acceleratorType) {
+  const { acceleratorType } = configuration;
+  if (!acceleratorType) {
     return;
   }
+  if (
+    acceleratorType == "nvidia-tesla-a100" ||
+    acceleratorType == "nvidia-a100-80gb" ||
+    acceleratorType == "nvidia-l4"
+  ) {
+    // L4 and A100 are handled elsewhere.
+    return;
+  }
+
   // have a GPU
-  const data = priceData.accelerators[configuration.acceleratorType];
+  const data = priceData.accelerators[acceleratorType];
   if (!data) {
     // invalid acceleratorType.
     return;
@@ -1299,36 +1309,53 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
   }
 }
 
-// The Nvidia L4 and A100 are a little more complicated.
-function ensureConsistentNvidiaL4(priceData, configuration, changes) {
+// The Nvidia L4 and A100 are a little different
+function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
   const { machineType, acceleratorType } = configuration;
-  if (machineType.startsWith("g2-") && !acceleratorType) {
-    if (changes.acceleratorType !== undefined) {
+
+  // L4 or A100 GPU machine type, but switching to no GPU, so we have
+  // to change the machine type
+  if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+    if (!acceleratorType && changes.acceleratorType !== undefined) {
+      // Easy case -- the user is explicitly changing the GPU from being set
+      // to NOT be set, and the GPU is L4 or A100.  In this case,
+      // we just set the machine type to some non-gpu type
+      // and we're done.
       configuration.machineType = changes.machineType = FALLBACK_INSTANCE;
-    } else {
-      configuration.acceleratorType = changes.acceleratorType = "nvidia-l4";
+      return;
     }
   }
+  if (
+    acceleratorType != "nvidia-tesla-a100" &&
+    acceleratorType != "nvidia-a100-80gb" &&
+    acceleratorType != "nvidia-l4"
+  ) {
+    // We're not switching to an A100 or L4, so not handled further here.
+    return;
+  }
 
-  // TODO!
-//   const TYPES = ["nvidia-l4", "nvidia-l4-x2", "nvidia-l4-x4", "nvidia-l4-x8"];
-//   if (acceleratorType == "nvidia-l4") {
-//     for (const other of TYPES) {
-//       if (other != "nvidia-l4") {
-//         if (machineType == priceData.accelerators[other].machineType) {
-//           configuration.machineType = changes["machineType"] = "g2-standard-4";
-//           return;
-//         }
-//       }
-//     }
-//   }
-  if (machineType.startsWith("a2-") && !acceleratorType) {
-    if (changes.acceleratorType !== undefined) {
-      configuration.machineType = changes.machineType = FALLBACK_INSTANCE;
-    } else {
-      configuration.acceleratorType = changes.acceleratorType =
-        "nvidia-tesla-a100";
-    }
+  if (!configuration.acceleratorCount) {
+    configuration.acceleratorCount = changes.acceleratorCount = 1;
+  }
+
+  // Ensure machine type is consistent with the GPU and count we're switching to.
+  let machineTypes =
+    priceData.accelerators[acceleratorType]?.machineType[
+      configuration.acceleratorCount
+    ];
+  if (machineTypes == null) {
+    configuration.acceleratorCount = changes.acceleratorCount = 1;
+    machineTypes =
+      priceData.accelerators[acceleratorType]?.machineType[
+        configuration.acceleratorCount
+      ];
+  }
+  if (machineTypes == null) {
+    throw Error("bug -- this can't happen");
+  }
+
+  if (!machineTypes.includes(configuration.machineType)) {
+    configuration.machineType = changes.machineType = machineTypes[0];
   }
 }
 

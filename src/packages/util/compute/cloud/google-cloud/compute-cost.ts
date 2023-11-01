@@ -197,14 +197,16 @@ function computeAcceleratorCost({ configuration, priceData }) {
     );
   }
   if (typeof acceleratorData.machineType == "object") {
-    const s = acceleratorData.machineType[acceleratorCount];
-    let v: string[] = typeof s == "string" ? [s] : s;
-    console.log("v = ", v, { v });
+    let v: string[] = acceleratorData.machineType[acceleratorCount];
     if (v == null) {
       throw Error(`invalid number of GPUs`);
     }
     if (!v.includes(configuration.machineType)) {
-      throw Error(`machine type must be one of ${v.join(", ")}`);
+      throw Error(
+        `machine type for ${
+          configuration.acceleratorType
+        } with count ${acceleratorCount} must be one of ${v.join(", ")}`,
+      );
     }
   }
   let costPer =
