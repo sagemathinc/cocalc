@@ -13,7 +13,6 @@ Here are the criterion for when we need to do some management of a compute serve
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import {
-  updatePurchaseSoon,
   MAX_PURCHASE_LENGTH_MS,
   MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
   PERIODIC_UPDATE_INTERVAL_MS,

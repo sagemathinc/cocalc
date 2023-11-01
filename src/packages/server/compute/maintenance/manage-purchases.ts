@@ -7,19 +7,12 @@ possibly updating their purchases, then does that work.
 
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import { computeCost, getNetworkUsage, stop } from "../control";
-import getPool, {
-  getTransactionClient,
-  PoolClient,
-} from "@cocalc/database/pool";
+import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { cloneDeep } from "lodash";
 import type { ComputeServer } from "@cocalc/util/db-schema/compute-servers";
-import type {
-  Purchase,
-  ComputeServerNetworkUsage,
-  ComputeServer as ComputeServerPurchase,
-} from "@cocalc/util/db-schema/purchases";
+import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 const logger = getLogger("server:compute:maintenance/manage-purchases");
 
@@ -92,10 +85,8 @@ async function outstandingPurchases(
 async function updatePurchase(server: ComputeServer) {
   logger.debug("updatePurchase", { id: server.id, title: server.title });
   const allPurchases = await outstandingPurchases(server);
-  const purchases: ComputeServerPurchase[] = allPurchases.filter(
-    (x) => x.service == "compute-server",
-  );
-  const networkPurchases: ComputeServerNetworkUsage[] = purchases.filter(
+  const purchases = allPurchases.filter((x) => x.service == "compute-server");
+  const networkPurchases = allPurchases.filter(
     (x) => x.service == "compute-server-network-usage",
   );
 
@@ -212,7 +203,8 @@ async function updatePurchase(server: ComputeServer) {
         type: "compute-server-network-usage",
         compute_server_id: server.id,
         amount: 0,
-        last_update: Date.now(),
+        cost: 0,
+        last_updated: Date.now(),
       },
     });
   }
@@ -229,12 +221,12 @@ async function updatePurchase(server: ComputeServer) {
     // just deal with all of them
     let count = 0;
     for (const purchase of purchases) {
-      if (server.state != purchase.description?.state) {
+      if (
+        purchase.description.type == "compute-server" &&
+        server.state != purchase.description?.state
+      ) {
         // state changed, so end the purchase
-        await closePurchase({
-          server,
-          purchase,
-        });
+        await closePurchase({ purchase });
         count += 1;
       }
     }
@@ -253,7 +245,7 @@ async function updatePurchase(server: ComputeServer) {
       server.state != "running" &&
       stableState != "running" &&
       server.state_changed &&
-      Date.now() - state_changed.valueOf() >= MIN_NETWORK_CLOSE_DELAY_MS
+      Date.now() - server.state_changed.valueOf() >= MIN_NETWORK_CLOSE_DELAY_MS
     ) {
       // It's not running and it's not about to be running, and the last
       // state change was at least a little bit in th past.  In this case
@@ -263,8 +255,10 @@ async function updatePurchase(server: ComputeServer) {
         // only take purchases that started at least MIN_NETWORK_CLOSE_DELAY_MS ago,
         // since a new one could have started and we don't want to end that.
         if (
-          Date.now() - (purchase.period_start?.valueOf() ?? 0) >
-          MIN_NETWORK_CLOSE_DELAY_MS
+          purchase.period_start &&
+          purchase.description.type == "compute-server-network-usage" &&
+          Date.now() - purchase.period_start.valueOf() >
+            MIN_NETWORK_CLOSE_DELAY_MS
         ) {
           const end = new Date();
           const network = await getNetworkUsage({
@@ -277,6 +271,7 @@ async function updatePurchase(server: ComputeServer) {
           purchase.description.amount = network.amount;
           purchase.description.cost = network.cost;
           purchase.description.last_updated = end.valueOf();
+          const pool = getPool();
           await pool.query(
             "UPDATE purchases SET cost=$1, period_end=$2, description=$3 WHERE id=$4",
             [
@@ -294,7 +289,12 @@ async function updatePurchase(server: ComputeServer) {
       // of money (you could probably easily spend $50/hour in network egress... so we
       // are still taking a very real risk!).
       for (const purchase of networkPurchases) {
-        if (purchase.period_end == null && purchase.cost == null) {
+        if (
+          purchase.description.type == "compute-server-network-usage" &&
+          purchase.period_end == null &&
+          purchase.cost == null &&
+          purchase.period_start != null
+        ) {
           // currently active
           if (
             Date.now() -
@@ -312,6 +312,7 @@ async function updatePurchase(server: ComputeServer) {
             purchase.description.amount = network.amount;
             purchase.description.cost = network.cost;
             purchase.description.last_updated = end.valueOf();
+            const pool = getPool();
             await pool.query(
               "UPDATE purchases SET description=$1 WHERE id=$2",
               [purchase.description, purchase.id],
@@ -379,7 +380,10 @@ async function updatePurchase(server: ComputeServer) {
       if (purchase.service == "compute-server") {
         // nothing to do -- this is already included in the balance that
         // isPurchaseAllowed uses
-      } else if (purchase.service == "compute-server-network-usage") {
+      } else if (
+        purchase.service == "compute-server-network-usage" &&
+        purchase.description.type == "compute-server-network-usage"
+      ) {
         // right now uage based metered usage isn't included in the balance
         // in src/packages/server/purchases/get-balance.ts
         // When that changes, we won't need this loop at all.
@@ -387,9 +391,10 @@ async function updatePurchase(server: ComputeServer) {
       }
     }
     if (cost > 0) {
+      // TODO: worried about service quotas compute-server versus compute-server-network-usage
       const isAllowed = await isPurchaseAllowed({
         account_id: server.account_id,
-        service: purchase.service,
+        service: "compute-server",
         cost: cost + COST_THRESH_DOLLARS,
       });
       if (!isAllowed) {
@@ -441,21 +446,36 @@ async function setPurchaseId({
 }
 
 // Code below is similar to code in server/purchases/project-quotas.ts.
-
+// NOTE: the purchase is mutated to reflect change to db.
 async function closePurchase({
-  server,
   purchase,
   client,
 }: {
-  server: ComputeServer;
-  // NOTE: the purchase is mutated to reflect change to db.
   purchase: Purchase;
+  client?;
 }) {
   logger.debug("closePurchase", purchase.id);
   const pool = client ?? getPool();
-  if (purchase.period_end && purchase.cost) {
+  if (purchase.period_end || purchase.cost) {
     // do not close purchase more than once:
     logger.debug("closePurchase -- already closed");
+    return;
+  }
+  if (!purchase.period_start) {
+    // should be impossible.
+    logger.debug(
+      "closePurchase -- BUG -- period_start not set -- should be impossible",
+      purchase,
+    );
+    return;
+  }
+
+  if (!purchase.cost_per_hour) {
+    // should be impossible.
+    logger.debug(
+      "closePurchase -- BUG -- cost_per_hour not set -- should be impossible",
+      purchase,
+    );
     return;
   }
 
@@ -485,7 +505,6 @@ export async function closeAndContinuePurchase({
   server: ComputeServer;
 }) {
   logger.debug("closeAndContinuePurchase", purchase);
-  const pool = getPool();
   if (purchase.cost != null || purchase.period_end != null) {
     logger.debug(
       "closeAndContinuePurchase: WARNING -- can't close and continue purchase because it is already closed",
@@ -495,7 +514,6 @@ export async function closeAndContinuePurchase({
 
   const now = new Date();
   const newPurchase = cloneDeep(purchase);
-  delete newPurchase.id;
   newPurchase.time = now;
   newPurchase.period_start = now;
 
@@ -503,7 +521,7 @@ export async function closeAndContinuePurchase({
   // in order to take that into account.
   const cost_per_hour = await computeCost({
     server,
-    state: server.state,
+    state: server.state ?? "deprovisioned",
   });
   newPurchase.cost_per_hour = cost_per_hour;
 
@@ -527,12 +545,11 @@ export async function closeAndContinuePurchase({
     await setPurchaseId({
       purchase_id: new_purchase_id,
       server_id: server.id,
-      cost_per_hour: purchase.cost_per_hour,
+      cost_per_hour: purchase.cost_per_hour ?? 0, // should always be set
       client,
     });
     logger.debug("closeAndContinuePurchase -- closing old purchase");
     await closePurchase({
-      server,
       purchase,
       client,
     });
@@ -555,10 +572,17 @@ export async function closeAndContinueNetworkPurchase({
   server: ComputeServer;
 }) {
   logger.debug("closeAndContinueNetworkPurchase", purchase);
-  const pool = getPool();
   if (purchase.cost != null || purchase.period_end != null) {
     logger.debug(
       "closeAndContinueNetworkPurchase: WARNING -- can't close and continue purchase because it is already closed",
+    );
+    return;
+  }
+  if (!purchase.period_start) {
+    // should be impossible.
+    logger.debug(
+      "closeAndContinueNetworkPurchase -- BUG -- period_start not set -- should be impossible",
+      purchase,
     );
     return;
   }
@@ -568,18 +592,29 @@ export async function closeAndContinueNetworkPurchase({
   // away for free).
   const end = new Date(Date.now() - 2 * MIN_NETWORK_CLOSE_DELAY_MS);
   const newPurchase = cloneDeep(purchase);
-  delete newPurchase.id;
+  if (newPurchase.description.type != "compute-server-network-usage") {
+    logger.debug(
+      "closeAndContinueNetworkPurchase: WARNING -- wrong kind of purchase",
+    );
+    return;
+  }
   newPurchase.time = end;
   newPurchase.period_start = end;
   newPurchase.description.amount = 0;
   newPurchase.description.cost = 0;
-  newPurchase.description.last_updated = end;
+  newPurchase.description.last_updated = end.valueOf();
   const network = await getNetworkUsage({
     server,
     start: purchase.period_start,
     end,
   });
   const prevDescription = { ...purchase.description };
+  if (purchase.description.type != "compute-server-network-usage") {
+    logger.debug(
+      "closeAndContinueNetworkPurchase: WARNING -- wrong kind of purchase",
+    );
+    return;
+  }
   purchase.description.amount = network.amount;
   purchase.description.cost = network.cost;
   purchase.description.last_updated = end.valueOf();
