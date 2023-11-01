@@ -10,7 +10,8 @@ compute the sum of the following, over all rows of the table for a given account
   current time.
 */
 
-// selects the cost, or if not done, the metered cost so far (see above):
+// selects the cost, or if not done, the time metered cost so far (see above):
+// TODO: need to change to support usage based metering (not time). This is needed for compute server networking.
 export const COST_OR_METERED_COST =
   "COALESCE(cost, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)";
 

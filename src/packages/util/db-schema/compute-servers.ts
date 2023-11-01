@@ -589,6 +589,10 @@ Table({
       type: "boolean",
       desc: "This is set to true if activity with this server is happening that warrants creating/ending a purchase.",
     },
+    last_purchase_update: {
+      type: "timestamp",
+      desc: "Last time we requested an update to the purchase info about this compute server.",
+    },
     position: {
       type: "number",
       desc: "Used for sorting a list of compute servers in the UI.",

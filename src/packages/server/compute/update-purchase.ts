@@ -24,7 +24,6 @@ servers) for speed, if necessary.
 
 */
 
-import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import type {
   ComputeServer,
@@ -34,6 +33,8 @@ import {
   getTargetState,
   STATE_INFO,
 } from "@cocalc/util/db-schema/compute-servers";
+import { updatePurchaseSoon } from "./maintenance/manage-purchases";
+
 const logger = getLogger("server:compute:update-purchase");
 
 // This marks the compute server in the database in some cases to say
@@ -62,9 +63,5 @@ export default async function updatePurchase({
     "update purchase -- marking compute server as being in need of update:",
     { server_id: server.id, newState },
   );
-  const pool = getPool();
-  await pool.query(
-    "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
-    [server.id],
-  );
+  await updatePurchaseSoon(server.id);
 }

@@ -105,6 +105,8 @@ export interface ComputeServerNetworkUsage {
   type: "compute-server-network-usage";
   compute_server_id: number;
   amount: number;
+  cost :number;
+  last_updated: number;
 }
 
 export interface License {
