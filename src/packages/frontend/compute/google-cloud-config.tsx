@@ -418,7 +418,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
     regions.sort((a, b) => cmp(a.cost, b.cost));
   }
   const options = regions.map(({ region, location, lowCO2, cost }) => {
-    const price = cost ? ` - ${currency(cost)}/hour` : "";
+    const price = <CostPerHour cost={cost} />;
     return {
       value: region,
       search: `${region} ${location} ${lowCO2 ? " co2 " : ""}`,
@@ -707,33 +707,58 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   }, [configuration]);
 
   const machineTypes = Object.keys(priceData.machineTypes);
-  let allOptions = machineTypes.map((machineType) => {
-    let cost;
-    try {
-      cost = computeCost({
-        priceData,
-        configuration: { ...configuration, machineType },
-      });
-    } catch (_) {
-      cost = null;
-    }
-    return {
-      value: machineType,
-      search: machineType,
-      cost,
-      label: (
-        <div key={machineType}>
-          {machineType}{" "}
-          {cost ? (
-            `- ${currency(cost)}/hour`
-          ) : (
-            <span style={{ color: "#666" }}>(region/zone will change)</span>
-          )}
-          <RamAndCpu machineType={machineType} priceData={priceData} />
-        </div>
-      ),
-    };
-  });
+  let allOptions = machineTypes
+    .filter((machineType) => {
+      const { acceleratorType } = configuration;
+      if (!acceleratorType) {
+        if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+          return false;
+        }
+      } else {
+        if (
+          acceleratorType == "nvidia-tesla-a100" ||
+          acceleratorType == "nvidia-a100-80gb" ||
+          acceleratorType == "nvidia-l4"
+        ) {
+          const machines =
+            priceData.accelerators[acceleratorType].machineType[
+              configuration.acceleratorCount ?? 1
+            ] ?? [];
+          return machines.includes(machineType);
+        } else {
+          return machineType.startsWith("n1-");
+        }
+      }
+
+      return true;
+    })
+    .map((machineType) => {
+      let cost;
+      try {
+        cost = computeCost({
+          priceData,
+          configuration: { ...configuration, machineType },
+        });
+      } catch (_) {
+        cost = null;
+      }
+      return {
+        value: machineType,
+        search: machineType,
+        cost,
+        label: (
+          <div key={machineType}>
+            {machineType}{" "}
+            {cost ? (
+              <CostPerHour cost={cost} />
+            ) : (
+              <span style={{ color: "#666" }}>(region/zone will change)</span>
+            )}
+            <RamAndCpu machineType={machineType} priceData={priceData} />
+          </div>
+        ),
+      };
+    });
   const options = [
     {
       label: "Machine Types",
@@ -952,38 +977,63 @@ function BootDisk({
           options={[
             {
               value: "pd-balanced",
-              label: `Balanced (SSD) disks - ${currency(
-                markup({
-                  cost:
-                    priceData.disks["pd-balanced"]?.prices[
-                      configuration.region
-                    ] * 730,
-                  priceData,
-                }),
-              )}/GB per month`,
+              label: (
+                <div>
+                  Balanced (SSD) disk{" "}
+                  <div style={{ fontFamily: "monospace", float: "right" }}>
+                    {currency(
+                      markup({
+                        cost:
+                          priceData.disks["pd-balanced"]?.prices[
+                            configuration.region
+                          ] * 730,
+                        priceData,
+                      }),
+                    )}
+                    /GB per month
+                  </div>
+                </div>
+              ),
             },
             {
               value: "pd-ssd",
-              label: `Performance (SSD) disks - ${currency(
-                markup({
-                  cost:
-                    priceData.disks["pd-ssd"]?.prices[configuration.region] *
-                    730,
-                  priceData,
-                }),
-              )}/GB per month`,
+              label: (
+                <div>
+                  Performance (SSD) disk{" "}
+                  <div style={{ fontFamily: "monospace", float: "right" }}>
+                    {currency(
+                      markup({
+                        cost:
+                          priceData.disks["pd-ssd"]?.prices[
+                            configuration.region
+                          ] * 730,
+                        priceData,
+                      }),
+                    )}
+                    /GB per month
+                  </div>
+                </div>
+              ),
             },
             {
               value: "pd-standard",
-              label: `Standard (HDD) disk - ${currency(
-                markup({
-                  cost:
-                    priceData.disks["pd-standard"]?.prices[
-                      configuration.region
-                    ] * 730,
-                  priceData,
-                }),
-              )}/GB per month`,
+              label: (
+                <div>
+                  Standard (HDD) disk{" "}
+                  <div style={{ fontFamily: "monospace", float: "right" }}>
+                    {currency(
+                      markup({
+                        cost:
+                          priceData.disks["pd-standard"]?.prices[
+                            configuration.region
+                          ] * 730,
+                        priceData,
+                      }),
+                    )}
+                    /GB per month
+                  </div>
+                </div>
+              ),
             },
           ]}
         ></Select>
@@ -1096,7 +1146,6 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
         configuration: { ...config1, ...newChanges },
       });
     }
-    const price = `${currency(cost)}/hour`;
     const memory = priceData.accelerators[acceleratorType].memory;
     return {
       value: acceleratorType,
@@ -1106,7 +1155,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       label: (
         <div key={acceleratorType}>
           {displayAcceleratorType(acceleratorType, memory)}{" "}
-          <div style={{ float: "right", fontFamily: "monospace" }}>{price}</div>
+          <CostPerHour cost={cost} />
         </div>
       ),
     };
@@ -1331,7 +1380,7 @@ function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
   // L4 or A100 GPU machine type, but switching to no GPU, so we have
   // to change the machine type
   if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
-    if (!acceleratorType && changes.acceleratorType !== undefined) {
+    if (!acceleratorType) {
       // Easy case -- the user is explicitly changing the GPU from being set
       // to NOT be set, and the GPU is L4 or A100.  In this case,
       // we just set the machine type to some non-gpu type
@@ -1662,4 +1711,15 @@ function cheapestZone(costs: { [zone: string]: number }): string {
     }
   }
   return choice;
+}
+
+function CostPerHour({ cost }: { cost?: number }) {
+  if (cost == null) {
+    return null;
+  }
+  return (
+    <div style={{ float: "right", fontFamily: "monospace" }}>
+      {currency(cost)}/hour
+    </div>
+  );
 }
