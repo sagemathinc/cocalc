@@ -40,7 +40,7 @@ import SelectImage from "./select-image";
 
 export const SELECTOR_WIDTH = "350px";
 
-const DEFAULT_GPU = "nvidia-tesla-t4";
+const DEFAULT_GPU = "nvidia-l4";
 const FALLBACK_INSTANCE = "n1-standard-1";
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
@@ -1023,11 +1023,22 @@ function Image(props) {
   );
 }
 
+// Putting L4 and A100 at top, since they are most
+// interesting, then T4 since very affordable.
+const ACCELERATOR_TYPES = [
+  "nvidia-l4",
+  "nvidia-tesla-a100",
+  "nvidia-a100-80gb",
+  "nvidia-tesla-t4",
+  "nvidia-tesla-p4",
+  "nvidia-tesla-v100",
+  "nvidia-tesla-p100",
+];
 function GPU({ priceData, setConfig, configuration, disabled }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
-      <b>Dedicated NVIDIA P4, T4, P100, V100, L4 and A100 GPU's</b>
+      <b>Dedicated NVIDIA A100, L4, P100, V100, P4, and T4 and GPU's</b>
     </div>
   );
 
@@ -1044,9 +1055,9 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
           setConfig({
             acceleratorType: DEFAULT_GPU,
             acceleratorCount: 1,
-            machineType: "n1-standard-1",
-            region: "europe-west2",
-            zone: "europe-west2-a",
+            machineType: "g2-standard-4",
+            region: "us-central1",
+            zone: "us-central1-b",
           });
         }
       }}
@@ -1062,21 +1073,30 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   }
 
   const acceleratorTypes = Object.keys(priceData.accelerators);
-  const options = acceleratorTypes.map((acceleratorType) => {
+  if (acceleratorTypes.length != ACCELERATOR_TYPES.length) {
+    console.warn("BUG -- acceleratorTypes.length != ACCELERATOR_TYPES.length");
+  }
+  const options = ACCELERATOR_TYPES.map((acceleratorType) => {
     let cost;
+    const config1 = { ...configuration, acceleratorType, acceleratorCount };
+    const changes = { acceleratorType, acceleratorCount };
     try {
       cost = computeCost({
         priceData,
-        configuration: { ...configuration, acceleratorType, acceleratorCount },
+        configuration: config1,
       });
     } catch (_) {
-      cost = null;
+      const newChanges = ensureConsistentConfiguration(
+        priceData,
+        config1,
+        changes,
+      );
+      cost = computeCost({
+        priceData,
+        configuration: { ...config1, ...newChanges },
+      });
     }
-    const price = cost ? (
-      ` - ${currency(cost)}/hour`
-    ) : (
-      <span style={{ color: "#666" }}>(region will change)</span>
-    );
+    const price = `${currency(cost)}/hour`;
     const memory = priceData.accelerators[acceleratorType].memory;
     return {
       value: acceleratorType,
@@ -1085,22 +1105,17 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       memory,
       label: (
         <div key={acceleratorType}>
-          {displayAcceleratorType(acceleratorType, memory)} {price}
+          {displayAcceleratorType(acceleratorType, memory)}{" "}
+          <div style={{ float: "right", fontFamily: "monospace" }}>{price}</div>
         </div>
       ),
     };
-  });
-  options.sort((a, b) => {
-    if (a.cost != null && b.cost != null) {
-      return cmp(a.cost, b.cost);
-    }
-    return cmp(a.memory, b.memory);
   });
 
   const countOptions: any[] = [];
   const min = priceData.accelerators[acceleratorType]?.count ?? 1;
   const max = priceData.accelerators[acceleratorType]?.max ?? 1;
-  for (let i = min; i <= max; i++) {
+  for (let i = min; i <= max; i *= 2) {
     countOptions.push({ label: `${i}`, value: i });
   }
 
@@ -1415,6 +1430,37 @@ function ensureConsistentRegionAndZoneWithMachineType(
       }
     }
   }
+
+  if (configuration.acceleratorType && configuration.acceleratorCount) {
+    // have a GPU -- make sure zone works
+    if (
+      !priceData.accelerators[configuration.acceleratorType].prices[
+        configuration.zone
+      ]
+    ) {
+      // try to find a different zone in the region that works
+      let fixed = false;
+      const region = zoneToRegion(configuration["zone"]);
+      for (const zone in priceData.accelerators[configuration.acceleratorType]
+        .prices) {
+        if (zone.startsWith(region)) {
+          fixed = true;
+          configuration.zone = changes.zone = zone;
+          break;
+        }
+      }
+      if (!fixed) {
+        // just choose cheapest zone in some region
+        const zone = cheapestZone(
+          priceData.accelerators[configuration.acceleratorType][
+            configuration.spot ? "spot" : "prices"
+          ],
+        );
+        configuration.zone = changes.zone = zone;
+        configuration.region = changes.region = zoneToRegion(zone);
+      }
+    }
+  }
 }
 
 function zoneToRegion(zone: string): string {
@@ -1604,4 +1650,16 @@ function DNS({ setConfig, configuration, loading }) {
       )}
     </div>
   );
+}
+
+function cheapestZone(costs: { [zone: string]: number }): string {
+  let price = 99999999999999999;
+  let choice = "";
+  for (const zone in costs) {
+    if (costs[zone] < price) {
+      choice = zone;
+      price = costs[zone];
+    }
+  }
+  return choice;
 }
