@@ -438,6 +438,8 @@ export interface ComputeServerUserInfo {
   last_edited?: Date;
   position?: number; // used for UI sorting.
   detailed_state?: { [name: string]: ComponentState };
+  update_purchase?: boolean;
+  last_purchase_update?: Date;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {

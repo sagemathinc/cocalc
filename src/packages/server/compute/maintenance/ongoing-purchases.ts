@@ -20,7 +20,7 @@ import {
 
 const logger = getLogger("server:compute:maintain-purchases");
 
-export default async function maintainActivePurchases() {
+export default async function ongoingPurchases() {
   logger.debug("maintainActivePurchases");
   const pool = getPool();
 
@@ -34,7 +34,7 @@ export default async function maintainActivePurchases() {
     WHERE cost IS NULL
     AND (service='compute-server' OR service='compute-server-network-usage')
     AND period_start <= NOW() - interval '${
-      MAX_PURCHASE_LENGTH_MS * 1000 * 60 * 60
+      MAX_PURCHASE_LENGTH_MS / (1000 * 60 * 60)
     } hours'
   )
 `);
@@ -44,13 +44,13 @@ export default async function maintainActivePurchases() {
   UPDATE compute_servers
   SET update_purchase=TRUE
   WHERE state='running' AND last_purchase_update <= NOW() - interval '${
-    MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS * 1000 * 60 * 60
-  } hours`);
+    MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS / (1000 * 60 * 60)
+  } hours'`);
 
   await pool.query(`
   UPDATE compute_servers
   SET update_purchase=TRUE
   WHERE state!='deprovisioned' AND last_purchase_update <= NOW() - interval '${
-    PERIODIC_UPDATE_INTERVAL_MS * 1000 * 60 * 60
-  } hours`);
+    PERIODIC_UPDATE_INTERVAL_MS / (1000 * 60 * 60)
+  } hours'`);
 }

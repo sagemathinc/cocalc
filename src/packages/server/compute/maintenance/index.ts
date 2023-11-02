@@ -5,7 +5,7 @@ this to periodically update aspects of the compute servers.
 
 */
 
-import maintainActivePurchases from "./ongoing-purchases";
+import ongoingPurchases from "./ongoing-purchases";
 import managePurchases from "./manage-purchases";
 import getLogger from "@cocalc/backend/logger";
 import { delay } from "awaiting";
@@ -38,7 +38,7 @@ async function startMaintenance() {
     if (now - lastManageActive >= MANAGE_ACTIVE_PURCHASES_DELAY_MS) {
       lastManageActive = now;
       try {
-        await maintainActivePurchases();
+        await ongoingPurchases();
       } catch (err) {
         logger.debug(
           `WARNING -- issue managing ongoing active purchases -- ${err}`,
