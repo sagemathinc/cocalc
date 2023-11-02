@@ -2,13 +2,14 @@
 Backend server side part of ChatGPT integration with CoCalc.
 */
 
+import LRU from "lru-cache";
+
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import getProject from "./global-project-pool";
 import callProject from "@cocalc/server/projects/call";
-import { jupyter_kernels } from "@cocalc/util/message";
-import LRU from "lru-cache";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { jupyter_kernels } from "@cocalc/util/message";
+import getProject from "./global-project-pool";
 
 const cache = new LRU<string, object[]>({
   ttl: 30000,
@@ -36,7 +37,9 @@ export default async function getKernels({
 }): Promise<object[]> {
   if (project_id != null) {
     if (account_id == null) {
-      throw Error("account_id must be specified -- make sure you are signed in");
+      throw Error(
+        "account_id must be specified -- make sure you are signed in",
+      );
     }
     if (!isCollaborator({ project_id, account_id })) {
       throw Error("permission denied -- user must be collaborator on project");
@@ -56,6 +59,7 @@ export default async function getKernels({
     project_id = await getProject();
     account_id = jupyter_account_id;
   }
+
   const mesg = jupyter_kernels({});
   const resp = await callProject({
     account_id,

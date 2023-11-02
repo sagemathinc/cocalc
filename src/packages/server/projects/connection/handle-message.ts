@@ -2,14 +2,16 @@
 Handle incoming JSON messages from a project.
 */
 
-import handleVersion from "./handle-version";
+import { promisify } from "util";
+import { v4 } from "uuid";
+
+import { error, pong } from "@cocalc/util/message";
 import handleQuery from "./handle-query";
 import handleSyncdoc from "./handle-syncdoc";
-import { error, pong } from "@cocalc/util/message";
+import handleVersion from "./handle-version";
+
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-connection:handle-message");
-import { v4 } from "uuid";
-import { promisify } from "util";
 
 interface Options {
   socket;
@@ -95,7 +97,7 @@ export async function callProjectMessage({
       callCallbacks[mesg.id] = () => {
         logger.debug(
           mesg.id,
-          `callProjectMessage -- ignoring response due to timeout ${timeoutSeconds}s`
+          `callProjectMessage -- ignoring response due to timeout ${timeoutSeconds}s`,
         );
       };
     }, timeoutSeconds * 1000);
