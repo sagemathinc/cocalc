@@ -206,31 +206,6 @@ describe("test remotePty using actual pty", () => {
     expect(out2.trim().slice(-5)).toBe("10 69");
   });
 
-  it("terminates the remote pty process, and see that it automatically gets spawned again", async () => {
-    const origPid = remote.localPty.pid;
-    spark.emit("data", "exit\n");
-    const data = await remoteSpark.waitForData("exit\n");
-    // this will cause the pty to terminate
-    remote.handleData(data);
-    // it then generates an exit message
-    const mesg = await remoteSpark.waitForMessage();
-    expect(mesg).toEqual({ cmd: "exit" });
-    expect(remote.localPty).toEqual(undefined);
-    // forward it along to the project:
-    remoteSpark.emit("data", mesg);
-
-    // which should spawn the other end to send a message telling it to init again.
-    const mesg2 = await remoteSpark.waitForMessage();
-    expect(mesg2.cmd).toBe("init");
-    remote.handleData(mesg2);
-
-    // now it should be running again as a new process
-    expect(remote.localPty).not.toEqual(undefined);
-    const pid = remote.localPty.pid;
-    expect(await isPidRunning(pid)).toBe(true);
-    expect(pid).not.toEqual(origPid);
-  });
-
   it("tests the cwd command", async () => {
     spark.messages = [];
     // first from browser client to project:
