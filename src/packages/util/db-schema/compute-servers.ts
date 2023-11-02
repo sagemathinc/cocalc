@@ -644,6 +644,7 @@ interface ImageBase {
   label: string;
   docker: string;
   minDiskSizeGb: number;
+  url?: string;
 }
 
 interface NonGPUImage extends ImageBase {
@@ -687,6 +688,7 @@ export const IMAGES0 = {
     // have to add 10 for CUDA base drivers
     minDiskSizeGb: 15 + 10,
     cudaVersion: "12.2",
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
   },
   tensorflow: {
     label: "GPU - Tensorflow with CUDA 12.2",
@@ -695,8 +697,10 @@ export const IMAGES0 = {
     // have to add 10 for CUDA base drivers
     minDiskSizeGb: 25 + 10,
     cudaVersion: "12.2",
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
   },
   cuda12: {
+    // [ ] TODO: it's actualy the cuda 11.x dev env!!
     label: "GPU - Dev Environment with Cuda 12.2",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
