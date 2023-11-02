@@ -17,9 +17,15 @@ import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 const logger = getLogger("server:compute:maintenance/manage-purchases");
 
 const MIN_NETWORK_CLOSE_DELAY_MS = 2 * 60 * 1000;
+
+// a single purchase is split once it exceeds this length:
 export const MAX_PURCHASE_LENGTH_MS = 1000 * 60 * 60 * 24; // 1 day
-export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
-export const PERIODIC_UPDATE_INTERVAL_MS = 1000 * 60 * 60 * 6; // every provisioned server gets purchases updated this often
+
+// network purchasing info is updated this frequently for running servers
+export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 30; // 30 minutes
+
+//every provisioned server gets purchases updated at least this often
+export const PERIODIC_UPDATE_INTERVAL_MS = 1000 * 60 * 60 ; // 1 hour
 
 // turn VM off if you don't have at least this much extra:
 const COST_THRESH_DOLLARS = 2.5;

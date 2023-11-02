@@ -34,23 +34,26 @@ export default async function ongoingPurchases() {
     WHERE cost IS NULL
     AND (service='compute-server' OR service='compute-server-network-usage')
     AND period_start <= NOW() - interval '${
-      MAX_PURCHASE_LENGTH_MS / (1000 * 60 * 60)
-    } hours'
+      MAX_PURCHASE_LENGTH_MS / 1000
+    } seconds'
   )
 `);
 
-  // be sure to update running servers that we haven't updated since PERIODIC_UPDATE_INTERVAL_MS
+  // update ALL running servers that we haven't been updated since MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
+  // because there might be network activity.  These could in theory not have a network purchase,
+  // in which case it should get created.
   await pool.query(`
   UPDATE compute_servers
   SET update_purchase=TRUE
   WHERE state='running' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
-    MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS / (1000 * 60 * 60)
-  } hours'`);
+    MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS / 1000
+  } seconds'`);
 
+  // update ALL non-deprovisiond servers that we haven't updated since PERIODIC_UPDATE_INTERVAL_MS
   await pool.query(`
   UPDATE compute_servers
   SET update_purchase=TRUE
   WHERE state!='deprovisioned' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
-    PERIODIC_UPDATE_INTERVAL_MS / (1000 * 60 * 60)
-  } hours'`);
+    PERIODIC_UPDATE_INTERVAL_MS / 1000
+  } seconds'`);
 }
