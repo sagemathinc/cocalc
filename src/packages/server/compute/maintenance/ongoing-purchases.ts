@@ -43,14 +43,14 @@ export default async function ongoingPurchases() {
   await pool.query(`
   UPDATE compute_servers
   SET update_purchase=TRUE
-  WHERE state='running' AND last_purchase_update <= NOW() - interval '${
+  WHERE state='running' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
     MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS / (1000 * 60 * 60)
   } hours'`);
 
   await pool.query(`
   UPDATE compute_servers
   SET update_purchase=TRUE
-  WHERE state!='deprovisioned' AND last_purchase_update <= NOW() - interval '${
+  WHERE state!='deprovisioned' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
     PERIODIC_UPDATE_INTERVAL_MS / (1000 * 60 * 60)
   } hours'`);
 }
