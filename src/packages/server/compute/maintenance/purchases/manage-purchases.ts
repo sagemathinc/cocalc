@@ -6,7 +6,11 @@ possibly updating their purchases, then does that work.
 */
 
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
-import { computeCost, getNetworkUsage, stop } from "../control";
+import {
+  computeCost,
+  getNetworkUsage,
+  stop,
+} from "@cocalc/server/compute/control";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
@@ -25,7 +29,7 @@ export const MAX_PURCHASE_LENGTH_MS = 1000 * 60 * 60 * 24; // 1 day
 export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 30; // 30 minutes
 
 //every provisioned server gets purchases updated at least this often
-export const PERIODIC_UPDATE_INTERVAL_MS = 1000 * 60 * 60 ; // 1 hour
+export const PERIODIC_UPDATE_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
 
 // turn VM off if you don't have at least this much extra:
 const COST_THRESH_DOLLARS = 2.5;

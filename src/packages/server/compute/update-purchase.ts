@@ -33,7 +33,7 @@ import {
   getTargetState,
   STATE_INFO,
 } from "@cocalc/util/db-schema/compute-servers";
-import { updatePurchaseSoon } from "./maintenance/manage-purchases";
+import { updatePurchaseSoon } from "./maintenance/purchases/manage-purchases";
 
 const logger = getLogger("server:compute:update-purchase");
 
