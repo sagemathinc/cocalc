@@ -166,7 +166,9 @@ export function PurchasesTable({
   limit?: number;
   filename?: string;
 }) {
-  const [purchaseRecords, setPurchaseRecords] = useState<Partial<Purchase>[] | null>(null);
+  const [purchaseRecords, setPurchaseRecords] = useState<
+    Partial<Purchase>[] | null
+  >(null);
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
@@ -185,8 +187,8 @@ export function PurchasesTable({
   const getBalance = async () => {
     try {
       const userBalance = account_id
-          ? await api.getBalanceAdmin(account_id)
-          : await api.getBalance();
+        ? await api.getBalanceAdmin(account_id)
+        : await api.getBalance();
 
       setBalance(userBalance);
     } catch (err) {
@@ -226,15 +228,7 @@ export function PurchasesTable({
 
   useEffect(() => {
     getPurchaseRecords();
-  }, [
-    group,
-    limit,
-    noStatement,
-    offset,
-    project_id,
-    service,
-    thisMonth,
-  ]);
+  }, [group, limit, noStatement, offset, project_id, service, thisMonth]);
 
   useEffect(() => {
     if (purchaseRecords == null) {
@@ -312,10 +306,11 @@ export function PurchasesTable({
         )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
-        {group ?
-          <GroupedPurchaseTable purchases={purchases} /> :
+        {group ? (
+          <GroupedPurchaseTable purchases={purchases} />
+        ) : (
           <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
-        }
+        )}
       </div>
       <div
         style={{
@@ -688,7 +683,12 @@ function Description({ description, period_end }) {
   }
 
   if (description.type == "compute-server-network-usage") {
-    return <ComputeServerNetworkUsageDescription description={description} />;
+    return (
+      <ComputeServerNetworkUsageDescription
+        description={description}
+        period_end={period_end}
+      />
+    );
   }
 
   if (description.type == "voucher") {

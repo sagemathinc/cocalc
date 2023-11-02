@@ -46,7 +46,7 @@ export default function DynamicallyUpdatingCost({
       title={
         <>
           Costs {currency(costPerHour, 2)}/hour since <TimeAgo date={start} />.
-          Total: ${round4(amount)}
+          Total cost: ${round4(cost)}
         </>
       }
     >

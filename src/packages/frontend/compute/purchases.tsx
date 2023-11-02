@@ -31,8 +31,10 @@ export function ComputeServerDescription({
 
 export function ComputeServerNetworkUsageDescription({
   description,
+  period_end,
 }: {
   description: ComputeServerNetworkUsage;
+  period_end?: Date;
 }) {
   const { amount, compute_server_id: id } = description;
 
@@ -43,6 +45,7 @@ export function ComputeServerNetworkUsageDescription({
         style={{ display: "inline-block" }}
       />{" "}
       by compute server with Id={id}
+      {period_end == null && <div>NOTE: Usage updated hourly.</div>}
     </div>
   );
 }

@@ -1352,8 +1352,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@cocalc/gcloud-pricing-calculator':
-        specifier: ^1.6.2
-        version: 1.6.2
+        specifier: ^1.7.0
+        version: 1.7.0
       '@cocalc/server':
         specifier: workspace:*
         version: 'link:'
@@ -4259,8 +4259,8 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /@cocalc/gcloud-pricing-calculator@1.6.2:
-    resolution: {integrity: sha512-nwW9tvnCBryYFIhDDEZrCT07xtuuKQvn0Z4WXzEqiD6rg6jX8dWsLNf7HHXhW+/gxe/IFSIq3Os/Bv/VO0Fd/Q==}
+  /@cocalc/gcloud-pricing-calculator@1.7.0:
+    resolution: {integrity: sha512-CYEcvsQcHJq730/Kp25yf7y7cxV+Itgg+QydbT913VkY4vcz6fY5vzyJlDZXgTUN3CdGVucHaVedRlc0d88gWQ==}
     engines: {node: '>=0.18.0'}
     requiresBuild: true
     dependencies:
