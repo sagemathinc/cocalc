@@ -7,6 +7,7 @@ Most of the work here is in setting up a compute server and a purchase
 in the database, in order to run the test.
 */
 
+
 import ongoingPurchases from "./ongoing-purchases";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";

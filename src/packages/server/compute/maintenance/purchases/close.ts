@@ -74,7 +74,7 @@ export async function closeAndContinuePurchase({
 }: {
   purchase: Purchase;
   server: ComputeServer;
-}) {
+}): Promise<undefined | number> {
   logger.debug("closeAndContinuePurchase", purchase);
   if (purchase.cost != null || purchase.period_end != null) {
     logger.debug(
@@ -125,6 +125,7 @@ export async function closeAndContinuePurchase({
       client,
     });
     await client.query("COMMIT");
+    return new_purchase_id;
   } catch (err) {
     await client.query("ROLLBACK");
     logger.debug("closeAndContinuePurchase -- ERROR, rolling back", err);
@@ -141,7 +142,7 @@ export async function closeAndContinueNetworkPurchase({
 }: {
   purchase: Purchase;
   server: ComputeServer;
-}) {
+}): Promise<undefined | number> {
   logger.debug("closeAndContinueNetworkPurchase", purchase);
   if (purchase.cost != null || purchase.period_end != null) {
     logger.debug(
@@ -206,7 +207,7 @@ export async function closeAndContinueNetworkPurchase({
       "closeAndContinueNetworkPurchase -- creating new purchase",
       newPurchase,
     );
-    await createPurchase({ ...newPurchase, client });
+    const purchase_id = await createPurchase({ ...newPurchase, client });
     logger.debug("closeAndContinueNetworkPurchase -- closing old purchase");
     purchase.cost = Math.max(0.001, network.cost);
     purchase.period_end = end;
@@ -215,6 +216,7 @@ export async function closeAndContinueNetworkPurchase({
       [purchase.cost, purchase.period_end, purchase.id],
     );
     await client.query("COMMIT");
+    return purchase_id;
   } catch (err) {
     await client.query("ROLLBACK");
     logger.debug("closeAndContinueNetworkPurchase -- ERROR, rolling back", err);
