@@ -31,7 +31,7 @@
     "build": "npx tsc --build",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput ",
     "TEST_DOC": "Below we divide the tests into the purchases directory and everything else.  Otherwise all kinds of weird crashes happen.",
-    "test": "find dist |grep .test. |grep -v purchases | xargs pnpm exec jest && npx jest dist/purchases ",
+    "test": "pnpm exec jest --runInBand dist",
     "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
