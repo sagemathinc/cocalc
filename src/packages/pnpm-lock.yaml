@@ -1318,8 +1318,8 @@ importers:
         specifier: ^8.3.2
         version: 8.3.2
       websocket-sftp:
-        specifier: ^0.7.1
-        version: 0.7.1
+        specifier: ^0.7.2
+        version: 0.7.2
       which:
         specifier: ^2.0.2
         version: 2.0.2
@@ -6948,8 +6948,8 @@ packages:
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.9.0)(webpack@5.88.2)
     dev: true
 
-  /@wwa/statvfs@1.1.17:
-    resolution: {integrity: sha512-LMbtVk2WpjoC22HStuBsFvmlT1o42BDJ5B+DGjpkt0hTxH9YNjkIxg7I3v5nnwmBHNgeBIUnIUdoFigqV3IxkQ==}
+  /@wwa/statvfs@1.1.18:
+    resolution: {integrity: sha512-C33QeTo2Nma9gMAJy3l1AQc0Qz5Lbf7mCY2C3F1W3noCdukODWH8nB8sjavdwjw9S7Qa+zrvQAfbbYCOzIphAw==}
     requiresBuild: true
     dependencies:
       bindings: 1.5.0
@@ -20380,12 +20380,12 @@ packages:
       - uglify-js
     dev: false
 
-  /websocket-sftp@0.7.1:
-    resolution: {integrity: sha512-ZCuLGRx6K/cjZK0hDxbX/feRsgZGvjj7pfw17AKgcKzId7C/YYVWvthEvbfQAVolkqQtf99X/TG7zHqX96OvWQ==}
+  /websocket-sftp@0.7.2:
+    resolution: {integrity: sha512-g1E8GCHu0CdAe3GTBmxfP1uH1h8h21d029O+tYpCMvFUqVher+rbi2Dfp4OEjOXyfgr7qquAxwulDUXvy0+iKg==}
     engines: {node: '>=0.16.0'}
     requiresBuild: true
     dependencies:
-      '@wwa/statvfs': 1.1.17
+      '@wwa/statvfs': 1.1.18
       awaiting: 3.0.0
       debug: 4.3.4(supports-color@8.1.1)
       port-get: 1.0.0

@@ -14,12 +14,9 @@ const log = getLogger("cocalc:websocketfs");
 export default function initWebsocketFs(
   server: Server,
   basePath: string,
-  { host, port },
 ): void {
   const path = join(basePath, ".smc", "websocketfs");
-  log.info(
-    `Initializing websocketfs filesystem server at "ws://${host}:${port}${path}"...`,
-  );
+  log.info(`Initializing websocketfs filesystem server`);
 
   const wss = new WebSocketServer({ noServer: true });
 
