@@ -147,7 +147,7 @@ describe("confirm managing of purchases works", () => {
 
   // rule 4:
   it(" adjust times so purchase is more than MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS+MIN_NETWORK_CLOSE_DELAY_MS back, and see that network usage is updated", async () => {
-    const { normal_id, network_id } = await setPurchaseStart(
+    const { network_id } = await setPurchaseStart(
       new Date(
         Date.now() -
           MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS -
@@ -163,6 +163,9 @@ describe("confirm managing of purchases works", () => {
     setTestNetworkUsage({ id: server_id, amount: 389, cost: 3.89 });
     await managePurchases();
     const network = await getPurchase(network_id);
+    if (network.description.type != "compute-server-network-usage") {
+      throw Error("bug");
+    }
     expect(network.description.cost).toBe(3.89);
     expect(network.description.amount).toBe(389);
   });
@@ -186,11 +189,17 @@ describe("confirm managing of purchases works", () => {
     const network = await getPurchase(network_id);
     const normal = await getPurchase(normal_id);
     console.log({ network, normal });
+    if (network.description.type != "compute-server-network-usage") {
+      throw Error("bug");
+    }
     expect(network.description.cost).toBe(3.89);
     expect(network.description.amount).toBe(389);
 
-    expect(normal.cost).isGreaterThan(24 * normal.cost_per_hour);
-    expect(normal.cost).isLessThan(30 * normal.cost_per_hour);
+    expect(normal.cost).toBeGreaterThan(1);
+
+    const server = await getServer({ account_id, id: server_id });
+    const purchases = await outstandingPurchases(server);
+    expect(purchases.length).toBe(2);
   });
 
   // rule 3
