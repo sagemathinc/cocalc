@@ -556,6 +556,10 @@ export async function getNetworkUsage(opts: {
   }
 }
 
+export function hasNetworkUsage(cloud: Cloud): boolean {
+  return cloud == "google-cloud" || cloud == "test";
+}
+
 // Used for unit testing only.
 const testNetworkUsage: { [id: number]: { amount: number; cost: number } } = {};
 export async function setTestNetworkUsage({

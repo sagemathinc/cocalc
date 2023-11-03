@@ -5,11 +5,10 @@ queries the database for compute servers with activity that warrants
 possibly updating their purchases, then does that work.
 */
 
-import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
   computeCost,
   getNetworkUsage,
-  stop,
+  hasNetworkUsage,
 } from "@cocalc/server/compute/control";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
@@ -23,8 +22,9 @@ import {
   closeAndContinuePurchase,
   closeAndPossiblyContinueNetworkPurchase,
 } from "./close";
+import lowBalance from "./low-balance";
 
-const logger = getLogger("server:compute:maintenance/purchases/manage");
+const logger = getLogger("server:compute:maintenance:purchases:manage");
 
 export const MIN_NETWORK_CLOSE_DELAY_MS = 2 * 60 * 1000;
 
@@ -36,9 +36,6 @@ export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 30; // 30 minute
 
 //every provisioned server gets purchases updated at least this often
 export const PERIODIC_UPDATE_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
-
-// turn VM off if you don't have at least this much extra:
-const COST_THRESH_DOLLARS = 2.5;
 
 export default async function managePurchases() {
   logger.debug("managePurchases");
@@ -86,7 +83,7 @@ export default async function managePurchases() {
 }
 
 // get all outstanding current purchases involving this compute server
-async function outstandingPurchases(
+export async function outstandingPurchases(
   server: ComputeServer,
 ): Promise<Purchase[]> {
   const pool = getPool();
@@ -98,7 +95,7 @@ async function outstandingPurchases(
   return rows;
 }
 
-async function updatePurchase(server: ComputeServer) {
+export async function updatePurchase(server: ComputeServer) {
   logger.debug("updatePurchase", { id: server.id, title: server.title });
   const allPurchases = await outstandingPurchases(server);
   const purchases = allPurchases.filter((x) => x.service == "compute-server");
@@ -171,175 +168,204 @@ async function updatePurchase(server: ComputeServer) {
 
   // Rule 1: creating compute-server purchase
   if (purchases.length == 0 && server.state != "deprovisioned") {
-    const cost_per_hour = await computeCost({ server, state: stableState });
-
-    if (!cost_per_hour) {
-      // no need to make a new purchase, e.g., deprovisioned is free.
-      await setPurchaseId({
-        purchase_id: null,
-        server_id: server.id,
-        cost_per_hour,
-      });
-    } else {
-      logger.debug(
-        `start new pay-as-you-go purchase for ${cost_per_hour}/hour`,
-      );
-      const purchase_id = await createPurchase({
-        client: null,
-        account_id: server.account_id,
-        project_id: server.project_id,
-        service: "compute-server",
-        period_start: new Date(),
-        cost_per_hour,
-        description: {
-          type: "compute-server",
-          state: stableState,
-          compute_server_id: server.id,
-          configuration: server.configuration,
-        },
-      });
-      await setPurchaseId({ purchase_id, server_id: server.id, cost_per_hour });
-    }
+    await createComputeServerPurchase({ server, stableState });
   }
 
   // Rule 2: creating compute-server-network-usage purchase
   if (
     networkPurchases.length == 0 &&
     server.state == "running" &&
-    server.cloud == "google-cloud" // NOTE: only google cloud has network purchases right now.
+    hasNetworkUsage(server.cloud)
   ) {
-    await createPurchase({
-      client: null,
-      account_id: server.account_id,
-      project_id: server.project_id,
-      service: "compute-server-network-usage",
-      cost_per_hour: 0, // used in balance computation.
-      period_start: new Date(),
-      description: {
-        type: "compute-server-network-usage",
-        compute_server_id: server.id,
-        amount: 0,
-        cost: 0,
-        last_updated: Date.now(),
-      },
-    });
+    await createNetworkUsagePurchase({ server });
   }
 
-  // Rule 3: End current purchase?
+  // Rule 3: End purchases for different state?
   if (server.state == stableState && purchases.length > 0) {
-    if (purchases.length > 1) {
-      // this should be impossible
-      logger.debug(
-        `ERROR/BUG -- there are multiple purchases for the same compute server!`,
-        purchases,
-      );
-    }
-    // just deal with all of them
-    let count = 0;
-    for (const purchase of purchases) {
-      if (
-        purchase.description.type == "compute-server" &&
-        server.state != purchase.description?.state
-      ) {
-        // state changed, so end the purchase
-        await closePurchase({ purchase });
-        count += 1;
-      }
-    }
-    if (count == purchases.length && stableState != "deprovisioned") {
-      // everything was closed, but target stable state does cost money,
-      // so pay attention to this server very soon to make a new purchase.
-      await updatePurchaseSoon(server.id);
-    }
+    await endOtherStatePurchases({ purchases, server, stableState });
   }
 
   // Rule 4: End any networking purchases that we should end, and also
   // update the total amount of network usage periodically, so user
   // can see it.  (This is only for google cloud)
   if (networkPurchases.length > 0) {
+    await manageNetworkPurchases({ networkPurchases, server, stableState });
+  }
+
+  // Rule 5: Split long purchases?
+  await splitLongPurchases({ purchases, networkPurchases, server });
+
+  // Rule 6: Deal with low balance situations.  For now, if things are
+  // getting "iffy", we stop the server, which greatly reduces the costs.
+  // That's it. We'll do more later, e.g., delete it.
+  await lowBalance({ stableState, allPurchases, server });
+}
+
+async function createComputeServerPurchase({ server, stableState }) {
+  const cost_per_hour = await computeCost({ server, state: stableState });
+
+  if (!cost_per_hour) {
+    // no need to make a new purchase, e.g., deprovisioned is free.
+    await setPurchaseId({
+      purchase_id: null,
+      server_id: server.id,
+      cost_per_hour,
+    });
+  } else {
+    logger.debug(`start new pay-as-you-go purchase for ${cost_per_hour}/hour`);
+    const purchase_id = await createPurchase({
+      client: null,
+      account_id: server.account_id,
+      project_id: server.project_id,
+      service: "compute-server",
+      period_start: new Date(),
+      cost_per_hour,
+      description: {
+        type: "compute-server",
+        state: stableState,
+        compute_server_id: server.id,
+        configuration: server.configuration,
+      },
+    });
+    await setPurchaseId({ purchase_id, server_id: server.id, cost_per_hour });
+  }
+}
+
+async function createNetworkUsagePurchase({ server }) {
+  await createPurchase({
+    client: null,
+    account_id: server.account_id,
+    project_id: server.project_id,
+    service: "compute-server-network-usage",
+    cost_per_hour: 0, // used in balance computation.
+    period_start: new Date(),
+    description: {
+      type: "compute-server-network-usage",
+      compute_server_id: server.id,
+      amount: 0,
+      cost: 0,
+      last_updated: Date.now(),
+    },
+  });
+}
+
+async function endOtherStatePurchases({ purchases, server, stableState }) {
+  if (purchases.length > 1) {
+    // this should be impossible so we warn; we can handle it fine below though.
+    logger.debug(
+      `ERROR/BUG -- there are multiple purchases for the same compute server!`,
+      purchases,
+    );
+  }
+  // just deal with all of them
+  let count = 0;
+  for (const purchase of purchases) {
     if (
-      server.state != "running" &&
-      stableState != "running" &&
-      server.state_changed &&
-      Date.now() - server.state_changed.valueOf() >= MIN_NETWORK_CLOSE_DELAY_MS
+      purchase.description.type == "compute-server" &&
+      server.state != purchase.description?.state
     ) {
-      // It's not running and it's not about to be running, and the last
-      // state change was at least a little bit in th past.  In this case
-      // there can be no network activity, so we end all the network
-      // purchases (that aren't very recent).
-      for (const purchase of networkPurchases) {
-        // only take purchases that started at least MIN_NETWORK_CLOSE_DELAY_MS ago,
-        // since a new one could have started and we don't want to end that.
-        if (
-          purchase.period_start &&
-          purchase.description.type == "compute-server-network-usage" &&
-          Date.now() - purchase.period_start.valueOf() >
-            MIN_NETWORK_CLOSE_DELAY_MS
-        ) {
-          const end = new Date();
-          const network = await getNetworkUsage({
-            server,
-            start: purchase.period_start,
-            end,
-          });
-          purchase.cost = Math.max(0.001, network.cost);
-          purchase.period_end = end;
-          purchase.description.amount = network.amount;
-          purchase.description.cost = network.cost;
-          purchase.description.last_updated = end.valueOf();
-          const pool = getPool();
-          await pool.query(
-            "UPDATE purchases SET cost=$1, period_end=$2, description=$3 WHERE id=$4",
-            [
-              purchase.cost,
-              purchase.period_end,
-              purchase.description,
-              purchase.id,
-            ],
-          );
-        }
-      }
-    } else {
-      // We might update some network activity, in case it's stale.  This is so (1) the
-      // user can see it, and (2) we can better keep track of whether they are running out
-      // of money (you could probably easily spend $50/hour in network egress... so we
-      // are still taking a very real risk!).
-      for (const purchase of networkPurchases) {
-        if (
-          purchase.description.type == "compute-server-network-usage" &&
-          purchase.period_end == null &&
-          purchase.cost == null &&
-          purchase.period_start != null
-        ) {
-          // currently active
-          if (
-            Date.now() -
-              (purchase.description.last_updated ?? 0) -
-              MIN_NETWORK_CLOSE_DELAY_MS >
-            MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS
-          ) {
-            // not updated in a while, so let's update it
-            const end = new Date(Date.now() - MIN_NETWORK_CLOSE_DELAY_MS * 2);
-            const network = await getNetworkUsage({
-              server,
-              start: purchase.period_start,
-              end,
-            });
-            purchase.description.amount = network.amount;
-            purchase.description.cost = network.cost;
-            purchase.description.last_updated = end.valueOf();
-            const pool = getPool();
-            await pool.query(
-              "UPDATE purchases SET description=$1 WHERE id=$2",
-              [purchase.description, purchase.id],
-            );
-          }
-        }
+      // state changed, so end the purchase
+      await closePurchase({ purchase });
+      count += 1;
+    }
+  }
+  if (count == purchases.length && stableState != "deprovisioned") {
+    // everything was closed, but target stable state does cost money,
+    // so pay attention to this server very soon to make a new purchase.
+    await updatePurchaseSoon(server.id);
+  }
+}
+
+async function manageNetworkPurchases({
+  networkPurchases,
+  server,
+  stableState,
+}) {
+  if (
+    server.state != "running" &&
+    stableState != "running" &&
+    server.state_changed &&
+    Date.now() - server.state_changed.valueOf() >= MIN_NETWORK_CLOSE_DELAY_MS
+  ) {
+    // It's not running and it's not about to be running, and the last
+    // state change was at least a little bit in the past.  In this case
+    // there can be no network activity, so we end all the network
+    // purchases (that aren't too recent):
+    await endNetworkPurchases({ networkPurchases, server });
+  } else {
+    // We might update some network activity, in case it's stale.  This is so (1) the
+    // user can see it, and (2) we can better keep track of whether they are running out
+    // of money (you could probably easily spend $50/hour in network egress... so we
+    // are still taking a very real risk!).
+    await updateNetworkUsage({ networkPurchases, server });
+  }
+}
+
+async function endNetworkPurchases({ networkPurchases, server }) {
+  for (const purchase of networkPurchases) {
+    // only take purchases that started at least MIN_NETWORK_CLOSE_DELAY_MS ago,
+    // since a new one could have started and we don't want to end that.
+    if (
+      purchase.period_start &&
+      purchase.description.type == "compute-server-network-usage" &&
+      Date.now() - purchase.period_start.valueOf() > MIN_NETWORK_CLOSE_DELAY_MS
+    ) {
+      const end = new Date();
+      const network = await getNetworkUsage({
+        server,
+        start: purchase.period_start,
+        end,
+      });
+      purchase.cost = Math.max(0.001, network.cost);
+      purchase.period_end = end;
+      purchase.description.amount = network.amount;
+      purchase.description.cost = network.cost;
+      purchase.description.last_updated = end.valueOf();
+      const pool = getPool();
+      await pool.query(
+        "UPDATE purchases SET cost=$1, period_end=$2, description=$3 WHERE id=$4",
+        [purchase.cost, purchase.period_end, purchase.description, purchase.id],
+      );
+    }
+  }
+}
+
+async function updateNetworkUsage({ networkPurchases, server }) {
+  for (const purchase of networkPurchases) {
+    if (
+      purchase.description.type == "compute-server-network-usage" &&
+      purchase.period_end == null &&
+      purchase.cost == null &&
+      purchase.period_start != null
+    ) {
+      // currently active
+      if (
+        Date.now() -
+          (purchase.description.last_updated ?? 0) -
+          MIN_NETWORK_CLOSE_DELAY_MS >
+        MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS
+      ) {
+        // not updated in a while, so let's update it
+        const end = new Date(Date.now() - MIN_NETWORK_CLOSE_DELAY_MS * 2);
+        const network = await getNetworkUsage({
+          server,
+          start: purchase.period_start,
+          end,
+        });
+        purchase.description.amount = network.amount;
+        purchase.description.cost = network.cost;
+        purchase.description.last_updated = end.valueOf();
+        const pool = getPool();
+        await pool.query("UPDATE purchases SET description=$1 WHERE id=$2", [
+          purchase.description,
+          purchase.id,
+        ]);
       }
     }
   }
+}
 
-  // Rule 5: Split long compute server purchases?
+async function splitLongPurchases({ purchases, networkPurchases, server }) {
   for (const purchase of purchases) {
     if (
       // this is why mutating the purchases objects when changing them in
@@ -377,57 +403,6 @@ async function updatePurchase(server: ComputeServer) {
       if (howLongMs > MAX_PURCHASE_LENGTH_MS) {
         // it's an ongoing *network* purchase that is long, so split it.
         await closeAndPossiblyContinueNetworkPurchase({ purchase, server });
-      }
-    }
-  }
-
-  // Rule 6: Deal with low balance situations.  For now, if things are
-  // getting "iffy", we stop the server, which greatly reduces the costs.
-  // That's it. We'll do more later, e.g., delete it.
-  if (stableState == "running" || stableState == "suspended") {
-    // add up all of the partial costs that haven't been committed
-    // to the users transactions yet.
-    let cost = 0;
-    for (const purchase of allPurchases) {
-      if (purchase.cost != null || purchase.period_end != null) {
-        // not a concern since it got closed above
-        continue;
-      }
-      if (purchase.service == "compute-server") {
-        // nothing to do -- this is already included in the balance that
-        // isPurchaseAllowed uses
-      } else if (
-        purchase.service == "compute-server-network-usage" &&
-        purchase.description.type == "compute-server-network-usage"
-      ) {
-        // right now uage based metered usage isn't included in the balance
-        // in src/packages/server/purchases/get-balance.ts
-        // When that changes, we won't need this loop at all.
-        cost += purchase.description.cost;
-      }
-    }
-    if (cost > 0) {
-      // TODO: worried about service quotas compute-server versus compute-server-network-usage
-      const isAllowed = await isPurchaseAllowed({
-        account_id: server.account_id,
-        service: "compute-server",
-        cost: cost + COST_THRESH_DOLLARS,
-      });
-      if (!isAllowed) {
-        // ut oh, running low on money. Turn VM off.
-        logger.debug(
-          "updatePurchase: attempting to stop server because user is low on funds",
-          server.id,
-        );
-        // [ ] TODO: email user
-        try {
-          await stop(server);
-        } catch (err) {
-          logger.debug(
-            "updatePurchase: attempt to stop server failed -- ",
-            err,
-          );
-        }
       }
     }
   }

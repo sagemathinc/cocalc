@@ -189,6 +189,9 @@ describe("creates account, project, test compute server, and purchase, then clos
     expect(purchaseAfter.period_end == null).toBe(false);
     expect(purchaseAfter.cost).toBe(3.89);
     const newPurchase = await getPurchase(new_id);
+    if (newPurchase.description.type != "compute-server-network-usage") {
+      throw Error("bug");
+    }
     expect(newPurchase.description.compute_server_id).toBe(server_id);
     expect(newPurchase.description.amount).toBe(0);
   });
