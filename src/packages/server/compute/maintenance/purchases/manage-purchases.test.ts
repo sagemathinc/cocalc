@@ -8,7 +8,14 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "@cocalc/server/compute/create-server";
 import { getServer } from "@cocalc/server/compute/get-servers";
-import managePurchases, { outstandingPurchases } from "./manage-purchases";
+import managePurchases, {
+  outstandingPurchases,
+  MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
+  MIN_NETWORK_CLOSE_DELAY_MS,
+  MAX_PURCHASE_LENGTH_MS,
+} from "./manage-purchases";
+import { setTestNetworkUsage } from "@cocalc/server/compute/control";
+import { getPurchase } from "./util";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -24,6 +31,7 @@ describe("confirm managing of purchases works", () => {
   let server_id;
 
   it("does one call to managePurchases to so there's no servers marked as needing updates", async () => {
+    await managePurchases();
     await managePurchases();
     const pool = getPool();
     const { rows } = await pool.query(
@@ -60,6 +68,19 @@ describe("confirm managing of purchases works", () => {
     });
   });
 
+  it("in deprovisioned state no purchase is created", async () => {
+    const pool = getPool();
+    await pool.query(
+      "UPDATE compute_servers SET state='deprovisioned',update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    await managePurchases();
+    const server = await getServer({ account_id, id: server_id });
+    const purchases = await outstandingPurchases(server);
+    expect(purchases.length).toBe(0);
+  });
+
+  // rule 1
   it("set server state to 'starting' (and update_purchase true), then see that a purchase in state 'running' is created by managePurchases", async () => {
     const pool = getPool();
     await pool.query(
@@ -78,6 +99,7 @@ describe("confirm managing of purchases works", () => {
     expect(purchases[0].service).toBe("compute-server");
   });
 
+  // rule 2
   it("set server state to 'running' (and update_purchase true), then see that a purchase in state 'running' is created by managePurchases", async () => {
     const pool = getPool();
     await pool.query(
@@ -98,4 +120,85 @@ describe("confirm managing of purchases works", () => {
     }
     expect(network[0].service).toBe("compute-server-network-usage");
   });
+
+  async function setPurchaseStart(start: Date) {
+    const server = await getServer({ account_id, id: server_id });
+    const purchases = await outstandingPurchases(server);
+    expect(purchases.length).toBe(2);
+    const normal = purchases.filter((x) => x.service == "compute-server");
+    const network = purchases.filter(
+      (x) => x.service == "compute-server-network-usage",
+    );
+    if (network[0].description.type != "compute-server-network-usage") {
+      throw Error("bug");
+    }
+    network[0].description.last_updated = start.valueOf();
+    const pool = getPool();
+    await pool.query(
+      "UPDATE purchases SET period_start=$1, description=$2 WHERE id=$3",
+      [start, network[0].description, network[0].id],
+    );
+    await pool.query("UPDATE purchases SET period_start=$1 WHERE id=$2", [
+      start,
+      normal[0].id,
+    ]);
+    return { normal_id: normal[0].id, network_id: network[0].id };
+  }
+
+  // rule 4:
+  it(" adjust times so purchase is more than MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS+MIN_NETWORK_CLOSE_DELAY_MS back, and see that network usage is updated", async () => {
+    const { normal_id, network_id } = await setPurchaseStart(
+      new Date(
+        Date.now() -
+          MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS -
+          MIN_NETWORK_CLOSE_DELAY_MS -
+          30 * 1000,
+      ),
+    );
+    const pool = getPool();
+    await pool.query(
+      "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    setTestNetworkUsage({ id: server_id, amount: 389, cost: 3.89 });
+    await managePurchases();
+    const network = await getPurchase(network_id);
+    expect(network.description.cost).toBe(3.89);
+    expect(network.description.amount).toBe(389);
+  });
+
+  // rule 5:
+  it("adjust times so purchase is over MAX_PURCHASE_LENGTH_MS, and see that the network and normal purchase are both split and new ones created", async () => {
+    const { normal_id, network_id } = await setPurchaseStart(
+      new Date(
+        Date.now() -
+          MAX_PURCHASE_LENGTH_MS -
+          MIN_NETWORK_CLOSE_DELAY_MS -
+          30 * 1000,
+      ),
+    );
+    const pool = getPool();
+    await pool.query(
+      "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    await managePurchases();
+    const network = await getPurchase(network_id);
+    const normal = await getPurchase(normal_id);
+    console.log({ network, normal });
+    expect(network.description.cost).toBe(3.89);
+    expect(network.description.amount).toBe(389);
+
+    expect(normal.cost).isGreaterThan(24 * normal.cost_per_hour);
+    expect(normal.cost).isLessThan(30 * normal.cost_per_hour);
+  });
+
+  // rule 3
+  it("change state to 'stopping' and nothing happens", async () => {});
+
+  // rule 3
+  it("change state to 'off' and current purchase ends and a new one is created", async () => {});
+
+  // rule 6
+  it("make time really long so that balance is exceeded, and see that server gets stopped due to too low balance", async () => {});
 });
