@@ -40,8 +40,16 @@ import SelectImage from "./select-image";
 
 export const SELECTOR_WIDTH = "350px";
 
-const DEFAULT_GPU = "nvidia-l4";
-const FALLBACK_INSTANCE = "n1-standard-1";
+const DEFAULT_GPU_CONFIG = {
+  acceleratorType: "nvidia-l4",
+  acceleratorCount: 1,
+  machineType: "g2-standard-4",
+  region: "us-central1",
+  zone: "us-central1-b",
+  image: "pytorch",
+};
+
+const FALLBACK_INSTANCE = "c2-standard-4";
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -1102,13 +1110,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
         if (!!acceleratorType) {
           setConfig({ acceleratorType: "", acceleratorCount: 0 });
         } else {
-          setConfig({
-            acceleratorType: DEFAULT_GPU,
-            acceleratorCount: 1,
-            machineType: "g2-standard-4",
-            region: "us-central1",
-            zone: "us-central1-b",
-          });
+          setConfig(DEFAULT_GPU_CONFIG);
         }
       }}
     />
@@ -1250,13 +1252,20 @@ function ensureConsistentConfiguration(
 function ensureConsistentImage(configuration, changes) {
   const { gpu } = IMAGES[configuration.image] ?? {};
   if (gpu && !configuration.acceleratorType) {
-    // image requires a GPU but we don't have one, so change
-    // configuration to have a GPU.
-    changes.acceleratorType = DEFAULT_GPU;
-    changes.acceleratorCount = 1;
-    changes.machineType = "n1-standard-1";
-    changes.region = "europe-west2";
-    changes.zone = "europe-west2-a";
+    if (changes.acceleratorType != null) {
+      // changing to not have GPU so make image not need gpu
+      // [ ] TODO
+      configuration["image"] = changes["image"] = "python";
+    } else {
+      // changing to have a gpu
+      // image requires a GPU but we don't have one, so change
+      // configuration to have a GPU.
+      for (const key in DEFAULT_GPU_CONFIG) {
+        if (key != "image") {
+          configuration[key] = changes[key] = DEFAULT_GPU_CONFIG[key];
+        }
+      }
+    }
   }
 }
 
@@ -1436,8 +1445,12 @@ function ensureConsistentRegionAndZoneWithMachineType(
     console.warn(
       `BUG -- This should never happen: unknonwn machineType = '${machineType}'`,
     );
-    // invalid machineType -- so just fix it to the most compatible
-    configuration["machineType"] = changes["machineType"] = FALLBACK_INSTANCE;
+    // invalid machineType
+    if (configuration.acceleratorType) {
+      configuration["machineType"] = changes["machineType"] = "n1-standard-4";
+    } else {
+      configuration["machineType"] = changes["machineType"] = "c2-standard-4";
+    }
     return;
   }
 
