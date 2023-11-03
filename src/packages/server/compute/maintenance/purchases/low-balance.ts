@@ -1,6 +1,8 @@
 import getLogger from "@cocalc/backend/logger";
 import { stop } from "@cocalc/server/compute/control";
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
+import { setError } from "@cocalc/server/compute/util";
+
 // turn VM off if you don't have at least this much extra:
 const COST_THRESH_DOLLARS = 2.5;
 
@@ -40,27 +42,30 @@ export default async function lowBalance({
       cost += purchase.description.cost;
     }
   }
-  if (cost > 0) {
-    // TODO: worried about service quotas compute-server versus compute-server-network-usage
-    const isAllowed = await isPurchaseAllowed({
-      account_id: server.account_id,
-      service: "compute-server",
-      cost: cost + COST_THRESH_DOLLARS,
-    });
-    if (!isAllowed) {
-      // ut oh, running low on money. Turn VM off.
-      logger.debug(
-        "updatePurchase: attempting to stop server because user is low on funds",
+  // TODO: worried about service quotas compute-server versus compute-server-network-usage
+  const { allowed, reason } = await isPurchaseAllowed({
+    account_id: server.account_id,
+    service: "compute-server",
+    cost: cost + COST_THRESH_DOLLARS,
+  });
+  if (!allowed) {
+    // ut oh, running low on money. Turn VM off.
+    logger.debug(
+      "updatePurchase: attempting to stop server because user is low on funds",
+      server.id,
+    );
+    // [ ] TODO: email user
+    // [ ] TODO: this "stop" should go into a compute-server action log, and have a comment
+    //     about why the server stopped!
+    try {
+      await stop(server);
+      await setError(
         server.id,
+        reason ??
+          "You do not have enough credits to keep this compute server running. Add credits to your account or increase your spending limit.",
       );
-      // [ ] TODO: email user
-      // [ ] TODO: this "stop" should go into a compute-server action log, and have a comment
-      //     about why the server stopped!
-      try {
-        await stop(server);
-      } catch (err) {
-        logger.debug("updatePurchase: attempt to stop server failed -- ", err);
-      }
+    } catch (err) {
+      logger.debug("updatePurchase: attempt to stop server failed -- ", err);
     }
   }
 }

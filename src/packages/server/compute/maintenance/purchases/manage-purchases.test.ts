@@ -16,6 +16,8 @@ import managePurchases, {
 } from "./manage-purchases";
 import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 import { getPurchase } from "./util";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
+import { delay } from "awaiting";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -65,6 +67,14 @@ describe("confirm managing of purchases works", () => {
       account_id,
       project_id,
       ...s,
+    });
+    // give user $10.
+    await createPurchase({
+      account_id,
+      service: "credit",
+      description: {} as any,
+      client: null,
+      cost: -10,
     });
   });
 
@@ -188,7 +198,6 @@ describe("confirm managing of purchases works", () => {
     await managePurchases();
     const network = await getPurchase(network_id);
     const normal = await getPurchase(normal_id);
-    console.log({ network, normal });
     if (network.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
@@ -203,11 +212,73 @@ describe("confirm managing of purchases works", () => {
   });
 
   // rule 3
-  it("change state to 'stopping' and nothing happens", async () => {});
+  it("change state to 'stopping' and no purchases change", async () => {
+    const server = await getServer({ account_id, id: server_id });
+    const purchases = await outstandingPurchases(server);
+    expect(purchases.length).toBe(2);
+    const pool = getPool();
+    await pool.query(
+      "UPDATE compute_servers SET state='stopping', update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    await managePurchases();
+    const purchases2 = await outstandingPurchases(server);
+    expect(purchases).toEqual(purchases2);
+  });
 
   // rule 3
-  it("change state to 'off' and current purchase ends and a new one is created", async () => {});
+  it("change state to 'off' and current purchase ends and a new one is created", async () => {
+    const server = await getServer({ account_id, id: server_id });
+    const purchases = await outstandingPurchases(server);
+    expect(purchases.length).toBe(2);
+    const pool = getPool();
+    await pool.query(
+      "UPDATE compute_servers SET state='off', update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    await managePurchases();
+    const purchases2 = await outstandingPurchases(server);
+    expect(purchases2.length).toEqual(1);
+    // have to call it again to get the new purchase.
+    await managePurchases();
+    const purchases3 = await outstandingPurchases(server);
+    expect(purchases3.length).toEqual(2);
+  });
 
   // rule 6
-  it("make time really long so that balance is exceeded, and see that server gets stopped due to too low balance", async () => {});
+  it("make time really long so that balance is exceeded, and see that server gets stopped due to too low balance", async () => {
+    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 500));
+    const pool = getPool();
+    await pool.query(
+      "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    await managePurchases();
+    await delay(10);
+    const server = await getServer({ account_id, id: server_id });
+    expect(server.state == "off" || server.state == "stopping").toBe(true);
+    expect(server.error).toContain("do not have enough");
+  });
+
+  it("shut off machine instead of starting purchase when user doesn't have enough money", async () => {
+    const pool = getPool();
+    // delete all purchases for this server
+    let server = await getServer({ account_id, id: server_id });
+    const purchases = await outstandingPurchases(server);
+    for (const { id } of purchases) {
+      await pool.query("DELETE FROM purchases WHERE id=$1", [id]);
+    }
+    // set server running
+    await pool.query(
+      "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    // We have no money now due to above, so this *should*
+    // stop server rather than making a purchase.
+    // This is basically a double check on the frontend and rest of the system.
+    await managePurchases();
+    await delay(10);
+    server = await getServer({ account_id, id: server_id });
+    expect(server.state == "off" || server.state == "stopping").toBe(true);
+  });
 });
