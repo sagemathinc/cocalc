@@ -5,7 +5,7 @@ Test functions for closing purchases in various ways.
 import {
   closePurchase,
   closeAndContinuePurchase,
-  // closeAndContinueNetworkPurchase,
+  closeAndPossiblyContinueNetworkPurchase,
 } from "./close";
 import { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
@@ -15,6 +15,7 @@ import createServer from "@cocalc/server/compute/create-server";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { getPurchase } from "./util";
 import { getServer } from "@cocalc/server/compute/get-servers";
+import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -126,5 +127,69 @@ describe("creates account, project, test compute server, and purchase, then clos
     expect(
       Math.abs(Date.now() - newPurchase.period_start.valueOf() ?? 0),
     ).toBeLessThan(30 * 1000);
+  });
+
+  it("creates a network purchase, then closes it and verifies cost and amount are set properly", async () => {
+    const period_start = new Date(Date.now() - 1000 * 60 * 60 * 24); // 2 hours ago
+    purchase_id = await createPurchase({
+      client: null,
+      account_id,
+      project_id,
+      service: "compute-server-network-usage",
+      cost_per_hour: 0,
+      period_start,
+      description: {
+        type: "compute-server-network-usage",
+        compute_server_id: server_id,
+        amount: 0,
+        cost: 0,
+        last_updated: period_start.valueOf(),
+      },
+    });
+    const server = await getServer({ account_id, id: server_id });
+    server.state = "off";
+    const purchase = await getPurchase(purchase_id);
+    setTestNetworkUsage({ id: server_id, amount: 389, cost: 3.89 });
+    const new_id = await closeAndPossiblyContinueNetworkPurchase({
+      purchase,
+      server,
+    });
+    const purchaseAfter = await getPurchase(purchase_id);
+    expect(purchaseAfter.period_end == null).toBe(false);
+    expect(purchaseAfter.cost).toBe(3.89);
+    expect(new_id).toBe(undefined); // should NOT have created new one since server is off.
+  });
+
+  it("creates a network purchase, then closes it, but this time with the server running, so a new purchase is created", async () => {
+    const period_start = new Date(Date.now() - 1000 * 60 * 60 * 24); // 2 hours ago
+    purchase_id = await createPurchase({
+      client: null,
+      account_id,
+      project_id,
+      service: "compute-server-network-usage",
+      cost_per_hour: 0,
+      period_start,
+      description: {
+        type: "compute-server-network-usage",
+        compute_server_id: server_id,
+        amount: 0,
+        cost: 0,
+        last_updated: period_start.valueOf(),
+      },
+    });
+    const server = await getServer({ account_id, id: server_id });
+    server.state = "running";
+    const purchase = await getPurchase(purchase_id);
+    setTestNetworkUsage({ id: server_id, amount: 389, cost: 3.89 });
+    const new_id = await closeAndPossiblyContinueNetworkPurchase({
+      purchase,
+      server,
+    });
+    const purchaseAfter = await getPurchase(purchase_id);
+    expect(purchaseAfter.period_end == null).toBe(false);
+    expect(purchaseAfter.cost).toBe(3.89);
+    const newPurchase = await getPurchase(new_id);
+    expect(newPurchase.description.compute_server_id).toBe(server_id);
+    expect(newPurchase.description.amount).toBe(0);
   });
 });

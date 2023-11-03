@@ -26,6 +26,10 @@ export async function closePurchase({
   client?: PoolClient;
 }) {
   logger.debug("closePurchase", purchase.id);
+  if (purchase.description?.type != "compute-server") {
+    logger.debug("closePurchase: WARNING -- wrong kind of purchase");
+    return;
+  }
   const pool = client ?? getPool();
   if (purchase.period_end || purchase.cost) {
     // do not close purchase more than once:
@@ -82,6 +86,10 @@ export async function closeAndContinuePurchase({
     );
     return;
   }
+  if (purchase.description?.type != "compute-server") {
+    logger.debug("closeAndContinuePurchase: WARNING -- wrong kind of purchase");
+    return;
+  }
 
   const now = new Date();
   const newPurchase = cloneDeep(purchase);
@@ -136,7 +144,11 @@ export async function closeAndContinuePurchase({
   }
 }
 
-export async function closeAndContinueNetworkPurchase({
+// Close the given network purchase, then create a new one
+// if the compue server is currently running.  If not, don't
+// create new one.  Close and create are done together as a single
+// transaction.
+export async function closeAndPossiblyContinueNetworkPurchase({
   purchase,
   server,
 }: {
@@ -144,6 +156,12 @@ export async function closeAndContinueNetworkPurchase({
   server: ComputeServer;
 }): Promise<undefined | number> {
   logger.debug("closeAndContinueNetworkPurchase", purchase);
+  if (purchase.description?.type != "compute-server-network-usage") {
+    logger.debug(
+      "closeAndContinueNetworkPurchase: WARNING -- wrong kind of purchase",
+    );
+    return;
+  }
   if (purchase.cost != null || purchase.period_end != null) {
     logger.debug(
       "closeAndContinueNetworkPurchase: WARNING -- can't close and continue purchase because it is already closed",
@@ -165,10 +183,7 @@ export async function closeAndContinueNetworkPurchase({
   const end = new Date(Date.now() - 2 * MIN_NETWORK_CLOSE_DELAY_MS);
   const newPurchase = cloneDeep(purchase);
   if (newPurchase.description.type != "compute-server-network-usage") {
-    logger.debug(
-      "closeAndContinueNetworkPurchase: WARNING -- wrong kind of purchase",
-    );
-    return;
+    throw Error("bug");
   }
   newPurchase.time = end;
   newPurchase.period_start = end;
@@ -207,7 +222,14 @@ export async function closeAndContinueNetworkPurchase({
       "closeAndContinueNetworkPurchase -- creating new purchase",
       newPurchase,
     );
-    const purchase_id = await createPurchase({ ...newPurchase, client });
+    // create new purchase, but only if server is running right now
+    let purchase_id;
+    if (server.state == "running") {
+      purchase_id = await createPurchase({ ...newPurchase, client });
+    } else {
+      purchase_id = undefined;
+    }
+    // close existing purchase;
     logger.debug("closeAndContinueNetworkPurchase -- closing old purchase");
     purchase.cost = Math.max(0.001, network.cost);
     purchase.period_end = end;

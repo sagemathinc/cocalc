@@ -684,16 +684,16 @@ export const IMAGES0 = {
     gpu: false,
   },
   pytorch: {
-    label: "GPU - PyTorch with CUDA 12.2",
+    label: "GPU - PyTorch",
     docker: `${DOCKER_USER}/compute-pytorch`,
     gpu: true,
     // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 15 + 10,
+    minDiskSizeGb: 30 + 10,
     cudaVersion: "12.2",
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
   },
   tensorflow: {
-    label: "GPU - Tensorflow with CUDA 12.2",
+    label: "GPU - Tensorflow",
     docker: `${DOCKER_USER}/compute-tensorflow`,
     gpu: true,
     // have to add 10 for CUDA base drivers
@@ -702,8 +702,8 @@ export const IMAGES0 = {
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
   },
   cuda12: {
-    // [ ] TODO: it's actualy the cuda 11.x dev env!!
-    label: "GPU - Dev Environment with Cuda 12.2",
+    // [ ] TODO: maybe actualy the cuda 11.x dev env!!?
+    label: "GPU - CUDA Dev Environment",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
     // have to add 10 for CUDA base drivers

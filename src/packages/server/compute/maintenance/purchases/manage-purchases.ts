@@ -21,7 +21,7 @@ import { setPurchaseId } from "./util";
 import {
   closePurchase,
   closeAndContinuePurchase,
-  closeAndContinueNetworkPurchase,
+  closeAndPossiblyContinueNetworkPurchase,
 } from "./close";
 
 const logger = getLogger("server:compute:maintenance/purchases/manage");
@@ -375,8 +375,8 @@ async function updatePurchase(server: ComputeServer) {
         purchase.period_start.valueOf() -
         2 * MIN_NETWORK_CLOSE_DELAY_MS;
       if (howLongMs > MAX_PURCHASE_LENGTH_MS) {
-        // it's an ongoing *network* purchase this is long -- split it.
-        await closeAndContinueNetworkPurchase({ purchase, server });
+        // it's an ongoing *network* purchase that is long, so split it.
+        await closeAndPossiblyContinueNetworkPurchase({ purchase, server });
       }
     }
   }

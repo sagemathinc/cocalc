@@ -547,11 +547,27 @@ export async function getNetworkUsage(opts: {
     case "lambda-cloud":
       // lambda doesn't charge for network usage at all.
       return { amount: 0, cost: 0 };
+    case "test":
+      return testNetworkUsage[opts.server.id] ?? { amount: 0, cost: 0 };
     default:
       throw Error(
         `cloud '${opts.server.cloud}' network usage not currently implemented`,
       );
   }
+}
+
+// Used for unit testing only.
+const testNetworkUsage: { [id: number]: { amount: number; cost: number } } = {};
+export async function setTestNetworkUsage({
+  id,
+  amount,
+  cost,
+}: {
+  id: number;
+  amount: number;
+  cost: number;
+}) {
+  testNetworkUsage[id] = { amount, cost };
 }
 
 async function getStartupParams(id: number): Promise<{
