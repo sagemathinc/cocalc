@@ -1,15 +1,23 @@
 import { getPool } from "@cocalc/database";
 import type { State, Data } from "@cocalc/util/db-schema/compute-servers";
 import { isEqual } from "lodash";
+import eventLog from "./event-log";
 
 // set the state. We ONLY make a change to the database updating state_changed
 // if the state actually changes, to avoid a lot of not necessary noise.
 export async function setState(id: number, state: State) {
   const pool = getPool();
-  await pool.query(
+  const { rowCount } = await pool.query(
     "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND (state is null or state != $1)",
     [state, id],
   );
+
+  if (rowCount > 0) {
+    eventLog({
+      server: { id },
+      event: { action: "state", state },
+    });
+  }
 }
 
 export async function setError(id: number, error: string) {
@@ -18,6 +26,12 @@ export async function setError(id: number, error: string) {
     error,
     id,
   ]);
+  if (error?.trim()) {
+    eventLog({
+      server: { id },
+      event: { action: "error", error },
+    });
+  }
 }
 
 // merges the object newData into the current data in the database
@@ -47,6 +61,10 @@ export async function setConfiguration(id: number, newConfiguration: object) {
     `UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb, last_edited=NOW() WHERE id=$2`,
     [JSON.stringify(newConfiguration), id],
   );
+  eventLog({
+    server: { id },
+    event: { action: "configuration", changes: newConfiguration },
+  });
 }
 
 export function changedKeys(currentConfiguration, newConfiguration) {
