@@ -10,6 +10,7 @@ import { getPool } from "@cocalc/database";
 import { uuid } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
 import TTLCache from "@isaacs/ttlcache";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const logger = getLogger("server:compute:event-log");
 
@@ -76,9 +77,37 @@ async function getServer0({
   }
   const x = {
     id,
-    account_id: rows[0].account_id,
-    project_id: rows[0].project_id,
+    account_id: rows[0].account_id ?? account_id,
+    project_id: rows[0].project_id ?? project_id,
   };
   cache.set(id, x);
   return x;
+}
+
+// Get the event log for a given server.
+// Output is sorted by time from newest to oldest.
+export async function getEventLog({
+  id,
+  account_id,
+  limit = 500,
+}: {
+  id: number;
+  account_id?: string;
+  limit?: number;
+}) {
+  const { project_id } = await getServer0({ id });
+  if (account_id != null) {
+    if (!(await isCollaborator({ project_id, account_id }))) {
+      throw Error(
+        "user must be collaborator on project to see compute server log",
+      );
+    }
+  }
+  const pool = getPool();
+  // make the equery more complicated to hopefully make it more efficient (due to indexes)
+  const { rows } = await pool.query(
+    `SELECT * FROM project_log WHERE project_id=$1 AND event->>'event'='compute-server' AND event->>'server_id'=$2 ORDER BY time DESC LIMIT $3`,
+    [project_id, id, limit],
+  );
+  return rows;
 }

@@ -98,3 +98,8 @@ export async function getApiKey(opts: { id }): Promise<string> {
 export async function deleteApiKey(opts: { id }): Promise<string> {
   return await api("compute/delete-api-key", opts);
 }
+
+// Get the project log entries directly for just one compute server
+export async function getLog(opts: { id }) {
+  return await api("compute/get-log", opts);
+}

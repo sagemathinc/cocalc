@@ -15,6 +15,7 @@ import Configuration from "./configuration";
 import { deleteServer, undeleteServer } from "./api";
 import { DisplayImage } from "./select-image";
 import { randomColor } from "./color";
+import ComputeServerLog from "./compute-server-log";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -264,6 +265,14 @@ export default function ComputeServer({
               style={{ fontSize: "30px", color: color ?? "#666" }}
             />
             {id != null && <div style={{ color: "#888" }}>Id: {id}</div>}
+            {id != null && (
+              <ComputeServerLog
+                id={id}
+                style={{ marginLeft: "-15px" }}
+                title={title}
+                color={color}
+              />
+            )}
           </div>
         }
         title={

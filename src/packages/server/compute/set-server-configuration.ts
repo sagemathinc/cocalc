@@ -23,7 +23,7 @@ import type { Configuration } from "@cocalc/util/db-schema/compute-servers";
 import { getServer } from "./get-servers";
 import updatePurchase from "./update-purchase";
 import { isDnsAvailable } from "./dns";
-import eventLog from "./event-log";
+import { setConfiguration } from "./util";
 
 export default async function setServerConfiguration({
   account_id,
@@ -36,7 +36,7 @@ export default async function setServerConfiguration({
 }) {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT state, cloud, configuration, project_id FROM compute_servers WHERE id=$1 AND account_id=$2",
+    "SELECT state, cloud, configuration FROM compute_servers WHERE id=$1 AND account_id=$2",
     [id, account_id],
   );
   if (rows.length == 0) {
@@ -45,12 +45,7 @@ export default async function setServerConfiguration({
     );
   }
 
-  const {
-    cloud,
-    state,
-    configuration: currentConfiguration,
-    project_id,
-  } = rows[0];
+  const { cloud, state, configuration: currentConfiguration } = rows[0];
 
   if (configuration.dns && currentConfiguration.dns != configuration.dns) {
     // dns is NOT case sensitive, so just in case, we make sure.
@@ -100,13 +95,5 @@ export default async function setServerConfiguration({
     await updatePurchase({ server, newState: state });
   }
 
-  await pool.query(
-    "UPDATE compute_servers SET last_edited=NOW(), configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2",
-    [configuration, id],
-  );
-
-  eventLog({
-    server: { account_id, project_id, id },
-    event: { action: "configuration", changes: configuration },
-  });
+  await setConfiguration(id, configuration);
 }

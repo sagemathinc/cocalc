@@ -1,5 +1,5 @@
 /*
-Let compute servers
+Get compute servers
 */
 
 import getAccountId from "lib/account/get-account";

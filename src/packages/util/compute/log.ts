@@ -1,7 +1,4 @@
-import type {
-  Configuration,
-  State,
-} from "@cocalc/util/db-schema/compute-servers";
+import type { State } from "@cocalc/util/db-schema/compute-servers";
 
 interface Event {
   event: "compute-server";
@@ -15,7 +12,7 @@ interface StateChange {
 
 interface ConfigurationChange {
   action: "configuration";
-  changes: Partial<Configuration>;
+  changes: { [param: string]: { from: any; to: any } };
 }
 
 interface Error {

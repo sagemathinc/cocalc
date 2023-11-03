@@ -54,16 +54,41 @@ export async function setData({
 }
 
 // merges in configuration
-
-export async function setConfiguration(id: number, newConfiguration: object) {
+export async function setConfiguration(id: number, newConfiguration0: object) {
+  const newConfiguration = { ...newConfiguration0 }; // avoid mutating arg
   const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT configuration FROM compute_servers WHERE id=$1",
+    [id],
+  );
+  if (rows.length == 0) {
+    throw Error("no such server");
+  }
+  const { configuration } = rows[0];
+  for (const key in newConfiguration) {
+    if (isEqual(newConfiguration[key], configuration[key])) {
+      delete newConfiguration[key];
+    }
+  }
+  if (Object.keys(newConfiguration).length == 0) {
+    // nothing to do
+    return;
+  }
   await pool.query(
     `UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb, last_edited=NOW() WHERE id=$2`,
     [JSON.stringify(newConfiguration), id],
   );
+  logConfigurationChange({ id, configuration, newConfiguration });
+}
+
+async function logConfigurationChange({ id, configuration, newConfiguration }) {
+  const changes: { [param: string]: { from: any; to: any } } = {};
+  for (const key in newConfiguration) {
+    changes[key] = { from: configuration[key], to: newConfiguration[key] };
+  }
   eventLog({
     server: { id },
-    event: { action: "configuration", changes: newConfiguration },
+    event: { action: "configuration", changes },
   });
 }
 
