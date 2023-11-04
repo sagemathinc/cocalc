@@ -16,17 +16,20 @@ This is mainly responsible for:
 import { SyncTable } from "@cocalc/sync/table";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
-import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type Client from "@cocalc/sync-client";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension } from "@cocalc/util/misc";
 import { initJupyterRedux } from "@cocalc/jupyter/kernel";
 import { EventEmitter } from "events";
+import { COMPUTER_SERVER_DB_NAME } from "@cocalc/util/compute/manager";
+import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
+
+type SyncDoc = SyncDB | SyncString;
 
 const COCALC_EPHEMERAL_STATE: boolean =
   process.env.COCALC_EPHEMERAL_STATE === "yes";
 
-class SyncDocs extends EventEmitter {
+export class SyncDocs extends EventEmitter {
   private syncdocs: { [path: string]: SyncDoc } = {};
   private closing: Set<string> = new Set();
 
@@ -67,13 +70,24 @@ class SyncDocs extends EventEmitter {
       log?.(`close ${path} -- recording that close succeeded`);
       delete this.syncdocs[path];
       this.closing.delete(path);
+      // I think close-${path} is used only internally in this.create below
       this.emit(`close-${path}`);
+      // This is used by computeServerOpenFileTracking
+      this.emit("close", path);
     }
   }
 
   get(path: string): SyncDoc | undefined {
     return this.syncdocs[path];
   }
+
+  getOpenPaths = (): string[] => {
+    return Object.keys(this.syncdocs);
+  };
+
+  isOpen = (path: string): boolean => {
+    return this.syncdocs[path] != null;
+  };
 
   async create(type, opts, log): Promise<SyncDoc> {
     const path = opts.path;
@@ -97,6 +111,12 @@ class SyncDocs extends EventEmitter {
     }
     this.syncdocs[path] = doc;
     log(`create ${path} -- successfully created.`);
+    // This is used by computeServerOpenFileTracking:
+    this.emit("open", path);
+    if (path == COMPUTER_SERVER_DB_NAME) {
+      log("also initializing open file tracking for ", COMPUTER_SERVER_DB_NAME);
+      computeServerOpenFileTracking(this, doc);
+    }
     return doc;
   }
 
