@@ -501,13 +501,8 @@ export class JupyterActions extends JupyterActions0 {
       // mess with cell state (that is somebody else's responsibility).
       return;
     }
-    try {
-      //  we are not the cell runner
-      if (!this.isCellRunner()) {
-        return;
-      }
-    } catch (_) {
-      // normal since sync_exec_state is debounced.
+    //  we are not the cell runner
+    if (!this.isCellRunner()) {
       return;
     }
 
@@ -1200,14 +1195,14 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const cells = this.store.get("cells");
-    if (cells == null || cells.size === 0) {
+    if (cells == null || (cells.size === 0 && this.isCellRunner())) {
       this._set({
         type: "cell",
         id: this.new_id(),
         pos: 0,
         input: "",
       });
-      // We are obviously contributing all content to this notebook.
+      // We are obviously contributing content to this (empty!) notebook.
       return this.set_trust_notebook(true);
     }
   };
@@ -1345,7 +1340,16 @@ export class JupyterActions extends JupyterActions0 {
       return false;
     }
     const dbg = this.dbg("isCellRunner");
-    const id = this.getRemoteComputeServerId();
+    let id;
+    try {
+      id = this.getRemoteComputeServerId();
+    } catch (_) {
+      // normal since debounced things my all isCellRunner,
+      // and anyways if anything like syncdb that getRemoteComputeServerId
+      // depends on doesn't work, then we are clearly
+      // not the cell runner
+      return false;
+    }
     dbg("id = ", id);
     if (id == 0 && this.is_project) {
       // when no remote compute servers are configured, the project is
