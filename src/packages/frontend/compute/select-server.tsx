@@ -168,6 +168,7 @@ export default function SelectComputeServer({
 
   return (
     <Tooltip
+      mouseEnterDelay={0.6}
       placement={"right"}
       title={`Run ${
         path.endsWith("ipynb") ? "Jupyter notebook" : "terminal"

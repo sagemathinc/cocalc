@@ -5,7 +5,7 @@ console.log("API_SERVER=", process.env.API_SERVER);
 
 const { manager } = require("../dist/lib");
 
-const PROJECT_HOME = "/tmp/home";
+const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
 
 async function main() {
   const exitHandler = async () => {

@@ -2,7 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "dist"
+    "outDir": "dist",
   },
   "exclude": ["node_modules", "dist", "test", "dev"],
   "references": [

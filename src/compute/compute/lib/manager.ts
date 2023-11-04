@@ -190,7 +190,7 @@ class Manager {
       const id = record?.get("id");
       if (id == this.compute_server_id) {
         this.ensureConnected(key.get("path"));
-      } else if (id == null) {
+      } else {
         this.ensureDisconnected(key.get("path"));
       }
     }
@@ -201,12 +201,14 @@ class Manager {
     if (this.connections[path] == null) {
       this.connections[path] = "connecting";
       if (path.endsWith(".term")) {
-        this.connections[path] = terminal({
-          websocket: this.websocket,
-          path,
-          cwd: this.cwd(path),
-          env: this.env(),
-        });
+        setTimeout(() => {
+          this.connections[path] = terminal({
+            websocket: this.websocket,
+            path,
+            cwd: this.cwd(path),
+            env: this.env(),
+          });
+        }, 1500);
       } else if (path.endsWith(".ipynb")) {
         this.connections[path] = jupyter({
           client: this.client,

@@ -136,9 +136,7 @@ export class Terminal {
     localPty.onData(this.handleDataFromTerminal);
     localPty.onExit(async (exitInfo) => {
       dbg("exited with code ", exitInfo);
-      this.handleDataFromTerminal(
-        "\r\n\r\n[Process completed]\r\n\r\n",
-      );
+      this.handleDataFromTerminal("\r\n\r\n[Process completed]\r\n\r\n");
       delete this.localPty;
     });
 
