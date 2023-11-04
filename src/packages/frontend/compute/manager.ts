@@ -3,6 +3,10 @@ Client side compute servers manager
 
 Used from a browser client frontend to manage what compute servers
 are available and how they are used for a given project.
+
+When doing dev from the browser console, do:
+
+cc.client.project_client.computeServers('...project_id...')
 */
 
 import { SYNCDB_PARAMS, decodeUUIDtoNum } from "@cocalc/util/compute/manager";
@@ -31,8 +35,8 @@ export class ComputeServersManager extends EventEmitter {
   }
 
   close = () => {
-    this.sync_db.close();
     delete computeServerManagerCache[this.project_id];
+    this.sync_db.close();
   };
 
   getComputeServers = () => {

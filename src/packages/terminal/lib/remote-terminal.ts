@@ -18,12 +18,13 @@ import { spawn } from "node-pty";
 import type { Options, IPty } from "./types";
 import type { Spark } from "primus";
 import { readlink, realpath } from "node:fs/promises";
+import { EventEmitter } from "events";
 
 const logger = getLogger("terminal:remote");
 
 type State = "init" | "ready" | "closed";
 
-export class RemoteTerminal {
+export class RemoteTerminal extends EventEmitter {
   private state: State = "init";
   private conn: Spark;
   private cwd?: string;
@@ -33,6 +34,7 @@ export class RemoteTerminal {
   private size?: { rows: number; cols: number };
 
   constructor(conn, { cwd, env }: { cwd?: string; env?: object } = {}) {
+    super();
     this.conn = conn;
     this.conn.on("data", async (data) => {
       try {
@@ -41,6 +43,10 @@ export class RemoteTerminal {
         logger.debug("error handling data -- ", err);
       }
     });
+    conn.on("end", () => {
+      this.removeAllListeners();
+      this.state = "closed";
+    });
     this.cwd = cwd;
     this.env = env;
     logger.debug("create ", { cwd });
@@ -48,6 +54,8 @@ export class RemoteTerminal {
 
   close = () => {
     this.state = "closed";
+    this.emit("closed");
+    this.removeAllListeners();
     this.conn.end();
   };
 

@@ -201,14 +201,16 @@ class Manager {
     if (this.connections[path] == null) {
       this.connections[path] = "connecting";
       if (path.endsWith(".term")) {
-        setTimeout(() => {
-          this.connections[path] = terminal({
-            websocket: this.websocket,
-            path,
-            cwd: this.cwd(path),
-            env: this.env(),
-          });
-        }, 1500);
+        const term = terminal({
+          websocket: this.websocket,
+          path,
+          cwd: this.cwd(path),
+          env: this.env(),
+        });
+        term.on("close", () => {
+          delete this.connections[path];
+        });
+        this.connections[path] = term;
       } else if (path.endsWith(".ipynb")) {
         this.connections[path] = jupyter({
           client: this.client,

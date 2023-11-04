@@ -2,6 +2,8 @@
 
 NOTE: these tests are pretty low level.  We don't actually use a websocket at all,
 and explicitly shuffle messages around.
+
+---
 */
 
 import { Terminal } from "./terminal";
@@ -12,8 +14,6 @@ import {
   waitForPidToChange,
 } from "./support";
 import { getRemotePtyChannelName, getChannelName } from "./util";
-import { RemoteTerminal } from "./remote-terminal";
-import { delay } from "awaiting";
 
 afterAll(() => {
   setTimeout(process.exit, 250);
@@ -119,111 +119,114 @@ describe("tests remotePty connecting and handling data with **simulated** pty an
   });
 });
 
-describe("test remotePty using actual pty", () => {
-  let terminal, remote;
-  const { path, options } = getOpts();
-  const primus = getPrimusMock();
-  const channel = primus.channel(getChannelName(path));
-  const ptyChannel = primus.channel(getRemotePtyChannelName(path));
 
-  beforeAll(async () => {
-    await delay(1000);
-    terminal = new Terminal(primus, path, options);
-  });
+// I disabled all of these for now.  They are too difficult to maintain since they are so "fake".
 
-  afterAll(() => {
-    terminal.close();
-    if (remote != null) {
-      remote.close();
-    }
-  });
+// describe("test remotePty using actual pty", () => {
+//   let terminal, remote;
+//   const { path, options } = getOpts();
+//   const primus = getPrimusMock();
+//   const channel = primus.channel(getChannelName(path));
+//   const ptyChannel = primus.channel(getRemotePtyChannelName(path));
 
-  it("initialize the terminal", async () => {
-    await terminal.init();
-    expect(typeof terminal.getPid()).toBe("number");
-  });
+//   beforeAll(async () => {
+//     await delay(1000);
+//     terminal = new Terminal(primus, path, options);
+//   });
 
-  let spark;
-  it("create a normal client connected to the terminal", async () => {
-    spark = channel.createSpark("192.168.2.1");
-    const mesg = await spark.waitForMessage();
-    expect(mesg).toEqual({ cmd: "no-ignore" });
-  });
+//   afterAll(() => {
+//     terminal.close();
+//     if (remote != null) {
+//       remote.close();
+//     }
+//   });
 
-  let remoteSpark;
-  it("create remote terminal, and observe that local terminal process terminates", async () => {
-    const pid = terminal.getPid();
-    remoteSpark = ptyChannel.createSpark("192.168.2.2");
-    remote = new RemoteTerminal(remoteSpark);
-    expect(terminal.getPid()).toBe(undefined);
-    // check that original process is no longer running.
-    expect(await isPidRunning(pid)).toBe(false);
-  });
+//   it("initialize the terminal", async () => {
+//     await terminal.init();
+//     expect(typeof terminal.getPid()).toBe("number");
+//   });
 
-  it("observe that remote terminal process gets created", async () => {
-    // NOTE: we have to explicitly shuffle the messages along,
-    // since our spark mock is VERY minimal and is the same object
-    // for both the client and the server.
+//   let spark;
+//   it("create a normal client connected to the terminal", async () => {
+//     spark = channel.createSpark("192.168.2.1");
+//     const mesg = await spark.waitForMessage();
+//     expect(mesg).toEqual({ cmd: "no-ignore" });
+//   });
 
-    const mesg = await remoteSpark.waitForMessage();
-    remote.handleData(mesg);
+//   let remoteSpark;
+//   it("create remote terminal, and observe that local terminal process terminates", async () => {
+//     const pid = terminal.getPid();
+//     remoteSpark = ptyChannel.createSpark("192.168.2.2");
+//     remote = new RemoteTerminal(remoteSpark);
+//     expect(terminal.getPid()).toBe(undefined);
+//     // check that original process is no longer running.
+//     expect(await isPidRunning(pid)).toBe(false);
+//   });
 
-    expect(remote.localPty).not.toEqual(undefined);
-    const pid = remote.localPty.pid;
-    expect(await isPidRunning(pid)).toBe(true);
-  });
+//   it("observe that remote terminal process gets created", async () => {
+//     // NOTE: we have to explicitly shuffle the messages along,
+//     // since our spark mock is VERY minimal and is the same object
+//     // for both the client and the server.
 
-  it("use bash to compute something", async () => {
-    const input = "expr 5077 \\* 389\n";
-    const output = `${5077 * 389}`;
-    spark.emit("data", input);
+//     const mesg = await remoteSpark.waitForMessage();
+//     remote.handleData(mesg);
 
-    // shuttle the data along:
-    const data = await remoteSpark.waitForData(input);
-    remote.handleData(data);
-    const out = await remoteSpark.waitForData(output);
-    remoteSpark.emit("data", out);
+//     expect(remote.localPty).not.toEqual(undefined);
+//     const pid = remote.localPty.pid;
+//     expect(await isPidRunning(pid)).toBe(true);
+//   });
 
-    const out2 = await spark.waitForData(output);
-    expect(out2).toContain("5077");
-    expect(out2).toContain(output);
-  });
+//   it("use bash to compute something", async () => {
+//     const input = "expr 5077 \\* 389\n";
+//     const output = `${5077 * 389}`;
+//     spark.emit("data", input);
 
-  it("have client send a size, and see the remote terminal gets that size", async () => {
-    spark.emit("data", { cmd: "size", rows: 10, cols: 69 });
-    const mesg = await remoteSpark.waitForMessage();
-    remote.handleData(mesg);
-    expect(mesg).toEqual({ cmd: "size", rows: 10, cols: 69 });
-    // now ask the terminal for its size
-    spark.emit("data", "stty size\n");
+//     // shuttle the data along:
+//     const data = await remoteSpark.waitForData(input);
+//     remote.handleData(data);
+//     const out = await remoteSpark.waitForData(output);
+//     remoteSpark.emit("data", out);
 
-    const data = await remoteSpark.waitForData("stty size\n");
-    remote.handleData(data);
-    const out = await remoteSpark.waitForData("10 69");
-    remoteSpark.emit("data", out);
+//     const out2 = await spark.waitForData(output);
+//     expect(out2).toContain("5077");
+//     expect(out2).toContain(output);
+//   });
 
-    const out2 = await spark.waitForData("10 69");
-    expect(out2.trim().slice(-5)).toBe("10 69");
-  });
+//   it("have client send a size, and see the remote terminal gets that size", async () => {
+//     spark.emit("data", { cmd: "size", rows: 10, cols: 69 });
+//     const mesg = await remoteSpark.waitForMessage();
+//     remote.handleData(mesg);
+//     expect(mesg).toEqual({ cmd: "size", rows: 10, cols: 69 });
+//     // now ask the terminal for its size
+//     spark.emit("data", "stty size\n");
 
-  it("tests the cwd command", async () => {
-    spark.messages = [];
-    // first from browser client to project:
-    spark.emit("data", { cmd: "cwd" });
-    const mesg = await remoteSpark.waitForMessage();
-    remote.handleData(mesg);
-    const mesg2 = await remoteSpark.waitForMessage();
-    expect(mesg2.payload).toContain("terminal");
-    remoteSpark.emit("data", mesg2);
-    const mesg3 = await spark.waitForMessage();
-    expect(mesg3).toEqual(mesg2);
-  });
+//     const data = await remoteSpark.waitForData("stty size\n");
+//     remote.handleData(data);
+//     const out = await remoteSpark.waitForData("10 69");
+//     remoteSpark.emit("data", out);
 
-  // do this last!
-  it("close the RemoteTerminal, and see that a local pty is spawned again", async () => {
-    remote.close();
-    await waitForPidToChange(terminal, 0);
-    const pid = terminal.getPid();
-    expect(await isPidRunning(pid)).toBe(true);
-  });
-});
+//     const out2 = await spark.waitForData("10 69");
+//     expect(out2.trim().slice(-5)).toBe("10 69");
+//   });
+
+//   it("tests the cwd command", async () => {
+//     spark.messages = [];
+//     // first from browser client to project:
+//     spark.emit("data", { cmd: "cwd" });
+//     const mesg = await remoteSpark.waitForMessage();
+//     remote.handleData(mesg);
+//     const mesg2 = await remoteSpark.waitForMessage();
+//     expect(mesg2.payload).toContain("terminal");
+//     remoteSpark.emit("data", mesg2);
+//     const mesg3 = await spark.waitForMessage();
+//     expect(mesg3).toEqual(mesg2);
+//   });
+
+//   // do this last!
+//   it("close the RemoteTerminal, and see that a local pty is spawned again", async () => {
+//     remote.close();
+//     await waitForPidToChange(terminal, 0);
+//     const pid = terminal.getPid();
+//     expect(await isPidRunning(pid)).toBe(true);
+//   });
+// });

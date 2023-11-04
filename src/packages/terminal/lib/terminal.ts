@@ -55,7 +55,10 @@ export class Terminal {
     this.channel = primus.channel(getChannelName(path));
     this.channel.on("connection", this.handleClientConnection);
     this.remotePtyChannel = primus.channel(getRemotePtyChannelName(path));
-    this.remotePtyChannel.on("connection", this.handleRemotePtyConnection);
+    this.remotePtyChannel.on("connection", (conn) => {
+      logger.debug("new remote terminal connection");
+      this.handleRemotePtyConnection(conn);
+    });
   }
 
   init = async () => {
@@ -96,6 +99,11 @@ export class Terminal {
         args.push(path_split(initFilename).tail);
       }
     }
+    if (this.remotePty) {
+      // switched to a different remote so don't finish initializing a local one
+      // (we check after each async call)
+      return;
+    }
 
     const { head: pathHead, tail: pathTail } = path_split(this.path);
     const env = {
@@ -123,6 +131,10 @@ export class Terminal {
     } catch (err) {
       dbg("WARNING: failed to load", this.path, err);
     }
+    if (this.remotePty) {
+      // switched to a different remote  so don't finish initializing a local one
+      return;
+    }
     dbg("spawn", { command, args, cwd });
     const localPty = spawn(command, args, {
       cwd,
@@ -139,7 +151,7 @@ export class Terminal {
       this.handleDataFromTerminal("\r\n\r\n[Process completed]\r\n\r\n");
       delete this.localPty;
     });
-
+    localPty.write("\nclear;\n");
     this.state = "ready";
     return localPty;
   };
@@ -599,9 +611,19 @@ export class Terminal {
       this.path,
       `new pty connection from ${remotePty.address.ip} -- ${remotePty.id}`,
     );
+    if (this.remotePty != null) {
+      // already an existing remote connection
+      // Remove listeners and end it.  We have to
+      // remove listeners or calling end will trigger
+      // the remotePty.on("end",...) below, which messes
+      // up everything.
+      this.remotePty.removeAllListeners();
+      this.remotePty.end();
+    }
 
     remotePty.on("end", async () => {
       if (this.state == "closed") return;
+      logger.debug("ending existing remote terminal");
       delete this.remotePty;
       await this.initLocalPty();
     });
