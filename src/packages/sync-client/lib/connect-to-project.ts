@@ -49,6 +49,14 @@ export default async function connectToProject(
     },
   }) as any;
 
+  // Every single individual channel creates listeners
+  // on this socket, and we create several channels per
+  // document, so we expect a relatively large number
+  // of listeners on this socket.  This is OK, because
+  // it is rare for events to fire (e.g., it happens when
+  // the network is down or project restarts).
+  socket.setMaxListeners(500);
+
   function updateState(state: WebsocketState) {
     if (socket.state == state) {
       return; // nothing changed, so no need to set or emit.
