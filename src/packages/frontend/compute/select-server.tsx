@@ -45,7 +45,7 @@ export default function SelectComputeServer({
   const computeServers = useTypedRedux(
     { project_id },
     "compute_servers",
-  )?.toJS();
+  )?.toJS() ?? [];
   const computeServerAssociations = useMemo(() => {
     return webapp_client.project_client.computeServers(project_id);
   }, [project_id]);
