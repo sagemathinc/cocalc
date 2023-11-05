@@ -30,6 +30,8 @@ export default function LogEntry({
               display: "inline-block",
               color: "white",
               background: "darkred",
+              padding: "1px 5px",
+              borderRadius: "3px",
             }}
           >
             {event.error}
