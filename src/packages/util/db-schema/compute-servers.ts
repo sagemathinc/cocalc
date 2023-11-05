@@ -653,7 +653,7 @@ interface NonGPUImage extends ImageBase {
   gpu: false;
 }
 
-export type CudaVersion = "11.8" | "12.2";
+export type CudaVersion = string;
 
 interface GPUImage extends ImageBase {
   gpu: true;
@@ -724,12 +724,12 @@ export const IMAGES0 = {
     minDiskSizeGb: 10,
     gpu: false,
   },
-//   julia: {
-//     label: "Julia",
-//     docker: `${DOCKER_USER}/compute-julia`,
-//     minDiskSizeGb: 10,
-//     gpu: false,
-//   },
+  //   julia: {
+  //     label: "Julia",
+  //     docker: `${DOCKER_USER}/compute-julia`,
+  //     minDiskSizeGb: 10,
+  //     gpu: false,
+  //   },
 
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",
