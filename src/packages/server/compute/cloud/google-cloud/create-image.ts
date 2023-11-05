@@ -13,6 +13,8 @@ await a.createImages({image:"python", arch:'x86_64'})
 
 await a.createImages({image:"pytorch"});
 
+await a.createImages({image:"tensorflow"});
+
 await a.createImages({image:"cuda12"})
 
 await a.createImages({image:"sagemath-10.1", arch:'x86_64'});
@@ -358,7 +360,7 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
 function createBuildConfiguration({
   image,
   arch = "x86_64",
-  cudaVersion = "12.2",
+  cudaVersion = "12.3",
 }: {
   image: ImageName;
   arch: Architecture;

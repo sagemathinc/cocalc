@@ -15,6 +15,13 @@ import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
+interface Option {
+  value: string;
+  sort: string;
+  label: ReactNode;
+  state: string;
+}
+
 interface Props {
   project_id: string;
   path: string;
@@ -86,12 +93,7 @@ export default function SelectComputeServer({
   }, [project_id, path, type]);
 
   const options = useMemo(() => {
-    const options: {
-      value: string;
-      sort: string;
-      label: ReactNode;
-      state: string;
-    }[] = [];
+    const options: Option[] = [];
     for (const id in computeServers) {
       const server = computeServers[id];
       if (server.deleted) continue;
@@ -127,21 +129,20 @@ export default function SelectComputeServer({
       );
       options.push({ value: id, sort: title.toLowerCase(), state, label });
     }
-    const running = options
-      .filter((a) => a.state == "running")
-      .sort((a, b) => cmp(a.sort, b.sort));
-    const stopped = options
-      .filter(
-        (a) =>
-          a.state == "stopped" ||
-          a.state == "stopping" ||
-          a.state == "suspending" ||
-          a.state == "suspended",
-      )
-      .sort((a, b) => cmp(a.sort, b.sort));
-    const deprovisioned = options
-      .filter((a) => a.state == "deprovisioned")
-      .sort((a, b) => cmp(a.sort, b.sort));
+    const running: Option[] = [];
+    const stopped: Option[] = [];
+    const other: Option[] = [];
+    options.sort((a, b) => cmp(a.sort, b.sort));
+
+    for (const x of options) {
+      if (x.state == "running") {
+        running.push(x);
+      } else if (x.state?.includes("stop") || x.state?.includes("suspend")) {
+        stopped.push(x);
+      } else {
+        other.push(x);
+      }
+    }
     return [
       {
         label: <div style={{ fontSize: "12pt" }}>The Project</div>,
@@ -180,11 +181,10 @@ export default function SelectComputeServer({
       {
         label: (
           <div style={{ fontSize: "12pt" }}>
-            Deprovisioned Compute Servers{" "}
-            {deprovisioned.length == 0 ? "(none)" : ""}
+            Other Compute Servers {other.length == 0 ? "(none)" : ""}
           </div>
         ),
-        options: deprovisioned,
+        options: other,
       },
     ];
   }, [computeServers]);
@@ -207,10 +207,8 @@ export default function SelectComputeServer({
           setConfirmSwitch(true);
         }}
         onClear={() => {
-          setValue(null);
-          computeServerAssociations.disconnectComputeServer({
-            path: getPath(path),
-          });
+          setIdNum(0);
+          setConfirmSwitch(true);
         }}
         value={value}
         onDropdownVisibleChange={setOpen}

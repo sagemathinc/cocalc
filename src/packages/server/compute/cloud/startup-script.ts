@@ -210,15 +210,7 @@ function compute({ arch, image, gpu }) {
 docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  setState compute pull '' 600 20
-  /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
-  if [ $? -ne 0 ]; then
-     setState compute error "problem pulling Docker image ${docker}${getImagePostfix(
-       arch,
-     )}"
-     exit 1
-  fi
-  setState compute run '' 20 60
+  setState compute run '' 20 25
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --privileged \
@@ -240,6 +232,21 @@ else
 fi
  `;
 }
+
+/*
+I had this code for auto-pulling new image right after the if, but it's a really
+bad idea in production.  Needs to be totally explicit or not at all:
+
+  setState compute pull '' 600 20
+  /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
+  if [ $? -ne 0 ]; then
+     setState compute error "problem pulling Docker image ${docker}${getImagePostfix(
+       arch,
+     )}"
+     exit 1
+  fi
+*/
+
 
 export function defineSetStateFunction({
   api_key,
