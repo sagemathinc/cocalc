@@ -4,7 +4,7 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Select, Tooltip } from "antd";
+import { Modal, Select, Tooltip } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { cmp } from "@cocalc/util/misc";
@@ -38,6 +38,8 @@ export default function SelectComputeServer({
     }
     return path;
   };
+  const [confirmSwitch, setConfirmSwitch] = useState<boolean>(false);
+  const [idNum, setIdNum] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
   const computeServers = useTypedRedux(
@@ -128,8 +130,17 @@ export default function SelectComputeServer({
     const running = options
       .filter((a) => a.state == "running")
       .sort((a, b) => cmp(a.sort, b.sort));
-    const notRunning = options
-      .filter((a) => a.state != "running")
+    const stopped = options
+      .filter(
+        (a) =>
+          a.state == "stopped" ||
+          a.state == "stopping" ||
+          a.state == "suspending" ||
+          a.state == "suspended",
+      )
+      .sort((a, b) => cmp(a.sort, b.sort));
+    const deprovisioned = options
+      .filter((a) => a.state == "deprovisioned")
       .sort((a, b) => cmp(a.sort, b.sort));
     return [
       {
@@ -141,7 +152,10 @@ export default function SelectComputeServer({
             state: "",
             label: (
               <div>
-                <Icon name="edit" /> Run in the Project
+                <Icon name="edit" />{" "}
+                {value
+                  ? "Run in the Project"
+                  : "Currently Running in this Project"}
               </div>
             ),
           },
@@ -158,41 +172,39 @@ export default function SelectComputeServer({
       {
         label: (
           <div style={{ fontSize: "12pt" }}>
-            Not Running Compute Servers {notRunning.length == 0 ? "(none)" : ""}
+            Stopped Compute Servers {stopped.length == 0 ? "(none)" : ""}
           </div>
         ),
-        options: notRunning,
+        options: stopped,
+      },
+      {
+        label: (
+          <div style={{ fontSize: "12pt" }}>
+            Deprovisioned Compute Servers{" "}
+            {deprovisioned.length == 0 ? "(none)" : ""}
+          </div>
+        ),
+        options: deprovisioned,
       },
     ];
   }, [computeServers]);
 
   return (
-    <Tooltip
-      mouseEnterDelay={0.6}
-      placement={"right"}
-      title={`Run ${
-        path.endsWith("ipynb") ? "Jupyter notebook" : "terminal"
-      } in this project or on a powerful dedicated compute server`}
-    >
+    <>
       <Select
         allowClear
         bordered={false}
         disabled={loading}
-        placeholder={<Icon style={{ color: "#666" }} name="server" />}
+        placeholder={
+          <span style={{ color: "white" }}>
+            <Icon style={{ color: "white", marginRight: "5px" }} name="edit" />{" "}
+            Server
+          </span>
+        }
         open={open}
         onSelect={(id) => {
-          setValue(id);
-          const idNum = Number(id ?? "0");
-          if (idNum) {
-            computeServerAssociations.connectComputeServerToPath({
-              id: idNum,
-              path: getPath(path),
-            });
-          } else {
-            computeServerAssociations.disconnectComputeServer({
-              path: getPath(path),
-            });
-          }
+          setIdNum(Number(id ?? "0"));
+          setConfirmSwitch(true);
         }}
         onClear={() => {
           setValue(null);
@@ -204,12 +216,51 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value ? "175px" : "64px",
-          background: value ? computeServers[value]?.color : undefined,
-          color: "white", // todo
+          width: open ? "300px" : value ? "175px" : "110px",
+          background: value ? computeServers[value]?.color : "#4096ff",
         }}
         options={options}
       />
-    </Tooltip>
+      <Modal
+        maskStyle={{ background: computeServers[idNum]?.color, opacity: 0.5 }}
+        title={
+          idNum == 0 ? (
+            <>Run in this Project?</>
+          ) : (
+            <>Run on the compute server "{computeServers[idNum]?.title}"?</>
+          )
+        }
+        open={confirmSwitch}
+        onCancel={() => setConfirmSwitch(false)}
+        onOk={() => {
+          setConfirmSwitch(false);
+          if (idNum) {
+            setValue(`${idNum}`);
+            computeServerAssociations.connectComputeServerToPath({
+              id: idNum,
+              path: getPath(path),
+            });
+          } else {
+            setValue(null);
+            computeServerAssociations.disconnectComputeServer({
+              path: getPath(path),
+            });
+          }
+        }}
+      >
+        {idNum == 0 ? (
+          <div>
+            Do you want to run this in the project? Variables and other state
+            will be lost.
+          </div>
+        ) : (
+          <div>
+            Do you want to run this on the compute server "
+            {computeServers[idNum]?.title}"? Variables and other state will be
+            lost.
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }

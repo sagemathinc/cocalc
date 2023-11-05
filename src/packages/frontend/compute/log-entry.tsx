@@ -32,7 +32,7 @@ export default function LogEntry({
               background: "darkred",
             }}
           >
-            Error: {event.error}
+            {event.error}
           </div>
         </>
       );
@@ -43,17 +43,17 @@ export default function LogEntry({
       const { color, icon } = STATE_INFO[event.state];
       return (
         <>
-          {cs}{" "}
           <span style={{ color }}>
             <Icon name={icon} /> {capitalize(event.state)}
-          </span>
+          </span>{" "}
+          {cs}
         </>
       );
     case "configuration":
       return (
         <>
           {cs} Configuration{" "}
-          {plural(Object.keys(event.changes).length, "change")} - {" "}
+          {plural(Object.keys(event.changes).length, "change")} -{" "}
           {changeString(event.changes)}
         </>
       );
