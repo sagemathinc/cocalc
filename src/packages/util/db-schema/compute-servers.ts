@@ -697,7 +697,7 @@ export const IMAGES0 = {
     docker: `${DOCKER_USER}/compute-tensorflow`,
     gpu: true,
     // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 25 + 10,
+    minDiskSizeGb: 30 + 10,
     cudaVersion: "12.2",
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
   },
@@ -724,12 +724,12 @@ export const IMAGES0 = {
     minDiskSizeGb: 10,
     gpu: false,
   },
-  julia: {
-    label: "Julia",
-    docker: `${DOCKER_USER}/compute-julia`,
-    minDiskSizeGb: 10,
-    gpu: false,
-  },
+//   julia: {
+//     label: "Julia",
+//     docker: `${DOCKER_USER}/compute-julia`,
+//     minDiskSizeGb: 10,
+//     gpu: false,
+//   },
 
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",
