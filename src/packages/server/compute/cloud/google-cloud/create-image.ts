@@ -360,7 +360,7 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
 function createBuildConfiguration({
   image,
   arch = "x86_64",
-  cudaVersion = "12.2",
+  cudaVersion = "12.3",
 }: {
   image: ImageName;
   arch: Architecture;

@@ -136,9 +136,12 @@ export function installCuda(cudaVersion: CudaVersion) {
   return `
 curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring.deb
+rm cuda-keyring.deb
 apt-get update -y
 export CUDA_VERSION=$(apt-cache madison cuda | awk '/${cudaVersion}/ { print $3 }' | head -1)
 apt-get -y install cuda=$CUDA_VERSION nvidia-container-toolkit
-rm cuda-keyring.deb
+apt-get --purge -y remove  nvidia-kernel-source-545
+apt-get -y autoremove
+apt-get -y install nvidia-kernel-open-545 cuda-drivers-545
 `;
 }
