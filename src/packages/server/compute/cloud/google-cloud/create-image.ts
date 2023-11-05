@@ -13,6 +13,8 @@ await a.createImages({image:"python", arch:'x86_64'})
 
 await a.createImages({image:"pytorch"});
 
+await a.createImages({image:"tensorflow"});
+
 await a.createImages({image:"cuda12"})
 
 await a.createImages({image:"sagemath-10.1", arch:'x86_64'});
