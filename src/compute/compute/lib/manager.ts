@@ -188,7 +188,7 @@ class Manager {
     for (const key of changes) {
       const record = this.sync_db.get_one(key);
       const id = record?.get("id");
-      if (id == this.compute_server_id) {
+      if (id == this.compute_server_id && record.get("open")) {
         this.ensureConnected(key.get("path"));
       } else {
         this.ensureDisconnected(key.get("path"));

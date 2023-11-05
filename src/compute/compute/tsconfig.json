@@ -2,9 +2,9 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "dist",
+    "outDir": "dist"
   },
-  "exclude": ["node_modules", "dist", "test", "dev"],
+  "exclude": ["node_modules", "dist", "test", "dev", "dist/lib"],
   "references": [
     { "path": "../api-client" },
     { "path": "../backend" },

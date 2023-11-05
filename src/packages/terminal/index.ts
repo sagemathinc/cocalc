@@ -14,10 +14,32 @@ import { getChannelName, getRemotePtyChannelName } from "./lib/util";
 import { Terminal } from "./lib/terminal";
 export { RemoteTerminal } from "./lib/remote-terminal";
 export { getRemotePtyChannelName };
+import { EventEmitter } from "events";
 
 const logger = getLogger("terminal:index");
 
 const terminals: { [name: string]: Terminal } = {};
+
+class Terminals extends EventEmitter {
+  private paths: { [path: string]: true } = {};
+
+  getOpenPaths = (): string[] => Object.keys(this.paths);
+
+  isOpen = (path) => this.paths[path] != null;
+
+  add = (path: string) => {
+    this.emit("open", path);
+    this.paths[path] = true;
+  };
+
+  // not used YET:
+  close = (path: string) => {
+    this.emit("close", path);
+    delete this.paths[path];
+  };
+}
+
+export const terminalTracker = new Terminals();
 
 // this is used to know which path belongs to which terminal
 // (this is the overall tab, not the individual frame -- it's
@@ -52,10 +74,11 @@ export async function terminal(
     return name;
   }
 
-  logger.debug("creating terminal for ", path);
+  logger.debug("creating terminal for ", { path });
   const terminal = new Terminal(primus, path, options);
   terminals[name] = terminal;
   await terminal.init();
+  terminalTracker.add(path);
 
   return name;
 }
