@@ -23,19 +23,7 @@ export default function LogEntry({
     case "error":
       return (
         <>
-          {cs}{" "}
-          <div
-            style={{
-              border: "0px 5px",
-              display: "inline-block",
-              color: "white",
-              background: "darkred",
-              padding: "1px 5px",
-              borderRadius: "3px",
-            }}
-          >
-            {event.error}
-          </div>
+          {cs} <Error error={event.error} />
         </>
       );
     case "state":
@@ -78,4 +66,21 @@ function changeString(changes) {
     return "(no change)";
   }
   return v.join("; ");
+}
+
+export function Error({ error }) {
+  return (
+    <div
+      style={{
+        border: "0px 5px",
+        display: "inline-block",
+        color: "white",
+        background: "darkred",
+        padding: "1px 5px",
+        borderRadius: "3px",
+      }}
+    >
+      {error}
+    </div>
+  );
 }

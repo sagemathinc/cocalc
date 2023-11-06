@@ -16,6 +16,7 @@ import { deleteServer, undeleteServer } from "./api";
 import { DisplayImage } from "./select-image";
 import { randomColor } from "./color";
 import ComputeServerLog from "./compute-server-log";
+import { Error } from "./log-entry";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -44,6 +45,7 @@ export default function ComputeServer({
   configuration,
   data,
   deleted,
+  error: backendError,
   project_id,
   account_id,
   style,
@@ -348,6 +350,7 @@ export default function ComputeServer({
                 configuration={configuration}
               />
             )}
+            {backendError && <Error error={backendError} />}
           </div>
         }
       />
