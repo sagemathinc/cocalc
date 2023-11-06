@@ -194,10 +194,10 @@ FOOTER = """
 %configuration={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
 """
 
-BASE_URL = os.environ.get("COCALC_URL", "https://cocalc.com")
-
 import argparse, base64, json, os, shutil, sys, textwrap, tempfile
 from uuid import uuid4
+
+BASE_URL = os.environ.get("COCALC_URL", "https://cocalc.com")
 
 
 def escape_path(s):
