@@ -622,7 +622,7 @@ const Explorer0 = rclass(
                   current_path={this.props.current_path}
                   project_id={this.props.project_id}
                   actions={this.props.actions}
-                  show_close_x={false}
+                  show_close_x={true}
                 />
               </div>
             </VisibleMDLG>
