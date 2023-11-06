@@ -79,10 +79,12 @@ function ComputeServerTable({
   );
   if (!computeServers || computeServers.size == 0) {
     return (
-      <CreateComputeServer
-        project_id={project_id}
-        onCreate={() => setSearch("")}
-      />
+      <div style={{ textAlign: "center" }}>
+        <CreateComputeServer
+          project_id={project_id}
+          onCreate={() => setSearch("")}
+        />
+      </div>
     );
   }
   const search_words = search_split(search.toLowerCase());

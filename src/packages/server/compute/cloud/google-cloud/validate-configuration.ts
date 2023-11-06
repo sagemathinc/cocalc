@@ -34,6 +34,11 @@ export async function validateConfigurationChange({
         `cannot change disk type unless in the 'deprovisioned' state`,
       );
     }
+    if (currentConfiguration.test != newConfiguration.test) {
+      throw Error(
+        `cannot change test type unless in the 'deprovisioned' state`,
+      );
+    }
     if (
       (newConfiguration.diskSizeGb ?? 10) <
       (currentConfiguration.diskSizeGb ?? 10)

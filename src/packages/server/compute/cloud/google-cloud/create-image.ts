@@ -31,7 +31,10 @@ await a.setImageLabel({key:'prod',value:true, name:sourceImage})
 
 
 
-// This labels *everything* that is not prod=true to instead have prod=true:
+// This labels *everything* that is not prod=true to instead
+// have prod=true, because that's the default label if nothing
+// is specified.
+
 await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
 */

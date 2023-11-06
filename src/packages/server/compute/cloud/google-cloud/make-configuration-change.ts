@@ -16,6 +16,7 @@ export const SUPPORTED_CHANGES = [
   "diskSizeGb",
   "acceleratorType",
   "acceleratorCount",
+  "test",
 ];
 
 export async function makeConfigurationChange({
