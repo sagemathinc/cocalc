@@ -213,6 +213,17 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (this.syncdb.get_state() == "init") {
       await once(this.syncdb, "ready");
     }
+    if (
+      !this.is_compute_server &&
+      !this.is_project &&
+      this._client["project_client"] != null
+    ) {
+      const api = await this._client["project_client"].api(this.project_id);
+      if ((await api.version()) < 1699229868) {
+        // backwards compat with existing running projects
+        return await api.jupyter(this.path, endpoint, query, timeout_ms);
+      }
+    }
 
     if (this.apiCallHandler == null) {
       this.initApiCallHandler();

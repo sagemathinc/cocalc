@@ -86,6 +86,7 @@ export interface API {
     query: { [field: string]: any },
     options: { [field: string]: any }[],
   ): Promise<Channel>;
+  version(): Promise<number>;
 }
 
 export interface ProjectClient {

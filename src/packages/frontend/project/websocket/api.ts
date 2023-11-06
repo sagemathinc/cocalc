@@ -29,6 +29,7 @@ import call from "@cocalc/sync/client/call";
 export class API {
   private conn: any;
   private project_id: string;
+  private cachedVersion?: number;
 
   constructor(conn: string, project_id: string) {
     this.conn = conn;
@@ -38,6 +39,26 @@ export class API {
 
   async call(mesg: Mesg, timeout_ms: number): Promise<any> {
     return await call(this.conn, mesg, timeout_ms);
+  }
+
+  async version(): Promise<number> {
+    // version can never change, so its safe to cache
+    if (this.cachedVersion != null) {
+      return this.cachedVersion;
+    }
+    try {
+      this.cachedVersion = await this.call({ cmd: "version" }, 15000);
+    } catch (err) {
+      if (err.message.includes('command "version" not implemented')) {
+        this.cachedVersion = 0;
+      } else {
+        throw err;
+      }
+    }
+    if (this.cachedVersion == null) {
+      return 0;
+    }
+    return this.cachedVersion;
   }
 
   async delete_files(paths: string[]): Promise<void> {
