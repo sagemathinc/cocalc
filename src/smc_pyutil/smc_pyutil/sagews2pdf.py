@@ -194,9 +194,7 @@ FOOTER = """
 %configuration={"latex_command":"xelatex -synctex=1 -interact=nonstopmode 'tmp.tex'"}
 """
 
-# TODO: this needs to use salvus.project_info() or an environment variable or something!
-# This will work fine inside KuCalc.
-BASE_URL = 'https://proxy'
+BASE_URL = os.environ.get("COCALC_URL", "https://cocalc.com")
 
 import argparse, base64, json, os, shutil, sys, textwrap, tempfile
 from uuid import uuid4
@@ -274,6 +272,7 @@ def thread_map(callable, inputs, nb_threads=1):
 
 
 class Parser(HTMLParser):
+
     def __init__(self, cmds):
         HTMLParser.__init__(self)
         self.result = ''
@@ -461,6 +460,7 @@ def md2tex(doc, cmds):
 
 
 class Cell(object):
+
     def __init__(self, s):
         self.raw = s
         v = s.split('\n' + MARKERS['output'])
@@ -616,6 +616,7 @@ class Cell(object):
 
 
 class Worksheet(object):
+
     def __init__(self, filename=None, s=None):
         """
         The worksheet defined by the given filename or UTF unicode string s.
