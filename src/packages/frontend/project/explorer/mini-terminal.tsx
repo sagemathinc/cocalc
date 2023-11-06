@@ -209,9 +209,9 @@ class MiniTerminal0 extends React.Component<Props, State> {
         href=""
         style={{
           right: "10px",
-          top: "0px",
+          top: "4px",
           color: "#666",
-          fontSize: "14pt",
+          fontSize: "8pt",
           position: "absolute",
         }}
       >
