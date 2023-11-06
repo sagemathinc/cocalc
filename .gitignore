@@ -95,6 +95,8 @@ src/smc-hub/landing
 
 src/smc_sagews/smc_sagews.egg-info/*
 src/smc_sagews/build/*
+src/smc_pyutil/smc_pyutil.egg-info/*
+src/smc_pyutil/build/*
 .eggs
 logs
 pids
@@ -145,3 +147,6 @@ src/packages/next/lib/software-inventory/*.json
 src/compute/compute/dev/conf*
 src/g
 src/go
+
+# Python virtual environment
+venv
