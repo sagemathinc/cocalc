@@ -14,6 +14,7 @@ import call from "@cocalc/sync/client/call";
 
 export default class API implements API_Interface {
   private conn: ProjectWebsocket;
+  private cachedVersion?: number;
 
   constructor(conn) {
     this.conn = conn;
@@ -21,6 +22,26 @@ export default class API implements API_Interface {
 
   async call(mesg: object, timeout_ms: number): Promise<any> {
     return await call(this.conn, mesg, timeout_ms);
+  }
+
+  async version(): Promise<number> {
+    // version can never change, so its safe to cache
+    if (this.cachedVersion != null) {
+      return this.cachedVersion;
+    }
+    try {
+      this.cachedVersion = await this.call({ cmd: "version" }, 15000);
+    } catch (err) {
+      if (err.message.includes('command "version" not implemented')) {
+        this.cachedVersion = 0;
+      } else {
+        throw err;
+      }
+    }
+    if (this.cachedVersion == null) {
+      this.cachedVersion = 0;
+    }
+    return this.cachedVersion;
   }
 
   async listing(
@@ -129,10 +150,7 @@ export default class API implements API_Interface {
     );
   }
 
-  async syncFS(opts, timeout_ms = 1000*15*60) {
-    return await this.call(
-      { cmd: "sync_fs", opts },
-      timeout_ms,
-    );
+  async syncFS(opts, timeout_ms = 1000 * 15 * 60) {
+    return await this.call({ cmd: "sync_fs", opts }, timeout_ms);
   }
 }

@@ -57,6 +57,7 @@ import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import SelectComputeServer from "@cocalc/frontend/compute/select-server";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -1920,7 +1921,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function renderComputeServer() {
-    if (!is_visible("compute_server")) {
+    if (!is_visible("compute_server") || !computeServersEnabled()) {
       return null;
     }
     const { type } = props;

@@ -23,6 +23,11 @@ export interface NbconvertParams {
   directory?: string;
   timeout?: number; // in seconds!
 }
+
+interface MesgVersion {
+  cmd: "version";
+}
+
 interface MesgExec {
   cmd: "exec";
   opts: any;
@@ -179,7 +184,7 @@ interface MesgComputeFilesystemCache {
 export interface MesgSyncFSOptions {
   compute_server_id: number;
   computeStateJson?: string;
-  computeStateDiffJson?: string;  // TODO: this is NOT fully implemented
+  computeStateDiffJson?: string; // TODO: this is NOT fully implemented
   exclude?: string[];
   now: number;
 }
@@ -190,6 +195,7 @@ interface MesgSyncFS {
 }
 
 export type Mesg =
+  | MesgVersion
   | MesgExec
   | MesgDeleteFiles
   | MesgFormatterString

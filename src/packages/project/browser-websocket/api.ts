@@ -37,6 +37,7 @@ import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";
 import handleSyncFsApiCall from "@cocalc/sync-fs/lib/handle-api-call";
+import { version } from "@cocalc/util/smc-version";
 
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("websocket-api");
@@ -83,6 +84,8 @@ export function init_websocket_api(_primus: any): void {
 async function handleApiCall0(data: Mesg): Promise<any> {
   const client = getClient();
   switch (data.cmd) {
+    case "version":
+      return version;
     case "listing":
       return await listing(data.path, data.hidden);
     case "delete_files":

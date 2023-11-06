@@ -12,17 +12,56 @@ CoCalc is a pretty large and complicated project, and it will only work with the
 . /cocalc/nvm/nvm.sh
 ```
 
-- Make sure to[install the newest version of pnpm as well;](https://pnpm.io/installation) one way to do that is as follows:
+Alternatively, if you are already using [Node Version Manager](https://github.com/nvm-sh/nvm), you can simply run the
+following command to use a version of Node guaranteed to work with this project:
+
+```sh
+~/cocalc/src$ nvm install && nvm use
+```
+
+_Note that `nvm install` is only required the first time you run this command or when CoCalc's Node version changes_.
+
+- Make sure to [install the newest version of pnpm as well;](https://pnpm.io/installation) one way to do that is as follows:
 
 ```sh
 npm install -g pnpm
 ```
 
-- Python: You must have python3 installed with the pyyaml package, so `import yaml` works. Do `pip3 install pyyaml` if not.
+Alternatively, if you do not wish to install `pnpm` globally, you can run `npm install` to install it as a dev 
+dependency.
+
+**Python virtual environment**
+
+Some features of CoCalc (e.g., file creation) require local Python modules to be installed. To create a [Python virtual 
+environment](https://docs.python.org/3/library/venv.html) from which to run these modules, run (from the `src` 
+directory):
+
+```sh
+~/cocalc/src$ python3 -m venv venv
+```
+
+To activate the virtual environment, run
+
+```sh
+~/cocalc/src$ source ./venv/bin/activate
+```
+
+To install required dependencies, run
+
+```sh
+(venv) ~/cocalc/src$ pip install -r requirements.txt
+```
+
+**You must have your virtual environment activated when running the CoCalc Hub (via `pnpm hub`)!** If, on the other
+hand, you prefer that development packages be installed globally, you can jump directly to the above `pip install` 
+command outside the context of a virtual environment.
 
 ## Initial Build
 
 Launch the install and build **for doing development:** 
+
+**Note**: If you installed `pnpm` locally (instead of globally), simply run `npm run` in place of `pnpm` to execute
+these commands via [NPM run scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts).
 
 ```sh
 ~/cocalc/src$ pnpm make-dev

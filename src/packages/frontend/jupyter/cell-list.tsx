@@ -315,10 +315,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
         });
         // hack which seems necessary for jupyter at least.
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-          })
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+            }),
         );
       }
     } else if (scroll.startsWith("list")) {
@@ -328,11 +329,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "end",
         });
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-            align: "end",
-          })
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+              align: "end",
+            }),
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
@@ -340,11 +342,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "start",
         });
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-            align: "start",
-          })
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+              align: "start",
+            }),
         );
       }
     }
@@ -386,7 +389,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   function render_insert_cell(
     id: string,
-    position: "above" | "below" = "above"
+    position: "above" | "below" = "above",
   ): JSX.Element | null {
     if (actions == null) return null;
     return (
@@ -404,7 +407,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     id: string,
     isScrolling?: boolean,
     index?: number,
-    delayRendering?: number
+    delayRendering?: number,
   ) {
     const cell = cells.get(id);
     if (cell == null) return null;
@@ -492,7 +495,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           },
           scrollerRef: handleCellListRef,
         }
-      : { disabled: true }
+      : { disabled: true },
   );
 
   useLayoutEffect(() => {
@@ -652,7 +655,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         <SortableItem id={id} key={id}>
           {actions != null && render_insert_cell(id)}
           {render_cell(id, false, index, index)}
-        </SortableItem>
+        </SortableItem>,
       );
       index += 1;
     });
