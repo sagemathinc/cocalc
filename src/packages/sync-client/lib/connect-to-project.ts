@@ -47,6 +47,15 @@ export default async function connectToProject(
       rejectUnauthorized: false,
       headers: { Cookie },
     },
+    // even with this, it seems to take far too long to connect to
+    // a project, e.g., as compared to the frontend browser.
+    // I think there is maybe an issue in the proxy server.
+    reconnect: {
+      factor: 1.3,
+      min: 750,
+      max: 10000,
+      retries: 10000,
+    },
   }) as any;
 
   // Every single individual channel creates listeners
