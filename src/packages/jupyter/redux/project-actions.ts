@@ -34,10 +34,6 @@ import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
 import { callback } from "awaiting";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
 
-// We never try to read the file on disk if we wrote it out
-// this recently:
-const FILE_CHANGE_THRESH_MS = 7500;
-
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
 export class JupyterActions extends JupyterActions0 {
@@ -50,6 +46,7 @@ export class JupyterActions extends JupyterActions0 {
   private run_all_loop?: RunAllLoop;
   private clear_kernel_error?: any;
   private running_manager_run_cell_process_queue: boolean = false;
+  private last_ipynb_save: number = 0;
   protected _client: ClientFs; // this has filesystem access, etc.
 
   public run_cell(
@@ -1010,9 +1007,8 @@ export class JupyterActions extends JupyterActions0 {
         )
     */
 
-  // Load file from disk if it is sufficiently newer than
-  // the last we saved to disk *and* any changes we've made
-  // to the syncdb representation.
+  // Load file from disk if it is  newer than
+  // the last we saved to disk.
   private loadFromDiskIfNewer = async () => {
     const dbg = this.dbg("loadFromDiskIfNewer");
     // Get mtime of last .ipynb file that we explicitly saved.
@@ -1020,15 +1016,13 @@ export class JupyterActions extends JupyterActions0 {
     // TODO: breaking the syncdb typescript data hiding.  The
     // right fix will be to move
     // this info to a new ephemeral state table.
-    const last_ipynb_save = (this.syncdb as any).syncstring_table
-      .get_one()
-      .getIn(["save", "last_ipynb_save"], 0);
-
+    const last_ipynb_save = await this.get_last_ipynb_save();
     dbg(`syncdb last_ipynb_save=${last_ipynb_save}`);
     let file_changed;
     if (last_ipynb_save == 0) {
       // we MUST load from file the first time, of course.
       file_changed = true;
+      dbg("file changed because FIRST TIME");
     } else {
       const path = this.store.get("path");
       let stats;
@@ -1043,11 +1037,9 @@ export class JupyterActions extends JupyterActions0 {
         this.set_last_load();
         return;
       }
-      const last_syncdb_change = this.syncdb.last_changed().valueOf();
       const mtime = stats.mtime.getTime();
-      file_changed =
-        mtime > last_syncdb_change + FILE_CHANGE_THRESH_MS &&
-        mtime > last_ipynb_save + FILE_CHANGE_THRESH_MS;
+      file_changed = mtime > last_ipynb_save;
+      dbg({ mtime, last_ipynb_save });
     }
     if (file_changed) {
       dbg(".ipynb disk file changed ==> loading state from disk");
@@ -1057,9 +1049,7 @@ export class JupyterActions extends JupyterActions0 {
         dbg("failed to load on change", err);
       }
     } else {
-      dbg(
-        "disk file NOT changed, but newer changes in memory or we recently save ==> NOT loading",
-      );
+      dbg("disk file NOT changed: NOT loading");
     }
   };
 
@@ -1090,13 +1080,27 @@ export class JupyterActions extends JupyterActions0 {
     // This is the RIGHT place to save the info though.
     // TODO: move this state info to new ephemeral table.
     try {
+      const last_ipynb_save = stats.mtime.getTime();
+      this.last_ipynb_save = last_ipynb_save;
       await (this.syncdb as any).set_save({
-        last_ipynb_save: stats.ctime.getTime(),
+        last_ipynb_save,
       });
+      this.dbg("stats.mtime.getTime()")(
+        `set_last_ipynb_save = ${last_ipynb_save}`,
+      );
     } catch (err) {
-      this.dbg("set_last_ipynb_save")(`WARNING -- issue in set_save ${err}`);
+      this.dbg("set_last_ipynb_save")(
+        `WARNING -- issue in set_last_ipynb_save ${err}`,
+      );
       return;
     }
+  };
+
+  private get_last_ipynb_save = async () => {
+    const db = (this.syncdb as any).syncstring_table
+      .get_one()
+      .getIn(["save", "last_ipynb_save"], 0);
+    return Math.max(db, this.last_ipynb_save);
   };
 
   load_ipynb_file = async () => {
@@ -1345,7 +1349,7 @@ export class JupyterActions extends JupyterActions0 {
     try {
       id = this.getRemoteComputeServerId();
     } catch (_) {
-      // normal since debounced things my all isCellRunner,
+      // normal since debounced,
       // and anyways if anything like syncdb that getRemoteComputeServerId
       // depends on doesn't work, then we are clearly
       // not the cell runner
@@ -1353,6 +1357,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     dbg("id = ", id);
     if (id == 0 && this.is_project) {
+      dbg("yes we are the cell runner (the project)");
       // when no remote compute servers are configured, the project is
       // responsible for evaluating code.
       return true;
@@ -1361,11 +1366,14 @@ export class JupyterActions extends JupyterActions0 {
       // a remote compute server is supposed to be responsible. Are we it?
       try {
         const myId = decodeUUIDtoNum(this.syncdb.client_id());
-        return myId == id;
+        const isRunner = myId == id;
+        dbg(isRunner ? "Yes, we are cell runner" : "NOT cell runner");
+        return isRunner;
       } catch (err) {
         dbg(err);
       }
     }
+    dbg("NO we are not the cell runner");
     return false;
   };
 
