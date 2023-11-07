@@ -146,11 +146,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
       this._syncstring.on(
         "change",
-        debounce(this.updateTableOfContents.bind(this), 1500)
+        debounce(this.updateTableOfContents.bind(this), 1500),
       );
       this._syncstring.on(
         "change",
-        debounce(this.ensureNonempty.bind(this), 1500)
+        debounce(this.ensureNonempty.bind(this), 1500),
       );
     }
   }
@@ -231,7 +231,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           if (this.parent_file != null && this.parent_file != this.path) {
             const parent_actions = this.redux.getEditorActions(
               this.project_id,
-              this.parent_file
+              this.parent_file,
             ) as Actions;
             // we're careful, maybe getEditorActions returns something else ...
             await parent_actions?.build?.("", false);
@@ -240,7 +240,7 @@ export class Actions extends BaseActions<LatexEditorState> {
             await this.build("", false);
           }
         }
-      })
+      }),
     );
   }
 
@@ -309,8 +309,8 @@ export class Actions extends BaseActions<LatexEditorState> {
             this.engine_config,
             path_split(this.path).tail,
             this.knitr,
-            this.output_directory
-          )
+            this.output_directory,
+          ),
         );
       }
       this.setState({ build_command_hardcoded: false });
@@ -397,7 +397,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.engine_config || "PDFLaTeX",
       path_split(this.path).tail,
       this.knitr,
-      this.output_directory
+      this.output_directory,
     );
     this.set_build_command(default_cmd);
     return default_cmd;
@@ -531,7 +531,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     // fortunately, we know exactly what we have to remove
     const outdirflag = this.output_directory_cmd_flag(
-      this.output_directory_path()
+      this.output_directory_path(),
     );
 
     let change = false;
@@ -617,8 +617,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       url_to_pdf(
         this.project_id,
         this.path,
-        this.store.unsafe_getIn(["reload", VIEWERS[0]])
-      )
+        this.store.unsafe_getIn(["reload", VIEWERS[0]]),
+      ),
     );
   }
 
@@ -641,7 +641,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     for (const path of files) {
       const actions = this.redux.getEditorActions(
         this.project_id,
-        path
+        path,
       ) as BaseActions<CodeEditorState>;
       if (actions == null) continue;
       // the parent (master) file is in the switch_to_files list!
@@ -663,7 +663,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  public async explicit_save(): Promise<boolean> {
+  public async explicit_save() {
     const account: any = this.redux.getStore("account");
     if (
       account == null ||
@@ -671,10 +671,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       !this.is_likely_master()
     ) {
       await this.save_all(true);
-      return false;
+      return;
     }
     await this.build(); // kicks off a save of all relevant files
-    return true;
   }
 
   // used by generic framework.
@@ -767,7 +766,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.project_id,
         this.filename_knitr,
         this.make_timestamp(time, force),
-        status
+        status,
       );
     } catch (err) {
       this.set_error(err);
@@ -792,7 +791,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.project_id,
         this.path,
         this.make_timestamp(time, force),
-        status
+        status,
       );
     } catch (err) {
       this.set_error(err);
@@ -837,7 +836,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   async run_latex(
     time: number,
     force: boolean,
-    update_pdf: boolean = true
+    update_pdf: boolean = true,
   ): Promise<void> {
     let output: BuildLog;
     let build_command: string | string[];
@@ -863,7 +862,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         build_command,
         timestamp,
         status,
-        this.get_output_directory()
+        this.get_output_directory(),
       );
     } catch (err) {
       this.set_error(err);
@@ -908,7 +907,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     for (const key of ["files", "deps"]) {
       this.parsed_output_log[key] = union(
         this.parsed_output_log[key],
-        log[key]
+        log[key],
       );
     }
   }
@@ -944,7 +943,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     const actions = this.redux.getEditorActions(
       this.project_id,
-      path_normalize(path)
+      path_normalize(path),
     );
     if (actions == null) {
       return; // file not open
@@ -1036,7 +1035,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.project_id,
         this.path,
         this.make_timestamp(time, force),
-        this.get_output_directory()
+        this.get_output_directory(),
       );
       this.set_build_logs({ bibtex: output });
     } catch (err) {
@@ -1057,7 +1056,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           this.path,
           time,
           status,
-          this.get_output_directory()
+          this.get_output_directory(),
         );
         if (hash === this._last_sagetex_hash) {
           // no change - nothing to do except updating the pdf preview
@@ -1081,12 +1080,12 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.path,
         hash,
         status,
-        this.get_output_directory()
+        this.get_output_directory(),
       );
       if (output.stderr.indexOf("sagetex.VersionError") != -1) {
         // See https://github.com/sagemathinc/cocalc/issues/4432
         throw Error(
-          "SageTex in CoCalc currently only works with the default verison of Sage.  Delete ~/bin/sage and try again."
+          "SageTex in CoCalc currently only works with the default verison of Sage.  Delete ~/bin/sage and try again.",
         );
       }
       // Now Run LaTeX, since we had to run sagetex, which changes
@@ -1124,7 +1123,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         time,
         force,
         status,
-        this.get_output_directory()
+        this.get_output_directory(),
       );
       // Now run latex again, since we had to run pythontex, which changes
       // the inserted snippets. This +2 forces re-running latex... but still dedups
@@ -1175,7 +1174,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         // it is OK.  When you try to run synctex and the synctex
         // file is missing, you get an error with ENOENT in it...
         this.set_error(
-          'Synctex failed to run.  Try "Force Rebuild" your project (use the Build frame) or retry once the build is complete.'
+          'Synctex failed to run.  Try "Force Rebuild" your project (use the Build frame) or retry once the build is complete.',
         );
         return;
       }
@@ -1209,14 +1208,14 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _get_most_recent_pdfjs(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type").indexOf("pdfjs") != -1
+      (node) => node.get("type").indexOf("pdfjs") != -1,
     );
   }
 
   async synctex_tex_to_pdf(
     line: number,
     column: number,
-    filename: string
+    filename: string,
   ): Promise<void> {
     // First figure out where to jump to in the PDF.
     this.set_status("Running SyncTex from tex to pdf...");
@@ -1310,7 +1309,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.path,
         this.knitr,
         logger,
-        this.get_output_directory()
+        this.get_output_directory(),
       );
     } catch (err) {
       this.set_error(`Error cleaning auxiliary files -- ${err}`);
@@ -1470,13 +1469,13 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   public async show_table_of_contents(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "latex_table_of_contents",
       "col",
       true,
-      1 / 3
+      1 / 3,
     );
     // the click to select TOC focuses the active id back on the notebook
     await delay(0);
@@ -1497,7 +1496,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     const contents = fromJS(
-      parseTableOfContents(this._syncstring.to_str() ?? "")
+      parseTableOfContents(this._syncstring.to_str() ?? ""),
     ) as any;
     this.setState({ contents });
   }

@@ -509,6 +509,6 @@ CodemirrorEditor.defaultProps = { value: "" };
 // so be careful.
 if ((CodeMirror as any).commands.save == null) {
   (CodeMirror as any).commands.save = (cm: any) => {
-    cm.cocalc_actions?.explicit_save();
+    cm.cocalc_actions?.save(true);
   };
 }

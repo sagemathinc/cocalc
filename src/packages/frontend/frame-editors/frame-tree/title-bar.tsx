@@ -1228,7 +1228,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         style={button_style()}
         onClick={() => {
           props.editor_actions.save(true);
-          props.actions.explicit_save();
           props.actions.focus(props.id);
         }}
         type={darkMode ? "default" : undefined}

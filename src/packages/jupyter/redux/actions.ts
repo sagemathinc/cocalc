@@ -918,6 +918,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     try {
       // Make sure syncdb content is all sent to the project.
       // This does not actually save the syncdb file to disk.
+      // This "save" means save state to backend.
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
