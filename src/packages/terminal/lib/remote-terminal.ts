@@ -43,11 +43,6 @@ export class RemoteTerminal extends EventEmitter {
         logger.debug("error handling data -- ", err);
       }
     });
-    conn.on("end", () => {
-      logger.debug("connection ended -- closing");
-      this.removeAllListeners();
-      this.state = "closed";
-    });
     this.cwd = cwd;
     this.env = env;
     logger.debug("create ", { cwd });

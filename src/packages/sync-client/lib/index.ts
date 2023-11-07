@@ -127,7 +127,7 @@ export default class Client extends EventEmitter implements AppClient {
   };
 
   private _touchProject = reuseInFlight(async (project_id: string) => {
-    const dbg = this.dbg("touch_project");
+    const dbg = this.dbg("sync-client:_touchProject");
     dbg(project_id);
     try {
       await project.touch({ project_id });

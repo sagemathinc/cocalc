@@ -237,6 +237,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
         undefined;
       const socket_end = (): void => {
         if (heartbeat_interval == null) {
+          // alrady destroyed it
           return;
         }
         dbg("ending socket");
@@ -262,6 +263,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
           this.emit("disconnected");
         }
         socket.end();
+        socket.destroy();
       };
 
       socket.on("end", socket_end);
