@@ -16,6 +16,7 @@ import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 interface Option {
+  position?: number;
   value: string;
   sort: string;
   label: ReactNode;
@@ -49,10 +50,8 @@ export default function SelectComputeServer({
   const [idNum, setIdNum] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
-  const computeServers = useTypedRedux(
-    { project_id },
-    "compute_servers",
-  )?.toJS() ?? [];
+  const computeServers =
+    useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
   const computeServerAssociations = useMemo(() => {
     return webapp_client.project_client.computeServers(project_id);
   }, [project_id]);
@@ -97,7 +96,7 @@ export default function SelectComputeServer({
     for (const id in computeServers) {
       const server = computeServers[id];
       if (server.deleted) continue;
-      const { color, title, state, configuration } = server;
+      const { color, title, state, configuration, position } = server;
       const { icon } = STATE_INFO[state ?? "off"] ?? {};
       const label = (
         <div
@@ -127,12 +126,18 @@ export default function SelectComputeServer({
           </div>
         </div>
       );
-      options.push({ value: id, sort: title.toLowerCase(), state, label });
+      options.push({
+        value: id,
+        sort: title.toLowerCase(),
+        state,
+        label,
+        position,
+      });
     }
     const running: Option[] = [];
     const stopped: Option[] = [];
     const other: Option[] = [];
-    options.sort((a, b) => cmp(a.sort, b.sort));
+    options.sort((a, b) => -cmp(a.position ?? a.value, b.position ?? b.value));
 
     for (const x of options) {
       if (x.state == "running") {
@@ -143,7 +148,7 @@ export default function SelectComputeServer({
         other.push(x);
       }
     }
-    return [
+    const v: { label: JSX.Element; options: Option[] }[] = [
       {
         label: <div style={{ fontSize: "12pt" }}>The Project</div>,
         options: [
@@ -162,31 +167,38 @@ export default function SelectComputeServer({
           },
         ],
       },
-      {
+    ];
+    if (running.length > 0) {
+      v.push({
         label: (
           <div style={{ fontSize: "12pt" }}>
             Running Compute Servers {running.length == 0 ? "(none)" : ""}
           </div>
         ),
         options: running,
-      },
-      {
+      });
+    }
+    if (stopped.length > 0) {
+      v.push({
         label: (
           <div style={{ fontSize: "12pt" }}>
             Stopped Compute Servers {stopped.length == 0 ? "(none)" : ""}
           </div>
         ),
         options: stopped,
-      },
-      {
+      });
+    }
+    if (other.length > 0) {
+      v.push({
         label: (
           <div style={{ fontSize: "12pt" }}>
             Other Compute Servers {other.length == 0 ? "(none)" : ""}
           </div>
         ),
         options: other,
-      },
-    ];
+      });
+    }
+    return v;
   }, [computeServers]);
 
   return (
