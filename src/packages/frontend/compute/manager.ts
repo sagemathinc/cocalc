@@ -56,7 +56,7 @@ export class ComputeServersManager extends EventEmitter {
   // connect and handle being the server for the given path.
   connectComputeServerToPath = ({ id, path }: { id: number; path: string }) => {
     assertSupportedPath(path);
-    this.sync_db.set({ id, path });
+    this.sync_db.set({ id, path, open: true });
     this.sync_db.commit();
   };
 
