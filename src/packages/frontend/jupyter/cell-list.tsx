@@ -295,17 +295,40 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
         });
       } else if (scroll == "cell visible") {
-        // We ONLY scroll if the cell is not in the visible
-        // range -- otherwise if the cell is halfway off the screen...
-        // TODO: this is really just a stupid hack that doesn't fully work,
-        // and I will have to implement something better.
+        // We ONLY scroll if the cell is not in the visible, since
+        // react-virtuoso's "scrollIntoView" aggressively scrolls, even
+        // if the item is in view.
         const n = index + EXTRA_TOP_CELLS;
-        if (
-          n <= virtuosoRangeRef.current.startIndex ||
-          n >= virtuosoRangeRef.current.endIndex
-        ) {
+        let isNotVisible = false;
+        let align: "start" | "center" | "end" = "start";
+        if (n < virtuosoRangeRef.current.startIndex) {
+          // If not rendered at all then clearly it is NOT visible.
+          align = "start";
+          isNotVisible = true;
+        } else if (n > virtuosoRangeRef.current.endIndex) {
+          align = "end";
+          isNotVisible = true;
+        } else {
+          const scroller = $(cell_list_node.current);
+          const cell = scroller.find(`#${cur_id}`);
+          if (scroller[0] == null) return;
+          if (cell[0] == null) return;
+          const scrollerRect = scroller[0].getBoundingClientRect();
+          const cellRect = cell[0].getBoundingClientRect();
+          const cellTop = cellRect.y;
+          const cellBottom = cellRect.y + cellRect.height;
+          if (cellBottom <= scrollerRect.y) {
+            align = "end";
+            isNotVisible = true;
+          } else if (cellTop >= scrollerRect.y + scrollerRect.height) {
+            align = "start";
+            isNotVisible = true;
+          }
+        }
+        if (isNotVisible) {
           virtuosoRef.current?.scrollIntoView({
             index: n,
+            align,
           });
           // don't do the requestAnimationFrame hack as below here
           // because that actually moves between top and bottom.
