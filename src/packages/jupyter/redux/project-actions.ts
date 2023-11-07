@@ -797,7 +797,8 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     exec.on("output", (mesg) => {
-      dbg(`got mesg='${JSON.stringify(mesg)}'`);
+      // uncomment only for specific low level debugging -- see https://github.com/sagemathinc/cocalc/issues/7022
+      // dbg(`got mesg='${JSON.stringify(mesg)}'`);
 
       if (mesg == null) {
         // can't possibly happen, of course.
