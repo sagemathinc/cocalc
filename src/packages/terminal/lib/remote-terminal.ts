@@ -16,9 +16,10 @@ This works in conjunction with src/compute/compute/terminal
 import getLogger from "@cocalc/backend/logger";
 import { spawn } from "node-pty";
 import type { Options, IPty } from "./types";
-import type { Spark } from "primus";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import { readlink, realpath } from "node:fs/promises";
 import { EventEmitter } from "events";
+import { getRemotePtyChannelName } from "./util";
 
 const logger = getLogger("terminal:remote");
 
@@ -26,16 +27,37 @@ type State = "init" | "ready" | "closed";
 
 export class RemoteTerminal extends EventEmitter {
   private state: State = "init";
-  private conn: Spark;
+  private websocket;
+  private path: string;
+  private conn: Channel;
   private cwd?: string;
   private env?: object;
   private localPty?: IPty;
   private options?: Options;
   private size?: { rows: number; cols: number };
 
-  constructor(conn, { cwd, env }: { cwd?: string; env?: object } = {}) {
+  constructor(
+    websocket,
+    path,
+    { cwd, env }: { cwd?: string; env?: object } = {},
+  ) {
     super();
-    this.conn = conn;
+    this.path = path;
+    this.websocket = websocket;
+    // offline and online and that's it!
+    this.cwd = cwd;
+    this.env = env;
+    logger.debug("create ", { cwd });
+    this.connect();
+  }
+
+  private connect = () => {
+    if (this.state == "closed") {
+      return;
+    }
+    const name = getRemotePtyChannelName(this.path);
+    logger.debug("connect to channel", name);
+    this.conn = this.websocket.channel(name);
     this.conn.on("data", async (data) => {
       try {
         await this.handleData(data);
@@ -43,10 +65,20 @@ export class RemoteTerminal extends EventEmitter {
         logger.debug("error handling data -- ", err);
       }
     });
-    this.cwd = cwd;
-    this.env = env;
-    logger.debug("create ", { cwd });
-  }
+    this.conn.on("close", async () => {
+      logger.debug("conn closed");
+      this.conn.removeAllListeners();
+      this.connect();
+    });
+    this.websocket.on("state", (state) => {
+      if (state == "online") {
+        logger.debug("websocket online");
+        this.conn.removeAllListeners();
+        this.conn.end();
+        this.connect();
+      }
+    });
+  };
 
   close = () => {
     this.state = "closed";
@@ -62,7 +94,7 @@ export class RemoteTerminal extends EventEmitter {
         this.localPty.write(data);
       }
     } else {
-      // console.log("command", data);
+      // console.log("COMMAND", data);
       switch (data.cmd) {
         case "init":
           this.options = data.options;

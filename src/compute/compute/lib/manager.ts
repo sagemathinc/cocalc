@@ -6,6 +6,10 @@
 - by default it just launches it in the same process, but it can configured to instead create a docker container to handle the connection
 - another message is "disconnect from this path".  That closes the connection or stops the docker container.
 - compute server
+
+
+---
+
 */
 
 import { ClientFs as SyncClient } from "@cocalc/sync-client/lib/client-fs";
@@ -225,7 +229,7 @@ class Manager {
   };
 
   private ensureConnected = (path) => {
-    this.log("ensureConnected", { path });
+    this.log("ensureConnected", path);
     if (this.connections[path] == null) {
       this.connections[path] = "connecting";
       if (path.endsWith(".term")) {
@@ -235,7 +239,7 @@ class Manager {
           cwd: this.cwd(path),
           env: this.env(),
         });
-        term.on("close", () => {
+        term.on("closed", () => {
           delete this.connections[path];
         });
         this.connections[path] = term;
@@ -263,7 +267,7 @@ class Manager {
   };
 
   private ensureDisconnected = (path) => {
-    this.log("ensureDisconnected", { path });
+    this.log("ensureDisconnected", path);
     const conn = this.connections[path];
     if (conn != null) {
       delete this.connections[path];
