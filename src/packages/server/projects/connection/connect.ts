@@ -13,6 +13,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { delay } from "awaiting";
 import { cancelAll } from "./handle-query";
 import initialize from "./initialize";
+import { callProjectMessage } from "./handle-message";
 
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
@@ -22,6 +23,44 @@ type Connection = any;
 
 const CACHE: { [project_id: string]: Connection } = {};
 
+// Whenever grabbing a socket, if we haven't tested that it is working for this long,
+// we'll test it and remove it from the cache if it doesn't work.
+const TEST_INTERVAL_MS = 30000;
+const TEST: { [project_id: string]: number } = {};
+
+async function testConnection(project_id: string) {
+  const socket = CACHE[project_id];
+  if (socket == null) {
+    return;
+  }
+  const lastTest = TEST[project_id] ?? 0;
+  const now = Date.now();
+  if (now - lastTest <= TEST_INTERVAL_MS) {
+    return;
+  }
+  logger.debug("testing connecting to ", project_id);
+  try {
+    const resp = await callProjectMessage({
+      socket,
+      mesg: { event: "ping" },
+      timeoutSeconds: 15,
+    });
+    if (resp?.event != "pong") {
+      throw Error("sent ping but got back", resp);
+    }
+    logger.debug(
+      "testing connection to ",
+      project_id,
+      "working -- ping time ",
+      Date.now() - now,
+      " ms",
+    );
+  } catch (err) {
+    logger.debug("testing connection to ", project_id, "failed -- ", err);
+    delete CACHE[project_id];
+  }
+}
+
 const END_EVENTS = ["end", "close", "error"];
 
 async function connect(project_id: string): Promise<Connection> {
@@ -29,11 +68,15 @@ async function connect(project_id: string): Promise<Connection> {
   const dbg = (...args) => logger.debug(project_id, ...args);
   if (CACHE[project_id]) {
     const socket = CACHE[project_id];
+    // This is not 100% reliable, so we also periodically ping
+    // project and remove socket from cache if it fails to pong back.
+    // This DOES happen sometime, e.g., when frequently restarting a project.
     if (socket.destroyed || socket.readyState != "open") {
       delete CACHE[project_id];
       socket.unref();
     } else {
       dbg("got connection to ", project_id, " from cache");
+      testConnection(project_id);
       return CACHE[project_id];
     }
   }
@@ -41,7 +84,7 @@ async function connect(project_id: string): Promise<Connection> {
   const project = getProject(project_id);
 
   // Calling address starts the project running, then returns
-  // information about where it is running and how to connection.
+  // information about where it is running and how to connect.
   // We retry a few times, in case project isn't running yet.
   dbg("getting address of ", project_id);
   let socket: CoCalcSocket;

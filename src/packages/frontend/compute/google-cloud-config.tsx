@@ -17,6 +17,7 @@ import {
   Spin,
   Switch,
   Table,
+  Tooltip,
   Typography,
 } from "antd";
 import { cmp, plural } from "@cocalc/util/misc";
@@ -344,6 +345,17 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           loading={loading}
           priceData={priceData}
+        />
+      ),
+    },
+    {
+      key: "admin",
+      label: <></>,
+      value: (
+        <Admin
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
         />
       ),
     },
@@ -1733,6 +1745,36 @@ function CostPerHour({ cost }: { cost?: number }) {
   return (
     <div style={{ float: "right", fontFamily: "monospace" }}>
       {currency(cost)}/hour
+    </div>
+  );
+}
+
+function Admin({ setConfig, configuration, loading }) {
+  const isAdmin = useTypedRedux("account", "is_admin");
+  const [test, setTest] = useState<boolean>(configuration.test);
+  if (!isAdmin) {
+    return null;
+  }
+  return (
+    <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>Admin</b>
+        <br />
+        Settings and functionality only available to admins.
+        <br />
+        <Tooltip title="When you build a new image it is NOT used by default by compute servers until it gets labeled prod=true.  Check this box to test out the newest image.">
+          <Checkbox
+            disabled={loading}
+            checked={test}
+            onChange={() => {
+              setConfig({ test: !test });
+              setTest(!test);
+            }}
+          >
+            Use Newest Image
+          </Checkbox>
+        </Tooltip>
+      </div>
     </div>
   );
 }

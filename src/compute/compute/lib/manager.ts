@@ -6,6 +6,10 @@
 - by default it just launches it in the same process, but it can configured to instead create a docker container to handle the connection
 - another message is "disconnect from this path".  That closes the connection or stops the docker container.
 - compute server
+
+
+---
+
 */
 
 import { ClientFs as SyncClient } from "@cocalc/sync-client/lib/client-fs";
@@ -20,6 +24,7 @@ import { userInfo } from "os";
 import { waitUntilFilesystemIsOfType } from "./util";
 import { apiCall } from "@cocalc/api-client";
 import { get_blob_store as initJupyterBlobStore } from "@cocalc/jupyter/blobs";
+import { delay } from "awaiting";
 
 const logger = debug("cocalc:compute:manager");
 
@@ -135,17 +140,21 @@ class Manager {
     this.websocket = await this.client.project_client.websocket(
       this.project_id,
     );
-    this.sync_db = this.client.sync_client.sync_db({
-      project_id: this.project_id,
-      ...SYNCDB_PARAMS,
+    this.websocket.on("state", (state) => {
+      if (state == "online" && this.sync_db?.get_state() == "ready") {
+        this.log("just connected -- make sure everything configured properly.");
+        for (const record of this.sync_db.get()) {
+          if (record.get("id") == this.compute_server_id) {
+            if (record.get("open")) {
+              this.ensureConnected(record.get("path"));
+            }
+          } else {
+            this.ensureDisconnected(record.get("path"));
+          }
+        }
+      }
     });
-    this.sync_db.on("change", this.handleSyncdbChange);
-    this.sync_db.on("error", (err) => {
-      this.log("sync_db", "ERROR -- ", `${err}`);
-    });
-    if (this.sync_db.get_state() == "init") {
-      await once(this.sync_db, "ready");
-    }
+    await this.initSyncDB();
     this.state = "ready";
     this.reportComponentState({
       state: "ready",
@@ -153,6 +162,27 @@ class Manager {
       timeout: Math.ceil(STATUS_INTERVAL_MS / 1000 + 3),
     });
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
+  };
+
+  private initSyncDB = async () => {
+    this.sync_db = this.client.sync_client.sync_db({
+      project_id: this.project_id,
+      ...SYNCDB_PARAMS,
+    });
+    this.sync_db.on("change", this.handleSyncdbChange);
+    this.sync_db.on("error", async (err) => {
+      // This could MAYBE possibly very rarely happen if you click to restart a project, then immediately
+      // close the browser tab, then try to connect compute server to it and there's a broken socket,
+      // which is in a cache but not yet tested and removed...  Just try again.
+      this.log("sync_db", "ERROR -- ", `${err}`);
+      this.log("Will ping, then initialize syncDB again in a few seconds...");
+      await project.ping({ project_id: this.project_id });
+      await delay(5000);
+      this.initSyncDB();
+    });
+    if (this.sync_db.get_state() == "init") {
+      await once(this.sync_db, "ready");
+    }
   };
 
   disconnectAll = () => {
@@ -188,8 +218,10 @@ class Manager {
     for (const key of changes) {
       const record = this.sync_db.get_one(key);
       const id = record?.get("id");
-      if (id == this.compute_server_id && record.get("open")) {
-        this.ensureConnected(key.get("path"));
+      if (id == this.compute_server_id) {
+        if (record.get("open")) {
+          this.ensureConnected(key.get("path"));
+        }
       } else {
         this.ensureDisconnected(key.get("path"));
       }
@@ -197,7 +229,7 @@ class Manager {
   };
 
   private ensureConnected = (path) => {
-    this.log("ensureConnected", { path });
+    this.log("ensureConnected", path);
     if (this.connections[path] == null) {
       this.connections[path] = "connecting";
       if (path.endsWith(".term")) {
@@ -207,7 +239,7 @@ class Manager {
           cwd: this.cwd(path),
           env: this.env(),
         });
-        term.on("close", () => {
+        term.on("closed", () => {
           delete this.connections[path];
         });
         this.connections[path] = term;
@@ -235,7 +267,7 @@ class Manager {
   };
 
   private ensureDisconnected = (path) => {
-    this.log("ensureDisconnected", { path });
+    this.log("ensureDisconnected", path);
     const conn = this.connections[path];
     if (conn != null) {
       delete this.connections[path];

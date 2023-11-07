@@ -189,7 +189,13 @@ async function getDisks(
 ) {
   let diskSizeGb = 10;
   if (!sourceImage) {
-    ({ diskSizeGb, sourceImage } = await getNewestSourceImage(configuration));
+    // use prod=true, unless configuration.test is set, in which case
+    // make no constraint on prod
+    const prod = configuration.test ? undefined : true;
+    ({ diskSizeGb, sourceImage } = await getNewestSourceImage({
+      ...configuration,
+      prod,
+    }));
   }
 
   diskSizeGb = Math.max(diskSizeGb, configuration.diskSizeGb ?? diskSizeGb);

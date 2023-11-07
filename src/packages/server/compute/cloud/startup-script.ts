@@ -214,6 +214,7 @@ if [ $? -ne 0 ]; then
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --privileged \
+   --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -p 443:443 \
    -p 80:80 \
