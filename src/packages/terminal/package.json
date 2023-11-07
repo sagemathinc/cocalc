@@ -18,6 +18,7 @@
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
+    "@cocalc/comm": "workspace:*",
     "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/util": "workspace:*",
     "awaiting": "^3.0.0",
