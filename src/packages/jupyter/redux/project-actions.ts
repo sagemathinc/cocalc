@@ -1431,11 +1431,13 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg("handleMessageFromClient");
     dbg();
     // WARNING: potentially very verbose
-    // dbg(data);
+    dbg(data);
     switch (data.event) {
       case "register-to-handle-api": {
         if (this.remoteApiHandler?.spark?.id == spark.id) {
-          dbg("register-to-handle-api -- it's the current one so nothing to do");
+          dbg(
+            "register-to-handle-api -- it's the current one so nothing to do",
+          );
           return;
         }
         if (this.remoteApiHandler?.spark != null) {
@@ -1575,15 +1577,20 @@ export class JupyterActions extends JupyterActions0 {
     if (this.remoteApiHandler != null) {
       return await this.handleApiRequestViaRemoteApiHandler(data);
     }
+    const dbg = this.dbg("handleApiRequest");
     const { path, endpoint, query } = data;
+    dbg("handling request in project", path);
     try {
       return await handleApiRequest(path, endpoint, query);
     } catch (err) {
+      dbg("error -- ", err.message);
       return { event: "error", message: err.message };
     }
   };
 
   private handleApiRequestViaRemoteApiHandler = async (data) => {
+    const dbg = this.dbg("handleApiRequestViaRemoteApiHandler");
+    dbg(data?.path);
     try {
       if (!this.is_project) {
         throw Error("BUG -- remote api requests only make sense in a project");
@@ -1604,6 +1611,7 @@ export class JupyterActions extends JupyterActions0 {
       this.remoteApiHandler.id += 1; // increment sequential protocol message tracker id
       return (await callback(waitForResponse)).response;
     } catch (err) {
+      dbg("error -- ", err.message);
       return { event: "error", message: err.message };
     }
   };

@@ -84,6 +84,9 @@ class RemoteJupyter {
   };
 
   private registerWithProject = async () => {
+    if (this.sync_db == null) {
+      return;
+    }
     this.log("registerWithProject");
     this.websocket = await this.client.project_client.websocket(
       this.client.project_id,
