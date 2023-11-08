@@ -84,9 +84,9 @@ class SyncTableChannel extends EventEmitter {
     return this.connected;
   }
 
-  private log(..._args): void {
-    // console.log("SyncTableChannel", this.query, ..._args);
-  }
+  private log = (..._args) => {
+    //console.log("SyncTableChannel", this.query, ..._args);
+  };
 
   private async connect(): Promise<void> {
     this.log("connect...");
@@ -247,15 +247,20 @@ class SyncTableChannel extends EventEmitter {
 
   private send_mesg_to_project(mesg): void {
     this.log("project <-- client: ", mesg);
-    if (
-      !this.connected ||
-      this.websocket == null ||
-      this.channel == null ||
-      this.websocket.state != "online"
-    ) {
-      throw Error("websocket must be online");
+    if (!this.connected) {
+      throw Error("must be connected");
     }
-
+    if (this.websocket == null) {
+      throw Error("websocket must not be null");
+    }
+    if (this.channel == null) {
+      throw Error("channel must not be null");
+    }
+    if (this.websocket.state != "online") {
+      throw Error(
+        `websocket state must be online but it is '${this.websocket.state}'`,
+      );
+    }
     this.channel.write(mesg);
   }
 }

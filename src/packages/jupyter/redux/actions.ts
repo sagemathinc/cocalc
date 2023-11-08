@@ -234,7 +234,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.apiCallHandler.id += 1;
     const { id, responseCallbacks } = this.apiCallHandler;
-    this.syncdb.sendMessageToProject({
+    await this.syncdb.sendMessageToProject({
       event: "api-request",
       id,
       path: this.path,

@@ -441,13 +441,16 @@ export class SyncDoc extends EventEmitter {
   // with state in the project (e.g., jupyter).  Basically this
   // is a special websocket channel just for this syncdoc, which
   // uses the cursors table.
-  public sendMessageToProject(data) {
+  public sendMessageToProject = async (data) => {
     const send = this.patches_table?.sendMessageToProject;
-    if (send == null) {
+    if (send == null || this.patches_table.channel == null) {
       throw Error("sending messages to project not available");
     }
+    if (!this.patches_table.channel.is_connected()) {
+      await once(this.patches_table.channel, "connected");
+    }
     send(data);
-  }
+  };
 
   private assert_not_closed(desc: string): void {
     if (this.state === "closed") {
@@ -1265,7 +1268,12 @@ export class SyncDoc extends EventEmitter {
   public async wait(until: Function, timeout: number = 30): Promise<any> {
     await this.wait_until_ready();
     //console.trace("SYNC WAIT -- start...");
-    const result = await wait({ obj: this, until, timeout, change_event: "change" });
+    const result = await wait({
+      obj: this,
+      until,
+      timeout,
+      change_event: "change",
+    });
     //console.trace("SYNC WAIT -- got it!");
     return result;
   }
