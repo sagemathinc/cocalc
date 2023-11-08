@@ -2053,7 +2053,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           <InputNumber
             style={{
               width: "9ex",
-              top: "-4px",
               height: !props.is_only && !props.is_full ? "30px" : undefined,
             }}
             step={-1}
