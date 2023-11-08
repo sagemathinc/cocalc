@@ -1771,7 +1771,7 @@ function Admin({ setConfig, configuration, loading }) {
               setTest(!test);
             }}
           >
-            Use Newest Image
+            Use Newest Possibly Unreleased Image
           </Checkbox>
         </Tooltip>
       </div>

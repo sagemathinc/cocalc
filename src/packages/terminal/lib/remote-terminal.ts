@@ -150,7 +150,7 @@ export class RemoteTerminal extends EventEmitter {
 
     // set the prompt to show the remote hostname explicitly,
     // then clear the screen.
-    this.localPty.write('PS1="🖥️ (\\h) \\w$ "; clear\n');
+    this.localPty.write('PS1="🖥️ (\\h) \\w$ "; reset;\n');
   };
 
   private sendCurrentWorkingDirectoryLocalPty = async () => {
