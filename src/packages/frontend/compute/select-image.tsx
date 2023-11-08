@@ -5,7 +5,7 @@ import type {
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { Select } from "antd";
-import { CSSProperties, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 
 const OPTIONS = Object.keys(IMAGES).map((value) => {
   const { label } = IMAGES[value];
@@ -18,7 +18,7 @@ interface Props {
   disabled?: boolean;
   state?: State;
   style?: CSSProperties;
-  gpu?: boolean; // if explicitly set, some options may be removed
+  gpu?: boolean; // if explicitly set, only gpu images shown when gpu true, and only non-gpu when false.
 }
 
 export default function SelectImage({
@@ -32,9 +32,12 @@ export default function SelectImage({
   const [value, setValue] = useState<ImageName | undefined>(
     configuration.image,
   );
+  useEffect(() => {
+    setValue(configuration.image);
+  }, [configuration.image]);
   let options;
-  if (gpu != null && gpu == false) {
-    options = OPTIONS.filter((x) => !IMAGES[x.value].gpu);
+  if (gpu != null) {
+    options = OPTIONS.filter((x) => gpu == IMAGES[x.value].gpu);
   } else {
     options = OPTIONS;
   }

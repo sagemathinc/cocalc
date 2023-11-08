@@ -220,18 +220,6 @@ export default function GoogleCloudConfiguration({
 
   const data = [
     {
-      key: "image",
-      label: "",
-      value: (
-        <Image
-          state={state}
-          disabled={loading || disabled}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-    {
       key: "gpu",
       label: (
         <A href="https://cloud.google.com/compute/docs/gpus">
@@ -247,6 +235,20 @@ export default function GoogleCloudConfiguration({
         />
       ),
     },
+    {
+      key: "image",
+      label: "",
+      value: (
+        <Image
+          state={state}
+          disabled={loading || disabled}
+          setConfig={setConfig}
+          configuration={configuration}
+          gpu={configuration.acceleratorType && configuration.acceleratorCount}
+        />
+      ),
+    },
+
     {
       key: "machineType",
       label: (
@@ -395,7 +397,10 @@ export default function GoogleCloudConfiguration({
       {errDisplay}
       {cost ? (
         <div style={{ textAlign: "center" }}>
-          <MoneyStatistic value={cost} title="Cost per hour" />
+          <MoneyStatistic
+            value={cost}
+            title="Total Cost Per Hour While Running"
+          />
           <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
             Pay above rate by the millisecond while the computer server VM is
             running. Rate is <b>much cheaper</b> when VM is suspended or off,
@@ -1083,8 +1088,8 @@ function Image(props) {
       {state == "deprovisioned" && (
         <div style={{ color: "#666", marginBottom: "5px" }}>
           Select compute server image. You will be able to use sudo as root with
-          no password, and can easily install anything into the Ubuntu Linux
-          image, including commercial software.
+          no password, and can install anything into the Ubuntu Linux image,
+          including commercial software, via the fast free network.
         </div>
       )}
       <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />
@@ -1112,7 +1117,20 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
-      <b>Dedicated NVIDIA A100, L4, P100, V100, P4, and T4 and GPU's</b>
+      <b>
+        Dedicated GPU's: NVIDIA{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/tesla-p100/">P100</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/v100/">V100</A>,{" "}
+        <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/nvidia-p4-datasheet.pdf">
+          P4
+        </A>
+        , or{" "}
+        <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
+          T4
+        </A>
+      </b>
     </div>
   );
 
@@ -1265,23 +1283,21 @@ function ensureConsistentConfiguration(
   return newChanges;
 }
 
+// We make the image consistent with the gpu selection.
 function ensureConsistentImage(configuration, changes) {
   const { gpu } = IMAGES[configuration.image] ?? {};
-  if (gpu && !configuration.acceleratorType) {
-    if (changes.acceleratorType != null) {
-      // changing to not have GPU so make image not need gpu
-      // [ ] TODO
-      configuration["image"] = changes["image"] = "python";
-    } else {
-      // changing to have a gpu
-      // image requires a GPU but we don't have one, so change
-      // configuration to have a GPU.
-      for (const key in DEFAULT_GPU_CONFIG) {
-        if (key != "image") {
-          configuration[key] = changes[key] = DEFAULT_GPU_CONFIG[key];
-        }
-      }
-    }
+  const gpuSelected =
+    configuration.acceleratorType && configuration.acceleratorCount > 0;
+  if (gpu == gpuSelected) {
+    // they are consistent
+    return;
+  }
+  if (gpu && !gpuSelected) {
+    // GPU image but non-GPU machine -- change image to non-GPU
+    configuration["image"] = changes["image"] = "python";
+  } else if (!gpu && gpuSelected) {
+    // GPU machine but not image -- change image to pytorch
+    configuration["image"] = changes["image"] = "pytorch";
   }
 }
 
