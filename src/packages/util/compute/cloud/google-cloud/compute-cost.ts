@@ -85,7 +85,7 @@ function computeDnsCost({ configuration }) {
   return configuration.dns ? DNS_COST_PER_HOUR : 0;
 }
 
-function computeInstanceCost({ configuration, priceData }) {
+export function computeInstanceCost({ configuration, priceData }) {
   const data = priceData.machineTypes[configuration.machineType];
   if (data == null) {
     throw Error(
@@ -116,14 +116,14 @@ export function computeDiskCost({ configuration, priceData }: Options): number {
   return markup({ cost, priceData });
 }
 
-function computeOffCost({ configuration, priceData }: Options): number {
+export function computeOffCost({ configuration, priceData }: Options): number {
   const diskCost = computeDiskCost({ configuration, priceData });
   const dnsCost = computeDnsCost({ configuration });
 
   return diskCost + dnsCost;
 }
 
-function computeSuspendedCost({ configuration, priceData }: Options): number {
+export function computeSuspendedCost({ configuration, priceData }: Options): number {
   const diskCost = computeDiskCost({ configuration, priceData });
   const memoryCost = computeSuspendedMemoryCost({ configuration, priceData });
   const dnsCost = computeDnsCost({ configuration });
@@ -131,7 +131,7 @@ function computeSuspendedCost({ configuration, priceData }: Options): number {
   return diskCost + memoryCost + dnsCost;
 }
 
-function computeSuspendedMemoryCost({ configuration, priceData }) {
+export function computeSuspendedMemoryCost({ configuration, priceData }) {
   // how much memory does it have?
   const data = priceData.machineTypes[configuration.machineType];
   if (data == null) {
@@ -160,7 +160,7 @@ export const EXTERNAL_IP_COST = {
   spot: 0.0025,
 };
 
-function computeExternalIpCost({ configuration, priceData }) {
+export function computeExternalIpCost({ configuration, priceData }) {
   if (!configuration.externalIp) {
     return 0;
   }
@@ -173,7 +173,7 @@ function computeExternalIpCost({ configuration, priceData }) {
   return markup({ cost, priceData });
 }
 
-function computeAcceleratorCost({ configuration, priceData }) {
+export function computeAcceleratorCost({ configuration, priceData }) {
   if (!configuration.acceleratorType) {
     return 0;
   }

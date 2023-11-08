@@ -27,6 +27,8 @@ import computeCost, {
   EGRESS_COST_PER_GiB,
   computeDiskCost,
   markup,
+  computeAcceleratorCost,
+  computeInstanceCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
@@ -50,7 +52,10 @@ const DEFAULT_GPU_CONFIG = {
   image: "pytorch",
 };
 
-const FALLBACK_INSTANCE = "c2-standard-4";
+const FALLBACK_INSTANCE = "n2-standard-4";
+// an n1-standard-1 is SO dinky it causes huge trouble
+// with downloading/processing models.
+const DEFAULT_GPU_INSTANCE = "n1-highmem-4";
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -443,7 +448,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
     regions.sort((a, b) => cmp(a.cost, b.cost));
   }
   const options = regions.map(({ region, location, lowCO2, cost }) => {
-    const price = <CostPerHour cost={cost} />;
+    const price = <CostPerHour cost={cost} extra={"total"} />;
     return {
       value: region,
       search: `${region} ${location} ${lowCO2 ? " co2 " : ""}`,
@@ -764,16 +769,18 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
     .map((machineType) => {
       let cost;
       try {
-        cost = computeCost({
+        cost = computeInstanceCost({
           priceData,
           configuration: { ...configuration, machineType },
         });
       } catch (_) {
         cost = null;
       }
+      const data = priceData.machineTypes[machineType];
+      const { memory, vcpu } = data;
       return {
         value: machineType,
-        search: machineType,
+        search: machineType + ` memory:${memory}  cpu:${vcpu}`,
         cost,
         label: (
           <div key={machineType}>
@@ -1167,17 +1174,14 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     const config1 = { ...configuration, acceleratorType, acceleratorCount };
     const changes = { acceleratorType, acceleratorCount };
     try {
-      cost = computeCost({
-        priceData,
-        configuration: config1,
-      });
+      cost = computeAcceleratorCost({ priceData, configuration: config1 });
     } catch (_) {
       const newChanges = ensureConsistentConfiguration(
         priceData,
         config1,
         changes,
       );
-      cost = computeCost({
+      cost = computeAcceleratorCost({
         priceData,
         configuration: { ...config1, ...newChanges },
       });
@@ -1358,7 +1362,8 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
       // changing something else, so we fix the machine type
       for (const type in priceData.machineTypes) {
         if (type.startsWith(data.machineType)) {
-          configuration["machineType"] = changes["machineType"] = type;
+          configuration["machineType"] = changes["machineType"] =
+            type.startsWith("n1-") ? DEFAULT_GPU_INSTANCE : type;
           break;
         }
       }
@@ -1460,7 +1465,10 @@ function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
   }
 
   if (!machineTypes.includes(configuration.machineType)) {
-    configuration.machineType = changes.machineType = machineTypes[0];
+    configuration.machineType = changes.machineType =
+      machineTypes[0].startsWith("n1-")
+        ? DEFAULT_GPU_INSTANCE
+        : machineTypes[0];
   }
 }
 
@@ -1479,9 +1487,10 @@ function ensureConsistentRegionAndZoneWithMachineType(
     );
     // invalid machineType
     if (configuration.acceleratorType) {
-      configuration["machineType"] = changes["machineType"] = "n1-standard-4";
+      configuration["machineType"] = changes["machineType"] =
+        DEFAULT_GPU_INSTANCE;
     } else {
-      configuration["machineType"] = changes["machineType"] = "c2-standard-4";
+      configuration["machineType"] = changes["machineType"] = FALLBACK_INSTANCE;
     }
     return;
   }
@@ -1758,13 +1767,19 @@ function cheapestZone(costs: { [zone: string]: number }): string {
   return choice;
 }
 
-function CostPerHour({ cost }: { cost?: number }) {
+function CostPerHour({ cost, extra }: { cost?: number; extra? }) {
   if (cost == null) {
     return null;
   }
   return (
     <div style={{ float: "right", fontFamily: "monospace" }}>
       {currency(cost)}/hour
+      {extra ? (
+        <>
+          <br />
+          {extra}
+        </>
+      ) : null}
     </div>
   );
 }
