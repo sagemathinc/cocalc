@@ -106,8 +106,9 @@ export async function validateConfigurationChange({
   if (newConfiguration.machineType.startsWith("a2-")) {
     if (
       !(
-        newConfiguration.acceleratorType?.startsWith("nvidia-a100") &&
-        (newConfiguration.acceleratorCount ?? 0) >= 1
+        ["nvidia-tesla-a100", "nvidia-a100-80gb"].includes(
+          newConfiguration.acceleratorType ?? "",
+        ) && (newConfiguration.acceleratorCount ?? 0) >= 1
       )
     ) {
       throw Error("the machine type a2- must have an A100 GPU configured");
