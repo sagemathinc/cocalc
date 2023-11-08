@@ -69,6 +69,13 @@ export default function OnPremCloudConfiguration({
 
   return (
     <div>
+      <div style={{ color: "#666", marginBottom: "15px" }}>
+        You can connect any virtual machine anywhere in the world to this CoCalc
+        project and seamlessly run Jupyter notebooks and terminals on it.
+        <div style={{ margin: "10px 0" }}>
+          <b>Early Preview:</b> This is currently free while in early preview.
+        </div>
+      </div>
       <Select
         disabled={loading || disabled}
         style={{ width: SELECTOR_WIDTH }}

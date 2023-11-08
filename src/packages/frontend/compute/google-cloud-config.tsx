@@ -650,8 +650,12 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VM's stay running until you stop them, whereas{" "}
-        <b>spot VM's will get killed when there is a surge in demand</b>.
+        Standard VM's stay running until you stop them, whereas spot VM's are
+        incredibly cheap, but{" "}
+        <b>
+          might not start and may automatically stop if there is a surge in
+          demand.
+        </b>
       </div>
     </div>
   );
