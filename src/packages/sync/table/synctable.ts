@@ -135,6 +135,10 @@ export class SyncTable extends EventEmitter {
 
   private last_has_uncommitted_changes?: boolean = undefined;
 
+  // This is used only in synctable-project.ts for a communications channel
+  // for Jupyter on compute servers.
+  public channel?: any;
+
   constructor(
     query,
     options: any[],

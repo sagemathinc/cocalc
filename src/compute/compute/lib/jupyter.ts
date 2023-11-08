@@ -21,6 +21,7 @@ export function jupyter({ client, path }) {
 
 class RemoteJupyter {
   private client: SyncClient;
+  private websocket;
   private path: string;
   private sync_db;
   private actions;
@@ -41,7 +42,6 @@ class RemoteJupyter {
       project_id: client.project_id,
       path: syncdb_path,
     });
-
     this.registerWithProject();
     this.initRedux();
   }
@@ -84,17 +84,28 @@ class RemoteJupyter {
   };
 
   private registerWithProject = async () => {
-    this.log("registering with project");
+    this.log("registerWithProject");
+    this.websocket = await this.client.project_client.websocket(
+      this.client.project_id,
+    );
+    this.log("registerWithProject: got websocket");
     if (this.sync_db.get_state() == "init") {
       await once(this.sync_db, "ready");
     }
+    this.log("registerWithProject: syncdb ready");
     // Register to handle websocket api requests from frontend
     // clients to the project jupyter instance.
-    this.sync_db.sendMessageToProject({ event: "register-to-handle-api" });
+    await this.sync_db.sendMessageToProject({
+      event: "register-to-handle-api",
+    });
+    this.log("registerWithProject: sent register-to-handle-api");
 
     // Periodically update cursor to indicate that we would like
     // to handle code evaluation, i.e., we are the cell running.
-    const registerAsCellRunner = () => {
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
+    const registerAsCellRunner = async () => {
       this.log("registerAsCellRunner");
       if (this.sync_db == null) {
         return;
@@ -102,9 +113,25 @@ class RemoteJupyter {
       this.sync_db.setCursorLocsNoThrottle([
         { type: COMPUTER_SERVER_CURSOR_TYPE },
       ]);
+      // we also continually also register to handle messages, just in case
+      // the above didn't get through (e.g., right when restarting project).
+      await this.sync_db.sendMessageToProject({
+        event: "register-to-handle-api",
+      });
     };
     this.interval = setInterval(registerAsCellRunner, COMPUTE_THRESH_MS / 2);
     registerAsCellRunner();
+
+    this.websocket.on("state", (state) => {
+      if (state == "offline") {
+        // no point in registering with server while offline
+        clearInterval(this.interval);
+        delete this.interval;
+      } else if (state == "online") {
+        this.log("websocket online");
+        this.registerWithProject();
+      }
+    });
   };
 
   private initRedux = () => {

@@ -1181,14 +1181,14 @@ export class Actions<
     cm.delete_trailing_whitespace({ omit_lines });
   }
 
-  // Will get called when this or any subfile is explicitly saved by the user.
+  // Will get called when this or any subfile is explicitly saved to disk
+  // by the user.
   // If returns false then normal save happened.  If true, then nothing further.
   // This is used, e.g., by multifile latex so that explicit save triggers
   // save of all files and build... when a user option for "build on save"
   // is enabled.
-  public async explicit_save(): Promise<boolean> {
-    await this.save(true);
-    return false;
+  protected async explicit_save() {
+    // no-op here
   }
 
   async save(explicit: boolean): Promise<void> {
@@ -1228,6 +1228,9 @@ export class Actions<
       }
     } finally {
       this.setState({ is_saving: false });
+    }
+    if (explicit) {
+      this.explicit_save();
     }
   }
 

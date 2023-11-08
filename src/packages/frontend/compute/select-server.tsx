@@ -3,7 +3,7 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 */
 
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Select, Tooltip } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -14,6 +14,8 @@ import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+
+const PROJECT_COLOR = "#337ab7";
 
 interface Option {
   position?: number;
@@ -56,6 +58,15 @@ export default function SelectComputeServer({
     return webapp_client.project_client.computeServers(project_id);
   }, [project_id]);
   const [value, setValue] = useState<string | null>(null);
+
+  const okButtonRef = useRef();
+  useEffect(() => {
+    if (confirmSwitch && okButtonRef.current) {
+      // @ts-ignore
+      setTimeout(() => okButtonRef.current.focus(), 1);
+    }
+  }, [confirmSwitch]);
+
   useEffect(() => {
     const handleChange = async () => {
       try {
@@ -157,7 +168,13 @@ export default function SelectComputeServer({
             sort: "project",
             state: "",
             label: (
-              <div>
+              <div
+                style={{
+                  background: PROJECT_COLOR,
+                  color: "white",
+                  padding: "0 5px",
+                }}
+              >
                 <Icon name="edit" />{" "}
                 {value
                   ? "Run in the Project"
@@ -227,11 +244,12 @@ export default function SelectComputeServer({
         style={{
           ...style,
           width: open ? "300px" : value ? "175px" : "110px",
-          background: value ? computeServers[value]?.color : "#4096ff",
+          background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
       />
       <Modal
+        keyboard
         maskStyle={{ background: computeServers[idNum]?.color, opacity: 0.5 }}
         title={
           idNum == 0 ? (
@@ -242,6 +260,21 @@ export default function SelectComputeServer({
         }
         open={confirmSwitch}
         onCancel={() => setConfirmSwitch(false)}
+        okText={
+          idNum == 0
+            ? "Run in Project"
+            : `Run on ${computeServers[idNum]?.title}`
+        }
+        okButtonProps={{
+          // @ts-ignore
+          ref: okButtonRef,
+          style: {
+            background: computeServers[idNum]?.color ?? PROJECT_COLOR,
+            color: avatar_fontcolor(
+              computeServers[idNum]?.color ?? PROJECT_COLOR,
+            ),
+          },
+        }}
         onOk={() => {
           setConfirmSwitch(false);
           if (idNum) {

@@ -6,6 +6,118 @@
 import { Table } from "./types";
 import { ID } from "./crm";
 
+// These are just fallbacks in case something is wrong with the image configuration.
+export const STANDARD_DISK_SIZE = 20;
+export const CUDA_DISK_SIZE = 60;
+
+// Compute Server Images
+
+interface ImageBase {
+  label: string;
+  docker: string;
+  minDiskSizeGb: number;
+  url?: string;
+}
+
+interface NonGPUImage extends ImageBase {
+  gpu: false;
+}
+
+export type CudaVersion = string;
+
+interface GPUImage extends ImageBase {
+  gpu: true;
+  cudaVersion?: CudaVersion;
+}
+
+type Image = NonGPUImage | GPUImage;
+
+export const DOCKER_USER = "sagemathinc";
+
+export const IMAGES0 = {
+  minimal: {
+    label: "Minimal",
+    docker: `${DOCKER_USER}/compute-base`,
+    minDiskSizeGb: 10,
+    gpu: false,
+  },
+  python: {
+    label: "Python 3",
+    docker: `${DOCKER_USER}/compute-python`,
+    minDiskSizeGb: 10,
+    gpu: false,
+  },
+  "sagemath-10.1": {
+    label: "SageMath 10.1",
+    docker: `${DOCKER_USER}/compute-sagemath-10.1`,
+    minDiskSizeGb: 15,
+    gpu: false,
+  },
+  pytorch: {
+    label: "GPU - PyTorch",
+    docker: `${DOCKER_USER}/compute-pytorch`,
+    gpu: true,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 30 + 10,
+    cudaVersion: "12.2",
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
+  },
+  tensorflow: {
+    label: "GPU - Tensorflow",
+    docker: `${DOCKER_USER}/compute-tensorflow`,
+    gpu: true,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 30 + 10,
+    cudaVersion: "12.2",
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
+  },
+  cuda12: {
+    // [ ] TODO: maybe actualy the cuda 11.x dev env!!?
+    label: "GPU - CUDA Dev Environment",
+    docker: `${DOCKER_USER}/compute-cuda`,
+    gpu: true,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 15 + 10,
+    cudaVersion: "12.2",
+  },
+  // Disabled -- not sure if it is worthwhile:
+  //   cuda11: {
+  //     label: "GPU - Dev Environment with Cuda 11.8",
+  //     docker: `${DOCKER_USER}/compute-cuda`,
+  //     gpu: true,
+  //     minDiskSizeGb: 35,
+  //     cudaVersion: "11.8",
+  //   },
+  rlang: {
+    label: "R",
+    docker: `${DOCKER_USER}/compute-rlang`,
+    minDiskSizeGb: 10,
+    gpu: false,
+  },
+  //   julia: {
+  //     label: "Julia",
+  //     docker: `${DOCKER_USER}/compute-julia`,
+  //     minDiskSizeGb: 10,
+  //     gpu: false,
+  //   },
+
+  //   "cocalc-docker": {
+  //     label: "CoCalc - Personal Server",
+  //     docker: `${DOCKER_USER}/cocalc-docker`,
+  //     minDiskSizeGb: 50,
+  //   },
+} as const;
+
+export type ImageName = keyof typeof IMAGES0;
+
+export const IMAGES = IMAGES0 as { [name: string]: Image };
+
+// This is entirely to force the values to be type checked,
+// but without having to explicitly type IMAGES above, so
+// the key types can be got with 'keyof typeof IMAGES',
+// thus avoiding typing the key names twice!
+export const __IMAGES: { [name: string]: Image } = IMAGES;
+
 export type State =
   | "off"
   | "starting"
@@ -198,12 +310,39 @@ export function getMinDiskSizeGb(configuration) {
   }
   // TODO: will have to do something based on actual image size, maybe, unless I come up with a clever trick involving
   // one PD mounted on many machines (?).
-  if (configuration.acceleratorType) {
+  if (configuration?.acceleratorType) {
     return CUDA_DISK_SIZE;
   } else {
     return STANDARD_DISK_SIZE;
   }
 }
+
+const GOOGLE_CLOUD_DEFAULTS = {
+  cpu: {
+    image: "python",
+    cloud: "google-cloud",
+    region: "us-east1",
+    zone: "us-east1-d",
+    machineType: "c2-standard-4",
+    spot: true,
+    diskSizeGb: getMinDiskSizeGb({ image: "python" }),
+    diskType: "pd-balanced",
+    externalIp: true,
+  },
+  gpu: {
+    image: "pytorch",
+    spot: true,
+    zone: "us-central1-b",
+    cloud: "google-cloud",
+    region: "us-central1",
+    diskType: "pd-balanced",
+    diskSizeGb: getMinDiskSizeGb({ image: "pytorch" }) + 10,
+    externalIp: true,
+    machineType: "g2-standard-4",
+    acceleratorType: "nvidia-l4",
+    acceleratorCount: 1,
+  },
+} as const;
 
 // The ones that are at all potentially worth exposing to users.
 const CLOUDS: {
@@ -219,17 +358,7 @@ const CLOUDS: {
     label: "Google Cloud Platform",
     image:
       "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
-    defaultConfiguration: {
-      image: "python",
-      cloud: "google-cloud",
-      region: "us-east1",
-      zone: "us-east1-d",
-      machineType: "c2-standard-4",
-      spot: true,
-      diskSizeGb: getMinDiskSizeGb({}),
-      diskType: "pd-balanced",
-      externalIp: true,
-    },
+    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.gpu,
   },
   lambda: {
     name: "lambda-cloud",
@@ -635,115 +764,3 @@ Table({
 //     },
 //   },
 // });
-
-// These are just fallbacks in case something is wrong with the image configuration.
-export const STANDARD_DISK_SIZE = 20;
-export const CUDA_DISK_SIZE = 60;
-
-// Compute Server Images
-
-interface ImageBase {
-  label: string;
-  docker: string;
-  minDiskSizeGb: number;
-  url?: string;
-}
-
-interface NonGPUImage extends ImageBase {
-  gpu: false;
-}
-
-export type CudaVersion = string;
-
-interface GPUImage extends ImageBase {
-  gpu: true;
-  cudaVersion?: CudaVersion;
-}
-
-type Image = NonGPUImage | GPUImage;
-
-export const DOCKER_USER = "sagemathinc";
-
-export const IMAGES0 = {
-  minimal: {
-    label: "Minimal",
-    docker: `${DOCKER_USER}/compute-base`,
-    minDiskSizeGb: 10,
-    gpu: false,
-  },
-  python: {
-    label: "Python 3",
-    docker: `${DOCKER_USER}/compute-python`,
-    minDiskSizeGb: 10,
-    gpu: false,
-  },
-  "sagemath-10.1": {
-    label: "SageMath 10.1",
-    docker: `${DOCKER_USER}/compute-sagemath-10.1`,
-    minDiskSizeGb: 15,
-    gpu: false,
-  },
-  pytorch: {
-    label: "GPU - PyTorch",
-    docker: `${DOCKER_USER}/compute-pytorch`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 30 + 10,
-    cudaVersion: "12.2",
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
-  },
-  tensorflow: {
-    label: "GPU - Tensorflow",
-    docker: `${DOCKER_USER}/compute-tensorflow`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 30 + 10,
-    cudaVersion: "12.2",
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
-  },
-  cuda12: {
-    // [ ] TODO: maybe actualy the cuda 11.x dev env!!?
-    label: "GPU - CUDA Dev Environment",
-    docker: `${DOCKER_USER}/compute-cuda`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 15 + 10,
-    cudaVersion: "12.2",
-  },
-  // Disabled -- not sure if it is worthwhile:
-  //   cuda11: {
-  //     label: "GPU - Dev Environment with Cuda 11.8",
-  //     docker: `${DOCKER_USER}/compute-cuda`,
-  //     gpu: true,
-  //     minDiskSizeGb: 35,
-  //     cudaVersion: "11.8",
-  //   },
-  rlang: {
-    label: "R",
-    docker: `${DOCKER_USER}/compute-rlang`,
-    minDiskSizeGb: 10,
-    gpu: false,
-  },
-  //   julia: {
-  //     label: "Julia",
-  //     docker: `${DOCKER_USER}/compute-julia`,
-  //     minDiskSizeGb: 10,
-  //     gpu: false,
-  //   },
-
-  //   "cocalc-docker": {
-  //     label: "CoCalc - Personal Server",
-  //     docker: `${DOCKER_USER}/cocalc-docker`,
-  //     minDiskSizeGb: 50,
-  //   },
-} as const;
-
-export type ImageName = keyof typeof IMAGES0;
-
-export const IMAGES = IMAGES0 as { [name: string]: Image };
-
-// This is entirely to force the values to be type checked,
-// but without having to explicitly type IMAGES above, so
-// the key types can be got with 'keyof typeof IMAGES',
-// thus avoiding typing the key names twice!
-export const __IMAGES: { [name: string]: Image } = IMAGES;

@@ -579,7 +579,7 @@ export class JupyterActions extends JupyterActions0 {
       const dbg = this.dbg("manager_run_cell_process_queue");
       const queue = this._manager_run_cell_queue;
       if (queue == null) {
-        dbg("queue is null");
+        //dbg("queue is null");
         return;
       }
       delete this._manager_run_cell_queue;
@@ -1064,7 +1064,7 @@ export class JupyterActions extends JupyterActions0 {
   /* Determine timestamp of aux .ipynb file, and record it here,
      so we know that we do not have to load exactly that file
      back from disk. */
-  set_last_ipynb_save = async () => {
+  private set_last_ipynb_save = async () => {
     let stats;
     try {
       stats = await callback2(this._client.path_stat, {
@@ -1082,7 +1082,8 @@ export class JupyterActions extends JupyterActions0 {
     try {
       const last_ipynb_save = stats.mtime.getTime();
       this.last_ipynb_save = last_ipynb_save;
-      await (this.syncdb as any).set_save({
+      this._set({
+        type: "settings",
         last_ipynb_save,
       });
       this.dbg("stats.mtime.getTime()")(
@@ -1097,10 +1098,9 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   private get_last_ipynb_save = async () => {
-    const db = (this.syncdb as any).syncstring_table
-      .get_one()
-      .getIn(["save", "last_ipynb_save"], 0);
-    return Math.max(db, this.last_ipynb_save);
+    const x =
+      this.syncdb.get_one({ type: "settings" })?.get("last_ipynb_save") ?? 0;
+    return Math.max(x, this.last_ipynb_save);
   };
 
   load_ipynb_file = async () => {
@@ -1187,7 +1187,7 @@ export class JupyterActions extends JupyterActions0 {
         data,
       });
       dbg("succeeded at saving");
-      this.set_last_ipynb_save();
+      await this.set_last_ipynb_save();
     } catch (err) {
       const e = `error writing file: ${err}`;
       dbg(e);
@@ -1430,10 +1430,20 @@ export class JupyterActions extends JupyterActions0 {
 
     const dbg = this.dbg("handleMessageFromClient");
     dbg();
-    // potentially very verbose
+    // WARNING: potentially very verbose
     // dbg(data);
     switch (data.event) {
       case "register-to-handle-api": {
+        if (this.remoteApiHandler?.spark?.id == spark.id) {
+          dbg("register-to-handle-api -- it's the current one so nothing to do");
+          return;
+        }
+        if (this.remoteApiHandler?.spark != null) {
+          dbg("register-to-handle-api -- remove existing handler");
+          this.remoteApiHandler.spark.removeAllListeners();
+          this.remoteApiHandler.spark.end();
+          this.remoteApiHandler = null;
+        }
         // a compute server client is volunteering to handle all api requests until they disconnect
         this.remoteApiHandler = { spark, id: 0, responseCallbacks: {} };
         dbg("register-to-handle-api -- spark.id = ", spark.id);
@@ -1548,7 +1558,7 @@ export class JupyterActions extends JupyterActions0 {
     if (data.event == "api-request") {
       const response = await this.handleApiRequest(data.request);
       try {
-        this.syncdb.sendMessageToProject({
+        await this.syncdb.sendMessageToProject({
           event: "api-response",
           id: data.id,
           response,

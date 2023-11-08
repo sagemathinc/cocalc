@@ -67,7 +67,7 @@ class Project extends BaseProject {
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
     logger.debug(
-      `got status of ${this.project_id} = ${JSON.stringify(status)}`
+      `got status of ${this.project_id} = ${JSON.stringify(status)}`,
     );
     await this.saveStatusToDatabase(status);
     return status;
@@ -122,8 +122,9 @@ class Project extends BaseProject {
 
   async stop(): Promise<void> {
     if (this.stateChanging != null) return;
-    logger.debug("stop ", this.project_id);
+    logger.debug("stop: ", this.project_id);
     if (!(await isProjectRunning(this.HOME))) {
+      logger.debug("stop: project not running so nothing to kill");
       await this.saveStateToDatabase({ state: "opened" });
       return;
     }
@@ -132,14 +133,17 @@ class Project extends BaseProject {
       await this.saveStateToDatabase(this.stateChanging);
       try {
         const pid = await getProjectPID(this.HOME);
+        logger.debug(`stop: sending kill -${pid}`);
         kill(-pid);
-      } catch (_err) {
+      } catch (err) {
         // expected exception if no pid
+        logger.debug(`stop: kill err ${err}`);
       }
       await this.wait({
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,
       });
+      logger.debug("stop: project is not running");
     } finally {
       this.stateChanging = undefined;
       // ensure state valid.

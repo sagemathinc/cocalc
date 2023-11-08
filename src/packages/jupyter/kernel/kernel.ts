@@ -707,7 +707,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       // If you need to see this for debugging, uncomment it.
       // dbg(trunc(JSON.stringify(content), 300));
       // todo: FOR now -- later may remove large stdout, stderr, etc...
-      dbg("no data, so nothing to do");
+      // dbg("no data, so nothing to do");
       return;
     }
 

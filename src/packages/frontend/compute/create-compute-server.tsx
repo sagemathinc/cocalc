@@ -12,11 +12,22 @@ import ComputeServer from "./compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { randomColor } from "./color";
 
-const DEFAULTS = {
-  title: () => `Untitled ${new Date().toISOString().split("T")[0]}`,
-  cloud: availableClouds()[0],
-  configuration: CLOUDS_BY_NAME[availableClouds()[0]]?.defaultConfiguration,
-};
+function defaultTitle() {
+  return `Untitled ${new Date().toISOString().split("T")[0]}`;
+}
+
+// NOTE that availableClouds() will be empty the moment the page
+// loads, but give correct results once customize is loaded right
+// after user has loaded page.  By the time they are creating a NEW
+// compute server, this should all be working fine.
+
+function defaultCloud() {
+  return availableClouds()[0];
+}
+
+function defaultConfiguration() {
+  return CLOUDS_BY_NAME[availableClouds()[0]]?.defaultConfiguration ?? {};
+}
 
 export default function CreateComputeServer({ project_id, onCreate }) {
   const account_id = useTypedRedux("account", "account_id");
@@ -24,18 +35,18 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  const [title, setTitle] = useState<string>(DEFAULTS.title);
+  const [title, setTitle] = useState<string>(defaultTitle());
   const [color, setColor] = useState<string>(randomColor());
-  const [cloud, setCloud] = useState<CloudType>(DEFAULTS.cloud);
+  const [cloud, setCloud] = useState<CloudType>(defaultCloud());
   const [configuration, setConfiguration] = useState<any>(
-    DEFAULTS.configuration,
+    defaultConfiguration(),
   );
 
   const resetConfig = () => {
-    setTitle(DEFAULTS.title());
+    setTitle(defaultTitle());
     setColor(randomColor());
-    setCloud(DEFAULTS.cloud);
-    setConfiguration(DEFAULTS.configuration);
+    setCloud(defaultCloud());
+    setConfiguration(defaultConfiguration());
   };
 
   useEffect(() => {

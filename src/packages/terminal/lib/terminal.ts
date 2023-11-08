@@ -22,7 +22,7 @@ const logger = getLogger("terminal:terminal");
 
 const CHECK_INTERVAL_MS = 5 * 1000;
 const MAX_HISTORY_LENGTH = 10 * 1000 * 1000;
-const TRUNCATE_THRESH_MS = 10 * 1000;
+const TRUNCATE_THRESH_MS = 2 * 1000;
 const FREQUENT_RESTART_DELAY_MS = 1.5 * 1000;
 const FREQUENT_RESTART_INTERVAL_MS = 10 * 1000;
 const INFINITY = 999999;
@@ -151,7 +151,7 @@ export class Terminal {
       this.handleDataFromTerminal("\r\n\r\n[Process completed]\r\n\r\n");
       delete this.localPty;
     });
-    localPty.write("\nclear;\n");
+    localPty.write("\nreset;\n");
     this.state = "ready";
     return localPty;
   };

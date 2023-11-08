@@ -234,7 +234,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.apiCallHandler.id += 1;
     const { id, responseCallbacks } = this.apiCallHandler;
-    this.syncdb.sendMessageToProject({
+    await this.syncdb.sendMessageToProject({
       event: "api-request",
       id,
       path: this.path,
@@ -918,6 +918,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     try {
       // Make sure syncdb content is all sent to the project.
       // This does not actually save the syncdb file to disk.
+      // This "save" means save state to backend.
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
