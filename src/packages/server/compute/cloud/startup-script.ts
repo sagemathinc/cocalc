@@ -112,6 +112,9 @@ ${runCoCalcCompute({
   image,
 })}
 
+# launch the disk enlarger
+exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
+
 while true; do
   setState vm ready '' 35 100
   sleep 30
