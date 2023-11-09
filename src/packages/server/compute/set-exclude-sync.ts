@@ -7,13 +7,17 @@ const SEP = "|";
 export default async function setExcludeSync({
   account_id,
   id,
-  exclude, // array of top-level directories to exclude from sync. names must not include "|".  Include "" to disable sync entirely.
+  exclude, // array of top-level nontrivial directory names to exclude from sync.
+  // names must not include "|".  Include "." to disable sync entirely.
 }: {
   account_id: string;
   id: number;
   exclude: string[];
 }) {
   for (const path of exclude) {
+    if (!path) {
+      throw Error("path must not be trivial");
+    }
     if (path.includes("/")) {
       throw Error("directories must not include '/'");
     }
