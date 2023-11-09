@@ -116,6 +116,7 @@ export default function SelectComputeServer({
             color: avatar_fontcolor(color),
             overflow: "hidden",
             padding: "0 5px",
+            borderRadius: "3px",
           }}
         >
           <div style={{ width: "100%", display: "flex" }}>
@@ -161,7 +162,11 @@ export default function SelectComputeServer({
     }
     const v: { label: JSX.Element; options: Option[] }[] = [
       {
-        label: <div style={{ fontSize: "12pt" }}>The Project</div>,
+        label: (
+          <div style={{ fontSize: "12pt" }}>
+            Where to run this {type == "terminal" ? "Terminal" : "Notebook"}
+          </div>
+        ),
         options: [
           {
             value: "0",
@@ -173,12 +178,21 @@ export default function SelectComputeServer({
                   background: PROJECT_COLOR,
                   color: "white",
                   padding: "0 5px",
+                  borderRadius: "3px",
                 }}
               >
-                <Icon name="edit" />{" "}
-                {value
-                  ? "Run in the Project"
-                  : "Currently Running in this Project"}
+                {value ? (
+                  <div>
+                    <div>
+                      <Icon name="edit" /> Run in this Project?
+                    </div>
+                    <div style={{ marginLeft: "15px" }}>(the default)</div>
+                  </div>
+                ) : (
+                  <div>
+                    <Icon name="edit" /> Currently Running in this Project
+                  </div>
+                )}
               </div>
             ),
           },
@@ -226,8 +240,7 @@ export default function SelectComputeServer({
         disabled={loading}
         placeholder={
           <span style={{ color: "white" }}>
-            <Icon style={{ color: "white", marginRight: "5px" }} name="edit" />{" "}
-            Server
+            <Icon style={{ color: "white", marginRight: "5px" }} name="edit" />
           </span>
         }
         open={open}
@@ -243,7 +256,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value ? "175px" : "110px",
+          width: open ? "300px" : value ? "175px" : "64px",
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
