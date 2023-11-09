@@ -334,7 +334,7 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <BootDisk
-          disabled={loading || disabled}
+          disabled={loading}
           setConfig={setConfig}
           configuration={configuration}
           priceData={priceData}
@@ -407,10 +407,11 @@ export default function GoogleCloudConfiguration({
             title="Total Cost Per Hour While Running"
           />
           <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
-            Pay above rate by the millisecond while the computer server VM is
-            running. Rate is <b>much cheaper</b> when VM is suspended or off,
-            and there is no cost when it is deprovisioned. Egress networking
-            charges are not included in the above cost.
+            You pay the above rate while the computer server VM is running. The
+            rate is <b>much cheaper</b> when the server is suspended or off, and
+            there is no cost when it is deprovisioned. Egress networking charges
+            are not included in the above cost, and depend on exactly how much
+            data leaves the server. All incoming networking is free.
           </div>
         </div>
       ) : null}
@@ -996,8 +997,12 @@ function BootDisk({
         {state != "deprovisioned" && (
           <>
             {" "}
-            You can only increase the disk size when the VM is off or
-            deprovisioned.
+            <b>
+              You can increase the disk size at any time, even while the VM is
+              running.{" "}
+            </b>
+            You cannot decrease the disk size after you increase it, without
+            first deprovisioning the server.
           </>
         )}
       </div>
@@ -1806,7 +1811,7 @@ function Admin({ setConfig, configuration, loading }) {
               setTest(!test);
             }}
           >
-            Use Newest Possibly Unreleased Image
+            Use newest (possibly) unreleased image
           </Checkbox>
         </Tooltip>
       </div>
