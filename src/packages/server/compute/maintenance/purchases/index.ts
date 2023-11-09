@@ -10,7 +10,7 @@ import managePurchases from "./manage-purchases";
 import getLogger from "@cocalc/backend/logger";
 import { delay } from "awaiting";
 
-const logger = getLogger("server:compute:maintenance/index");
+const logger = getLogger("server:compute:maintenance:purchases");
 
 const MANAGE_PURCHASES_DELAY_MS = 15 * 1000; // every 15 seconds
 const MANAGE_ACTIVE_PURCHASES_DELAY_MS = 120 * 1000; // every 2 minutes
@@ -33,7 +33,7 @@ async function startMaintenance() {
     }
     await delay(MANAGE_PURCHASES_DELAY_MS);
 
-    // Sometimes we also manage the active purchases
+    // Periodically, we also manage the active purchases
     const now = Date.now();
     if (now - lastManageActive >= MANAGE_ACTIVE_PURCHASES_DELAY_MS) {
       lastManageActive = now;
@@ -48,9 +48,7 @@ async function startMaintenance() {
   }
 }
 
-export const TASKS = [
-  {
-    f: startMaintenance,
-    desc: "maintain ongoing active compute server purchases",
-  },
-] as const;
+export const task = {
+  f: startMaintenance,
+  desc: "maintain ongoing active compute server purchases",
+} as const;
