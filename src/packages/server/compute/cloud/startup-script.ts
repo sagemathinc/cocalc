@@ -13,6 +13,23 @@ import {
   UID,
 } from "./install";
 
+// A one line startup script that grabs the latest version of the
+// real startup script via the API.  This is important, e.g., if
+// the user reboots the VM in some way, so they get the latest
+// startup script (with newest ssh keys, etc.) on startup.
+export async function startupScriptViaApi({ compute_server_id, api_key }) {
+  const apiServer = await getApiServer();
+  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash`;
+}
+
+async function getApiServer() {
+  let { dns: apiServer } = await getServerSettings();
+  if (!apiServer.includes("://")) {
+    apiServer = `https://${apiServer}`;
+  }
+  return apiServer;
+}
+
 export default async function startupScript({
   image = "minimal",
   compute_server_id,
@@ -39,10 +56,7 @@ export default async function startupScript({
     throw Error("project_id must be specified");
   }
 
-  let { dns: apiServer } = await getServerSettings();
-  if (!apiServer.includes("://")) {
-    apiServer = `https://${apiServer}`;
-  }
+  const apiServer = await getApiServer();
 
   return `
 #!/bin/bash

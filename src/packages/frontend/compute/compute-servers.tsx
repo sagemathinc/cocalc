@@ -77,7 +77,8 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             <A href="https://doc.cocalc.com/account/ssh.html">
               account public ssh keys
             </A>{" "}
-            that has access to this project.
+            that has access to this project (you must restart the compute server
+            if you add keys).
           </li>
         </ul>
       </Typography.Paragraph>

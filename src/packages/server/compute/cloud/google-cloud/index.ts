@@ -15,7 +15,7 @@ import getClient, {
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
 import getInstance from "./get-instance";
-import startupScript from "@cocalc/server/compute/cloud/startup-script";
+import { startupScriptViaApi } from "@cocalc/server/compute/cloud/startup-script";
 import computeCost, {
   computeNetworkCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
@@ -24,7 +24,6 @@ import { getArchitecture } from "./images";
 import { getInstanceEgress } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { hasDNS, makeDnsChange } from "@cocalc/server/compute/dns";
-import { getHostname } from "@cocalc/server/compute/control";
 
 export * from "./validate-configuration";
 export * from "./make-configuration-change";
@@ -69,11 +68,9 @@ export async function start(server: ComputeServer) {
   }
   const currentState = await state(server);
   const name = await getServerName(server);
-  const startup = await startupScript({
+  const startup = await startupScriptViaApi({
     compute_server_id: server.id,
     api_key: server.api_key,
-    hostname: await getHostname(server.id),
-    ...getStartupParams(server),
   });
 
   if (currentState == "deprovisioned") {
