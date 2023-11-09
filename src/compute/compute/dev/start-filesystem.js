@@ -47,7 +47,9 @@ async function main() {
       unionfs,
       exclude: ["scratch", "tmp"],
       readTrackingPath: process.env.READ_TRACKING_PATH,
-      exclude: [".*"].concat(EXCLUDE_FROM_SYNC.split("|")),
+      exclude: [".*"].concat(
+        EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
+      ),
     });
     unmount = exports.fs.unmount;
   } catch (err) {
