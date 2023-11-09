@@ -69,7 +69,7 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 setState cocalc install-conf '' 30 40
-${installConf({
+${await installConf({
   api_key,
   api_server: apiServer,
   project_id,
@@ -80,6 +80,9 @@ if [ $? -ne 0 ]; then
    setState cocalc error "problem installing configuration"
    exit 1
 fi
+
+${rootSsh()}
+
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
    setState cocalc error "problem creating user"
@@ -99,6 +102,14 @@ while true; do
   setState vm ready '' 35 100
   sleep 30
 done
+`;
+}
+
+function rootSsh() {
+  return `
+# Install ssh keys for root access to VM
+mkdir -p /root/.ssh
+cat "$COCALC/conf/authorized_keys" > /root/.ssh/authorized_keys
 `;
 }
 
@@ -138,6 +149,10 @@ if [ $? -ne 0 ]; then
    setState filesystem error "problem creating /home/unionfs/upper"
    exit 1
 fi
+
+# Install ssh keys for access to user account
+mkdir -p /home/unionfs/upper/.ssh
+cat "$COCALC/conf/authorized_keys" > /home/unionfs/upper/.ssh/authorized_keys
 
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
@@ -247,7 +262,6 @@ bad idea in production.  Needs to be totally explicit or not at all:
      exit 1
   fi
 */
-
 
 export function defineSetStateFunction({
   api_key,

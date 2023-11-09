@@ -7,6 +7,7 @@ import {
   DOCKER_USER,
   getImagePostfix,
 } from "@cocalc/util/db-schema/compute-servers";
+import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -66,7 +67,7 @@ fi
 
 export function installCoCalc(arch) {
   const image = `${DOCKER_USER}/compute-cocalc${getImagePostfix(arch)}`;
- return `
+  return `
 if [ -z "$COCALC" ]; then
   export COCALC=/cocalc
 fi
@@ -92,13 +93,14 @@ fi
 `;
 }
 
-export function installConf({
+export async function installConf({
   api_key,
   api_server,
   project_id,
   compute_server_id,
   hostname,
 }) {
+  const auth = await authorizedKeys(project_id);
   return `
 # Setup Current CoCalc Connection Configuration --
 
@@ -108,6 +110,7 @@ echo "${api_server}" > "$COCALC"/conf/api_server
 echo "${project_id}" > "$COCALC"/conf/project_id
 echo "${compute_server_id}" > "$COCALC"/conf/compute_server_id
 echo "${hostname}" > "$COCALC"/conf/hostname
+echo '${auth}' > "$COCALC"/conf/authorized_keys
 `;
 }
 
@@ -144,4 +147,15 @@ apt-get --purge -y remove  nvidia-kernel-source-545
 apt-get -y autoremove
 apt-get -y install nvidia-kernel-open-545 cuda-drivers-545
 `;
+}
+
+async function authorizedKeys(project_id: string) {
+  const sshKeys = await getSshKeys(project_id);
+  return (
+    "# This file is managed by CoCalc.  Add keys in account prefs and project settings.\n# See https://doc.cocalc.com/account/ssh.html\n\n" +
+    Object.values(sshKeys)
+      .map(({ value }) => `# Added by CoCalc\n${value}`.trim())
+      .join("\n") +
+    "\n"
+  );
 }
