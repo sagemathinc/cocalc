@@ -49,7 +49,7 @@ const UNIONFS = ".unionfs-fuse";
 const DEFAULT_SYNC_INTERVAL_MIN_S = 3;
 // no idea what this should be.  It might be even 60s, but with
 // more UI and other queues to ping us.
-const DEFAULT_SYNC_INTERVAL_MAX_S = 15;
+const DEFAULT_SYNC_INTERVAL_MAX_S = 10;
 
 class SyncFS {
   private state: State = "init";
