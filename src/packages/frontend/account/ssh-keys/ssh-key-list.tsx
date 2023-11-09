@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Popconfirm, Tooltip, Typography } from "antd";
+import { Button, Popconfirm, Typography } from "antd";
 import { Map } from "immutable";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
@@ -14,7 +14,6 @@ import {
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
-import { FIX_BORDER } from "../../project/page/common";
 
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
@@ -147,19 +146,6 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
     fontSize: isFlyout ? "42px" : "72px",
     color: ssh_key.get("last_use_date") ? "#1e7e34" : "#888",
   };
-
-  const rowStyle = isFlyout
-    ? {
-        border: "none",
-        padding: "5px 0px 5px 0px",
-        marginTop: "5px",
-        borderTop: FIX_BORDER,
-      }
-    : {
-        border: "1px solid lightgray",
-        padding: "5px",
-        marginBottom: "5px",
-      };
 
   return (
     <div
