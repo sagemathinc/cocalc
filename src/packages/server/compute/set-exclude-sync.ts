@@ -8,7 +8,7 @@ export default async function setExcludeSync({
   account_id,
   id,
   exclude, // array of top-level nontrivial directory names to exclude from sync.
-  // names must not include "|".  Include "." to disable sync entirely.
+  // names must not include "|".  Include "~" to disable sync entirely.
 }: {
   account_id: string;
   id: number;

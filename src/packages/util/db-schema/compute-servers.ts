@@ -741,7 +741,7 @@ Table({
     },
     exclude_from_sync: {
       type: "string",
-      desc: "List of top level directory names relative HOME to exclude from sync, separated by '|'.  These should not have / in them, since they are top level directories.",
+      desc: "List of top level directory names relative HOME to exclude from sync, separated by '|'.  These should not have / in them, since they are top level directories.   Include '~' in list to disable sync entirely.",
     },
   },
 });
