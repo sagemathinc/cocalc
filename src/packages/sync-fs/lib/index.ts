@@ -40,7 +40,8 @@ interface Options {
   syncIntervalMax?: number;
   // list of top-level directory names that are excluded from sync.
   // do not use wildcards.
-  // NOTE: hidden files in HOME are *always* excluded.
+  // RECOMMEND: hidden files in HOME should be excluded, which you can do by including "./*"
+  // ALSO: if you have "" in the exclude array, then sync is completely disabled.
   exclude?: string[];
   readTrackingPath?: string;
 }
@@ -166,6 +167,13 @@ class SyncFS {
   };
 
   private syncLoop = async () => {
+    if (this.exclude.includes("")) {
+      log("syncLoop: '' is included in excludes, so we never sync");
+      const wait = 1000 * 60;
+      log(`syncLoop -- sleeping ${wait / 1000} seconds...`);
+      this.timeout = setTimeout(this.syncLoop, wait);
+      return;
+    }
     const t0 = Date.now();
     if (this.state == "ready") {
       log("syncLoop: ready");

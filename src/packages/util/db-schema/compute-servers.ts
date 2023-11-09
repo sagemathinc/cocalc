@@ -569,6 +569,7 @@ export interface ComputeServerUserInfo {
   detailed_state?: { [name: string]: ComponentState };
   update_purchase?: boolean;
   last_purchase_update?: Date;
+  exclude_from_sync?: string;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -606,6 +607,7 @@ Table({
           purchase_id: null,
           position: null,
           detailed_state: null,
+          exclude_from_sync: null,
         },
       },
       set: {
@@ -736,6 +738,10 @@ Table({
       type: "map",
       pg_type: "jsonb",
       desc: "Map from component name to something like {state:'running',time:Date.now()}, e.g., {vm: {state:'running', time:393939938484}}, filesystem: {state:'updating', time:939398484892}, uptime:{state:'22:56:33 up 3 days,  9:28,  0 users,  load average: 0.93, 0.73, 0.56', time:?}}.  This is used to provide users with insight into what's currently happening on their compute server.",
+    },
+    exclude_from_sync: {
+      type: "string",
+      desc: "List of top level directory names relative HOME to exclude from sync, separated by '|'.  These should not have / in them, since they are top level directories.",
     },
   },
 });
