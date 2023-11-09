@@ -27,6 +27,8 @@ import computeCost, {
   EGRESS_COST_PER_GiB,
   computeDiskCost,
   markup,
+  computeAcceleratorCost,
+  computeInstanceCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
@@ -50,7 +52,10 @@ const DEFAULT_GPU_CONFIG = {
   image: "pytorch",
 };
 
-const FALLBACK_INSTANCE = "c2-standard-4";
+const FALLBACK_INSTANCE = "n2-standard-4";
+// an n1-standard-1 is SO dinky it causes huge trouble
+// with downloading/processing models.
+const DEFAULT_GPU_INSTANCE = "n1-highmem-4";
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -220,18 +225,6 @@ export default function GoogleCloudConfiguration({
 
   const data = [
     {
-      key: "image",
-      label: "",
-      value: (
-        <Image
-          state={state}
-          disabled={loading || disabled}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-    {
       key: "gpu",
       label: (
         <A href="https://cloud.google.com/compute/docs/gpus">
@@ -247,6 +240,20 @@ export default function GoogleCloudConfiguration({
         />
       ),
     },
+    {
+      key: "image",
+      label: "",
+      value: (
+        <Image
+          state={state}
+          disabled={loading || disabled}
+          setConfig={setConfig}
+          configuration={configuration}
+          gpu={configuration.acceleratorType && configuration.acceleratorCount}
+        />
+      ),
+    },
+
     {
       key: "machineType",
       label: (
@@ -395,7 +402,10 @@ export default function GoogleCloudConfiguration({
       {errDisplay}
       {cost ? (
         <div style={{ textAlign: "center" }}>
-          <MoneyStatistic value={cost} title="Cost per hour" />
+          <MoneyStatistic
+            value={cost}
+            title="Total Cost Per Hour While Running"
+          />
           <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
             Pay above rate by the millisecond while the computer server VM is
             running. Rate is <b>much cheaper</b> when VM is suspended or off,
@@ -438,7 +448,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
     regions.sort((a, b) => cmp(a.cost, b.cost));
   }
   const options = regions.map(({ region, location, lowCO2, cost }) => {
-    const price = <CostPerHour cost={cost} />;
+    const price = <CostPerHour cost={cost} extra={"total"} />;
     return {
       value: region,
       search: `${region} ${location} ${lowCO2 ? " co2 " : ""}`,
@@ -759,16 +769,18 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
     .map((machineType) => {
       let cost;
       try {
-        cost = computeCost({
+        cost = computeInstanceCost({
           priceData,
           configuration: { ...configuration, machineType },
         });
       } catch (_) {
         cost = null;
       }
+      const data = priceData.machineTypes[machineType];
+      const { memory, vcpu } = data;
       return {
         value: machineType,
-        search: machineType,
+        search: machineType + ` memory:${memory}  cpu:${vcpu}`,
         cost,
         label: (
           <div key={machineType}>
@@ -1083,8 +1095,8 @@ function Image(props) {
       {state == "deprovisioned" && (
         <div style={{ color: "#666", marginBottom: "5px" }}>
           Select compute server image. You will be able to use sudo as root with
-          no password, and can easily install anything into the Ubuntu Linux
-          image, including commercial software.
+          no password, and can install anything into the Ubuntu Linux image,
+          including commercial software, via the fast free network.
         </div>
       )}
       <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />
@@ -1112,7 +1124,20 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
-      <b>Dedicated NVIDIA A100, L4, P100, V100, P4, and T4 and GPU's</b>
+      <b>
+        Dedicated GPU's: NVIDIA{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/tesla-p100/">P100</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/v100/">V100</A>,{" "}
+        <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/nvidia-p4-datasheet.pdf">
+          P4
+        </A>
+        , or{" "}
+        <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
+          T4
+        </A>
+      </b>
     </div>
   );
 
@@ -1149,17 +1174,14 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     const config1 = { ...configuration, acceleratorType, acceleratorCount };
     const changes = { acceleratorType, acceleratorCount };
     try {
-      cost = computeCost({
-        priceData,
-        configuration: config1,
-      });
+      cost = computeAcceleratorCost({ priceData, configuration: config1 });
     } catch (_) {
       const newChanges = ensureConsistentConfiguration(
         priceData,
         config1,
         changes,
       );
-      cost = computeCost({
+      cost = computeAcceleratorCost({
         priceData,
         configuration: { ...config1, ...newChanges },
       });
@@ -1265,23 +1287,21 @@ function ensureConsistentConfiguration(
   return newChanges;
 }
 
+// We make the image consistent with the gpu selection.
 function ensureConsistentImage(configuration, changes) {
   const { gpu } = IMAGES[configuration.image] ?? {};
-  if (gpu && !configuration.acceleratorType) {
-    if (changes.acceleratorType != null) {
-      // changing to not have GPU so make image not need gpu
-      // [ ] TODO
-      configuration["image"] = changes["image"] = "python";
-    } else {
-      // changing to have a gpu
-      // image requires a GPU but we don't have one, so change
-      // configuration to have a GPU.
-      for (const key in DEFAULT_GPU_CONFIG) {
-        if (key != "image") {
-          configuration[key] = changes[key] = DEFAULT_GPU_CONFIG[key];
-        }
-      }
-    }
+  const gpuSelected =
+    configuration.acceleratorType && configuration.acceleratorCount > 0;
+  if (gpu == gpuSelected) {
+    // they are consistent
+    return;
+  }
+  if (gpu && !gpuSelected) {
+    // GPU image but non-GPU machine -- change image to non-GPU
+    configuration["image"] = changes["image"] = "python";
+  } else if (!gpu && gpuSelected) {
+    // GPU machine but not image -- change image to pytorch
+    configuration["image"] = changes["image"] = "pytorch";
   }
 }
 
@@ -1342,7 +1362,8 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
       // changing something else, so we fix the machine type
       for (const type in priceData.machineTypes) {
         if (type.startsWith(data.machineType)) {
-          configuration["machineType"] = changes["machineType"] = type;
+          configuration["machineType"] = changes["machineType"] =
+            type.startsWith("n1-") ? DEFAULT_GPU_INSTANCE : type;
           break;
         }
       }
@@ -1444,7 +1465,10 @@ function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
   }
 
   if (!machineTypes.includes(configuration.machineType)) {
-    configuration.machineType = changes.machineType = machineTypes[0];
+    configuration.machineType = changes.machineType =
+      machineTypes[0].startsWith("n1-")
+        ? DEFAULT_GPU_INSTANCE
+        : machineTypes[0];
   }
 }
 
@@ -1463,9 +1487,10 @@ function ensureConsistentRegionAndZoneWithMachineType(
     );
     // invalid machineType
     if (configuration.acceleratorType) {
-      configuration["machineType"] = changes["machineType"] = "n1-standard-4";
+      configuration["machineType"] = changes["machineType"] =
+        DEFAULT_GPU_INSTANCE;
     } else {
-      configuration["machineType"] = changes["machineType"] = "c2-standard-4";
+      configuration["machineType"] = changes["machineType"] = FALLBACK_INSTANCE;
     }
     return;
   }
@@ -1742,13 +1767,19 @@ function cheapestZone(costs: { [zone: string]: number }): string {
   return choice;
 }
 
-function CostPerHour({ cost }: { cost?: number }) {
+function CostPerHour({ cost, extra }: { cost?: number; extra? }) {
   if (cost == null) {
     return null;
   }
   return (
     <div style={{ float: "right", fontFamily: "monospace" }}>
       {currency(cost)}/hour
+      {extra ? (
+        <>
+          <br />
+          {extra}
+        </>
+      ) : null}
     </div>
   );
 }

@@ -66,7 +66,7 @@ interface RetryUntilSuccess<T> {
 }
 
 export async function retry_until_success<T>(
-  opts: RetryUntilSuccess<T>
+  opts: RetryUntilSuccess<T>,
 ): Promise<T> {
   if (!opts.start_delay) opts.start_delay = 100;
   if (!opts.max_delay) opts.max_delay = 20000;
@@ -109,7 +109,7 @@ export async function retry_until_success<T>(
         let e;
         if (last_exc) {
           e = Error(
-            `${err} -- last error was ${err2str(last_exc)} -- ${opts.desc}`
+            `${err} -- last error was ${err2str(last_exc)} -- ${opts.desc}`,
           );
         } else {
           e = Error(`${err} -- ${opts.desc}`);
@@ -137,7 +137,7 @@ import { CB } from "./types/database";
 export async function once(
   obj: EventEmitter,
   event: string,
-  timeout_ms: number = 0
+  timeout_ms: number = 0,
 ): Promise<any> {
   if (!(obj instanceof EventEmitter)) {
     // just in case typescript doesn't catch something:
@@ -161,7 +161,7 @@ export async function once(
 async function once_with_timeout(
   obj: EventEmitter,
   event: string,
-  timeout_ms: number
+  timeout_ms: number,
 ): Promise<any> {
   let val: any[] = [];
   function wait(cb: Function): void {
@@ -185,7 +185,7 @@ async function once_with_timeout(
 // Pass in the type of the returned value, and it will be inferred.
 export async function callback2<R = any>(
   f: (opts) => void,
-  opts?: object
+  opts?: object,
 ): Promise<R> {
   const optsCB = (opts ?? {}) as typeof opts & { cb: CB<R> };
   function g(cb: CB<R>): void {
@@ -197,7 +197,7 @@ export async function callback2<R = any>(
 
 export function reuse_in_flight_methods(
   obj: any,
-  method_names: string[]
+  method_names: string[],
 ): void {
   for (const method_name of method_names) {
     obj[method_name] = reuseInFlight(obj[method_name].bind(obj));
@@ -225,4 +225,20 @@ export async function async_as_callback(
   } catch (err) {
     cb(err);
   }
+}
+
+// From https://stackoverflow.com/questions/70470728/how-can-i-execute-some-async-tasks-in-parallel-with-limit-in-generator-function
+export async function mapParallelLimit(values, fn, max = 10) {
+  const promises = new Set();
+
+  for (const i in values) {
+    while (promises.size >= max) {
+      await Promise.race(promises.values());
+    }
+
+    let promise = fn(values[i], i).finally(() => promises.delete(promise));
+    promises.add(promise);
+  }
+
+  return Promise.all(promises.values());
 }

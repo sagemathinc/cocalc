@@ -14,7 +14,7 @@ import { MIN_NETWORK_CLOSE_DELAY_MS } from "./manage-purchases";
 import { setPurchaseId } from "./util";
 import { computeCost, getNetworkUsage } from "@cocalc/server/compute/control";
 
-const logger = getLogger("server:compute:maintenance/purchases/close");
+const logger = getLogger("server:compute:maintenance:purchases:close");
 
 // Code below is similar to code in server/purchases/project-quotas.ts.
 // NOTE: the purchase is mutated to reflect change to db.
