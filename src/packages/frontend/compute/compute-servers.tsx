@@ -38,35 +38,24 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         terminals and web servers collaboratively, with full access to this
         project.
         <ul>
-          <li>root access and Internet access,</li>
+          <li>Root access and Internet access,</li>
           <li>
-            dedicated GPU's, hundreds of very fast vCPU's, and thousands of GB
+            Dedicated GPU's, hundreds of very fast vCPU's, and thousands of GB
             of RAM
           </li>
           <li>
-            to install free and commercial Linux software (e.g., MATLAB,
+            Install any free and commercial Linux software (e.g., MATLAB,
             Mathematica, any Docker container, etc.)
           </li>
-          <li>a public ip address and (optional) domain name</li>
-          <li>files sync'd with this project</li>
+          <li>Public ip address and (optional) domain name</li>
+          <li>Files sync'd with this project</li>
         </ul>
         <h3>Getting Started</h3>
         <ul>
           <li>Create a compute server below and start it.</li>
           <li>
             Once your compute server is running, select it in the upper left of
-            any terminal or Jupyter notebook.{" "}
-          </li>
-          <li>
-            You can ssh to your compute server using any{" "}
-            <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
-              project
-            </A>{" "}
-            or{" "}
-            <A href="https://doc.cocalc.com/account/ssh.html">
-              account public ssh keys
-            </A>{" "}
-            that has access to this project.
+            any terminal or Jupyter notebook in this project.{" "}
           </li>
           <li>
             Compute servers stay running independently of your project, so if
@@ -77,6 +66,18 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             A compute server belongs to the user who created it; only they can
             start or stop it, and they will be billed by the second for usage.
             Any project collaborator can connect to a running compute server.
+          </li>
+          <li>
+            You can also ssh to root@ or user@ the ip address of your compute
+            server using any{" "}
+            <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
+              project
+            </A>{" "}
+            or{" "}
+            <A href="https://doc.cocalc.com/account/ssh.html">
+              account public ssh keys
+            </A>{" "}
+            that has access to this project.
           </li>
         </ul>
       </Typography.Paragraph>
