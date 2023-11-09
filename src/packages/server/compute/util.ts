@@ -23,7 +23,7 @@ export async function setState(id: number, state: State) {
       // about a *running* compute
       // server, and is confusing to see otherwise.
       await pool.query(
-        "UPDATE compute_servers SET detailed_state=NULL WHERE id=$1",
+        "UPDATE compute_servers SET detailed_state='{}' WHERE id=$1",
         [id],
       );
     }
