@@ -4,6 +4,10 @@ This all assume Ubuntu 22.04.
 
 import { CudaVersion } from "@cocalc/util/db-schema/compute-servers";
 import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
+import {
+  Architecture,
+  getImagePostfix,
+} from "@cocalc/util/db-schema/compute-servers";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -80,10 +84,10 @@ fi
 `;
 }
 
-export function installCoCalc(_arch) {
+export function installCoCalc(arch: Architecture) {
   return `
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-npx -y @cocalc/compute-server /cocalc
+npx -y @cocalc/compute-server${getImagePostfix(arch)} /cocalc
 `;
 }
 

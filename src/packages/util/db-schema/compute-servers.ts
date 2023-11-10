@@ -305,6 +305,8 @@ export function getTargetState(x: State | Action): State {
 
 export type Architecture = "x86_64" | "arm64";
 
+// This same convention is used in cocalc-compute-docker for making
+// the npm packages @cocalc/compute-server.  Don't mess with it!
 export function getImagePostfix(arch: Architecture) {
   return arch == "x86_64" ? "" : "-arm64";
 }
