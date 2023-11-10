@@ -32,7 +32,7 @@ async function getApiServer() {
 }
 
 export default async function startupScript({
-  image = "minimal",
+  image = "python",
   compute_server_id,
   api_key,
   project_id,
@@ -72,6 +72,22 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
+setState cocalc install-conf '' 60 40
+${await installConf({
+  api_key,
+  api_server: apiServer,
+  project_id,
+  compute_server_id,
+  hostname,
+  exclude_from_sync,
+})}
+if [ $? -ne 0 ]; then
+   setState cocalc error "problem installing configuration"
+   exit 1
+fi
+
+${rootSsh()}
+
 docker
 if [ $? -ne 0 ]; then
 setState vm install-docker '' 120 20
@@ -93,21 +109,6 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
-setState cocalc install-conf '' 60 40
-${await installConf({
-  api_key,
-  api_server: apiServer,
-  project_id,
-  compute_server_id,
-  hostname,
-  exclude_from_sync,
-})}
-if [ $? -ne 0 ]; then
-   setState cocalc error "problem installing configuration"
-   exit 1
-fi
-
-${rootSsh()}
 
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then

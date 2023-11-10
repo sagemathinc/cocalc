@@ -35,14 +35,8 @@ type Image = NonGPUImage | GPUImage;
 export const DOCKER_USER = "sagemathinc";
 
 export const IMAGES0 = {
-  minimal: {
-    label: "Minimal",
-    docker: `${DOCKER_USER}/compute-base`,
-    minDiskSizeGb: 10,
-    gpu: false,
-  },
   python: {
-    label: "Python 3",
+    label: "Python",
     docker: `${DOCKER_USER}/compute-python`,
     minDiskSizeGb: 10,
     gpu: false,

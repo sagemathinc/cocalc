@@ -624,7 +624,7 @@ async function getStartupParams(id: number): Promise<{
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
-        image: configuration.image ?? "minimal",
+        image: configuration.image ?? "python",
         exclude_from_sync,
       };
     default:

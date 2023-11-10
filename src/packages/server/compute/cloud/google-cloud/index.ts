@@ -50,7 +50,7 @@ export function getStartupParams(server: ComputeServer) {
     project_id: server.project_id,
     gpu: !!configuration.acceleratorType,
     arch: getArchitecture(configuration.machineType),
-    image: configuration.image ?? "minimal",
+    image: configuration.image ?? "python",
   };
 }
 
