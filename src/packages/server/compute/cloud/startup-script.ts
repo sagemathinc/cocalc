@@ -6,9 +6,10 @@ import type {
 import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import {
+  installDocker,
+  installNode,
   installCoCalc,
   installConf,
-  installDocker,
   installUser,
   UID,
 } from "./install";
@@ -78,13 +79,21 @@ ${installDocker()}
 fi
 setState vm install '' 120 40
 
-setState cocalc install-code '' 30 15
-${installCoCalc(arch)}
+setState cocalc install-node 60 15
+${installNode()}
 if [ $? -ne 0 ]; then
-   setState cocalc error "problem with installation"
+   setState cocalc error "problem installing nodejs"
    exit 1
 fi
-setState cocalc install-conf '' 30 40
+
+setState cocalc install-code '' 60 25
+${installCoCalc(arch)}
+if [ $? -ne 0 ]; then
+   setState cocalc error "problem installing cocalc"
+   exit 1
+fi
+
+setState cocalc install-conf '' 60 40
 ${await installConf({
   api_key,
   api_server: apiServer,
@@ -191,7 +200,7 @@ if [ $? -ne 0 ]; then
      setState filesystem error "problem pulling Docker image ${image}"
      exit 1
   fi
-  setState filesystem run '' 20 60
+  setState filesystem run '' 45 60
   docker run \
    -d \
    --name=filesystem \
@@ -203,11 +212,11 @@ if [ $? -ne 0 ]; then
      setState filesystem error "problem creating filesystem Docker container"
      exit 1
   fi
-  setState filesystem running '' 20 80
+  setState filesystem running '' 45 80
 
 else
 
-  setState filesystem running '' 20 80
+  setState filesystem running '' 45 80
 fi
  `;
 }
