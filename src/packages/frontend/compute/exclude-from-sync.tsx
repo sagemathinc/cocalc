@@ -48,6 +48,10 @@ export default function ExcludeFromSync({
           setConfig({ excludeFromSync: value ?? [] });
         }}
       />
+      <div style={{ marginTop: "10px" }}>
+        <b>WARNING:</b> Files that are only on compute servers are not
+        automatically backed up in any way.
+      </div>
     </div>
   );
 }

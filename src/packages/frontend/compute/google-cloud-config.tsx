@@ -250,7 +250,9 @@ export default function GoogleCloudConfiguration({
           disabled={loading || disabled}
           setConfig={setConfig}
           configuration={configuration}
-          gpu={configuration.acceleratorType && configuration.acceleratorCount}
+          gpu={
+            !!(configuration.acceleratorType && configuration.acceleratorCount)
+          }
         />
       ),
     },

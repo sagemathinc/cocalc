@@ -28,7 +28,7 @@ interface Props {
   disabled?: boolean;
   state?: State;
   style?: CSSProperties;
-  gpu?: boolean; // if explicitly set, only gpu images shown when gpu true, and only non-gpu when false.
+  gpu: boolean; // if explicitly set, only gpu images shown when gpu true, and only non-gpu when false.
 }
 
 export default function SelectImage({
