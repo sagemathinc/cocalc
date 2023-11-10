@@ -6,6 +6,7 @@ import { Select, Spin, Checkbox } from "antd";
 import { setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import SelectImage from "./select-image";
+import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 
 import { SELECTOR_WIDTH } from "./google-cloud-config";
@@ -138,6 +139,10 @@ function Image(props) {
         style={{ width: SELECTOR_WIDTH }}
         {...props}
         gpu={!!props.configuration.gpu}
+      />
+      <ExcludeFromSync
+        style={{ width: SELECTOR_WIDTH, marginTop: "10px" }}
+        {...props}
       />
       {!(state == "deprovisioned" || state == "off") && (
         <div style={{ color: "#666", marginTop: "5px" }}>

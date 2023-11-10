@@ -6,21 +6,40 @@ import type {
 import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import {
+  installDocker,
+  installNode,
   installCoCalc,
   installConf,
-  installDocker,
   installUser,
   UID,
 } from "./install";
 
+// A one line startup script that grabs the latest version of the
+// real startup script via the API.  This is important, e.g., if
+// the user reboots the VM in some way, so they get the latest
+// startup script (with newest ssh keys, etc.) on startup.
+export async function startupScriptViaApi({ compute_server_id, api_key }) {
+  const apiServer = await getApiServer();
+  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash`;
+}
+
+async function getApiServer() {
+  let { dns: apiServer } = await getServerSettings();
+  if (!apiServer.includes("://")) {
+    apiServer = `https://${apiServer}`;
+  }
+  return apiServer;
+}
+
 export default async function startupScript({
-  image = "minimal",
+  image = "python",
   compute_server_id,
   api_key,
   project_id,
   gpu,
   arch,
   hostname,
+  exclude_from_sync,
   installUser: doInstallUser,
 }: {
   image?: ImageName;
@@ -30,6 +49,7 @@ export default async function startupScript({
   gpu?: boolean;
   arch: Architecture;
   hostname: string;
+  exclude_from_sync: string;
   installUser?: boolean;
 }) {
   if (!api_key) {
@@ -39,10 +59,7 @@ export default async function startupScript({
     throw Error("project_id must be specified");
   }
 
-  let { dns: apiServer } = await getServerSettings();
-  if (!apiServer.includes("://")) {
-    apiServer = `https://${apiServer}`;
-  }
+  const apiServer = await getApiServer();
 
   return `
 #!/bin/bash
@@ -55,6 +72,22 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
+setState cocalc install-conf '' 60 40
+${await installConf({
+  api_key,
+  api_server: apiServer,
+  project_id,
+  compute_server_id,
+  hostname,
+  exclude_from_sync,
+})}
+if [ $? -ne 0 ]; then
+   setState cocalc error "problem installing configuration"
+   exit 1
+fi
+
+${rootSsh()}
+
 docker
 if [ $? -ne 0 ]; then
 setState vm install-docker '' 120 20
@@ -62,24 +95,21 @@ ${installDocker()}
 fi
 setState vm install '' 120 40
 
-setState cocalc install-code '' 30 15
+setState cocalc install-node 60 15
+${installNode()}
+if [ $? -ne 0 ]; then
+   setState cocalc error "problem installing nodejs"
+   exit 1
+fi
+
+setState cocalc install-code '' 60 25
 ${installCoCalc(arch)}
 if [ $? -ne 0 ]; then
-   setState cocalc error "problem with installation"
+   setState cocalc error "problem installing cocalc"
    exit 1
 fi
-setState cocalc install-conf '' 30 40
-${installConf({
-  api_key,
-  api_server: apiServer,
-  project_id,
-  compute_server_id,
-  hostname,
-})}
-if [ $? -ne 0 ]; then
-   setState cocalc error "problem installing configuration"
-   exit 1
-fi
+
+
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
    setState cocalc error "problem creating user"
@@ -95,10 +125,21 @@ ${runCoCalcCompute({
   image,
 })}
 
+# launch the disk enlarger
+exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
+
 while true; do
   setState vm ready '' 35 100
   sleep 30
 done
+`;
+}
+
+function rootSsh() {
+  return `
+# Install ssh keys for root access to VM
+mkdir -p /root/.ssh
+cat "$COCALC/conf/authorized_keys" > /root/.ssh/authorized_keys
 `;
 }
 
@@ -139,6 +180,10 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
+# Install ssh keys for access to user account
+mkdir -p /home/unionfs/upper/.ssh
+cat "$COCALC/conf/authorized_keys" > /home/unionfs/upper/.ssh/authorized_keys
+
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
 # makes it so the mount is seen outside the container.
@@ -156,7 +201,7 @@ if [ $? -ne 0 ]; then
      setState filesystem error "problem pulling Docker image ${image}"
      exit 1
   fi
-  setState filesystem run '' 20 60
+  setState filesystem run '' 45 60
   docker run \
    -d \
    --name=filesystem \
@@ -168,11 +213,11 @@ if [ $? -ne 0 ]; then
      setState filesystem error "problem creating filesystem Docker container"
      exit 1
   fi
-  setState filesystem running '' 20 80
+  setState filesystem running '' 45 80
 
 else
 
-  setState filesystem running '' 20 80
+  setState filesystem running '' 45 80
 fi
  `;
 }
@@ -247,7 +292,6 @@ bad idea in production.  Needs to be totally explicit or not at all:
      exit 1
   fi
 */
-
 
 export function defineSetStateFunction({
   api_key,

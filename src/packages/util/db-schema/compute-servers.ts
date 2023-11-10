@@ -35,14 +35,8 @@ type Image = NonGPUImage | GPUImage;
 export const DOCKER_USER = "sagemathinc";
 
 export const IMAGES0 = {
-  minimal: {
-    label: "Minimal",
-    docker: `${DOCKER_USER}/compute-base`,
-    minDiskSizeGb: 10,
-    gpu: false,
-  },
   python: {
-    label: "Python 3",
+    label: "Python",
     docker: `${DOCKER_USER}/compute-python`,
     minDiskSizeGb: 10,
     gpu: false,
@@ -317,6 +311,8 @@ export function getMinDiskSizeGb(configuration) {
   }
 }
 
+const DEFAULT_EXCLUDE_FROM_SYNC = ["scratch"] as const;
+
 const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {
     image: "python",
@@ -328,6 +324,7 @@ const GOOGLE_CLOUD_DEFAULTS = {
     diskSizeGb: getMinDiskSizeGb({ image: "python" }),
     diskType: "pd-balanced",
     externalIp: true,
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
   },
   gpu: {
     image: "pytorch",
@@ -341,6 +338,7 @@ const GOOGLE_CLOUD_DEFAULTS = {
     machineType: "g2-standard-4",
     acceleratorType: "nvidia-l4",
     acceleratorCount: 1,
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
   },
 } as const;
 
@@ -369,6 +367,7 @@ const CLOUDS: {
       image: "python",
       instance_type_name: "gpu_1x_a10",
       region_name: "us-west-1",
+      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
   onprem: {
@@ -379,6 +378,7 @@ const CLOUDS: {
       image: "python",
       arch: "x86_64",
       gpu: false,
+      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
 };
@@ -401,6 +401,10 @@ interface BaseConfiguration {
   // with ssl proxying to this compute server when it is running.
   dns?: string;
   image?: ImageName;
+  // Array of top level directories to exclude from sync.
+  // These can't have "|" in them, since we use that as a separator.
+  // Use "~" to completely disable sync.
+  excludeFromSync?: readonly string[];
 }
 
 interface LambdaConfiguration extends BaseConfiguration {

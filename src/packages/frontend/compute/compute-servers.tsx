@@ -1,3 +1,4 @@
+import { A } from "@cocalc/frontend/components/A";
 import ComputeServer from "./compute-server";
 import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -19,30 +20,66 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
   const account_id = useTypedRedux("account", "account_id");
 
   return (
-    <div style={{ paddingRight: "15px", fontSize: "11pt" }}>
+    <div style={{ paddingRight: "15px" }}>
       <Typography.Paragraph
         ellipsis={{
           expandable: true,
           rows: 2,
           symbol: "more",
         }}
+        style={{ fontSize: "12pt" }}
       >
-        Do you need affordable GPU's and high end VM's, root access, Docker, or
-        to install commercial software? Compute servers are competitively priced
-        pay as you go virtual machines where you can run Jupyter notebooks,
+        Do you need <strong>affordable GPU's</strong>,{" "}
+        <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
+        <strong>Docker</strong>, to host a{" "}
+        <strong>powerful public webserver</strong>, or use{" "}
+        <strong>commercial software</strong> in CoCalc? Compute servers are pay
+        as you go virtual machines where you can run Jupyter notebooks,
         terminals and web servers collaboratively, with full access to this
-        project. You get
+        project.
         <ul>
-          <li>full root access and Internet access,</li>
+          <li>Root access and Internet access,</li>
           <li>
-            dedicated GPU's, hundreds of very fast vCPU's, and thousands of GB
+            Dedicated GPU's, hundreds of very fast vCPU's, and thousands of GB
             of RAM
           </li>
           <li>
-            to install free and commercial Linux software (e.g., MATLAB,
+            Install any free and commercial Linux software (e.g., MATLAB,
             Mathematica, any Docker container, etc.)
           </li>
-          <li>a dedicated public ip address and domain name</li>
+          <li>Public ip address and (optional) domain name</li>
+          <li>Files sync'd with this project</li>
+        </ul>
+        <h3>Getting Started</h3>
+        <ul>
+          <li>Create a compute server below and start it.</li>
+          <li>
+            Once your compute server is running, select it in the upper left of
+            any terminal or Jupyter notebook in this project.{" "}
+          </li>
+          <li>
+            Compute servers stay running independently of your project, so if
+            you need to restart your project for any reason, that doesn't impact
+            running notebooks and terminals on your compute servers.
+          </li>
+          <li>
+            A compute server belongs to the user who created it; only they can
+            start or stop it, and they will be billed by the second for usage.
+            Any project collaborator can connect to a running compute server.
+          </li>
+          <li>
+            You can also ssh to root@ or user@ the ip address of your compute
+            server using any{" "}
+            <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
+              project
+            </A>{" "}
+            or{" "}
+            <A href="https://doc.cocalc.com/account/ssh.html">
+              account public ssh keys
+            </A>{" "}
+            that has access to this project (you must restart the compute server
+            if you add keys).
+          </li>
         </ul>
       </Typography.Paragraph>
       {availableClouds().length == 0 ? (

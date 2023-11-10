@@ -54,9 +54,14 @@ export async function validateConfigurationChange({
       changed.delete("dns");
     }
 
-    // TODO: we will support live editing of disk size at some point.
     if (state != "off" && changed.size > 0) {
-      throw Error("machine must be off to change configuration");
+      if (changed.size == 1 && changed.has("diskSizeGb")) {
+        // this is the only thing that is allowed
+      } else {
+        throw Error(
+          "machine must be off to change configuration (other than disk size)",
+        );
+      }
     }
 
     for (const key of changed) {
@@ -66,7 +71,8 @@ export async function validateConfigurationChange({
         );
       }
     }
-    // You can't go between having and not having a GPU, because the disk image itself has to change
+    // You can't go between having and not having a GPU, because the disk image
+    // itself has to change
     // and that isn't possible.
     if (
       !!currentConfiguration.acceleratorType !=

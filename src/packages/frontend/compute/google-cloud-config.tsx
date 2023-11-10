@@ -40,6 +40,7 @@ import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage from "./select-image";
+import ExcludeFromSync from "./exclude-from-sync";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -334,7 +335,7 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <BootDisk
-          disabled={loading || disabled}
+          disabled={loading}
           setConfig={setConfig}
           configuration={configuration}
           priceData={priceData}
@@ -407,10 +408,11 @@ export default function GoogleCloudConfiguration({
             title="Total Cost Per Hour While Running"
           />
           <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
-            Pay above rate by the millisecond while the computer server VM is
-            running. Rate is <b>much cheaper</b> when VM is suspended or off,
-            and there is no cost when it is deprovisioned. Egress networking
-            charges are not included in the above cost.
+            You pay the above rate while the computer server VM is running. The
+            rate is <b>much cheaper</b> when the server is suspended or off, and
+            there is no cost when it is deprovisioned. Egress networking charges
+            are not included in the above cost, and depend on exactly how much
+            data leaves the server. All incoming networking is free.
           </div>
         </div>
       ) : null}
@@ -894,13 +896,14 @@ function RamAndCpu({
   );
 }
 
-function BootDisk({
-  setConfig,
-  configuration,
-  disabled,
-  priceData,
-  state = "deprovisioned",
-}) {
+function BootDisk(props) {
+  const {
+    setConfig,
+    configuration,
+    disabled,
+    priceData,
+    state = "deprovisioned",
+  } = props;
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
   );
@@ -996,8 +999,12 @@ function BootDisk({
         {state != "deprovisioned" && (
           <>
             {" "}
-            You can only increase the disk size when the VM is off or
-            deprovisioned.
+            <b>
+              You can increase the disk size at any time, even while the VM is
+              running.{" "}
+            </b>
+            You cannot decrease the disk size after you increase it, without
+            first deprovisioning the server.
           </>
         )}
       </div>
@@ -1080,6 +1087,10 @@ function BootDisk({
             are much faster.
           </div>
         )}
+        <ExcludeFromSync
+          {...props}
+          style={{ marginTop: "10px", color: "#666" }}
+        />
       </div>
     </div>
   );
@@ -1111,29 +1122,36 @@ function Image(props) {
 
 // Putting L4 and A100 at top, since they are most
 // interesting, then T4 since very affordable.
+// We do NOT include the P4, P100, V100 or K80, which are older
+// and for which our base image and drivers don't work.
+// If for some reason we need them, we will have to switch to
+// different base drivers or have even more images
 const ACCELERATOR_TYPES = [
   "nvidia-l4",
   "nvidia-tesla-a100",
   "nvidia-a100-80gb",
   "nvidia-tesla-t4",
-  "nvidia-tesla-p4",
-  "nvidia-tesla-v100",
-  "nvidia-tesla-p100",
+  // "nvidia-tesla-v100",
+  //"nvidia-tesla-p100",
+  //"nvidia-tesla-p4",
 ];
-function GPU({ priceData, setConfig, configuration, disabled }) {
-  const { acceleratorType, acceleratorCount } = configuration;
-  const head = (
-    <div style={{ color: "#666", marginBottom: "5px" }}>
-      <b>
-        Dedicated GPU's: NVIDIA{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
+
+/*
         <A href="https://www.nvidia.com/en-us/data-center/tesla-p100/">P100</A>,{" "}
         <A href="https://www.nvidia.com/en-us/data-center/v100/">V100</A>,{" "}
         <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/nvidia-p4-datasheet.pdf">
           P4
         </A>
-        , or{" "}
+*/
+
+function GPU({ priceData, setConfig, configuration, disabled }) {
+  const { acceleratorType, acceleratorCount } = configuration;
+  const head = (
+    <div style={{ color: "#666", marginBottom: "5px" }}>
+      <b>
+        Dedicated NVIDIA GPU's:{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>, and{" "}
         <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
           T4
         </A>
@@ -1165,10 +1183,6 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     );
   }
 
-  const acceleratorTypes = Object.keys(priceData.accelerators);
-  if (acceleratorTypes.length != ACCELERATOR_TYPES.length) {
-    console.warn("BUG -- acceleratorTypes.length != ACCELERATOR_TYPES.length");
-  }
   const options = ACCELERATOR_TYPES.map((acceleratorType) => {
     let cost;
     const config1 = { ...configuration, acceleratorType, acceleratorCount };
@@ -1806,7 +1820,7 @@ function Admin({ setConfig, configuration, loading }) {
               setTest(!test);
             }}
           >
-            Use Newest Possibly Unreleased Image
+            Use newest (possibly) unreleased image
           </Checkbox>
         </Tooltip>
       </div>

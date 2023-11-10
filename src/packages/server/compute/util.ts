@@ -17,6 +17,16 @@ export async function setState(id: number, state: State) {
       server: { id },
       event: { action: "state", state },
     });
+
+    if (state != "running") {
+      // we also clear the "detailed_state", which is detailed information
+      // about a *running* compute
+      // server, and is confusing to see otherwise.
+      await pool.query(
+        "UPDATE compute_servers SET detailed_state='{}' WHERE id=$1",
+        [id],
+      );
+    }
   }
 }
 

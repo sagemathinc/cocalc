@@ -449,6 +449,31 @@ export async function validateConfigurationChange({
     return;
   }
 
+  if (changed.has("excludeFromSync")) {
+    if (state == "running" || state == "suspended" || state == "suspending") {
+      throw Error("cannot change excludeFromSync while server is running");
+    }
+    if (newConfiguration.excludeFromSync != null) {
+      if (typeof newConfiguration.excludeFromSync != "object") {
+        throw Error("excludeFromSync must be an array");
+      }
+      for (const path of newConfiguration.excludeFromSync) {
+        if (typeof path != "string") {
+          throw Error("excludeFromSync must be an array of strings");
+        }
+        if (!path) {
+          throw Error("path must not be trivial");
+        }
+        if (path.includes("/")) {
+          throw Error("directories must not include '/'");
+        }
+        if (path.includes("|")) {
+          throw Error("directories may not include '|'");
+        }
+      }
+    }
+  }
+
   switch (cloud) {
     case "google-cloud":
       await googleCloud.validateConfigurationChange({
@@ -579,11 +604,17 @@ async function getStartupParams(id: number): Promise<{
   gpu?: boolean;
   arch: Architecture;
   image: ImageName;
+  exclude_from_sync: string;
 }> {
   const server = await getServerNoCheck(id);
+  const excludeFromSync = server.configuration?.excludeFromSync ?? [];
+  const exclude_from_sync = excludeFromSync.join("|");
   switch (server.cloud) {
     case "google-cloud":
-      return await googleCloud.getStartupParams(server);
+      return {
+        ...(await googleCloud.getStartupParams(server)),
+        exclude_from_sync,
+      };
     case "onprem":
       const { configuration } = server;
       if (configuration.cloud != "onprem") {
@@ -593,7 +624,8 @@ async function getStartupParams(id: number): Promise<{
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
-        image: configuration.image ?? "minimal",
+        image: configuration.image ?? "python",
+        exclude_from_sync,
       };
     default:
       throw Error(

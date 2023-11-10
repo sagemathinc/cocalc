@@ -25,9 +25,26 @@ export default function Configuration({
   return (
     <>
       {editable && disabled && (
-        <div style={{ fontWeight: 250 }}>
-          You can only change the configuration when the VM is off or
-          deprovisioned.
+        <div
+          style={{
+            fontWeight: 250,
+            textAlign: "center",
+            maxWidth: "600px",
+            margin: "auto 15px",
+            borderBottom: "1px solid #aaa",
+            marginBottom: "15px",
+            paddingBottom: "15px",
+          }}
+        >
+          Most configuration can only be changed when the server is off.
+          {configuration?.cloud == "google-cloud" ? (
+            <b>
+              <br />
+              The disk can be instantly enlarged at any time without a reboot.
+            </b>
+          ) : (
+            ""
+          )}
         </div>
       )}
       <Config

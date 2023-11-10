@@ -7,9 +7,29 @@ import {
   DOCKER_USER,
   getImagePostfix,
 } from "@cocalc/util/db-schema/compute-servers";
+import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 
 // for consistency with cocalc.com
 export const UID = 2001;
+
+// Install lightweight version of nodejs that we can depend on.
+// Note that the exact version is VERY important, e.g., the most
+// recent 18.x and 20.x versions totally broke node-pty in horrible
+// ways... so we really can't depend on something random for node,
+// hence the version is hard coded here.  See https://github.com/sagemathinc/cocalc/issues/6963
+const NODE_VERSION = "18.17.1";
+
+// see https://github.com/nvm-sh/nvm#install--update-script for this version:
+const NVM_VERSION = "0.39.5";
+export function installNode() {
+  return `
+mkdir -p /cocalc/nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | NVM_DIR=/cocalc/nvm PROFILE=/dev/null bash
+source /cocalc/nvm/nvm.sh
+nvm install --no-progress ${NODE_VERSION}
+rm -rf /cocalc/nvm/.cache
+`;
+}
 
 export function installDocker() {
   // See https://docs.docker.com/engine/install/ubuntu/
@@ -66,7 +86,7 @@ fi
 
 export function installCoCalc(arch) {
   const image = `${DOCKER_USER}/compute-cocalc${getImagePostfix(arch)}`;
- return `
+  return `
 if [ -z "$COCALC" ]; then
   export COCALC=/cocalc
 fi
@@ -75,12 +95,12 @@ docker pull ${image}
 new_id=$(docker images --digests --no-trunc --quiet ${image}:latest)
 
 if [ ! -f "$COCALC"/.versions/"$new_id" ]; then
-  rm -rf /tmp/cocalc
+  rm -rf /tmp/cocalc "$COCALC"/src
   docker create --name temp-copy-cocalc ${image}
   docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
   mkdir -p "$COCALC"/conf
   mv "$COCALC"/conf /tmp/cocalc/conf
-  rsync -axH --delete /tmp/cocalc/ "$COCALC"/
+  rsync -axH /tmp/cocalc/ "$COCALC"/
   rm -rf /tmp/cocalc
   docker rm temp-copy-cocalc
   mkdir -p "$COCALC"/.versions
@@ -92,13 +112,15 @@ fi
 `;
 }
 
-export function installConf({
+export async function installConf({
   api_key,
   api_server,
   project_id,
   compute_server_id,
   hostname,
+  exclude_from_sync,
 }) {
+  const auth = await authorizedKeys(project_id);
   return `
 # Setup Current CoCalc Connection Configuration --
 
@@ -108,6 +130,8 @@ echo "${api_server}" > "$COCALC"/conf/api_server
 echo "${project_id}" > "$COCALC"/conf/project_id
 echo "${compute_server_id}" > "$COCALC"/conf/compute_server_id
 echo "${hostname}" > "$COCALC"/conf/hostname
+echo '${auth}' > "$COCALC"/conf/authorized_keys
+echo '${exclude_from_sync}' > "$COCALC"/conf/exclude_from_sync
 `;
 }
 
@@ -144,4 +168,15 @@ apt-get --purge -y remove  nvidia-kernel-source-545
 apt-get -y autoremove
 apt-get -y install nvidia-kernel-open-545 cuda-drivers-545
 `;
+}
+
+async function authorizedKeys(project_id: string) {
+  const sshKeys = await getSshKeys(project_id);
+  return (
+    "# This file is managed by CoCalc.  Add keys in account prefs and project settings.\n# See https://doc.cocalc.com/account/ssh.html\n\n" +
+    Object.values(sshKeys)
+      .map(({ value }) => `# Added by CoCalc\n${value}`.trim())
+      .join("\n") +
+    "\n"
+  );
 }

@@ -7,6 +7,7 @@ console.log("API_SERVER=", process.env.API_SERVER);
 const { mountProject } = require("../dist/lib");
 
 const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
+const EXCLUDE_FROM_SYNC = process.env.EXCLUDE_FROM_SYNC ?? "";
 
 async function main() {
   let unmount = null;
@@ -46,6 +47,9 @@ async function main() {
       unionfs,
       exclude: ["scratch", "tmp"],
       readTrackingPath: process.env.READ_TRACKING_PATH,
+      exclude: [".*"].concat(
+        EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
+      ),
     });
     unmount = exports.fs.unmount;
   } catch (err) {
