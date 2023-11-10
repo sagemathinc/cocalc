@@ -153,7 +153,7 @@ export function ProjectServers(props: Props) {
       </Title>
       {computeServersEnabled() && (
         <>
-          <h2>Compute Servers</h2>
+          <h2><Icon name="servers" /> Compute Servers</h2>
           <ComputeServers project_id={project_id} />
         </>
       )}

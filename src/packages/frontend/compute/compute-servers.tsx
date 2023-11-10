@@ -14,6 +14,7 @@ import {
   DragHandle,
 } from "@cocalc/frontend/components/sortable-list";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Icon } from "@cocalc/frontend/components";
 
 export default function ComputeServers({ project_id }: { project_id: string }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
@@ -38,17 +39,27 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         terminals and web servers collaboratively, with full access to this
         project.
         <ul>
-          <li>Root access and Internet access,</li>
           <li>
-            Dedicated GPU's, hundreds of very fast vCPU's, and thousands of GB
-            of RAM
+            <Icon name="ubuntu" /> Full root and internet access on an Ubuntu
+            Linux server,
           </li>
           <li>
-            Install any free and commercial Linux software (e.g., MATLAB,
-            Mathematica, any Docker container, etc.)
+            <Icon name="server" /> Dedicated GPU's, hundreds of very fast
+            vCPU's, and thousands of GB of RAM
           </li>
-          <li>Public ip address and (optional) domain name</li>
-          <li>Files sync'd with this project</li>
+          <li>
+            <Icon name="mathematica" /> <Icon name="matlab" />{" "}
+            <Icon name="maple" /> Install any free and commercial Linux software
+            (e.g., MATLAB, Mathematica, any Docker container, etc.)
+          </li>
+          <li>
+            {" "}
+            <Icon name="dns" /> Public ip address and (optional) domain name
+          </li>
+          <li>
+            {" "}
+            <Icon name="sync" /> Files sync'd with this project
+          </li>
         </ul>
         <h3>Getting Started</h3>
         <ul>
