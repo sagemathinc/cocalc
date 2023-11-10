@@ -62,10 +62,13 @@ export default async function stateSync() {
   // Query database for all compute servers that are either 'suspended' for at least 60 days,
   // or 'off' with last state change within 5 minutes, or 'running' with no valid ready ping.
   // We skip on prem for now since (1) it is free, and (2) we have no way to fetch the state.
+  // We also don't look at servers whose state changed in the last minute, since that destabilizes
+  // properly managed cloud operations.
   const pool = getPool();
   const { rows: servers } = await pool.query(
-    `SELECT id, state, account_id FROM compute_servers WHERE cloud != 'onprem' AND
-       (    (state='suspended' AND state_changed + interval '60 days' <= NOW())
+    `SELECT id, state, account_id FROM compute_servers WHERE cloud != 'onprem'
+      AND  state_changed + interval '1 minute' <= NOW()
+      AND ( (state='suspended' AND state_changed + interval '60 days' <= NOW())
          OR (state='off'   AND state_changed + interval '5 minutes' >= NOW())
          OR (state=ANY('{starting,stopping,suspending}') AND state_changed + interval '30 minutes' >= NOW())
          OR (state='running'   AND COALESCE((detailed_state#>'{vm,expire}')::numeric, 0) < 1000*extract(epoch from now())))`,
