@@ -16,7 +16,9 @@ interface ImageBase {
   label: string;
   docker: string;
   minDiskSizeGb: number;
-  url?: string;
+  url: string;
+  icon: string;
+  source: string;
 }
 
 interface NonGPUImage extends ImageBase {
@@ -40,39 +42,57 @@ export const IMAGES0 = {
     docker: `${DOCKER_USER}/compute-python`,
     minDiskSizeGb: 10,
     gpu: false,
+    icon: "python",
+    // TODO -- should be a much better
+    url: "https://www.python.org/",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python/Dockerfile",
   },
   "sagemath-10.1": {
     label: "SageMath 10.1",
     docker: `${DOCKER_USER}/compute-sagemath-10.1`,
     minDiskSizeGb: 15,
     gpu: false,
+    icon: "sagemath",
+    url: "https://www.sagemath.org/",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/sagemath-10.1/Dockerfile",
   },
   pytorch: {
-    label: "GPU - PyTorch",
+    label: "PyTorch",
     docker: `${DOCKER_USER}/compute-pytorch`,
     gpu: true,
     // have to add 10 for CUDA base drivers
     minDiskSizeGb: 30 + 10,
     cudaVersion: "12.2",
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
+    icon: "pytorch",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch/Dockerfile",
   },
   tensorflow: {
-    label: "GPU - Tensorflow",
+    label: "Tensorflow",
     docker: `${DOCKER_USER}/compute-tensorflow`,
     gpu: true,
     // have to add 10 for CUDA base drivers
     minDiskSizeGb: 30 + 10,
     cudaVersion: "12.2",
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
+    icon: "tensorflow",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow/Dockerfile",
   },
   cuda12: {
-    // [ ] TODO: maybe actualy the cuda 11.x dev env!!?
-    label: "GPU - CUDA Dev Environment",
+    label: "CUDA Toolkit",
     docker: `${DOCKER_USER}/compute-cuda`,
     gpu: true,
     // have to add 10 for CUDA base drivers
     minDiskSizeGb: 15 + 10,
     cudaVersion: "12.2",
+    icon: "nvidia",
+    url: "https://developer.nvidia.com/cuda-toolkit",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda/Dockerfile",
   },
   // Disabled -- not sure if it is worthwhile:
   //   cuda11: {
@@ -87,6 +107,10 @@ export const IMAGES0 = {
     docker: `${DOCKER_USER}/compute-rlang`,
     minDiskSizeGb: 10,
     gpu: false,
+    icon: "r",
+    url: "https://www.r-project.org/",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/rlang/Dockerfile",
   },
   //   julia: {
   //     label: "Julia",
