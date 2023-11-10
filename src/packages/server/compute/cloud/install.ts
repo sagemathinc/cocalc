@@ -87,24 +87,20 @@ fi
 export function installCoCalc(arch) {
   const image = `${DOCKER_USER}/compute-cocalc${getImagePostfix(arch)}`;
   return `
-if [ -z "$COCALC" ]; then
-  export COCALC=/cocalc
-fi
-
 docker pull ${image}
 new_id=$(docker images --digests --no-trunc --quiet ${image}:latest)
 
-if [ ! -f "$COCALC"/.versions/"$new_id" ]; then
-  rm -rf /tmp/cocalc "$COCALC"/src
+if [ ! -f /cocalc/.versions/"$new_id" ]; then
+  rm -rf /tmp/cocalc /cocalc/src
   docker create --name temp-copy-cocalc ${image}
   docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
-  mkdir -p "$COCALC"/conf
-  mv "$COCALC"/conf /tmp/cocalc/conf
-  rsync -axH /tmp/cocalc/ "$COCALC"/
+  mkdir -p /cocalc/conf
+  mv /cocalc/conf /tmp/cocalc/conf
+  rsync -axH /tmp/cocalc/ /cocalc/
   rm -rf /tmp/cocalc
   docker rm temp-copy-cocalc
-  mkdir -p "$COCALC"/.versions
-  touch "$COCALC"/.versions/"$new_id"
+  mkdir -p /cocalc/.versions
+  touch /cocalc/.versions/"$new_id"
 
   # delete all but the newest image to save disk space
   docker images --filter=reference=${image} --format='{{.ID}}\t{{.CreatedAt}}' | sort -r -k2 | awk 'NR>1 {print $1}' | xargs docker rmi -f 2>/dev/null || true
@@ -123,15 +119,14 @@ export async function installConf({
   const auth = await authorizedKeys(project_id);
   return `
 # Setup Current CoCalc Connection Configuration --
-
-mkdir -p "$COCALC"/conf
-echo "${api_key}" > "$COCALC"/conf/api_key
-echo "${api_server}" > "$COCALC"/conf/api_server
-echo "${project_id}" > "$COCALC"/conf/project_id
-echo "${compute_server_id}" > "$COCALC"/conf/compute_server_id
-echo "${hostname}" > "$COCALC"/conf/hostname
-echo '${auth}' > "$COCALC"/conf/authorized_keys
-echo '${exclude_from_sync}' > "$COCALC"/conf/exclude_from_sync
+mkdir -p /cocalc/conf
+echo "${api_key}" > /cocalc/conf/api_key
+echo "${api_server}" > /cocalc/conf/api_server
+echo "${project_id}" > /cocalc/conf/project_id
+echo "${compute_server_id}" > /cocalc/conf/compute_server_id
+echo "${hostname}" > /cocalc/conf/hostname
+echo '${auth}' > /cocalc/conf/authorized_keys
+echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
 `;
 }
 
