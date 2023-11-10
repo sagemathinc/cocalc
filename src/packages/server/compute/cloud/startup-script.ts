@@ -182,7 +182,7 @@ fi
 
 # Install ssh keys for access to user account
 mkdir -p /home/unionfs/upper/.ssh
-cat /cocalc/conf/authorized_keys" > /home/unionfs/upper/.ssh/authorized_keys
+cat /cocalc/conf/authorized_keys > /home/unionfs/upper/.ssh/authorized_keys
 
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
