@@ -240,7 +240,7 @@ export default function SelectComputeServer({
         disabled={loading}
         placeholder={
           <span style={{ color: "white" }}>
-            <Icon style={{ color: "white", marginRight: "5px" }} name="edit" />
+            <Icon style={{ color: "white", marginRight: "5px" }} name="server" />
           </span>
         }
         open={open}
