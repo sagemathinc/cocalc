@@ -1116,26 +1116,36 @@ function Image(props) {
 
 // Putting L4 and A100 at top, since they are most
 // interesting, then T4 since very affordable.
-// We do NOT include the P4 or K80, which are old
+// We do NOT include the P4, P100, V100 or K80, which are older
 // and for which our base image and drivers don't work.
+// If for some reason we need them, we will have to switch to
+// different base drivers or have even more images
 const ACCELERATOR_TYPES = [
   "nvidia-l4",
   "nvidia-tesla-a100",
   "nvidia-a100-80gb",
   "nvidia-tesla-t4",
-  "nvidia-tesla-v100",
-  "nvidia-tesla-p100",
+  // "nvidia-tesla-v100",
+  //"nvidia-tesla-p100",
+  //"nvidia-tesla-p4",
 ];
+
+/*
+        <A href="https://www.nvidia.com/en-us/data-center/tesla-p100/">P100</A>,{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/v100/">V100</A>,{" "}
+        <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/nvidia-p4-datasheet.pdf">
+          P4
+        </A>
+*/
+
 function GPU({ priceData, setConfig, configuration, disabled }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
       <b>
-        Dedicated GPU's: NVIDIA{" "}
+        Dedicated NVIDIA GPU's:{" "}
         <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/tesla-p100/">P100</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/v100/">V100</A>, or{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>, and{" "}
         <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
           T4
         </A>
