@@ -317,6 +317,8 @@ export function getMinDiskSizeGb(configuration) {
   }
 }
 
+const DEFAULT_EXCLUDE_FROM_SYNC = ["scratch"] as const;
+
 const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {
     image: "python",
@@ -328,6 +330,7 @@ const GOOGLE_CLOUD_DEFAULTS = {
     diskSizeGb: getMinDiskSizeGb({ image: "python" }),
     diskType: "pd-balanced",
     externalIp: true,
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
   },
   gpu: {
     image: "pytorch",
@@ -341,6 +344,7 @@ const GOOGLE_CLOUD_DEFAULTS = {
     machineType: "g2-standard-4",
     acceleratorType: "nvidia-l4",
     acceleratorCount: 1,
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
   },
 } as const;
 
@@ -369,6 +373,7 @@ const CLOUDS: {
       image: "python",
       instance_type_name: "gpu_1x_a10",
       region_name: "us-west-1",
+      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
   onprem: {
@@ -379,6 +384,7 @@ const CLOUDS: {
       image: "python",
       arch: "x86_64",
       gpu: false,
+      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
 };
@@ -401,6 +407,10 @@ interface BaseConfiguration {
   // with ssl proxying to this compute server when it is running.
   dns?: string;
   image?: ImageName;
+  // Array of top level directories to exclude from sync.
+  // These can't have "|" in them, since we use that as a separator.
+  // Use "~" to completely disable sync.
+  excludeFromSync?: readonly string[];
 }
 
 interface LambdaConfiguration extends BaseConfiguration {
@@ -569,7 +579,6 @@ export interface ComputeServerUserInfo {
   detailed_state?: { [name: string]: ComponentState };
   update_purchase?: boolean;
   last_purchase_update?: Date;
-  exclude_from_sync?: string;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -607,7 +616,6 @@ Table({
           purchase_id: null,
           position: null,
           detailed_state: null,
-          exclude_from_sync: null,
         },
       },
       set: {
@@ -738,10 +746,6 @@ Table({
       type: "map",
       pg_type: "jsonb",
       desc: "Map from component name to something like {state:'running',time:Date.now()}, e.g., {vm: {state:'running', time:393939938484}}, filesystem: {state:'updating', time:939398484892}, uptime:{state:'22:56:33 up 3 days,  9:28,  0 users,  load average: 0.93, 0.73, 0.56', time:?}}.  This is used to provide users with insight into what's currently happening on their compute server.",
-    },
-    exclude_from_sync: {
-      type: "string",
-      desc: "List of top level directory names relative HOME to exclude from sync, separated by '|'.  These should not have / in them, since they are top level directories.   Include '~' in list to disable sync entirely.",
     },
   },
 });

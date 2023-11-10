@@ -40,6 +40,7 @@ import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage from "./select-image";
+import ExcludeFromSync from "./exclude-from-sync";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -895,13 +896,14 @@ function RamAndCpu({
   );
 }
 
-function BootDisk({
-  setConfig,
-  configuration,
-  disabled,
-  priceData,
-  state = "deprovisioned",
-}) {
+function BootDisk(props) {
+  const {
+    setConfig,
+    configuration,
+    disabled,
+    priceData,
+    state = "deprovisioned",
+  } = props;
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
   );
@@ -1085,6 +1087,10 @@ function BootDisk({
             are much faster.
           </div>
         )}
+        <ExcludeFromSync
+          {...props}
+          style={{ marginTop: "10px", color: "#666" }}
+        />
       </div>
     </div>
   );
@@ -1177,10 +1183,6 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
     );
   }
 
-  const acceleratorTypes = Object.keys(priceData.accelerators);
-  if (acceleratorTypes.length != ACCELERATOR_TYPES.length) {
-    console.warn("BUG -- acceleratorTypes.length != ACCELERATOR_TYPES.length");
-  }
   const options = ACCELERATOR_TYPES.map((acceleratorType) => {
     let cost;
     const config1 = { ...configuration, acceleratorType, acceleratorCount };

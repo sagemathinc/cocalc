@@ -38,6 +38,7 @@ export default async function startupScript({
   gpu,
   arch,
   hostname,
+  exclude_from_sync,
   installUser: doInstallUser,
 }: {
   image?: ImageName;
@@ -47,6 +48,7 @@ export default async function startupScript({
   gpu?: boolean;
   arch: Architecture;
   hostname: string;
+  exclude_from_sync: string;
   installUser?: boolean;
 }) {
   if (!api_key) {
@@ -89,6 +91,7 @@ ${await installConf({
   project_id,
   compute_server_id,
   hostname,
+  exclude_from_sync,
 })}
 if [ $? -ne 0 ]; then
    setState cocalc error "problem installing configuration"
