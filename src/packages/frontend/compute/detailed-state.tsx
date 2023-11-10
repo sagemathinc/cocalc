@@ -13,6 +13,7 @@ const SPEC = {
   },
   "filesystem-cache": { icon: "microchip", label: "Cache /home/user" },
   vm: { icon: "desktop", label: "Virtual Machine" },
+  install: { icon: "cloud-dev", label: "Install Software" },
   cocalc: { icon: "cocalc-ring", label: "Install CoCalc" },
 };
 
@@ -23,7 +24,7 @@ const COMPONENTS = [
   "filesystem",
   "filesystem-cache",
   "filesystem-network",
-  "cocalc",
+  "install",
   "vm",
 ];
 

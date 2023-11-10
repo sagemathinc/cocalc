@@ -72,7 +72,7 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
-setState cocalc install-conf '' 60 40
+setState install configure '' 60 10
 ${await installConf({
   api_key,
   api_server: apiServer,
@@ -82,7 +82,7 @@ ${await installConf({
   exclude_from_sync,
 })}
 if [ $? -ne 0 ]; then
-   setState cocalc error "problem installing configuration"
+   setState install error "problem installing configuration"
    exit 1
 fi
 
@@ -90,32 +90,31 @@ ${rootSsh()}
 
 docker
 if [ $? -ne 0 ]; then
-setState vm install-docker '' 120 20
+setState install install-docker '' 120 20
 ${installDocker()}
 fi
-setState vm install '' 120 40
 
-setState cocalc install-node 60 15
+setState install install-nodejs 60 50
 ${installNode()}
 if [ $? -ne 0 ]; then
-   setState cocalc error "problem installing nodejs"
+   setState install error "problem installing nodejs"
    exit 1
 fi
 
-setState cocalc install-code '' 60 25
+setState install install-cocalc '' 60 70
 ${installCoCalc(arch)}
 if [ $? -ne 0 ]; then
-   setState cocalc error "problem installing cocalc"
+   setState install error "problem installing cocalc"
    exit 1
 fi
 
-
+setState install install-user '' 60 80
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
-   setState cocalc error "problem creating user"
+   setState install error "problem creating user"
    exit 1
 fi
-setState cocalc ready '' 0  100
+setState install ready '' 0  100
 
 setState vm start '' 60 60
 
@@ -125,7 +124,6 @@ ${runCoCalcCompute({
   image,
 })}
 
-# launch the disk enlarger
 exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
 
 while true; do
@@ -157,7 +155,7 @@ function filesystem({ arch }) {
 
   return `
 # Docker container that mounts the filesystem(s)
-setState filesystem init '' 30 15
+setState filesystem init '' 60 15
 
 # Make the home directory
 # Note the filesystem mount is with the option nonempty, so

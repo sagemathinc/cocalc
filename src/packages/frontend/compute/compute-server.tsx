@@ -192,57 +192,64 @@ export default function ComputeServer({
   );
 
   const buttons = (
-    <div style={{ width: "100%", display: "flex" }}>
-      <Button onClick={() => setEdit(false)} style={{ marginRight: "5px" }}>
-        <Icon name="save" /> Save
-      </Button>
-      <div style={{ marginRight: "5px" }}>
-        {getActions({
-          id,
-          state,
-          editable,
-          setError,
-          configuration,
-          includeDangerous: true,
-          type: undefined,
-        })}
-      </div>{" "}
-      {editable &&
-        id &&
-        (deleted ? (
-          <Button
-            key="undelete"
-            onClick={async () => {
-              setShowDeleted?.(false);
-              await undeleteServer(id);
-            }}
-          >
-            <Icon name="trash" /> Undelete
-          </Button>
-        ) : (
-          <Popconfirm
-            key="delete"
-            title={"Delete this compute server?"}
-            description={
-              <div style={{ width: "400px" }}>
-                Are you sure you want to delete this compute server?
-                {state != "deprovisioned" && (
-                  <b>WARNING: Any data on the boot disk will be deleted.</b>
-                )}
-              </div>
-            }
-            onConfirm={async () => {
-              setEdit(false);
-              await deleteServer(id);
-            }}
-            okText="Yes"
-            cancelText="Cancel"
-          >
-            <Button key="trash" danger>
-              <Icon name="trash" /> Delete
+    <div>
+      <div style={{ width: "100%", display: "flex" }}>
+        <Button onClick={() => setEdit(false)} style={{ marginRight: "5px" }}>
+          <Icon name="save" /> Save
+        </Button>
+        <div style={{ marginRight: "5px" }}>
+          {getActions({
+            id,
+            state,
+            editable,
+            setError,
+            configuration,
+            includeDangerous: true,
+            type: undefined,
+          })}
+        </div>{" "}
+        {editable &&
+          id &&
+          (deleted ? (
+            <Button
+              key="undelete"
+              onClick={async () => {
+                setShowDeleted?.(false);
+                await undeleteServer(id);
+              }}
+            >
+              <Icon name="trash" /> Undelete
             </Button>
-          </Popconfirm>
-        ))}
+          ) : (
+            <Popconfirm
+              key="delete"
+              title={"Delete this compute server?"}
+              description={
+                <div style={{ width: "400px" }}>
+                  Are you sure you want to delete this compute server?
+                  {state != "deprovisioned" && (
+                    <b>WARNING: Any data on the boot disk will be deleted.</b>
+                  )}
+                </div>
+              }
+              onConfirm={async () => {
+                setEdit(false);
+                await deleteServer(id);
+              }}
+              okText="Yes"
+              cancelText="Cancel"
+            >
+              <Button key="trash" danger>
+                <Icon name="trash" /> Delete
+              </Button>
+            </Popconfirm>
+          ))}
+      </div>
+      {backendError && (
+        <div style={{ marginTop: "10px", display: "flex" }}>
+          <Error error={backendError} style={{ fontSize: "10pt" }} />
+        </div>
+      )}
     </div>
   );
 
@@ -350,7 +357,6 @@ export default function ComputeServer({
                 configuration={configuration}
               />
             )}
-            {backendError && <Error error={backendError} />}
           </div>
         }
       />

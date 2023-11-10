@@ -67,7 +67,7 @@ export function ServersFlyout({ project_id, wrap }) {
       {computeServersEnabled() && (
         <div>
           <Title level={5}>
-            <Icon name="server" /> Compute Servers
+            <Icon name="servers" /> Compute Servers
           </Title>
           <ComputeServers project_id={project_id} />
         </div>

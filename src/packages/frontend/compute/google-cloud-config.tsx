@@ -250,7 +250,9 @@ export default function GoogleCloudConfiguration({
           disabled={loading || disabled}
           setConfig={setConfig}
           configuration={configuration}
-          gpu={configuration.acceleratorType && configuration.acceleratorCount}
+          gpu={
+            !!(configuration.acceleratorType && configuration.acceleratorCount)
+          }
         />
       ),
     },
@@ -469,7 +471,9 @@ function Region({ priceData, setConfig, configuration, disabled }) {
     <div>
       {configuration.machineType ? (
         <div style={{ color: "#666", marginBottom: "5px" }}>
-          <b>Region</b>
+          <b>
+            <Icon name="global" /> Region
+          </b>
         </div>
       ) : undefined}
       <Select
@@ -638,7 +642,9 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Provisioning</b>
+        <b>
+          <Icon name="sliders" /> Provisioning
+        </b>
       </div>
       <Radio.Group
         buttonStyle="solid"
@@ -664,10 +670,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
       <div style={{ color: "#666", marginTop: "5px" }}>
         Standard VM's stay running until you stop them, whereas spot VM's are
         incredibly cheap, but{" "}
-        <b>
-          might not start and may automatically stop if there is a surge in
-          demand.
-        </b>
+        <b>will automatically stop when there is a surge in demand.</b>
       </div>
     </div>
   );
@@ -712,7 +715,10 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
     <div>
       {configuration.machineType ? (
         <div style={{ color: "#666", marginBottom: "5px" }}>
-          <b>Zone</b> in {configuration.region} with {configuration.machineType}{" "}
+          <b>
+            <Icon name="aim" /> Zone
+          </b>{" "}
+          in {configuration.region} with {configuration.machineType}{" "}
           {configuration.spot ? "spot" : ""} VMs
         </div>
       ) : undefined}
@@ -817,7 +823,9 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Machine Type</b>{" "}
+        <b>
+          <Icon name="microchip" /> Machine Type
+        </b>{" "}
         <RamAndCpu
           machineType={newMachineType}
           priceData={priceData}
@@ -940,7 +948,9 @@ function BootDisk(props) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Disk</b>
+        <b>
+          <Icon name="disk-drive" /> Disk
+        </b>
       </div>
       <Space direction="vertical">
         <InputNumber
@@ -1101,7 +1111,9 @@ function Image(props) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Image</b>
+        <b>
+          <Icon name="disk-round" /> Image
+        </b>
       </div>
       {state == "deprovisioned" && (
         <div style={{ color: "#666", marginBottom: "5px" }}>
@@ -1149,8 +1161,8 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
       <b>
-        Dedicated NVIDIA GPU's:{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
+        <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" /> NVIDIA
+        GPUs: <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
         <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>, and{" "}
         <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
           T4
@@ -1249,6 +1261,15 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
             setConfig({ acceleratorCount: count });
           }}
         />
+        {acceleratorCount && acceleratorType && (
+          <div style={{ color: "#666", marginTop: "10px" }}>
+            You have selected {acceleratorCount} dedicated{" "}
+            {displayAcceleratorType(acceleratorType)}{" "}
+            {plural(acceleratorCount, "GPU")}, with a total of{" "}
+            {priceData.accelerators[acceleratorType].memory * acceleratorCount}
+            GB RAM.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1596,7 +1617,9 @@ function Network({ setConfig, configuration, loading, priceData }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Network</b>
+        <b>
+          <Icon name="network-server" /> Network
+        </b>
         <br />
         All compute servers have full network access with unlimited ingress for
         free. Outgoing{" "}
@@ -1807,7 +1830,9 @@ function Admin({ setConfig, configuration, loading }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Admin</b>
+        <b>
+          <Icon name="users" /> Admin
+        </b>
         <br />
         Settings and functionality only available to admins.
         <br />

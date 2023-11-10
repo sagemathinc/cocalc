@@ -68,7 +68,7 @@ function changeString(changes) {
   return v.join("; ");
 }
 
-export function Error({ error }) {
+export function Error({ error, style }: { error; style? }) {
   return (
     <div
       style={{
@@ -78,6 +78,7 @@ export function Error({ error }) {
         background: "darkred",
         padding: "1px 5px",
         borderRadius: "3px",
+        ...style,
       }}
     >
       {error}

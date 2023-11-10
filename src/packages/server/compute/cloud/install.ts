@@ -2,12 +2,12 @@
 This all assume Ubuntu 22.04.
 */
 
+import { CudaVersion } from "@cocalc/util/db-schema/compute-servers";
+import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 import {
-  CudaVersion,
-  DOCKER_USER,
+  Architecture,
   getImagePostfix,
 } from "@cocalc/util/db-schema/compute-servers";
-import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -84,27 +84,10 @@ fi
 `;
 }
 
-export function installCoCalc(arch) {
-  const image = `${DOCKER_USER}/compute-cocalc${getImagePostfix(arch)}`;
+export function installCoCalc(arch: Architecture) {
   return `
-docker pull ${image}
-new_id=$(docker images --digests --no-trunc --quiet ${image}:latest)
-
-if [ ! -f /cocalc/.versions/"$new_id" ]; then
-  rm -rf /tmp/cocalc /cocalc/src
-  docker create --name temp-copy-cocalc ${image}
-  docker cp temp-copy-cocalc:/cocalc /tmp/cocalc
-  mkdir -p /cocalc/conf
-  mv /cocalc/conf /tmp/cocalc/conf
-  rsync -axH /tmp/cocalc/ /cocalc/
-  rm -rf /tmp/cocalc
-  docker rm temp-copy-cocalc
-  mkdir -p /cocalc/.versions
-  touch /cocalc/.versions/"$new_id"
-
-  # delete all but the newest image to save disk space
-  docker images --filter=reference=${image} --format='{{.ID}}\t{{.CreatedAt}}' | sort -r -k2 | awk 'NR>1 {print $1}' | xargs docker rmi -f 2>/dev/null || true
-fi
+NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
+npx -y @cocalc/compute-server${getImagePostfix(arch)} /cocalc
 `;
 }
 
