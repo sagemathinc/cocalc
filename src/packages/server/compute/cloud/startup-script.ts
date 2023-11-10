@@ -139,7 +139,7 @@ function rootSsh() {
   return `
 # Install ssh keys for root access to VM
 mkdir -p /root/.ssh
-cat "$COCALC/conf/authorized_keys" > /root/.ssh/authorized_keys
+cat /cocalc/conf/authorized_keys > /root/.ssh/authorized_keys
 `;
 }
 
@@ -182,7 +182,7 @@ fi
 
 # Install ssh keys for access to user account
 mkdir -p /home/unionfs/upper/.ssh
-cat "$COCALC/conf/authorized_keys" > /home/unionfs/upper/.ssh/authorized_keys
+cat /cocalc/conf/authorized_keys" > /home/unionfs/upper/.ssh/authorized_keys
 
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
@@ -207,7 +207,7 @@ if [ $? -ne 0 ]; then
    --name=filesystem \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
-   -v "$COCALC":/cocalc \
+   -v /cocalc:/cocalc \
    ${image}
   if [ $? -ne 0 ]; then
      setState filesystem error "problem creating filesystem Docker container"
@@ -264,7 +264,7 @@ if [ $? -ne 0 ]; then
    -p 443:443 \
    -p 80:80 \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   -v "$COCALC":/cocalc \
+   -v /cocalc:/cocalc \
    ${docker}${getImagePostfix(arch)}
   if [ $? -ne 0 ]; then
      setState compute error "problem creating compute Docker container"
