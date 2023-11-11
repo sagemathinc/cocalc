@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { cp, mkdir, open, rm, stat, readFile, writeFile } from "fs/promises";
+import { mkdir, open, rm, stat, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 //import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
@@ -11,10 +11,6 @@ import { execa, mtimeDirTree, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
-import type {
-  ExecuteCodeOptions,
-  ExecuteCodeOutput,
-} from "@cocalc/util/types/execute-code";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
 import { plural } from "@cocalc/util/misc";
@@ -399,14 +395,6 @@ class SyncFS {
     log("receiveFiles: files in ", pathToFileList, "received from project");
   };
 
-  private execInProject = async (
-    opts: ExecuteCodeOptions,
-  ): Promise<ExecuteCodeOutput> => {
-    log("execInProject:", `"${opts.command} ${opts.args?.join(" ")}"`);
-    const api = await this.client.project_client.api(this.project_id);
-    return await api.exec(opts);
-  };
-
   private isExcluded = (path: string) => {
     if (!path || path.startsWith(".")) {
       return true;
@@ -440,59 +428,26 @@ class SyncFS {
     return v;
   };
 
-  private createReadTrackingTarball = async (recentFiles: string[]) => {
+  private getReadTrackingFiles = async (recentFiles: string[]) => {
     const readTrackingOnProject = join(
       ".compute-servers",
       `${this.compute_server_id}`,
       "read-tracking",
     );
-    const readTrackingFilesTarOnProject = join(
-      ".compute-servers",
-      `${this.compute_server_id}`,
-      "read-tracking.tar",
-    );
     await writeFile(
       join(this.lower, readTrackingOnProject),
       recentFiles.join("\n"),
     );
-    const args = [
-      "-cf",
-      readTrackingFilesTarOnProject,
+    const createArgs = [
+      "-c",
       "--no-recursion",
       "--verbatim-files-from",
       "--files-from",
       readTrackingOnProject,
     ];
-    log("createReadTrackingTarball:", "tar", args.join(" "));
-    await this.execInProject({
-      command: "tar",
-      args,
-      // very important that ANY error, e.g., file modified during write,
-      // etc. throw exception, since we don't want to copy over a corrupted
-      // file... and this tracking is 100% only for performance.
-      err_on_exit: true,
-      timeout: 60 * 2, // timeout in seconds.
-    });
-    return readTrackingFilesTarOnProject;
-  };
-
-  private extractRecentlyReadFiles = async (tarball) => {
-    // We copy the tarball over locally first, to maximize speed of extraction,
-    // since during extract file can be "corrupted" due to being partly written.
-    const local = join(this.upper, UNIONFS, ".compute-servers", "recent.tar");
-    try {
-      await cp(join(this.lower, tarball), local);
-      try {
-        await rm(join(this.lower, tarball));
-      } catch (_) {}
-      const args2 = ["--keep-newer-files", "-xf", local];
-      log("extractRecentlyReadFiles", "tar", args2.join(" "));
-      await execa("tar", args2, { cwd: this.upper });
-    } finally {
-      try {
-        await rm(local);
-      } catch (_) {}
-    }
+    const extractArgs = ["--keep-newer-files", "-x"];
+    log("createReadTrackingTarball:", "tar", createArgs.join(" "));
+    this.tar.get({ createArgs, extractArgs });
   };
 
   private updateReadTracking = async () => {
@@ -508,8 +463,7 @@ class SyncFS {
       progress: 85,
     });
     try {
-      const tarball = await this.createReadTrackingTarball(recentFiles);
-      await this.extractRecentlyReadFiles(tarball);
+      await this.getReadTrackingFiles(recentFiles);
     } catch (err) {
       log("updateReadTracking: not updating due to err", `${err}`);
     }

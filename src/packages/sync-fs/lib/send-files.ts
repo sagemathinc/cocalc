@@ -44,7 +44,7 @@ export default function sendFiles({
     let timeTaken = (end - start) / 1000; // convert ms to s
     let speed = fileSize / timeTaken / 1000000;
     logger.debug(
-      `Directory ${fileSize / 1000000}MB sent in ${
+      `sendFiles: ${fileSize / 1000000}MB sent in ${
         end - start
       } ms, speed: ${speed} MB/s`,
     );

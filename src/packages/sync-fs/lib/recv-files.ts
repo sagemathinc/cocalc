@@ -40,7 +40,7 @@ export default function recvFiles({
     let timeTaken = (end - start) / 1000; // convert ms to s
     let speed = fileSize / timeTaken / 1000000;
     logger.debug(
-      `Directory ${fileSize / 1000000}MB received in ${
+      `recvFiles: ${fileSize / 1000000}MB received in ${
         end - start
       } ms, speed: ${speed} MB/s`,
     );
