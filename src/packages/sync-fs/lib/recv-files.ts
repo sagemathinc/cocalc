@@ -10,11 +10,18 @@ import { spawn } from "child_process";
 export default function recvFiles({
   ws,
   HOME = process.env.HOME,
+  args,
 }: {
   ws;
   HOME?;
+  args: string[];
 }) {
-  const tar = spawn("tar", ["-I", "lz4", "-x", "--delay-directory-restore"], {
+  if (args.length == 0) {
+    ws.emit("error", "no arguments given");
+    ws.close();
+    return;
+  }
+  const tar = spawn("tar", args, {
     cwd: HOME,
   });
   let start = Date.now();

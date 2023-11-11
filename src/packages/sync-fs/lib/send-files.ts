@@ -10,13 +10,20 @@ import { spawn } from "child_process";
 export default function sendFiles({
   ws,
   HOME = process.env.HOME,
+  args,
 }: {
   ws;
   HOME?;
+  args: string[];
 }) {
+  if (args.length == 0) {
+    ws.emit("error", "no arguments given");
+    ws.close();
+    return;
+  }
   let start = Date.now();
   // TODO: 'foo' is just a demo
-  const tar = spawn("tar", ["-I", "lz4", "-c", "foo"], {
+  const tar = spawn("tar", args, {
     cwd: HOME,
   });
   logger.debug("got connection", start);

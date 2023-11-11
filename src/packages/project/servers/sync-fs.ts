@@ -26,7 +26,15 @@ function initReceive(server, basePath) {
   const path = join(basePath, ".smc", "sync-fs", "recv");
   logger.info(`Initializing syncfs-recv server`, path);
   const wss = new WebSocketServer({ noServer: true });
-  wss.on("connection", recvFiles);
+  wss.on("connection", (ws) => {
+    let args = [];
+    ws.once("message", (mesg) => {
+      if (!(mesg instanceof Buffer)) {
+        args = mesg;
+      }
+    });
+    recvFiles({ ws, args, HOME: process.env.HOME });
+  });
   server.on("upgrade", (request, socket, head) => {
     const { pathname } = parse(request.url ?? "");
     if (pathname === path) {
@@ -44,9 +52,13 @@ function initSend(server, basePath) {
   const wss = new WebSocketServer({ noServer: true });
 
   wss.on("connection", (ws) => {
-    // [ ] todo: first we should recv message with the files to send,
-    // then pass that to sendFiles below.
-    sendFiles({ ws });
+    let args = [];
+    ws.once("message", (mesg) => {
+      if (!(mesg instanceof Buffer)) {
+        args = mesg;
+      }
+    });
+    sendFiles({ ws, args, HOME: process.env.HOME });
   });
 
   server.on("upgrade", (request, socket, head) => {

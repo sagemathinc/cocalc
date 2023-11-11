@@ -14,18 +14,46 @@ import { callback } from "awaiting";
 
 const logger = getLogger("compute:send-files");
 
-export default async function recvFiles(project_id: string) {
-  await callback(doRecvFiles, project_id);
+interface Options {
+  project_id: string;
+  // These are the args to tar after "c" and not involving compression, e.g., this
+  // would send files listed in /tmp/files.txt:
+  //    sendArgs = ["--no-recursion", "--verbatim-files-from", "--files-from", "/tmp/files.txt"]
+  // You must give something here so we know what to send.
+  // used to make the tarball
+  sendArgs: string[];
+  // used when extracting the tarball
+  recvArgs: string[];
+  // HOME directory for purposes of creating tarball
+  HOME?: string;
 }
 
-function doRecvFiles(project_id: string, cb) {
+export default async function sendFiles({
+  project_id,
+  sendArgs,
+  recvArgs,
+  HOME = process.env.HOME,
+}: Options) {
+  await callback(doSendFiles, project_id, sendArgs, recvArgs, HOME);
+}
+
+function doSendFiles(
+  project_id: string,
+  sendArgs: string[],
+  recvArgs: string[],
+  HOME,
+  cb,
+) {
   const remote = join(getProjectWebsocketUrl(project_id), "sync-fs", "recv");
   logger.debug("connecting to ", remote);
   const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
   const ws = new WebSocket(remote, { headers });
   ws.on("open", () => {
     logger.debug("connected to ", remote);
-    sendFilesWS({ ws, HOME: "/tmp" });
+    // tell it how to receive our files:
+    ws.send(recvArgs);
+    // send them
+    sendFilesWS({ ws, args: sendArgs, HOME });
   });
   ws.on("close", () => {
     cb?.();
