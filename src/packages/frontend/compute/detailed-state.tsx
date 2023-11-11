@@ -87,15 +87,17 @@ function State({ name, state, time, expire, progress, extra, configuration }) {
 
   return (
     <div style={{ display: "flex" }}>
-      {name != "compute" && (
-        <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
-          <Icon
-            name={SPEC[name]?.icon ?? "cube"}
-            style={{ marginRight: "5px" }}
-          />{" "}
-          {label}
-        </div>
-      )}
+      <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
+        {name != "compute" && (
+          <>
+            <Icon
+              name={SPEC[name]?.icon ?? "cube"}
+              style={{ marginRight: "5px" }}
+            />{" "}
+          </>
+        )}
+        {label}
+      </div>
       {!expired && (
         <>
           {!expired && (
