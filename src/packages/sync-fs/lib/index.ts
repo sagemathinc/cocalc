@@ -7,7 +7,7 @@ import { cp, mkdir, open, rm, stat, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 //import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
-import { createTarball, execa, mtimeDirTree, remove } from "./util";
+import { execa, mtimeDirTree, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
@@ -44,14 +44,14 @@ interface Options {
   // ALSO: if you have "~" or "." in the exclude array, then sync is completely disabled.
   exclude?: string[];
   readTrackingPath?: string;
-  tar?: { send; get };
+  tar: { send; get };
 }
 
 const UNIONFS = ".unionfs-fuse";
-const DEFAULT_SYNC_INTERVAL_MIN_S = 3;
+const DEFAULT_SYNC_INTERVAL_MIN_S = 5;
 // no idea what this should be.  It might be even 60s, but with
 // more UI and other queues to ping us.
-const DEFAULT_SYNC_INTERVAL_MAX_S = 10;
+const DEFAULT_SYNC_INTERVAL_MAX_S = 15;
 
 class SyncFS {
   private state: State = "init";
@@ -67,7 +67,7 @@ class SyncFS {
   private readTrackingPath?: string;
   private scratch: string;
   private error_txt: string;
-  private tar?: { send; get };
+  private tar: { send; get };
 
   private client: SyncClient;
 
@@ -360,60 +360,43 @@ class SyncFS {
   };
 
   private sendFiles = async (files: string[]) => {
-    log("sendFiles: sending ", files.length, "files");
-    if (this.tar != null) {
-      const target = join(this.scratch, "copy-to-project");
-      const file = await open(target, "w");
-      await file.write(files.join("\n"));
-      await file.close();
-      await this.tar.send({
-        createArgs: [
-          "-c",
-          "--no-recursion",
-          "--verbatim-files-from",
-          "--files-from",
-          target,
-        ],
-        extractArgs: ["--delay-directory-restore", "-x"],
-      });
-      return;
-    }
-    const tmpdir = join(this.upper, UNIONFS, ".compute-servers");
-    await mkdir(tmpdir, { recursive: true });
-    const tarball = await createTarball(
-      join(this.scratch, "copy-to-project"),
-      files,
-      this.upper,
-      tmpdir,
-    );
-
-    const i = tarball.lastIndexOf(".compute-servers");
-    const args = [
-      // --delay-directory-restore is so that directories don't
-      // have WRONG mtimes, and also do NOT do --keep-newer-files,
-      // which horribly breaks things.
-      "--delay-directory-restore",
-      "-xf",
-      tarball.slice(i),
+    const target = join(this.scratch, "copy-to-project");
+    log("sendFiles: sending ", files.length, "files listed in ", target);
+    const file = await open(target, "w");
+    await file.write(files.join("\n"));
+    await file.close();
+    const createArgs = [
+      "-c",
+      "--no-recursion",
+      "--verbatim-files-from",
+      "--files-from",
+      target,
     ];
-    log("sendFiles", "tar", args.join(" "));
-    await this.execInProject({
-      command: "tar",
-      args,
-      err_on_exit: false,
-      timeout: 60 * 15, // timeout in seconds.
-    });
-
-    await rm(tarball);
+    const extractArgs = ["--delay-directory-restore", "-x"];
+    await this.tar.send({ createArgs, extractArgs });
+    log("sendFiles: ", files.length, "sent");
   };
 
-  private receiveFiles = async (tarball: string) => {
-    log("receiveFiles", tarball);
-    const target = join(this.lower, tarball);
-    const args = ["--delay-directory-restore", "-xf", target];
-    log("receiveFiles", "tar", args.join(" "));
-    await execa("tar", args, { cwd: this.upper });
-    await rm(target);
+  // pathToFileList is the path to a file in the filesystem on
+  // in the project that has the names of the files to copy to
+  // the compute server.
+  private receiveFiles = async (pathToFileList: string) => {
+    log("receiveFiles: getting files in from project -- ", pathToFileList);
+    // this runs in the project
+    const createArgs = [
+      "-c",
+      "--no-recursion",
+      "--verbatim-files-from",
+      "--files-from",
+      pathToFileList,
+    ];
+    // this runs here
+    const extractArgs = ["--delay-directory-restore", "-x"];
+    await this.tar.get({
+      createArgs,
+      extractArgs,
+    });
+    log("receiveFiles: files in ", pathToFileList, "received from project");
   };
 
   private execInProject = async (

@@ -3,9 +3,9 @@
 import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
-import { createTarball, mtimeDirTree, remove } from "./util";
+import { mtimeDirTree, remove } from "./util";
 import { join } from "path";
-import { mkdir, readFile /* writeFile */ } from "fs/promises";
+import { mkdir, open, readFile } from "fs/promises";
 import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
@@ -61,6 +61,8 @@ export default async function handleApiCall({
   };
 }
 
+// This is the path to a file whose lines are the names
+// of the files to copy via tar.  **Not an actual tarball.**
 async function createCopyFromProjectTar(
   paths: string[],
   compute_server_id: number,
@@ -70,13 +72,12 @@ async function createCopyFromProjectTar(
   }
   const stateDir = join(".compute-servers", `${compute_server_id}`);
   await mkdir(stateDir, { recursive: true });
-  const fullPath = await createTarball(
-    join(process.env.HOME, stateDir, "copy-from-project"),
-    paths,
-    process.env.HOME,
-  );
-  const i = fullPath.lastIndexOf(stateDir);
-  return fullPath.slice(i);
+  const target = join(process.env.HOME, stateDir, "copy-from-project");
+  const file = await open(target, "w");
+  await file.write(paths.join("\n"));
+  await file.close();
+  const i = target.lastIndexOf(stateDir);
+  return target.slice(i);
 }
 
 // we have to use separate cache/state for each exclude list, unfortunatley. in practice,
