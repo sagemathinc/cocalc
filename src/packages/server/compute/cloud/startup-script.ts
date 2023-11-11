@@ -256,11 +256,10 @@ if [ $? -ne 0 ]; then
   setState compute run '' 20 25
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
+   --network host \
    --privileged \
    --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
-   -p 443:443 \
-   -p 80:80 \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v /cocalc:/cocalc \
    ${docker}${getImagePostfix(arch)}
