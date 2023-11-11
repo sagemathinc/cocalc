@@ -190,6 +190,16 @@ export const ACTION_INFO: {
     confirm: true,
     target: "off",
   },
+  deprovision: {
+    label: "Deprovision",
+    icon: "trash",
+    tip: "Deprovision the virtual machine",
+    description:
+      "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
+    confirm: true,
+    danger: true,
+    target: "deprovisioned",
+  },
   reboot: {
     label: "Reboot",
     icon: "refresh",
@@ -204,19 +214,10 @@ export const ACTION_INFO: {
     icon: "pause",
     clouds: ["google-cloud"],
     tip: "Suspend disk and memory state",
+    confirm: true,
     description:
       "Suspend the compute server.  No data on disk or memory is lost, and you are only charged for storing disk and memory. This is like closing your laptop screen.  You can leave a compute server suspended for up to 60 days before it automatically shuts off.",
     target: "suspended",
-  },
-  deprovision: {
-    label: "Deprovision",
-    icon: "trash",
-    tip: "Deprovision the virtual machine",
-    description:
-      "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
-    confirm: true,
-    danger: true,
-    target: "deprovisioned",
   },
 };
 
@@ -263,7 +264,7 @@ export const STATE_INFO: {
   running: {
     label: "Running",
     color: "#389e0d",
-    actions: ["stop", "suspend", "reboot", "deprovision"],
+    actions: ["stop", "deprovision", "reboot", "suspend"],
     icon: "run",
     stable: true,
   },
@@ -431,6 +432,9 @@ interface BaseConfiguration {
   // These can't have "|" in them, since we use that as a separator.
   // Use "~" to completely disable sync.
   excludeFromSync?: readonly string[];
+  // If true, view data on the compute server as ephemeral.
+  // Currently this is only meant to impact the user interface.
+  ephemeral?: boolean;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {

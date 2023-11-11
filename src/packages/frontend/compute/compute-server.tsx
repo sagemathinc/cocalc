@@ -1,4 +1,4 @@
-import { Button, Card, Divider, Modal, Popconfirm, Table } from "antd";
+import { Button, Card, Divider, Modal, Popconfirm } from "antd";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import { CSSProperties, useState } from "react";
@@ -61,74 +61,6 @@ export default function ComputeServer({
   const [error, setError] = useState<string>("");
   const [edit, setEdit] = useState<boolean>(id == null);
 
-  const columns = [
-    { dataIndex: "label", key: "label", width: 100 },
-    {
-      dataIndex: "value",
-      key: "value",
-    },
-  ];
-
-  const dataSource = [
-    {
-      label: "",
-      value: (
-        <div
-          style={{
-            display: "flex",
-            width: "100%",
-            justifyContent: "space-between",
-          }}
-        >
-          <Title
-            title={title}
-            id={id}
-            editable={editable}
-            setError={setError}
-            onChange={onTitleChange}
-          />
-          <Color
-            color={color}
-            id={id}
-            editable={editable}
-            setError={setError}
-            onChange={onColorChange}
-            style={{
-              marginLeft: "10px",
-            }}
-          />
-          <Cloud
-            cloud={cloud}
-            state={state}
-            editable={editable}
-            setError={setError}
-            setCloud={onCloudChange}
-            id={id}
-            style={{ marginTop: "-2.5px", marginLeft: "10px" }}
-          />
-        </div>
-      ),
-    },
-    {
-      label: "Virtual Machine",
-      value: (
-        <Configuration
-          editable={editable}
-          state={state}
-          id={id}
-          configuration={configuration}
-          onChange={onConfigurationChange}
-        />
-      ),
-    },
-  ];
-  if (projectLink) {
-    dataSource.push({
-      label: "Project",
-      value: <ProjectTitle project_id={project_id} />,
-    });
-  }
-
   let actions: JSX.Element[] | undefined = undefined;
   if (id != null) {
     actions = getActions({
@@ -137,7 +69,7 @@ export default function ComputeServer({
       editable,
       setError,
       configuration,
-      includeDangerous: true,
+      editModal: false,
       type: "text",
     });
     if (editable) {
@@ -182,13 +114,71 @@ export default function ComputeServer({
   }
 
   const table = (
-    <Table
-      style={{ marginTop: "15px" }}
-      rowKey="label"
-      columns={columns}
-      dataSource={dataSource}
-      pagination={false}
-    />
+    <div>
+      <Divider>
+        <Icon
+          name="cloud-dev"
+          style={{ fontSize: "16pt", marginRight: "15px" }}
+        />{" "}
+        Title, Color, and Cloud
+      </Divider>
+      <div
+        style={{
+          marginTop: "15px",
+          display: "flex",
+          width: "100%",
+          justifyContent: "space-between",
+        }}
+      >
+        <Title
+          title={title}
+          id={id}
+          editable={editable}
+          setError={setError}
+          onChange={onTitleChange}
+        />
+        <Color
+          color={color}
+          id={id}
+          editable={editable}
+          setError={setError}
+          onChange={onColorChange}
+          style={{
+            marginLeft: "10px",
+          }}
+        />
+        <Cloud
+          cloud={cloud}
+          state={state}
+          editable={editable}
+          setError={setError}
+          setCloud={onCloudChange}
+          id={id}
+          style={{ marginTop: "-2.5px", marginLeft: "10px" }}
+        />
+      </div>
+      <div style={{ color: "#888", marginTop: "5px" }}>
+        Change the title and color at any time.
+      </div>
+      <Divider>
+        <Icon name="gears" style={{ fontSize: "16pt", marginRight: "15px" }} />{" "}
+        Configuration
+      </Divider>
+      <Configuration
+        editable={editable}
+        state={state}
+        id={id}
+        configuration={configuration}
+        onChange={onConfigurationChange}
+      />
+
+      {projectLink && (
+        <div>
+          <Divider orientation="left">Project</Divider>
+          <ProjectTitle project_id={project_id} />
+        </div>
+      )}
+    </div>
   );
 
   const buttons = (
@@ -204,7 +194,7 @@ export default function ComputeServer({
             editable,
             setError,
             configuration,
-            includeDangerous: true,
+            editModal: edit,
             type: undefined,
           })}
         </div>{" "}
@@ -378,7 +368,7 @@ export default function ComputeServer({
             <>
               {buttons}
               <Divider />
-              <Icon name="gears" /> Edit Compute Server With Id={id}
+              <Icon name="edit" /> Edit Compute Server With Id={id}
             </>
           }
           footer={[buttons]}

@@ -11,6 +11,7 @@ import {
 import { getServerName } from "./index";
 
 export const SUPPORTED_CHANGES = [
+  "ephemeral",
   "machineType",
   "spot",
   "diskSizeGb",
@@ -18,6 +19,8 @@ export const SUPPORTED_CHANGES = [
   "acceleratorCount",
   "test",
 ];
+
+export const RUNNING_CHANGES = ["ephemeral", "diskSizeGb"];
 
 export async function makeConfigurationChange({
   id,

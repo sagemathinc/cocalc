@@ -41,6 +41,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
+import Ephemeral from "./ephemeral";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -355,6 +356,17 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           loading={loading}
           priceData={priceData}
+        />
+      ),
+    },
+    {
+      key: "ephemeral",
+      label: <></>,
+      value: (
+        <Ephemeral
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
         />
       ),
     },
@@ -1161,8 +1173,9 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
       <b>
-        <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" /> NVIDIA
-        GPUs: <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
+        <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" />
+        <Icon name="cube" /> NVIDIA GPUs:{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
         <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>, and{" "}
         <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
           T4

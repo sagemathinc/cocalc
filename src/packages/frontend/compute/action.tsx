@@ -20,7 +20,7 @@ export default function getActions({
   editable,
   setError,
   configuration,
-  includeDangerous,
+  editModal,
   type,
 }): JSX.Element[] {
   if (!editable) {
@@ -47,8 +47,11 @@ export default function getActions({
       }
       // [ ] TODO: we don't have an easy way to check the RAM requirement right now.
     }
+    if (!editModal && configuration.ephemeral && action == "stop") {
+      continue;
+    }
     const { label, icon, tip, description, confirm, danger } = a;
-    if (danger && !includeDangerous) {
+    if (danger && !configuration.ephemeral && !editModal) {
       continue;
     }
     v.push(
@@ -151,7 +154,7 @@ function ActionButton({
     setDoing(!STATE_INFO[state]?.stable);
   }, [action, state]);
 
-   if(configuration == null) {
+  if (configuration == null) {
     return null;
   }
 

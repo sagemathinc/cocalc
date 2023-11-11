@@ -2,7 +2,10 @@ import type {
   GoogleCloudConfiguration,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
-import { SUPPORTED_CHANGES } from "./make-configuration-change";
+import {
+  RUNNING_CHANGES,
+  SUPPORTED_CHANGES,
+} from "./make-configuration-change";
 import { changedKeys } from "@cocalc/server/compute/util";
 import { getArchitecture } from "./images";
 
@@ -55,19 +58,25 @@ export async function validateConfigurationChange({
     }
 
     if (state != "off" && changed.size > 0) {
-      if (changed.size == 1 && changed.has("diskSizeGb")) {
-        // this is the only thing that is allowed
-      } else {
-        throw Error(
-          "machine must be off to change configuration (other than disk size)",
-        );
+      for (const key of changed) {
+        if (!RUNNING_CHANGES.includes(key)) {
+          if (!SUPPORTED_CHANGES.includes(key)) {
+            throw Error(
+              `changing '${key}' state is not supported unless server is deprovisioned`,
+            );
+          } else {
+            throw Error(
+              `changing '${key}' state is not supported unless server is off`,
+            );
+          }
+        }
       }
     }
 
     for (const key of changed) {
       if (!SUPPORTED_CHANGES.includes(key)) {
         throw Error(
-          `changing ${key} is not currently supported unless server is deprovisioned`,
+          `changing ${key} is not supported unless server is deprovisioned`,
         );
       }
     }

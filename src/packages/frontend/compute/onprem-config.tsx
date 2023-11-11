@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import SelectImage from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
+import Ephemeral from "./ephemeral";
 
 import { SELECTOR_WIDTH } from "./google-cloud-config";
 
@@ -141,6 +142,10 @@ function Image(props) {
         gpu={!!props.configuration.gpu}
       />
       <ExcludeFromSync
+        style={{ width: SELECTOR_WIDTH, marginTop: "10px" }}
+        {...props}
+      />
+      <Ephemeral
         style={{ width: SELECTOR_WIDTH, marginTop: "10px" }}
         {...props}
       />
