@@ -1,5 +1,5 @@
 /*
-Recieve files over a websocket.
+Receive files over a websocket.
 */
 
 import getLogger from "@cocalc/backend/logger";
@@ -7,9 +7,15 @@ const logger = getLogger("sync-fs:recv-files");
 
 import { spawn } from "child_process";
 
-export default function recvFiles(ws) {
+export default function recvFiles({
+  ws,
+  HOME = process.env.HOME,
+}: {
+  ws;
+  HOME?;
+}) {
   const tar = spawn("tar", ["-I", "lz4", "-x", "--delay-directory-restore"], {
-    cwd: process.env.HOME,
+    cwd: HOME,
   });
   let start = Date.now();
   logger.debug("got connection", start);
