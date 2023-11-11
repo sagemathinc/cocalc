@@ -46,7 +46,7 @@ function initSend(server, basePath) {
   wss.on("connection", (ws) => {
     // [ ] todo: first we should recv message with the files to send,
     // then pass that to sendFiles below.
-    sendFiles(ws);
+    sendFiles({ ws });
   });
 
   server.on("upgrade", (request, socket, head) => {

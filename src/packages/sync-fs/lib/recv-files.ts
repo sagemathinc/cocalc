@@ -16,7 +16,7 @@ export default function recvFiles(ws) {
   let fileSize = 0;
   ws.on("message", (data) => {
     if (data instanceof Buffer) {
-      logger.debug("received ", data.length, "bytes");
+      // logger.debug("received ", data.length, "bytes");
       fileSize += data.length;
       tar.stdin.write(data);
     }
