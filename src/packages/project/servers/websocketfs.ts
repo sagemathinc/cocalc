@@ -31,14 +31,12 @@ export default function initWebsocketFs(
 
   server.on("upgrade", (request, socket, head) => {
     const { pathname } = parse(request.url ?? "");
-    log.info("Got upgrade request for ", pathname);
+    // log.info("Got upgrade request for ", pathname);
     if (pathname === path) {
       log.info("creating new websocketfs handler");
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit("connection", ws, request);
       });
-    } else {
-      log.info("not handling here");
     }
   });
 }
