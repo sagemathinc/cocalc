@@ -45,7 +45,7 @@ function doGetFiles(project_id: string, sendArgs, recvArgs, HOME, cb) {
   ws.on("open", () => {
     logger.debug("connected to ", remote);
     // tell it how/what to send us files
-    ws.send(sendArgs);
+    ws.send(JSON.stringify(sendArgs));
     // receive the files
     recvFilesWS({ ws, HOME, args: recvArgs });
   });

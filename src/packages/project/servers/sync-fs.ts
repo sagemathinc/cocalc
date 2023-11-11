@@ -25,16 +25,18 @@ export default function initSyncFs(server: Server, basePath: string): void {
 function initReceive(server, basePath) {
   const path = join(basePath, ".smc", "sync-fs", "recv");
   logger.info(`Initializing syncfs-recv server`, path);
+
   const wss = new WebSocketServer({ noServer: true });
   wss.on("connection", (ws) => {
-    let args = [];
+    logger.debug("syncfs-recv server: got new connection");
     ws.once("message", (mesg) => {
-      if (!(mesg instanceof Buffer)) {
-        args = mesg;
-      }
+      logger.debug("syncfs-recv server: received args", mesg);
+      const args = JSON.parse(mesg.toString());
+      logger.debug("parse", args);
+      recvFiles({ ws, args, HOME: process.env.HOME });
     });
-    recvFiles({ ws, args, HOME: process.env.HOME });
   });
+
   server.on("upgrade", (request, socket, head) => {
     const { pathname } = parse(request.url ?? "");
     if (pathname === path) {
@@ -52,13 +54,13 @@ function initSend(server, basePath) {
   const wss = new WebSocketServer({ noServer: true });
 
   wss.on("connection", (ws) => {
-    let args = [];
+    logger.debug("syncfs-send server: got new connection");
     ws.once("message", (mesg) => {
-      if (!(mesg instanceof Buffer)) {
-        args = mesg;
-      }
+      logger.debug("syncfs-send server: received", mesg);
+      const args = JSON.parse(mesg.toString());
+      logger.debug("parse", args);
+      sendFiles({ ws, args, HOME: process.env.HOME });
     });
-    sendFiles({ ws, args, HOME: process.env.HOME });
   });
 
   server.on("upgrade", (request, socket, head) => {

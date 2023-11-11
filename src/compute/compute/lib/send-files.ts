@@ -51,7 +51,8 @@ function doSendFiles(
   ws.on("open", () => {
     logger.debug("connected to ", remote);
     // tell it how to receive our files:
-    ws.send(recvArgs);
+    logger.debug("sending recvArgs = ", recvArgs);
+    ws.send(JSON.stringify(recvArgs));
     // send them
     sendFilesWS({ ws, args: sendArgs, HOME });
   });
