@@ -7,6 +7,8 @@ import Description from "./description";
 import State, { DisplayNetworkUsage } from "./state";
 import getTitle from "./get-title";
 import { Spin } from "antd";
+import { currency } from "@cocalc/util/misc";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 export function ComputeServerTitle({ compute_server_id }) {
   const [server, setServer] = useState<null | {
@@ -31,7 +33,15 @@ export function ComputeServerTitle({ compute_server_id }) {
     return <Spin />;
   }
   return (
-    <span style={{ color: server.color }}>
+    <span
+      style={{
+        backgroundColor: server.color,
+        color: avatar_fontcolor(server.color),
+        overflow: "hidden",
+        padding: "0 5px",
+        borderRadius: "3px",
+      }}
+    >
       Compute Server '{server.title}' (Id: {compute_server_id})
     </span>
   );
@@ -77,8 +87,14 @@ export function ComputeServerNetworkUsageDescription({
         amount={amount}
         style={{ display: "inline-block" }}
       />{" "}
-      by <ComputeServerTitle compute_server_id={id} />{" "}
-      {period_end == null && <div>NOTE: Usage updated hourly.</div>}
+      by <ComputeServerTitle compute_server_id={id} /> at a cost of{" "}
+      {currency(description.cost)}
+      {period_end == null ? " so far" : ""}.
+      {period_end == null && (
+        <div>
+          NOTE: Updated hourly and not included in total until next day.
+        </div>
+      )}
     </div>
   );
 }
