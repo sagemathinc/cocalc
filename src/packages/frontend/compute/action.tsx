@@ -13,6 +13,8 @@ import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import ShowError from "@cocalc/frontend/components/error";
+import { redux, useStore } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export default function getActions({
   id,
@@ -22,6 +24,7 @@ export default function getActions({
   configuration,
   editModal,
   type,
+  project_id,
 }): JSX.Element[] {
   if (!editable) {
     return [];
@@ -70,6 +73,7 @@ export default function getActions({
         danger={danger}
         type={type}
         state={state ?? "off"}
+        project_id={project_id}
       />,
     );
   }
@@ -90,6 +94,7 @@ function ActionButton({
   type,
   style,
   state,
+  project_id,
 }) {
   const [showOnPremStart, setShowOnPremStart] = useState<boolean>(false);
   const [showOnPremStop, setShowOnPremStop] = useState<boolean>(false);
@@ -114,9 +119,30 @@ function ActionButton({
     if (configuration == null) return;
     updateCost();
   }, [configuration, action]);
+  const customize = useStore("customize");
 
   const [doing, setDoing] = useState<boolean>(!STATE_INFO[state]?.stable);
   const doAction = async () => {
+    if (action == "start") {
+      // check version
+      const required =
+        customize?.get("version_compute_server_min_project") ?? 0;
+      if (required > 0) {
+        if (redux.getStore("projects").get_state(project_id) == "running") {
+          // only check if running -- if not running, the project will obviously
+          // not need a restart, since it isn't even running
+          const api = await webapp_client.project_client.api(project_id);
+          const version = await api.version();
+          if (version < required) {
+            setError(
+              "You must restart your project to upgrade it to the latest version of CoCalc.",
+            );
+            return;
+          }
+        }
+      }
+    }
+
     if (configuration.cloud == "onprem") {
       if (action == "start") {
         setShowOnPremStart(true);

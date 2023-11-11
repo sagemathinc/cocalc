@@ -71,6 +71,7 @@ export default function ComputeServer({
       configuration,
       editModal: false,
       type: "text",
+      project_id,
     });
     if (editable) {
       actions.push(
@@ -196,6 +197,7 @@ export default function ComputeServer({
             configuration,
             editModal: edit,
             type: undefined,
+            project_id,
           })}
         </div>{" "}
         {editable &&

@@ -27,7 +27,7 @@ import { Channel, Mesg, NbconvertParams } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 
 export class API {
-  private conn: any;
+  private conn;
   private project_id: string;
   private cachedVersion?: number;
 
@@ -35,6 +35,9 @@ export class API {
     this.conn = conn;
     this.project_id = project_id;
     this.listing = reuseInFlight(this.listing.bind(this));
+    this.conn.on("end", () => {
+      delete this.cachedVersion;
+    });
   }
 
   async call(mesg: Mesg, timeout_ms: number): Promise<any> {
@@ -42,7 +45,7 @@ export class API {
   }
 
   async version(): Promise<number> {
-    // version can never change, so its safe to cache
+    // version can never change (except when you restart the project!), so its safe to cache
     if (this.cachedVersion != null) {
       return this.cachedVersion;
     }
