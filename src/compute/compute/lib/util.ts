@@ -1,8 +1,10 @@
 import { promisify } from "util";
 import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
-const logger = getLogger("compute:util");
+import { apiServer } from "@cocalc/backend/data";
+import { join } from "path";
 
+const logger = getLogger("compute:util");
 const exec = promisify(require("child_process").exec);
 
 export async function getFilesystemType(path: string): Promise<string | null> {
@@ -28,4 +30,19 @@ export async function waitUntilFilesystemIsOfType(path: string, type: string) {
     await delay(d);
     d = Math.min(5000, d * 1.3);
   }
+}
+
+export function getProjectWebsocketUrl(project_id: string) {
+  let protocol, host;
+  if (apiServer.startsWith("https://")) {
+    protocol = "wss://";
+    host = apiServer.slice("https://".length);
+  } else if (apiServer.startsWith("http://")) {
+    protocol = "ws://";
+    host = apiServer.slice("http://".length);
+  } else {
+    throw Error("API_SERVER must start with http:// or https://");
+  }
+  const remote = `${protocol}${host}/${join(project_id, "raw/.smc")}`;
+  return remote;
 }

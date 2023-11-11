@@ -3,9 +3,9 @@
 import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
-import { createTarball, mtimeDirTree, remove } from "./util";
+import { mtimeDirTree, remove } from "./util";
 import { join } from "path";
-import { mkdir, readFile /* writeFile */ } from "fs/promises";
+import { mkdir, open, readFile } from "fs/promises";
 import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
@@ -61,6 +61,8 @@ export default async function handleApiCall({
   };
 }
 
+// This is the path to a file whose lines are the names
+// of the files to copy via tar.  **Not an actual tarball.**
 async function createCopyFromProjectTar(
   paths: string[],
   compute_server_id: number,
@@ -70,26 +72,30 @@ async function createCopyFromProjectTar(
   }
   const stateDir = join(".compute-servers", `${compute_server_id}`);
   await mkdir(stateDir, { recursive: true });
-  const fullPath = await createTarball(
-    join(process.env.HOME, stateDir, "copy-from-project"),
-    paths,
-    process.env.HOME,
-  );
-  const i = fullPath.lastIndexOf(stateDir);
-  return fullPath.slice(i);
+  const target = join(process.env.HOME, stateDir, "copy-from-project");
+  const file = await open(target, "w");
+  await file.write(paths.join("\n"));
+  await file.close();
+  const i = target.lastIndexOf(stateDir);
+  return target.slice(i);
 }
 
 // we have to use separate cache/state for each exclude list, unfortunatley. in practice,
-// they should often be similar or the same (?).
+// they should often be similar or the same, because people will rarely customize this (?).
 let lastProjectState: { [exclude: string]: FilesystemState } = {};
 let lastCallTime: { [exclude: string]: number } = {};
+let timeToGetState = 0.25;
 export async function getProjectState(exclude) {
   const now = Math.floor(Date.now() / 1000); // in integers seconds
   const key = JSON.stringify(exclude);
   const lastTime = lastCallTime[key] ?? 0;
   const lastState = lastProjectState[key] ?? {};
-  if (now - lastTime <= 5) {
-    // don't update too frequently
+  if (now - lastTime <= Math.min(60, timeToGetState * 25)) {
+    // don't update too frequently -- and if it is taking a long time,
+    // then wait even longer, e.g., if it takes 1s (which is VERY long for
+    // find), then we wait 25s between calls.
+    // We never wait more than 60s, since maybe the filesystem is
+    // just slow once and we don't want this to be unbounded.
     return lastState;
   }
   lastCallTime[key] = now;
@@ -100,6 +106,7 @@ export async function getProjectState(exclude) {
     path: process.env.HOME,
     exclude,
   });
+  timeToGetState = Math.max(0.25, Date.now() / 1000 - now);
 
   // figure out what got deleted in the project
   for (const path in lastState) {

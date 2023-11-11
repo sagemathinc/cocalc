@@ -6,7 +6,7 @@ Mount a remote CoCalc project's filesystem locally over a websocket using FUSE.
 
 */
 
-import { apiKey, apiServer } from "@cocalc/backend/data";
+import { apiKey } from "@cocalc/backend/data";
 import { mount } from "websocketfs";
 import getLogger from "@cocalc/backend/logger";
 import { project } from "@cocalc/api-client";
@@ -14,8 +14,10 @@ import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import syncFS from "@cocalc/sync-fs";
-import { waitUntilFilesystemIsOfType } from "./util";
+import { waitUntilFilesystemIsOfType, getProjectWebsocketUrl } from "./util";
 import { apiCall } from "@cocalc/api-client";
+import sendFiles from "./send-files";
+import getFiles from "./get-files";
 
 const logger = getLogger("compute:filesystem");
 
@@ -92,20 +94,7 @@ export async function mountProject({
     // Ping to start project so it's possible to mount.
     await project.ping({ project_id });
 
-    let protocol, host;
-    if (apiServer.startsWith("https://")) {
-      protocol = "wss://";
-      host = apiServer.slice("https://".length);
-    } else if (apiServer.startsWith("http://")) {
-      protocol = "ws://";
-      host = apiServer.slice("http://".length);
-    } else {
-      throw Error("API_SERVER must start with http:// or https://");
-    }
-    const remote = `${protocol}${host}/${join(
-      project_id,
-      "raw/.smc/websocketfs",
-    )}`;
+    const remote = join(getProjectWebsocketUrl(project_id), "websocketfs");
     log("connecting to ", remote);
     const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
     // SECURITY: DO NOT log headers and connectOptions, obviously!
@@ -193,6 +182,22 @@ export async function mountProject({
         syncIntervalMax,
         exclude,
         readTrackingPath,
+        tar: {
+          send: async ({ createArgs, extractArgs }) =>
+            await sendFiles({
+              createArgs,
+              extractArgs,
+              project_id,
+              HOME: unionfs.upper,
+            }),
+          get: async ({ createArgs, extractArgs }) =>
+            await getFiles({
+              createArgs,
+              extractArgs,
+              project_id,
+              HOME: unionfs.upper,
+            }),
+        },
       });
       await syncfs.init();
       reportState("cache", { state: "ready", progress: 100 });
