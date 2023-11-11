@@ -2,31 +2,55 @@ import { getPool } from "@cocalc/database";
 import type { State, Data } from "@cocalc/util/db-schema/compute-servers";
 import { isEqual } from "lodash";
 import eventLog from "./event-log";
+import { cost } from "./control";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("server:compute:util");
 
 // set the state. We ONLY make a change to the database updating state_changed
 // if the state actually changes, to avoid a lot of not necessary noise.
 export async function setState(id: number, state: State) {
   const pool = getPool();
-  const { rowCount } = await pool.query(
-    "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND (state is null or state != $1)",
+  const { rows } = await pool.query(
+    "UPDATE compute_servers SET state=$1, state_changed=NOW(), last_edited=NOW() WHERE id=$2 AND (state is null or state != $1) RETURNING account_id",
     [state, id],
   );
-
-  if (rowCount > 0) {
-    eventLog({
-      server: { id },
-      event: { action: "state", state },
-    });
-
-    if (state != "running") {
-      // we also clear the "detailed_state", which is detailed information
-      // about a *running* compute
-      // server, and is confusing to see otherwise.
-      await pool.query(
-        "UPDATE compute_servers SET detailed_state='{}' WHERE id=$1",
-        [id],
+  if (rows.length > 0) {
+    try {
+      await stateChangeSideEffects({
+        id,
+        state,
+        account_id: rows[0].account_id,
+      });
+    } catch (err) {
+      logger.debug(
+        "WARNING -- errors when doing state change side effects",
+        err,
       );
     }
+  }
+}
+
+async function stateChangeSideEffects({ id, state, account_id }) {
+  const pool = getPool();
+  // ensure cost_per_hour field in database is updated immediately to reflect state;
+  // otherwise, it is disconcerting to users.  NOTE: In reality, the actual cost we're
+  // charging doesn't update until the maintenance task runs a few seconds later.
+  await cost({ id, account_id, state });
+
+  eventLog({
+    server: { id },
+    event: { action: "state", state },
+  });
+
+  if (state != "running") {
+    // we also clear the "detailed_state", which is detailed information
+    // about a *running* compute
+    // server, and is confusing to see otherwise.
+    await pool.query(
+      "UPDATE compute_servers SET detailed_state='{}' WHERE id=$1",
+      [id],
+    );
   }
 }
 

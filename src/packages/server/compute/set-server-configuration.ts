@@ -89,8 +89,8 @@ export default async function setServerConfiguration({
     );
     const server = await getServer({ id, account_id });
     // Note: It's conceivable something goes wrong and the configuration changes, e.g., the disk
-    // is enlarged, and somehow we don't get to this point right here and update the cost. Our plan
-    // is that this still gets handled, but later via a sync process, so only a small amount of
+    // is enlarged, and somehow we don't get to this point right here and update the cost.
+    // This still gets handled, but later via a maintenane process, so only a small amount of
     // money is lost.
     await updatePurchase({ server, newState: state });
   }

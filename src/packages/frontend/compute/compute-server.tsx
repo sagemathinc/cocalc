@@ -17,6 +17,7 @@ import { DisplayImage } from "./select-image";
 import { randomColor } from "./color";
 import ComputeServerLog from "./compute-server-log";
 import { Error } from "./log-entry";
+import CurrentCost from "./current-cost";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -260,7 +261,7 @@ export default function ComputeServer({
     >
       <Card.Meta
         avatar={
-          <div>
+          <div style={{ width: "64px" }}>
             <Icon
               name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
@@ -273,6 +274,14 @@ export default function ComputeServer({
                 title={title}
                 color={color}
               />
+            )}
+            {id != null && (
+              <div style={{ marginLeft: "-15px" }}>
+                <CurrentCost
+                  state={state}
+                  cost_per_hour={cost_per_hour}
+                />
+              </div>
             )}
           </div>
         }

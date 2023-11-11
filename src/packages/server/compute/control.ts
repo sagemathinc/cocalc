@@ -307,6 +307,12 @@ export async function cost({
 }): Promise<number> {
   const server = await getServer({ account_id, id });
   const cost_per_hour = await computeCost({ server, state });
+  // since we know the cost, let's save it so it is display
+  // to user, etc.
+  await getPool().query(
+    "UPDATE compute_servers SET cost_per_hour=$1 WHERE id=$2",
+    [cost_per_hour, id],
+  );
   return cost_per_hour;
 }
 

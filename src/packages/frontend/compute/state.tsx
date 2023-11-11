@@ -4,7 +4,7 @@ import type {
   State,
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
+import { Button, Divider, Popover, Progress, Spin } from "antd";
 import { User } from "@cocalc/frontend/users";
 import { CSSProperties, useEffect, useState } from "react";
 import { getNetworkUsage, getServerState } from "./api";
@@ -33,7 +33,6 @@ export default function State({
   editable,
   account_id,
   purchase_id,
-  cost_per_hour,
 }: Props) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const { label, icon, color, stable } = STATE_INFO[state ?? "off"] ?? {};
@@ -61,33 +60,12 @@ export default function State({
     );
   }
 
-  let cost;
-  if (cost_per_hour == null) {
-    cost = ""; // no info
-  } else if (stable) {
-    if (state == "deprovisioned") {
-      cost = "";
-    } else {
-      const cost_per_month = `${currency(cost_per_hour * 730)}/month`;
-      if (state == "running") {
-        cost = (
-          <Tooltip title={cost_per_month} placement="right">
-            {" "}
-            - {currency(cost_per_hour)}/hour
-          </Tooltip>
-        );
-      } else {
-        cost = ` - ${cost_per_month}`;
-      }
-    }
-  }
-
   return (
     <Popover
       mouseEnterDelay={0.5}
       title={
         <>
-          <Icon name={icon} /> {label} {cost}
+          <Icon name={icon} /> {label}
         </>
       }
       content={() => {
@@ -105,7 +83,7 @@ export default function State({
     >
       <span style={{ cursor: "pointer", ...style }} onClick={handleRefresh}>
         <span style={{ color }}>
-          <Icon name={icon} /> {label} {cost}
+          <Icon name={icon} /> {label}
         </span>
         {!stable && (
           <>
