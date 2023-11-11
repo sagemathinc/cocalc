@@ -66,3 +66,17 @@ export async function getServerNoCheck(id: number): Promise<ComputeServer> {
   }
   return rows[0];
 }
+
+export async function getTitle({
+  account_id,
+  id,
+}): Promise<{ title: string; color: string }> {
+  const { rows } = await getPool().query(
+    "SELECT title, color FROM compute_servers WHERE id=$1 AND account_id=$2",
+    [id, account_id],
+  );
+  if (rows.length == 0) {
+    throw Error(`users does not own a server with id=${id}`);
+  }
+  return { title: rows[0].title ?? "", color: rows[0].color ?? "" };
+}

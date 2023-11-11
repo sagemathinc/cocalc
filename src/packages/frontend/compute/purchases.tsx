@@ -1,9 +1,41 @@
+import { useEffect, useState } from "react";
 import type {
   ComputeServer,
   ComputeServerNetworkUsage,
 } from "@cocalc/util/db-schema/purchases";
 import Description from "./description";
 import State, { DisplayNetworkUsage } from "./state";
+import getTitle from "./get-title";
+import { Spin } from "antd";
+
+export function ComputeServerTitle({ compute_server_id }) {
+  const [server, setServer] = useState<null | {
+    title: string;
+    color: string;
+  }>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        setServer(await getTitle(compute_server_id));
+      } catch (err) {
+        console.warn(err);
+        setServer({
+          title: `Compute Server with Id=${compute_server_id}`,
+          color: "#000",
+        });
+      }
+    })();
+  }, [compute_server_id]);
+
+  if (server == null) {
+    return <Spin />;
+  }
+  return (
+    <span style={{ color: server.color }}>
+      Compute Server '{server.title}' (Id: {compute_server_id})
+    </span>
+  );
+}
 
 export function ComputeServerDescription({
   description,
@@ -16,7 +48,8 @@ export function ComputeServerDescription({
 
   return (
     <div>
-      Compute Server with Id={id} that {period_end ? "was" : "is"}{" "}
+      <ComputeServerTitle compute_server_id={id} /> that{" "}
+      {period_end ? "was" : "is"}{" "}
       <State
         id={id}
         configuration={configuration}
@@ -44,7 +77,7 @@ export function ComputeServerNetworkUsageDescription({
         amount={amount}
         style={{ display: "inline-block" }}
       />{" "}
-      by compute server with Id={id}
+      by <ComputeServerTitle compute_server_id={id} />{" "}
       {period_end == null && <div>NOTE: Usage updated hourly.</div>}
     </div>
   );

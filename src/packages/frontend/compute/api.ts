@@ -103,3 +103,7 @@ export async function deleteApiKey(opts: { id }): Promise<string> {
 export async function getLog(opts: { id }) {
   return await api("compute/get-log", opts);
 }
+
+export async function getTitle(opts: { id }) {
+  return await api("compute/get-server-title", opts);
+}
