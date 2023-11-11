@@ -96,8 +96,8 @@ export function DisplayImage({ configuration }) {
     return <span>{image}</span>;
   }
   return (
-    <A href={data.url}>
+    <span>
       <Icon name={data.icon} style={{ marginRight: "5px" }} /> {data.label}
-    </A>
+    </span>
   );
 }

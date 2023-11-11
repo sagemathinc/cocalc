@@ -89,7 +89,11 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
               account public ssh keys
             </A>{" "}
             that has access to this project (you must restart the compute server
-            if you add keys).
+            if you add keys). If you start a web service on any port P on your
+            compute server, type{" "}
+            <code>ssh -L P:localhost:P root@ip_address</code>
+            on your laptop, and you can connect to that web service on localhost
+            on your laptop.
           </li>
         </ul>
       </Typography.Paragraph>
