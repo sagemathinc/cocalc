@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { cp, mkdir, rm, stat, readFile, writeFile } from "fs/promises";
+import { cp, mkdir, open, rm, stat, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 //import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
@@ -44,6 +44,7 @@ interface Options {
   // ALSO: if you have "~" or "." in the exclude array, then sync is completely disabled.
   exclude?: string[];
   readTrackingPath?: string;
+  tar?: { send; get };
 }
 
 const UNIONFS = ".unionfs-fuse";
@@ -66,6 +67,7 @@ class SyncFS {
   private readTrackingPath?: string;
   private scratch: string;
   private error_txt: string;
+  private tar?: { send; get };
 
   private client: SyncClient;
 
@@ -81,7 +83,9 @@ class SyncFS {
     syncIntervalMax = DEFAULT_SYNC_INTERVAL_MAX_S,
     exclude = [],
     readTrackingPath,
+    tar,
   }: Options) {
+    this.tar = tar;
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
@@ -356,6 +360,24 @@ class SyncFS {
   };
 
   private sendFiles = async (files: string[]) => {
+    log("sendFiles: sending ", files.length, "files");
+    if (this.tar != null) {
+      const target = join(this.scratch, "copy-to-project");
+      const file = await open(target, "w");
+      await file.write(files.join("\n"));
+      await file.close();
+      await this.tar.send({
+        createArgs: [
+          "-c",
+          "--no-recursion",
+          "--verbatim-files-from",
+          "--files-from",
+          target,
+        ],
+        extractArgs: ["--delay-directory-restore", "-x"],
+      });
+      return;
+    }
     const tmpdir = join(this.upper, UNIONFS, ".compute-servers");
     await mkdir(tmpdir, { recursive: true });
     const tarball = await createTarball(

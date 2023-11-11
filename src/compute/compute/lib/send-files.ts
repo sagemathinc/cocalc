@@ -18,29 +18,29 @@ interface Options {
   project_id: string;
   // These are the args to tar after "c" and not involving compression, e.g., this
   // would send files listed in /tmp/files.txt:
-  //    sendArgs = ["--no-recursion", "--verbatim-files-from", "--files-from", "/tmp/files.txt"]
+  //    createArgs = ["--no-recursion", "--verbatim-files-from", "--files-from", "/tmp/files.txt"]
   // You must give something here so we know what to send.
   // used to make the tarball
-  sendArgs: string[];
+  createArgs: string[];
   // used when extracting the tarball
-  recvArgs: string[];
+  extractArgs: string[];
   // HOME directory for purposes of creating tarball
   HOME?: string;
 }
 
 export default async function sendFiles({
   project_id,
-  sendArgs,
-  recvArgs,
+  createArgs,
+  extractArgs,
   HOME = process.env.HOME,
 }: Options) {
-  await callback(doSendFiles, project_id, sendArgs, recvArgs, HOME);
+  await callback(doSendFiles, project_id, createArgs, extractArgs, HOME);
 }
 
 function doSendFiles(
   project_id: string,
-  sendArgs: string[],
-  recvArgs: string[],
+  createArgs: string[],
+  extractArgs: string[],
   HOME,
   cb,
 ) {
@@ -51,10 +51,10 @@ function doSendFiles(
   ws.on("open", () => {
     logger.debug("connected to ", remote);
     // tell it how to receive our files:
-    logger.debug("sending recvArgs = ", recvArgs);
-    ws.send(JSON.stringify(recvArgs));
+    logger.debug("sending extractArgs = ", extractArgs);
+    ws.send(JSON.stringify(extractArgs));
     // send them
-    sendFilesWS({ ws, args: sendArgs, HOME });
+    sendFilesWS({ ws, args: createArgs, HOME });
   });
   ws.on("close", () => {
     cb?.();

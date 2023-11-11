@@ -16,6 +16,8 @@ import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import syncFS from "@cocalc/sync-fs";
 import { waitUntilFilesystemIsOfType, getProjectWebsocketUrl } from "./util";
 import { apiCall } from "@cocalc/api-client";
+import sendFiles from "./send-files";
+import getFiles from "./get-files";
 
 const logger = getLogger("compute:filesystem");
 
@@ -180,6 +182,22 @@ export async function mountProject({
         syncIntervalMax,
         exclude,
         readTrackingPath,
+        tar: {
+          send: async ({ createArgs, extractArgs }) =>
+            await sendFiles({
+              createArgs,
+              extractArgs,
+              project_id,
+              HOME: unionfs.upper,
+            }),
+          get: async ({ createArgs, extractArgs }) =>
+            await getFiles({
+              createArgs,
+              extractArgs,
+              project_id,
+              HOME: unionfs.upper,
+            }),
+        },
       });
       await syncfs.init();
       reportState("cache", { state: "ready", progress: 100 });
