@@ -193,13 +193,7 @@ cat /cocalc/conf/authorized_keys > /home/unionfs/upper/.ssh/authorized_keys
 docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  setState filesystem pull '' 240 20
-  /cocalc/docker_pull.py ${image}
-  if [ $? -ne 0 ]; then
-     setState filesystem error "problem pulling Docker image ${image}"
-     exit 1
-  fi
-  setState filesystem run '' 45 60
+  setState filesystem run '' 45 25
   docker run \
    -d \
    --name=filesystem \
@@ -219,6 +213,18 @@ else
 fi
  `;
 }
+
+/*
+Removed -- any code that needs updating should be in /cocalc!
+
+  setState filesystem pull '' 240 20
+  /cocalc/docker_pull.py ${image}
+  if [ $? -ne 0 ]; then
+     setState filesystem error "problem pulling Docker image ${image}"
+     exit 1
+  fi
+
+*/
 
 /* The additional flags beyond just '--gpus all' are because Nvidia's tensorflow
    image says this on startup:
@@ -278,7 +284,8 @@ fi
 
 /*
 I had this code for auto-pulling new image right after the if, but it's a really
-bad idea in production.  Needs to be totally explicit or not at all:
+bad idea in production (especially with dockerhub bandwidth limits and these images
+can be big too).  Needs to be totally explicit or not at all:
 
   setState compute pull '' 600 20
   /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
