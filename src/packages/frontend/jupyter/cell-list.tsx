@@ -317,10 +317,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           const cellRect = cell[0].getBoundingClientRect();
           const cellTop = cellRect.y;
           const cellBottom = cellRect.y + cellRect.height;
-          if (cellBottom <= scrollerRect.y) {
+          if (cellBottom - 15 <= scrollerRect.y) {
             align = "end";
             isNotVisible = true;
-          } else if (cellTop >= scrollerRect.y + scrollerRect.height) {
+          } else if (cellTop + 15 >= scrollerRect.y + scrollerRect.height) {
             align = "start";
             isNotVisible = true;
           }
@@ -737,6 +737,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           setTimeout(() => {
             frameActions.current?.scroll("cell visible");
           }, 0);
+          setTimeout(() => {
+            frameActions.current?.scroll("cell visible");
+          }, 50);
         }}
       >
         {body}
