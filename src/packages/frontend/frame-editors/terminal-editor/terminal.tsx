@@ -48,7 +48,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   const terminalDOMRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
   const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id
+    props.project_id,
   );
 
   useEffect(() => {
@@ -184,11 +184,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
           terminalRef.current?.focus();
         }}
       >
-        <div
-          className={"smc-vfill cocalc-xtermjs"}
-          ref={terminalDOMRef}
-          style={{ background: "#eee" }}
-        />
+        <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
       </div>
     </div>
   );
