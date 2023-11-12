@@ -44,6 +44,8 @@ interface Options {
 }
 
 const UNIONFS = ".unionfs-fuse";
+// Do not make this too short, since every time it happens, the project has to
+// do a find scan, which can take some resources!
 const DEFAULT_SYNC_INTERVAL_MIN_S = 10;
 // no idea what this *should* be:
 const DEFAULT_SYNC_INTERVAL_MAX_S = 30;

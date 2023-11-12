@@ -151,8 +151,12 @@ export async function mountProject({
         },
         cacheTimeout,
         hidePath: "/.unionfs",
+        // timeout = only track files that were read this recently
+        // update = update read tracking file this frequently
+        // modified = ignore any file modified with this many seconds (at least);
+        //            also ignores any file not in the stat cache.
         readTracking: readTrackingPath
-          ? { path: readTrackingPath, timeout: 15, interval: 5 }
+          ? { path: readTrackingPath, timeout: 30, update: 10, modified: 60 }
           : undefined,
       }));
       pingInterval = setInterval(async () => {
