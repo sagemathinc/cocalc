@@ -3,34 +3,11 @@ Returns an object that describes the cost of a given service.
 */
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import {
-  getCost as getOpenaiCost,
-  OpenaiCost,
-} from "@cocalc/util/db-schema/openai";
+import { getCost as getOpenaiCost } from "@cocalc/util/db-schema/openai";
 import type { Service } from "@cocalc/util/db-schema/purchases";
+import { EGRESS_COST_PER_GiB } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
-// This complicated typing is so that this function returns
-// a *number* for input 'credit' and various objects for
-// 'project-upgrade', and 'openai-'....
-
-interface ProjectUpgrade {
-  cores: number;
-  disk_quota: number;
-  member_host: number;
-  memory: number;
-}
-
-type ServiceCost<T extends Service> = T extends "credit" // if type is 'credit' return a number
-  ? number
-  : T extends "project-upgrade" // if type is 'project-upgrade' return ProjectUpgrade
-  ? ProjectUpgrade
-  : T extends "compute-server"
-  ? number | undefined
-  : OpenaiCost; // otherwise return OpenaiCost object
-
-export default async function getServiceCost<T extends Service>(
-  service: T,
-): Promise<ServiceCost<T>> {
+export default async function getServiceCost(service: Service) {
   if (service.startsWith("openai-")) {
     const { pay_as_you_go_openai_markup_percentage } =
       await getServerSettings();
@@ -49,6 +26,8 @@ export default async function getServiceCost<T extends Service>(
   } else if (service == "compute-server") {
     const { compute_servers_markup_percentage } = await getServerSettings();
     return compute_servers_markup_percentage;
+  } else if (service == "compute-server-network-usage") {
+    return EGRESS_COST_PER_GiB;
   } else {
     throw Error(`${service} not fully implemented`);
   }
