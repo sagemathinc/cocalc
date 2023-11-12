@@ -48,6 +48,7 @@ import {
   installDocker,
   installUser,
   installCoCalc,
+  installNode,
 } from "../install";
 import { delay } from "awaiting";
 import getInstance from "./get-instance";
@@ -428,6 +429,9 @@ ${installUser()}
 
 # Ensure a clean docker slate
 docker system prune -a -f
+
+# Install nodejs
+${installNode()}
 
 ${installCoCalc(arch)}
 

@@ -25,8 +25,10 @@ export function installNode() {
   return `
 mkdir -p /cocalc/nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | NVM_DIR=/cocalc/nvm PROFILE=/dev/null bash
+set +v
 source /cocalc/nvm/nvm.sh
 nvm install --no-progress ${NODE_VERSION}
+set -v
 rm -rf /cocalc/nvm/.cache
 `;
 }

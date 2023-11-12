@@ -95,13 +95,11 @@ ${installDocker()}
 fi
 
 setState install install-nodejs 60 50
-set +v
 ${installNode()}
 if [ $? -ne 0 ]; then
    setState install error "problem installing nodejs"
    exit 1
 fi
-set -v
 
 setState install install-cocalc '' 60 70
 ${installCoCalc(arch)}
