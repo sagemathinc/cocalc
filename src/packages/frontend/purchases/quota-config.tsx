@@ -61,7 +61,12 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
       {!QUOTA_SPEC[service]?.noSet && (
         <Card
           style={{ textAlign: "center" }}
-          title={<>Set your monthly spending limit for the {serviceToDisplay(service)} service</>}
+          title={
+            <>
+              Set your monthly spending limit for the{" "}
+              {serviceToDisplay(service)} service
+            </>
+          }
         >
           {quotas == null && <Spin delay={500} />}
 
@@ -79,11 +84,6 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
                 }
                 parser={(value) => value!.replace(/\$\s?|(,*)/g, "") as any}
                 onChange={(value) => setInputValue(value ?? null)}
-                onBlur={() => {
-                  if (inputValue != null) {
-                    saveServiceQuota(service, inputValue);
-                  }
-                }}
                 addonAfter={
                   <Button
                     type="text"
@@ -106,7 +106,6 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
                     amount={amount}
                     handleQuotaChange={(_, amount) => {
                       setInputValue(amount);
-                      saveServiceQuota(service, amount);
                     }}
                   />
                 ))}
