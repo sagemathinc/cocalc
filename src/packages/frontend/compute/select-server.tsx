@@ -5,7 +5,7 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Select, Tooltip } from "antd";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { cmp } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
@@ -23,6 +23,7 @@ interface Option {
   sort: string;
   label: ReactNode;
   state: string;
+  account_id?: string;
 }
 
 interface Props {
@@ -42,6 +43,7 @@ export default function SelectComputeServer({
   style,
   type,
 }: Props) {
+  const account_id = useTypedRedux("account", "account_id");
   const getPath = (path) => {
     if (actions != null && type == "terminal") {
       return actions.terminals.get(frame_id)?.term_path;
@@ -107,7 +109,8 @@ export default function SelectComputeServer({
     for (const id in computeServers) {
       const server = computeServers[id];
       if (server.deleted) continue;
-      const { color, title, state, configuration, position } = server;
+      const { color, title, state, configuration, position, account_id } =
+        server;
       const { icon } = STATE_INFO[state ?? "off"] ?? {};
       const label = (
         <div
@@ -144,6 +147,7 @@ export default function SelectComputeServer({
         state,
         label,
         position,
+        account_id,
       });
     }
     const running: Option[] = [];
@@ -155,9 +159,13 @@ export default function SelectComputeServer({
       if (x.state == "running") {
         running.push(x);
       } else if (x.state?.includes("stop") || x.state?.includes("suspend")) {
-        stopped.push(x);
+        if (account_id == x.account_id) {
+          stopped.push(x);
+        }
       } else {
-        other.push(x);
+        if (account_id == x.account_id) {
+          other.push(x);
+        }
       }
     }
     const v: { label: JSX.Element; options: Option[] }[] = [
@@ -229,6 +237,31 @@ export default function SelectComputeServer({
         options: other,
       });
     }
+    if (v.length == 1) {
+      // only option is the project
+      v.push({
+        label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
+        options: [
+          {
+            value: "create",
+            sort: "create",
+            state: "",
+            label: (
+              <div
+                onClick={() => {
+                  redux
+                    .getProjectActions(project_id)
+                    ?.set_active_tab("servers");
+                }}
+              >
+                <Icon name="plus-circle" /> New Compute Server...
+              </div>
+            ),
+          },
+        ],
+      });
+    }
+
     return v;
   }, [computeServers]);
 
@@ -240,11 +273,15 @@ export default function SelectComputeServer({
         disabled={loading}
         placeholder={
           <span style={{ color: "white" }}>
-            <Icon style={{ color: "white", marginRight: "5px" }} name="server" />
+            <Icon
+              style={{ color: "white", marginRight: "5px" }}
+              name="server"
+            />
           </span>
         }
         open={open}
         onSelect={(id) => {
+          if (id == "create") return;
           setIdNum(Number(id ?? "0"));
           setConfirmSwitch(true);
         }}
