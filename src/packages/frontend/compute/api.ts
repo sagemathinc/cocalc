@@ -104,6 +104,6 @@ export async function getLog(opts: { id }) {
   return await api("compute/get-log", opts);
 }
 
-export async function getTitle(opts: { id }) {
+export const getTitle = reuseInFlight(async (opts: { id: number }) => {
   return await api("compute/get-server-title", opts);
-}
+});
