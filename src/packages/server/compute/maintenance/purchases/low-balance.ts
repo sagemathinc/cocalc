@@ -21,9 +21,13 @@ export default async function lowBalance({
     // e.g., XX days.
     return;
   }
+  if (!(await checkAllowed(0, "compute-server", server))) {
+    return;
+  }
+
   // add up all of the partial costs that haven't been committed
   // to the users transactions yet.
-  let cost = 0;
+  let cost = 0; // this is just network usage.
   for (const purchase of allPurchases) {
     if (purchase.cost != null || purchase.period_end != null) {
       // not a concern since it got closed above
@@ -36,36 +40,39 @@ export default async function lowBalance({
       purchase.service == "compute-server-network-usage" &&
       purchase.description.type == "compute-server-network-usage"
     ) {
-      // right now uage based metered usage isn't included in the balance
+      // right now usage based metered usage isn't included in the balance
       // in src/packages/server/purchases/get-balance.ts
       // When that changes, we won't need this loop at all.
       cost += purchase.description.cost;
     }
   }
-  // TODO: worried about service quotas compute-server versus compute-server-network-usage
+  await checkAllowed(cost, "compute-server-network-usage", server);
+}
+
+async function checkAllowed(cost: number, service, server) {
   const { allowed, reason } = await isPurchaseAllowed({
     account_id: server.account_id,
-    service: "compute-server",
+    service,
     cost: cost + COST_THRESH_DOLLARS,
   });
-  if (!allowed) {
-    // ut oh, running low on money. Turn VM off.
-    logger.debug(
-      "updatePurchase: attempting to stop server because user is low on funds",
-      server.id,
-    );
-    // [ ] TODO: email user
-    // [ ] TODO: this "stop" should go into a compute-server action log, and have a comment
-    //     about why the server stopped!
-    try {
-      await stop(server);
-      await setError(
-        server.id,
-        reason ??
-          "You do not have enough credits to keep this compute server running. Add credits to your account or increase your spending limit.",
-      );
-    } catch (err) {
-      logger.debug("updatePurchase: attempt to stop server failed -- ", err);
-    }
+  if (allowed) {
+    return true;
   }
+  // ut oh, running low on money. Turn VM off.
+  logger.debug(
+    "updatePurchase: attempting to stop server because user is low on funds",
+    server.id,
+  );
+  // [ ] TODO: email user
+  try {
+    await stop(server);
+    await setError(
+      server.id,
+      reason ??
+        "You do not have enough credits to keep this compute server running. Add credits to your account or increase your spending limit.",
+    );
+  } catch (err) {
+    logger.debug("updatePurchase: attempt to stop server failed -- ", err);
+  }
+  return false;
 }

@@ -70,9 +70,21 @@ export default function Cost({ service }: Props) {
   } else if (service == "compute-server") {
     return (
       <div style={TEXT_STYLE}>
-        Competitive pay-as-you-go pricing depending on cloud rates, VM
-        configuration and state. Pay by the millisecond while the VM is
-        provisioned.
+        Competitive pay-as-you-go pricing depending on cloud rates, compute
+        server configuration and state. Pay by the second while the compute
+        server is provisioned. When your spend approaches this limit, your
+        compute servers are turned off, but the disk is not deleted (unless you
+        significantly exceed the limit).
+      </div>
+    );
+  } else if (service == "compute-server-network-usage") {
+    return (
+      <div style={TEXT_STYLE}>
+        Network egress from Google Cloud compute servers is charged at a rate of
+        {currency(cost)}/GB. This is the charge for all data that leaves the
+        compute server over the network. Incoming network data is free. If your
+        usage hits this limit during a month, your compute servers are turned
+        off.
       </div>
     );
   }
