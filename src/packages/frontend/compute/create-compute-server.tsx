@@ -11,6 +11,8 @@ import ShowError from "@cocalc/frontend/components/error";
 import ComputeServer from "./compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { randomColor } from "./color";
+import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
+import costPerHour from "./cost";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -74,6 +76,13 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         if (start) {
           (async () => {
             try {
+              await confirmStartComputeServer({
+                id,
+                cost_per_hour: await costPerHour({
+                  configuration,
+                  state: "running",
+                }),
+              });
               await computeServerAction({ id, action: "start" });
             } catch (_) {}
           })();
