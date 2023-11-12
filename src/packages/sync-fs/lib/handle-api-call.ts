@@ -83,22 +83,11 @@ async function createCopyFromProjectTar(
 // we have to use separate cache/state for each exclude list, unfortunatley. in practice,
 // they should often be similar or the same, because people will rarely customize this (?).
 let lastProjectState: { [exclude: string]: FilesystemState } = {};
-let lastCallTime: { [exclude: string]: number } = {};
-let timeToGetState = 0.25;
-export async function getProjectState(exclude) {
+export async function getProjectState(exclude): Promise<FilesystemState> {
   const now = Math.floor(Date.now() / 1000); // in integers seconds
   const key = JSON.stringify(exclude);
-  const lastTime = lastCallTime[key] ?? 0;
   const lastState = lastProjectState[key] ?? {};
-  if (now - lastTime <= Math.min(60, timeToGetState * 25)) {
-    // don't update too frequently -- and if it is taking a long time,
-    // then wait even longer, e.g., if it takes 1s (which is VERY long for
-    // find), then we wait 25s between calls.
-    // We never wait more than 60s, since maybe the filesystem is
-    // just slow once and we don't want this to be unbounded.
-    return lastState;
-  }
-  lastCallTime[key] = now;
+
   if (!process.env.HOME) {
     throw Error("HOME must be defined");
   }
@@ -106,7 +95,6 @@ export async function getProjectState(exclude) {
     path: process.env.HOME,
     exclude,
   });
-  timeToGetState = Math.max(0.25, Date.now() / 1000 - now);
 
   // figure out what got deleted in the project
   for (const path in lastState) {
@@ -117,6 +105,7 @@ export async function getProjectState(exclude) {
       projectState[path] = lastState[path] < 0 ? lastState[path] : -now;
     }
   }
+
   lastProjectState[key] = projectState;
 
   //   // this is for DEBUGING ONLY!
