@@ -30,7 +30,7 @@ function initReceive(server, basePath) {
   wss.on("connection", (ws) => {
     logger.debug("syncfs-recv server: got new connection");
     ws.once("message", (mesg) => {
-      logger.debug("syncfs-recv server: received args", mesg);
+      // logger.debug("syncfs-recv server: received args", mesg);
       const args = JSON.parse(mesg.toString());
       logger.debug("parse", args);
       recvFiles({ ws, args, HOME: process.env.HOME });
@@ -56,7 +56,7 @@ function initSend(server, basePath) {
   wss.on("connection", (ws) => {
     logger.debug("syncfs-send server: got new connection");
     ws.once("message", (mesg) => {
-      logger.debug("syncfs-send server: received", mesg);
+      // logger.debug("syncfs-send server: received", mesg);
       const args = JSON.parse(mesg.toString());
       logger.debug("parse", args);
       sendFiles({ ws, args, HOME: process.env.HOME });

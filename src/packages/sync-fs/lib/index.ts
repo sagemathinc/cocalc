@@ -5,7 +5,6 @@
 
 import { mkdir, open, rm, stat, readFile, writeFile } from "fs/promises";
 import { join } from "path";
-//import { makePatch } from "./patch";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
 import { execa, mtimeDirTree, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
@@ -41,6 +40,7 @@ interface Options {
   exclude?: string[];
   readTrackingPath?: string;
   tar: { send; get };
+  compression?: "lz4"; // default 'lz4'
 }
 
 const UNIONFS = ".unionfs-fuse";
@@ -80,8 +80,8 @@ class SyncFS {
     exclude = [],
     readTrackingPath,
     tar,
+    compression = "lz4",
   }: Options) {
-    this.tar = tar;
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
@@ -103,6 +103,25 @@ class SyncFS {
     });
     this.state = "ready";
     this.error_txt = join(this.scratch, "error.txt");
+    if (!compression) {
+      this.tar = tar;
+    } else if (compression == "lz4") {
+      const alter = (v) => ["-I", "lz4"].concat(v);
+      this.tar = {
+        send: ({ createArgs, extractArgs }) => {
+          createArgs = alter(createArgs);
+          extractArgs = alter(extractArgs);
+          tar.send({ createArgs, extractArgs });
+        },
+        get: ({ createArgs, extractArgs }) => {
+          createArgs = alter(createArgs);
+          extractArgs = alter(extractArgs);
+          tar.get({ createArgs, extractArgs });
+        },
+      };
+    } else {
+      throw Error(`invalid compression: '${compression}'`);
+    }
   }
 
   init = async () => {
