@@ -118,7 +118,6 @@ export async function mountProject({
       unmount = null;
       reportState("cache", {
         state: "waiting",
-        extra: `for ${unionfs.lower}`,
         timeout: 120,
         progress: 30,
       });
@@ -130,7 +129,6 @@ export async function mountProject({
       // we mount it ourselves.
       reportState("network", {
         state: "mounting",
-        extra: remote,
         timeout: 120,
         progress: 30,
       });

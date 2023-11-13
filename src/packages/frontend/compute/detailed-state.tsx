@@ -1,4 +1,4 @@
-import { Progress, Spin, Tooltip } from "antd";
+import { Progress, Tooltip } from "antd";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
@@ -19,9 +19,14 @@ const SPEC = {
     label: "Sync",
     tip: "Sync /home/user between compute server and project (except excluded directories)",
   },
+  "filesystem-cache": {
+    icon: "disk-round",
+    label: "Cache",
+    tip: "Cache frequently read files from project on compute server",
+  },
   "filesystem-network": {
     icon: "network-wired",
-    label: "Mount files",
+    label: "Mount",
     tip: "Network mounted /home/user filesystem",
   },
   vm: {
@@ -132,7 +137,7 @@ function State({ name, state, time, expire, progress, extra, configuration }) {
                 "Ready"
               ) : (
                 <Tooltip title={toLabel(state)}>
-                  <Spin size="small" />
+                  <Icon name="run" />
                 </Tooltip>
               )}
             </div>
