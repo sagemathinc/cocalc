@@ -12,7 +12,6 @@ import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
-import { plural } from "@cocalc/util/misc";
 
 const log = getLogger("sync-fs:index").debug;
 
@@ -298,12 +297,8 @@ class SyncFS {
     if (copyFromCompute?.length ?? 0 > 0) {
       isActive = true;
       this.reportState({
-        state: "send-files-to-project",
+        state: `send-${copyFromCompute?.length ?? 0}-files-to-project`,
         progress: 50,
-        extra: `${copyFromCompute?.length ?? 0} ${plural(
-          copyFromCompute?.length ?? 0,
-          "file",
-        )}`,
       });
       await this.sendFiles(copyFromCompute);
     }

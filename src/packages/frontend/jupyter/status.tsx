@@ -418,7 +418,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             <Typography.Text type="secondary">
               Keep in mind that "shared memory" could compete with other
               projects on the same machine and hence you might not be able to
-              fully attain it.
+              use all of it.
             </Typography.Text>
           </p>
           <p>

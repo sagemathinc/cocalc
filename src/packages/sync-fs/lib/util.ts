@@ -48,6 +48,10 @@ export async function mtimeDirTree({
   const c: { [path: string]: number } = {};
   const v = stdout.split("\n");
   for (let i = 0; i < v.length - 1; i += 2) {
+    if (v[i].startsWith(".")) {
+      // never include top level hidden paths
+      continue;
+    }
     // NOTE -- GNU tar discards fractional part, thus rounding down, so this is right, since
     // we will use tar for sending files.
     c["./" + v[i]] = parseInt(v[i + 1]);
