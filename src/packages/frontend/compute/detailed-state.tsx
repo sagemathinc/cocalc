@@ -1,20 +1,39 @@
-import { Progress } from "antd";
+import { Progress, Tooltip } from "antd";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
 
 const SPEC = {
-  compute: { icon: "server", label: "Jupyter and Terminals" },
-  filesystem: { icon: "files", label: "Filesystem" },
-  "filesystem-sync": { icon: "sync", label: "Sync /home/user" },
+  compute: {
+    icon: "server",
+    label: "Compute",
+    tip: "Jupyter kernel and terminal software environment",
+  },
+  filesystem: {
+    icon: "files",
+    label: "Filesystem",
+    tip: "Service that manages mounting and syncing the /home/user filesystem",
+  },
+  "filesystem-sync": {
+    icon: "sync",
+    label: "Sync",
+    tip: "Sync /home/user between compute server and project (except excluded directories)",
+  },
   "filesystem-network": {
     icon: "network-wired",
-    label: "Mount /home/user",
+    label: "Mount files",
+    tip: "Network mounted /home/user filesystem",
   },
-  "filesystem-cache": { icon: "microchip", label: "Cache /home/user" },
-  vm: { icon: "desktop", label: "Virtual Machine" },
-  install: { icon: "cloud-dev", label: "Install Software" },
-  cocalc: { icon: "cocalc-ring", label: "Install CoCalc" },
+  vm: {
+    icon: "desktop",
+    label: "Virtual Machine",
+    tip: "Underlying virtual machine on which the compute server containers are running",
+  },
+  install: {
+    icon: "cloud-dev",
+    label: "Install",
+    tip: "Install Docker, Nodejs, and CoCalc software on the compute server",
+  },
 };
 
 // order the components
@@ -62,7 +81,9 @@ export default function DetailedState({
     }
   }
   return (
-    <div style={{ borderTop: `1px solid ${color}`, marginTop: "5px" }}>{v}</div>
+    <div style={{ borderTop: `1px solid ${color}`, marginTop: "10px" }}>
+      {v}
+    </div>
   );
 }
 
@@ -86,31 +107,46 @@ function State({ name, state, time, expire, progress, extra, configuration }) {
   }
 
   return (
-    <div style={{ display: "flex" }}>
-      <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
-        {name != "compute" && (
+    <div style={{ borderBottom: "1px solid #ddd" }}>
+      <div style={{ display: "flex" }}>
+        <Tooltip title={SPEC[name]?.tip}>
+          <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
+            {name != "compute" && (
+              <>
+                <Icon
+                  name={SPEC[name]?.icon ?? "cube"}
+                  style={{ marginRight: "5px" }}
+                />{" "}
+              </>
+            )}
+            {label}
+          </div>
+        </Tooltip>
+        {!expired && (
           <>
-            <Icon
-              name={SPEC[name]?.icon ?? "cube"}
-              style={{ marginRight: "5px" }}
-            />{" "}
+            <div style={{ flex: 1 }}>
+              {!expired && <Progress percent={progress ?? 0} size="small" />}
+            </div>
+            <div style={{ flex: 1, textAlign: "center" }}>{toLabel(state)}</div>
+            <div
+              style={{
+                flex: 1,
+                textAlign: "center",
+                overflow: "scroll",
+                height: "30px",
+              }}
+            >
+              {/* only show time when at least a minute in past to avoid annoying flicker */}
+              {(time ?? 0) < Date.now() - 60 * 1000 && <TimeAgo date={time} />}
+            </div>
           </>
         )}
-        {label}
       </div>
-      {!expired && (
-        <>
-          {!expired && (
-            <div style={{ flex: 1 }}>
-              <Progress percent={progress ?? 0} size="small" />
-            </div>
-          )}
-          <div style={{ flex: 1, textAlign: "center" }}>{toLabel(state)}</div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <TimeAgo date={time} />
-          </div>
-          {extra && <div style={{ flex: 1 }}>{extra}</div>}
-        </>
+      {extra && (
+        <div style={{ display: "flex" }}>
+          <div style={{ flex: 0.33333 }} />
+          <div style={{ flex: 0.66666 }}>{extra}</div>
+        </div>
       )}
     </div>
   );

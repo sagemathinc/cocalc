@@ -293,10 +293,8 @@ export default function ComputeServer({
                 width: "100%",
                 justifyContent: "space-between",
                 color: "#666",
-                //border: `1px solid ${color}`,
-                // borderRadius: "5px",
                 borderBottom: `1px solid ${color}`,
-                padding: "0 10px",
+                padding: "0 10px 5px 0",
               }}
             >
               <div
