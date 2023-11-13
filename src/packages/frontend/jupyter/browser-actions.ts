@@ -354,6 +354,7 @@ export class JupyterActions extends JupyterActions0 {
       this.lastComputeServerId = computeServerId;
       this.fetch_jupyter_kernels();
     }
+    this.setState({ computeServerId });
   };
 
   private account_change(state: Map<string, any>): void {

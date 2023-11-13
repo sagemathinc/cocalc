@@ -17,7 +17,7 @@ export default async function getTitle(
   if (cache.has(compute_server_id)) {
     return cache.get(compute_server_id)!;
   }
-  const title = await getTitleViaApi({ id: compute_server_id });
-  cache.set(compute_server_id, title);
-  return title;
+  const x = await getTitleViaApi({ id: compute_server_id });
+  cache.set(compute_server_id, x);
+  return x;
 }

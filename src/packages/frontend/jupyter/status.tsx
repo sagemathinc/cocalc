@@ -15,7 +15,7 @@ import {
 } from "antd";
 import * as immutable from "immutable";
 import { ReactNode, useEffect } from "react";
-
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -102,6 +102,7 @@ interface KernelProps {
   expected_cell_runtime?: number;
   mode?: NotebookMode;
   style?: CSS;
+  computeServerId?: number;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
@@ -113,6 +114,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       mode,
       style,
       usage,
+      computeServerId,
     } = props;
     const name = actions.name;
 
@@ -358,7 +360,17 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       } else if (backendIsStarting) {
         return "Kernel is starting";
       }
-      return "Kernel will start when you run code";
+      return (
+        <>
+          Kernel will start in{" "}
+          {computeServerId ? (
+            <ComputeServer id={computeServerId} noColor />
+          ) : (
+            " the project "
+          )}{" "}
+          when you run code
+        </>
+      );
     }
 
     function get_kernel_name(): JSX.Element {
@@ -401,13 +413,19 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           ""
         ) : (
           <>
-            Backend is {BACKEND_STATE_HUMAN[backend_state] ?? backend_state}.
+            Backend is {BACKEND_STATE_HUMAN[backend_state] ?? backend_state} in{" "}
+            {computeServerId ? (
+              <ComputeServer id={computeServerId} noColor />
+            ) : (
+              " the project "
+            )}
+            .
             <br />
           </>
         );
       const kernel_tip = kernelState();
 
-      const usage_tip = (
+      const usage_tip = computeServerId ? null : (
         <>
           <p>
             This shows this kernel's resource usage. The memory limit is
@@ -481,6 +499,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     function render_usage_graphical() {
       if (kernel == null) return;
+
+      if (computeServerId) {
+        // [ ] TODO: implement usage info for compute servers!
+        return;
+      }
 
       const style: CSS = is_fullscreen
         ? { display: "flex" }
@@ -581,6 +604,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // this ends up in the popover tip. it contains the actual values and the same color coded usage levels
     function render_usage_text() {
       if (usage == null) return;
+      if (computeServerId) return;
+
       const cpu_style = usage_text_style_level(usage.cpu_alert);
       const memory_style = usage_text_style_level(usage.mem_alert);
       const time_style = usage_text_style_level(usage.time_alert);

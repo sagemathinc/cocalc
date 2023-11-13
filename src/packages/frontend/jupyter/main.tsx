@@ -181,6 +181,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "check_select_kernel_init",
   ]);
+  const computeServerId = useRedux([name, "computeServerId"]);
 
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
@@ -197,7 +198,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const useWindowedListRef = useRef<boolean>(
     !redux
       .getStore("account")
-      .getIn(["editor_settings", "disable_jupyter_virtualization"])
+      .getIn(["editor_settings", "disable_jupyter_virtualization"]),
   );
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
@@ -232,6 +233,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         usage={usage}
         expected_cell_runtime={expected_cell_runtime}
         mode={mode}
+        computeServerId={computeServerId}
       />
     );
   }
@@ -342,6 +344,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
         chatgpt={chatgpt}
+        computeServerId={computeServerId}
       />
     );
   }

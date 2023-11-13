@@ -45,6 +45,7 @@ interface Props {
   height?: number; // optional fixed height
   delayRendering?: number;
   chatgpt?;
+  computeServerId?: number;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -65,6 +66,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.trust !== props.trust ||
     nextProps.is_scrolling !== props.is_scrolling ||
     nextProps.height !== props.height ||
+    nextProps.computeServerId !== props.computeServerId ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current))
   );
@@ -111,6 +113,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
         chatgpt={props.chatgpt}
+        computeServerId={props.computeServerId}
       />
     );
   }

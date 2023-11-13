@@ -96,6 +96,8 @@ export interface JupyterStoreState {
   start_time: any;
   toolbar?: boolean;
   widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
+  // computeServerId -- gets optionally set on the frontend (useful for react)
+  computeServerId?: number;
 }
 
 export const initial_jupyter_store_state: {
@@ -475,7 +477,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const projects_store = this.redux.getStore("projects");
     const customize = this.redux.getStore("customize");
     const computeServerId =
-      this.redux.getActions(this.name)?.getRemoteComputeServerId() ?? 0;
+      this.redux.getActions(this.name)?.getComputeServerId() ?? 0;
     if (customize == null) {
       // the customize store doesn't exist, e.g., in a compute server.
       // In that case no need for a complicated jupyter kernel key as

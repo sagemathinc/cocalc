@@ -95,6 +95,7 @@ interface CellListProps {
   trust?: boolean;
   use_windowed_list?: boolean;
   chatgpt?;
+  computeServerId?: number;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -121,6 +122,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     trust,
     use_windowed_list,
     chatgpt,
+    computeServerId,
   } = props;
 
   const cell_list_node = useRef<HTMLElement | null>(null);
@@ -477,6 +479,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
           chatgpt={chatgpt}
+          computeServerId={computeServerId}
         />
       </div>
     );

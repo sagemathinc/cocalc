@@ -19,7 +19,7 @@ const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 // Note that in most cases the compute server will explicitly delete its
 // cursor on termination so switching is instant. This is a "just in case",
 // so things aren't broken forever, e.g., in case of a crash.
-export const COMPUTE_THRESH_MS = 30 * 1000;
+export const COMPUTE_THRESH_MS = 15 * 1000;
 
 declare const localStorage: any;
 
@@ -2651,18 +2651,18 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // if none is connected.  We always take the smallest id of the remote
   // compute servers, in case there is more than one, so exactly one of them
   // takes control.
-  getRemoteComputeServerId = (): number => {
+  getComputeServerId = (): number => {
     // This info is in the "cursors" table instead of the document itself
     // to avoid wasting space in the database longterm.  Basically a remote
     // Jupyter client that can provide compute announces this by reporting it's
     // cursor to look a certain way.
     const cursors = this.syncdb.get_cursors({
       maxAge: COMPUTE_THRESH_MS,
-      // don't exclude self since getRemoteComputeServerId called from the compute
+      // don't exclude self since getComputeServerId called from the compute
       // server also to know if it is the chosen one.
       excludeSelf: false,
     });
-    const dbg = this.dbg("getRemoteComputeServerId");
+    const dbg = this.dbg("getComputeServerId");
     dbg("num cursors = ", cursors.size);
     let minId = Infinity;
     // NOTE: similar code is in frontend/jupyter/cursor-manager.ts

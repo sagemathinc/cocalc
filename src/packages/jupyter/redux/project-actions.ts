@@ -189,7 +189,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this.syncdb.on(
       "cursor_activity",
-      this.checkForRemoteComputeServerStateChange,
+      this.checkForComputeServerStateChange,
     );
 
     // initialize the websocket api
@@ -1347,10 +1347,10 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg("isCellRunner");
     let id;
     try {
-      id = this.getRemoteComputeServerId();
+      id = this.getComputeServerId();
     } catch (_) {
       // normal since debounced,
-      // and anyways if anything like syncdb that getRemoteComputeServerId
+      // and anyways if anything like syncdb that getComputeServerId
       // depends on doesn't work, then we are clearly
       // not the cell runner
       return false;
@@ -1377,21 +1377,21 @@ export class JupyterActions extends JupyterActions0 {
     return false;
   };
 
-  private lastRemoteComputeServerId = 0;
-  private checkForRemoteComputeServerStateChange = (client_id) => {
+  private lastComputeServerId = 0;
+  private checkForComputeServerStateChange = (client_id) => {
     if (this.is_closed()) {
       return;
     }
     if (!isEncodedNumUUID(client_id)) {
       return;
     }
-    const id = this.getRemoteComputeServerId();
-    if (id != this.lastRemoteComputeServerId) {
+    const id = this.getComputeServerId();
+    if (id != this.lastComputeServerId) {
       // reset all run state
       this.halt();
       this.clear_all_cell_run_state();
     }
-    this.lastRemoteComputeServerId = id;
+    this.lastComputeServerId = id;
   };
 
   /*
