@@ -1,0 +1,85 @@
+/*
+Simple inline display of the compute server with given id, for use
+elsewhere in cocalc.
+
+This may get more sophisticated, e.g., clickable link, hover for status, etc.
+*/
+
+import { useEffect, useState } from "react";
+import getTitle from "./get-title";
+import { Spin, Tooltip } from "antd";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+
+interface Props {
+  id: number;
+  noColor?: boolean;
+  style?;
+  titleOnly?: boolean;
+  prompt?: boolean;
+}
+
+export default function ComputeServer({
+  id,
+  noColor,
+  style,
+  titleOnly,
+  prompt,
+}: Props) {
+  const [server, setServer] = useState<null | {
+    title: string;
+    color: string;
+  }>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        setServer(await getTitle(id));
+      } catch (err) {
+        console.warn(err);
+        setServer({
+          title: `Compute Server with Id=${id}`,
+          color: "#000",
+        });
+      }
+    })();
+  }, [id]);
+
+  if (prompt) {
+    const s = <span style={style}>compute-server-{id}</span>;
+    if (server == null) {
+      return s;
+    }
+    return <Tooltip title={<>Compute Server {server.title}'</>}>{s}</Tooltip>;
+  }
+
+  if (server == null) {
+    return (
+      <span style={style}>
+        <Spin />
+      </span>
+    );
+  }
+  const label = titleOnly ? (
+    server.title
+  ) : (
+    <>
+      Compute Server '{server.title}' (Id: {id})
+    </>
+  );
+  if (noColor) {
+    return <span style={style}>{label}</span>;
+  }
+  return (
+    <span
+      style={{
+        backgroundColor: server.color,
+        color: avatar_fontcolor(server.color),
+        overflow: "hidden",
+        padding: "0 5px",
+        borderRadius: "3px",
+        ...style,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
