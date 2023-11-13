@@ -98,6 +98,7 @@ export interface JupyterStoreState {
   widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
   // computeServerId -- gets optionally set on the frontend (useful for react)
   computeServerId?: number;
+  requestedComputeServerId?: number;
 }
 
 export const initial_jupyter_store_state: {

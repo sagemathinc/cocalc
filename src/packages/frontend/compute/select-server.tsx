@@ -84,6 +84,9 @@ export default function SelectComputeServer({
           }
         }
         const id = await computeServerAssociations.getServerIdForPath(p);
+        if (type == "jupyter_cell_notebook" && actions != null) {
+          actions?.jupyter_actions.setState({ requestedComputeServerId: id });
+        }
         setValue(id == null ? null : `${id}`);
       } catch (err) {
         console.warn(err);

@@ -13,6 +13,7 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 interface Props {
   id: number;
   noColor?: boolean;
+  colorOnly?: boolean;
   style?;
   titleOnly?: boolean;
   prompt?: boolean;
@@ -21,6 +22,7 @@ interface Props {
 export default function ComputeServer({
   id,
   noColor,
+  colorOnly,
   style,
   titleOnly,
   prompt,
@@ -42,6 +44,18 @@ export default function ComputeServer({
       }
     })();
   }, [id]);
+
+  if (colorOnly) {
+    return (
+      <div
+        style={{
+          backgroundColor: server?.color,
+          height: "3px",
+          ...style,
+        }}
+      />
+    );
+  }
 
   if (prompt) {
     const s = <span style={style}>compute-server-{id}</span>;

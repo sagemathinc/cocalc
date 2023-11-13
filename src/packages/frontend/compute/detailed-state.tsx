@@ -45,11 +45,11 @@ const SPEC = {
 const COMPONENTS = [
   "filesystem-sync",
   "compute",
+  "vm",
   "filesystem",
   "filesystem-cache",
   "filesystem-network",
   "install",
-  "vm",
 ];
 
 export default function DetailedState({

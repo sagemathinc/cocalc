@@ -575,6 +575,7 @@ export type Data = GoogleCloudData | LambdaCloudData;
 export interface ComponentState {
   state: string;
   time: number;
+  expire?: number;
 }
 
 export interface ComputeServerUserInfo {
