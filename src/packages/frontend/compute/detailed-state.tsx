@@ -1,4 +1,4 @@
-import { Progress, Tooltip } from "antd";
+import { Progress, Spin, Tooltip } from "antd";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
@@ -127,7 +127,15 @@ function State({ name, state, time, expire, progress, extra, configuration }) {
             <div style={{ flex: 1 }}>
               {!expired && <Progress percent={progress ?? 0} size="small" />}
             </div>
-            <div style={{ flex: 1, textAlign: "center" }}>{toLabel(state)}</div>
+            <div style={{ flex: 1, textAlign: "center" }}>
+              {state == "ready" ? (
+                "Ready"
+              ) : (
+                <Tooltip title={toLabel(state)}>
+                  <Spin size="small" />
+                </Tooltip>
+              )}
+            </div>
             <div
               style={{
                 flex: 1,
