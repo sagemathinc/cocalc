@@ -19,7 +19,6 @@ const DELETE_THRESH_MARGIN = 20;
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
 export default async function lowBalance({
-  stableState,
   allPurchases,
   server,
 }) {
