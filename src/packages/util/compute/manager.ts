@@ -19,7 +19,10 @@ export function isEncodedNumUUID(uuid: string): boolean {
   return uuid.endsWith(COMPUTER_SERVER_UUID_END);
 }
 
-export function encodeIntToUUID(num: number): string {
+export function encodeIntToUUID(num: number | string): string {
+  if (typeof num == "string") {
+    num = parseInt(num);
+  }
   // Convert to hexadecimal
   let hex = num.toString(16);
   while (hex.length < 8) {

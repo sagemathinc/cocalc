@@ -224,6 +224,9 @@ async function doState(server: ComputeServer): Promise<State> {
       return await googleCloud.state(server);
     case "lambda-cloud":
       return await lambdaCloud.state(server);
+    case "onprem":
+      // for onprem all state is self-reported.
+      return server.state ?? "unknown";
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }
@@ -577,6 +580,10 @@ export async function getNetworkUsage(opts: {
       return await googleCloud.getNetworkUsage(opts);
     case "lambda-cloud":
       // lambda doesn't charge for network usage at all.
+      return { amount: 0, cost: 0 };
+    case "onprem":
+      // TODO: network usage currently free for on prem. This will change
+      // since we should charge for egress from the project to the on prem node!
       return { amount: 0, cost: 0 };
     case "test":
       return testNetworkUsage[opts.server.id] ?? { amount: 0, cost: 0 };
