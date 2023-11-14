@@ -28,7 +28,7 @@ export async function waitUntilFilesystemIsOfType(path: string, type: string) {
       `getFilesystemType: '${path}' of type '${cur}'.  Waiting for type '${type}'...`,
     );
     await delay(d);
-    d = Math.min(5000, d * 1.3);
+    d = Math.min(3000, d * 1.3);
   }
 }
 
