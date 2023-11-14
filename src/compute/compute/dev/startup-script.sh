@@ -11,11 +11,11 @@
 
 set -v
 
-export api_server=http://localhost:5000/ab3c2e56-32c4-4fa5-a3ee-6fd980d10fbf/port/5000
+export api_server=`cat conf/api_server`
 
 
 function setState {
-  id=38
+  id=`cat conf/compute_server_id`
   name=$1
   state=${2:-'ready'}
   extra=${3:-''}
@@ -23,42 +23,39 @@ function setState {
   progress=${5:-100}
 
   echo "$name is $state"
-  curl -sk -u sk-RFr8mEWf8olIfXoQ00002J:  -H 'Content-Type: application/json' -d "{\"id\":$id,\"name\":\"$name\",\"state\":\"$state\",\"extra\":\"$extra\",\"timeout\":$timeout,\"progress\":$progress}" $api_server/api/v2/compute/set-detailed-state
+  curl -sk -u `cat conf/api_key`:  -H 'Content-Type: application/json' -d "{\"id\":$id,\"name\":\"$name\",\"state\":\"$state\",\"extra\":\"$extra\",\"timeout\":$timeout,\"progress\":$progress}" $api_server/api/v2/compute/set-detailed-state
 }
 
 
 setState state running
 
+sleep 1
 setState install configure '' 60 10
 
-# Setup Current CoCalc Connection Configuration --
-mkdir -p /cocalc/conf
-echo "sk-RFr8mEWf8olIfXoQ00002J" > conf/api_key
-echo "$api_server" > conf/api_server
-echo "34ce85cd-b4ad-4786-a8f0-67fa9c729b4f" > conf/project_id
-echo "38" > conf/compute_server_id
-echo "compute-server-38" > conf/hostname
-
-echo 'scratch' > conf/exclude_from_sync
-
-if [ $? -ne 0 ]; then
-   setState install error "problem installing configuration"
-   exit 1
-fi
 
 setState install install-docker '' 120 20
+sleep 1
 setState install install-nodejs 60 50
+sleep 1
 setState install install-cocalc '' 60 70
+sleep 1
 setState install install-user '' 60 80
+sleep 1
 setState install ready '' 0  100
 
 setState vm start '' 60 60
+sleep 1
 setState filesystem init '' 60 15
+sleep 1
 setState filesystem run '' 45 25
+sleep 1
 setState filesystem running '' 45 80
+sleep 1
 
 setState compute run '' 20 25
+sleep 1
 setState compute running '' 30 80
+sleep 1
 
 while true; do
   setState vm ready '' 35 100
