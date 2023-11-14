@@ -44,8 +44,11 @@ describe("tests remotePty connecting and handling data with **simulated** pty an
     spark1 = channel.createSpark("192.168.2.1");
     spark2 = channel.createSpark("192.168.2.2");
     for (const s of [spark1, spark2]) {
-      const mesg = await s.waitForMessage();
-      expect(mesg).toEqual({ cmd: "no-ignore" });
+      // it initially tells us the current computeServerId, right when we connect.
+      const mesg1 = await s.waitForMessage();
+      expect(mesg1).toEqual({ cmd: "computeServerId", id: 0 });
+      const mesg2 = await s.waitForMessage();
+      expect(mesg2).toEqual({ cmd: "no-ignore" });
     }
   });
 
@@ -118,7 +121,6 @@ describe("tests remotePty connecting and handling data with **simulated** pty an
     });
   });
 });
-
 
 // I disabled all of these for now.  They are too difficult to maintain since they are so "fake".
 
