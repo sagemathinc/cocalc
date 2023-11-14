@@ -16,8 +16,8 @@ import { deleteServer, undeleteServer } from "./api";
 import { DisplayImage } from "./select-image";
 import { randomColor } from "./color";
 import ComputeServerLog from "./compute-server-log";
-import { Error } from "./log-entry";
 import CurrentCost from "./current-cost";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -238,11 +238,7 @@ export default function ComputeServer({
             </Popconfirm>
           ))}
       </div>
-      {backendError && (
-        <div style={{ marginTop: "10px", display: "flex" }}>
-          <Error error={backendError} style={{ fontSize: "10pt" }} />
-        </div>
-      )}
+      <BackendError error={backendError} id={id} project_id={project_id} />
     </div>
   );
 
@@ -277,10 +273,7 @@ export default function ComputeServer({
             )}
             {id != null && (
               <div style={{ marginLeft: "-15px" }}>
-                <CurrentCost
-                  state={state}
-                  cost_per_hour={cost_per_hour}
-                />
+                <CurrentCost state={state} cost_per_hour={cost_per_hour} />
               </div>
             )}
           </div>
@@ -339,6 +332,11 @@ export default function ComputeServer({
         }
         description={
           <div style={{ color: "#666" }}>
+            <BackendError
+              error={backendError}
+              id={id}
+              project_id={project_id}
+            />
             <Description
               account_id={account_id}
               cloud={cloud}
@@ -411,5 +409,31 @@ export default function ComputeServer({
   );
 }
 
-
-
+function BackendError({ error, id, project_id }) {
+  if (!error || !id) {
+    return null;
+  }
+  return (
+    <div style={{ marginTop: "10px", display: "flex", fontWeight: "normal" }}>
+      <ShowError
+        error={error}
+        style={{ fontSize: "10pt" }}
+        setError={async () => {
+          try {
+            await webapp_client.async_query({
+              query: {
+                compute_servers: {
+                  id,
+                  project_id,
+                  error: "",
+                },
+              },
+            });
+          } catch (err) {
+            console.warn(err);
+          }
+        }}
+      />
+    </div>
+  );
+}

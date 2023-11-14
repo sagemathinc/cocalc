@@ -648,6 +648,7 @@ Table({
           project_id: "project_write",
           id: true,
           position: true,
+          error: true, // easily clear the error
         },
       },
     },
