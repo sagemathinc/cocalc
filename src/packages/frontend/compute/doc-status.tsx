@@ -40,7 +40,6 @@ export default function ComputeServerTransition({
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
-  console.log({ showDetails });
 
   if (id == 0 && requestedId == 0) {
     return null;
