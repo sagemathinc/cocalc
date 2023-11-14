@@ -277,7 +277,7 @@ export const STATE_INFO: {
     target: "off",
   },
   unknown: {
-    label: "Unknown",
+    label: "Unknown (click to refresh)",
     actions: [],
     icon: "question-circle",
     stable: true,
