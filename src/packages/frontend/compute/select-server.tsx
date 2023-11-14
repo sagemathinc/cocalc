@@ -146,7 +146,7 @@ export default function SelectComputeServer({
       );
       options.push({
         value: id,
-        sort: title.toLowerCase(),
+        sort: title?.toLowerCase() ?? "",
         state,
         label,
         position,
