@@ -1,4 +1,12 @@
-import { Alert, Button, Modal, Popconfirm, Popover, Spin } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Modal,
+  Popconfirm,
+  Popover,
+  Spin,
+} from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import {
   ACTION_INFO,
@@ -120,8 +128,9 @@ function ActionButton({
     updateCost();
   }, [configuration, action]);
   const customize = useStore("customize");
-
+  const [understand, setUnderstand] = useState<boolean>(false);
   const [doing, setDoing] = useState<boolean>(!STATE_INFO[state]?.stable);
+
   const doAction = async () => {
     if (action == "start") {
       // check version
@@ -204,6 +213,10 @@ function ActionButton({
   if (confirm) {
     button = (
       <Popconfirm
+        placement="right"
+        okButtonProps={{
+          disabled: !configuration.ephemeral && danger && !understand,
+        }}
         title={
           <div>
             {label} - Are you sure?
@@ -226,6 +239,14 @@ function ActionButton({
                   "This will safely turn off the VM, and allow you to edit its configuration."
                 }
               />
+            )}
+            {!configuration.ephemeral && danger && (
+              <Checkbox
+                onChange={(e) => setUnderstand(e.target.checked)}
+                checked={understand}
+              >
+                <b>I understand that my compute server disk will be deleted.</b>
+              </Checkbox>
             )}
           </div>
         }
@@ -290,7 +311,7 @@ function ActionButton({
 
   return (
     <Popover
-      placement="bottom"
+      placement="left"
       key={action}
       mouseEnterDelay={1}
       title={

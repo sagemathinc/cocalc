@@ -96,7 +96,8 @@ export default function SelectComputeServer({
           }
         } else if (type == "terminal") {
           const terminalRequestedComputeServerIds =
-            actions.store.get("terminalRequestedComputeServerIds")?.toJS() ?? {};
+            actions.store.get("terminalRequestedComputeServerIds")?.toJS() ??
+            {};
           terminalRequestedComputeServerIds[p] = id;
           actions.setState({ terminalRequestedComputeServerIds });
         }
@@ -305,11 +306,11 @@ export default function SelectComputeServer({
           setIdNum(0);
           setConfirmSwitch(true);
         }}
-        value={value}
+        value={value == "0" ? undefined : value}
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value ? "175px" : "64px",
+          width: open ? "300px" : value && value != "0" ? "175px" : "64px",
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}

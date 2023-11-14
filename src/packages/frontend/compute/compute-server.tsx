@@ -203,6 +203,7 @@ export default function ComputeServer({
         </div>{" "}
         {editable &&
           id &&
+          (deleted || state == "deprovisioned") &&
           (deleted ? (
             <Button
               key="undelete"
