@@ -18,6 +18,7 @@ import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 import { getPurchase } from "./util";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { delay } from "awaiting";
+import { testEmails, resetTestEmails } from "@cocalc/server/email/send-email";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -48,7 +49,7 @@ describe("confirm managing of purchases works", () => {
 
   it("creates account, project and compute server on test cloud", async () => {
     await createAccount({
-      email: "",
+      email: `${account_id}@xample.com`,
       password: "xyz",
       firstName: "User",
       lastName: "One",
@@ -246,7 +247,8 @@ describe("confirm managing of purchases works", () => {
   });
 
   // rule 6
-  it("make time really long so that balance is exceeded, and see that server gets stopped due to too low balance", async () => {
+  it("make time really long so that balance is exceeded, and see that server gets stopped due to too low balance, and an email is sent to the user", async () => {
+    resetTestEmails();
     await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 500));
     const pool = getPool();
     await pool.query(
@@ -258,6 +260,11 @@ describe("confirm managing of purchases works", () => {
     const server = await getServer({ account_id, id: server_id });
     expect(server.state == "off" || server.state == "stopping").toBe(true);
     expect(server.error).toContain("do not have enough");
+    //console.log(testEmails);
+    expect(testEmails.length).toBe(1);
+    expect(testEmails[0].text).toContain(
+      "Action Taken: Computer Server Turned Off",
+    );
   });
 
   it("shut off machine instead of starting purchase when user doesn't have enough money", async () => {

@@ -2,6 +2,11 @@ import getLogger from "@cocalc/backend/logger";
 import { stop } from "@cocalc/server/compute/control";
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import { setError } from "@cocalc/server/compute/util";
+import sendEmail from "@cocalc/server/email/send-email";
+import siteURL from "@cocalc/database/settings/site-url";
+import getProjectTitle from "@cocalc/server/projects/get-title";
+import { getServerSettings } from "@cocalc/database/settings";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 
 // turn VM off if you don't have at least this much extra:
 const COST_THRESH_DOLLARS = 2.5;
@@ -63,7 +68,12 @@ async function checkAllowed(cost: number, service, server) {
     "updatePurchase: attempting to stop server because user is low on funds",
     server.id,
   );
-  // [ ] TODO: email user
+  notifyUser({
+    server,
+    service,
+    action: "Computer Server Turned Off",
+    callToAction: `Add credit to your account, so your compute server isn't deleted.`,
+  });
   try {
     await stop(server);
     await setError(
@@ -75,4 +85,80 @@ async function checkAllowed(cost: number, service, server) {
     logger.debug("updatePurchase: attempt to stop server failed -- ", err);
   }
   return false;
+}
+
+async function notifyUser({ server, service, action, callToAction }) {
+  try {
+    const { name, email_address: to } = await getUser(server.account_id);
+    if (!to) {
+      throw Error(
+        `User ${server.account_id} has no email address, so we can't email them.`,
+      );
+    }
+    const projectTitle = await getProjectTitle(server.project_id);
+    const { help_email: from, site_name: siteName } = await getServerSettings();
+    const subject = `Low Balance - ${action}`;
+    const html = `
+Hello ${name},
+
+<br/>
+<br/>
+
+Your Compute Server '${server.title}' (Id: ${server.id}) is
+hitting your ${service} quota, or you are too low on funds.
+<br/>
+<br/>
+Action: ${action}
+<br/>
+<br/>
+<b>${callToAction}</b>
+<br/>
+<br/>
+
+
+<ul>
+<li>
+<a href="${await siteURL()}/settings/purchases">Add credit to your account
+and see all of your purchases</a>
+</li>
+<li>
+<a href="${await siteURL()}/projects/${server.project_id}/servers">Compute
+  Servers in your project ${projectTitle}</a>
+</li>
+</ul>
+
+If you have any questions, reply to this email to create a support request.
+<br/>
+<br/>
+
+  -- ${siteName}
+`;
+
+    const text = `
+Hello ${name},
+
+Your Compute Server '${server.title}' (Id: ${server.id}) is
+hitting your ${service} quota, or you are too low on funds.
+
+Action Taken: ${action}
+
+${callToAction}
+
+Add credit to your account and see all of your purchases:
+
+${await siteURL()}/settings/purchases
+
+Compute Servers in your project ${projectTitle}
+
+${await siteURL()}/projects/${server.project_id}/servers
+
+If you have any questions, reply to this email to create a support request.
+
+  -- ${siteName}
+`;
+
+    await sendEmail({ from, to, subject, html, text });
+  } catch (err) {
+    logger.debug("updatePurchase: WARNING -- error notifying user -- ", err);
+  }
 }

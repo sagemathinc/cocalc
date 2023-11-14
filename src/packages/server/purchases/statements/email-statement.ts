@@ -47,6 +47,9 @@ export default async function emailStatement(opts: {
   } = await getServerSettings();
   const { account_id, statement_id, force, dryRun } = opts;
   const { name, email_address: to } = await getUser(account_id);
+  if (!to) {
+    throw Error(`no email address at all on file for ${name} -- ${account_id}`);
+  }
   if (!isValidEmailAddress(to)) {
     throw Error(`no valid email address on file for ${name}`);
   }
@@ -225,7 +228,7 @@ async function getPurchasesOnStatement(
 
 export async function getUser(
   account_id: string,
-): Promise<{ name: string; email_address: string }> {
+): Promise<{ name: string; email_address?: string }> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT first_name, last_name, email_address FROM accounts WHERE account_id=$1",

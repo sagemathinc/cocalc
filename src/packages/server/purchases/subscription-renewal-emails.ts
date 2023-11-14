@@ -11,7 +11,7 @@ import {
   plural,
   is_valid_email_address as isValidEmailAddress,
 } from "@cocalc/util/misc";
-import { getUser } from "./statements/email-statement";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { getTotalBalance } from "./get-balance";
 import { getUsageSubscription } from "./stripe-usage-based-subscription";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
@@ -37,7 +37,7 @@ export default async function sendSubscriptionRenewalEmails() {
     try {
       await sendSubscriptionRenewalEmail(
         account_id,
-        subscriptionsByAccount[account_id]
+        subscriptionsByAccount[account_id],
       );
     } catch (err) {
       console.trace(err);
@@ -45,7 +45,7 @@ export default async function sendSubscriptionRenewalEmails() {
         `WARNING -- failed to send subscription renewal email: ${err}`,
         {
           account_id,
-        }
+        },
       );
     }
   }
@@ -55,6 +55,9 @@ async function sendSubscriptionRenewalEmail(account_id, subs: Subscription[]) {
   logger.debug("sendSubscriptionRenewalEmail", { account_id, subs });
   const { help_email, site_name: siteName } = await getServerSettings();
   const { name, email_address: to } = await getUser(account_id);
+  if (!to) {
+    throw Error(`no email address at all on file for ${name} -- ${account_id}`);
+  }
   if (!isValidEmailAddress(to)) {
     throw Error(`no valid email address on file for ${name} -- got '${to}'`);
   }
@@ -68,7 +71,7 @@ async function sendSubscriptionRenewalEmail(account_id, subs: Subscription[]) {
   const usageSub = await getUsageSubscription(account_id);
 
   let pay = `Your account balance, including all pending transactions, is ${currency(
-    totalBalance
+    totalBalance,
   )}. `;
   if (totalBalance - cost < 0) {
     const amount = currency(Math.abs(totalBalance - cost));
@@ -88,8 +91,8 @@ so they are not automatically canceled.   You will receive a reminder email in a
       `<li>${sub.interval == "month" ? "Monthly" : "Yearly"} Subscription (id=${
         sub.id
       }) for ${currency(sub.cost)}/${sub.interval}: ${await describeLicense(
-        sub.metadata?.license_id
-      )} ${await cancelSubscriptionLink(sub.id)}</li>`
+        sub.metadata?.license_id,
+      )} ${await cancelSubscriptionLink(sub.id)}</li>`,
     );
   }
 
@@ -100,7 +103,7 @@ Hello ${name},
 
 You have ${subs.length} ${siteName} ${plural(
     subs.length,
-    "subscription"
+    "subscription",
   )} that will renew soon:
 
 <br/><br/>
@@ -128,7 +131,7 @@ to this email to create a support request.
   const pool = getPool();
   await pool.query(
     "UPDATE subscriptions SET renewal_email=NOW() WHERE id=ANY($1)",
-    [subs.map((x) => x.id)]
+    [subs.map((x) => x.id)],
   );
 }
 
@@ -136,7 +139,7 @@ async function describeLicense(license_id: string): Promise<string> {
   const pool = getPool();
   const { rows } = await pool.query(
     "select info->'purchased' as purchased from site_licenses where id=$1",
-    [license_id]
+    [license_id],
   );
   if (rows.length == 0) {
     return "";
@@ -145,7 +148,7 @@ async function describeLicense(license_id: string): Promise<string> {
 }
 
 async function cancelSubscriptionLink(
-  subscription_id: number
+  subscription_id: number,
 ): Promise<string> {
   const url = await cancelSubscription(subscription_id);
   return ` <a href="${url}">(cancel)</a>`;
