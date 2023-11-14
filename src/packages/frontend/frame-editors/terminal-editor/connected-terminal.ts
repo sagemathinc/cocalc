@@ -518,18 +518,22 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         if (payload == null) {
           break;
         }
-        if (payload.event === "open") {
-          if (payload.paths !== undefined) {
-            this.open_paths(payload.paths);
-          }
-          break;
+        switch (payload.event) {
+          case "computeServerId":
+            console.log("GOT computeServerId = ", payload.computeServerId);
+            break;
+          case "open":
+            if (payload.paths !== undefined) {
+              this.open_paths(payload.paths);
+            }
+            break;
+          case "close":
+            if (payload.paths !== undefined) {
+              this.close_paths(payload.paths);
+            }
+            break;
         }
-        if (payload.event === "close") {
-          if (payload.paths !== undefined) {
-            this.close_paths(payload.paths);
-          }
-          break;
-        }
+
         break;
       default:
         console.warn("handle_mesg -- unhandled", this.id, mesg);

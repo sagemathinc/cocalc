@@ -23,7 +23,7 @@ async function main() {
   const M = manager({
     home: PROJECT_HOME,
     project_id: process.env.PROJECT_ID,
-    compute_server_id: process.env.COMPUTE_SERVER_ID,
+    compute_server_id: parseInt(process.env.COMPUTE_SERVER_ID),
     waitHomeFilesystemType:
       process.env.UNIONFS_UPPER && process.env.UNIONFS_LOWER
         ? "fuse.unionfs-fuse"

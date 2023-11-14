@@ -35,13 +35,16 @@ export class RemoteTerminal extends EventEmitter {
   private localPty?: IPty;
   private options?: Options;
   private size?: { rows: number; cols: number };
+  private computeServerId?: number;
 
   constructor(
     websocket,
     path,
     { cwd, env }: { cwd?: string; env?: object } = {},
+    computeServerId?,
   ) {
     super();
+    this.computeServerId = computeServerId;
     this.path = path;
     this.websocket = websocket;
     // offline and online and that's it!
@@ -58,6 +61,9 @@ export class RemoteTerminal extends EventEmitter {
     const name = getRemotePtyChannelName(this.path);
     logger.debug("connect to channel", name);
     this.conn = this.websocket.channel(name);
+    if (this.computeServerId != null) {
+      this.conn.write({ cmd: "setComputeServerId", id: this.computeServerId });
+    }
     this.conn.on("data", async (data) => {
       try {
         await this.handleData(data);

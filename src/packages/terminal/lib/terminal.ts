@@ -48,6 +48,7 @@ export class Terminal {
   // two different ways of providing the backend support -- local or remote
   private localPty?: IPty;
   private remotePty?: Spark;
+  private computeServerId: number = 0;
 
   constructor(primus: PrimusWithChannels, path: string, options: Options = {}) {
     this.options = { command: DEFAULT_COMMAND, ...options };
@@ -132,9 +133,11 @@ export class Terminal {
       dbg("WARNING: failed to load", this.path, err);
     }
     if (this.remotePty) {
-      // switched to a different remote  so don't finish initializing a local one
+      // switched to a different remote, so don't finish initializing a local one
       return;
     }
+
+    this.setComputeServerId(0);
     dbg("spawn", {
       command,
       args,
@@ -423,6 +426,11 @@ export class Terminal {
     }
   };
 
+  private setComputeServerId = (id: number) => {
+    this.computeServerId = id;
+    this.channel.write({ cmd: "computeServerId", id });
+  };
+
   private sendCurrentWorkingDirectory = async (spark: Spark) => {
     if (this.localPty != null) {
       await this.sendCurrentWorkingDirectoryLocalPty(spark);
@@ -574,6 +582,8 @@ export class Terminal {
       spark.write({ cmd: "size", rows, cols });
     }
 
+    spark.write({ cmd: "computeServerId", id: this.computeServerId });
+
     // send burst info
     if (this.truncating) {
       spark.write({ cmd: "burst" });
@@ -640,13 +650,16 @@ export class Terminal {
       if (typeof data == "string") {
         this.handleDataFromTerminal(data);
       } else {
+        if (this.localPty != null) {
+          // already switched back to local
+          return;
+        }
         switch (data.cmd) {
+          case "setComputeServerId":
+            this.setComputeServerId(data.id);
+            break;
           case "exit": {
             // the pty exited.
-            if (this.localPty != null) {
-              // do not create a new remotePty since we're switching back to local one
-              return;
-            }
             const now = Date.now();
             if (now - this.last_exit <= FREQUENT_RESTART_INTERVAL_MS) {
               logger.debug("EXIT -- waiting a few seconds...");

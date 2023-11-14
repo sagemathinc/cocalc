@@ -95,7 +95,8 @@ class Manager {
     if (!compute_server_id) {
       throw Error("set the compute_server_id or process.env.COMPUTE_SERVER_ID");
     }
-    this.compute_server_id = compute_server_id;
+    // @ts-ignore -- can't true type, since constructed via plain javascript startup script.
+    this.compute_server_id = parseInt(compute_server_id);
     this.home = home;
     this.waitHomeFilesystemType = waitHomeFilesystemType;
     const env = this.env();
@@ -238,6 +239,7 @@ class Manager {
           path,
           cwd: this.cwd(path),
           env: this.env(),
+          computeServerId: this.compute_server_id,
         });
         term.on("closed", () => {
           delete this.connections[path];

@@ -6,9 +6,14 @@ provide a remote terminal session.
 import { RemoteTerminal } from "@cocalc/terminal";
 
 // path is something like "foo/.bar.term"
-export function terminal({ websocket, path, cwd, env }) {
-  return new RemoteTerminal(websocket, path, {
-    cwd,
-    env: { TERM: "screen", ...env },
-  });
+export function terminal({ websocket, path, cwd, env, computeServerId }) {
+  return new RemoteTerminal(
+    websocket,
+    path,
+    {
+      cwd,
+      env: { TERM: "screen", ...env },
+    },
+    computeServerId,
+  );
 }
