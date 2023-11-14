@@ -167,7 +167,7 @@ export default function SelectComputeServer({
     options.sort((a, b) => -cmp(a.position ?? a.value, b.position ?? b.value));
 
     for (const x of options) {
-      if (x.state == "running") {
+      if (x.state == "running" || x.state == "starting") {
         running.push(x);
       } else if (x.state?.includes("stop") || x.state?.includes("suspend")) {
         if (account_id == x.account_id) {
@@ -222,7 +222,7 @@ export default function SelectComputeServer({
       v.push({
         label: (
           <div style={{ fontSize: "12pt" }}>
-            Running Compute Servers {running.length == 0 ? "(none)" : ""}
+            Active Compute Servers {running.length == 0 ? "(none)" : ""}
           </div>
         ),
         options: running,
