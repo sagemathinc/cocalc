@@ -123,14 +123,22 @@ export class RemoteTerminal extends EventEmitter {
     if (this.localPty != null) {
       return;
     }
-    const localPty = spawn(
-      this.options.command ?? "/bin/bash",
-      this.options.args ?? [],
-      {
-        cwd: this.cwd ?? this.options.cwd,
-        env: { ...this.options.env, ...this.env },
-      },
-    ) as IPty;
+    const command = this.options.command ?? "/bin/bash";
+    const args = this.options.args ?? [];
+    const cwd = this.cwd ?? this.options.cwd;
+    logger.debug("initLocalPty: spawn -- ", {
+      command,
+      args,
+      cwd,
+      size: this.size ? this.size : "size not defined",
+    });
+
+    const localPty = spawn(command, args, {
+      cwd,
+      env: { ...this.options.env, ...this.env },
+      rows: this.size?.rows,
+      cols: this.size?.cols,
+    }) as IPty;
     this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);
 
@@ -150,7 +158,7 @@ export class RemoteTerminal extends EventEmitter {
 
     // set the prompt to show the remote hostname explicitly,
     // then clear the screen.
-    this.localPty.write('PS1="🖥️ (\\h) \\w$ "; reset;\n');
+    this.localPty.write('PS1="🖥️ (\\h) \\w$ ";reset;history -d $(history 1)\n');
   };
 
   private sendCurrentWorkingDirectoryLocalPty = async () => {

@@ -70,7 +70,7 @@ export class Terminal {
       throw Error("terminal is closed");
     }
     const dbg = (...args) => {
-      logger.debug("initLocalPty ", ...args);
+      logger.debug("initLocalPty: ", ...args);
     };
     if (this.remotePty != null) {
       dbg("don't init local pty since there is a remote one.");
@@ -135,7 +135,12 @@ export class Terminal {
       // switched to a different remote  so don't finish initializing a local one
       return;
     }
-    dbg("spawn", { command, args, cwd });
+    dbg("spawn", {
+      command,
+      args,
+      cwd,
+      size: this.size ? this.size : "size not defined",
+    });
     const localPty = spawn(command, args, {
       cwd,
       env,
@@ -151,7 +156,7 @@ export class Terminal {
       this.handleDataFromTerminal("\r\n\r\n[Process completed]\r\n\r\n");
       delete this.localPty;
     });
-    localPty.write("\nreset;\n");
+    localPty.write("\nreset;history -d $(history 1)\n");
     this.state = "ready";
     return localPty;
   };
