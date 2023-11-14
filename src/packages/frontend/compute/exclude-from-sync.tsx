@@ -29,7 +29,8 @@ export default function ExcludeFromSync({
   return (
     <div style={style}>
       <Tooltip title="List of top level subdirectories of the project's home directory to exclude from sync. Files you change or create on the compute server in these directories will not be saved back to the project.  Top level hidden folders are never synced.  Include '~' to completely disable sync.">
-        Directories to Exclude from Sync:
+        Subdirectories of the HOME directory that will <b>not</b> be
+        synchronized with the project's HOME directory.
       </Tooltip>
       <Select
         value={value}

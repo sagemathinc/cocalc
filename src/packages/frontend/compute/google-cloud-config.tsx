@@ -9,6 +9,7 @@ import {
 import {
   Button,
   Checkbox,
+  Divider,
   Input,
   InputNumber,
   Radio,
@@ -1102,6 +1103,38 @@ function BootDisk(props) {
             },
           ]}
         ></Select>
+        <div style={{ color: "#666", margin: "10px 0" }}>
+          <b>Total Cost:</b>{" "}
+          {currency(
+            markup({
+              cost:
+                configuration.diskSizeGb *
+                priceData.disks[configuration.diskType]?.prices[
+                  configuration.region
+                ],
+              priceData,
+            }),
+          )}
+          /hour or{" "}
+          <b>
+            {currency(
+              markup({
+                cost:
+                  configuration.diskSizeGb *
+                  priceData.disks[configuration.diskType]?.prices[
+                    configuration.region
+                  ] *
+                  730,
+                priceData,
+              }),
+            )}
+            /month
+          </b>
+          . You are charged as long as the server is provisioned, but if you run
+          out of credit and don't pay, then the disk is deleted. You can
+          instantly increase the disk size at any time <b>without</b> needing to
+          restart the server.
+        </div>
         {newDiskType == "pd-standard" && (
           <div style={{ marginTop: "10px", color: "#666" }}>
             <b>WARNING:</b> Small standard disks are slow. Expect an extra
@@ -1109,6 +1142,7 @@ function BootDisk(props) {
             are much faster.
           </div>
         )}
+        <Divider />
         <ExcludeFromSync
           {...props}
           style={{ marginTop: "10px", color: "#666" }}
