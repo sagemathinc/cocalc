@@ -396,6 +396,8 @@ export class Terminal {
     // ensure valid values
     rows = Math.max(rows ?? 1, rows);
     cols = Math.max(cols ?? 1, cols);
+    // cache for future use.
+    this.size = { rows, cols };
     return { rows, cols };
   };
 
