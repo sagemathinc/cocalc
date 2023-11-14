@@ -85,7 +85,15 @@ export default function SelectComputeServer({
         }
         const id = await computeServerAssociations.getServerIdForPath(p);
         if (type == "jupyter_cell_notebook" && actions != null) {
-          actions?.jupyter_actions.setState({ requestedComputeServerId: id });
+          actions.jupyter_actions.setState({ requestedComputeServerId: id });
+          if (
+            actions.jupyter_actions.store?.get("kernel_error") &&
+            id != actions.jupyter_actions.getComputeServerId()
+          ) {
+            // show a warning about the kernel being killed isn't useful and
+            // is just redundant when actively switching.
+            actions.jupyter_actions.setState({ kernel_error: "" });
+          }
         }
         setValue(id == null ? null : `${id}`);
       } catch (err) {

@@ -26,52 +26,102 @@ server.  It does the following:
 
 import Inline from "./inline";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Alert, Progress, Spin } from "antd";
+import { Alert, Button, Progress, Space, Spin, Tooltip } from "antd";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import ComputeServer from "./compute-server";
+import { useState } from "react";
+import { Icon } from "@cocalc/frontend/components";
 
 export default function ComputeServerTransition({
   project_id,
   id,
   requestedId,
 }) {
+  const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
+  console.log({ showDetails });
 
-  if (id == requestedId) {
-    if (id == 0) {
-      return null;
-    }
-    return <Inline colorOnly id={id} style={{ height: "5px" }} />;
+  if (id == 0 && requestedId == 0) {
+    return null;
   }
 
-  if (requestedId == 0) {
-    return (
-      <Alert
-        type="info"
-        message={"Moving back to project..."}
-        style={{ margin: "15px 5px" }}
-      />
-    );
-  }
+  const topBar = (progress) => (
+    <Tooltip
+      title={
+        <>
+          {progress == 100 ? "Running on " : "Moving to "}{" "}
+          <Inline id={requestedId} />. Click for details.
+        </>
+      }
+    >
+      <div onClick={() => setShowDetails(showDetails === true ? false : true)}>
+        <Inline
+          colorOnly
+          id={requestedId}
+          style={{
+            borderRadius: "5px",
+            height: "10px",
+            cursor: "pointer",
+            width: `${progress}%`,
+          }}
+        />
+      </div>
+    </Tooltip>
+  );
 
-  if (computeServers == null) {
-    return <Spin />;
+  if (id == requestedId && !showDetails) {
+    return topBar(100);
   }
 
   const server: ComputeServerUserInfo | undefined = computeServers
     .get(`${requestedId}`)
     ?.toJS();
-  const { progress, message, status } = getProgress(server, account_id);
+  const { progress, message, status } = getProgress(
+    server,
+    account_id,
+    id,
+    requestedId,
+  );
+  if (showDetails != null && !showDetails) {
+    return topBar(progress);
+  }
 
   return (
     <div>
-      <Progress
-        percent={progress}
-        style={{ width: "100%", padding: "0 15px", marginTop: "15px" }}
-        status={status}
-      />
-      <Alert type="info" message={message} style={{ margin: "0 15px" }} />
+      <div style={{ marginBottom: "15px" }}>{topBar(progress)}</div>
+      <div style={{ textAlign: "center" }}>
+        <Space style={{ width: "100%", margin: "0 15px" }}>
+          <Button
+            size="large"
+            style={{ color: "#666" }}
+            type="text"
+            onClick={() => setShowDetails(false)}
+          >
+            <Icon name="times" /> Hide
+          </Button>
+          <Alert
+            showIcon
+            type="info"
+            message={
+              <>
+                {message}{" "}
+                {progress < 100 && status != "exception" ? (
+                  <Spin style={{ marginLeft: "15px" }} />
+                ) : undefined}
+              </>
+            }
+            style={{ margin: "0 15px" }}
+          />
+          <Progress
+            type="circle"
+            trailColor="#e6f4ff"
+            percent={progress}
+            strokeWidth={14}
+            size={42}
+          />
+        </Space>
+      </div>
       {server != null && (
         <div style={{ margin: "15px" }}>
           <ComputeServer
@@ -87,11 +137,27 @@ export default function ComputeServerTransition({
 function getProgress(
   server: ComputeServerUserInfo | undefined,
   account_id,
+  id,
+  requestedId,
 ): {
   progress: number;
   message: string;
   status: "exception" | "active" | "normal" | "success";
 } {
+  if (requestedId == 0) {
+    return {
+      progress: 50,
+      message: "Moving back to project...",
+      status: "active",
+    };
+  }
+  if (id == requestedId) {
+    return {
+      progress: 100,
+      message: "Compute server is connected!",
+      status: "success",
+    };
+  }
   if (server == null) {
     return {
       progress: 0,
@@ -120,7 +186,7 @@ function getProgress(
   if (server.state == "off") {
     return {
       progress: 10,
-      message: "Please start your compute server.",
+      message: "Please start the compute server by clicking the Start button below.",
       status: "exception",
     };
   }
@@ -143,7 +209,7 @@ function getProgress(
 
   // below it is running
   if (server.detailed_state?.compute?.state == "ready") {
-    if (isRecent(server.detailed_state?.compute?.expire)) {
+    if (isRecent(server.detailed_state?.compute?.time)) {
       return {
         progress: 80,
         message: "Waiting for compute server to connect.",
@@ -153,7 +219,7 @@ function getProgress(
   }
 
   if (server.detailed_state?.["filesystem-sync"]?.state == "ready") {
-    if (isRecent(server.detailed_state?.["filesystem-sync"]?.expire)) {
+    if (isRecent(server.detailed_state?.["filesystem-sync"]?.time)) {
       return {
         progress: 65,
         message: "Waiting for compute server to fully boot up.",
