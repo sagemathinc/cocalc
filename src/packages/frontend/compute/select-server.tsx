@@ -94,6 +94,11 @@ export default function SelectComputeServer({
             // is just redundant when actively switching.
             actions.jupyter_actions.setState({ kernel_error: "" });
           }
+        } else if (type == "terminal") {
+          const terminalRequestedComputeServerIds =
+            actions.store.get("terminalRequestedComputeServerIds")?.toJS() ?? {};
+          terminalRequestedComputeServerIds[p] = id;
+          actions.setState({ terminalRequestedComputeServerIds });
         }
         setValue(id == null ? null : `${id}`);
       } catch (err) {

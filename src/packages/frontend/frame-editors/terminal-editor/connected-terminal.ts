@@ -490,6 +490,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     rows?: number;
     cols?: number;
     payload: any;
+    id?: number;
   }): void {
     //console.log("handle_mesg", this.id, mesg);
     switch (mesg.cmd) {
@@ -513,15 +514,20 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       case "close":
         this.close_request();
         break;
+      case "computeServerId":
+        if (this.actions.store != null && this.actions.setState != null) {
+          const terminalComputeServerIds =
+            this.actions.store.get("terminalComputeServerIds")?.toJS() ?? {};
+          terminalComputeServerIds[this.term_path] = mesg.id;
+          this.actions.setState({ terminalComputeServerIds });
+        }
+        break;
       case "message":
         const payload = mesg.payload;
         if (payload == null) {
           break;
         }
         switch (payload.event) {
-          case "computeServerId":
-            console.log("GOT computeServerId = ", payload.computeServerId);
-            break;
           case "open":
             if (payload.paths !== undefined) {
               this.open_paths(payload.paths);

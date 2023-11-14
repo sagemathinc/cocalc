@@ -73,7 +73,7 @@ export class ComputeServersManager extends EventEmitter {
     console.log(JSON.stringify(this.sync_db.get().toJS(), undefined, 2));
   };
 
-  getServerIdForPath = async (path: string): Promise<number | null> => {
+  getServerIdForPath = async (path: string): Promise<number> => {
     const { sync_db } = this;
     if (sync_db.get_state() == "init") {
       await once(sync_db, "ready");
@@ -83,10 +83,10 @@ export class ComputeServersManager extends EventEmitter {
     }
     for (const x of sync_db.get().toJS()) {
       if (x.path == path) {
-        return x.id;
+        return x.id ?? 0;
       }
     }
-    return null;
+    return 0;
   };
 }
 

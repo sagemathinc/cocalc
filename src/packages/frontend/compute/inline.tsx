@@ -32,6 +32,10 @@ export default function ComputeServer({
     color: string;
   }>(null);
   useEffect(() => {
+    if (!id) {
+      setServer({ title: "The Project", color: "#666" });
+      return;
+    }
     (async () => {
       try {
         setServer(await getTitle(id));

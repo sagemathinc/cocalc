@@ -29,7 +29,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Alert, Button, Progress, Space, Spin, Tooltip } from "antd";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import ComputeServer from "./compute-server";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 
 export default function ComputeServerTransition({
@@ -41,12 +41,19 @@ export default function ComputeServerTransition({
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
 
+  useEffect(() => {
+    // if the id or requestedId changes, need to reset to default behavior
+    // regarding what is shown.
+    setShowDetails(null);
+  }, [id, requestedId]);
+
   if (id == 0 && requestedId == 0) {
     return null;
   }
 
   const topBar = (progress) => (
     <Tooltip
+      mouseEnterDelay={0.9}
       title={
         <>
           {progress == 100 ? "Running on " : "Moving to "}{" "}
@@ -55,16 +62,18 @@ export default function ComputeServerTransition({
       }
     >
       <div onClick={() => setShowDetails(showDetails === true ? false : true)}>
-        <Inline
-          colorOnly
-          id={requestedId}
-          style={{
-            borderRadius: "5px",
-            height: "10px",
-            cursor: "pointer",
-            width: `${progress}%`,
-          }}
-        />
+        <div style={{ marginRight: "5px" }}>
+          <Inline
+            colorOnly
+            id={requestedId}
+            style={{
+              borderRadius: "5px",
+              height: "10px",
+              cursor: "pointer",
+              width: `${progress}%`,
+            }}
+          />
+        </div>
       </div>
     </Tooltip>
   );
@@ -87,7 +96,14 @@ export default function ComputeServerTransition({
   }
 
   return (
-    <div>
+    <div
+      style={{
+        border: `1px solid ${server?.color}`,
+        borderRadius: "5px",
+        marginBottom: "5px",
+        marginRight: "5px",
+      }}
+    >
       <div style={{ marginBottom: "15px" }}>{topBar(progress)}</div>
       <div style={{ textAlign: "center" }}>
         <Space style={{ width: "100%", margin: "0 15px" }}>
@@ -185,7 +201,8 @@ function getProgress(
   if (server.state == "off") {
     return {
       progress: 10,
-      message: "Please start the compute server by clicking the Start button below.",
+      message:
+        "Please start the compute server by clicking the Start button below.",
       status: "exception",
     };
   }
