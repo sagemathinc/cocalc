@@ -39,7 +39,7 @@ export default async function ongoingPurchases() {
   )
 `);
 
-  // update ALL running servers that we haven't been updated since MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
+  // update ALL running servers that haven't been updated since MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
   // because there might be network activity.  These could in theory not have a network purchase,
   // in which case it should get created.
   await pool.query(`

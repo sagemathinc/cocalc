@@ -173,6 +173,9 @@ async function doDeprovision(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.deprovision(server);
+    case "test":
+      // just a no-op
+      return;
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }

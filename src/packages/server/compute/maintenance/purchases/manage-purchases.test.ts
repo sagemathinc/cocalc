@@ -33,7 +33,7 @@ describe("confirm managing of purchases works", () => {
   let project_id;
   let server_id;
 
-  it("does one call to managePurchases to so there's no servers marked as needing updates", async () => {
+  it("does one call to managePurchases to ensure that there's no servers marked as needing updates", async () => {
     await managePurchases();
     await managePurchases();
     const pool = getPool();
@@ -247,9 +247,9 @@ describe("confirm managing of purchases works", () => {
   });
 
   // rule 6
-  it("make time really long so that balance is exceeded, and see that server gets stopped due to too low balance, and an email is sent to the user", async () => {
+  it("make time long so that balance is exceeded (but not by too much), and see that server gets stopped due to too low balance, and an email is sent to the user", async () => {
     resetTestEmails();
-    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 500));
+    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24));
     const pool = getPool();
     await pool.query(
       "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
@@ -259,12 +259,25 @@ describe("confirm managing of purchases works", () => {
     await delay(10);
     const server = await getServer({ account_id, id: server_id });
     expect(server.state == "off" || server.state == "stopping").toBe(true);
-    expect(server.error).toContain("do not have enough");
+    expect(server.error).toContain("Computer Server Turned Off");
     //console.log(testEmails);
     expect(testEmails.length).toBe(1);
     expect(testEmails[0].text).toContain(
       "Action Taken: Computer Server Turned Off",
     );
+
+    // the network purchases is still active, but NOT the 'running' one:
+    const purchases = await outstandingPurchases(server);
+    expect(purchases.length).toBe(1);
+    // Do another update loop:
+    await pool.query(
+      "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    await managePurchases();
+    // and now there is a network and off purchase.
+    const purchases2 = await outstandingPurchases(server);
+    expect(purchases2.length).toBe(2);
   });
 
   it("shut off machine instead of starting purchase when user doesn't have enough money", async () => {
@@ -286,6 +299,33 @@ describe("confirm managing of purchases works", () => {
     await managePurchases();
     await delay(10);
     server = await getServer({ account_id, id: server_id });
-    expect(server.state == "off" || server.state == "stopping").toBe(true);
+    expect(
+      server.state == "off" ||
+        server.state == "stopping" ||
+        server.state == "deprovisioned",
+    ).toBe(true);
+  });
+
+  // rule 6: delete
+  it("make time *really* long so that balance is greatly exceeded, and see that server gets deleted due to too low balance, and an email is sent to the user", async () => {
+    resetTestEmails();
+    const pool = getPool();
+    await pool.query(
+      "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
+      [server_id],
+    );
+    await delay(10);
+    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 100));
+    await managePurchases();
+    await delay(10);
+    const server = await getServer({ account_id, id: server_id });
+    expect(server.state == "deprovisioned").toBe(true);
+    expect(server.error).toContain(
+      "Computer Server Deprovisioned (Disk Deleted)",
+    );
+    expect(testEmails.length).toBe(1);
+    expect(testEmails[0].text).toContain(
+      "Action Taken: Computer Server Deprovisioned (Disk Deleted)",
+    );
   });
 });

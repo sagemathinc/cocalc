@@ -143,8 +143,8 @@ export async function updatePurchase(server: ComputeServer) {
   - RULE 6: Balance actions -- **PARTIALLY IMPLEMENTED ONLY**
        - If balance is low, email user suggesting they add credit to their account
          or enable automatic billing.
-       - If balance is lower, use automatic billing if possible.  If not, stop any
-         running compute servers.
+       - If balance is lower, use automatic billing if possible (in no way implemented yet).
+         If not, stop any running compute servers.
        - If balance drops too low, deprovision everything.
   */
 
@@ -197,7 +197,7 @@ export async function updatePurchase(server: ComputeServer) {
 
   // Rule 6: Deal with low balance situations.  For now, if things are
   // getting "iffy", we stop the server, which greatly reduces the costs.
-  // That's it. We'll do more later, e.g., delete it.
+  // If they get even worse, we deprovision it.
   await lowBalance({ stableState, allPurchases, server });
 }
 

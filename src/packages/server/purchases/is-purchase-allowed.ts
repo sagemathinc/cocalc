@@ -22,6 +22,10 @@ interface Options {
   service: Service;
   cost?: number;
   client?: PoolClient;
+
+  // if margin is set to a positive number, then the user's balance and all quotas are viewd as
+  // increased by this amount when deciding of the purchase is allowed or not.
+  margin?: number;
 }
 
 // balance, minPayment, amountDue, chargeAmount, total, minBalance
@@ -31,6 +35,7 @@ export async function isPurchaseAllowed({
   service,
   cost,
   client,
+  margin = 0,
 }: Options): Promise<{
   allowed: boolean;
   reason?: string;
@@ -89,7 +94,7 @@ export async function isPurchaseAllowed({
   }
   const { services, minBalance } = await getPurchaseQuotas(account_id, client);
   // First check that making purchase won't reduce our balance below the minBalance.
-  const balance = await getBalance(account_id, client);
+  const balance = (await getBalance(account_id, client)) + margin;
   const amountAfterPurchase = balance - cost;
   // add 0.01 due to potential rounding errors
   if (amountAfterPurchase + 0.01 < minBalance) {
@@ -120,8 +125,8 @@ export async function isPurchaseAllowed({
   // This is a self-imposed limit by the user to control what they
   // explicitly authorized.
   if (!QUOTA_SPEC[service]?.noSet) {
-    const quotaForService = services[service];
-    if (!quotaForService) {
+    const quotaForService = (services[service] ?? 0) + margin;
+    if (quotaForService <= 0) {
       return {
         allowed: false,
         reason: `You must increase your monthly spending limit for the "${
