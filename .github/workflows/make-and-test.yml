@@ -42,7 +42,7 @@ jobs:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         node-version:
-          - "18.x"
+          - "18.17.1"
 
     steps:
       - uses: actions/checkout@v3
