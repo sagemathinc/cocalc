@@ -8,7 +8,7 @@
     "build": "npx tsc --build",
     "clean": "rm -rf dist node_modules",
     "_test_doc_": "--runInBand -- serial only because crashes when running all tests across all packages",
-    "test": "pnpm exec jest dist --runInBand",
+    "test": "pnpm exec jest dist --runInBand  --forceExit ",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "files": ["dist/**", "bin/**", "README.md", "package.json"],

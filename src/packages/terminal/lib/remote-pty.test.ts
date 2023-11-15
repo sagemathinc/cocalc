@@ -15,10 +15,6 @@ import {
 } from "./support";
 import { getRemotePtyChannelName, getChannelName } from "./util";
 
-afterAll(() => {
-  setTimeout(process.exit, 250);
-});
-
 describe("tests remotePty connecting and handling data with **simulated** pty and explicitly pushing messages back and forth (for low level tests)", () => {
   let terminal;
   const { path, options } = getOpts();
