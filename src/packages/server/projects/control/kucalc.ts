@@ -14,7 +14,7 @@ import {
 } from "./base";
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
-import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
+import { expire_time, is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 
 import getLogger from "@cocalc/backend/logger";
 const winston = getLogger("project-control-kucalc");
@@ -63,7 +63,7 @@ class Project extends BaseProject {
       await this.waitUntilProject(
         (project) =>
           project.state?.state == "running" || project.action_request?.finished,
-        120
+        120,
       );
     } finally {
       this.stateChanging = undefined;
@@ -85,7 +85,7 @@ class Project extends BaseProject {
             project.state != "running" &&
             project.state != "stopping") ||
           project.action_request?.finished,
-        60
+        60,
       );
     } finally {
       this.stateChanging = undefined;
@@ -122,6 +122,10 @@ class Project extends BaseProject {
     }
 
     dbg("write query requesting the copy to happen to the database");
+
+    // expire in 1 month
+    const expire = expire_time(60 * 60 * 24 * 30);
+
     await callback2(db()._query, {
       query: "INSERT INTO copy_paths",
       values: {
@@ -139,6 +143,7 @@ class Project extends BaseProject {
         "timeout           ::NUMERIC": opts.timeout,
         "scheduled         ::TIMESTAMP": opts.scheduled,
         "exclude           ::TEXT[]": opts.exclude,
+        "expire            ::TIMESTAMP": expire,
       },
     });
 
@@ -181,7 +186,7 @@ class Project extends BaseProject {
 
   private async waitUntilProject(
     until: (obj) => boolean,
-    timeout: number // in seconds
+    timeout: number, // in seconds
   ): Promise<void> {
     let synctable: any = undefined;
     try {
@@ -206,7 +211,7 @@ class Project extends BaseProject {
 
   private async waitUntilCopyFinished(
     copyID: string,
-    timeout: number // in seconds
+    timeout: number, // in seconds
   ): Promise<void> {
     let synctable: any = undefined;
     try {
