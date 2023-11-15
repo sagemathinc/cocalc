@@ -350,6 +350,8 @@ export default function ComputeServer({
               state == "stopping" ||
               state == "starting") && (
               <DetailedState
+                id={id}
+                project_id={project_id}
                 detailed_state={detailed_state}
                 color={color}
                 configuration={configuration}

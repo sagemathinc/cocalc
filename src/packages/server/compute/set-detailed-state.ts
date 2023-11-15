@@ -83,3 +83,20 @@ export default async function setDetailedState({
     throw Error("invalid api_key, project_id or compute server id");
   }
 }
+
+export async function getDetailedState({ project_id, id, name }) {
+  const pool = getPool();
+  if (!name) {
+    const { rows } = await pool.query(
+      "SELECT detailed_state FROM compute_servers WHERE id=$1 AND project_id=$2",
+      [id, project_id, name],
+    );
+    return rows[0]?.detailed_state;
+  } else {
+    const { rows } = await pool.query(
+      "SELECT jsonb_extract_path(detailed_state, $3) as data FROM compute_servers WHERE id=$1 AND project_id=$2",
+      [id, project_id, name],
+    );
+    return rows[0]?.data;
+  }
+}

@@ -2,6 +2,8 @@ import { Progress, Tooltip } from "antd";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
+import ShowError from "@cocalc/frontend/components/error";
+import { setDetailedState } from "./api";
 
 const SPEC = {
   compute: {
@@ -53,6 +55,8 @@ const COMPONENTS = [
 ];
 
 export default function DetailedState({
+  id,
+  project_id,
   detailed_state,
   color,
   configuration,
@@ -65,6 +69,8 @@ export default function DetailedState({
     if (detailed_state[name]) {
       v.push(
         <State
+          id={id}
+          project_id={project_id}
           key={name}
           name={name}
           configuration={configuration}
@@ -77,6 +83,8 @@ export default function DetailedState({
     if (!COMPONENTS.includes(name)) {
       v.push(
         <State
+          id={id}
+          project_id={project_id}
           key={name}
           name={name}
           configuration={configuration}
@@ -100,7 +108,17 @@ function toLabel(name: string) {
     .join(" ");
 }
 
-function State({ name, state, time, expire, progress, extra, configuration }) {
+function State({
+  name,
+  state,
+  time,
+  expire,
+  progress,
+  extra,
+  configuration,
+  project_id,
+  id,
+}) {
   const expired = expire && expire < Date.now();
   let label;
   if (name == "compute") {
@@ -156,9 +174,31 @@ function State({ name, state, time, expire, progress, extra, configuration }) {
         )}
       </div>
       {extra && (
-        <div style={{ display: "flex" }}>
-          <div style={{ flex: 0.33333 }} />
-          <div style={{ flex: 0.66666 }}>{extra}</div>
+        <div
+          style={{
+            display: "flex",
+          }}
+        >
+          <div style={{ flex: 0.1 }} />
+          <div style={{ flex: 0.9 }}>
+            {state == "error" ? (
+              <ShowError
+                style={{ marginBottom: "10px" }}
+                error={extra}
+                setError={() => {
+                  setDetailedState({
+                    id,
+                    project_id,
+                    name,
+                    extra: "",
+                    state: "ready",
+                  });
+                }}
+              />
+            ) : (
+              extra
+            )}
+          </div>
         </div>
       )}
     </div>

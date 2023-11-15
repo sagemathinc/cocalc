@@ -49,6 +49,11 @@ const DEFAULT_SYNC_INTERVAL_MIN_S = 10;
 // no idea what this *should* be:
 const DEFAULT_SYNC_INTERVAL_MAX_S = 30;
 
+// if sync fails this many times in a row, then we pause syncing until the user
+// explicitly re-enables it.  We have to do this, since the failure mode could
+// result in massive bandwidth usage.
+const MAX_FAILURES_IN_A_ROW = 3;
+
 class SyncFS {
   private state: State = "init";
   private lower: string;
@@ -64,6 +69,8 @@ class SyncFS {
   private scratch: string;
   private error_txt: string;
   private tar: { send; get };
+  // number of failures in a row to sync.
+  private numFails: number = 0;
 
   private client: SyncClient;
 
@@ -172,16 +179,28 @@ class SyncFS {
     try {
       this.state = "sync";
       await this.doSync();
+      this.numFails = 0; // it worked
     } catch (err) {
-      const e = `${err}`;
-      this.reportState({ state: "error", extra: e });
-      await this.logSyncError(e);
-      throw err;
+      this.numFails += 1;
+      let extra;
+      if (this.numFails >= MAX_FAILURES_IN_A_ROW) {
+        extra = `Sync failed ${MAX_FAILURES_IN_A_ROW} in a row.  FIX THE PROBLEM, THEN CLEAR THIS ERROR TO RESUME SYNC. -- ${err.message.slice(
+          0,
+          250,
+        )}`;
+      } else {
+        extra = `Sync failed ${
+          this.numFails
+        } times in a row with -- ${err.message.slice(0, 200)}...`;
+      }
+      this.reportState({ state: "error", extra, timeout: 60, progress: 0 });
+      await this.logSyncError(extra);
+      throw Error(extra);
     } finally {
       if (this.state != ("closed" as State)) {
         this.state = "ready";
       }
-      log("sync - SUCCESS, time=", (Date.now() - t0) / 1000);
+      log("sync - done, time=", (Date.now() - t0) / 1000);
     }
   };
 
@@ -197,11 +216,30 @@ class SyncFS {
     if (this.state == "ready") {
       log("syncLoop: ready");
       try {
-        await this.sync();
+        if (this.numFails >= MAX_FAILURES_IN_A_ROW) {
+          // TODO: get the current error message and if cleared do sync.  Otherwise:
+          const detailedState = await this.getDetailedState();
+          if (
+            detailedState &&
+            (!detailedState.extra || detailedState.state != "error")
+          ) {
+            log("syncLoop: resuming sync since error was cleared");
+            this.numFails = 0;
+            await this.sync();
+          } else {
+            log(
+              `syncLoop: not syncing due to failing ${this.numFails} times in a row. Will restart when error message is cleared.`,
+            );
+          }
+        } else {
+          await this.sync();
+        }
       } catch (err) {
-        // This will happen if there is a lot of filesystem activity
+        // This might happen if there is a lot of filesystem activity,
         // which changes things during the sync.
-        log(`sync - WARNING: sync loop failed -- ${err}`);
+        // NOTE: the error message can be VERY long, including
+        // all the output filenames.
+        log(err.message);
         // In case of error, we aggressively back off to reduce impact.
         this.syncInterval = Math.min(
           this.syncIntervalMax,
@@ -243,7 +281,7 @@ class SyncFS {
     timeout?;
     progress?;
   }) => {
-    log("reportState", opts);
+    log("reportState");
     try {
       await apiCall("v2/compute/set-detailed-state", {
         id: this.compute_server_id,
@@ -253,6 +291,13 @@ class SyncFS {
     } catch (err) {
       log("reportState: WARNING -- ", err);
     }
+  };
+
+  private getDetailedState = async () => {
+    return await apiCall("v2/compute/get-detailed-state", {
+      id: this.compute_server_id,
+      name: "filesystem-sync",
+    });
   };
 
   private doSync = async () => {

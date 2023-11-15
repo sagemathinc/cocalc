@@ -107,3 +107,16 @@ export async function getLog(opts: { id }) {
 export const getTitle = reuseInFlight(async (opts: { id: number }) => {
   return await api("compute/get-server-title", opts);
 });
+
+// Setting a detailed state component for a compute server
+export async function setDetailedState(opts: {
+  project_id: string;
+  id: number;
+  name: string;
+  state?: string;
+  extra?: string;
+  timeout?: number;
+  progress?: number;
+}) {
+  return await api("compute/set-detailed-state", opts);
+}

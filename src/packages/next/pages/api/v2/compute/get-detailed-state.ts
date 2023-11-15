@@ -1,14 +1,14 @@
 /*
-Set the state of a component.   This is mainly used from the backend to convey information to user
-about what is going on in a compute server.
+Get detailed state for a compute server.
 
-Example use, where 'sk-eTUKbl2lkP9TgvFJ00001n' is a project api key.
+This can get just the state for a given component.
 
-curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"id":"13","name":"foo","value":"bar389"}' -H 'Content-Type: application/json' https://cocalc.com/api/v2/compute/set-detailed-state
+One application of this is that the filesystem sync daemon
+can check for the error message to be cleared.
 */
 
 import getProjectOrAccountId from "lib/account/get-account";
-import setDetailedState from "@cocalc/server/compute/set-detailed-state";
+import { getDetailedState } from "@cocalc/server/compute/set-detailed-state";
 import getParams from "lib/api/get-params";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
@@ -29,15 +29,7 @@ async function get(req) {
   if (!project_or_account_id) {
     throw Error("invalid auth");
   }
-  const {
-    id,
-    name,
-    state,
-    extra,
-    timeout,
-    progress,
-    project_id: project_id0,
-  } = getParams(req);
+  const { id, name, project_id: project_id0 } = getParams(req);
 
   let project_id;
   if (!project_id0) {
@@ -54,14 +46,9 @@ async function get(req) {
     project_id = project_id0;
   }
 
-  await setDetailedState({
+  return await getDetailedState({
     project_id,
     id,
     name,
-    state,
-    extra,
-    timeout,
-    progress,
   });
-  return { status: "ok" };
 }
