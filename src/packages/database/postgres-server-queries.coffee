@@ -1367,6 +1367,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if @_throttle('log_file_access', 60, opts.project_id, opts.account_id, opts.filename)
             opts.cb?()
             return
+
+        # If expire no pii expiration is set, use 1 year as a fallback
+        expire = await pii_expire(@) ? expire_time(365*24*60*60)
+
         @_query
             query  : 'INSERT INTO file_access_log'
             values :
@@ -1375,6 +1379,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'account_id :: UUID     ' : opts.account_id
                 'filename   :: TEXT     ' : opts.filename
                 'time       :: TIMESTAMP' : 'NOW()'
+                'expire     :: TIMESTAMP' : expire
             cb     : opts.cb
 
     ###
