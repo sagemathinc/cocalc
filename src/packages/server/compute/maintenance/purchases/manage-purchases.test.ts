@@ -19,6 +19,7 @@ import { getPurchase } from "./util";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { delay } from "awaiting";
 import { testEmails, resetTestEmails } from "@cocalc/server/email/send-email";
+import { setPurchaseQuota } from "@cocalc/server/purchases/purchase-quotas";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -72,7 +73,18 @@ describe("confirm managing of purchases works", () => {
       service: "credit",
       description: {} as any,
       client: null,
-      cost: 10,
+      cost: -10,
+    });
+    // increase quotas so we can make purchases -- otherwise the compute servers will just stop
+    await setPurchaseQuota({
+      account_id,
+      service: "compute-server",
+      value: 10,
+    });
+    await setPurchaseQuota({
+      account_id,
+      service: "compute-server-network-usage",
+      value: 10,
     });
   });
 
@@ -246,7 +258,7 @@ describe("confirm managing of purchases works", () => {
   // rule 6
   it("make time long so that balance is exceeded (but not by too much), and see that server gets stopped due to too low balance, and an email is sent to the user", async () => {
     resetTestEmails();
-    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24));
+    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 5));
     const pool = getPool();
     await pool.query(
       "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
@@ -255,7 +267,7 @@ describe("confirm managing of purchases works", () => {
     await managePurchases();
     await delay(10);
     const server = await getServer({ account_id, id: server_id });
-    expect(server.state == "off" || server.state == "stopping").toBe(true);
+    expect(server.state).toEqual(expect.stringContaining('off') || expect.stringContaining('stopping'));
     expect(server.error).toContain("Computer Server Turned Off");
     //console.log(testEmails);
     expect(testEmails.length).toBe(1);
