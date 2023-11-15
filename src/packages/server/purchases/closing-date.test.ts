@@ -19,7 +19,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await getPool().end();
-  setTimeout(process.exit, 250);
 });
 
 describe("basic consistency checks for closing date functions", () => {

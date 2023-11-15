@@ -1,4 +1,4 @@
-import { initEphemeralDatabase } from "@cocalc/database/pool";
+import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
@@ -11,7 +11,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  setTimeout(process.exit, 1);
+  await getPool().end();
 });
 
 describe("creates account, project and a test compute server, then control it", () => {

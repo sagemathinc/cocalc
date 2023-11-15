@@ -26,8 +26,9 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  setTimeout(process.exit, 1);
+  await getPool().end();
 });
+
 
 describe("creates account, project, test compute server, and purchase", () => {
   const account_id = uuid();

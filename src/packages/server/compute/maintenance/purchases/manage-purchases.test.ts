@@ -25,7 +25,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  setTimeout(process.exit, 1);
+  await getPool().end();
 });
 
 describe("confirm managing of purchases works", () => {
@@ -34,17 +34,14 @@ describe("confirm managing of purchases works", () => {
   let server_id;
 
   it("does one call to managePurchases to ensure that there's no servers marked as needing updates", async () => {
-    await managePurchases();
-    await managePurchases();
     const pool = getPool();
+    await managePurchases();
+    // call and confirm.
+    await managePurchases();
     const { rows } = await pool.query(
       "SELECT count(*) AS count FROM compute_servers WHERE update_purchase=TRUE",
     );
     expect(rows[0].count).toBe("0");
-    // if this test turns out to be flaky, just do a query to set all the update_purchase's
-    // to false.  There's no telling what is in the database going into this.
-    // Obviously this makes parallel testing of different files not possible, but
-    // that is ok, usually.
   });
 
   it("creates account, project and compute server on test cloud", async () => {
