@@ -198,6 +198,8 @@ if [ $? -ne 0 ]; then
    -d \
    --name=filesystem \
    --privileged \
+   --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
+   --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v /cocalc:/cocalc \
    ${image}
@@ -264,6 +266,7 @@ if [ $? -ne 0 ]; then
    --name=compute \
    --network host \
    --privileged \
+   --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
    --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \

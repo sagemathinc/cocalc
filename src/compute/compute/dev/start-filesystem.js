@@ -50,6 +50,7 @@ async function main() {
       exclude: [".*"].concat(
         EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
       ),
+      metadataFile: process.env.METADATA_FILE,
     });
     unmount = exports.fs.unmount;
   } catch (err) {

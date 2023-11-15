@@ -41,7 +41,7 @@
     "awaiting": "^3.0.0",
     "cookie": "^0.5.0",
     "debug": "^4.3.2",
-    "websocketfs": "^0.11.0",
+    "websocketfs": "^0.12.1",
     "ws": "^8.13.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",

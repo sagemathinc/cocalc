@@ -129,8 +129,8 @@ importers:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@9.4.0)
       websocketfs:
-        specifier: ^0.11.0
-        version: 0.11.0
+        specifier: ^0.12.1
+        version: 0.12.1
       ws:
         specifier: ^8.13.0
         version: 8.14.2
@@ -2811,6 +2811,10 @@ packages:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.1
+    dev: false
+
+  /binarysearch@1.0.1:
+    resolution: {integrity: sha512-FqhwdeXh1ZSAS/YpJ6lD9+SMf8JodCibe7c51Z9L1zAjHKUDTBisQgdmpfaL+m1qHvwAHnSLR8d9UHc79Hr34g==}
     dev: false
 
   /bindings@1.5.0:
@@ -6283,8 +6287,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.11.0:
-    resolution: {integrity: sha512-TfqxfuA1+rsNDMqnf517Fyp+gzgjsHKbBoAIHC3lulHgSkXwsJ+BsFKRJDrOhYJ9f93Tu06HmeiHXkZhfoRyOQ==}
+  /websocketfs@0.12.1:
+    resolution: {integrity: sha512-Xvr0sLDNXdJkRPLFEZ8DO0pxb+DIF5SgXFIaSSu908BclOq57wIvx5oNBNQxEXQ73meP8SPk3K4fQAKhRYUutQ==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
@@ -6292,8 +6296,10 @@ packages:
       '@cocalc/fuse-native': 2.4.0
       '@isaacs/ttlcache': 1.4.1
       awaiting: 3.0.0
+      binarysearch: 1.0.1
       cookie: 0.5.0
       debug: 4.3.4(supports-color@9.4.0)
+      lz4: 0.6.5
       port-get: 1.0.0
       websocket-sftp: 0.7.2
     transitivePeerDependencies:

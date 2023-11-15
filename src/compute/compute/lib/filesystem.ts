@@ -49,6 +49,7 @@ interface Options {
   syncIntervalMax?: number;
   exclude?: string[];
   readTrackingPath?: string;
+  metadataFile?: string;
 }
 
 export async function mountProject({
@@ -62,6 +63,7 @@ export async function mountProject({
   syncIntervalMax,
   exclude = [],
   readTrackingPath,
+  metadataFile,
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
   const reportState = async (
@@ -156,6 +158,8 @@ export async function mountProject({
         readTracking: readTrackingPath
           ? { path: readTrackingPath, timeout: 30, update: 10, modified: 60 }
           : undefined,
+        // metadata file
+        metadataFile,
       }));
       pingInterval = setInterval(async () => {
         try {
