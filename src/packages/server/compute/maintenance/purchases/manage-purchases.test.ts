@@ -46,7 +46,7 @@ describe("confirm managing of purchases works", () => {
 
   it("creates account, project and compute server on test cloud", async () => {
     await createAccount({
-      email: `${account_id}@xample.com`,
+      email: `${account_id}@example.com`,
       password: "xyz",
       firstName: "User",
       lastName: "One",
@@ -72,11 +72,11 @@ describe("confirm managing of purchases works", () => {
       service: "credit",
       description: {} as any,
       client: null,
-      cost: -10,
+      cost: 10,
     });
   });
 
-  it("in deprovisioned state no purchase is created", async () => {
+  it("in deprovisioned state, so no purchase is created", async () => {
     const pool = getPool();
     await pool.query(
       "UPDATE compute_servers SET state='deprovisioned',update_purchase=TRUE WHERE id=$1",
