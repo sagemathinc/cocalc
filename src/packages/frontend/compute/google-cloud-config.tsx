@@ -1018,7 +1018,22 @@ function BootDisk(props) {
           )}
       </Space>
       <div style={{ color: "#666", margin: "10px 0" }}>
-        Set the size between {getMinDiskSizeGb(configuration)} GB and 65,536 GB.
+        Set the size between{" "}
+        {state == "deprovisioned" ? (
+          <Button
+            size="small"
+            onClick={() => {
+              setConfig({
+                diskSizeGb: getMinDiskSizeGb(configuration),
+              });
+            }}
+          >
+            {getMinDiskSizeGb(configuration)} GB
+          </Button>
+        ) : (
+          <>{getMinDiskSizeGb(configuration)} GB</>
+        )}{" "}
+        and 65,536 GB.
         {state != "deprovisioned" && (
           <>
             {" "}
@@ -1032,91 +1047,91 @@ function BootDisk(props) {
         )}
       </div>
       <div>
-        <Select
-          style={{ width: SELECTOR_WIDTH }}
-          disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-          value={newDiskType}
-          onChange={(diskType) => {
-            setNewDiskType(diskType);
-            setConfig({ diskType: diskType ?? "pd-standard" });
-          }}
-          options={[
-            {
-              value: "pd-balanced",
-              label: (
-                <div>
-                  Balanced (SSD) disk{" "}
-                  <div style={{ fontFamily: "monospace", float: "right" }}>
-                    {currency(
-                      markup({
-                        cost:
-                          priceData.disks["pd-balanced"]?.prices[
-                            configuration.region
-                          ] * 730,
-                        priceData,
-                      }),
-                    )}
-                    /GB per month
+        <Space>
+          <Select
+            style={{ width: SELECTOR_WIDTH }}
+            disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+            value={newDiskType}
+            onChange={(diskType) => {
+              setNewDiskType(diskType);
+              setConfig({ diskType: diskType ?? "pd-standard" });
+            }}
+            options={[
+              {
+                value: "pd-balanced",
+                label: (
+                  <div>
+                    Balanced (SSD) disk{" "}
+                    <div style={{ fontFamily: "monospace", float: "right" }}>
+                      {currency(
+                        markup({
+                          cost:
+                            priceData.disks["pd-balanced"]?.prices[
+                              configuration.region
+                            ] * 730,
+                          priceData,
+                        }),
+                      )}
+                      /GB per month
+                    </div>
                   </div>
-                </div>
-              ),
-            },
-            {
-              value: "pd-ssd",
-              label: (
-                <div>
-                  Performance (SSD) disk{" "}
-                  <div style={{ fontFamily: "monospace", float: "right" }}>
-                    {currency(
-                      markup({
-                        cost:
-                          priceData.disks["pd-ssd"]?.prices[
-                            configuration.region
-                          ] * 730,
-                        priceData,
-                      }),
-                    )}
-                    /GB per month
+                ),
+              },
+              {
+                value: "pd-ssd",
+                label: (
+                  <div>
+                    Performance (SSD) disk{" "}
+                    <div style={{ fontFamily: "monospace", float: "right" }}>
+                      {currency(
+                        markup({
+                          cost:
+                            priceData.disks["pd-ssd"]?.prices[
+                              configuration.region
+                            ] * 730,
+                          priceData,
+                        }),
+                      )}
+                      /GB per month
+                    </div>
                   </div>
-                </div>
-              ),
-            },
-            {
-              value: "pd-standard",
-              label: (
-                <div>
-                  Standard (HDD) disk{" "}
-                  <div style={{ fontFamily: "monospace", float: "right" }}>
-                    {currency(
-                      markup({
-                        cost:
-                          priceData.disks["pd-standard"]?.prices[
-                            configuration.region
-                          ] * 730,
-                        priceData,
-                      }),
-                    )}
-                    /GB per month
+                ),
+              },
+              {
+                value: "pd-standard",
+                label: (
+                  <div>
+                    Standard (HDD) disk{" "}
+                    <div style={{ fontFamily: "monospace", float: "right" }}>
+                      {currency(
+                        markup({
+                          cost:
+                            priceData.disks["pd-standard"]?.prices[
+                              configuration.region
+                            ] * 730,
+                          priceData,
+                        }),
+                      )}
+                      /GB per month
+                    </div>
                   </div>
-                </div>
-              ),
-            },
-          ]}
-        ></Select>
-        <div style={{ color: "#666", margin: "10px 0" }}>
-          <b>Total Cost:</b>{" "}
-          {currency(
-            markup({
-              cost:
-                configuration.diskSizeGb *
-                priceData.disks[configuration.diskType]?.prices[
-                  configuration.region
-                ],
-              priceData,
-            }),
-          )}
-          /hour or{" "}
-          <b>
+                ),
+              },
+            ]}
+          ></Select>
+          <div style={{ marginLeft: "15px" }}>
+            <b>Total Cost for {configuration.diskSizeGb}GB:</b>{" "}
+            {currency(
+              markup({
+                cost:
+                  configuration.diskSizeGb *
+                  priceData.disks[configuration.diskType]?.prices[
+                    configuration.region
+                  ],
+                priceData,
+              }),
+            )}
+            /hour or{" "}
             {currency(
               markup({
                 cost:
@@ -1129,8 +1144,10 @@ function BootDisk(props) {
               }),
             )}
             /month
-          </b>
-          . You are charged as long as the server is provisioned, but if you run
+          </div>
+        </Space>
+        <div style={{ color: "#666", margin: "10px 0" }}>
+          You are charged as long as the server is provisioned, but if you run
           out of credit and don't pay, then the disk is deleted. You can
           instantly increase the disk size at any time <b>without</b> needing to
           restart the server.
