@@ -15,46 +15,90 @@ export async function execa(cmd, args, options?) {
   return await execa0(cmd, args, options);
 }
 
-// Compute the map from paths to their integral mtime for the entire directory tree
-// NOTE: this could also be done with the walkdir library, but using find
-// is several times faster in general. This is *the* bottleneck, and the
-// subprocess IO isn't much, so calling find as a subprocess is the right
-// solution!  This is not a hack at all.
-
 // IMPORTANT: top level hidden subdirectories in path are always ignored, e.g.,
 // if path is /home/user, then /home/user/.foo is ignored, but /home/user/bar/.foo
 // is not ignored.
-export async function mtimeDirTree({
+export async function metadataFile({
   path,
   exclude,
 }: {
   path: string;
   exclude: string[];
+}): Promise<string> {
+  log("mtimeDirTree", path, exclude);
+  if (!(await exists(path))) {
+    return "";
+  }
+  // Recursively get enough metadata about all non-hidden top level path trees
+  // (this is VASTLY more efficient
+  // than "find . ...", especially on cocalc with it's fuse mounted .snapshots!)
+  // Notes about the find output option to printf:
+  // - We use null characters as separators because they are the ONLY character
+  //   that isn't allowed in a filename (besides '/')! Filenames can have newlines
+  //   in them!
+  // - The find output contains more than just what is needed for mtimeDirTree; it contains
+  //   everything needed by websocketfs for doing stat, i.e., this output is used
+  //   for the metadataFile functionality of websocketfs.
+  // - Just a little fact -- output from find is NOT sorted in any guaranteed way.
+  const topPaths = (await readdir(path)).filter((p) => !p.startsWith("."));
+  const { stdout } = await execa(
+    "find",
+    topPaths.concat([
+      ...findExclude(exclude),
+      "-printf",
+      "%p\\0%T@ %A@ %b %s %M\\0\\0",
+    ]),
+    {
+      cwd: path,
+    },
+  );
+  return stdout;
+}
+
+// Compute the map from paths to their integral mtime for the entire directory tree
+// NOTE: this could also be done with the walkdir library, but using find
+// is several times faster in general. This is *the* bottleneck, and the
+// subprocess IO isn't much, so calling find as a subprocess is the right
+// solution!  This is not a hack at all.
+// IMPORTANT: top level hidden subdirectories in path are always ignored
+export async function mtimeDirTree({
+  path,
+  exclude,
+  metadataFile,
+}: {
+  path: string;
+  exclude: string[];
+  metadataFile?: string;
 }): Promise<{ [path: string]: number }> {
   log("mtimeDirTree", path, exclude);
   if (!(await exists(path))) {
     return {};
   }
-  // get the non-hidden top level files/paths (this is much more efficient
-  // than "find .")
-  const topPaths = (await readdir(path)).filter((p) => !p.startsWith("."));
-  const { stdout } = await execa(
-    "find",
-    topPaths.concat([...findExclude(exclude), "-printf", "%p\n%T@\n"]),
-    {
-      cwd: path,
-    },
-  );
+  // If the string metadataFile is passed in (as output from metadataFile), then we use that
+  // If it isn't, then we compute just what is needed here.
+  if (metadataFile == null) {
+    const topPaths = (await readdir(path)).filter((p) => !p.startsWith("."));
+    const { stdout } = await execa(
+      "find",
+      topPaths.concat([...findExclude(exclude), "-printf", "%p\\0%T@\\0\\0"]),
+      {
+        cwd: path,
+      },
+    );
+    metadataFile = stdout;
+  }
   const c: { [path: string]: number } = {};
-  const v = stdout.split("\n");
-  for (let i = 0; i < v.length - 1; i += 2) {
-    if (v[i].startsWith(".")) {
-      // never include top level hidden paths
+  const v = metadataFile.split("\0\0");
+  for (const record of v) {
+    if (!record) continue; // trailing blank line of file
+    const [path, meta] = record.split("\0");
+    if (path.startsWith(".")) {
+      // never include top level hidden paths, if they are there for some reason.
       continue;
     }
-    // NOTE -- GNU tar discards fractional part, thus rounding down, so this is right, since
-    // we will use tar for sending files.
-    c["./" + v[i]] = parseInt(v[i + 1]);
+    // NOTE -- GNU tar discards fractional part of timestamp, thus rounding down,
+    // so this is right, since we will use tar for sending files.
+    c["./" + path] = parseInt(meta.split(" ")[0]);
   }
   return c;
 }
