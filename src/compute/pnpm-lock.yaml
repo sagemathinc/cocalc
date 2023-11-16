@@ -129,8 +129,8 @@ importers:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@9.4.0)
       websocketfs:
-        specifier: ^0.12.5
-        version: 0.12.5
+        specifier: ^0.13.0
+        version: 0.13.0
       ws:
         specifier: ^8.13.0
         version: 8.14.2
@@ -6271,8 +6271,8 @@ packages:
       makeerror: 1.0.12
     dev: true
 
-  /websocket-sftp@0.7.2:
-    resolution: {integrity: sha512-g1E8GCHu0CdAe3GTBmxfP1uH1h8h21d029O+tYpCMvFUqVher+rbi2Dfp4OEjOXyfgr7qquAxwulDUXvy0+iKg==}
+  /websocket-sftp@0.8.0:
+    resolution: {integrity: sha512-7+j6SKhA4u+yNRgOfDyCHwr95YPv0zdSb+Z2brsTEECE8eAZy1X5KpHDYA3Rofw3FDf+PN/5G52PuFIBQPDpbA==}
     engines: {node: '>=0.16.0'}
     requiresBuild: true
     dependencies:
@@ -6287,8 +6287,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.12.5:
-    resolution: {integrity: sha512-/BcHyxOikuomgR6OxeaOMYs7GBhY+DG6+c/oRAiIDcVJsWzsAG2tOfFEmyIVwPciRFZif86n6MYDIWXdqxTUig==}
+  /websocketfs@0.13.0:
+    resolution: {integrity: sha512-QF5Y3jxHEunIbbUe/Rg9GiFe4jtCH/Y6CmD9bCPcfPVNCKKRhV9o5hEYAb8BEg+uzfUebiVgT4ar8xJxjsdV4A==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
@@ -6301,7 +6301,7 @@ packages:
       debug: 4.3.4(supports-color@9.4.0)
       lz4: 0.6.5
       port-get: 1.0.0
-      websocket-sftp: 0.7.2
+      websocket-sftp: 0.8.0
     transitivePeerDependencies:
       - bluebird
       - bufferutil
