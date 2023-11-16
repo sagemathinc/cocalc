@@ -108,7 +108,7 @@ export default function ComputeServerTransition({
             <Icon name="times" /> Hide
           </Button>
           <Alert
-            style={{ maxWidth: "300px" }}
+            style={{ maxWidth: "300px", margin: "0 15px" }}
             type="info"
             message={
               <>
@@ -118,7 +118,6 @@ export default function ComputeServerTransition({
                 ) : undefined}
               </>
             }
-            style={{ margin: "0 15px" }}
           />
           <Progress
             type="circle"
