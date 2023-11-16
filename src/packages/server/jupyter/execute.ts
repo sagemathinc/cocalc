@@ -11,6 +11,7 @@ import callProject from "@cocalc/server/projects/call";
 import { jupyter_execute } from "@cocalc/util/message";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import checkForAbuse from "./abuse";
+import { expire_time } from "@cocalc/util/relative-time";
 
 const log = getLogger("jupyter-api:execute");
 
@@ -128,7 +129,7 @@ export async function execute({
     // both project_id and account_id must be set and account_id must be a collab
     if (account_id == null) {
       throw Error(
-        "account_id must be specified -- make sure you are signed in"
+        "account_id must be specified -- make sure you are signed in",
       );
     }
     if (!isCollaborator({ project_id, account_id })) {
@@ -178,13 +179,13 @@ export async function execute({
 
 // We just assume that hash conflicts don't happen for our purposes here.  It's a cryptographic hash function.
 async function getFromDatabase(
-  hash: string
+  hash: string,
 ): Promise<{ output: object[]; created: Date } | null> {
   const pool = getPool();
   try {
     const { rows } = await pool.query(
       `SELECT id, output, created FROM jupyter_api_cache WHERE hash=$1`,
-      [hash]
+      [hash],
     );
     if (rows.length == 0) {
       return null;
@@ -193,8 +194,8 @@ async function getFromDatabase(
     (async () => {
       try {
         await pool.query(
-          "UPDATE jupyter_api_cache SET last_active=NOW() WHERE id=$1",
-          [rows[0].id]
+          "UPDATE jupyter_api_cache SET last_active=NOW(), expire=NOW() + '1 month'::INTERVAL WHERE id=$1",
+          [rows[0].id],
         );
       } catch (err) {
         log.warn("Failed updating cache last_active", err);
@@ -229,10 +230,12 @@ async function saveResponse({
   if (noCache) {
     await pool.query("DELETE FROM jupyter_api_cache WHERE hash=$1", [hash]);
   }
+  // expire in one month – for the log, this must be more than "PERIOD" in abuse.ts
+  const expire = expire_time(30 * 24 * 60 * 60);
   try {
     await Promise.all([
       pool.query(
-        `INSERT INTO jupyter_api_log(created,account_id,project_id,path,analytics_cookie,tag,hash,total_time_s,kernel,history,input) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        `INSERT INTO jupyter_api_log(created,account_id,project_id,path,analytics_cookie,tag,hash,total_time_s,kernel,history,input,expire) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
         [
           created,
           account_id,
@@ -245,11 +248,12 @@ async function saveResponse({
           kernel,
           history,
           input,
-        ]
+          expire,
+        ],
       ),
       pool.query(
-        `INSERT INTO jupyter_api_cache(created,hash,output,last_active) VALUES($1,$2,$3,$4)`,
-        [created, hash, output, created]
+        `INSERT INTO jupyter_api_cache(created,hash,output,last_active,expire) VALUES($1,$2,$3,$4,$5)`,
+        [created, hash, output, created, expire],
       ),
     ]);
   } catch (err) {
