@@ -133,6 +133,7 @@ class SyncFS {
 
   init = async () => {
     await this.mountUnionFS();
+    await this.bindMountExcludes();
     await this.makeScratchDir();
     try {
       await rm(this.error_txt);
@@ -166,10 +167,28 @@ class SyncFS {
   };
 
   private bindMountExcludes = async () => {
-    // Setup bind mounds for each excluded directory, e.g., 
+    // Setup bind mounds for each excluded directory, e.g.,
     // mount --bind /data/scratch /home/user/scratch
-    
-  }
+    for (const path of this.exclude) {
+      if (
+        path &&
+        !path.startsWith(".") &&
+        !path.startsWith("/") &&
+        path != "~" &&
+        !path.includes("/")
+      ) {
+        log("bindMountExcludes -- mounting", { path });
+        await execa("sudo", [
+          "mount",
+          "--bind",
+          join("data", path),
+          join(this.mount, path),
+        ]);
+      } else {
+        log("bindMountExcludes -- skipping", { path });
+      }
+    }
+  };
 
   public sync = async () => {
     if (this.state == "sync") {
