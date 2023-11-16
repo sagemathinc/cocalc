@@ -25,7 +25,7 @@ import { cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
   EXTERNAL_IP_COST,
-  EGRESS_COST_PER_GiB,
+  DATA_TRANSFER_OUT_COST_PER_GiB,
   computeDiskCost,
   markup,
   computeAcceleratorCost,
@@ -425,9 +425,9 @@ export default function GoogleCloudConfiguration({
           <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
             You pay the above rate while the computer server VM is running. The
             rate is <b>much cheaper</b> when the server is suspended or off, and
-            there is no cost when it is deprovisioned. Egress networking charges
-            are not included in the above cost, and depend on exactly how much
-            data leaves the server. All incoming networking is free.
+            there is no cost when it is deprovisioned. Network data transfer out
+            charges are not included in the above cost, and depend on exactly
+            how much data leaves the server. All incoming networking is free.
           </div>
         </div>
       ) : null}
@@ -1668,9 +1668,9 @@ function Network({ setConfig, configuration, loading, priceData }) {
           <Icon name="network-server" /> Network
         </b>
         <br />
-        All compute servers have full network access with unlimited ingress for
-        free. Outgoing{" "}
-        <b>egress traffic costs {currency(EGRESS_COST_PER_GiB)}/GiB</b>.
+        All compute servers have full network access with unlimited data
+        transfer in for free. Data transfer out{" "}
+        <b>costs {currency(DATA_TRANSFER_OUT_COST_PER_GiB)}/GiB</b>.
       </div>
       <Checkbox
         checked={externalIp}

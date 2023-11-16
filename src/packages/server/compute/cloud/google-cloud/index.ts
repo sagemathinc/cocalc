@@ -21,7 +21,7 @@ import computeCost, {
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
 import { getArchitecture } from "./images";
-import { getInstanceEgress } from "./monitoring";
+import { getInstanceDataTransferOut } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { hasDNS, makeDnsChange } from "@cocalc/server/compute/dns";
 
@@ -245,6 +245,6 @@ export async function getNetworkUsage({
   end: Date;
 }) {
   const instanceName = await getServerName(server);
-  const amount = await getInstanceEgress({ instanceName, start, end });
+  const amount = await getInstanceDataTransferOut({ instanceName, start, end });
   return { cost: computeNetworkCost(amount), amount };
 }
