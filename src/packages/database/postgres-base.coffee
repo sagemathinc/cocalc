@@ -1006,6 +1006,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     # Go through every table in the schema with a column called "expire", and
     # delete every entry where expire is <= right now.
+    # Note: this ignores those rows, where expire is NULL, because comparisons with NULL are NULL
     delete_expired: (opts) =>
         opts = defaults opts,
             count_only : false      # if true, only count the number of rows that would be deleted

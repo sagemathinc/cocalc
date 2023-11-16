@@ -111,20 +111,44 @@ class Project extends BaseProject {
     const copyID = uuid();
     dbg(`copyID=${copyID}`);
 
-    if (opts.scheduled && opts.scheduled instanceof Date) {
-      // We have to remove the timezone info, b/c the PostgreSQL field is without timezone.
-      // Ideally though, this is always UTC, e.g. "2019-08-08T18:34:49".
-      const d = new Date(opts.scheduled);
-      const offset = d.getTimezoneOffset() / 60;
-      opts.scheduled = new Date(d.getTime() - offset);
-      opts.wait_until_done = false;
-      dbg(`opts.scheduled = ${opts.scheduled}`);
+    // expire in 1 month
+    const oneMonthSecs = 60 * 60 * 24 * 30;
+    let expire: Date = expire_time(oneMonthSecs);
+
+    if (opts.scheduled) {
+      // we parse it if it is a string
+      if (typeof opts.scheduled === "string") {
+        const scheduledTS: number = Date.parse(opts.scheduled);
+
+        if (isNaN(scheduledTS)) {
+          throw new Error(
+            `opts.scheduled = ${opts.scheduled} is not a valid date. Can't be parsed by Date.parse()`,
+          );
+        }
+
+        opts.scheduled = new Date(scheduledTS);
+      }
+
+      if (opts.scheduled instanceof Date) {
+        // We have to remove the timezone info, b/c the PostgreSQL field is without timezone.
+        // Ideally though, this is always UTC, e.g. "2019-08-08T18:34:49".
+        const d = new Date(opts.scheduled);
+        const offset = d.getTimezoneOffset() / 60;
+        opts.scheduled = new Date(d.getTime() - offset);
+        opts.wait_until_done = false;
+        dbg(`opts.scheduled = ${opts.scheduled}`);
+        // since scheduled could be in the future, we want to expire it 1 month after that
+        expire = new Date(
+          Math.max(opts.scheduled.getTime(), Date.now()) + oneMonthSecs * 1000,
+        );
+      } else {
+        throw new Error(
+          `opts.scheduled = ${opts.scheduled} is not a valid date.`,
+        );
+      }
     }
 
     dbg("write query requesting the copy to happen to the database");
-
-    // expire in 1 month
-    const expire = expire_time(60 * 60 * 24 * 30);
 
     await callback2(db()._query, {
       query: "INSERT INTO copy_paths",
