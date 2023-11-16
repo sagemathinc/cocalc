@@ -108,7 +108,7 @@ export default function ComputeServerTransition({
             <Icon name="times" /> Hide
           </Button>
           <Alert
-            showIcon
+            style={{ maxWidth: "300px" }}
             type="info"
             message={
               <>

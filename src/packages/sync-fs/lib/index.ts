@@ -158,7 +158,16 @@ class SyncFS {
     }
     const args = ["-uz", this.mount];
     log("fusermount", args.join(" "));
-    await execa("fusermount", args);
+    try {
+      await execa("fusermount", args);
+    } catch (err) {
+      log("fusermount fail -- ", err);
+    }
+    try {
+      await this.unmountExcludes();
+    } catch (err) {
+      log("unmountExcludes fail -- ", err);
+    }
   };
 
   private mountUnionFS = async () => {
@@ -171,23 +180,44 @@ class SyncFS {
     ]);
   };
 
+  private shouldMountExclude = (path) => {
+    return (
+      path &&
+      !path.startsWith(".") &&
+      !path.startsWith("/") &&
+      path != "~" &&
+      !path.includes("/")
+    );
+  };
+
+  private unmountExcludes = async () => {
+    for (const path of this.exclude) {
+      if (this.shouldMountExclude(path)) {
+        try {
+          const target = join(this.mount, path);
+          log("unmountExcludes -- unmounting", { target });
+          await execa("sudo", ["umount", target]);
+        } catch (err) {
+          log("unmountExcludes -- warning ", err);
+        }
+      }
+    }
+  };
+
   private bindMountExcludes = async () => {
     // Setup bind mounds for each excluded directory, e.g.,
     // mount --bind /data/scratch /home/user/scratch
     for (const path of this.exclude) {
-      if (
-        path &&
-        !path.startsWith(".") &&
-        !path.startsWith("/") &&
-        path != "~" &&
-        !path.includes("/")
-      ) {
+      if (this.shouldMountExclude(path)) {
         log("bindMountExcludes -- mounting", { path });
         const source = join(this.data, path);
         const target = join(this.mount, path);
+        const upper = join(this.upper, path);
         log("bindMountExcludes -- mounting", { source, target });
         await mkdirp(source);
-        await mkdirp(target);
+        // Yes, we have to mkdir in the upper level of the unionfs, because
+        // we excluded this path from the websocketfs metadataFile caching.
+        await mkdirp(upper);
         await execa("sudo", ["mount", "--bind", source, target]);
       } else {
         log("bindMountExcludes -- skipping", { path });
