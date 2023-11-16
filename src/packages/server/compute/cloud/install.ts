@@ -88,8 +88,10 @@ fi
 
 export function installCoCalc(arch: Architecture) {
   return `
+set +v
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
 npx -y @cocalc/compute-server${getImagePostfix(arch)} /cocalc
+set -v
 `;
 }
 

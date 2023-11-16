@@ -194,6 +194,8 @@ docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   setState filesystem run '' 45 25
+  mkdir -p /data
+
   docker run \
    -d \
    --name=filesystem \
@@ -259,6 +261,8 @@ function compute({ arch, image, gpu }) {
 # keys and move data.
 
 docker start compute >/dev/null 2>&1
+
+mkdir -p /data
 
 if [ $? -ne 0 ]; then
   setState compute run '' 20 25

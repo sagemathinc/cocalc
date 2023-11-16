@@ -46,7 +46,7 @@ const UNIONFS = ".unionfs-fuse";
 // Do not make this too short, since every time it happens, the project has to
 // do a find scan, which can take some resources!
 const DEFAULT_SYNC_INTERVAL_MIN_S = 10;
-// no idea what this *should* be. 
+// no idea what this *should* be.
 const DEFAULT_SYNC_INTERVAL_MAX_S = 30;
 
 // if sync fails this many times in a row, then we pause syncing until the user
@@ -155,7 +155,7 @@ class SyncFS {
     await execa("fusermount", args);
   };
 
-  mountUnionFS = async () => {
+  private mountUnionFS = async () => {
     // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
     await execa("unionfs-fuse", [
       "-o",
@@ -164,6 +164,12 @@ class SyncFS {
       this.mount,
     ]);
   };
+
+  private bindMountExcludes = async () => {
+    // Setup bind mounds for each excluded directory, e.g., 
+    // mount --bind /data/scratch /home/user/scratch
+    
+  }
 
   public sync = async () => {
     if (this.state == "sync") {

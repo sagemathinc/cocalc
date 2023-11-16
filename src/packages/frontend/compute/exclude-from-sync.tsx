@@ -4,6 +4,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { Select, Tooltip } from "antd";
 import { CSSProperties, useEffect, useState } from "react";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props {
   setConfig;
@@ -28,9 +29,23 @@ export default function ExcludeFromSync({
   }, [configuration.excludeFromSync]);
   return (
     <div style={style}>
-      <Tooltip title="List of top level subdirectories of the project's home directory to exclude from sync. Files you change or create on the compute server in these directories will not be saved back to the project.  Top level hidden folders are never synced.  Include '~' to completely disable sync.">
-        Subdirectories of the HOME directory that will <b>not</b> be
-        synchronized with the project's HOME directory.
+      <Tooltip
+        title={
+          <>
+            List of top level subdirectories to exclude from sync. Files you
+            change or create on the compute server in these directories will not
+            be saved back to the project. Disk IO in these directories is VERY
+            fast, and you can use all available space. NOTE: Top level hidden
+            folders are never synced.
+          </>
+        }
+      >
+        <b>
+          <Icon name="bolt" /> Fast Local Data Directories:
+        </b>{" "}
+        The following subdirectories of the HOME directory on the compute server
+        will <b>not</b> be synchronized with the project's HOME directory. They
+        are stored in <code>/data</code> only on the compute server.
       </Tooltip>
       <Select
         value={value}
