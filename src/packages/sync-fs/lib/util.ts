@@ -2,6 +2,9 @@ import { dynamicImport } from "tsimportlib";
 import { readdir, rm } from "fs/promises";
 import { join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { createEncoderStream } from "lz4";
+import { Readable } from "stream";
+import { createWriteStream } from "fs";
 
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("sync-fs:util").debug;
@@ -36,6 +39,8 @@ export async function metadataFile({
   // - We use null characters as separators because they are the ONLY character
   //   that isn't allowed in a filename (besides '/')! Filenames can have newlines
   //   in them!
+  //   BUT -- we are assuming filenames can be encoded as utf8; if not, sync will
+  //   obviously not work.
   // - The find output contains more than just what is needed for mtimeDirTree; it contains
   //   everything needed by websocketfs for doing stat, i.e., this output is used
   //   for the metadataFile functionality of websocketfs.
@@ -130,4 +135,30 @@ export async function remove(paths: string[], rel?: string) {
       log(`WARNING: issue removing '${path}' -- ${err}`);
     }
   }
+}
+
+export async function writeFileLz4(path: string, contents: string) {
+  // We use a stream instead of blocking in process for compression
+  // because this code is likely to run in the project's daemon,
+  // and blocking here would block interactive functionality such
+  // as terminals.
+
+  // Create readable stream from the input.
+  const input = new Readable({
+    read() {
+      this.push(contents);
+      this.push(null);
+    },
+  });
+  // lz4 compression encoder
+  const encoder = createEncoderStream();
+  const output = createWriteStream(path);
+  // start writing
+  input.pipe(encoder).pipe(output);
+  // wait until done
+  const waitForFinish = new Promise((resolve, reject) => {
+    output.on("finish", resolve);
+    output.on("error", reject);
+  });
+  await waitForFinish;
 }

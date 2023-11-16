@@ -3,10 +3,11 @@
 import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
-import { mtimeDirTree, remove } from "./util";
+import { metadataFile, mtimeDirTree, remove, writeFileLz4 } from "./util";
 import { join } from "path";
-import { mkdir, open, readFile } from "fs/promises";
+import { mkdir, rename, readFile, writeFile } from "fs/promises";
 import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
+import { sha1 } from "@cocalc/backend/sha1";
 
 const log = getLogger("sync-fs:handle-api-call").debug;
 
@@ -15,7 +16,7 @@ const CLOCK_THRESH_MS = 5 * 1000;
 
 export default async function handleApiCall({
   computeStateJson,
-  exclude,
+  exclude = [],
   compute_server_id,
   now, // time in ms since epoch on compute server
 }: MesgSyncFSOptions) {
@@ -38,7 +39,8 @@ export default async function handleApiCall({
     );
   }
 
-  const projectState = await getProjectState(exclude ?? []);
+  const meta = await metadataFile({ path: process.env.HOME, exclude });
+  const projectState = await getProjectState(meta, exclude);
 
   const {
     removeFromCompute,
@@ -51,6 +53,8 @@ export default async function handleApiCall({
     await remove(removeFromProject, process.env.HOME);
   }
 
+  await writeMetadataFile({ compute_server_id, meta });
+
   return {
     removeFromCompute,
     copyFromCompute,
@@ -59,6 +63,40 @@ export default async function handleApiCall({
         ? await createCopyFromProjectTar(copyFromProject, compute_server_id)
         : undefined,
   };
+}
+
+let lastMetadataFileHash: { [compute_server_id: number]: string } = {};
+async function writeMetadataFile({ compute_server_id, meta }) {
+  let start = Date.now();
+  const hash = sha1(meta);
+  const path = join(getStateDir(compute_server_id), "meta");
+  const tmp = join(path, ".meta.lz4");
+  const target = join(path, "meta.lz4");
+  if (hash == lastMetadataFileHash[compute_server_id]) {
+    log(
+      `writeMetadataFile: not writing "${target}" since hash didn't change. Hash time =`,
+      Date.now() - start,
+      "ms",
+    );
+    return;
+  }
+  lastMetadataFileHash[compute_server_id] = hash;
+  await mkdir(path, { recursive: true });
+  await writeFileLz4(tmp, meta);
+  // ensure this is atomic
+  await rename(tmp, target);
+  log(
+    `writeMetadataFile: wrote out "${target}" atomically. Total time =`,
+    Date.now() - start,
+    "ms",
+  );
+}
+
+function getStateDir(compute_server_id): string {
+  if (!process.env.HOME) {
+    throw Error("HOME env var must be set");
+  }
+  return join(process.env.HOME, ".compute-servers", `${compute_server_id}`);
 }
 
 // This is the path to a file whose lines are the names
@@ -70,20 +108,18 @@ async function createCopyFromProjectTar(
   if (!process.env.HOME) {
     throw Error("HOME must be defined");
   }
-  const stateDir = join(".compute-servers", `${compute_server_id}`);
+  const stateDir = getStateDir(compute_server_id);
   await mkdir(stateDir, { recursive: true });
-  const target = join(process.env.HOME, stateDir, "copy-from-project");
-  const file = await open(target, "w");
-  await file.write(paths.join("\n"));
-  await file.close();
+  const target = join(stateDir, "copy-from-project");
+  await writeFile(target, paths.join("\n"));
   const i = target.lastIndexOf(stateDir);
   return target.slice(i);
 }
 
-// we have to use separate cache/state for each exclude list, unfortunatley. in practice,
+// we have to use separate cache/state for each exclude list, unfortunately. in practice,
 // they should often be similar or the same, because people will rarely customize this (?).
 let lastProjectState: { [exclude: string]: FilesystemState } = {};
-export async function getProjectState(exclude): Promise<FilesystemState> {
+async function getProjectState(meta, exclude): Promise<FilesystemState> {
   const now = Math.floor(Date.now() / 1000); // in integers seconds
   const key = JSON.stringify(exclude);
   const lastState = lastProjectState[key] ?? {};
@@ -94,6 +130,7 @@ export async function getProjectState(exclude): Promise<FilesystemState> {
   const projectState = await mtimeDirTree({
     path: process.env.HOME,
     exclude,
+    metadataFile: meta,
   });
 
   // figure out what got deleted in the project
@@ -117,7 +154,6 @@ export async function getProjectState(exclude): Promise<FilesystemState> {
   return projectState;
 }
 
-// [ ] TODO: worry about files versus directories!
 function getOperations({ computeState, projectState }): {
   removeFromCompute: string[];
   removeFromProject: string[];
