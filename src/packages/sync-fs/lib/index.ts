@@ -12,6 +12,7 @@ import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
+import mkdirp from "mkdirp";
 
 const log = getLogger("sync-fs:index").debug;
 
@@ -40,13 +41,14 @@ interface Options {
   readTrackingPath?: string;
   tar: { send; get };
   compression?: "lz4"; // default 'lz4'
+  data?: string; // absolute path to data directory (default: /data)
 }
 
 const UNIONFS = ".unionfs-fuse";
 // Do not make this too short, since every time it happens, the project has to
 // do a find scan, which can take some resources!
 const DEFAULT_SYNC_INTERVAL_MIN_S = 10;
-// no idea what this *should* be. 
+// no idea what this *should* be.
 const DEFAULT_SYNC_INTERVAL_MAX_S = 30;
 
 // if sync fails this many times in a row, then we pause syncing until the user
@@ -59,6 +61,7 @@ class SyncFS {
   private lower: string;
   private upper: string;
   private mount: string;
+  private data: string;
   private project_id: string;
   private compute_server_id: number;
   private syncInterval: number;
@@ -88,10 +91,12 @@ class SyncFS {
     readTrackingPath,
     tar,
     compression = "lz4",
+    data = "/data",
   }: Options) {
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
+    this.data = data;
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.exclude = exclude;
@@ -133,6 +138,7 @@ class SyncFS {
 
   init = async () => {
     await this.mountUnionFS();
+    await this.bindMountExcludes();
     await this.makeScratchDir();
     try {
       await rm(this.error_txt);
@@ -152,10 +158,19 @@ class SyncFS {
     }
     const args = ["-uz", this.mount];
     log("fusermount", args.join(" "));
-    await execa("fusermount", args);
+    try {
+      await execa("fusermount", args);
+    } catch (err) {
+      log("fusermount fail -- ", err);
+    }
+    try {
+      await this.unmountExcludes();
+    } catch (err) {
+      log("unmountExcludes fail -- ", err);
+    }
   };
 
-  mountUnionFS = async () => {
+  private mountUnionFS = async () => {
     // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
     await execa("unionfs-fuse", [
       "-o",
@@ -163,6 +178,51 @@ class SyncFS {
       `${this.upper}=RW:${this.lower}=RO`,
       this.mount,
     ]);
+  };
+
+  private shouldMountExclude = (path) => {
+    return (
+      path &&
+      !path.startsWith(".") &&
+      !path.startsWith("/") &&
+      path != "~" &&
+      !path.includes("/")
+    );
+  };
+
+  private unmountExcludes = async () => {
+    for (const path of this.exclude) {
+      if (this.shouldMountExclude(path)) {
+        try {
+          const target = join(this.mount, path);
+          log("unmountExcludes -- unmounting", { target });
+          await execa("sudo", ["umount", target]);
+        } catch (err) {
+          log("unmountExcludes -- warning ", err);
+        }
+      }
+    }
+  };
+
+  private bindMountExcludes = async () => {
+    // Setup bind mounds for each excluded directory, e.g.,
+    // mount --bind /data/scratch /home/user/scratch
+    for (const path of this.exclude) {
+      if (this.shouldMountExclude(path)) {
+        log("bindMountExcludes -- mounting", { path });
+        const source = join(this.data, path);
+        const target = join(this.mount, path);
+        const upper = join(this.upper, path);
+        log("bindMountExcludes -- mounting", { source, target });
+        await mkdirp(source);
+        // Yes, we have to mkdir in the upper level of the unionfs, because
+        // we excluded this path from the websocketfs metadataFile caching.
+        await mkdirp(upper);
+        await execa("sudo", ["mount", "--bind", source, target]);
+      } else {
+        log("bindMountExcludes -- skipping", { path });
+      }
+    }
   };
 
   public sync = async () => {

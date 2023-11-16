@@ -11,7 +11,7 @@ export UNIONFS_LOWER=/tmp/lower
 export PROJECT_HOME=/tmp/home
 export READ_TRACKING_PATH=/tmp/reads
 export METADATA_FILE=$UNIONFS_LOWER/.compute-servers/$COMPUTE_SERVER_ID/meta/meta.lz4
-export EXCLUDE_FROM_SYNC="tmp"
+export EXCLUDE_FROM_SYNC="scratch"
 
 echo API_KEY=$API_KEY
 echo API_SERVER=$API_SERVER

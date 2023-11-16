@@ -167,21 +167,6 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
-fusermount -u /home/unionfs/lower 2>/dev/null; mkdir -p /home/unionfs/lower && chown ${UID}:${UID} /home/unionfs/lower
-if [ $? -ne 0 ]; then
-   setState filesystem error "problem creating /home/unionfs/lower"
-   exit 1
-fi
-mkdir -p /home/unionfs/upper && chown ${UID}:${UID} /home/unionfs/upper
-if [ $? -ne 0 ]; then
-   setState filesystem error "problem creating /home/unionfs/upper"
-   exit 1
-fi
-
-# Install ssh keys for access to user account
-mkdir -p /home/unionfs/upper/.ssh
-cat /cocalc/conf/authorized_keys > /home/unionfs/upper/.ssh/authorized_keys
-
 # Mount the home directory using websocketfs by running a docker container.
 # That is all the following container is supposed to do.  The mount line
 # makes it so the mount is seen outside the container.
@@ -190,10 +175,14 @@ cat /cocalc/conf/authorized_keys > /home/unionfs/upper/.ssh/authorized_keys
 # to auth or the target project, in case we want to make it easy to rotate
 # keys and move data.
 
+mkdir -p /data
+chown user:user /data
+
 docker start filesystem >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   setState filesystem run '' 45 25
+
   docker run \
    -d \
    --name=filesystem \

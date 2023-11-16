@@ -34,6 +34,7 @@
     "@types/lz4": "^0.6.3",
     "execa": "^8.0.1",
     "lz4": "^0.6.5",
+    "mkdirp": "^1.0.4",
     "tsimportlib": "^0.0.5"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-fs",
