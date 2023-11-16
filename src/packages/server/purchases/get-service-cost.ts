@@ -5,7 +5,7 @@ Returns an object that describes the cost of a given service.
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getCost as getOpenaiCost } from "@cocalc/util/db-schema/openai";
 import type { Service } from "@cocalc/util/db-schema/purchases";
-import { EGRESS_COST_PER_GiB } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import { DATA_TRANSFER_OUT_COST_PER_GiB } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 export default async function getServiceCost(service: Service) {
   if (service.startsWith("openai-")) {
@@ -27,7 +27,7 @@ export default async function getServiceCost(service: Service) {
     const { compute_servers_markup_percentage } = await getServerSettings();
     return compute_servers_markup_percentage;
   } else if (service == "compute-server-network-usage") {
-    return EGRESS_COST_PER_GiB;
+    return DATA_TRANSFER_OUT_COST_PER_GiB;
   } else {
     throw Error(`${service} not fully implemented`);
   }

@@ -586,7 +586,7 @@ export async function getNetworkUsage(opts: {
       return { amount: 0, cost: 0 };
     case "onprem":
       // TODO: network usage currently free for on prem. This will change
-      // since we should charge for egress from the project to the on prem node!
+      // since we should charge for data transfer out from the project to the on prem node!
       return { amount: 0, cost: 0 };
     case "test":
       return testNetworkUsage[opts.server.id] ?? { amount: 0, cost: 0 };

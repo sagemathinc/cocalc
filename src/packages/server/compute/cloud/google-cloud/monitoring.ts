@@ -1,5 +1,5 @@
 /*
-Use google cloud monitoring to get the (known) egress network usage
+Use google cloud monitoring to get the (known) data transfer out network usage
 by a specific instance during a particular period of time.
 If end time is now, this might be a few minutes off.
 
@@ -27,14 +27,14 @@ export async function getMonitoringClient(): Promise<MonitoringClient> {
   return client;
 }
 
-// Get the total amount of egress as a floating point value in data
+// Get the total amount of data transfered out as a floating point value in data
 // from the given instance, during the given window of time in unites
 // of GiB (=2**30 bytes).
 // IMPORTANT: If end is really close to right now, the data simply
-// isn't available yet, and the reported egress will be too small.
+// isn't available yet, and the reported data transfer out will be too small.
 // I did tests and this is delayed by maybe 3 minutes in tests, but
 // I guess in theory it could be delayed by several hours.
-export async function getInstanceEgress({
+export async function getInstanceDataTransferOut({
   instanceName,
   start,
   end,
@@ -43,7 +43,7 @@ export async function getInstanceEgress({
   start: Date;
   end: Date;
 }): Promise<number> {
-  logger.debug("getInstanceEgress", { instanceName, start, end });
+  logger.debug("getInstanceDataTransferOut", { instanceName, start, end });
   const client = await getMonitoringClient();
   const filter = `metric.type="compute.googleapis.com/instance/network/sent_bytes_count" AND metric.labels.instance_name="${instanceName}"`;
   const request = {
@@ -66,6 +66,6 @@ export async function getInstanceEgress({
       totalBytes += Number(point.value?.int64Value ?? 0);
     }
   }
-  logger.debug("getInstanceEgress", { totalBytes });
+  logger.debug("getInstanceDataTransferOut", { totalBytes });
   return totalBytes / 2 ** 30;
 }

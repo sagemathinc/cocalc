@@ -295,7 +295,7 @@ async function manageNetworkPurchases({
   } else {
     // We might update some network activity, in case it's stale.  This is so (1) the
     // user can see it, and (2) we can better keep track of whether they are running out
-    // of money (you could probably easily spend $50/hour in network egress... so we
+    // of money (you could probably easily spend $50/hour in network data tranfser out... so we
     // are still taking a very real risk!).
     await updateNetworkUsage({ networkPurchases, server });
   }

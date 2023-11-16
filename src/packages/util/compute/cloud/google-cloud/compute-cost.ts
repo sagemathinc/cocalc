@@ -123,7 +123,10 @@ export function computeOffCost({ configuration, priceData }: Options): number {
   return diskCost + dnsCost;
 }
 
-export function computeSuspendedCost({ configuration, priceData }: Options): number {
+export function computeSuspendedCost({
+  configuration,
+  priceData,
+}: Options): number {
   const diskCost = computeDiskCost({ configuration, priceData });
   const memoryCost = computeSuspendedMemoryCost({ configuration, priceData });
   const dnsCost = computeDnsCost({ configuration });
@@ -222,15 +225,15 @@ export function computeAcceleratorCost({ configuration, priceData }) {
   return markup({ cost: costPer * acceleratorCount, priceData });
 }
 
-export const EGRESS_COST_PER_GiB = 0.15;
-export function computeNetworkCost(egressGiB: number): number {
+export const DATA_TRANSFER_OUT_COST_PER_GiB = 0.15;
+export function computeNetworkCost(dataTransferOutGiB: number): number {
   // The worst possible case is 0.15
   // https://cloud.google.com/vpc/network-pricing
   // We might come up with a most sophisticated and affordable model if we
   // can figure it out; however, it seems possibly extremely difficult.
   // For now our solution will be to charge a flat 0.15 fee, and don't
   // include any markup.
-  const cost = egressGiB * EGRESS_COST_PER_GiB;
+  const cost = dataTransferOutGiB * DATA_TRANSFER_OUT_COST_PER_GiB;
   return cost;
 }
 

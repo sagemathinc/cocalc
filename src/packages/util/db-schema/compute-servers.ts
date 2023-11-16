@@ -796,7 +796,7 @@ Table({
 //     },
 //     data: {
 //       pg_type: "jsonb",
-//       desc: "amount of egress during this interval in GiB",
+//       desc: "amount of data transfer out during this interval in GiB",
 //     },
 //   },
 // });

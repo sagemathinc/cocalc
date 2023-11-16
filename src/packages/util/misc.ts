@@ -1558,6 +1558,11 @@ export function parse_bup_timestamp(s: string): Date {
   return new Date(`${v[1]}/${v[2]}/${v[0]} ${v[3]}:${v[4]}:${v[5]} UTC`);
 }
 
+// NOTE: this hash works, but the crypto hashes in nodejs, eg.,
+// sha1 (as used here packages/backend/sha1.ts) are MUCH faster
+// for large strings.  If there is some way to switch to one of those,
+// it would be better, but we have to worry about how this is already deployed
+// e.g., hashes in the database.
 export function hash_string(s: string): number {
   if (typeof s != "string") {
     return 0; // just in case non-typescript code tries to use this

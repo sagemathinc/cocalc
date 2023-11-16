@@ -80,7 +80,8 @@ export default function Cost({ service }: Props) {
   } else if (service == "compute-server-network-usage") {
     return (
       <div style={TEXT_STYLE}>
-        Network egress from Google Cloud compute servers is charged at a rate of
+        Network data transfer out from Google Cloud compute servers is charged
+        at a rate of
         {currency(cost)}/GB. This is the charge for all data that leaves the
         compute server over the network. Incoming network data is free. If your
         usage hits this limit during a month, your compute servers are turned

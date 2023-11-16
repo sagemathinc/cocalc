@@ -114,7 +114,7 @@ export function DisplayNetworkUsage({
   return (
     <div style={style}>
       <Icon name="network-wired" /> {human_readable_size(amount * 2 ** 30)} of
-      network egress{cost != null && <>: {currency(cost)}</>}
+      network data transfer out{cost != null && <>: {currency(cost)}</>}
     </div>
   );
 }
