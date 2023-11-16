@@ -46,7 +46,9 @@ export async function metadataFile({
   //   for the metadataFile functionality of websocketfs.
   // - Just a little fact -- output from find is NOT sorted in any guaranteed way.
   // Y2K alert -- note the %.10T below truncates times to integers, and will I guess fail a few hundred years from now.
-  const topPaths = (await readdir(path)).filter((p) => !p.startsWith("."));
+  const topPaths = (await readdir(path)).filter(
+    (p) => !p.startsWith(".") && !exclude.includes(p),
+  );
   const { stdout } = await execa(
     "find",
     topPaths.concat([
@@ -83,7 +85,9 @@ export async function mtimeDirTree({
   // If the string metadataFile is passed in (as output from metadataFile), then we use that
   // If it isn't, then we compute just what is needed here.
   if (metadataFile == null) {
-    const topPaths = (await readdir(path)).filter((p) => !p.startsWith("."));
+    const topPaths = (await readdir(path)).filter(
+      (p) => !p.startsWith(".") && !exclude.includes(p),
+    );
     const { stdout } = await execa(
       "find",
       topPaths.concat([...findExclude(exclude), "-printf", "%p\\0%T@\\0\\0"]),
@@ -116,10 +120,10 @@ function findExclude(exclude: string[]): string[] {
   for (const path of exclude) {
     v.push("-not");
     v.push("-path");
-    v.push(`./${path}`);
+    v.push(path);
     v.push("-not");
     v.push("-path");
-    v.push(`./${path}/*`);
+    v.push(`${path}/*`);
   }
   return v;
 }
