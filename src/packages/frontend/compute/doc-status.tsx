@@ -7,15 +7,7 @@ server.  It does the following:
 
 - If id is as requested and is not the project, draw line in color of that compute server.
 
-- If not where we want to be, defines how close:
-
-  - 5%: compute server doesn't exist or is off and not owned by you
-  - 10%: compute server is off
-  - 25%: any status that isn't starting/running
-  - 40%: compute server is starting
-  - 55%: compute server is running
-  - 65%: ...
-  - 80%: compute server is running and detailed state has compute image running
+- If not where we want to be, defines how close via a percentage
 
 - If compute server not running:
     - if exists and you own it, prompts user to start it and also shows the
@@ -189,11 +181,26 @@ function getProgress(
     };
   }
 
-  if (server.account_id != account_id && server.state != "running") {
+  if (
+    server.account_id != account_id &&
+    server.state != "running" &&
+    server.state != "starting"
+  ) {
     return {
       progress: 0,
       message:
         "This is not your compute server, and it is not running. Only the owner of a compute server can start it.",
+      status: "exception",
+    };
+  }
+
+  // below here it isn't our server, it is running.
+
+  if (server.state == "deprovisioned") {
+    return {
+      progress: 0,
+      message:
+        "Please start the compute server by clicking the Start button below.",
       status: "exception",
     };
   }

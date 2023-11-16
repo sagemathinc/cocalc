@@ -12,6 +12,7 @@ import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
+import mkdirp from "mkdirp";
 
 const log = getLogger("sync-fs:index").debug;
 
@@ -40,6 +41,7 @@ interface Options {
   readTrackingPath?: string;
   tar: { send; get };
   compression?: "lz4"; // default 'lz4'
+  data?: string; // absolute path to data directory (default: /data)
 }
 
 const UNIONFS = ".unionfs-fuse";
@@ -59,6 +61,7 @@ class SyncFS {
   private lower: string;
   private upper: string;
   private mount: string;
+  private data: string;
   private project_id: string;
   private compute_server_id: number;
   private syncInterval: number;
@@ -88,10 +91,12 @@ class SyncFS {
     readTrackingPath,
     tar,
     compression = "lz4",
+    data = "/data",
   }: Options) {
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
+    this.data = data;
     this.project_id = project_id;
     this.compute_server_id = compute_server_id;
     this.exclude = exclude;
@@ -178,12 +183,12 @@ class SyncFS {
         !path.includes("/")
       ) {
         log("bindMountExcludes -- mounting", { path });
-        await execa("sudo", [
-          "mount",
-          "--bind",
-          join("data", path),
-          join(this.mount, path),
-        ]);
+        const source = join(this.data, path);
+        const target = join(this.mount, path);
+        log("bindMountExcludes -- mounting", { source, target });
+        await mkdirp(source);
+        await mkdirp(target);
+        await execa("sudo", ["mount", "--bind", source, target]);
       } else {
         log("bindMountExcludes -- skipping", { path });
       }
