@@ -45,13 +45,14 @@ export async function metadataFile({
   //   everything needed by websocketfs for doing stat, i.e., this output is used
   //   for the metadataFile functionality of websocketfs.
   // - Just a little fact -- output from find is NOT sorted in any guaranteed way.
+  // Y2K alert -- note the %.10T below truncates times to integers, and will I guess fail a few hundred years from now.
   const topPaths = (await readdir(path)).filter((p) => !p.startsWith("."));
   const { stdout } = await execa(
     "find",
     topPaths.concat([
       ...findExclude(exclude),
       "-printf",
-      "%p\\0%T@ %A@ %b %s %M\\0\\0",
+      "%p\\0%.10T@ %.10A@ %b %s %M\\0\\0",
     ]),
     {
       cwd: path,
