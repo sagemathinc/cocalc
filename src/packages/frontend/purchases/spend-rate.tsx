@@ -27,8 +27,8 @@ export default function SpendRate({ style, spendRate, compact }: Props) {
       </Tooltip>
       {!compact && (
         <div style={{ color: "#666" }}>
-          Only includes pay-as-you-go per hour purchases (licenses and bandwidth
-          are excluded)
+          Only includes pay-as-you-go per hour purchases (licenses and data
+          transfer are not included)
         </div>
       )}
     </Card>

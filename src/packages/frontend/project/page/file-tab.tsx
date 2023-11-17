@@ -48,6 +48,7 @@ import {
   SettingsFlyout,
 } from "./flyouts";
 import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
+import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { VBAR_KEY, getValidVBAROption } from "./vbar";
 
 const { file_options } = require("@cocalc/frontend/editor");
@@ -193,7 +194,7 @@ export function FileTab(props: Readonly<Props>) {
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
     ["open_files", path ?? "", "has_activity"],
-    project_id
+    project_id,
   );
 
   function closeFile() {
@@ -338,7 +339,7 @@ export function FileTab(props: Readonly<Props>) {
               {getAlertName(a)}
             </Tag>
           )),
-          <br />
+          <br />,
         )}
       </div>
     ) : undefined;
@@ -463,6 +464,9 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
         <E style={{ fontSize: "9pt", textAlign: "center" }}>{label}</E>
         {label == FIXED_PROJECT_TABS.upgrades.label && (
           <PayAsYouGoCost project_id={project_id} />
+        )}
+        {label == FIXED_PROJECT_TABS.servers.label && (
+          <ComputeServerSpendRate project_id={project_id} />
         )}
       </HiddenXSSM>
     );
