@@ -123,7 +123,7 @@ export const IMAGES0 = {
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
   },
   colab: {
-    label: "Google Colab's Environment",
+    label: "Google Colab",
     docker: `${DOCKER_USER}/compute-colab`,
     minDiskSizeGb: 35,
     gpu: true,
