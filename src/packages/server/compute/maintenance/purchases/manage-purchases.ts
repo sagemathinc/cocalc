@@ -197,8 +197,8 @@ export async function updatePurchase(server: ComputeServer) {
 
   // Rule 6: Deal with low balance situations.  For now, if things are
   // getting "iffy", we stop the server, which greatly reduces the costs.
-  // If they get even worse, we deprovision it.
-  await lowBalance({ allPurchases, server });
+  // If they get even worse, we deprovision it. Emails are sent.
+  await lowBalance({ server });
 }
 
 async function createComputeServerPurchase({ server, stableState }) {
