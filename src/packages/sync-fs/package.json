@@ -12,7 +12,6 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc --build",
-    "clean": "rm -rf node_modules dist",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
