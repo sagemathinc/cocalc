@@ -2,6 +2,7 @@ import getPool from "@cocalc/database/pool";
 import { Service, MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getLastClosingDate } from "./closing-date";
+import { COST_OR_METERED_COST } from "./get-balance";
 
 interface Options {
   account_id: string;
@@ -53,9 +54,9 @@ export default async function getPurchases({
   let query;
 
   if (group) {
-    query =
-      "SELECT SUM(cost) AS cost, service, p.project_id, CAST(COUNT(*) AS INTEGER) AS count" +
-      " FROM purchases as p";
+    query = `
+  SELECT SUM(${COST_OR_METERED_COST}) AS cost, service, p.project_id, CAST(COUNT(*) AS INTEGER) AS count
+  FROM purchases AS p`;
   } else {
     query =
       "SELECT p.id, p.time, p.cost, p.period_start, p.period_end, p.cost_per_hour, p.cost_so_far, p.service, p.description, p.invoice_id, p.project_id, p.pending, p.notes" +
@@ -107,7 +108,7 @@ export default async function getPurchases({
   }
 
   if (group) {
-    query += " GROUP BY p.service, p.project_id";
+    query += " GROUP BY p.service, p.project_id ORDER BY cost DESC";
   }
   if (!group) {
     query += " ORDER BY p.time DESC";

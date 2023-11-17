@@ -37,7 +37,7 @@ export default function SpendRate({ project_id }: Props) {
       <DynamicallyUpdatingRate
         alwaysNonnegative
         costPerHour={costPerHour}
-        extraTip={<div>NOTE: Data transfer not included.</div>}
+        extraTip={<div>Data transfer not included.</div>}
       />
     </Tag>
   );

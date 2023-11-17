@@ -18,6 +18,15 @@ export default function MoneyStatistic({ value, title }: Props) {
         prefix={"$"}
       />
     );
+  } else if (Math.abs(value) <= 0.0001) {
+    body = (
+      <Statistic
+        title={<>{title} (USD)</>}
+        value={0}
+        precision={0}
+        prefix={"$"}
+      />
+    );
   } else {
     body = (
       <Statistic

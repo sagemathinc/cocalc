@@ -82,10 +82,10 @@ function DynamicallyUpdating({
 function Tip({ costPerHour, start, cost, extraTip }) {
   return (
     <>
-      Costs {currency(costPerHour, 2)}/hour
+      Rate: {currency(costPerHour, 2)}/hour
       {cost && start && (
         <div>
-          Accrued cost: ${round3(cost)} since <TimeAgo date={start} />
+          Total: ${round3(cost)} since <TimeAgo date={start} />
         </div>
       )}
       {extraTip && <div>{extraTip}</div>}

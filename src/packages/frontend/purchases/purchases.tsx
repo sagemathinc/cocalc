@@ -169,7 +169,12 @@ export function PurchasesTable({
   const [purchaseRecords, setPurchaseRecords] = useState<
     Partial<Purchase & { sum?: number }>[] | null
   >(null);
-  const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
+  const [purchases, setPurchases] = useState<
+    Partial<Purchase & { sum?: number }>[] | null
+  >(null);
+  const [groupedPurchases, setGroupedPurchases] = useState<
+    Partial<Purchase & { sum?: number }>[] | null
+  >(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
@@ -235,22 +240,26 @@ export function PurchasesTable({
       return;
     }
 
-    setPurchases(null);
     setTotal(null);
 
     let b = balance;
     let t = 0;
+    const purchases: Partial<Purchase & { balance: number }>[] = [];
     for (const row of purchaseRecords) {
       const cost = getCost(row);
       // Compute incremental balance
-      row["balance"] = b;
+      purchases.push({ ...row, balance: b });
       b += cost;
 
       // Compute total cost
       t += cost;
     }
 
-    setPurchases(purchaseRecords);
+    if (group) {
+      setGroupedPurchases(purchases);
+    } else {
+      setPurchases(purchases);
+    }
     setTotal(t);
   }, [balance, purchaseRecords]);
 
@@ -306,7 +315,7 @@ export function PurchasesTable({
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
         {group ? (
-          <GroupedPurchaseTable purchases={purchases} />
+          <GroupedPurchaseTable purchases={groupedPurchases} />
         ) : (
           <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
         )}
@@ -355,11 +364,11 @@ function GroupedPurchaseTable({ purchases }) {
             },
             {
               title: "Amount (USD)",
-              dataIndex: "sum",
-              key: "sum",
+              dataIndex: "cost",
+              key: "cost",
               align: "right" as "right",
-              render: (amount) => <Amount record={{ cost: amount }} />,
-              sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
+              render: (cost) => <Amount record={{ cost }} />,
+              sorter: (a: any, b: any) => (a.cost ?? 0) - (b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
 
@@ -959,7 +968,6 @@ function Active({ record }) {
 
 function Period({ record }) {
   if (record.period_start) {
-    console.log(record.period_start, typeof record.period_start);
     const hours = periodLengthInHours(record);
     const x = <div>{round2(hours)} hours</div>;
     if (!record.period_end) {
