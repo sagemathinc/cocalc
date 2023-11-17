@@ -73,6 +73,7 @@ class Project extends BaseProject {
   async stop(): Promise<void> {
     if (this.stateChanging != null) return;
     winston.info("stop ", this.project_id);
+    await this.closePayAsYouGoPurchases();
     if ((await this.state()).state != "running") {
       return;
     }
