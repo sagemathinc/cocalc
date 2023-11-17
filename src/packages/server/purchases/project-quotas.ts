@@ -10,7 +10,6 @@ import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { getPricePerHour as getPricePerHour0 } from "@cocalc/util/purchases/project-quotas";
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { reuseInFlight } from "async-await-utils/hof";
 import { cloneDeep } from "lodash";
 import createPurchase from "./create-purchase";
 import type { ProjectUpgrade as ProjectUpgradeDescription } from "@cocalc/util/db-schema/purchases";
@@ -39,45 +38,30 @@ export async function getPrices() {
 }
 
 // If there are any open pay as you go purchases for upgrading this project,
-// close them, putting in the final price.
-export const closePayAsYouGoPurchases = reuseInFlight(
-  closePayAsYouGoPurchases0,
-);
-async function closePayAsYouGoPurchases0(project_id: string) {
-  logger.debug("closePayAsYouGoPurchases0", project_id);
+// close them, putting in the final price.  This always closes all open
+// purchases, and does NOT check project state in any way.  This is called,
+// e.g., right before making a pay as you go upgrade of the project, and
+// also when the project changes state to not starting/running.
+export async function closePayAsYouGoPurchases(project_id: string) {
+  logger.debug("closePayAsYouGoPurchases", project_id);
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT id, description, cost_per_hour FROM purchases WHERE service='project-upgrade' AND cost IS NULL AND project_id=$1",
     [project_id],
   );
   if (rows.length == 0) {
-    logger.debug("closePayAsYouGoPurchases0", project_id, " - no purchases");
+    logger.debug("closePayAsYouGoPurchases", project_id, " - no purchases");
     // no outstanding purchases for this project.
     return;
   }
-  const { id, description, cost_per_hour } = rows[0];
-  // there is an outstanding purchase.
-  const { rows: rows1 } = await pool.query(
-    "SELECT state->'state', run_quota->'pay_as_you_go'->>'purchase_id' as run_quota_purchase_id FROM projects WHERE project_id=$1",
-    [project_id],
+  logger.debug(
+    "closePayAsYouGoPurchases",
+    project_id,
+    ` - closing ${rows.length} purchases`,
   );
-  if (rows1.length > 0) {
-    const { state, run_quota_purchase_id } = rows1[0];
-    if (
-      (state == "running" || state == "starting") &&
-      run_quota_purchase_id == id
-    ) {
-      logger.debug(
-        "closePayAsYouGoPurchases0",
-        project_id,
-        " - running with run quota from this purchase, so don't close",
-      );
-      // don't close -- this makes it safe to call closePayAsYouGoPurchases
-      // on running projects and have nothing happen
-      return;
-    }
+  for (const row of rows) {
+    await closePurchase(row);
   }
-  await closePurchase({ id, description, cost_per_hour });
 }
 
 async function closePurchase(opts: {

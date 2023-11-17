@@ -21,7 +21,7 @@ import { terminal } from "./terminal";
 import { once } from "@cocalc/util/async-utils";
 import { dirname, join } from "path";
 import { userInfo } from "os";
-import { waitUntilFilesystemIsOfType } from "./util";
+import { pingProjectUntilSuccess, waitUntilFilesystemIsOfType } from "./util";
 import { apiCall } from "@cocalc/api-client";
 import { get_blob_store as initJupyterBlobStore } from "@cocalc/jupyter/blobs";
 import { delay } from "awaiting";
@@ -112,7 +112,7 @@ class Manager {
     this.log("initialize the Manager");
     this.state = "init";
     // Ping to start the project and ensure there is a hub connection to it.
-    await project.ping({ project_id: this.project_id });
+    await pingProjectUntilSuccess(this.project_id);
     // wait for home direcotry filesystem to be mounted:
     if (this.waitHomeFilesystemType) {
       this.reportComponentState({
@@ -177,7 +177,7 @@ class Manager {
       // which is in a cache but not yet tested and removed...  Just try again.
       this.log("sync_db", "ERROR -- ", `${err}`);
       this.log("Will ping, then initialize syncDB again in a few seconds...");
-      await project.ping({ project_id: this.project_id });
+      await pingProjectUntilSuccess(this.project_id);
       await delay(5000);
       this.initSyncDB();
     });
@@ -277,10 +277,16 @@ class Manager {
     }
   };
 
-  private reportStatus = () => {
+  private reportStatus = async () => {
     this.log("reportStatus");
     // Ping to start the project and ensure there is a hub connection to it.
-    project.ping({ project_id: this.project_id });
+    try {
+      await project.ping({ project_id: this.project_id });
+      this.log("ping project -- SUCCESS");
+    } catch (err) {
+      this.log(`ping project -- ERROR '${err}'`);
+      return;
+    }
     // todo -- will put system load and other info here too
     this.sync_db.set_cursor_locs([
       {

@@ -3,6 +3,7 @@ import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
 import { apiServer } from "@cocalc/backend/data";
 import { join } from "path";
+import { project } from "@cocalc/api-client";
 
 const logger = getLogger("compute:util");
 const exec = promisify(require("child_process").exec);
@@ -45,4 +46,20 @@ export function getProjectWebsocketUrl(project_id: string) {
   }
   const remote = `${protocol}${host}/${join(project_id, "raw/.smc")}`;
   return remote;
+}
+
+export async function pingProjectUntilSuccess(project_id: string) {
+  let d = 2000;
+  while (true) {
+    try {
+      await project.ping({ project_id });
+      return;
+    } catch (err) {
+      logger.debug(
+        `pingProjectUntilSuccess: '${project_id}' failed.  Will try again in ${d}ms...`,
+      );
+    }
+    await delay(d);
+    d = Math.min(7000, d * 1.2);
+  }
 }
