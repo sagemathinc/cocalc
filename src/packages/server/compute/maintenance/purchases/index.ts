@@ -18,10 +18,15 @@ const MANAGE_ACTIVE_PURCHASES_DELAY_MS = 120 * 1000; // every 2 minutes
 let initialized = false;
 async function startMaintenance() {
   if (initialized) {
-    // we just use first call to setup loop below, then ignore future calls.
+    // we just use first call to setup loop, then ignore future calls.
     return;
   }
   initialized = true;
+  // DO NOT AWAIT THIS!!!  startMaintennance must immediately return;
+  runMaintenanceLoop();
+}
+
+async function runMaintenanceLoop() {
   let lastManageActive = 0;
   while (true) {
     try {
