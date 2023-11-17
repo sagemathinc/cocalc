@@ -39,7 +39,7 @@ export const QUOTA_SPEC: QuotaSpec = {
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   "compute-server": { display: "Compute Server", color: "#2196f3" },
   "compute-server-network-usage": {
-    display: "Network Data Usage",
+    display: "Network Data",
     color: "#2196f3",
   },
   license: {

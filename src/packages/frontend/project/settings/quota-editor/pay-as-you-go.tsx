@@ -10,7 +10,7 @@ import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { load_target } from "@cocalc/frontend/history";
-import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
+import { DynamicallyUpdatingRate } from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import stopProject from "@cocalc/frontend/purchases/pay-as-you-go/stop-project";
 import track0 from "@cocalc/frontend/user-tracking";
@@ -437,7 +437,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           <>
             {" "}
             (Amount:{" "}
-            <DynamicallyUpdatingCost
+            <DynamicallyUpdatingRate
               alwaysNonnegative
               costPerHour={
                 project?.getIn([
@@ -545,7 +545,7 @@ export function PayAsYouGoCost({ project_id }) {
   return (
     <div style={{ textAlign: "center" }}>
       <Tag color="green" style={{ marginInlineEnd: 0 }}>
-        <DynamicallyUpdatingCost
+        <DynamicallyUpdatingRate
           alwaysNonnegative
           costPerHour={quota.cost}
           start={quota.start}

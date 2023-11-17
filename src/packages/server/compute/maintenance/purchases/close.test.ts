@@ -136,13 +136,12 @@ describe("creates account, project, test compute server, and purchase, then clos
       account_id,
       project_id,
       service: "compute-server-network-usage",
-      cost_per_hour: 0,
+      cost_so_far: 0,
       period_start,
       description: {
         type: "compute-server-network-usage",
         compute_server_id: server_id,
         amount: 0,
-        cost: 0,
         last_updated: period_start.valueOf(),
       },
     });
@@ -167,13 +166,12 @@ describe("creates account, project, test compute server, and purchase, then clos
       account_id,
       project_id,
       service: "compute-server-network-usage",
-      cost_per_hour: 0,
+      cost_so_far: 0,
       period_start,
       description: {
         type: "compute-server-network-usage",
         compute_server_id: server_id,
         amount: 0,
-        cost: 0,
         last_updated: period_start.valueOf(),
       },
     });

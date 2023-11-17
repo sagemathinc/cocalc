@@ -187,14 +187,15 @@ export async function closeAndPossiblyContinueNetworkPurchase({
   }
   newPurchase.time = end;
   newPurchase.period_start = end;
+  newPurchase.cost_so_far = 0;
   newPurchase.description.amount = 0;
-  newPurchase.description.cost = 0;
   newPurchase.description.last_updated = end.valueOf();
   const network = await getNetworkUsage({
     server,
     start: purchase.period_start,
     end,
   });
+  const prev_cost_so_far = purchase.cost_so_far;
   const prevDescription = { ...purchase.description };
   if (purchase.description.type != "compute-server-network-usage") {
     logger.debug(
@@ -203,7 +204,7 @@ export async function closeAndPossiblyContinueNetworkPurchase({
     return;
   }
   purchase.description.amount = network.amount;
-  purchase.description.cost = network.cost;
+  purchase.cost_so_far = network.cost;
   purchase.description.last_updated = end.valueOf();
 
   logger.debug(
@@ -234,8 +235,8 @@ export async function closeAndPossiblyContinueNetworkPurchase({
     purchase.cost = Math.max(0.001, network.cost);
     purchase.period_end = end;
     await client.query(
-      "UPDATE purchases SET cost=$1, period_end=$2 WHERE id=$3",
-      [purchase.cost, purchase.period_end, purchase.id],
+      "UPDATE purchases SET cost=$1, period_end=$2, cost_so_far=$3 WHERE id=$4",
+      [purchase.cost, purchase.period_end, purchase.cost_so_far, purchase.id],
     );
     await client.query("COMMIT");
     return purchase_id;
@@ -244,6 +245,7 @@ export async function closeAndPossiblyContinueNetworkPurchase({
     logger.debug("closeAndContinueNetworkPurchase -- ERROR, rolling back", err);
     delete purchase.period_end;
     delete purchase.cost;
+    purchase.cost_so_far = prev_cost_so_far;
     purchase.description = prevDescription;
   } finally {
     client.release();

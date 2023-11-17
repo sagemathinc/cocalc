@@ -22,9 +22,15 @@ interface Props {
   service: Service;
   updateAllowed: () => Promise<void>;
   cost?: number; // optional amount of money we want right now
+  saveRef?;
 }
 
-export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
+export default function QuotaConfig({
+  service,
+  updateAllowed,
+  cost,
+  saveRef,
+}: Props) {
   const [showAll, setShowAll] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<number | null>(null);
   const [savedValue, setSavedValue] = useState<number | null>(null);
@@ -45,16 +51,22 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
     updateAllowed();
   }, []);
 
-  const saveServiceQuota = async (service, value) => {
+  const saveServiceQuota = async () => {
+    if (inputValue == null) {
+      return;
+    }
     try {
       setError("");
-      await webapp_client.purchases_client.setQuota(service, value);
-      setSavedValue(value);
+      await webapp_client.purchases_client.setQuota(service, inputValue);
+      setSavedValue(inputValue);
       await updateAllowed();
     } catch (err) {
       setError(`${err}`);
     }
   };
+  if (saveRef != null) {
+    saveRef.current = saveServiceQuota;
+  }
 
   return (
     <div>
@@ -74,7 +86,7 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
             <Space>
               <ServiceTag service={service} />{" "}
               <InputNumber
-                style={{ width: "200px" }}
+                style={{ width: "120px" }}
                 min={0}
                 step={STEP}
                 value={inputValue}
@@ -84,20 +96,14 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
                 }
                 parser={(value) => value!.replace(/\$\s?|(,*)/g, "") as any}
                 onChange={(value) => setInputValue(value ?? null)}
-                addonAfter={
-                  <Button
-                    type="text"
-                    disabled={savedValue == inputValue}
-                    onClick={() => {
-                      if (inputValue != null) {
-                        saveServiceQuota(service, inputValue);
-                      }
-                    }}
-                  >
-                    Save{savedValue == inputValue ? "d" : ""}
-                  </Button>
-                }
               />
+              <Button
+                type="primary"
+                disabled={savedValue == inputValue}
+                onClick={saveServiceQuota}
+              >
+                Save{savedValue == inputValue ? "d" : ""}
+              </Button>
               <div style={{ marginLeft: "15px" }}>
                 {PRESETS.filter((amount) => amount > 0).map((amount) => (
                   <Preset

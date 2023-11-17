@@ -66,7 +66,7 @@ export default function ComputeServer({
     if (server == null) {
       return s;
     }
-    return <Tooltip title={<>Compute Server {server.title}'</>}>{s}</Tooltip>;
+    return <Tooltip title={<>Compute Server '{server.title}'</>}>{s}</Tooltip>;
   }
 
   if (server == null) {

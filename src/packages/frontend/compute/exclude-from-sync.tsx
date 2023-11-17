@@ -41,11 +41,13 @@ export default function ExcludeFromSync({
         }
       >
         <b>
-          <Icon name="bolt" /> Fast Local Data Directories:
+          <Icon name="bolt" /> Fast Data Directories:
         </b>{" "}
-        The following subdirectories of the HOME directory on the compute server
-        will <b>not</b> be synchronized with the project's HOME directory. They
-        are stored in <code>/data</code> only on the compute server.
+        The HOME directory of the project is mounted over the network and can be{" "}
+        <b>very slow</b>. List here top level subdirectories of HOME that you do
+        not want to <b>be mounted over the network</b>. Files in these
+        directories are stored in <code>/data</code> on the compute server's
+        disk only, which is <b>very fast</b>.
       </Tooltip>
       <Select
         value={value}
@@ -65,8 +67,8 @@ export default function ExcludeFromSync({
         }}
       />
       <div style={{ marginTop: "10px" }}>
-        <b>WARNING:</b> Files that are only on compute servers are not
-        automatically backed up in any way.
+        <b>WARNING:</b> Files that are only on compute servers are not backed up
+        by CoCalc.
       </div>
     </div>
   );

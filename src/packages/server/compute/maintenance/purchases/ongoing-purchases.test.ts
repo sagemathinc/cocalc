@@ -203,13 +203,12 @@ describe("creates account, project, test compute server, and purchase", () => {
       account_id,
       project_id,
       service: "compute-server-network-usage",
-      cost_per_hour: 0,
+      cost_so_far: 0,
       period_start: new Date(Date.now() - 1000 * 60 * 2), //  minutes ago
       description: {
         type: "compute-server-network-usage",
         compute_server_id: id,
         amount: 0,
-        cost: 0,
         last_updated: Date.now() - 2 * 60 * 1000,
       },
     });

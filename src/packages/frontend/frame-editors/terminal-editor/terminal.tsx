@@ -21,6 +21,7 @@ import { Terminal } from "./connected-terminal";
 import { background_color } from "./themes";
 import ComputeServerDocStatus from "@cocalc/frontend/compute/doc-status";
 import { useRedux } from "@cocalc/frontend/app-framework";
+import useResizeObserver from "use-resize-observer";
 
 interface Props {
   actions: any;
@@ -48,6 +49,7 @@ const COMMAND_STYLE = {
 export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const terminalDOMRef = useRef<any>(null);
+  const resize = useResizeObserver({ ref: terminalDOMRef });
   const isMountedRef = useIsMountedRef();
   const student_project_functionality = useStudentProjectFunctionality(
     props.project_id,
@@ -91,7 +93,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
 
   useEffect(() => {
     measure_size();
-  }, [props.resize]);
+  }, [props.resize, resize]);
 
   function delete_terminal(): void {
     if (terminalRef.current == null) return; // already deleted or never created

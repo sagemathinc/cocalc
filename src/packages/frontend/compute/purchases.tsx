@@ -4,8 +4,8 @@ import type {
 } from "@cocalc/util/db-schema/purchases";
 import Description from "./description";
 import State, { DisplayNetworkUsage } from "./state";
-import { currency } from "@cocalc/util/misc";
 import InlineComputeServer from "./inline";
+import Cost from "@cocalc/frontend/purchases/pay-as-you-go/cost";
 
 export function ComputeServerDescription({
   description,
@@ -46,11 +46,11 @@ export function ComputeServerNetworkUsageDescription({
         amount={amount}
         style={{ display: "inline-block" }}
       />{" "}
-      by <InlineComputeServer id={id} /> at a cost of {currency(description.cost)}
-      {period_end == null ? " so far" : ""}.
+      by <InlineComputeServer id={id} />.{" "}
       {period_end == null && (
         <div>
-          NOTE: Updated hourly and not included in total until next day.
+          <Cost service="compute-server-network-usage" inline /> Usage
+          is updated hourly.
         </div>
       )}
     </div>

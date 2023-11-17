@@ -1,4 +1,5 @@
 import { Alert, Modal } from "antd";
+import { useRef } from "react";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -16,6 +17,7 @@ import "@cocalc/frontend/billing/actions";
 
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");
+  const saveRef = useRef<any>();
 
   const storeState: {
     showModal?: boolean;
@@ -36,7 +38,8 @@ export default function PayAsYouGoModal({}) {
   const handleCancel = () => {
     actions.setState({ pay_as_you_go: { showModal: false } as any });
   };
-  const handleOk = () => {
+  const handleOk = async () => {
+    await saveRef.current?.();
     actions.setState({ pay_as_you_go: { showModal: false } as any });
   };
 
@@ -110,6 +113,7 @@ export default function PayAsYouGoModal({}) {
         )}
       <div style={{ marginBottom: "15px" }} />
       <QuotaConfig
+        saveRef={saveRef}
         service={storeState.service as Service}
         updateAllowed={updateAllowed}
         cost={storeState.allowed ? 0 : storeState.cost}

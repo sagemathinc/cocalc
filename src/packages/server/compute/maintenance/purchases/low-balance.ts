@@ -8,56 +8,31 @@ import getProjectTitle from "@cocalc/server/projects/get-title";
 import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 
-// turn VM off if you don't have at least this much extra:
-const COST_THRESH_DOLLARS = 2.5;
+// turn VM off if you don't have at least this much left.
+const COST_THRESH_DOLLARS = 2;
 
-// If can buy even if you increase all quotas and balance by
-// this much, then delete.  This is to avoid bad situations, e.g.,
+// If can't buy -- even if you increase all quotas and balance by
+// this amount -- then delete.  This is to avoid bad situations, e.g.,
 // buy 50TB of expensive disk, turn machine off, get a huge bill.
 const DELETE_THRESH_MARGIN = 20;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
-export default async function lowBalance({
-  allPurchases,
-  server,
-}) {
-  if (!(await checkAllowed(0, "compute-server", server))) {
+export default async function lowBalance({ server }) {
+  if (!(await checkAllowed("compute-server", server))) {
     return;
   }
-
-  // add up all of the partial costs that haven't been committed
-  // to the users transactions yet.
-  let cost = 0; // this is just network usage.
-  for (const purchase of allPurchases) {
-    if (purchase.cost != null || purchase.period_end != null) {
-      // not a concern since it got closed above
-      continue;
-    }
-    if (purchase.service == "compute-server") {
-      // nothing to do -- this is already included in the balance that
-      // isPurchaseAllowed uses
-    } else if (
-      purchase.service == "compute-server-network-usage" &&
-      purchase.description.type == "compute-server-network-usage"
-    ) {
-      // right now usage based metered usage isn't included in the balance
-      // in src/packages/server/purchases/get-balance.ts
-      // When that changes, we won't need this loop at all.
-      cost += purchase.description.cost;
-    }
-  }
-  await checkAllowed(cost, "compute-server-network-usage", server);
+  await checkAllowed("compute-server-network-usage", server);
 }
 
-async function checkAllowed(cost: number, service, server) {
+async function checkAllowed(service, server) {
   let allowed,
     reason,
     alsoDelete = false;
   ({ allowed, reason } = await isPurchaseAllowed({
     account_id: server.account_id,
     service,
-    cost: cost + COST_THRESH_DOLLARS,
+    cost: COST_THRESH_DOLLARS,
   }));
 
   if (allowed) {
@@ -68,7 +43,7 @@ async function checkAllowed(cost: number, service, server) {
   const x = await isPurchaseAllowed({
     account_id: server.account_id,
     service,
-    cost: cost + COST_THRESH_DOLLARS,
+    cost: COST_THRESH_DOLLARS,
     margin: DELETE_THRESH_MARGIN,
   });
   if (!x.allowed) {

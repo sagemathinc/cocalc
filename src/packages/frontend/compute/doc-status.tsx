@@ -49,23 +49,37 @@ export default function ComputeServerTransition({
       title={
         <>
           {progress == 100 ? "Running on " : "Moving to "}{" "}
-          <Inline id={requestedId} />. Click for details.
+          <Inline id={requestedId} />.
         </>
       }
     >
-      <div onClick={() => setShowDetails(showDetails === true ? false : true)}>
-        <div style={{ marginRight: "5px" }}>
+      <div
+        onClick={() => {
+          if (progress < 100) return;
+          setShowDetails(showDetails === true ? false : true);
+        }}
+        style={{ display: "flex" }}
+      >
+        <div style={{ marginRight: "5px", flex: 1 }}>
           <Inline
             colorOnly
             id={requestedId}
             style={{
               borderRadius: "5px",
-              height: "10px",
+              height: "14px",
               cursor: "pointer",
               width: `${progress}%`,
             }}
           />
         </div>
+        <Button
+          size="small"
+          type="text"
+          disabled={id != requestedId}
+          style={{ margin: "-5px 0", color: "#666" }}
+        >
+          <Inline prompt id={requestedId} />
+        </Button>
       </div>
     </Tooltip>
   );
@@ -88,54 +102,60 @@ export default function ComputeServerTransition({
   }
 
   return (
-    <div
-      style={{
-        border: `1px solid ${server?.color}`,
-        borderRadius: "5px",
-        marginBottom: "5px",
-        marginRight: "5px",
-      }}
-    >
-      <div style={{ marginBottom: "15px" }}>{topBar(progress)}</div>
-      <div style={{ textAlign: "center" }}>
-        <Space style={{ width: "100%", margin: "0 15px" }}>
-          <Button
-            size="large"
-            style={{ color: "#666" }}
-            type="text"
-            onClick={() => setShowDetails(false)}
-          >
-            <Icon name="times" /> Hide
-          </Button>
-          <Alert
-            style={{ maxWidth: "300px", margin: "0 15px" }}
-            type="info"
-            message={
-              <>
-                {message}{" "}
-                {progress < 100 && status != "exception" ? (
-                  <Spin style={{ marginLeft: "15px" }} />
-                ) : undefined}
-              </>
-            }
-          />
-          <Progress
-            type="circle"
-            trailColor="#e6f4ff"
-            percent={progress}
-            strokeWidth={14}
-            size={42}
-          />
-        </Space>
-      </div>
-      {server != null && (
-        <div style={{ margin: "15px" }}>
+    <div>
+      <div>{topBar(progress)}</div>
+      <div
+        style={{
+          border: `1px solid #ccc`,
+          borderRadius: "5px",
+          margin: "15px",
+          padding: "5px",
+          boxShadow: "rgba(33, 33, 33, 0.5) 1px 5px 7px",
+          marginTop: "0px",
+        }}
+      >
+        <div
+          style={{
+            textAlign: "center",
+          }}
+        >
+          <Space style={{ width: "100%", margin: "15px" }}>
+            <Button
+              disabled={id != requestedId}
+              size="large"
+              type="text"
+              onClick={() => setShowDetails(false)}
+            >
+              <Icon name="times" /> Hide
+            </Button>
+            <Progress
+              type="circle"
+              trailColor="#e6f4ff"
+              percent={progress}
+              strokeWidth={14}
+              size={42}
+            />
+            <Alert
+              style={{ margin: "0 15px" }}
+              type="info"
+              message={
+                <>
+                  {message}{" "}
+                  {progress < 100 && status != "exception" ? (
+                    <Spin style={{ marginLeft: "15px" }} />
+                  ) : undefined}
+                </>
+              }
+            />
+          </Space>
+        </div>
+        {server != null && (
           <ComputeServer
             editable={account_id == server.account_id}
             {...server}
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
