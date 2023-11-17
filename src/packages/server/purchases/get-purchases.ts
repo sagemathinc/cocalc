@@ -58,7 +58,7 @@ export default async function getPurchases({
       " FROM purchases as p";
   } else {
     query =
-      "SELECT p.id, p.time, p.cost, p.period_start, p.period_end, p.cost_per_hour, p.service, p.description, p.invoice_id, p.project_id, p.pending, p.notes" +
+      "SELECT p.id, p.time, p.cost, p.period_start, p.period_end, p.cost_per_hour, p.cost_so_far, p.service, p.description, p.invoice_id, p.project_id, p.pending, p.notes" +
       (includeName ? ", a.email_address, a.first_name, a.last_name " : "") +
       " FROM purchases as p";
     if (includeName) {

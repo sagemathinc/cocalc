@@ -844,20 +844,32 @@ function InvoiceLink({ invoice_id }) {
 
 function Amount({ record }) {
   const { cost } = record;
-  if (
-    cost == null &&
-    record.period_start != null &&
-    record.cost_per_hour != null
-  ) {
-    return (
-      <Space direction="vertical">
-        <Tag color="green">Active</Tag>
-        <DynamicallyUpdatingCost
-          costPerHour={record.cost_per_hour}
-          start={new Date(record.period_start).valueOf()}
-        />
-      </Space>
-    );
+  if (cost == null) {
+    // it's a partial ongoing purchase
+    if (record.period_start && record.cost_per_hour) {
+      // it's a pay-as-you-go purchase with a fixed rate
+      return (
+        <Space direction="vertical">
+          <Tag color="green" style={{ margin: 0 }}>
+            Active
+          </Tag>
+          <DynamicallyUpdatingCost
+            costPerHour={record.cost_per_hour}
+            start={new Date(record.period_start).valueOf()}
+          />
+        </Space>
+      );
+    } else if (record.period_start && record.cost_so_far != null) {
+      // it's a metered pay as you go purchase
+      return (
+        <Space direction="vertical">
+          <Tag color="green">Active</Tag>
+          <span style={getAmountStyle(record.cost_so_far)}>
+            {currency(record.cost_so_far, 2)}
+          </span>
+        </Space>
+      );
+    }
   }
   if (cost != null) {
     const amount = -cost;

@@ -237,13 +237,12 @@ async function createNetworkUsagePurchase({ server }) {
     account_id: server.account_id,
     project_id: server.project_id,
     service: "compute-server-network-usage",
-    cost_per_hour: 0, // used in balance computation.
+    cost_so_far: 0,
     period_start: new Date(),
     description: {
       type: "compute-server-network-usage",
       compute_server_id: server.id,
       amount: 0,
-      cost: 0,
       last_updated: Date.now(),
     },
   });
@@ -353,13 +352,12 @@ async function updateNetworkUsage({ networkPurchases, server }) {
           end,
         });
         purchase.description.amount = network.amount;
-        purchase.description.cost = network.cost;
         purchase.description.last_updated = end.valueOf();
         const pool = getPool();
-        await pool.query("UPDATE purchases SET description=$1 WHERE id=$2", [
-          purchase.description,
-          purchase.id,
-        ]);
+        await pool.query(
+          "UPDATE purchases SET cost_so_far=$1, description=$2 WHERE id=$3",
+          [network.cost, purchase.description, purchase.id],
+        );
       }
     }
   }

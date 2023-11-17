@@ -186,7 +186,7 @@ describe("confirm managing of purchases works", () => {
     if (network.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
-    expect(network.description.cost).toBe(3.89);
+    expect(network.cost_so_far).toBe(3.89);
     expect(network.description.amount).toBe(389);
   });
 
@@ -211,7 +211,7 @@ describe("confirm managing of purchases works", () => {
     if (network.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
-    expect(network.description.cost).toBe(3.89);
+    expect(network.cost_so_far).toBe(3.89);
     expect(network.description.amount).toBe(389);
 
     expect(normal.cost).toBeGreaterThan(1);
@@ -267,7 +267,9 @@ describe("confirm managing of purchases works", () => {
     await managePurchases();
     await delay(10);
     const server = await getServer({ account_id, id: server_id });
-    expect(server.state).toEqual(expect.stringContaining('off') || expect.stringContaining('stopping'));
+    expect(server.state).toEqual(
+      expect.stringContaining("off") || expect.stringContaining("stopping"),
+    );
     expect(server.error).toContain("Computer Server Turned Off");
     //console.log(testEmails);
     expect(testEmails.length).toBe(1);

@@ -1,5 +1,6 @@
 /*
 A dynamically updating cost and rate components, which is useful for pay as you go.
+For rate display, only the tooltip is dynamically updated.
 */
 
 import { Tooltip } from "antd";
