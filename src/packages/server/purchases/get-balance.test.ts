@@ -74,6 +74,21 @@ describe("test computing balance under various conditions", () => {
     expect(await getBalance(account_id)).toBeCloseTo(-1.25 * hours, 2);
   });
 
+  it("with a purchase that has an open range and a cost_so_far", async () => {
+    const account_id = uuid();
+    const hours = 999; // doesn't matter
+    const period_start = dayjs().subtract(hours, "hour").toDate();
+    await createPurchase({
+      account_id,
+      service: "compute-server-network-usage",
+      description: { amount: 100 } as any,
+      client: null,
+      cost_so_far: 1.25,
+      period_start,
+    });
+    expect(await getBalance(account_id)).toBeCloseTo(-1.25, 2);
+  });
+
   it("with a purchase that has a closed range and a cost_per_hour", async () => {
     const period_start = dayjs().subtract(4, "hour").toDate();
     const period_end = dayjs().subtract(1, "hour").toDate();

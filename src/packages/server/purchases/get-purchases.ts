@@ -54,7 +54,7 @@ export default async function getPurchases({
 
   if (group) {
     query =
-      "SELECT SUM(cost), service, p.project_id, CAST(COUNT(*) AS INTEGER) AS count" +
+      "SELECT SUM(cost) AS cost, service, p.project_id, CAST(COUNT(*) AS INTEGER) AS count" +
       " FROM purchases as p";
   } else {
     query =

@@ -5,7 +5,7 @@ Some of these are only used by the nextjs app!
 */
 
 import api from "@cocalc/frontend/client/api";
-import type { Reason, Service } from "@cocalc/util/db-schema/purchases";
+import type { Purchase, Reason, Service } from "@cocalc/util/db-schema/purchases";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
@@ -80,8 +80,19 @@ interface PurchasesOptions {
   no_statement?: boolean;
 }
 
+function parsePurchaseDates(v): Partial<Purchase>[] {
+  for (const x of v) {
+    for (const field of ["time", "period_start", "period_end"]) {
+      if (x[field]) {
+        x[field] = new Date(x[field]);
+      }
+    }
+  }
+  return v;
+}
+
 export async function getPurchases(opts: PurchasesOptions) {
-  return await api("purchases/get-purchases", opts);
+  return parsePurchaseDates(await api("purchases/get-purchases", opts));
 }
 
 // Admins can get purchases for any specified user -- error if called by non-admin.
@@ -89,7 +100,7 @@ export async function getPurchases(opts: PurchasesOptions) {
 export async function getPurchasesAdmin(
   opts: PurchasesOptions & { account_id: string },
 ) {
-  return await api("purchases/get-purchases-admin", opts);
+  return parsePurchaseDates(await api("purchases/get-purchases-admin", opts));
 }
 
 export async function getSubscriptions(opts: {

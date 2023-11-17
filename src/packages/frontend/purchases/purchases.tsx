@@ -19,7 +19,7 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import { capitalize, plural, round4 } from "@cocalc/util/misc";
+import { capitalize, plural, round2, round4 } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -167,7 +167,7 @@ export function PurchasesTable({
   filename?: string;
 }) {
   const [purchaseRecords, setPurchaseRecords] = useState<
-    Partial<Purchase>[] | null
+    Partial<Purchase & { sum?: number }>[] | null
   >(null);
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
   const [error, setError] = useState<string>("");
@@ -241,14 +241,13 @@ export function PurchasesTable({
     let b = balance;
     let t = 0;
     for (const row of purchaseRecords) {
+      const cost = getCost(row);
       // Compute incremental balance
-      //
       row["balance"] = b;
-      b += row["sum"] ?? row["cost"] ?? 0;
+      b += cost;
 
       // Compute total cost
-      //
-      t += row["sum"] ?? row["cost"] ?? 0;
+      t += cost;
     }
 
     setPurchases(purchaseRecords);
@@ -424,10 +423,11 @@ function DetailedPurchaseTable({
               width: "35%",
               render: (
                 _,
-                { id, description, invoice_id, notes, period_end },
+                { id, description, invoice_id, notes, period_end, service },
               ) => (
                 <div>
                   <Description
+                    service={service}
                     description={description}
                     period_end={period_end}
                   />
@@ -476,57 +476,12 @@ function DetailedPurchaseTable({
               title: "Period",
               dataIndex: "period_start",
               key: "period",
-              render: (_, record) => {
-                if (record.service == "project-upgrade") {
-                  let minutes;
-                  if (
-                    record.description?.type == "project-upgrade" &&
-                    record.description.stop != null &&
-                    record.description.start != null
-                  ) {
-                    minutes = Math.ceil(
-                      (record.description.stop - record.description.start) /
-                        1000 /
-                        60,
-                    );
-                  } else {
-                    minutes = null;
-                  }
-                  return (
-                    <span>
-                      {record.description?.type == "project-upgrade" &&
-                      record.description.stop != null ? (
-                        <>
-                          {" "}
-                          to <TimeAgo date={record.description?.stop} />
-                        </>
-                      ) : null}
-                      {minutes != null ? (
-                        <div>
-                          Total: {minutes} {plural(minutes, "minute")}
-                        </div>
-                      ) : null}
-                    </span>
-                  );
-                }
-                if (record.period_start) {
-                  if (!record.period_end) {
-                    return (
-                      <div>
-                        <TimeAgo date={record.period_start} /> - now
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div>
-                        <TimeAgo date={record.period_start} /> -{" "}
-                        <TimeAgo date={record.period_end} />
-                      </div>
-                    );
-                  }
-                }
-                return null;
-              },
+              render: (_, record) => (
+                <>
+                  <Active record={record} />
+                  <Period record={record} />
+                </>
+              ),
               sorter: (a, b) =>
                 new Date(a.period_start ?? 0).getTime() -
                 new Date(b.period_start ?? 0).getTime(),
@@ -582,11 +537,11 @@ function DetailedPurchaseTable({
 
 // "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license", etc.
 
-function Description({ description, period_end }) {
+function Description({ description, period_end, service }) {
   if (description == null) {
     return null;
   }
-  if (description.type == "openai-gpt-4") {
+  if (service == "openai-gpt-4") {
     return (
       <Tooltip
         title={() => (
@@ -602,7 +557,7 @@ function Description({ description, period_end }) {
     );
   }
   //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
-  if (description.type == "license") {
+  if (service == "license") {
     const { license_id } = description;
     return (
       <Popover
@@ -627,7 +582,7 @@ function Description({ description, period_end }) {
       </Popover>
     );
   }
-  if (description.type == "credit") {
+  if (service == "credit") {
     return (
       <Space>
         <Tooltip title="Thank you!">
@@ -643,7 +598,7 @@ function Description({ description, period_end }) {
       </Space>
     );
   }
-  if (description.type == "refund") {
+  if (service == "refund") {
     const { notes, reason, purchase_id } = description;
     return (
       <Tooltip
@@ -664,7 +619,7 @@ function Description({ description, period_end }) {
     );
   }
 
-  if (description.type == "project-upgrade") {
+  if (service == "project-upgrade") {
     const quota = description?.quota ?? {};
     return (
       <>
@@ -673,7 +628,7 @@ function Description({ description, period_end }) {
     );
   }
 
-  if (description.type == "compute-server") {
+  if (service == "compute-server") {
     return (
       <ComputeServerDescription
         description={description}
@@ -682,7 +637,7 @@ function Description({ description, period_end }) {
     );
   }
 
-  if (description.type == "compute-server-network-usage") {
+  if (service == "compute-server-network-usage") {
     return (
       <ComputeServerNetworkUsageDescription
         description={description}
@@ -691,7 +646,7 @@ function Description({ description, period_end }) {
     );
   }
 
-  if (description.type == "voucher") {
+  if (service == "voucher") {
     const { title, quantity, voucher_id } = description;
     return (
       <div>
@@ -701,7 +656,7 @@ function Description({ description, period_end }) {
       </div>
     );
   }
-  if (description.type == "edit-license") {
+  if (service == "edit-license") {
     const { license_id } = description;
     return (
       <Popover
@@ -741,7 +696,7 @@ function Description({ description, period_end }) {
       <Popover
         title={() => <pre>{JSON.stringify(description, undefined, 2)}</pre>}
       >
-        {capitalize(description.type)}
+        {capitalize(service)}
       </Popover>
     </>
   );
@@ -849,25 +804,17 @@ function Amount({ record }) {
     if (record.period_start && record.cost_per_hour) {
       // it's a pay-as-you-go purchase with a fixed rate
       return (
-        <Space direction="vertical">
-          <Tag color="green" style={{ margin: 0 }}>
-            Active
-          </Tag>
-          <DynamicallyUpdatingCost
-            costPerHour={record.cost_per_hour}
-            start={new Date(record.period_start).valueOf()}
-          />
-        </Space>
+        <DynamicallyUpdatingCost
+          costPerHour={record.cost_per_hour}
+          start={new Date(record.period_start).valueOf()}
+        />
       );
     } else if (record.period_start && record.cost_so_far != null) {
       // it's a metered pay as you go purchase
       return (
-        <Space direction="vertical">
-          <Tag color="green">Active</Tag>
-          <span style={getAmountStyle(record.cost_so_far)}>
-            {currency(record.cost_so_far, 2)}
-          </span>
-        </Space>
+        <span style={getAmountStyle(record.cost_so_far)}>
+          {currency(record.cost_so_far, 2)}
+        </span>
       );
     }
   }
@@ -896,11 +843,11 @@ function Pending({ record }) {
 }
 
 function Balance({ balance }) {
-  if (balance != undefined) {
+  if (balance != null) {
     return (
-      <span style={getAmountStyle(balance)}>
-        {currency(balance, Math.abs(balance) < 0.1 ? 3 : 2)}
-      </span>
+      <Tooltip title={` (USD): $${round4(balance)}`}>
+        <span style={getAmountStyle(balance)}>{currency(balance, 2)}</span>
+      </Tooltip>
     );
   }
   return <>-</>;
@@ -940,4 +887,97 @@ export function PurchasesButton(props: Props) {
       )}
     </div>
   );
+}
+
+// this should match with sql formula in server/purchases/get-balance.ts
+function getCost(row: Partial<Purchase>) {
+  if (row.cost != null) {
+    return row.cost;
+  }
+  if (row.cost_so_far != null) {
+    return row.cost_so_far;
+  }
+  if (row.cost_per_hour != null && row.period_start != null) {
+    const hours = periodLengthInHours(row);
+    return row.cost_per_hour * hours;
+  }
+  return 0;
+}
+
+// start = end = iso time strings
+// if end not given, assumed now
+function periodLengthInHours({
+  period_start,
+  period_end,
+}: {
+  period_start?: Date;
+  period_end?: Date;
+}) {
+  if (period_start == null) {
+    return 0;
+  }
+  const end = period_end != null ? period_end.valueOf() : Date.now();
+  const start = period_start.valueOf();
+  const ms = end - start;
+  const hours = ms / (1000 * 3600);
+  return hours;
+}
+
+function Active({ record }) {
+  const { cost } = record;
+  if (cost != null) {
+    return null; // not active
+  }
+  // it's a partial ongoing purchase
+  if (record.period_start && record.cost_per_hour != null) {
+    // it's a pay-as-you-go purchase with a fixed rate
+    return (
+      <Tooltip
+        title={`This is an active purchase at a rate of ${currency(
+          record.cost_per_hour,
+        )}/hour. Active purchases are finalized within a day.`}
+      >
+        <Tag color="green" style={{ margin: 0 }}>
+          Active
+        </Tag>
+      </Tooltip>
+    );
+  } else if (record.period_start && record.cost_so_far != null) {
+    // it's a metered pay as you go purchase
+    return (
+      <Tooltip
+        title={`This is an active metered purchase. Active purchases are finalized within a day.`}
+      >
+        <Tag color="green" style={{ margin: 0 }}>
+          Active
+        </Tag>
+      </Tooltip>
+    );
+  }
+  return null;
+}
+
+function Period({ record }) {
+  if (record.period_start) {
+    console.log(record.period_start, typeof record.period_start);
+    const hours = periodLengthInHours(record);
+    const x = <div>{round2(hours)} hours</div>;
+    if (!record.period_end) {
+      return (
+        <div>
+          <TimeAgo date={record.period_start} /> - now
+          {x}
+        </div>
+      );
+    } else {
+      return (
+        <div>
+          <TimeAgo date={record.period_start} /> -{" "}
+          <TimeAgo date={record.period_end} />
+          {x}
+        </div>
+      );
+    }
+  }
+  return null;
 }
