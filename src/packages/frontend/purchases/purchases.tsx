@@ -69,6 +69,7 @@ function Purchases0({
   account_id,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
+  const [activeOnly, setActiveOnly] = useState<boolean>(false);
   const [thisMonth, setThisMonth] = useState<boolean>(true);
   const [noStatement, setNoStatement] = useState<boolean>(false);
 
@@ -123,6 +124,15 @@ function Purchases0({
             Not on any statement yet
           </Checkbox>
         </Tooltip>
+        <Tooltip title="Only show unfinished active purchases">
+          <Checkbox
+            disabled={group}
+            checked={!group && activeOnly}
+            onChange={(e) => setActiveOnly(e.target.checked)}
+          >
+            Only Show Active
+          </Checkbox>
+        </Tooltip>
       </div>
       <PurchasesTable
         project_id={project_id}
@@ -135,6 +145,7 @@ function Purchases0({
         showBalance
         showTotal
         showRefresh
+        activeOnly={activeOnly}
       />
     </SettingBox>
   );
@@ -155,6 +166,7 @@ export function PurchasesTable({
   style,
   limit = DEFAULT_LIMIT,
   filename,
+  activeOnly,
 }: Props & {
   thisMonth?: boolean;
   cutoff?: Date;
@@ -165,6 +177,7 @@ export function PurchasesTable({
   style?: CSSProperties;
   limit?: number;
   filename?: string;
+  activeOnly?: boolean;
 }) {
   const [purchaseRecords, setPurchaseRecords] = useState<
     Partial<Purchase & { sum?: number }>[] | null
@@ -246,6 +259,9 @@ export function PurchasesTable({
     let t = 0;
     const purchases: Partial<Purchase & { balance: number }>[] = [];
     for (const row of purchaseRecords) {
+      if (activeOnly && row.cost != null) {
+        continue;
+      }
       const cost = getCost(row);
       // Compute incremental balance
       purchases.push({ ...row, balance: b });
@@ -261,7 +277,7 @@ export function PurchasesTable({
       setPurchases(purchases);
     }
     setTotal(t);
-  }, [balance, purchaseRecords]);
+  }, [balance, purchaseRecords, activeOnly]);
 
   //const download = (format: "csv" | "json") => {};
 
