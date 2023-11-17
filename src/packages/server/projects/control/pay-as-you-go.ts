@@ -9,24 +9,32 @@ import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quo
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import { quota, Quota } from "@cocalc/util/upgrades/quota";
+import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quotas";
 
 const logger = getLogger("projects:control:pay-as-you-go");
 
 const PAY_AS_YOU_GO_THRESH_MS = 60 * 1000;
 
 export async function handlePayAsYouGoQuotas(
-  project_id: string
+  project_id: string,
 ): Promise<Quota | null> {
   logger.debug("handlePayAsYouGoQuotas: project_id=", project_id);
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT pay_as_you_go_quotas, settings FROM projects WHERE project_id=$1",
-    [project_id]
+    [project_id],
   );
   if (rows.length == 0) {
     logger.debug("handlePayAsYouGoQuotas: no such project");
     return null;
   }
+  // The project exists and either we will NOT be using pay as you go,
+  // or we will but with a new purchase.  In either case, we should end
+  // an existing purchases.  This usually is a no-op, but when *restarting*
+  // a project with a pay as you go purchase applied, it can sometimes
+  // be necessary, especially in kucalc.
+  await closePayAsYouGoPurchases(project_id);
+
   const { settings, pay_as_you_go_quotas: quotas } = rows[0];
   if (quotas == null) {
     logger.debug("handlePayAsYouGoQuotas: no pay as you go quotas set");
@@ -56,8 +64,10 @@ export async function handlePayAsYouGoQuotas(
 
   const site_settings = await getQuotaSiteSettings();
 
-  // create the purchase.  As explained in setProjectQuota, we can
-  // trust choice.quota.cost.
+  // Create the purchase.
+  //
+  //
+  // As explained in setProjectQuota, we can trust choice.quota.cost.
   try {
     const start = Date.now();
     choice.quota.start = start; // useful for some purposes here
@@ -77,7 +87,7 @@ export async function handlePayAsYouGoQuotas(
     });
     logger.debug(
       "handlePayAsYouGoQuotas: success -- created purchase with id",
-      purchase_id
+      purchase_id,
     );
     return quota(settings, {}, {}, site_settings, { ...choice, purchase_id });
   } catch (err) {
@@ -86,7 +96,7 @@ export async function handlePayAsYouGoQuotas(
     // We reset the run quota.
     logger.error(
       "handlePayAsYouGoQuotas: non-fatal error creating purchase -- will run without pay-as-you-go-quota",
-      err
+      err,
     );
     return null;
   }
