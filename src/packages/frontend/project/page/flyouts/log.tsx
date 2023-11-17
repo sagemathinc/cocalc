@@ -4,6 +4,7 @@
  */
 
 import { Button, Input, Radio } from "antd";
+import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import {
@@ -24,6 +25,7 @@ import {
   EventRecordMap,
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
+import { handle_log_click } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 import {
@@ -34,15 +36,20 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { debounce } from "lodash";
-import { handle_log_click } from "../../history/utils";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
-import { FileListItem, fileItemStyle } from "./file-list-item";
 import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
-import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
+import { FileListItem, fileItemStyle } from "./file-list-item";
+import {
+  FlyoutActiveMode,
+  FlyoutLogMode,
+  getFlyoutLogMode,
+  isFlyoutLogMode,
+} from "./state";
 
-export const FLYOUT_LOG_DEFAULT_MODE = "files";
+export const FLYOUT_LOG_DEFAULT_MODE: FlyoutLogMode = "files";
+
+export const FLYOUT_ACTIVE_DEFAULT_MODE: FlyoutActiveMode = "directory";
 
 interface OpenedFile {
   filename: string;

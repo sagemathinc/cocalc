@@ -108,6 +108,9 @@ export function FlyoutHeader(_: Readonly<Props>) {
   }
 
   function fullPageBtn() {
+    // active files has no fullpage equivalent – it's the tabs
+    if (flyout === "active") return null;
+
     const style = {
       marginRight: FLYOUT_PADDING,
       padding: FLYOUT_PADDING,

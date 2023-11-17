@@ -6,12 +6,18 @@
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { FixedTab, isFixedTab } from "../file-tab";
 import { FLYOUT_DEFAULT_WIDTH_PX } from "./consts";
-import { FLYOUT_LOG_DEFAULT_MODE } from "./log";
+import { FLYOUT_ACTIVE_DEFAULT_MODE, FLYOUT_LOG_DEFAULT_MODE } from "./log";
 
 const LogModes = ["files", "history"] as const;
 export type FlyoutLogMode = (typeof LogModes)[number];
 export function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
   return LogModes.includes(val as any);
+}
+
+const ActiveModes = ["directory", "type"] as const;
+export type FlyoutActiveMode = (typeof ActiveModes)[number];
+export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
+  return ActiveModes.includes(val as any);
 }
 
 interface FilesMode {
@@ -24,6 +30,7 @@ export type LSFlyout = {
   width?: number; // checked using isPositiveNumber
   expanded?: FixedTab | null;
   mode?: FlyoutLogMode; // check using isFlyoutLogMode
+  active?: FlyoutActiveMode; // check using isFlyoutActiveMode
   files?: FilesMode;
   settings?: string[]; // expanded panels
 };
@@ -44,7 +51,8 @@ export function storeFlyoutState(
     mode?: string; // check using isFlyoutLogMode
     files?: FilesMode;
     settings?: string[]; // expanded panels
-  }
+    active?: FlyoutActiveMode; // check using isFlyoutActiveMode
+  },
 ): void {
   const { scroll, expanded, width, mode, files } = state;
   const key = lsKey(project_id);
@@ -111,4 +119,9 @@ export function getFlyoutFiles(project_id: string): FilesMode {
 
 export function getFlyoutSettings(project_id: string): string[] {
   return LS.get<LSFlyout>(lsKey(project_id))?.settings ?? [];
+}
+
+export function getFlyoutActiveMode(project_id: string): FlyoutActiveMode {
+  const active = LS.get<LSFlyout>(lsKey(project_id))?.active;
+  return isFlyoutActiveMode(active) ? active : FLYOUT_ACTIVE_DEFAULT_MODE;
 }

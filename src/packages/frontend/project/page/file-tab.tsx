@@ -50,10 +50,12 @@ import {
 import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { VBAR_KEY, getValidVBAROption } from "./vbar";
+import { ActiveFlyout } from "./flyouts/active";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
 export type FixedTab =
+  | "active"
   | "files"
   | "new"
   | "log"
@@ -86,6 +88,13 @@ type FixedTabs = {
 // Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
+  active: {
+    label: "Active",
+    flyoutTitle: "Active files",
+    icon: "edit",
+    flyout: ActiveFlyout,
+    noAnonymous: false,
+  },
   files: {
     label: "Explorer",
     icon: "folder-open",

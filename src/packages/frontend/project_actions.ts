@@ -42,7 +42,11 @@ import {
 import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
-import { FlyoutLogMode, storeFlyoutState } from "./project/page/flyouts/state";
+import {
+  FlyoutActiveMode,
+  FlyoutLogMode,
+  storeFlyoutState,
+} from "./project/page/flyouts/state";
 import {
   ensure_project_running,
   is_running_or_starting,
@@ -621,6 +625,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public setFlyoutLogMode(mode: FlyoutLogMode): void {
     this.setState({ flyout_log_mode: mode });
     storeFlyoutState(this.project_id, "log", { mode });
+  }
+
+  public setFlyoutActiveMode(mode: FlyoutActiveMode): void {
+    this.setState({ flyout_active_mode: mode });
+    storeFlyoutState(this.project_id, "files", { active: mode });
   }
 
   add_a_ghost_file_tab(): void {
@@ -3025,6 +3034,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const last = segments.slice(-1).join();
     const main_segment = segments[0] as FixedTab | "home";
     switch (main_segment) {
+      case "active":
+        console.warn(
+          "there is no 'active files' page – those are the tabs in the projec",
+        );
+        return;
+
       case "files":
         if (target.endsWith("/") || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
