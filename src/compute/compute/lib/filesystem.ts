@@ -14,7 +14,7 @@ import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import syncFS from "@cocalc/sync-fs";
-import { waitUntilFilesystemIsOfType, getProjectWebsocketUrl } from "./util";
+import { pingProjectUntilSuccess, waitUntilFilesystemIsOfType, getProjectWebsocketUrl } from "./util";
 import { apiCall } from "@cocalc/api-client";
 import sendFiles from "./send-files";
 import getFiles from "./get-files";
@@ -94,7 +94,7 @@ export async function mountProject({
     }
 
     // Ping to start project so it's possible to mount.
-    await project.ping({ project_id });
+    await pingProjectUntilSuccess(project_id);
 
     const remote = join(getProjectWebsocketUrl(project_id), "websocketfs");
     log("connecting to ", remote);
