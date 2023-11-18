@@ -52,7 +52,7 @@ interface Options {
   syncIntervalMin?: number;
   syncIntervalMax?: number;
   exclude?: string[];
-  readTrackingPath?: string;
+  readTrackingFile?: string;
   metadataFile?: string;
 }
 
@@ -66,7 +66,7 @@ export async function mountProject({
   syncIntervalMin,
   syncIntervalMax,
   exclude = [],
-  readTrackingPath,
+  readTrackingFile,
   metadataFile,
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
@@ -159,9 +159,8 @@ export async function mountProject({
         // update = update read tracking file this frequently
         // modified = ignore any file modified with this many seconds (at least);
         //            also ignores any file not in the stat cache.
-        readTracking: readTrackingPath
-          ? { path: readTrackingPath, timeout: 30, update: 10, modified: 60 }
-          : undefined,
+        readTrackingFile: readTrackingFile,
+        readTrackingExclude: [".*", ...exclude],
         // metadata file
         metadataFile,
       }));
@@ -191,7 +190,7 @@ export async function mountProject({
         syncIntervalMin,
         syncIntervalMax,
         exclude,
-        readTrackingPath,
+        readTrackingFile,
         tar: {
           send: async ({
             createArgs,

@@ -3,8 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { mkdir, open, rm, stat, readFile, writeFile } from "fs/promises";
-import { join } from "path";
+import {
+  copyFile,
+  mkdir,
+  open,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from "fs/promises";
+import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
 import { execa, mtimeDirTree, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
@@ -38,7 +46,7 @@ interface Options {
   // RECOMMEND: hidden files in HOME should be excluded, which you can do by including "./*"
   // ALSO: if you have "~" or "." in the exclude array, then sync is completely disabled.
   exclude?: string[];
-  readTrackingPath?: string;
+  readTrackingFile?: string;
   tar: { send; get };
   compression?: "lz4"; // default 'lz4'
   data?: string; // absolute path to data directory (default: /data)
@@ -68,7 +76,7 @@ class SyncFS {
   private syncIntervalMin: number;
   private syncIntervalMax: number;
   private exclude: string[];
-  private readTrackingPath?: string;
+  private readTrackingFile?: string;
   private scratch: string;
   private error_txt: string;
   private tar: { send; get };
@@ -89,7 +97,7 @@ class SyncFS {
     syncIntervalMin = DEFAULT_SYNC_INTERVAL_MIN_S,
     syncIntervalMax = DEFAULT_SYNC_INTERVAL_MAX_S,
     exclude = [],
-    readTrackingPath,
+    readTrackingFile,
     tar,
     compression = "lz4",
     data = "/data",
@@ -104,7 +112,7 @@ class SyncFS {
     this.syncInterval = syncIntervalMin;
     this.syncIntervalMin = syncIntervalMin;
     this.syncIntervalMax = syncIntervalMax;
-    this.readTrackingPath = readTrackingPath;
+    this.readTrackingFile = readTrackingFile;
     this.scratch = join(
       this.lower,
       ".compute-servers",
@@ -580,77 +588,78 @@ class SyncFS {
     log("receiveFiles: files in ", pathToFileList, "received from project");
   };
 
-  private isExcluded = (path: string) => {
-    if (!path || path.startsWith(".")) {
-      return true;
+  private updateReadTracking = async () => {
+    if (!this.readTrackingFile) {
+      return;
     }
-    for (const e of this.exclude) {
-      if (path == e || path.startsWith(e + "/")) {
-        return true;
-      }
-    }
-    return false;
-  };
+    // 1. Move the read tracking file to the project.  We do a move, so atomic
+    // and new writes go to a new file and nothing is missed.
+    // 2. Call tar.get to grab the files.
+    // NOTE: read tracking isn't triggered on any files that were copied over,
+    // since unionfs reads those from the local cache (stat doesn't count), so
+    // we don't have to filter those out.
 
-  private getRecentlyReadFiles = async (): Promise<string[]> => {
-    if (!this.readTrackingPath) {
-      return [];
-    }
-    let files;
-    try {
-      files = await readFile(this.readTrackingPath, { encoding: "utf8" });
-    } catch (err) {
-      // completely reasonable that the file doesn't exist.
-      log("getRecentlyReadFiles: ", this.readTrackingPath, err);
-      return [];
-    }
-    const v = files
-      .split("\n")
-      .map((x) => x.slice(1))
-      .filter((x) => !this.isExcluded(x));
-    log("getRecentlyReadFiles: ", v.length, " files");
-    //log("getRecentlyReadFiles: ", v);  // low level debug
-    return v;
-  };
-
-  private getReadTrackingFiles = async (recentFiles: string[]) => {
+    // We make any errors below WARNINGS that do not throw an exception, because
+    // this is an optimization, not critical for sync, and each time we do it,
+    // things are reset.
     const readTrackingOnProject = join(
       ".compute-servers",
       `${this.compute_server_id}`,
       "read-tracking",
     );
-    await writeFile(
-      join(this.lower, readTrackingOnProject),
-      recentFiles.join("\n"),
-    );
-    const createArgs = [
-      "-c",
-      "--no-recursion",
-      "--verbatim-files-from",
-      "--files-from",
-      readTrackingOnProject,
-    ];
-    const extractArgs = ["--keep-newer-files", "-x"];
-    log("createReadTrackingTarball:", "tar", createArgs.join(" "));
-    this.tar.get({ createArgs, extractArgs });
-  };
-
-  private updateReadTracking = async () => {
-    if (!this.readTrackingPath) {
-      return;
-    }
-    const recentFiles = await this.getRecentlyReadFiles();
-    if (recentFiles.length == 0) {
-      return;
-    }
     this.reportState({
       state: "cache-files-from-project",
-      progress: 85,
+      progress: 80,
     });
     try {
-      await this.getReadTrackingFiles(recentFiles);
-    } catch (err) {
-      log("updateReadTracking: not updating due to err", `${err}`);
+      try {
+        // move the file; first locally, then copy across devices, then delete.
+        // This is to make the initial mv atomic so we don't miss anything.
+        const tmp = join(
+          dirname(this.readTrackingFile),
+          `.${basename(this.readTrackingFile)}.tmp`,
+        );
+        await rename(this.readTrackingFile, tmp); // should be atomic
+        await copyFile(tmp, join(this.lower, readTrackingOnProject));
+        await rm(tmp);
+      } catch (err) {
+        if (err.code == "ENOENT") {
+          log(
+            `updateReadTracking -- no read tracking file '${this.readTrackingFile}'`,
+          );
+          return;
+        }
+        // this could be harmless, e.g., the file doesn't exist yet
+        log(
+          `updateReadTracking -- issue moving tracking file '${this.readTrackingFile}'`,
+          err,
+        );
+        return;
+      }
+      const createArgs = [
+        "-c",
+        "--null",
+        "--no-recursion",
+        "--verbatim-files-from",
+        "--files-from",
+        readTrackingOnProject,
+      ];
+      const extractArgs = ["--keep-newer-files", "-x"];
+      log("updateReadTracking:", "tar", createArgs.join(" "));
+      try {
+        await this.tar.get({ createArgs, extractArgs });
+      } catch (err) {
+        log(
+          `updateReadTracking -- issue extracting tracking file '${this.readTrackingFile}'`,
+          err,
+        );
+        return;
+      }
+    } finally {
+      this.reportState({
+        state: "cache-files-from-project",
+        progress: 85,
+      });
     }
   };
 }

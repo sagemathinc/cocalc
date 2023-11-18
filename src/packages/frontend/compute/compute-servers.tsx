@@ -79,8 +79,8 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             Any project collaborator can connect to a running compute server.
           </li>
           <li>
-            You can also ssh to root@ or user@ the ip address of your compute
-            server using any{" "}
+            You can ssh to root@ or user@ the ip address of your compute server
+            using any{" "}
             <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
               project
             </A>{" "}
@@ -89,9 +89,10 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
               account public ssh keys
             </A>{" "}
             that has access to this project (you must restart the compute server
-            if you add keys). If you start a web service on any port P on your
-            compute server, type{" "}
-            <code>ssh -L P:localhost:P root@ip_address</code>
+            if you add keys). Once there, type{" "}
+            <code>docker exec -it compute bash</code> to access your compute
+            image. If you start a web service on any port P on your compute
+            server, type <code>ssh -L P:localhost:P root@ip_address</code>
             on your laptop, and you can connect to that web service on localhost
             on your laptop.
           </li>
