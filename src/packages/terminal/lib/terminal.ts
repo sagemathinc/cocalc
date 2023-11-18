@@ -21,12 +21,14 @@ import type { Spark } from "primus";
 const logger = getLogger("terminal:terminal");
 
 const CHECK_INTERVAL_MS = 5 * 1000;
-const MAX_HISTORY_LENGTH = 10 * 1000 * 1000;
+export const MAX_HISTORY_LENGTH = 100 * 10000;
 const TRUNCATE_THRESH_MS = 2 * 1000;
 const FREQUENT_RESTART_DELAY_MS = 1.5 * 1000;
 const FREQUENT_RESTART_INTERVAL_MS = 10 * 1000;
 const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
+
+export const REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS = 7.5 * 1000;
 
 type MessagesState = "none" | "reading";
 type State = "init" | "ready" | "closed";
@@ -49,6 +51,7 @@ export class Terminal {
   private localPty?: IPty;
   private remotePty?: Spark;
   private computeServerId: number = 0;
+  private remotePtyHeartbeatInterval;
 
   constructor(primus: PrimusWithChannels, path: string, options: Options = {}) {
     this.options = { command: DEFAULT_COMMAND, ...options };
@@ -60,6 +63,11 @@ export class Terminal {
       logger.debug("new remote terminal connection");
       this.handleRemotePtyConnection(conn);
     });
+    this.remotePtyHeartbeatInterval = setInterval(() => {
+      // we always do this (basically a no-op) even if there
+      // is no remote pty.
+      this.remotePty?.write({});
+    }, REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS);
   }
 
   init = async () => {
@@ -174,6 +182,7 @@ export class Terminal {
     this.localPty?.destroy();
     this.channel.destroy();
     this.remotePtyChannel.destroy();
+    clearInterval(this.remotePtyHeartbeatInterval);
     delete this.localPty;
     delete this.remotePty;
   };

@@ -311,7 +311,7 @@ class SyncFS {
     const t0 = Date.now();
     try {
       this.state = "sync";
-      await this.doSync();
+      await this.__doSync();
       this.numFails = 0; // it worked
     } catch (err) {
       this.numFails += 1;
@@ -331,6 +331,11 @@ class SyncFS {
       throw Error(extra);
     } finally {
       if (this.state != ("closed" as State)) {
+        this.reportState({
+          state: "ready",
+          progress: 100,
+          timeout: 3 + this.syncInterval,
+        });
         this.state = "ready";
       }
       log("sync - done, time=", (Date.now() - t0) / 1000);
@@ -433,7 +438,8 @@ class SyncFS {
     });
   };
 
-  private doSync = async () => {
+  // ONLY call this from this.sync!
+  private __doSync = async () => {
     log("doSync");
     this.reportState({ state: "get-compute-state", progress: 0, timeout: 10 });
     await this.makeScratchDir();
@@ -499,12 +505,6 @@ class SyncFS {
       );
     }
     await this.updateReadTracking();
-
-    this.reportState({
-      state: "ready",
-      progress: 100,
-      timeout: 3 + this.syncInterval,
-    });
   };
 
   //   private getComputeStatePatch = async (
