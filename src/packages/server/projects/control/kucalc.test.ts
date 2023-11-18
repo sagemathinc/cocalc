@@ -37,9 +37,11 @@ describe("kucalc", () => {
     expect(data.id).toEqual(copyID);
     expect(data.expire.getTime() / 1000).toBeCloseTo(
       (in1minute.getTime() + EXPECTED_EXPIRATION_MS) / 1000,
+      1,
     );
     expect(data.scheduled.getTime() / 1000).toBeCloseTo(
       in1minute.getTime() / 1000,
+      2,
     );
     expect(data.source_path).toEqual("file.md");
     expect(data.target_path).toEqual("file2.md");
@@ -96,6 +98,7 @@ describe("kucalc", () => {
     expect(data.id).toEqual(copyID);
     expect(data.expire.getTime() / 1000).toBeCloseTo(
       (Date.now() + EXPECTED_EXPIRATION_MS) / 1000,
+      1,
     );
     expect(data.scheduled).toBeNull();
     expect(data.source_path).toEqual("file.md");

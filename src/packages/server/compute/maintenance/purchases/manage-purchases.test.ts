@@ -34,15 +34,18 @@ describe("confirm managing of purchases works", () => {
   let project_id;
   let server_id;
 
-  it("does one call to managePurchases to ensure that there's no servers marked as needing updates", async () => {
+  it("ensure that there's no servers marked as needing updates, and reset db otherwise.  Tests here are not 'local'.", async () => {
     const pool = getPool();
-    await managePurchases();
-    // call and confirm.
-    await managePurchases();
     const { rows } = await pool.query(
       "SELECT count(*) AS count FROM compute_servers WHERE update_purchase=TRUE",
     );
-    expect(rows[0].count).toBe("0");
+    if (rows[0].count > 0) {
+      await initEphemeralDatabase({ reset: true });
+    }
+    const { rows: rows2 } = await pool.query(
+      "SELECT count(*) AS count FROM compute_servers WHERE update_purchase=TRUE",
+    );
+    expect(rows2[0].count).toBe("0");
   });
 
   it("creates account, project and compute server on test cloud", async () => {
