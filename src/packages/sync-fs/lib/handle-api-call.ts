@@ -101,8 +101,12 @@ function getStateDir(compute_server_id): string {
   return join(process.env.HOME, ".compute-servers", `${compute_server_id}`);
 }
 
-// This is the path to a file whose lines are the names
-// of the files to copy via tar.  **Not an actual tarball.**
+// This is the path to a file with the names
+// of the files to copy via tar, separated by NULL.
+// **This is not an actual tarball.**
+// We use NULL instead of newline so that filenames
+// with newlines in them work, and this should be processed
+// with tar using the --null option.
 async function createCopyFromProjectTar(
   paths: string[],
   compute_server_id: number,
@@ -113,7 +117,7 @@ async function createCopyFromProjectTar(
   const stateDir = getStateDir(compute_server_id);
   await mkdir(stateDir, { recursive: true });
   const target = join(stateDir, "copy-from-project");
-  await writeFile(target, paths.join("\n"));
+  await writeFile(target, paths.join("\0"));
   const i = target.lastIndexOf(stateDir);
   return target.slice(i);
 }

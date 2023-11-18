@@ -45,17 +45,6 @@ setState install ready '' 0  100
 
 setState vm start '' 60 60
 sleep 1
-setState filesystem init '' 60 15
-sleep 1
-setState filesystem run '' 45 25
-sleep 1
-setState filesystem running '' 45 80
-sleep 1
-
-setState compute run '' 20 25
-sleep 1
-setState compute running '' 30 80
-sleep 1
 
 while true; do
   setState vm ready '' 35 100

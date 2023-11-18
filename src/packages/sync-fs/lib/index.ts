@@ -414,7 +414,7 @@ class SyncFS {
     timeout?;
     progress?;
   }) => {
-    log("reportState");
+    log("reportState", opts);
     try {
       await apiCall("v2/compute/set-detailed-state", {
         id: this.compute_server_id,
@@ -552,10 +552,11 @@ class SyncFS {
     const target = join(this.scratch, "copy-to-project");
     log("sendFiles: sending ", files.length, "files listed in ", target);
     const file = await open(target, "w");
-    await file.write(files.join("\n"));
+    await file.write(files.join("\0"));
     await file.close();
     const createArgs = [
       "-c",
+      "--null",
       "--no-recursion",
       "--verbatim-files-from",
       "--files-from",
@@ -574,6 +575,7 @@ class SyncFS {
     // this runs in the project
     const createArgs = [
       "-c",
+      "--null",
       "--no-recursion",
       "--verbatim-files-from",
       "--files-from",
