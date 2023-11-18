@@ -13,7 +13,6 @@ type Spark = any; // for now
 
 const log = getLogger("sync-fs:handle-api-call").debug;
 
-const SETTLE_TIMEOUT_S = 2;
 const CLOCK_THRESH_MS = 5 * 1000;
 
 export default async function handleApiCall({
@@ -168,12 +167,6 @@ function getOperations({ computeState, projectState }): {
   const copyFromProject: string[] = [];
   const copyFromCompute: string[] = [];
 
-  // We ONLY copy files if their last mtime is
-  // at least a few seconds in the past, to reduce the chance
-  // of having to deal with actively modified files.
-  // Of course, this means more "lag".
-  const cutoff = Math.floor(Date.now() / 1000) - SETTLE_TIMEOUT_S;
-
   const handlePath = (path) => {
     const projectMtime = projectState[path];
     const computeMtime = computeState[path];
@@ -192,9 +185,7 @@ function getOperations({ computeState, projectState }): {
         return;
       }
       // it's definitely NOT on the project but it is on the compute server, so we need it.
-      if (computeMtime <= cutoff) {
-        copyFromCompute.push(path);
-      }
+      copyFromCompute.push(path);
       return;
     }
 
@@ -205,9 +196,7 @@ function getOperations({ computeState, projectState }): {
       // project version is newer
       if (projectMtime > 0) {
         // it was edited later on the project
-        if (projectMtime <= cutoff) {
-          copyFromProject.push(path);
-        }
+        copyFromProject.push(path);
       } else {
         // it was deleted from the project, so now need to delete on compute
         removeFromCompute.push(path);
@@ -217,9 +206,7 @@ function getOperations({ computeState, projectState }): {
       // compute version is newer
       if (computeMtime > 0) {
         // edited on compute later
-        if (computeMtime <= cutoff) {
-          copyFromCompute.push(path);
-        }
+        copyFromCompute.push(path);
       } else {
         // deleted on compute, so now also need to delete in project
         removeFromProject.push(path);
