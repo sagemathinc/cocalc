@@ -63,10 +63,11 @@ export type SiteSettingsKeys =
   | "new_project_pool"
   | "compute_servers_enabled"
   | "compute_servers_google-cloud_enabled"
-  | "compute_servers_lambda-cloud_enabled"
   | "compute_servers_onprem_enabled"
   | "compute_servers_dns_enabled"
   | "compute_servers_dns";
+
+//| "compute_servers_lambda-cloud_enabled"
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -395,13 +396,6 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: () => true,
   },
-  version_compute_server_min_project: {
-    name: "Required project version for compute server",
-    desc: "Minimal *project* version required when starting a compute servers (if project older, error is displayed in frontend when user tries to start compute server).",
-    default: "0",
-    valid: only_nonneg_int,
-    show: () => true,
-  },
   version_min_browser: {
     name: "Required browser version",
     desc: "Minimal version required for browser clients (if older, forced disconnect).",
@@ -614,6 +608,13 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
   },
+  version_compute_server_min_project: {
+    name: "Required project version for compute server",
+    desc: "Minimal *project* version required when starting a compute servers (if project older, error is displayed in frontend when user tries to start compute server).",
+    default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
+  },
   "compute_servers_google-cloud_enabled": {
     name: "Enable Compute Servers - Google Cloud",
     desc: "Whether or not to include google cloud compute servers.  You must also configure a Google service account below.",
@@ -628,13 +629,13 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
   },
-  "compute_servers_lambda-cloud_enabled": {
-    name: "Enable Compute Servers - Lambda Cloud",
-    desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.  **WARNING:** As of October 2023, there is no legal way to use Lambda cloud  without a reseller agreement with Lambda cloud, if you're selling use of a CoCalc server.  Such agreements don't exist yet.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
+  //   "compute_servers_lambda-cloud_enabled": {
+  //     name: "Enable Compute Servers - Lambda Cloud",
+  //     desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.  **WARNING:** As of October 2023, there is no legal way to use Lambda cloud  without a reseller agreement with Lambda cloud, if you're selling use of a CoCalc server.  Such agreements don't exist yet.",
+  //     default: "no",
+  //     valid: only_booleans,
+  //     to_val: to_bool,
+  //   },
   compute_servers_dns_enabled: {
     name: "Enable Compute Servers - Cloudflare DNS",
     desc: "Whether or not to include user interface elements related to Cloudflare DNS for compute servers, for automatic configuration of sites like https://foo.cocalc.io.  Set to 'yes' to include these elements.  You will also need to configure 'Compute Servers -- Domain Name, and Cloudflare API token' below.",
