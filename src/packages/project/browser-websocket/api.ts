@@ -32,11 +32,14 @@ import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files, rename_file } from "./move-files";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
-import { reuseInFlight } from "async-await-utils/hof";
 import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";
-import handleSyncFsApiCall from "@cocalc/sync-fs/lib/handle-api-call";
+import handleSyncFsApiCall, {
+  handleSyncFsRequestCall,
+  handleComputeServerSyncRegister,
+  handleCopy,
+} from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
 
 import { getLogger } from "@cocalc/project/logger";
@@ -47,14 +50,15 @@ export function init_websocket_api(_primus: any): void {
   primus = _primus;
 
   primus.on("connection", function (spark) {
-    // Now handle the connection
+    // Now handle the connection, which can be either from a web browser, or
+    // from a compute server.
     log.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
     spark.on("request", async (data, done) => {
       log.debug("primus-api", "request", data, "REQUEST");
       const t0 = new Date().valueOf();
       try {
-        const resp = await handleApiCall(data);
+        const resp = await handleApiCall(data, spark);
         //log.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
@@ -81,7 +85,7 @@ export function init_websocket_api(_primus: any): void {
   });
 }
 
-async function handleApiCall0(data: Mesg): Promise<any> {
+async function handleApiCall(data: Mesg, spark): Promise<any> {
   const client = getClient();
   switch (data.cmd) {
     case "version":
@@ -149,6 +153,13 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       return await computeFilesystemCache(data.opts);
     case "sync_fs":
       return await handleSyncFsApiCall(data.opts);
+    case "compute_server_sync_register":
+      return await handleComputeServerSyncRegister(data.opts, spark);
+    case "compute_server_sync_request":
+      return await handleSyncFsRequestCall(data.opts);
+    case "copy_from_project_to_compute_server":
+    case "copy_from_compute_server_to_project":
+      return await handleCopy({ event: data.cmd, ...data.opts });
     default:
       throw Error(
         `command "${
@@ -157,8 +168,6 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       );
   }
 }
-const handleApiCall = reuseInFlight(handleApiCall0);
-
 /* implementation of the api calls */
 
 import { DirectoryListingEntry } from "@cocalc/util/types";

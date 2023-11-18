@@ -153,4 +153,11 @@ export default class API implements API_Interface {
   async syncFS(opts, timeout_ms = 1000 * 15 * 60) {
     return await this.call({ cmd: "sync_fs", opts }, timeout_ms);
   }
+
+  async computeServerSyncRegister(compute_server_id) {
+    return await this.call(
+      { cmd: "compute_server_sync_register", opts: { compute_server_id } },
+      15000,
+    );
+  }
 }
