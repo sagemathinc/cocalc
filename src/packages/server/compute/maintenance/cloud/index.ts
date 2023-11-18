@@ -19,6 +19,7 @@ async function startMaintenance() {
     return;
   }
   initialized = true;
+  // DO NOT AWAIT THIS!!!
   setInterval(stateSyncMaintenance, MANAGE_CLOUD_SYNC_INTERVAL_MS);
 }
 

@@ -162,6 +162,7 @@ export async function writeFileLz4(path: string, contents: string) {
   input.pipe(encoder).pipe(output);
   // wait until done
   const waitForFinish = new Promise((resolve, reject) => {
+    encoder.on("error", reject);
     output.on("finish", resolve);
     output.on("error", reject);
   });

@@ -85,7 +85,7 @@ export default function PurchasesPage() {
         cutoff={dayjs().subtract(1, "day").toDate()}
         showRefresh
         showBalance
-        activeOnly={activeOnly}
+        activeOnly={!group && activeOnly}
         group={group}
       />
       <Divider style={{ marginTop: "30px" }}>

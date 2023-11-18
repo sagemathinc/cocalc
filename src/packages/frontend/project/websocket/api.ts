@@ -347,4 +347,39 @@ export class API {
     const timeout_ms = opts.timeout * 1000 + 2000;
     return await this.call({ cmd: "query", opts }, timeout_ms);
   }
+
+  async computeServerSyncRequest(compute_server_id: number) {
+    if (!(typeof compute_server_id == "number" && compute_server_id > 0)) {
+      throw Error("compute_server_id must be a positive integer");
+    }
+    await this.call(
+      {
+        cmd: "compute_server_sync_request",
+        opts: { compute_server_id },
+      },
+      30000,
+    );
+  }
+
+  async copyFromProjectToComputeServer(opts: {
+    compute_server_id: number;
+    paths: string[];
+    timeout?: number;
+  }) {
+    await this.call(
+      { cmd: "copy_from_project_to_compute_server", opts },
+      opts.timeout ?? 30000,
+    );
+  }
+
+  async copyFromComputeServerToProject(opts: {
+    compute_server_id: number;
+    paths: string[];
+    timeout?: number;
+  }) {
+    await this.call(
+      { cmd: "copy_from_compute_server_to_project", opts },
+      opts.timeout ?? 30000,
+    );
+  }
 }

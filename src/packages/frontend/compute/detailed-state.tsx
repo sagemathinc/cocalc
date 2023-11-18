@@ -4,6 +4,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
 import ShowError from "@cocalc/frontend/components/error";
 import { setDetailedState } from "./api";
+import SyncButton from "./sync-button";
 
 const SPEC = {
   compute: {
@@ -121,7 +122,17 @@ function State({
 }) {
   const expired = expire && expire < Date.now();
   let label;
-  if (name == "compute") {
+  if (name == "filesystem-sync") {
+    label = (
+      <SyncButton
+        size="small"
+        compute_server_id={id}
+        project_id={project_id}
+        syncing={progress < 100}
+        style={{ marginTop: "3px" }}
+      />
+    );
+  } else if (name == "compute") {
     label = <DisplayImage configuration={configuration} />;
   } else if (SPEC[name]?.label) {
     label = SPEC[name].label;
@@ -134,7 +145,7 @@ function State({
       <div style={{ display: "flex" }}>
         <Tooltip title={SPEC[name]?.tip}>
           <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
-            {name != "compute" && (
+            {name != "compute" && name != "filesystem-sync" && (
               <>
                 <Icon
                   name={SPEC[name]?.icon ?? "cube"}

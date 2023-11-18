@@ -129,8 +129,8 @@ importers:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@9.4.0)
       websocketfs:
-        specifier: ^0.13.1
-        version: 0.13.1
+        specifier: ^0.15.1
+        version: 0.15.1
       ws:
         specifier: ^8.13.0
         version: 8.14.2
@@ -351,6 +351,9 @@ importers:
       lz4:
         specifier: ^0.6.5
         version: 0.6.5
+      mkdirp:
+        specifier: ^1.0.4
+        version: 1.0.4
       tsimportlib:
         specifier: ^0.0.5
         version: 0.0.5
@@ -1949,7 +1952,7 @@ packages:
       nanoresource: 1.3.0
       napi-macros: 2.2.2
       node-gyp: 9.4.1
-      node-gyp-build: 4.6.1
+      node-gyp-build: 4.7.0
     transitivePeerDependencies:
       - bluebird
       - supports-color
@@ -5027,8 +5030,8 @@ packages:
     resolution: {integrity: sha512-qN8v/s2PAJwGUtr1/hYTpNKlD6Y9rc4p8KSmJXyGdYGZsDGKXrGThikLFP9OCHFeLeEpQzPwiAtdIvBLqm//Hw==}
     dev: false
 
-  /node-gyp-build@4.6.1:
-    resolution: {integrity: sha512-24vnklJmyRS8ViBNI8KbtK/r/DmXQMRiOMXTNz2nrTnAYUwjmEEbnnpB/+kt+yWRv73bPsSPRFddrcIbAxSiMQ==}
+  /node-gyp-build@4.7.0:
+    resolution: {integrity: sha512-PbZERfeFdrHQOOXiAKOY0VPbykZy90ndPKk0d+CFDegTKmWp1VgOTz2xACVbr1BjCWxrQp68CXtvNsveFhqDJg==}
     hasBin: true
     dev: false
 
@@ -6287,8 +6290,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.13.1:
-    resolution: {integrity: sha512-NTs/7FsX93acYnHx0v1lhRQLBhnvJy6y2tYH0YlwmksJxCI5pMWqgMUFNXB5PB6Lpf3/lx2V9JUI+OGoUsfQXw==}
+  /websocketfs@0.15.1:
+    resolution: {integrity: sha512-v00CXNDOzWQ2bdhmRn32VjjJI57xvKDxVH7j0inUUb8pMp//KE+Kz/TTcbQmJ4LLCxHClVngn591lm2wBzASHQ==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
@@ -6457,5 +6460,5 @@ packages:
     requiresBuild: true
     dependencies:
       nan: 2.17.0
-      node-gyp-build: 4.6.1
+      node-gyp-build: 4.7.0
     dev: false

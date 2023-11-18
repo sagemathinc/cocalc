@@ -70,9 +70,14 @@ class Project extends BaseProject {
     }
   }
 
+  // TODO/ATTN: I don't think this is actualy used by kucalc yet.
+  // In kucalc there's cluster2/addons/manage/image/src/k8s-control.coffee
+  // which does a lot of this stuff *directly* via the database and
+  // kubernetes.  It needs to be rewritten...
   async stop(): Promise<void> {
     if (this.stateChanging != null) return;
     winston.info("stop ", this.project_id);
+    await this.closePayAsYouGoPurchases();
     if ((await this.state()).state != "running") {
       return;
     }

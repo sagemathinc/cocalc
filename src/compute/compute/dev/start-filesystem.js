@@ -51,6 +51,8 @@ async function main() {
         EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
       ),
       metadataFile: process.env.METADATA_FILE,
+      syncIntervalMin: 60 * 5,
+      syncIntervalMax: 60 * 15,
     });
     unmount = exports.fs.unmount;
   } catch (err) {

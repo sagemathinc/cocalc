@@ -46,7 +46,7 @@ export const IMAGES0 = {
     // TODO -- should be a much better
     url: "https://www.python.org/",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python/Dockerfile",
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python",
   },
   "sagemath-10.1": {
     label: "SageMath 10.1",
@@ -56,7 +56,7 @@ export const IMAGES0 = {
     icon: "sagemath",
     url: "https://www.sagemath.org/",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/sagemath-10.1/Dockerfile",
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/sagemath-10.1",
   },
   pytorch: {
     label: "PyTorch",
@@ -68,7 +68,7 @@ export const IMAGES0 = {
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
     icon: "pytorch",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch/Dockerfile",
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch",
   },
   tensorflow: {
     label: "Tensorflow",
@@ -80,7 +80,7 @@ export const IMAGES0 = {
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
     icon: "tensorflow",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow/Dockerfile",
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow",
   },
   cuda12: {
     label: "CUDA Toolkit",
@@ -92,7 +92,7 @@ export const IMAGES0 = {
     icon: "nvidia",
     url: "https://developer.nvidia.com/cuda-toolkit",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda/Dockerfile",
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
   },
   // Disabled -- not sure if it is worthwhile:
   //   cuda11: {
@@ -110,14 +110,38 @@ export const IMAGES0 = {
     icon: "r",
     url: "https://www.r-project.org/",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/rlang/Dockerfile",
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/rlang",
   },
-  //   julia: {
-  //     label: "Julia",
-  //     docker: `${DOCKER_USER}/compute-julia`,
-  //     minDiskSizeGb: 10,
-  //     gpu: false,
-  //   },
+  anaconda: {
+    label: "Anaconda",
+    docker: `${DOCKER_USER}/compute-anaconda`,
+    minDiskSizeGb: 15,
+    gpu: false,
+    icon: "sagemath",
+    url: "https://www.sagemath.org/",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
+  },
+  colab: {
+    label: "Google Colab",
+    docker: `${DOCKER_USER}/compute-colab`,
+    minDiskSizeGb: 35,
+    gpu: true,
+    icon: "google",
+    url: "https://github.com/googlecolab",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
+  },
+  julia: {
+    label: "Julia",
+    docker: `${DOCKER_USER}/compute-julia`,
+    minDiskSizeGb: 10,
+    gpu: false,
+    icon: "julia",
+    url: "https://julialang.org/",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/julia",
+  },
 
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",
