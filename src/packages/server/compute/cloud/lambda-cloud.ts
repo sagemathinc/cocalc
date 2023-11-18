@@ -15,6 +15,7 @@ async function getClient(): Promise<LambdaCloudAPI> {
   if (client != null) {
     return client;
   }
+  // @ts-ignore -- temporary because I commented out the lambda cloud typings
   const { lambda_cloud_api_key: apiKey } = await getServerSettings();
   if (!apiKey) {
     throw Error("lambda cloud is not supported -- no api key");

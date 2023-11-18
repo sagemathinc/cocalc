@@ -122,11 +122,21 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
   },
-  colab: {
+  "colab-gpu": {
     label: "Google Colab",
     docker: `${DOCKER_USER}/compute-colab`,
     minDiskSizeGb: 35,
     gpu: true,
+    icon: "google",
+    url: "https://github.com/googlecolab",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
+  },
+  colab: {
+    label: "Google Colab",
+    docker: `${DOCKER_USER}/compute-colab`,
+    minDiskSizeGb: 35,
+    gpu: false,
     icon: "google",
     url: "https://github.com/googlecolab",
     source:
