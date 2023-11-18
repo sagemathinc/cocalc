@@ -23,6 +23,7 @@ import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-serve
 import ComputeServer from "./compute-server";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
+import SyncButton from "./sync-button";
 
 export default function ComputeServerTransition({
   project_id,
@@ -44,44 +45,57 @@ export default function ComputeServerTransition({
   }
 
   const topBar = (progress) => (
-    <Tooltip
-      mouseEnterDelay={0.9}
-      title={
-        <>
-          {progress == 100 ? "Running on " : "Moving to "}{" "}
-          <Inline id={requestedId} />.
-        </>
-      }
-    >
-      <div
-        onClick={() => {
-          if (progress < 100) return;
-          setShowDetails(showDetails === true ? false : true);
-        }}
-        style={{ display: "flex" }}
-      >
-        <div style={{ marginRight: "5px", flex: 1 }}>
-          <Inline
-            colorOnly
-            id={requestedId}
-            style={{
-              borderRadius: "5px",
-              height: "14px",
-              cursor: "pointer",
-              width: `${progress}%`,
-            }}
-          />
-        </div>
-        <Button
+    <div style={{ display: "flex" }}>
+      {progress == 100 && (
+        <SyncButton
+          style={{ marginTop: "-3px" }}
           size="small"
           type="text"
-          disabled={id != requestedId}
-          style={{ margin: "-5px 0", color: "#666" }}
+          compute_server_id={id}
+          project_id={project_id}
         >
-          <Inline prompt id={requestedId} />
-        </Button>
-      </div>
-    </Tooltip>
+          Sync Files
+        </SyncButton>
+      )}
+      <Tooltip
+        mouseEnterDelay={0.9}
+        title={
+          <>
+            {progress == 100 ? "Running on " : "Moving to "}{" "}
+            <Inline id={requestedId} />.
+          </>
+        }
+      >
+        <div
+          onClick={() => {
+            if (progress < 100) return;
+            setShowDetails(showDetails === true ? false : true);
+          }}
+          style={{ display: "flex", flex: 1 }}
+        >
+          <div style={{ marginRight: "5px", flex: 1 }}>
+            <Inline
+              colorOnly
+              id={requestedId}
+              style={{
+                borderRadius: "5px",
+                height: "17px",
+                cursor: "pointer",
+                width: `${progress}%`,
+              }}
+            />
+          </div>
+          <Button
+            size="small"
+            type="text"
+            disabled={id != requestedId}
+            style={{ margin: "-3px 0", color: "#666" }}
+          >
+            <Icon name="servers" /> <Inline prompt id={requestedId} />
+          </Button>
+        </div>
+      </Tooltip>
+    </div>
   );
 
   if (id == requestedId && !showDetails) {

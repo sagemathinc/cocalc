@@ -132,12 +132,16 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
   },
-  //   julia: {
-  //     label: "Julia",
-  //     docker: `${DOCKER_USER}/compute-julia`,
-  //     minDiskSizeGb: 10,
-  //     gpu: false,
-  //   },
+  julia: {
+    label: "Julia",
+    docker: `${DOCKER_USER}/compute-julia`,
+    minDiskSizeGb: 10,
+    gpu: false,
+    icon: "julia",
+    url: "https://julialang.org/",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/julia",
+  },
 
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",

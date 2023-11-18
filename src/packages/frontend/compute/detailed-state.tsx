@@ -129,6 +129,7 @@ function State({
         compute_server_id={id}
         project_id={project_id}
         syncing={progress < 100}
+        style={{ marginTop: "3px" }}
       />
     );
   } else if (name == "compute") {
