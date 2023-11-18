@@ -8,10 +8,11 @@ import { join } from "path";
 import { mkdir, rename, readFile, writeFile } from "fs/promises";
 import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
 import { sha1 } from "@cocalc/backend/sha1";
+//import type { Spark } from "primus";
+type Spark = any; // for now
 
 const log = getLogger("sync-fs:handle-api-call").debug;
 
-const SETTLE_TIMEOUT_S = 2;
 const CLOCK_THRESH_MS = 5 * 1000;
 
 export default async function handleApiCall({
@@ -21,6 +22,7 @@ export default async function handleApiCall({
   now, // time in ms since epoch on compute server
 }: MesgSyncFSOptions) {
   log("handleApiCall");
+
   let computeState;
   if (computeStateJson) {
     computeState = fromCompressedJSON(await readFile(computeStateJson));
@@ -165,12 +167,6 @@ function getOperations({ computeState, projectState }): {
   const copyFromProject: string[] = [];
   const copyFromCompute: string[] = [];
 
-  // We ONLY copy files if their last mtime is
-  // at least a few seconds in the past, to reduce the chance
-  // of having to deal with actively modified files.
-  // Of course, this means more "lag".
-  const cutoff = Math.floor(Date.now() / 1000) - SETTLE_TIMEOUT_S;
-
   const handlePath = (path) => {
     const projectMtime = projectState[path];
     const computeMtime = computeState[path];
@@ -189,9 +185,7 @@ function getOperations({ computeState, projectState }): {
         return;
       }
       // it's definitely NOT on the project but it is on the compute server, so we need it.
-      if (computeMtime <= cutoff) {
-        copyFromCompute.push(path);
-      }
+      copyFromCompute.push(path);
       return;
     }
 
@@ -202,9 +196,7 @@ function getOperations({ computeState, projectState }): {
       // project version is newer
       if (projectMtime > 0) {
         // it was edited later on the project
-        if (projectMtime <= cutoff) {
-          copyFromProject.push(path);
-        }
+        copyFromProject.push(path);
       } else {
         // it was deleted from the project, so now need to delete on compute
         removeFromCompute.push(path);
@@ -214,9 +206,7 @@ function getOperations({ computeState, projectState }): {
       // compute version is newer
       if (computeMtime > 0) {
         // edited on compute later
-        if (computeMtime <= cutoff) {
-          copyFromCompute.push(path);
-        }
+        copyFromCompute.push(path);
       } else {
         // deleted on compute, so now also need to delete in project
         removeFromProject.push(path);
@@ -240,4 +230,64 @@ function getOperations({ computeState, projectState }): {
     copyFromProject,
     copyFromCompute,
   };
+}
+
+const sparks: { [compute_server_id: number]: Spark } = {};
+
+export async function handleComputeServerSyncRegister(
+  { compute_server_id },
+  spark,
+) {
+  log("handleComputeServerSyncRegister -- registering ", { compute_server_id });
+  // save the connection so we can send a sync_request
+  // message later.
+  sparks[compute_server_id] = spark;
+}
+
+// User has requested that compute_server_id
+// do sync right now via the browser websocket api.
+export async function handleSyncFsRequestCall({ compute_server_id }) {
+  const spark = sparks[compute_server_id];
+  if (spark != null) {
+    log("handleSyncFsRequestCall: success");
+    spark.write({ event: "compute_server_sync_request" });
+    return { status: "ok" };
+  } else {
+    log("handleSyncFsRequestCall: fail");
+    throw Error(
+      `no connection to compute server: ${JSON.stringify(Object.keys(sparks))}`,
+    );
+    //throw Error("no connection to compute server");
+  }
+}
+
+export async function handleCopy(opts: {
+  event: string;
+  compute_server_id: number;
+  paths: string[];
+  timeout?: number;
+}) {
+  log("handleCopy: ", opts);
+  const spark = sparks[opts.compute_server_id];
+  if (spark == null) {
+    log("handleCopy: no connection");
+    throw Error(`no connection to compute server ${opts.compute_server_id}`);
+  }
+  const id = Math.random();
+  spark.write({ ...opts, id });
+  // wait for a response with this id
+  const handler = (data) => {
+    if (data?.id == id) {
+      spark.removeListener("data", handler);
+      clearTimeout(timeout);
+      return data;
+    }
+  };
+  spark.addListener("data", handler);
+  const timeout = setTimeout(() => {
+    spark.removeListener("data", handler);
+    throw Error(
+      `timeout - failed to copy files within ${opts.timeout ?? 30000}ms`,
+    );
+  }, opts.timeout ?? 30000);
 }

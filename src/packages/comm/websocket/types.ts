@@ -194,6 +194,26 @@ interface MesgSyncFS {
   opts: MesgSyncFSOptions;
 }
 
+interface MesgComputeServerSyncRegister {
+  cmd: "compute_server_sync_register";
+  opts: { compute_server_id: number };
+}
+
+interface MesgComputeServerSyncRequest {
+  cmd: "compute_server_sync_request";
+  opts: { compute_server_id: number };
+}
+
+interface MesgCopyFromProjectToComputeServer {
+  cmd: "copy_from_project_to_compute_server";
+  opts: { compute_server_id: number; paths: string[]; timeout?: number };
+}
+
+interface MesgCopyFromComputeServerToProject {
+  cmd: "copy_from_compute_server_to_project";
+  opts: { compute_server_id: number; paths: string[]; timeout?: number };
+}
+
 export type Mesg =
   | MesgVersion
   | MesgExec
@@ -222,4 +242,8 @@ export type Mesg =
   | MesgJupyterRunNotebook
   | MesgProjectInfo
   | MesgComputeFilesystemCache
-  | MesgSyncFS;
+  | MesgSyncFS
+  | MesgComputeServerSyncRegister
+  | MesgComputeServerSyncRequest
+  | MesgCopyFromProjectToComputeServer
+  | MesgCopyFromComputeServerToProject;

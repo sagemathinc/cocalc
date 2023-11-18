@@ -78,6 +78,7 @@ class SyncFS {
   private client: SyncClient;
 
   private timeout;
+  private websocket?;
 
   constructor({
     lower,
@@ -120,15 +121,15 @@ class SyncFS {
     } else if (compression == "lz4") {
       const alter = (v) => ["-I", "lz4"].concat(v);
       this.tar = {
-        send: ({ createArgs, extractArgs }) => {
+        send: ({ createArgs, extractArgs, HOME }) => {
           createArgs = alter(createArgs);
           extractArgs = alter(extractArgs);
-          tar.send({ createArgs, extractArgs });
+          tar.send({ createArgs, extractArgs, HOME });
         },
-        get: ({ createArgs, extractArgs }) => {
+        get: ({ createArgs, extractArgs, HOME }) => {
           createArgs = alter(createArgs);
           extractArgs = alter(extractArgs);
-          tar.get({ createArgs, extractArgs });
+          tar.get({ createArgs, extractArgs, HOME });
         },
       };
     } else {
@@ -143,6 +144,7 @@ class SyncFS {
     try {
       await rm(this.error_txt);
     } catch (_) {}
+    await this.initSyncRequestHandler();
     await this.syncLoop();
   };
 
@@ -167,6 +169,69 @@ class SyncFS {
       await this.unmountExcludes();
     } catch (err) {
       log("unmountExcludes fail -- ", err);
+    }
+    this.websocket?.removeListener("data", this.handleSyncRequest);
+  };
+
+  // The sync api listens on the project websocket for requests
+  // to do a sync.  There's no response (for now).
+  //   Project --> ComputeServer:   "heh, please do a sync now"
+  private initSyncRequestHandler = async () => {
+    log("initSyncRequestHandler: installing sync request handler");
+    this.websocket = await this.client.project_client.websocket(
+      this.project_id,
+    );
+    this.websocket.on("data", this.handleSyncRequest);
+    log("initSyncRequestHandler: installed handler");
+    const api = await this.client.project_client.api(this.project_id);
+    await api.computeServerSyncRegister(this.compute_server_id);
+    log("initSyncRequestHandler: registered");
+  };
+
+  private handleSyncRequest = async (data) => {
+    switch (data?.event) {
+      case "compute_server_sync_request": {
+        log("handleSyncRequest: compute_server_sync_request");
+        try {
+          if (this.state == "sync") {
+            // already in progress
+            return;
+          }
+          await this.sync();
+          log("handleSyncRequest: sync worked");
+        } catch (err) {
+          log("handleSyncRequest: sync failed", err);
+        }
+        return;
+      }
+
+      case "copy_from_project_to_compute_server":
+      case "copy_from_compute_server_to_project": {
+        log("handleSyncRequest: ", data);
+        const createArgs = ["-c", ...data.paths];
+        const extractArgs = ["-x"];
+        try {
+          if (data.event == "copy_from_project_to_compute_server") {
+            await this.tar.get({ createArgs, extractArgs, HOME: this.mount });
+          } else {
+            await this.tar.send({ createArgs, extractArgs, HOME: this.mount });
+          }
+          if (data.id) {
+            this.websocket?.write({ id: data.id, event: "success" });
+          }
+          log("handleSyncRequest: copy SUCCESS");
+        } catch (err) {
+          if (data.id) {
+            this.websocket?.write({
+              id: data.id,
+              event: "error",
+              error: err.message,
+            });
+          }
+          log("handleSyncRequest: copy FAILED", err);
+        }
+        return;
+      }
     }
   };
 

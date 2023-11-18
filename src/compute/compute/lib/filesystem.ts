@@ -14,7 +14,11 @@ import { serialize } from "cookie";
 import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import syncFS from "@cocalc/sync-fs";
-import { pingProjectUntilSuccess, waitUntilFilesystemIsOfType, getProjectWebsocketUrl } from "./util";
+import {
+  pingProjectUntilSuccess,
+  waitUntilFilesystemIsOfType,
+  getProjectWebsocketUrl,
+} from "./util";
 import { apiCall } from "@cocalc/api-client";
 import sendFiles from "./send-files";
 import getFiles from "./get-files";
@@ -189,19 +193,35 @@ export async function mountProject({
         exclude,
         readTrackingPath,
         tar: {
-          send: async ({ createArgs, extractArgs }) =>
+          send: async ({
+            createArgs,
+            extractArgs,
+            HOME = unionfs.upper,
+          }: {
+            createArgs: string[];
+            extractArgs: string[];
+            HOME?: string;
+          }) =>
             await sendFiles({
               createArgs,
               extractArgs,
               project_id,
-              HOME: unionfs.upper,
+              HOME,
             }),
-          get: async ({ createArgs, extractArgs }) =>
+          get: async ({
+            createArgs,
+            extractArgs,
+            HOME = unionfs.upper,
+          }: {
+            createArgs: string[];
+            extractArgs: string[];
+            HOME?: string;
+          }) =>
             await getFiles({
               createArgs,
               extractArgs,
               project_id,
-              HOME: unionfs.upper,
+              HOME,
             }),
         },
       });
