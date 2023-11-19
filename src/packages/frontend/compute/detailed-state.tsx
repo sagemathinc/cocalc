@@ -128,6 +128,7 @@ function State({
         size="small"
         compute_server_id={id}
         project_id={project_id}
+        time={time}
         syncing={
           progress <
           80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
