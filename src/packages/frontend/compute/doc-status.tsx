@@ -64,6 +64,11 @@ export default function ComputeServerTransition({
           type="text"
           compute_server_id={id}
           project_id={project_id}
+          time={requestedServer?.getIn([
+            "detailed_state",
+            "filesystem-sync",
+            "time",
+          ])}
           syncing={
             requestedServer?.get("state") == "running" &&
             (requestedServer?.getIn([

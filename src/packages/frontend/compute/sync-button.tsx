@@ -9,22 +9,28 @@ interface Props {
   size?;
   noIcon?: boolean;
   syncing?: boolean;
+  time?: number;
   style?;
   type?;
   children?;
 }
+
+const MAX_SYNC_TIME_MS = 20000;
 
 export default function SyncButton({
   project_id,
   compute_server_id,
   size,
   syncing,
+  time,
   noIcon,
   style,
   type,
   children,
 }: Props) {
   const [syncRequest, setSyncRequest] = useState<boolean>(false);
+  const isSyncing =
+    syncRequest || (syncing && Date.now() <= (time ?? 0) + MAX_SYNC_TIME_MS);
 
   return (
     <Tooltip
@@ -39,7 +45,7 @@ export default function SyncButton({
     >
       <Button
         type={type}
-        disabled={syncRequest || syncing}
+        disabled={isSyncing}
         size={size}
         style={style}
         onClick={async () => {
@@ -53,7 +59,7 @@ export default function SyncButton({
         }}
       >
         {!noIcon && <Icon name="sync" />} {children ?? "Sync"}
-        {(syncRequest || syncing) && (
+        {isSyncing && (
           <Spin delay={1000} size="small" style={{ marginLeft: "5px" }} />
         )}
       </Button>
