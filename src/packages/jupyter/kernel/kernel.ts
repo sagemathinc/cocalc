@@ -334,6 +334,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       this._kernel = await launchJupyterKernel(this.name, opts);
       await this.finish_spawn();
     } catch (err) {
+      dbg("ERROR spawning kernel", err);
       if (this._state === "closed") {
         throw Error("closed -- kernel spawn later");
       }
@@ -961,6 +962,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   async chdir(path: string): Promise<void> {
     if (!this.name) return; // no kernel, no current directory
     const dbg = this.dbg("chdir");
+    dbg({ path });
     let lang;
     try {
       // using probably cached data, so likely very fast

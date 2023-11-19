@@ -372,7 +372,11 @@ export function getMinDiskSizeGb(configuration) {
   }
 }
 
-const DEFAULT_EXCLUDE_FROM_SYNC = ["scratch"] as const;
+// I think it could be very confusing to have anything
+// here by default, since most people won't even know
+// about excludes, and will just think sync is broken
+// if a random default folder is excluded!
+const DEFAULT_EXCLUDE_FROM_SYNC = [""] as const;
 
 const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {

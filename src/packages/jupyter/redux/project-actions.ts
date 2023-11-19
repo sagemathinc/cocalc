@@ -187,10 +187,7 @@ export class JupyterActions extends JupyterActions0 {
       this.handle_ipywidgets_state_change.bind(this),
     );
 
-    this.syncdb.on(
-      "cursor_activity",
-      this.checkForComputeServerStateChange,
-    );
+    this.syncdb.on("cursor_activity", this.checkForComputeServerStateChange);
 
     // initialize the websocket api
     this.initWebsocketApi();
@@ -331,9 +328,15 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.ipywidgets_state.clear();
 
     if (this.jupyter_kernel == null) {
-      // to satisfy compiler.
+      // to satisfy typescript.
       throw Error("jupyter_kernel must be defined");
     }
+
+    // save so gets reported to frontend, and surfaced to user:
+    // https://github.com/sagemathinc/cocalc/issues/4847
+    this.jupyter_kernel.on("kernel_error", (error) => {
+      this.set_kernel_error(error);
+    });
 
     // Since we just made a new kernel, clearly no cells are running on the backend.
     this._running_cells = {};
@@ -368,9 +371,6 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     this.jupyter_kernel.on("execution_state", this.set_kernel_state);
-    // save so gets reported to frontend, and surfaced to user:
-    // https://github.com/sagemathinc/cocalc/issues/4847
-    this.jupyter_kernel.on("kernel_error", this.set_kernel_error);
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
@@ -390,6 +390,7 @@ export class JupyterActions extends JupyterActions0 {
       type: "settings",
       kernel_error: `${err}`,
     });
+    this.save_asap();
   };
 
   init_kernel_info = async () => {

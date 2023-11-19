@@ -22,6 +22,7 @@ import * as path from "path";
 import * as fs from "fs";
 import * as uuid from "uuid";
 import { mkdir } from "fs/promises";
+import { spawn } from "node:child_process";
 
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
@@ -31,6 +32,9 @@ import { writeFile } from "jsonfile";
 import mkdirp from "mkdirp";
 import shellEscape from "shell-escape";
 import { envForSpawn } from "@cocalc/backend/misc";
+import { getLogger } from "@cocalc/backend/logger";
+
+const logger = getLogger("launch-kernel");
 
 // This is temporary hack to import the latest execa, which is only
 // available as an ES Module now.  We will of course eventually switch
@@ -157,7 +161,7 @@ async function launchKernelSpec(
     ...spawn_options.env,
   };
 
-  const { execa, execaCommand } = (await dynamicImport(
+  const { execaCommand } = (await dynamicImport(
     "execa",
     module,
   )) as typeof import("execa");
@@ -184,8 +188,18 @@ async function launchKernelSpec(
       shell: true,
     });
   } else {
-    running_kernel = execa(argv[0], argv.slice(1), full_spawn_options);
+    // CRITICAL: I am *NOT* using execa, but instead spawn, because
+    // I hit bugs in execa.  Namely, when argv[0] is a path that doesn't exist,
+    // no matter what, there is an uncaught exception emitted later.  The exact
+    // same situation with execaCommand or node's spawn does NOT have an uncaught
+    // exception, so it's a bug.
+    //running_kernel = execa(argv[0], argv.slice(1), full_spawn_options);  // NO!
+    running_kernel = spawn(argv[0], argv.slice(1), full_spawn_options);
   }
+
+  running_kernel.on("error", (code, signal) => {
+    logger.debug("launchKernelSpec: ERROR -- ", { argv, code, signal });
+  });
 
   if (full_spawn_options.cleanupConnectionFile !== false) {
     running_kernel.on("exit", (_code, _signal) => cleanup(connectionFile));
@@ -214,7 +228,7 @@ export default async function launchJupyterKernel(
     );
   }
   const { config, connectionFile } = await writeConnectionFile();
-  return launchKernelSpec(
+  return await launchKernelSpec(
     kernel_spec.spec,
     config,
     connectionFile,
