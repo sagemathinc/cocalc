@@ -43,7 +43,6 @@ export default function ComputeServerLog({
         <Icon name="history" /> Log
       </Button>
       <Modal
-        maskStyle={{ background: color, opacity: 0.5 }}
         width={800}
         title={
           <>

@@ -163,7 +163,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         Create Compute Server... {creating ? <Spin /> : null}
       </Button>
       <Modal
-        maskStyle={{ background: color, opacity: 0.5 }}
         width={"900px"}
         onCancel={() => {
           setEditing(false);

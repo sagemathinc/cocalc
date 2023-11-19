@@ -317,7 +317,6 @@ export default function SelectComputeServer({
       />
       <Modal
         keyboard
-        maskStyle={{ background: computeServers[idNum]?.color, opacity: 0.5 }}
         title={
           idNum == 0 ? (
             <>Run in this Project?</>

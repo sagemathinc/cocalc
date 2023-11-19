@@ -177,7 +177,6 @@ function State({
               style={{
                 flex: 1,
                 textAlign: "center",
-                overflow: "scroll",
                 height: "30px",
               }}
             >
