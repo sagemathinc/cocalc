@@ -361,7 +361,15 @@ export class JupyterActions extends JupyterActions0 {
     // There's a good argument that recording these is useful though, so when
     // looking at time travel or debugging, you know what was going on.
     this.jupyter_kernel.on("state", (state) => {
+      dbg("jupyter_kernel state --> ", state);
       switch (state) {
+        case "off":
+        case "closed":
+          // things went badly wrong.
+          this._running_cells = {};
+          this.clear_all_cell_run_state();
+          this.set_backend_state("ready");
+          return;
         case "spawning":
         case "starting":
           this.set_connection_file(); // yes, fall through
@@ -382,15 +390,6 @@ export class JupyterActions extends JupyterActions0 {
       type: "settings",
       connection_file,
     });
-  };
-
-  set_kernel_error = (err) => {
-    if (!this.isCellRunner()) return;
-    this._set({
-      type: "settings",
-      kernel_error: `${err}`,
-    });
-    this.save_asap();
   };
 
   init_kernel_info = async () => {

@@ -80,7 +80,7 @@ import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 
-const log = getLogger("jupyter");
+const log = getLogger("jupyter:kernel");
 
 // We make it so nbconvert functionality can be dynamically enabled
 // by calling this at runtime.  The reason is because some users of
@@ -374,6 +374,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       const error = `${err}\n${this.stderr}`;
       dbg("kernel error", error);
       this.emit("kernel_error", error);
+      this._set_state("off");
     });
 
     // Track stderr from the subprocess itself (the kernel).
@@ -481,7 +482,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     const spawn = this._kernel != null ? this._kernel.spawn : undefined;
     const pid = spawn?.pid;
     dbg(`pid=${pid}, signal=${signal}`);
-    if (pid == null) return;
+    if (pid == null) {
+      return;
+    }
     try {
       this.clear_execute_code_queue();
       process.kill(-pid, signal); // negative to kill the process group
