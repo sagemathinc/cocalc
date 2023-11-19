@@ -1167,6 +1167,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_all_cell_run_state = (): void => {
+    if (!this.store) return;
     this.store.get_cell_list().forEach((id) => {
       this.clear_cell_run_state(id, false);
     });
