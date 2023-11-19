@@ -28,7 +28,7 @@ if (DEBUG) {
 import nodeCleanup from "node-cleanup";
 import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "async-await-utils/hof";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
@@ -79,6 +79,8 @@ import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
+
+const MAX_KERNEL_SPAWN_TIME = 30000;
 
 const log = getLogger("jupyter:kernel");
 
@@ -359,7 +361,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return this._kernel?.connectionFile;
   }
 
-  private async finish_spawn(): Promise<void> {
+  private finish_spawn = async () => {
     const dbg = this.dbg("finish_spawn");
     dbg("now finishing spawn of kernel...");
 
@@ -401,11 +403,47 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     });
 
     dbg("create main channel...", this._kernel.config);
-    this.channel = await createMainChannel(
+
+    // This horrible code is becacuse createMainChannel will just "hang
+    // forever" if the kernel doesn't get spawned for some reason.
+    // Thus we do some tests, waiting for at least 2 seconds for there
+    // to be a pid.  This is complicated and ugly, and I'm sorry about that,
+    // but sometimes that's life.
+    let i = 0;
+    while (i < 20 && this._state == "spawning" && !this._kernel?.spawn?.pid) {
+      i += 1;
+      await delay(100);
+    }
+    if (this._state != "spawning" || !this._kernel?.spawn?.pid) {
+      if (this._state == "spawning") {
+        this.emit("kernel_error", "Failed to start kernel process.");
+        this._set_state("off");
+      }
+      return;
+    }
+    const local = { success: false, gaveUp: false };
+    setTimeout(() => {
+      if (!local.success) {
+        local.gaveUp = true;
+        // it's been 30s and the channels didn't work.  Let's give up.
+        // probably the kernel process just failed.
+        this.emit("kernel_error", "Failed to start kernel process.");
+        this._set_state("off");
+        // We can't "cancel" createMainChannel itself -- that will require
+        // rewriting that dependency.
+        //      https://github.com/sagemathinc/cocalc/issues/7040
+      }
+    }, MAX_KERNEL_SPAWN_TIME);
+    const channel = await createMainChannel(
       this._kernel.config,
       "",
       this.identity,
     );
+    if (local.gaveUp) {
+      return;
+    }
+    this.channel = channel;
+    local.success = true;
     dbg("created main channel");
 
     this.channel?.subscribe((mesg) => {
@@ -469,11 +507,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     // so we can start sending code execution to the kernel, etc.
     this._set_state("starting");
-
-    if (this._state === "closed") {
-      throw Error("closed -- finish_spawn ");
-    }
-  }
+  };
 
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal

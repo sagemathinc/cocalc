@@ -13,9 +13,13 @@ interface Props {
 }
 
 export default function KernelWarning({ name, actions }: Props) {
-  const kernelError: undefined | string = useRedux([name, "kernel_error"]);
+  let kernelError: undefined | string = useRedux([name, "kernel_error"]);
   if (!kernelError) {
     return null;
+  }
+  const i = kernelError.indexOf("[IPKernelApp]");
+  if (i != -1) {
+    kernelError = kernelError.slice(0, i);
   }
   return (
     <Alert

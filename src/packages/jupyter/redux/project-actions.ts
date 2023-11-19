@@ -365,10 +365,13 @@ export class JupyterActions extends JupyterActions0 {
       switch (state) {
         case "off":
         case "closed":
-          // things went badly wrong.
+          // things went wrong.
           this._running_cells = {};
           this.clear_all_cell_run_state();
           this.set_backend_state("ready");
+          this.jupyter_kernel?.close();
+          this.running_manager_run_cell_process_queue = false;
+          delete this.jupyter_kernel;
           return;
         case "spawning":
         case "starting":
