@@ -269,7 +269,6 @@ export default function ComputeServer({
                 id={id}
                 style={{ marginLeft: "-15px" }}
                 title={title}
-                color={color}
               />
             )}
             {id != null && (
