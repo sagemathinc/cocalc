@@ -17,7 +17,6 @@ export default function ComputeServerLog({
   id,
   style,
   title = "",
-  color = "#888",
 }: {
   id: number;
   style?;
