@@ -70,7 +70,8 @@ export default function ComputeServerTransition({
               "detailed_state",
               "filesystem-sync",
               "progress",
-            ]) ?? 100) < 100
+            ]) ?? 100) <
+              80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
           }
         >
           Sync Files
