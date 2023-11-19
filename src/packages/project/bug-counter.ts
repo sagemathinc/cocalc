@@ -12,7 +12,7 @@ const STARS =
 
 export function init() {
   const log = getLogger("BUG (uncaughtException)");
-  log.debug("initializing uncaughtException handler");
+  getLogger("handler").debug("initializing uncaughtException handler");
 
   process.on("uncaughtExceptionMonitor", (err, origin) => {
     // sometimes we only get one output and then process terminates, despite the uncaughtException,

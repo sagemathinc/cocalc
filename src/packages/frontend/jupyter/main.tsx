@@ -27,7 +27,7 @@ import { Loading } from "@cocalc/frontend/components/loading";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
-import { JupyterActions } from "./browser-actions";
+import type { JupyterActions } from "./browser-actions";
 import { CellList } from "./cell-list";
 import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
@@ -496,7 +496,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           requestedId={requestedComputeServerId}
           project_id={project_id}
         />
-        <KernelWarning name={name} />
+        <KernelWarning name={name} actions={actions} />
         {render_error()}
         {render_modals()}
         {render_heading()}

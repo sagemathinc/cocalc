@@ -2685,6 +2685,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected isCellRunner = (): boolean => {
     return false;
   };
+
+  set_kernel_error = (err) => {
+    // anybody can *clear* error, but only cell runner can set it, since
+    // only they should know.
+    if (err && !this.isCellRunner()) {
+      return;
+    }
+    this._set({
+      type: "settings",
+      kernel_error: `${err}`,
+    });
+    this.save_asap();
+  };
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {

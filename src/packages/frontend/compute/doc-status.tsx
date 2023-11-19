@@ -50,9 +50,10 @@ export default function ComputeServerTransition({
     <div
       style={{
         display: "flex",
-        borderBottom: !showDetails
-          ? `1px solid ${requestedServer.get("color")}`
-          : undefined,
+        borderBottom:
+          requestedServer != null && !showDetails
+            ? `1px solid ${requestedServer.get("color")}`
+            : undefined,
         height: "19px",
       }}
     >
