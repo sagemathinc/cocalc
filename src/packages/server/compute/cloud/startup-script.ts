@@ -20,7 +20,7 @@ import {
 // cocalc startup script (with newest ssh keys, etc.) on startup.
 export async function startupScriptViaApi({ compute_server_id, api_key }) {
   const apiServer = await getApiServer();
-  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash > $HOME/.cocalc-startup.log 2> $HOME/.cocalc-startup.err`;
+  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
 }
 
 async function getApiServer() {
