@@ -88,6 +88,8 @@ fi
 
 ${rootSsh()}
 
+${allowAnyPort()}
+
 docker
 if [ $? -ne 0 ]; then
 setState install install-docker '' 120 20
@@ -138,6 +140,20 @@ function rootSsh() {
 # Install ssh keys for root access to VM
 mkdir -p /root/.ssh
 cat /cocalc/conf/authorized_keys > /root/.ssh/authorized_keys
+`;
+}
+
+/*
+Allowing user to bind to any port (esp 443) makes sense for our security model where
+user can be root without a password via sudo.
+
+See https://superuser.com/questions/710253/allow-non-root-process-to-bind-to-port-80-and-443
+*/
+function allowAnyPort() {
+  return `
+# Allow user to bind to any port:
+echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-unprivileged-ports.conf
+sysctl --system
 `;
 }
 
