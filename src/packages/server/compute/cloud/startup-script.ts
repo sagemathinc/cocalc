@@ -17,10 +17,10 @@ import {
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
 // the user reboots the VM in some way, so they get the latest
-// startup script (with newest ssh keys, etc.) on startup.
+// cocalc startup script (with newest ssh keys, etc.) on startup.
 export async function startupScriptViaApi({ compute_server_id, api_key }) {
   const apiServer = await getApiServer();
-  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash`;
+  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash > $HOME/.cocalc-startup.log 2> $HOME/.cocalc-startup.err`;
 }
 
 async function getApiServer() {
