@@ -40,7 +40,7 @@ import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
-import SelectImage from "./select-image";
+import SelectImage, { ImageLinks } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 
@@ -245,7 +245,7 @@ export default function GoogleCloudConfiguration({
     },
     {
       key: "image",
-      label: "",
+      label: <ImageLinks image={configuration.image} />,
       value: (
         <Image
           state={state}
@@ -465,16 +465,16 @@ function Region({ priceData, setConfig, configuration, disabled }) {
     regions.sort((a, b) => cmp(a.cost, b.cost));
   }
   const options = regions.map(({ region, location, lowCO2, cost }) => {
-    const price = <CostPerHour cost={cost} extra={"total"} />;
+    const price = <CostPerHour cost={cost} extra={" (total)"} />;
     return {
       value: region,
       search: `${region} ${location} ${lowCO2 ? " co2 " : ""}`,
       label: (
-        <div key={region}>
-          {region} {price}
-          <br />
-          {location?.split(",")[1].trim()}
-          {lowCO2 ? " - 🍃 Low CO2" : ""}
+        <div key={region} style={{ display: "flex" }}>
+          <div style={{ flex: 1 }}> {region}</div>
+          <div style={{ flex: 1 }}>{price}</div>
+          <div style={{ flex: 0.7 }}> {lowCO2 ? "🍃 Low CO2" : ""}</div>
+          <div style={{ flex: 0.8 }}> {location?.split(",")[1].trim()}</div>
         </div>
       ),
     };
@@ -489,27 +489,35 @@ function Region({ priceData, setConfig, configuration, disabled }) {
           </b>
         </div>
       ) : undefined}
-      <Select
-        disabled={disabled}
-        style={{ width: SELECTOR_WIDTH, marginRight: "15px" }}
-        options={options as any}
-        value={newRegion}
-        onChange={(region) => {
-          setNewRegion(region);
-          setConfig({ region });
-        }}
-        showSearch
-        optionFilterProp="children"
-        filterOption={filterOption}
-      />
-      <Checkbox
-        disabled={disabled}
-        style={{ marginTop: "5px" }}
-        checked={sortByPrice}
-        onChange={() => setSortByPrice(!sortByPrice)}
-      >
-        Sort by price
-      </Checkbox>
+      <div>
+        <Select
+          disabled={disabled}
+          style={{ width: "100%" }}
+          options={options as any}
+          value={newRegion}
+          onChange={(region) => {
+            setNewRegion(region);
+            setConfig({ region });
+          }}
+          showSearch
+          optionFilterProp="children"
+          filterOption={filterOption}
+        />
+      </div>
+      <div>
+        <Checkbox
+          disabled={disabled}
+          style={{ marginTop: "5px" }}
+          checked={sortByPrice}
+          onChange={() => setSortByPrice(!sortByPrice)}
+        >
+          Sort by price
+        </Checkbox>
+        <div style={{ color: "#666", marginTop: "5px" }}>
+          Price above is total price in this region for the machine, disk and
+          GPU.
+        </div>
+      </div>
     </div>
   );
 }
@@ -660,6 +668,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </b>
       </div>
       <Radio.Group
+        size="large"
         buttonStyle="solid"
         disabled={disabled}
         value={newSpot ? "spot" : "standard"}
@@ -681,8 +690,8 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VM's stay running until you stop them, whereas spot VM's are
-        incredibly cheap, but{" "}
+        Standard VM's stay running until you stop them, whereas spot VM's are up
+        to 91% off, but{" "}
         <b>will automatically stop when there is a surge in demand.</b>
       </div>
     </div>
@@ -732,7 +741,7 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
             <Icon name="aim" /> Zone
           </b>{" "}
           in {configuration.region} with {configuration.machineType}{" "}
-          {configuration.spot ? "spot" : ""} VMs
+          {configuration.spot ? "spot" : ""} VM's
         </div>
       ) : undefined}
       <Select
@@ -801,17 +810,21 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       const { memory, vcpu } = data;
       return {
         value: machineType,
-        search: machineType + ` memory:${memory}  cpu:${vcpu}`,
+        search: machineType + ` memory:${memory} ram:${memory} cpu:${vcpu} `,
         cost,
         label: (
-          <div key={machineType}>
-            {machineType}{" "}
-            {cost ? (
-              <CostPerHour cost={cost} />
-            ) : (
-              <span style={{ color: "#666" }}>(region/zone will change)</span>
-            )}
-            <RamAndCpu machineType={machineType} priceData={priceData} />
+          <div key={machineType} style={{ display: "flex" }}>
+            <div style={{ flex: 1 }}>{machineType}</div>
+            <div style={{ flex: 1 }}>
+              {cost ? (
+                <CostPerHour cost={cost} />
+              ) : (
+                <span style={{ color: "#666" }}>(region/zone changes)</span>
+              )}
+            </div>
+            <div style={{ flex: 2 }}>
+              <RamAndCpu machineType={machineType} priceData={priceData} />
+            </div>
           </div>
         ),
       };
@@ -838,37 +851,38 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>
           <Icon name="microchip" /> Machine Type
-        </b>{" "}
-        <RamAndCpu
-          machineType={newMachineType}
-          priceData={priceData}
-          style={{ float: "right" }}
+        </b>
+      </div>
+      <div>
+        <Select
+          disabled={disabled}
+          style={{ width: "100%" }}
+          options={options as any}
+          value={newMachineType}
+          onChange={(machineType) => {
+            setNewMachineType(machineType);
+            setConfig({ machineType });
+          }}
+          showSearch
+          optionFilterProp="children"
+          filterOption={filterOption}
         />
       </div>
-      <Select
-        disabled={disabled}
-        style={{ width: SELECTOR_WIDTH }}
-        options={options as any}
-        value={newMachineType}
-        onChange={(machineType) => {
-          setNewMachineType(machineType);
-          setConfig({ machineType });
-        }}
-        showSearch
-        optionFilterProp="children"
-        filterOption={filterOption}
-      />
-      <Checkbox
-        disabled={disabled}
-        style={{ marginTop: "5px", marginLeft: "15px" }}
-        checked={sortByPrice}
-        onChange={() => setSortByPrice(!sortByPrice)}
-      >
-        Sort by price
-      </Checkbox>
+      <div>
+        <Checkbox
+          disabled={disabled}
+          style={{ marginTop: "5px" }}
+          checked={sortByPrice}
+          onChange={() => setSortByPrice(!sortByPrice)}
+        >
+          Sort by price
+        </Checkbox>
+      </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
         Prices and availability depend on the region and provisioning type, so
-        adjust those below to find the best overall value.
+        adjust those below to find the best overall value. Price above is just
+        for the machine, and not the disk or GPU. Search for <code>cpu:4⌴</code>{" "}
+        and <code>ram:8⌴</code> to only show options with 4 vCPUs and 8GB RAM.
       </div>
     </div>
   );
@@ -1283,9 +1297,13 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       cost,
       memory,
       label: (
-        <div key={acceleratorType}>
-          {displayAcceleratorType(acceleratorType, memory)}{" "}
-          <CostPerHour cost={cost} />
+        <div key={acceleratorType} style={{ display: "flex" }}>
+          <div style={{ flex: 1 }}>
+            {displayAcceleratorType(acceleratorType, memory)}
+          </div>
+          <div style={{ flex: 1 }}>
+            <CostPerHour cost={cost} />
+          </div>
         </div>
       ),
     };
@@ -1328,10 +1346,20 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
         {acceleratorCount && acceleratorType && (
           <div style={{ color: "#666", marginTop: "10px" }}>
             You have selected {acceleratorCount} dedicated{" "}
-            {displayAcceleratorType(acceleratorType)}{" "}
-            {plural(acceleratorCount, "GPU")}, with a total of{" "}
-            {priceData.accelerators[acceleratorType].memory * acceleratorCount}
-            GB RAM.
+            <b>{displayAcceleratorType(acceleratorType)}</b>{" "}
+            {plural(acceleratorCount, "GPU", "GPU's")}, with a total of{" "}
+            <b>
+              {priceData.accelerators[acceleratorType].memory *
+                acceleratorCount}
+              GB RAM
+            </b>
+            .{" "}
+            {acceleratorCount > 1 && (
+              <>
+                The {acceleratorCount} GPU's will be available on the same
+                server.
+              </>
+            )}
           </div>
         )}
       </div>
@@ -1868,19 +1896,22 @@ function cheapestZone(costs: { [zone: string]: number }): string {
   return choice;
 }
 
-function CostPerHour({ cost, extra }: { cost?: number; extra? }) {
+function CostPerHour({
+  cost,
+  extra,
+  style,
+}: {
+  cost?: number;
+  extra?;
+  style?;
+}) {
   if (cost == null) {
     return null;
   }
   return (
-    <div style={{ float: "right", fontFamily: "monospace" }}>
+    <div style={{ fontFamily: "monospace", ...style }}>
       {currency(cost)}/hour
-      {extra ? (
-        <>
-          <br />
-          {extra}
-        </>
-      ) : null}
+      {extra}
     </div>
   );
 }
