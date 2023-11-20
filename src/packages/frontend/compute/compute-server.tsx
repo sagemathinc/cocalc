@@ -1,23 +1,24 @@
 import { Button, Card, Divider, Modal, Popconfirm } from "antd";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import { CSSProperties, useState } from "react";
-import ShowError from "@cocalc/frontend/components/error";
+
 import { Icon } from "@cocalc/frontend/components";
-import Color from "./color";
-import State from "./state";
-import DetailedState from "./detailed-state";
-import getActions from "./action";
-import Cloud from "./cloud";
-import Description from "./description";
-import Title from "./title";
-import Configuration from "./configuration";
-import { deleteServer, undeleteServer } from "./api";
-import { DisplayImage } from "./select-image";
-import { randomColor } from "./color";
-import ComputeServerLog from "./compute-server-log";
-import CurrentCost from "./current-cost";
+import ShowError from "@cocalc/frontend/components/error";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
+import { COLORS } from "@cocalc/util/theme";
+import getActions from "./action";
+import { deleteServer, undeleteServer } from "./api";
+import Cloud from "./cloud";
+import Color, { randomColor } from "./color";
+import ComputeServerLog from "./compute-server-log";
+import Configuration from "./configuration";
+import CurrentCost from "./current-cost";
+import Description from "./description";
+import DetailedState from "./detailed-state";
+import { DisplayImage } from "./select-image";
+import State from "./state";
+import Title from "./title";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -364,50 +365,88 @@ export default function ComputeServer({
         setError={setError}
         style={{ margin: "15px 0" }}
       />
-      {id == null ? (
-        table
-      ) : (
-        <Modal
-          destroyOnClose
-          width={"900px"}
-          onCancel={() => setEdit(false)}
-          open={edit}
-          title={
-            <>
-              {buttons}
-              <Divider />
-              <Icon name="edit" /> Edit Compute Server With Id={id}
-            </>
-          }
-          footer={[buttons]}
-        >
-          <div style={{ fontSize: "12pt", color: "#666", display: "flex" }}>
-            <Description
-              account_id={account_id}
-              cloud={cloud}
-              data={data}
-              configuration={configuration}
-              state={state}
-            />
-            <div style={{ flex: 1 }} />
-            <State
-              style={{ marginRight: "5px" }}
-              state={state}
-              data={data}
-              state_changed={state_changed}
-              editable={editable}
-              id={id}
-              account_id={account_id}
-              configuration={configuration}
-              cost_per_hour={cost_per_hour}
-              purchase_id={purchase_id}
-            />
-          </div>
-          {table}
-        </Modal>
-      )}
+      <ComputeServerEdit
+        id={id}
+        account_id={account_id}
+        buttons={buttons}
+        cloud={cloud}
+        configuration={configuration}
+        cost_per_hour={cost_per_hour}
+        data={data}
+        edit={edit}
+        editable={editable}
+        purchase_id={purchase_id}
+        setEdit={setEdit}
+        state_changed={state_changed}
+        state={state}
+        table={table}
+      />
     </Card>
   );
+}
+
+function ComputeServerEdit({
+  account_id,
+  buttons,
+  cloud,
+  configuration,
+  cost_per_hour,
+  data,
+  edit,
+  editable,
+  id,
+  purchase_id,
+  setEdit,
+  state_changed,
+  state,
+  table,
+}) {
+  if (id == null) {
+    return table;
+  } else {
+    return (
+      <Modal
+        open={edit}
+        destroyOnClose
+        width={"900px"}
+        onCancel={() => setEdit(false)}
+        title={
+          <>
+            {buttons}
+            <Divider />
+            <Icon name="edit" /> Edit Compute Server With Id={id}
+          </>
+        }
+        footer={[buttons]}
+      >
+        <div
+          style={{ fontSize: "12pt", color: COLORS.GRAY_M, display: "flex" }}
+        >
+          <Description
+            account_id={account_id}
+            cloud={cloud}
+            data={data}
+            configuration={configuration}
+            state={state}
+          />
+          <div style={{ flex: 1 }} />
+          <State
+            style={{ marginRight: "5px" }}
+            state={state}
+            data={data}
+            state_changed={state_changed}
+            editable={editable}
+            id={id}
+            account_id={account_id}
+            configuration={configuration}
+            cost_per_hour={cost_per_hour}
+            purchase_id={purchase_id}
+          />
+        </div>
+        {table}
+      </Modal>
+    );
+  }
 }
 
 function BackendError({ error, id, project_id }) {
