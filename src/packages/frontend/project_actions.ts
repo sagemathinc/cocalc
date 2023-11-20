@@ -629,7 +629,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   public setFlyoutActiveMode(mode: FlyoutActiveMode): void {
     this.setState({ flyout_active_mode: mode });
-    storeFlyoutState(this.project_id, "files", { active: mode });
+    storeFlyoutState(this.project_id, "active", { active: mode });
   }
 
   add_a_ghost_file_tab(): void {

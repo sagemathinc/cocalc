@@ -16,12 +16,17 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Text } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handle_log_click } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
-import { strictMod, tab_to_path, unreachable } from "@cocalc/util/misc";
-import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
+import {
+  path_split,
+  strictMod,
+  tab_to_path,
+  unreachable,
+} from "@cocalc/util/misc";
+import { FileListItem } from "./file-list-item";
 import {
   FlyoutActiveMode,
   getFlyoutActiveMode,
@@ -30,38 +35,25 @@ import {
 
 interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
-  flyoutWidth: number;
 }
 
-export function ActiveFlyout({ wrap, flyoutWidth }: Props): JSX.Element {
+export function ActiveFlyout({ wrap }: Props): JSX.Element {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
-  const mode: FlyoutActiveMode = useTypedRedux(
-    { project_id },
-    "flyout_active_mode",
-  );
 
-  useEffect(() => {
-    if (mode == null) {
-      actions?.setFlyoutActiveMode(getFlyoutActiveMode(project_id));
-    }
-  }, [mode]);
+  const [mode, setActiveMode] = useState<FlyoutActiveMode>(
+    getFlyoutActiveMode(project_id),
+  );
 
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   //   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-  //   const virtuosoScroll = useVirtuosoScrollHook({
-  //     cacheId: `${project_id}::flyout::log`,
-  //   });
-  //   const virtuosoRef = useRef<VirtuosoHandle>(null);
-
   const [filterTerm, setFilterTerm] = useState<string>("");
-
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
-  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
 
   function setMode(mode: FlyoutActiveMode) {
     if (isFlyoutActiveMode(mode)) {
+      setActiveMode(mode);
       actions?.setFlyoutActiveMode(mode);
     } else {
       console.warn(`Invalid flyout log mode: ${mode}`);
@@ -69,6 +61,18 @@ export function ActiveFlyout({ wrap, flyoutWidth }: Props): JSX.Element {
   }
 
   useEffect(() => actions?.setFlyoutActiveMode(mode), [mode]);
+
+  const openFilesGrouped = useMemo(() => {
+    // group openFiles, an array of strings for path/filename, by directory or type (file extension)
+    const grouped: { [group: string]: string[] } = {};
+    openFiles.forEach((path) => {
+      const { head, tail } = path_split(path);
+      const group = mode === "directory" ? head : tail.split(".")[1] ?? "";
+      if (grouped[group] == null) grouped[group] = [];
+      grouped[group].push(path);
+    });
+    return grouped;
+  }, [openFiles, mode]);
 
   function renderConfiguration() {
     return (
@@ -87,101 +91,57 @@ export function ActiveFlyout({ wrap, flyoutWidth }: Props): JSX.Element {
     return tab_to_path(activeTab);
   }, [activeTab]);
 
-  const groups = useMemo(() => {
-    switch (mode) {
-      case "directory":
-        return "directory";
-      case "type":
-        return "type";
-      default:
-        unreachable(mode);
-    }
-  }, [mode]);
-
-  const showExtra = useMemo(
-    () => flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
-    [flyoutWidth],
-  );
-
-  console.log({ activePath, scollIdxHide, actions, showExtra });
-
   // end of hooks
 
-  //   function renderFileItemExtra(entry: OpenedFile) {
-  //     if (!showExtra) return null;
-  //     return "EXTRA " + entry.filename;
-  //   }
+  function renderFileItem(path: string) {
+    const isActive: boolean = activePath === path;
 
-  //   function renderFileItem(index: number, entry: OpenedFile) {
-  //     const time = entry.time;
-  //     // const account_id = entry.account_id;
-  //     const path = entry.filename;
-  //     const isOpened: boolean = openFiles.some((p) => p === path);
-  //     const isActive: boolean = activePath === path;
-
-  //     return (
-  //       <FileListItem
-  //         item={{ name: path, isopen: isOpened, isactive: isActive }}
-  //         extra={renderFileItemExtra(entry)}
-  //         itemStyle={fileItemStyle(time?.getTime())}
-  //         multiline={true}
-  //         selected={!scollIdxHide && index === scrollIdx}
-  //         onClick={(e) => {
-  //           track("open-file", {
-  //             project_id,
-  //             path,
-  //             how: "click-on-active-file-flyout",
-  //           });
-  //           handle_log_click(e, path, project_id);
-  //         }}
-  //         onClose={(e: React.MouseEvent, path: string) => {
-  //           e.stopPropagation();
-  //           actions?.close_tab(path);
-  //         }}
-  //         onMouseDown={(e: React.MouseEvent) => {
-  //           if (e.button === 1) {
-  //             // middle mouse click
-  //             actions?.close_tab(path);
-  //           }
-  //         }}
-  //         tooltip={<>...</>}
-  //       />
-  //     );
-  //   }
-
-  function list(): JSX.Element {
     return (
-      <div>
-        {groups}
-        <br />
-        {openFiles.map((path) => {
-          return <div key={path}>{path}</div>;
-        })}
-      </div>
+      <FileListItem
+        key={path}
+        mode="active"
+        item={{ name: path, isopen: true, isactive: isActive }}
+        multiline={true}
+        onClick={(e) => {
+          track("open-file", {
+            project_id,
+            path,
+            how: "click-on-active-file-flyout",
+          });
+          handle_log_click(e, path, project_id);
+        }}
+        onClose={(e: React.MouseEvent, path: string) => {
+          e.stopPropagation();
+          actions?.close_tab(path);
+        }}
+        onMouseDown={(e: React.MouseEvent) => {
+          if (e.button === 1) {
+            // middle mouse click
+            actions?.close_tab(path);
+          }
+        }}
+        tooltip={
+          <>
+            <Text code>{path}</Text>
+          </>
+        }
+      />
     );
+  }
 
-    // return (
-    //   <Virtuoso
-    //     ref={virtuosoRef}
-    //     style={{}}
-    //     increaseViewportBy={10}
-    //     totalCount={log.length}
-    //     itemContent={(index) => {
-    //       const entry = log[index];
-    //       if (entry == null) {
-    //         // shouldn't happen
-    //         return <div key={index} style={{ height: "1px" }}></div>;
-    //       }
-    //       switch (mode) {
-    //         case "files":
-    //           return renderFileItem(index, entry);
-    //         case "history":
-    //           return renderHistoryItem(index, entry);
-    //       }
-    //     }}
-    //     {...virtuosoScroll}
-    //   />
-    // );
+  function list() {
+    return Object.entries(openFilesGrouped).map(([group, entries]) => {
+      return (
+        <>
+          <div>{group}</div>
+          <div>
+            {entries.map((path) => {
+              return renderFileItem(path);
+            })}
+          </div>
+        </>
+      );
+    });
   }
 
   function doScroll(dx: -1 | 1) {
@@ -190,10 +150,6 @@ export function ActiveFlyout({ wrap, flyoutWidth }: Props): JSX.Element {
       openFiles.size,
     );
     setScrollIdx(nextIdx);
-    // virtuosoRef.current?.scrollToIndex({
-    //   index: nextIdx,
-    //   align: "center",
-    // });
   }
 
   function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
@@ -242,8 +198,6 @@ export function ActiveFlyout({ wrap, flyoutWidth }: Props): JSX.Element {
           setFilterTerm(e.target.value);
         }}
         onKeyDown={onKeyDownHandler}
-        onFocus={() => setScrollIdxHide(false)}
-        onBlur={() => setScrollIdxHide(true)}
         allowClear
         prefix={<Icon name="search" />}
       />

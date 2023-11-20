@@ -255,6 +255,7 @@ export function LogFlyout({
 
     return (
       <FileListItem
+        mode="log"
         item={{ name: path, isopen: isOpened, isactive: isActive }}
         extra={renderFileItemExtra(entry)}
         itemStyle={fileItemStyle(time?.getTime())}

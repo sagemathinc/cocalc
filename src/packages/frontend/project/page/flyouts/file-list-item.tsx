@@ -118,6 +118,7 @@ interface FileListItemProps {
   index?: number;
   item: Item;
   itemStyle?: CSS;
+  mode: "files" | "log" | "active";
   multiline?: boolean;
   onChecked?: (state: boolean) => void;
   onClick?: (e?: React.MouseEvent) => void;
@@ -138,6 +139,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     index,
     item,
     itemStyle,
+    mode,
     multiline = false,
     onChecked,
     onClick,
@@ -455,6 +457,19 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     return ctx;
   }
 
+  // if we render this within the "active files flyout", we do not add style
+  // because all those files are opened
+  const activeStyle: CSS =
+    mode === "active"
+      ? item.isactive
+        ? FILE_ITEM_ACTIVE_STYLE
+        : {}
+      : item.isopen
+      ? item.isactive
+        ? FILE_ITEM_ACTIVE_STYLE
+        : FILE_ITEM_OPENED_STYLE
+      : {};
+
   return (
     <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>
       <div
@@ -463,11 +478,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         onMouseLeave={handleMouseLeave}
         style={{
           ...FILE_ITEM_LINE_STYLE,
-          ...(item.isopen
-            ? item.isactive
-              ? FILE_ITEM_ACTIVE_STYLE
-              : FILE_ITEM_OPENED_STYLE
-            : {}),
+          ...activeStyle,
           ...itemStyle,
           ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
         }}

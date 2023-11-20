@@ -95,6 +95,10 @@ export function storeFlyoutState(
     current.settings = keys;
   }
 
+  if (flyout === "active" && isFlyoutActiveMode(state.active)) {
+    current.active = state.active;
+  }
+
   LS.set(key, current);
 }
 
