@@ -85,15 +85,7 @@ export function useAntdStyleProvider() {
     ? undefined
     : { borderRadius: 0, borderRadiusLG: 0, borderRadiusSM: 0 };
 
-  const animationStyle = animate
-    ? undefined
-    : {
-        motionDurationMid: "0s",
-        motionDurationSlow: "0s",
-        motionEaseInOut: "none",
-        motionEaseInQuint: "none",
-        motionEaseOutQuint: "none",
-      };
+  const animationStyle = animate ? undefined : { motion: false };
 
   const brandedColors = branded
     ? { colorPrimary: COLORS.COCALC_BLUE }
