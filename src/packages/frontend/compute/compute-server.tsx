@@ -269,7 +269,6 @@ export default function ComputeServer({
                 id={id}
                 style={{ marginLeft: "-15px" }}
                 title={title}
-                color={color}
               />
             )}
             {id != null && (
@@ -370,7 +369,6 @@ export default function ComputeServer({
       ) : (
         <Modal
           destroyOnClose
-          maskStyle={{ background: color, opacity: 0.5 }}
           width={"900px"}
           onCancel={() => setEdit(false)}
           open={edit}

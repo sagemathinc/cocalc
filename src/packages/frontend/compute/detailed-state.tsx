@@ -128,7 +128,11 @@ function State({
         size="small"
         compute_server_id={id}
         project_id={project_id}
-        syncing={progress < 100}
+        time={time}
+        syncing={
+          progress <
+          80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
+        }
         style={{ marginTop: "3px" }}
       />
     );
@@ -174,7 +178,6 @@ function State({
               style={{
                 flex: 1,
                 textAlign: "center",
-                overflow: "scroll",
                 height: "30px",
               }}
             >

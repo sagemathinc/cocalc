@@ -32,11 +32,15 @@ export default function ExcludeFromSync({
       <Tooltip
         title={
           <>
-            List of top level subdirectories to exclude from sync. Files you
+            List of subdirectories of HOME to exclude from sync. Files you
             change or create on the compute server in these directories will not
-            be saved back to the project. Disk IO in these directories is VERY
-            fast, and you can use all available space. NOTE: Top level hidden
-            folders are never synced.
+            be saved back to the project when you click the Sync button. Disk IO
+            in these directories is{" "}
+            <b>
+              <i>VERY fast</i>
+            </b>
+            , and you can use all available disk space. NOTE: Top level hidden
+            folders are always excluded from sync.
           </>
         }
       >
@@ -60,7 +64,7 @@ export default function ExcludeFromSync({
         tokenSeparators={["/", " ", "|"]}
         mode="tags"
         style={{ width: "100%", marginTop: "5px" }}
-        placeholder="Directories to Exclude from Sync..."
+        placeholder="Type a directory name then hit enter..."
         onChange={(value) => {
           setValue(value);
           setConfig({ excludeFromSync: value ?? [] });

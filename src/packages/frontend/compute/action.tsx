@@ -144,7 +144,7 @@ function ActionButton({
           const version = await api.version();
           if (version < required) {
             setError(
-              "You must restart your project to upgrade it to the latest version of CoCalc.",
+              "You must restart your project to upgrade it to the latest version.",
             );
             return;
           }

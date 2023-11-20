@@ -68,8 +68,8 @@ const openai_enabled = (conf) => to_bool(conf.openai_enabled);
 const compute_servers_enabled = (conf) => to_bool(conf.compute_servers_enabled);
 const compute_servers_google_enabled = (conf) =>
   to_bool(conf["compute_servers_google-cloud_enabled"]);
-const compute_servers_lambda_enabled = (conf) =>
-  to_bool(conf["compute_servers_lambda-cloud_enabled"]);
+// const compute_servers_lambda_enabled = (conf) =>
+//   to_bool(conf["compute_servers_lambda-cloud_enabled"]);
 
 const neural_search_enabled = (conf) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);
@@ -128,7 +128,7 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_price_project_upgrades"
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
-  | "lambda_cloud_api_key"
+  //  | "lambda_cloud_api_key"
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
   | "compute_servers_cloudflare_api_key"
@@ -528,13 +528,13 @@ export const EXTRAS: SettingsExtras = {
     to_val: toFloat,
     valid: onlyNonnegFloat,
   },
-  lambda_cloud_api_key: {
-    name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
-    desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.  WARNING: Lambda Cloud integration is not yet useful for anything.",
-    default: "",
-    password: true,
-    show: compute_servers_lambda_enabled,
-  },
+  //   lambda_cloud_api_key: {
+  //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
+  //     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.  WARNING: Lambda Cloud integration is not yet useful for anything.",
+  //     default: "",
+  //     password: true,
+  //     show: compute_servers_lambda_enabled,
+  //   },
   //   coreweave_kubeconfig: {
   //     name: "Compute Servers: CoreWeave - Kubeconfig File (not implemented)",
   //     desc: "Your [CoreWeave](https://cloud.coreweave.com/) KubeConfig from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
@@ -549,7 +549,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     multiline: 5,
     password: true,
-    show: compute_servers_enabled,
+    show: compute_servers_google_enabled,
   },
   google_cloud_compute_servers_prefix: {
     name: "Compute Servers: Google Cloud - Resource Prefix",
@@ -564,9 +564,7 @@ export const EXTRAS: SettingsExtras = {
     desc: 'A CloudFlare [API Token](https://dash.cloudflare.com/profile/api-tokens) that has the "Edit zone DNS" capability for the domain that you set as "Compute Servers: Domain name" above.  This is used for custom subdomains, i.e., so users can make a compute server and connect to it at https://custom.cocalc.io (say).',
     default: "",
     password: true,
-    show: (conf) =>
-      to_bool(conf.compute_servers_enabled) &&
-      to_bool(conf.compute_servers_dns_enabled),
+    show: (conf) => to_bool(conf.compute_servers_dns_enabled),
   },
   //   fluidstack_api_key: {
   //     name: "Compute Servers: FluidStack - API Key (not implemented)",

@@ -17,6 +17,7 @@ interface Props {
   style?;
   titleOnly?: boolean;
   prompt?: boolean;
+  computeServer?; // immutable js object from store, if known
 }
 
 export default function ComputeServer({
@@ -26,12 +27,24 @@ export default function ComputeServer({
   style,
   titleOnly,
   prompt,
+  computeServer,
 }: Props) {
   const [server, setServer] = useState<null | {
     title: string;
     color: string;
-  }>(null);
+  }>(
+    computeServer != null
+      ? { title: computeServer.get("title"), color: computeServer.get("color") }
+      : null,
+  );
   useEffect(() => {
+    if (computeServer != null) {
+      setServer({
+        title: computeServer.get("title"),
+        color: computeServer.get("color"),
+      });
+      return;
+    }
     if (!id) {
       setServer({ title: "The Project", color: "#666" });
       return;
@@ -47,7 +60,7 @@ export default function ComputeServer({
         });
       }
     })();
-  }, [id]);
+  }, [id, computeServer]);
 
   if (colorOnly) {
     return (

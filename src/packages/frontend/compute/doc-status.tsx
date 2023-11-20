@@ -44,8 +44,19 @@ export default function ComputeServerTransition({
     return null;
   }
 
+  const requestedServer = computeServers.get(`${requestedId}`);
+
   const topBar = (progress) => (
-    <div style={{ display: "flex" }}>
+    <div
+      style={{
+        display: "flex",
+        borderBottom:
+          requestedServer != null && !showDetails
+            ? `1px solid ${requestedServer.get("color")}`
+            : undefined,
+        height: "19px",
+      }}
+    >
       {progress == 100 && (
         <SyncButton
           style={{ marginTop: "-3px" }}
@@ -53,6 +64,20 @@ export default function ComputeServerTransition({
           type="text"
           compute_server_id={id}
           project_id={project_id}
+          time={requestedServer?.getIn([
+            "detailed_state",
+            "filesystem-sync",
+            "time",
+          ])}
+          syncing={
+            requestedServer?.get("state") == "running" &&
+            (requestedServer?.getIn([
+              "detailed_state",
+              "filesystem-sync",
+              "progress",
+            ]) ?? 100) <
+              80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
+          }
         >
           Sync Files
         </SyncButton>
@@ -62,7 +87,7 @@ export default function ComputeServerTransition({
         title={
           <>
             {progress == 100 ? "Running on " : "Moving to "}{" "}
-            <Inline id={requestedId} />.
+            <Inline id={requestedId} computeServer={requestedServer} />.
           </>
         }
       >
@@ -75,6 +100,7 @@ export default function ComputeServerTransition({
         >
           <div style={{ marginRight: "5px", flex: 1 }}>
             <Inline
+              computeServer={requestedServer}
               colorOnly
               id={requestedId}
               style={{

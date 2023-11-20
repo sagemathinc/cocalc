@@ -46,7 +46,7 @@ async function main() {
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
       unionfs,
       exclude: ["scratch", "tmp"],
-      readTrackingPath: process.env.READ_TRACKING_PATH,
+      readTrackingFile: process.env.READ_TRACKING_FILE,
       exclude: [".*"].concat(
         EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
       ),

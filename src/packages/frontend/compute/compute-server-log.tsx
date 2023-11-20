@@ -17,7 +17,6 @@ export default function ComputeServerLog({
   id,
   style,
   title = "",
-  color = "#888",
 }: {
   id: number;
   style?;
@@ -43,7 +42,6 @@ export default function ComputeServerLog({
         <Icon name="history" /> Log
       </Button>
       <Modal
-        maskStyle={{ background: color, opacity: 0.5 }}
         width={800}
         title={
           <>

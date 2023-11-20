@@ -5,6 +5,8 @@
 
 import { Table } from "./types";
 import { ID } from "./crm";
+import { NOTES } from "./crm";
+import { SCHEMA as schema } from "./index";
 
 // These are just fallbacks in case something is wrong with the image configuration.
 export const STANDARD_DISK_SIZE = 20;
@@ -122,11 +124,21 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
   },
-  colab: {
+  "colab-gpu": {
     label: "Google Colab",
     docker: `${DOCKER_USER}/compute-colab`,
     minDiskSizeGb: 35,
     gpu: true,
+    icon: "google",
+    url: "https://github.com/googlecolab",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
+  },
+  colab: {
+    label: "Google Colab",
+    docker: `${DOCKER_USER}/compute-colab`,
+    minDiskSizeGb: 35,
+    gpu: false,
     icon: "google",
     url: "https://github.com/googlecolab",
     source:
@@ -362,7 +374,11 @@ export function getMinDiskSizeGb(configuration) {
   }
 }
 
-const DEFAULT_EXCLUDE_FROM_SYNC = ["scratch"] as const;
+// I think it could be very confusing to have anything
+// here by default, since most people won't even know
+// about excludes, and will just think sync is broken
+// if a random default folder is excluded!
+const DEFAULT_EXCLUDE_FROM_SYNC = [] as const;
 
 const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {
@@ -709,6 +725,7 @@ Table({
     project_id: {
       type: "uuid",
       desc: "The project id that this compute server provides compute for.",
+      render: { type: "project_link" },
     },
     api_key: {
       type: "string",
@@ -797,30 +814,36 @@ Table({
       pg_type: "jsonb",
       desc: "Map from component name to something like {state:'running',time:Date.now()}, e.g., {vm: {state:'running', time:393939938484}}, filesystem: {state:'updating', time:939398484892}, uptime:{state:'22:56:33 up 3 days,  9:28,  0 users,  load average: 0.93, 0.73, 0.56', time:?}}.  This is used to provide users with insight into what's currently happening on their compute server.",
     },
+    notes: NOTES,
   },
 });
 
-// Table({
-//   name: "compute_server_log",
-//   rules: {
-//     primary_key: ["compute_server_id", "event", "time"],
-//   },
-//   fields: {
-//     compute_server_id: {
-//       type: "number",
-//       desc: "id of the compute server",
-//     },
-//     time: {
-//       type: "timestamp",
-//       desc: "When the event was logged",
-//     },
-//     type: {
-//       type: "string",
-//       desc: "The event type",
-//     },
-//     data: {
-//       pg_type: "jsonb",
-//       desc: "amount of data transfer out during this interval in GiB",
-//     },
-//   },
-// });
+Table({
+  name: "crm_compute_servers",
+  fields: schema.compute_servers.fields,
+  rules: {
+    primary_key: schema.compute_servers.primary_key,
+    virtual: "compute_servers",
+    user_query: {
+      get: {
+        admin: true, // only admins can do get queries on this table
+        // (without this, users who have read access could read)
+        pg_where: [],
+        fields: {
+          ...schema.compute_servers.user_query?.get?.fields,
+          notes: null,
+        },
+      },
+      set: {
+        admin: true,
+        fields: {
+          id: true,
+          title: true,
+          color: true,
+          deleted: true,
+          notes: true,
+        },
+      },
+    },
+  },
+});

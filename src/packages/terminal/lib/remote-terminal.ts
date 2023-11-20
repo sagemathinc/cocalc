@@ -20,6 +20,10 @@ import type { Channel } from "@cocalc/comm/websocket/types";
 import { readlink, realpath } from "node:fs/promises";
 import { EventEmitter } from "events";
 import { getRemotePtyChannelName } from "./util";
+import { REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS } from "./terminal";
+
+// NOTE:  shorter than terminal.ts. This is like "2000 lines."
+const MAX_HISTORY_LENGTH = 100 * 2000;
 
 const logger = getLogger("terminal:remote");
 
@@ -36,6 +40,9 @@ export class RemoteTerminal extends EventEmitter {
   private options?: Options;
   private size?: { rows: number; cols: number };
   private computeServerId?: number;
+  private history: string = "";
+  private lastData: number = 0;
+  private healthCheckInterval;
 
   constructor(
     websocket,
@@ -52,37 +59,57 @@ export class RemoteTerminal extends EventEmitter {
     this.env = env;
     logger.debug("create ", { cwd });
     this.connect();
+    this.healthChecks();
   }
+
+  private healthChecks = () => {
+    this.healthCheckInterval = setInterval(() => {
+      if (
+        Date.now() - this.lastData >=
+          REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000 &&
+        this.websocket.state == "online"
+      ) {
+        logger.debug("websocket online but no heartbeat so reconnecting");
+        this.reconnect();
+      }
+    }, REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000);
+  };
+
+  private reconnect = () => {
+    logger.debug("reconnect");
+    this.conn.removeAllListeners();
+    this.conn.end();
+    this.connect();
+  };
 
   private connect = () => {
     if (this.state == "closed") {
       return;
     }
     const name = getRemotePtyChannelName(this.path);
-    logger.debug("connect to channel", name);
+    logger.debug("connect: channel=", name);
     this.conn = this.websocket.channel(name);
     if (this.computeServerId != null) {
+      logger.debug("connect: sending id", this.computeServerId);
       this.conn.write({ cmd: "setComputeServerId", id: this.computeServerId });
     }
     this.conn.on("data", async (data) => {
+      // logger.debug("channel: data", data);
       try {
         await this.handleData(data);
       } catch (err) {
         logger.debug("error handling data -- ", err);
       }
     });
+    this.conn.on("end", async () => {
+      logger.debug("channel: closed");
+    });
     this.conn.on("close", async () => {
-      logger.debug("conn closed");
-      this.conn.removeAllListeners();
-      this.connect();
+      logger.debug("channel: closed");
+      this.reconnect();
     });
     this.websocket.on("state", (state) => {
-      if (state == "online") {
-        logger.debug("websocket online");
-        this.conn.removeAllListeners();
-        this.conn.end();
-        this.connect();
-      }
+      logger.debug("websocket: state=", state);
     });
   };
 
@@ -91,10 +118,14 @@ export class RemoteTerminal extends EventEmitter {
     this.emit("closed");
     this.removeAllListeners();
     this.conn.end();
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
   };
 
   private handleData = async (data) => {
     if (this.state == "closed") return;
+    this.lastData = Date.now();
     if (typeof data == "string") {
       if (this.localPty != null) {
         this.localPty.write(data);
@@ -106,6 +137,8 @@ export class RemoteTerminal extends EventEmitter {
           this.options = data.options;
           this.size = data.size;
           await this.initLocalPty();
+          logger.debug("sending history of length", this.history.length);
+          this.conn.write(this.history);
           break;
 
         case "size":
@@ -116,6 +149,10 @@ export class RemoteTerminal extends EventEmitter {
 
         case "cwd":
           await this.sendCurrentWorkingDirectoryLocalPty();
+          break;
+
+        case undefined:
+          // logger.debug("received empty data (heartbeat)");
           break;
       }
     }
@@ -160,6 +197,13 @@ export class RemoteTerminal extends EventEmitter {
 
     localPty.onData((data) => {
       this.conn.write(data);
+
+      this.history += data;
+      const n = this.history.length;
+      if (n >= MAX_HISTORY_LENGTH) {
+        logger.debug("terminal data -- truncating");
+        this.history = this.history.slice(n - MAX_HISTORY_LENGTH / 2);
+      }
     });
 
     // set the prompt to show the remote hostname explicitly,

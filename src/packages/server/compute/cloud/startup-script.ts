@@ -17,10 +17,10 @@ import {
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
 // the user reboots the VM in some way, so they get the latest
-// startup script (with newest ssh keys, etc.) on startup.
+// cocalc startup script (with newest ssh keys, etc.) on startup.
 export async function startupScriptViaApi({ compute_server_id, api_key }) {
   const apiServer = await getApiServer();
-  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash`;
+  return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
 }
 
 async function getApiServer() {
@@ -140,6 +140,22 @@ mkdir -p /root/.ssh
 cat /cocalc/conf/authorized_keys > /root/.ssh/authorized_keys
 `;
 }
+
+// This causes trouble -- breaks everything.  So maybe it's just part of instructions
+// or something else.  Think harder.
+// /*
+// Allowing user to bind to any port (esp 443) makes sense for our security model where
+// user can be root without a password via sudo.
+
+// See https://superuser.com/questions/710253/allow-non-root-process-to-bind-to-port-80-and-443
+// */
+// function allowAnyPort() {
+//   return `
+// # Allow user to bind to any port:
+// echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-unprivileged-ports.conf
+// sysctl --system
+// `;
+// }
 
 // TODO: add tag for image to impose sanity...
 // TODO: we could set the hostname in a more useful way!

@@ -187,10 +187,7 @@ export class JupyterActions extends JupyterActions0 {
       this.handle_ipywidgets_state_change.bind(this),
     );
 
-    this.syncdb.on(
-      "cursor_activity",
-      this.checkForComputeServerStateChange,
-    );
+    this.syncdb.on("cursor_activity", this.checkForComputeServerStateChange);
 
     // initialize the websocket api
     this.initWebsocketApi();
@@ -331,9 +328,15 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.ipywidgets_state.clear();
 
     if (this.jupyter_kernel == null) {
-      // to satisfy compiler.
+      // to satisfy typescript.
       throw Error("jupyter_kernel must be defined");
     }
+
+    // save so gets reported to frontend, and surfaced to user:
+    // https://github.com/sagemathinc/cocalc/issues/4847
+    this.jupyter_kernel.on("kernel_error", (error) => {
+      this.set_kernel_error(error);
+    });
 
     // Since we just made a new kernel, clearly no cells are running on the backend.
     this._running_cells = {};
@@ -358,7 +361,18 @@ export class JupyterActions extends JupyterActions0 {
     // There's a good argument that recording these is useful though, so when
     // looking at time travel or debugging, you know what was going on.
     this.jupyter_kernel.on("state", (state) => {
+      dbg("jupyter_kernel state --> ", state);
       switch (state) {
+        case "off":
+        case "closed":
+          // things went wrong.
+          this._running_cells = {};
+          this.clear_all_cell_run_state();
+          this.set_backend_state("ready");
+          this.jupyter_kernel?.close();
+          this.running_manager_run_cell_process_queue = false;
+          delete this.jupyter_kernel;
+          return;
         case "spawning":
         case "starting":
           this.set_connection_file(); // yes, fall through
@@ -368,9 +382,6 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     this.jupyter_kernel.on("execution_state", this.set_kernel_state);
-    // save so gets reported to frontend, and surfaced to user:
-    // https://github.com/sagemathinc/cocalc/issues/4847
-    this.jupyter_kernel.on("kernel_error", this.set_kernel_error);
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
@@ -381,14 +392,6 @@ export class JupyterActions extends JupyterActions0 {
     this._set({
       type: "settings",
       connection_file,
-    });
-  };
-
-  set_kernel_error = (err) => {
-    if (!this.isCellRunner()) return;
-    this._set({
-      type: "settings",
-      kernel_error: `${err}`,
     });
   };
 

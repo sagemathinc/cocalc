@@ -1167,6 +1167,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_all_cell_run_state = (): void => {
+    if (!this.store) return;
     this.store.get_cell_list().forEach((id) => {
       this.clear_cell_run_state(id, false);
     });
@@ -2684,6 +2685,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
   protected isCellRunner = (): boolean => {
     return false;
+  };
+
+  set_kernel_error = (err) => {
+    // anybody can *clear* error, but only cell runner can set it, since
+    // only they should know.
+    if (err && !this.isCellRunner()) {
+      return;
+    }
+    this._set({
+      type: "settings",
+      kernel_error: `${err}`,
+    });
+    this.save_asap();
   };
 }
 

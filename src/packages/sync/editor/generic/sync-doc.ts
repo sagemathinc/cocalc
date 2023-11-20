@@ -2852,7 +2852,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     const dbg = this.dbg("handle_patch_update");
-    dbg(changed_keys);
+    //dbg(changed_keys);
     if (this.patch_update_queue == null) {
       this.patch_update_queue = [];
     }
@@ -2886,7 +2886,7 @@ export class SyncDoc extends EventEmitter {
             // create ourselves.
             if (t && !this.my_patches[`${t.valueOf()}`]) {
               const p = this.process_patch(x);
-              dbg(`patch=${JSON.stringify(p)}`);
+              //dbg(`patch=${JSON.stringify(p)}`);
               if (p != null) {
                 v.push(p);
               }
