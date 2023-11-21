@@ -242,10 +242,24 @@ export async function handleComputeServerSyncRegister(
   { compute_server_id },
   spark,
 ) {
-  log("handleComputeServerSyncRegister -- registering ", { compute_server_id });
+  log("handleComputeServerSyncRegister -- registering ", { compute_server_id, spark_id: spark.id });
   // save the connection so we can send a sync_request
   // message later.
   sparks[compute_server_id] = spark;
+  const remove = () => {
+    if (sparks[compute_server_id]?.id == spark.id) {
+      log(
+        "handleComputeServerSyncRegister: removing compute server connection due to disconnect -- ",
+        { compute_server_id, spark_id: spark.id },
+      );
+      // the spark connection currently cached is this
+      // one, so we remove it. It could be replaced by
+      // a new one, in which case we better not remove it.
+      delete sparks[compute_server_id];
+    }
+  };
+  spark.on("end", remove);
+  spark.on("close", remove);
 }
 
 // User has requested that compute_server_id

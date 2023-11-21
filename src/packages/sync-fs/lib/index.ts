@@ -180,6 +180,7 @@ class SyncFS {
       log("unmountExcludes fail -- ", err);
     }
     this.websocket?.removeListener("data", this.handleSyncRequest);
+    this.websocket?.removeListener("state", this.registerToSync);
   };
 
   // The sync api listens on the project websocket for requests
@@ -192,9 +193,16 @@ class SyncFS {
     );
     this.websocket.on("data", this.handleSyncRequest);
     log("initSyncRequestHandler: installed handler");
+    this.registerToSync();
+    this.websocket.on("state", this.registerToSync);
+  };
+
+  private registerToSync = async (state = "online") => {
+    if (state != "online") return;
+    log("registerToSync: registering");
     const api = await this.client.project_client.api(this.project_id);
     await api.computeServerSyncRegister(this.compute_server_id);
-    log("initSyncRequestHandler: registered");
+    log("registerToSync: registered");
   };
 
   private handleSyncRequest = async (data) => {
