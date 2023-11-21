@@ -18,7 +18,7 @@ import {
   useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon } from "@cocalc/frontend/components";
+import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -35,6 +35,7 @@ import {
   filename_extension,
   hexColorToRGBA,
   human_readable_size,
+  path_split,
   path_to_file,
   plural,
   separate_file_extension,
@@ -113,8 +114,10 @@ interface Item {
 interface FileListItemProps {
   // we only set this from the "files" flyout, not "log", since in the log you can't select multiple files
   checked_files?: immutable.Set<string>;
+  displayedNameOverride?: string; // override the name
   extra?: JSX.Element | string | null; // null means don't show anything
   extra2?: JSX.Element | string | null; // null means don't show anything
+  iconNameOverride?: IconName;
   index?: number;
   item: Item;
   itemStyle?: CSS;
@@ -128,14 +131,17 @@ interface FileListItemProps {
   selected?: boolean;
   setShowCheckboxIndex?: (index: number | null) => void;
   showCheckbox?: boolean;
+  style?: CSS;
   tooltip?: JSX.Element | string;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const {
     checked_files,
+    displayedNameOverride,
     extra,
     extra2,
+    iconNameOverride,
     index,
     item,
     itemStyle,
@@ -149,6 +155,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     selected,
     setShowCheckboxIndex,
     showCheckbox,
+    style,
     tooltip,
   } = props;
   const { project_id } = useProjectContext();
@@ -194,9 +201,11 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderName(): JSX.Element {
-    const { name, ext } = item.isdir
-      ? { name: item.name, ext: "" }
-      : separate_file_extension(item.name);
+    const name = displayedNameOverride ?? item.name;
+    const path = mode === "active" ? path_split(name).tail : name;
+    const { name: basename, ext } = item.isdir
+      ? { name: path, ext: "" }
+      : separate_file_extension(path);
     return (
       <div
         ref={itemRef}
@@ -206,7 +215,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           ...(multiline ? { whiteSpace: "normal" } : {}),
         }}
       >
-        {name}
+        {basename}
         {ext === "" ? undefined : (
           <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
             {`.${ext}`}
@@ -233,13 +242,14 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
   function renderBodyLeft(): JSX.Element {
     const iconName =
-      selectable && showCheckbox && item.name !== ".."
+      iconNameOverride ??
+      (selectable && showCheckbox && item.name !== ".."
         ? selected
           ? "check-square"
           : "square"
         : item.isdir
         ? "folder-open"
-        : file_options(item.name)?.icon ?? "file";
+        : file_options(item.name)?.icon ?? "file");
 
     return (
       <Icon
@@ -473,6 +483,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   return (
     <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>
       <div
+        key={item.name}
         className="cc-project-flyout-file-item"
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}
@@ -480,6 +491,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           ...FILE_ITEM_LINE_STYLE,
           ...activeStyle,
           ...itemStyle,
+          ...style,
           ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
         }}
       >
@@ -504,7 +516,11 @@ export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
     col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
   }
   return {
-    borderLeft: `${BORDER_WIDTH_PX} solid ${col}`,
+    ...fileItemLeftBorder(col),
     ...(masked ? { color: COLORS.GRAY_L } : {}),
   };
+}
+
+export function fileItemLeftBorder(col) {
+  return { borderLeft: `${BORDER_WIDTH_PX} solid ${col}` };
 }

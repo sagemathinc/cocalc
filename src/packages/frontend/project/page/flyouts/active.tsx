@@ -16,22 +16,27 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Text } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handle_log_click } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import {
+  getRandomColor,
   path_split,
+  search_match,
+  search_split,
   strictMod,
   tab_to_path,
-  unreachable,
 } from "@cocalc/util/misc";
-import { FileListItem } from "./file-list-item";
+import { COLORS } from "@cocalc/util/theme";
+import { FLYOUT_PADDING } from "./consts";
+import { FileListItem, fileItemLeftBorder } from "./file-list-item";
 import {
   FlyoutActiveMode,
   getFlyoutActiveMode,
   isFlyoutActiveMode,
 } from "./state";
+import { sortBy } from "lodash";
 
 interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
@@ -63,16 +68,28 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
   useEffect(() => actions?.setFlyoutActiveMode(mode), [mode]);
 
   const openFilesGrouped = useMemo(() => {
-    // group openFiles, an array of strings for path/filename, by directory or type (file extension)
+    const searchWords = search_split(filterTerm.trim().toLowerCase());
+    const files = openFiles.filter((path) => {
+      if (filterTerm === "") return true;
+      if (searchWords.length === 0) return true;
+      const { tail } = path_split(path);
+      return search_match(tail, searchWords);
+    });
+
+    if (mode === "tabs") {
+      return files;
+    }
+
+    // group files, an array of strings for path/filename, by directory or type (file extension)
     const grouped: { [group: string]: string[] } = {};
-    openFiles.forEach((path) => {
+    files.forEach((path) => {
       const { head, tail } = path_split(path);
       const group = mode === "directory" ? head : tail.split(".")[1] ?? "";
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
     return grouped;
-  }, [openFiles, mode]);
+  }, [openFiles, mode, filterTerm]);
 
   function renderConfiguration() {
     return (
@@ -83,6 +100,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
       >
         <Radio.Button value="directory">Directory</Radio.Button>
         <Radio.Button value="type">Type</Radio.Button>
+        <Radio.Button value="tabs">Tabs</Radio.Button>
       </Radio.Group>
     );
   }
@@ -93,14 +111,16 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
   // end of hooks
 
-  function renderFileItem(path: string) {
+  function renderFileItem(path: string, group?: string) {
     const isActive: boolean = activePath === path;
+    const style = group != null ? randomLeftBorder(group) : undefined;
 
     return (
       <FileListItem
         key={path}
         mode="active"
         item={{ name: path, isopen: true, isactive: isActive }}
+        style={style}
         multiline={true}
         onClick={(e) => {
           track("open-file", {
@@ -121,27 +141,43 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
           }
         }}
         tooltip={
-          <>
-            <Text code>{path}</Text>
-          </>
+          <span style={{ color: COLORS.GRAY_LLL, fontFamily: "monospace" }}>
+            {path}
+          </span>
         }
       />
     );
   }
 
-  function list() {
-    return Object.entries(openFilesGrouped).map(([group, entries]) => {
+  function renderGroups(): JSX.Element {
+    // flat, same ordering as file tabs
+    if (mode === "tabs") {
       return (
-        <>
-          <div>{group}</div>
-          <div>
-            {entries.map((path) => {
-              return renderFileItem(path);
-            })}
-          </div>
-        </>
+        <div>
+          {openFiles.map((path) => {
+            return renderFileItem(path);
+          })}
+        </div>
       );
-    });
+    }
+
+    const groups: JSX.Element[] = [];
+    const groupKeys = sortBy(Object.keys(openFilesGrouped), (group) =>
+      group.toLowerCase(),
+    );
+
+    for (const group in groupKeys) {
+      groups.push(<Group group={group} mode={mode} />);
+
+      const filenames = sortBy(openFilesGrouped[group], (path) =>
+        path.toLowerCase(),
+      );
+      for (const path of filenames) {
+        groups.push(renderFileItem(path, group));
+      }
+    }
+
+    return <div>{groups}</div>;
   }
 
   function doScroll(dx: -1 | 1) {
@@ -182,7 +218,8 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
     // if esc key is pressed, empty the search term and reset scroll index
     if (e.key === "Escape") {
-      //   handleOnChange("");
+      setScrollIdx(null);
+      setFilterTerm("");
     }
   }
 
@@ -201,7 +238,81 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
         allowClear
         prefix={<Icon name="search" />}
       />
-      {wrap(list(), { marginTop: "10px" })}
+      {wrap(renderGroups(), { marginTop: "10px" })}
     </>
   );
+}
+
+const GROUP_STYLE: CSS = {
+  fontWeight: "bold",
+  marginTop: "5px",
+} as const;
+
+function Group({
+  group,
+  mode,
+}: {
+  group: string;
+  mode: FlyoutActiveMode;
+}): JSX.Element {
+  const { project_id } = useProjectContext();
+  const title = group === "" ? "$HOME" : group;
+  const col = deterministicColor(group);
+
+  const style: CSS = {
+    ...GROUP_STYLE,
+    backgroundColor: col,
+    ...fileItemLeftBorder(col),
+  };
+
+  switch (mode) {
+    case "directory":
+      return (
+        <FileListItem
+          key={group}
+          style={style}
+          mode="active"
+          item={{ name: group, isdir: true, isopen: false, isactive: false }}
+          multiline={false}
+          displayedNameOverride={group === "" ? "$HOME" : group}
+          iconNameOverride={group === "" ? "home" : undefined}
+          onClick={(e) => {
+            track("open-file", {
+              project_id,
+              group,
+              how: "click-on-active-directory-flyout",
+            });
+            handle_log_click(e, group, project_id);
+          }}
+          tooltip={
+            <span style={{ color: COLORS.GRAY_LLL, fontFamily: "monospace" }}>
+              {title}/
+            </span>
+          }
+        />
+      );
+    case "type":
+      return (
+        <div
+          key={group}
+          style={{
+            ...style,
+            padding: FLYOUT_PADDING,
+          }}
+        >
+          <Icon name="file" /> {group}
+        </div>
+      );
+    default:
+      return <></>;
+  }
+}
+
+function deterministicColor(group: string) {
+  return group === "" ? COLORS.GRAY_L : getRandomColor(group);
+}
+
+function randomLeftBorder(group: string): CSS {
+  const col = deterministicColor(group);
+  return fileItemLeftBorder(col);
 }

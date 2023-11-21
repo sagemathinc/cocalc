@@ -14,7 +14,7 @@ export function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
   return LogModes.includes(val as any);
 }
 
-const ActiveModes = ["directory", "type"] as const;
+const ActiveModes = ["directory", "type", "tabs"] as const;
 export type FlyoutActiveMode = (typeof ActiveModes)[number];
 export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
   return ActiveModes.includes(val as any);
