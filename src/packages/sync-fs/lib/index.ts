@@ -130,15 +130,15 @@ class SyncFS {
     } else if (compression == "lz4") {
       const alter = (v) => ["-I", "lz4"].concat(v);
       this.tar = {
-        send: ({ createArgs, extractArgs, HOME }) => {
+        send: async ({ createArgs, extractArgs, HOME }) => {
           createArgs = alter(createArgs);
           extractArgs = alter(extractArgs);
-          tar.send({ createArgs, extractArgs, HOME });
+          await tar.send({ createArgs, extractArgs, HOME });
         },
-        get: ({ createArgs, extractArgs, HOME }) => {
+        get: async ({ createArgs, extractArgs, HOME }) => {
           createArgs = alter(createArgs);
           extractArgs = alter(extractArgs);
-          tar.get({ createArgs, extractArgs, HOME });
+          await tar.get({ createArgs, extractArgs, HOME });
         },
       };
     } else {
@@ -431,7 +431,7 @@ class SyncFS {
         log("reportState: WARNING -- ", err);
       }
     },
-    2000,
+    1500,
     { leading: true, trailing: true },
   );
 
@@ -498,6 +498,7 @@ class SyncFS {
       });
       await this.receiveFiles(copyFromProjectTar);
     }
+    log("DONE receiving files from project as part of sync");
 
     if (isActive) {
       this.syncInterval = this.syncIntervalMin;
