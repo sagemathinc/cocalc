@@ -242,9 +242,12 @@ export async function handleComputeServerSyncRegister(
   { compute_server_id },
   spark,
 ) {
-  log("handleComputeServerSyncRegister -- registering ", { compute_server_id, spark_id: spark.id });
-  // save the connection so we can send a sync_request
-  // message later.
+  log("handleComputeServerSyncRegister -- registering ", {
+    compute_server_id,
+    spark_id: spark.id,
+  });
+  // save the connection so we can send a sync_request message later, and also handle the api
+  // calls for copying files back and forth:
   sparks[compute_server_id] = spark;
   const remove = () => {
     if (sparks[compute_server_id]?.id == spark.id) {
