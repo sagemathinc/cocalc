@@ -7,6 +7,7 @@ import siteURL from "@cocalc/database/settings/site-url";
 import getProjectTitle from "@cocalc/server/projects/get-title";
 import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import TTLCache from "@isaacs/ttlcache";
 
 // turn VM off if you don't have at least this much left.
 const COST_THRESH_DOLLARS = 2;
@@ -96,7 +97,18 @@ async function checkAllowed(service, server) {
   return false;
 }
 
+const sentCache = new TTLCache({ ttl: 12 * 60 * 60 * 1000 });
+
 async function notifyUser({ server, service, action, callToAction }) {
+  // TEMPORARY: never send more than 3 emails every 12 hours for a given compute server.
+  // There's nothing below keeping repeated messages from going out when things are
+  // in a bad state. This is just a quick 5 minute workaround!
+  const numSent: number = sentCache.get(server.id) ?? 0;
+  if (numSent >= 3) {
+    return;
+  }
+  sentCache.set(server.id, numSent + 1);
+
   try {
     const { name, email_address: to } = await getUser(server.account_id);
     if (!to) {

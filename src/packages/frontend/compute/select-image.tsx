@@ -15,7 +15,7 @@ const OPTIONS = Object.keys(IMAGES).map((value) => {
     key: value,
     value,
     label: (
-      <div>
+      <div style={{ fontSize: "12pt" }}>
         <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
       </div>
     ),
@@ -66,24 +66,26 @@ export default function SelectImage({
           setConfig({ image: val });
         }}
       />
-      {value && (
-        <div
-          style={{ display: "flex", marginTop: "10px", textAlign: "center" }}
-        >
-          <A style={{ flex: 1 }} href={IMAGES[value]?.url}>
-            <Icon name="external-link" /> {IMAGES[value]?.label}
-          </A>
-          <A style={{ flex: 1 }} href={IMAGES[value]?.source}>
-            <Icon name="github" /> Source
-          </A>
-          <A
-            style={{ flex: 1 }}
-            href={`https://hub.docker.com/r/${IMAGES[value]?.docker}`}
-          >
-            <Icon name="docker" /> dockerhub
-          </A>
-        </div>
-      )}
+    </div>
+  );
+}
+
+export function ImageLinks({ image }) {
+  const data = IMAGES[image];
+  if (data == null) {
+    return null;
+  }
+  return (
+    <div style={{ display: "flex", marginTop: "10px", textAlign: "center" }}>
+      <A style={{ flex: 1 }} href={data.url}>
+        <Icon name="external-link" /> {data.label}
+      </A>
+      <A style={{ flex: 1 }} href={data.source}>
+        <Icon name="github" /> Source
+      </A>
+      <A style={{ flex: 1 }} href={`https://hub.docker.com/r/${data.docker}`}>
+        <Icon name="docker" /> dockerhub
+      </A>
     </div>
   );
 }

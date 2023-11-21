@@ -33,7 +33,9 @@ export default async function getFiles({
   extractArgs,
   HOME = process.env.HOME,
 }: Options) {
+  logger.debug("getFiles:", { project_id, createArgs, extractArgs, HOME });
   await callback(doGetFiles, project_id, createArgs, extractArgs, HOME);
+  logger.debug("getFiles: done!");
 }
 
 function doGetFiles(project_id: string, createArgs, extractArgs, HOME, cb) {
@@ -52,9 +54,17 @@ function doGetFiles(project_id: string, createArgs, extractArgs, HOME, cb) {
 
   ws.on("close", () => {
     cb?.();
+    cb = undefined;
   });
+
+  ws.on("end", () => {
+    cb?.();
+    cb = undefined;
+  });
+
   ws.on("error", (err) => {
-    cb(err);
+    logger.debug("ERROR -- ", err);
+    cb?.(err);
     cb = undefined;
   });
 }

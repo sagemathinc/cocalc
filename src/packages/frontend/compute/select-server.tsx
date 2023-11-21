@@ -153,9 +153,11 @@ export default function SelectComputeServer({
             <div style={{ flex: 1, minWidth: "5px" }} />
             <div>Id: {id}</div>
           </div>
-          <div style={{ marginLeft: "20px" }}>
-            <DisplayImage configuration={configuration} />
-          </div>
+          {value != `${id}` && (
+            <div style={{ marginLeft: "20px" }}>
+              <DisplayImage configuration={configuration} />
+            </div>
+          )}
         </div>
       );
       options.push({
