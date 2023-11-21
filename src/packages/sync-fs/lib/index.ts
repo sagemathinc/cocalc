@@ -21,6 +21,7 @@ import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
 import mkdirp from "mkdirp";
+import { throttle } from "lodash";
 
 const log = getLogger("sync-fs:index").debug;
 
@@ -412,24 +413,27 @@ class SyncFS {
     }
   };
 
-  // save current state to database; useful to inform user as to what is going on.
-  private reportState = async (opts: {
-    state;
-    extra?;
-    timeout?;
-    progress?;
-  }) => {
-    log("reportState", opts);
-    try {
-      await apiCall("v2/compute/set-detailed-state", {
-        id: this.compute_server_id,
-        name: "filesystem-sync",
-        ...opts,
-      });
-    } catch (err) {
-      log("reportState: WARNING -- ", err);
-    }
-  };
+  // Save current state to database; useful to inform user as to what is going on.
+  // We throttle this, because if you call it, then immediately call it again,
+  // two different hub servers basically gets two different stats at the same time,
+  // and which state is saved to the database is pretty random! By spacing this out
+  // by 2s, such a problem is vastly less likely.
+  private reportState = throttle(
+    async (opts: { state; extra?; timeout?; progress? }) => {
+      log("reportState", opts);
+      try {
+        await apiCall("v2/compute/set-detailed-state", {
+          id: this.compute_server_id,
+          name: "filesystem-sync",
+          ...opts,
+        });
+      } catch (err) {
+        log("reportState: WARNING -- ", err);
+      }
+    },
+    2000,
+    { leading: true, trailing: true },
+  );
 
   private getDetailedState = async () => {
     return await apiCall("v2/compute/get-detailed-state", {
