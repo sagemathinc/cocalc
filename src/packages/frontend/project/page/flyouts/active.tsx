@@ -6,7 +6,8 @@
 // Active files (editors) in the current project
 // Note: there is no corresponding full page – instead, this is based on the "editor tabs"
 
-import { Input, Radio } from "antd";
+import { Input, Radio, Space } from "antd";
+import { sortBy } from "lodash";
 
 import {
   CSS,
@@ -17,6 +18,10 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import {
+  UNKNOWN_FILE_TYPE_ICON,
+  file_options,
+} from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handle_log_click } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
@@ -36,7 +41,33 @@ import {
   getFlyoutActiveMode,
   isFlyoutActiveMode,
 } from "./state";
-import { sortBy } from "lodash";
+
+const groupSorter = {
+  directory: (group: string) => group.toLowerCase(),
+  type: (group: string) => {
+    // prioritize known file types, and some special ones even more
+    // taken from our stats, and adding some, high priority at the start
+    const highPriority = [
+      "ipynb",
+      "sagews",
+      "term",
+      "md",
+      "tex",
+      "pdf",
+      "txt",
+      "py",
+      "course",
+      "sage-chat",
+    ];
+    const level = highPriority.indexOf(group.toLowerCase());
+    const l = highPriority.length;
+    return [
+      // it only compares strings, hence we pad with zeros
+      String(level >= 0 ? level : l).padStart(3, "0"),
+      group.toLowerCase(),
+    ];
+  },
+} as const;
 
 interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
@@ -67,7 +98,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
   useEffect(() => actions?.setFlyoutActiveMode(mode), [mode]);
 
-  const openFilesGrouped = useMemo(() => {
+  const openFilesGrouped: { [group: string]: string[] } = useMemo(() => {
     const searchWords = search_split(filterTerm.trim().toLowerCase());
     const files = openFiles.filter((path) => {
       if (filterTerm === "") return true;
@@ -77,7 +108,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
     });
 
     if (mode === "tabs") {
-      return files;
+      return {}; // we use openFiles directly
     }
 
     // group files, an array of strings for path/filename, by directory or type (file extension)
@@ -96,11 +127,18 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
       <Radio.Group
         value={mode}
         onChange={(val) => setMode(val.target.value)}
+        style={{ whiteSpace: "nowrap" }}
         size="small"
       >
-        <Radio.Button value="directory">Directory</Radio.Button>
-        <Radio.Button value="type">Type</Radio.Button>
-        <Radio.Button value="tabs">Tabs</Radio.Button>
+        <Radio.Button value="directory">
+          <Icon name="folder" /> Folder
+        </Radio.Button>
+        <Radio.Button value="type">
+          <Icon name="file" /> Type
+        </Radio.Button>
+        <Radio.Button value="tabs">
+          <Icon name="database" rotate="270" /> Tabs
+        </Radio.Button>
       </Radio.Group>
     );
   }
@@ -121,7 +159,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
         mode="active"
         item={{ name: path, isopen: true, isactive: isActive }}
         style={style}
-        multiline={true}
+        multiline={false}
         onClick={(e) => {
           track("open-file", {
             project_id,
@@ -162,12 +200,12 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
     }
 
     const groups: JSX.Element[] = [];
-    const groupKeys = sortBy(Object.keys(openFilesGrouped), (group) =>
-      group.toLowerCase(),
-    );
+    const groupKeys = sortBy(Object.keys(openFilesGrouped), groupSorter[mode]);
 
-    for (const group in groupKeys) {
-      groups.push(<Group group={group} mode={mode} />);
+    for (const group of groupKeys) {
+      groups.push(
+        <Group group={group} mode={mode} openFilesGrouped={openFilesGrouped} />,
+      );
 
       const filenames = sortBy(openFilesGrouped[group], (path) =>
         path.toLowerCase(),
@@ -194,7 +232,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
     track("open-file", {
       project_id,
       path: file,
-      how: "keypress-on-log-file-flyout",
+      how: "keypress-on-active-file-flyout",
     });
     handle_log_click(e, file, project_id);
   }
@@ -225,19 +263,20 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
   return (
     <>
-      {renderConfiguration()}
-      <Input
-        placeholder="Filter..."
-        style={{ flex: "1", marginRight: "10px" }}
-        size="small"
-        value={filterTerm}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          setFilterTerm(e.target.value);
-        }}
-        onKeyDown={onKeyDownHandler}
-        allowClear
-        prefix={<Icon name="search" />}
-      />
+      <Space wrap={false}>
+        {renderConfiguration()}
+        <Input
+          placeholder="Filter..."
+          size="small"
+          value={filterTerm}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setFilterTerm(e.target.value);
+          }}
+          onKeyDown={onKeyDownHandler}
+          allowClear
+          prefix={<Icon name="search" />}
+        />
+      </Space>
       {wrap(renderGroups(), { marginTop: "10px" })}
     </>
   );
@@ -251,12 +290,17 @@ const GROUP_STYLE: CSS = {
 function Group({
   group,
   mode,
+  openFilesGrouped,
 }: {
   group: string;
   mode: FlyoutActiveMode;
+  openFilesGrouped: { [group: string]: string[] };
 }): JSX.Element {
   const { project_id } = useProjectContext();
+  const actions = useActions({ project_id });
+
   const title = group === "" ? "$HOME" : group;
+  console.log(group, "title", title);
   const col = deterministicColor(group);
 
   const style: CSS = {
@@ -272,26 +316,42 @@ function Group({
           key={group}
           style={style}
           mode="active"
-          item={{ name: group, isdir: true, isopen: false, isactive: false }}
+          item={{ name: group, isdir: true, isopen: true, isactive: false }}
           multiline={false}
-          displayedNameOverride={group === "" ? "$HOME" : group}
+          displayedNameOverride={title}
           iconNameOverride={group === "" ? "home" : undefined}
+          onClose={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            track("open-file", {
+              project_id,
+              group,
+              how: "close-active-directory-flyout",
+            });
+            // close all files in that group
+            for (const path of openFilesGrouped[group]) {
+              actions?.close_tab(path);
+            }
+          }}
           onClick={(e) => {
             track("open-file", {
               project_id,
               group,
               how: "click-on-active-directory-flyout",
             });
-            handle_log_click(e, group, project_id);
+            // trailing slash indicates to open a directory
+            handle_log_click(e, `${group}/`, project_id);
           }}
           tooltip={
-            <span style={{ color: COLORS.GRAY_LLL, fontFamily: "monospace" }}>
-              {title}/
-            </span>
+            <span style={{ color: COLORS.GRAY_LLL }}>Directory {title}/</span>
           }
         />
       );
+
     case "type":
+      const fileType = file_options(`foo.${group}`);
+      const iconName =
+        group === "" ? UNKNOWN_FILE_TYPE_ICON : fileType?.icon ?? "file";
+      const display = (group === "" ? "No extension" : fileType?.name) || group;
       return (
         <div
           key={group}
@@ -300,16 +360,20 @@ function Group({
             padding: FLYOUT_PADDING,
           }}
         >
-          <Icon name="file" /> {group}
+          <Icon name={iconName} />{" "}
+          <span style={{ textTransform: "capitalize" }}>{display}</span>
         </div>
       );
+
     default:
-      return <></>;
+      return <div key={group}>{group}</div>;
   }
 }
 
 function deterministicColor(group: string) {
-  return group === "" ? COLORS.GRAY_L : getRandomColor(group);
+  return group === ""
+    ? COLORS.GRAY_L
+    : getRandomColor(group, { diff: 30, min: 160, max: 255 });
 }
 
 function randomLeftBorder(group: string): CSS {

@@ -201,7 +201,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderName(): JSX.Element {
-    const name = displayedNameOverride ?? item.name;
+    const name = item.name;
     const path = mode === "active" ? path_split(name).tail : name;
     const { name: basename, ext } = item.isdir
       ? { name: path, ext: "" }
@@ -209,18 +209,20 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     return (
       <div
         ref={itemRef}
-        title={item.name}
+        title={name}
         style={{
           ...FILE_ITEM_STYLE,
           ...(multiline ? { whiteSpace: "normal" } : {}),
         }}
       >
-        {basename}
-        {ext === "" ? undefined : (
-          <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
-            {`.${ext}`}
-          </span>
-        )}
+        {displayedNameOverride ?? basename}
+        {displayedNameOverride == null ? (
+          ext === "" ? undefined : (
+            <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
+              {`.${ext}`}
+            </span>
+          )
+        ) : undefined}
       </div>
     );
   }
