@@ -39,6 +39,7 @@ export type LSFlyout = {
   files?: FilesMode;
   settings?: string[]; // expanded panels
   starred?: FlyoutActiveStarred;
+  showStarred?: boolean;
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -58,6 +59,7 @@ export function storeFlyoutState(
     scroll?: number;
     settings?: string[]; // expanded panels
     starred?: FlyoutActiveStarred;
+    showStarred?: boolean;
     width?: number | null;
   },
 ): void {
@@ -110,6 +112,10 @@ export function storeFlyoutState(
     if (isFlyoutActiveStarred(state.starred)) {
       current.starred = state.starred;
     }
+
+    if (typeof state.showStarred === "boolean") {
+      current.showStarred = state.showStarred;
+    }
   }
 
   LS.set(key, current);
@@ -147,4 +153,8 @@ export function getFlyoutActiveStarred(
   project_id: string,
 ): FlyoutActiveStarred {
   return LS.get<LSFlyout>(lsKey(project_id))?.starred ?? [];
+}
+
+export function getFlyoutActiveShowStarred(project_id: string): boolean {
+  return LS.get<LSFlyout>(lsKey(project_id))?.showStarred ?? true;
 }

@@ -20,6 +20,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
 import {
   EventRecordMap,
@@ -57,11 +58,9 @@ interface OpenedFile {
   account_id: string;
 }
 
-interface HeaderProps {
-  project_id: string;
-}
+export function LogHeader(): JSX.Element {
+  const { project_id } = useProjectContext();
 
-export function LogHeader({ project_id }: HeaderProps): JSX.Element {
   const [mode, setModeState] = useState<FlyoutLogMode>(
     getFlyoutLogMode(project_id),
   );

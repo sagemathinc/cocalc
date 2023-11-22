@@ -63,6 +63,11 @@ const FILE_ITEM_ACTIVE_STYLE: CSS = {
   color: COLORS.PROJECT.FIXED_LEFT_OPENED,
 };
 
+const FILE_ITEM_ACTIVE_STYLE_2: CSS = {
+  ...FILE_ITEM_ACTIVE_STYLE,
+  backgroundColor: COLORS.GRAY_L0,
+};
+
 const FILE_ITEM_STYLE: CSS = {
   flex: "1",
   whiteSpace: "nowrap",
@@ -162,6 +167,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     style,
     tooltip,
   } = props;
+  const isActive = mode === "active";
   const { project_id } = useProjectContext();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
@@ -206,10 +212,21 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
   function renderName(): JSX.Element {
     const name = item.name;
-    const path = mode === "active" ? path_split(name).tail : name;
+
+    const path = isActive ? path_split(name).tail : name;
     const { name: basename, ext } = item.isdir
       ? { name: path, ext: "" }
       : separate_file_extension(path);
+
+    // de-emphasize starred but closed files, unless a directory
+    const activeStyle = isActive
+      ? item.isopen
+        ? { fontWeight: "bold" }
+        : item.isdir
+        ? undefined
+        : { color: COLORS.FILE_EXT }
+      : undefined;
+
     return (
       <div
         ref={itemRef}
@@ -217,6 +234,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         style={{
           ...FILE_ITEM_STYLE,
           ...(multiline ? { whiteSpace: "normal" } : {}),
+          ...activeStyle,
         }}
       >
         {displayedNameOverride ?? basename}
@@ -283,7 +301,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         name={isStarred ? "star-filled" : "star-o"}
         style={{
           ...ICON_STYLE,
-          color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
+          color: isStarred && item.isopen ? COLORS.STAR : COLORS.GRAY_L,
         }}
         onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
@@ -496,7 +514,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const activeStyle: CSS =
     mode === "active"
       ? item.isactive
-        ? FILE_ITEM_ACTIVE_STYLE
+        ? FILE_ITEM_ACTIVE_STYLE_2
         : {}
       : item.isopen
       ? item.isactive

@@ -3284,4 +3284,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       hideActionButtons: !this.get_store()?.get("hideActionButtons"),
     });
   }
+
+  public clear_recently_closed_files() {
+    this.setState({
+      recently_closed_files: List([]),
+    });
+  }
 }
