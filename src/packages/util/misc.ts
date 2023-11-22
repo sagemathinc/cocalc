@@ -7,6 +7,8 @@ export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
 
 export * from "./misc-path";
 
+import LRU from "lru-cache";
+
 import {
   is_array,
   is_integer,
@@ -2413,24 +2415,52 @@ export function firstLetterUppercase(str: string | undefined) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+const randomColorCache = new LRU<string, string>({ max: 100 });
+
 /**
  * For a given string s, return a random bright color, but not too bright.
  * Use a hash to make this random, but deterministic.
+ *
+ * opts:
+ * - min: minimum value for each channel
+ * - max: maxium value for each channel
+ * - diff: mimimum difference across channels (increase, to avoid dull gray colors)
  */
 export function getRandomColor(
   s: string,
-  opts?: { min: number; max: number },
+  opts?: { min?: number; max?: number; diff?: number },
 ): string {
-  const { min = 120, max = 220 } = opts ?? {};
+  const diff = opts?.diff ?? 0;
+  const min = clip(opts?.min ?? 120, 0, 254);
+  const max = Math.max(min, clip(opts?.max ?? 230, 1, 255));
+
+  const key = `${s}-${min}-${max}-${diff}`;
+  const cached = randomColorCache.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  let iter = 0;
+  const iterLimit = "z".charCodeAt(0) - "A".charCodeAt(0);
   const mod = max - min;
 
-  const hash = sha1(s)
-    .split("")
-    .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
-  const r = (((hash >> 0) & 0xff) % mod) + min;
-  const g = (((hash >> 8) & 0xff) % mod) + min;
-  const b = (((hash >> 16) & 0xff) % mod) + min;
-  return `rgb(${r}, ${g}, ${b})`;
+  while (true) {
+    const hash = sha1(s + String.fromCharCode("A".charCodeAt(0) + iter))
+      .split("")
+      .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
+    const r = (((hash >> 0) & 0xff) % mod) + min;
+    const g = (((hash >> 8) & 0xff) % mod) + min;
+    const b = (((hash >> 16) & 0xff) % mod) + min;
+
+    iter += 1;
+    if (iter <= iterLimit && diff) {
+      const diffVal = Math.abs(r - g) + Math.abs(g - b) + Math.abs(b - r);
+      if (diffVal < diff) continue;
+    }
+    const col = `rgb(${r}, ${g}, ${b})`;
+    randomColorCache.set(key, col);
+    return col;
+  }
 }
 
 export function hexColorToRGBA(col: string, opacity?: number): string {
@@ -2447,4 +2477,8 @@ export function hexColorToRGBA(col: string, opacity?: number): string {
 
 export function strictMod(a: number, b: number): number {
   return ((a % b) + b) % b;
+}
+
+export function clip(val: number, min: number, max: number): number {
+  return Math.min(Math.max(val, min), max);
 }
