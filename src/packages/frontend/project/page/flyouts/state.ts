@@ -20,6 +20,11 @@ export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
   return ActiveModes.includes(val as any);
 }
 
+export type FlyoutActiveStarred = string[];
+export function isFlyoutActiveStarred(val?: any): val is FlyoutActiveStarred {
+  return Array.isArray(val) && val.every((x) => typeof x === "string");
+}
+
 interface FilesMode {
   selected?: { show?: boolean };
   terminal?: { show?: boolean };
@@ -33,6 +38,7 @@ export type LSFlyout = {
   active?: FlyoutActiveMode; // check using isFlyoutActiveMode
   files?: FilesMode;
   settings?: string[]; // expanded panels
+  starred?: FlyoutActiveStarred;
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -45,13 +51,14 @@ export function storeFlyoutState(
   project_id: string,
   flyout: FixedTab,
   state: {
-    scroll?: number;
-    expanded?: boolean;
-    width?: number | null;
-    mode?: string; // check using isFlyoutLogMode
-    files?: FilesMode;
-    settings?: string[]; // expanded panels
     active?: FlyoutActiveMode; // check using isFlyoutActiveMode
+    expanded?: boolean;
+    files?: FilesMode;
+    mode?: string; // check using isFlyoutLogMode
+    scroll?: number;
+    settings?: string[]; // expanded panels
+    starred?: FlyoutActiveStarred;
+    width?: number | null;
   },
 ): void {
   const { scroll, expanded, width, mode, files } = state;
@@ -95,8 +102,14 @@ export function storeFlyoutState(
     current.settings = keys;
   }
 
-  if (flyout === "active" && isFlyoutActiveMode(state.active)) {
-    current.active = state.active;
+  if (flyout === "active") {
+    if (isFlyoutActiveMode(state.active)) {
+      current.active = state.active;
+    }
+
+    if (isFlyoutActiveStarred(state.starred)) {
+      current.starred = state.starred;
+    }
   }
 
   LS.set(key, current);
@@ -128,4 +141,10 @@ export function getFlyoutSettings(project_id: string): string[] {
 export function getFlyoutActiveMode(project_id: string): FlyoutActiveMode {
   const active = LS.get<LSFlyout>(lsKey(project_id))?.active;
   return isFlyoutActiveMode(active) ? active : FLYOUT_ACTIVE_DEFAULT_MODE;
+}
+
+export function getFlyoutActiveStarred(
+  project_id: string,
+): FlyoutActiveStarred {
+  return LS.get<LSFlyout>(lsKey(project_id))?.starred ?? [];
 }

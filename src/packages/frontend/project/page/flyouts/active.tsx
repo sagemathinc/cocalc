@@ -7,7 +7,7 @@
 // Note: there is no corresponding full page – instead, this is based on the "editor tabs"
 
 import { Input, Radio, Space } from "antd";
-import { sortBy } from "lodash";
+import { sortBy, uniq } from "lodash";
 
 import {
   CSS,
@@ -38,8 +38,11 @@ import { FLYOUT_PADDING } from "./consts";
 import { FileListItem, fileItemLeftBorder } from "./file-list-item";
 import {
   FlyoutActiveMode,
+  FlyoutActiveStarred,
   getFlyoutActiveMode,
+  getFlyoutActiveStarred,
   isFlyoutActiveMode,
+  storeFlyoutState,
 } from "./state";
 
 const groupSorter = {
@@ -81,6 +84,10 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
     getFlyoutActiveMode(project_id),
   );
 
+  const [starred, setStarred] = useState<FlyoutActiveStarred>(
+    getFlyoutActiveStarred(project_id),
+  );
+
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   //   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
@@ -96,13 +103,29 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
     }
   }
 
+  function setStarredPath(path: string, next: boolean) {
+    const newStarred = next
+      ? [...starred, path]
+      : starred.filter((p) => p !== path);
+    setStarred(newStarred);
+    storeFlyoutState(project_id, "active", { starred: newStarred });
+  }
+
   useEffect(() => actions?.setFlyoutActiveMode(mode), [mode]);
 
   const openFilesGrouped: { [group: string]: string[] } = useMemo(() => {
     const searchWords = search_split(filterTerm.trim().toLowerCase());
-    const files = openFiles.filter((path) => {
-      if (filterTerm === "") return true;
-      if (searchWords.length === 0) return true;
+
+    // we put starred files first, then open files – everything else is defined by grouping/sorting
+    const allFiles = uniq([
+      ...starred.filter((path) => !path.endsWith("/")),
+      ...openFiles.toJS(),
+    ]);
+
+    const files = allFiles.filter((path) => {
+      // if we have a filter term, then only show files that match
+      if (filterTerm === "" || searchWords.length === 0) return true;
+      // we only filter based on the base-filename, not the path
       const { tail } = path_split(path);
       return search_match(tail, searchWords);
     });
@@ -119,8 +142,17 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
+
+    // for all starred directories (starred ending in /)
+    // make sure there is a group with an empty string array
+    const starredDirectories = starred.filter((path) => path.endsWith("/"));
+    starredDirectories.forEach((path) => {
+      const dirName = path.slice(0, -1);
+      if (grouped[dirName] == null) grouped[dirName] = [];
+    });
+
     return grouped;
-  }, [openFiles, mode, filterTerm]);
+  }, [openFiles, mode, filterTerm, starred]);
 
   function renderConfiguration() {
     return (
@@ -157,7 +189,11 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
       <FileListItem
         key={path}
         mode="active"
-        item={{ name: path, isopen: true, isactive: isActive }}
+        item={{
+          name: path,
+          isopen: openFiles.includes(path),
+          isactive: isActive,
+        }}
         style={style}
         multiline={false}
         onClick={(e) => {
@@ -177,6 +213,10 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
             // middle mouse click
             actions?.close_tab(path);
           }
+        }}
+        isStarred={starred.includes(path)}
+        onStar={(next: boolean) => {
+          setStarredPath(path, next);
         }}
         tooltip={
           <span style={{ color: COLORS.GRAY_LLL, fontFamily: "monospace" }}>
@@ -204,7 +244,14 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
     for (const group of groupKeys) {
       groups.push(
-        <Group group={group} mode={mode} openFilesGrouped={openFilesGrouped} />,
+        <Group
+          key={group}
+          group={group}
+          mode={mode}
+          openFilesGrouped={openFilesGrouped}
+          starred={starred}
+          setStarredPath={setStarredPath}
+        />,
       );
 
       const filenames = sortBy(openFilesGrouped[group], (path) =>
@@ -261,6 +308,8 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
     }
   }
 
+  function renderStarred() {}
+
   return (
     <>
       <Space wrap={false}>
@@ -277,6 +326,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
           prefix={<Icon name="search" />}
         />
       </Space>
+      {renderStarred()}
       {wrap(renderGroups(), { marginTop: "10px" })}
     </>
   );
@@ -291,16 +341,20 @@ function Group({
   group,
   mode,
   openFilesGrouped,
+  starred,
+  setStarredPath,
 }: {
   group: string;
   mode: FlyoutActiveMode;
   openFilesGrouped: { [group: string]: string[] };
+  starred: string[];
+  setStarredPath: (path: string, next: boolean) => void;
 }): JSX.Element {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
+  const openFiles = useTypedRedux({ project_id }, "open_files_order");
 
-  const title = group === "" ? "$HOME" : group;
-  console.log(group, "title", title);
+  const title = group === "" ? "Home" : group;
   const col = deterministicColor(group);
 
   const style: CSS = {
@@ -311,15 +365,23 @@ function Group({
 
   switch (mode) {
     case "directory":
+      const isHome = group === "";
+      const isopen = openFilesGrouped[group].some((path) =>
+        openFiles.includes(path),
+      );
       return (
         <FileListItem
           key={group}
           style={style}
           mode="active"
-          item={{ name: group, isdir: true, isopen: true, isactive: false }}
+          item={{ name: group, isdir: true, isopen, isactive: false }}
           multiline={false}
           displayedNameOverride={title}
-          iconNameOverride={group === "" ? "home" : undefined}
+          iconNameOverride={isHome ? "home" : undefined}
+          isStarred={isHome ? undefined : starred.includes(`${group}/`)}
+          onStar={(next) => {
+            setStarredPath(`${group}/`, next);
+          }}
           onClose={(e: React.MouseEvent) => {
             e.stopPropagation();
             track("open-file", {

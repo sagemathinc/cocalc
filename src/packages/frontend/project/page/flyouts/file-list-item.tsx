@@ -119,6 +119,7 @@ interface FileListItemProps {
   extra2?: JSX.Element | string | null; // null means don't show anything
   iconNameOverride?: IconName;
   index?: number;
+  isStarred?: boolean;
   item: Item;
   itemStyle?: CSS;
   mode: "files" | "log" | "active";
@@ -128,6 +129,7 @@ interface FileListItemProps {
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
   onMouseDown?: (e: React.MouseEvent, name: string) => void;
   onPublic?: (e?: React.MouseEvent) => void;
+  onStar?: (next: boolean) => void;
   selected?: boolean;
   setShowCheckboxIndex?: (index: number | null) => void;
   showCheckbox?: boolean;
@@ -143,6 +145,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     extra2,
     iconNameOverride,
     index,
+    isStarred,
     item,
     itemStyle,
     mode,
@@ -152,6 +155,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     onClose,
     onMouseDown,
     onPublic,
+    onStar,
     selected,
     setShowCheckboxIndex,
     showCheckbox,
@@ -271,6 +275,24 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
+  function renderStarred(): JSX.Element | undefined {
+    if (isStarred == null) return;
+
+    return (
+      <Icon
+        name={isStarred ? "star-filled" : "star-o"}
+        style={{
+          ...ICON_STYLE,
+          color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
+        }}
+        onClick={(e: React.MouseEvent) => {
+          e?.stopPropagation();
+          onStar?.(!isStarred);
+        }}
+      />
+    );
+  }
+
   function renderExtra(type: 1 | 2): JSX.Element | undefined {
     if (extra == null) return;
     const marginRight =
@@ -326,8 +348,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}
       >
-        {renderBodyLeft()} {renderName()} {renderExtra(2)} {renderExtra(1)}{" "}
-        {renderPublishedIcon()}
+        {renderBodyLeft()} {renderStarred()} {renderName()} {renderExtra(2)}{" "}
+        {renderExtra(1)} {renderPublishedIcon()}
         {item.isopen ? renderCloseItem(item) : undefined}
       </div>
     );
