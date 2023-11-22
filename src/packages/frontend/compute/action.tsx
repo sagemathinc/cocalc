@@ -324,7 +324,11 @@ function ActionButton({
           {description}{" "}
           {cost_per_hour != null && (
             <div style={{ textAlign: "center" }}>
-              <MoneyStatistic value={cost_per_hour} title="Cost per hour" />
+              <MoneyStatistic
+                value={cost_per_hour}
+                title="Cost per hour"
+                costPerMonth={730 * cost_per_hour}
+              />
             </div>
           )}
         </div>

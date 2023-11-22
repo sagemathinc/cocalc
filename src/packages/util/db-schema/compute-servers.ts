@@ -380,7 +380,7 @@ export function getMinDiskSizeGb(configuration) {
 // if a random default folder is excluded!
 const DEFAULT_EXCLUDE_FROM_SYNC = [] as const;
 
-const GOOGLE_CLOUD_DEFAULTS = {
+export const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {
     image: "python",
     cloud: "google-cloud",
@@ -394,6 +394,20 @@ const GOOGLE_CLOUD_DEFAULTS = {
     excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
   },
   gpu: {
+    image: "pytorch",
+    spot: true,
+    zone: "europe-west2-a",
+    cloud: "google-cloud",
+    region: "europe-west2",
+    diskType: "pd-balanced",
+    diskSizeGb: getMinDiskSizeGb({ image: "pytorch" }) + 10,
+    externalIp: true,
+    machineType: "n1-highmem-2",
+    acceleratorType: "nvidia-tesla-t4",
+    acceleratorCount: 1,
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+  },
+  gpu2: {
     image: "pytorch",
     spot: true,
     zone: "us-central1-b",
