@@ -1787,10 +1787,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         v.push(render_format_group());
       }
       v.push(render_halt_jupyter());
-      v.push(render_edit_init_script());
       v.push(render_clear());
-      v.push(render_count_words());
       v.push(render_kick_other_users_out());
+      v.push(render_edit_init_script());
+      v.push(render_count_words());
       v.push(render_shell(labels));
       v.push(render_print(labels));
       v.push(render_export_to_markdown(labels));
