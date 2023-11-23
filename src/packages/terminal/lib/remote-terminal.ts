@@ -129,6 +129,14 @@ export class RemoteTerminal extends EventEmitter {
     if (typeof data == "string") {
       if (this.localPty != null) {
         this.localPty.write(data);
+      } else {
+        logger.debug("no pty active, but got data, so let's spawn one locally");
+        const pty = await this.initLocalPty();
+        if (pty != null) {
+          // we delete first character since it is the "any key"
+          // user hit to get terminal going.
+          pty.write(data.slice(1));
+        }
       }
     } else {
       // console.log("COMMAND", data);
@@ -209,6 +217,8 @@ export class RemoteTerminal extends EventEmitter {
     // set the prompt to show the remote hostname explicitly,
     // then clear the screen.
     this.localPty.write('PS1="(\\h) \\w$ ";reset;history -d $(history 1)\n');
+
+    return this.localPty;
   };
 
   private sendCurrentWorkingDirectoryLocalPty = async () => {
