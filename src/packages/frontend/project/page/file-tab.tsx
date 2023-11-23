@@ -51,6 +51,7 @@ import {
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
 import { VBAR_KEY, getValidVBAROption } from "./vbar";
+import { shouldOpenFileInNewWindow } from "./utils";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -225,7 +226,7 @@ export function FileTab(props: Readonly<Props>) {
   function click(e: React.MouseEvent) {
     e.stopPropagation();
     if (actions == null) return;
-    const anyModifierKey = e.ctrlKey || e.shiftKey || e.metaKey;
+    const anyModifierKey = shouldOpenFileInNewWindow(e);
     if (path != null) {
       if (anyModifierKey) {
         // shift/ctrl/option clicking on *file* tab opens in a new popout window.

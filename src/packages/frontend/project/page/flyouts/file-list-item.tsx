@@ -188,7 +188,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  function renderCloseItem(item: Item): JSX.Element {
+  function renderCloseItem(item: Item): JSX.Element | null {
+    if (!item.isopen) return null;
     const { name } = item;
     return (
       <Icon
@@ -322,7 +323,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderExtra(type: 1 | 2): JSX.Element | undefined {
-    if (extra == null) return;
+    const currentExtra = type === 1 ? extra : extra2;
+    if (currentExtra == null) return;
     const marginRight =
       type === 1
         ? (item.is_public ? 0 : 20) + (item.isopen ? 0 : 18)
@@ -358,7 +360,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             textAlign,
           }}
         >
-          {type === 1 ? extra : extra2}
+          {currentExtra}
         </div>
       </div>
     );
@@ -378,7 +380,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       >
         {renderBodyLeft()} {renderStarred()} {renderName()} {renderExtra(2)}{" "}
         {renderExtra(1)} {renderPublishedIcon()}
-        {item.isopen ? renderCloseItem(item) : undefined}
+        {renderCloseItem(item)}
       </div>
     );
 

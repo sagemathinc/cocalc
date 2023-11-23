@@ -9,6 +9,7 @@
 import { Alert, Button } from "antd";
 import { sortBy, uniq } from "lodash";
 
+import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   CSS,
   useActions,
@@ -32,9 +33,10 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
+import { shouldOpenFileInNewWindow } from "../utils";
 import { Group } from "./active-group";
 import { ActiveTop } from "./active-top";
-import { FLYOUT_PADDING } from "./consts";
+import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 import { FileListItem } from "./file-list-item";
 import {
   FlyoutActiveMode,
@@ -74,11 +76,25 @@ const groupSorter = {
   },
 } as const;
 
+const USERS_SIZE_PX = 18;
+
+const USERS_STYLE: CSS = {
+  maxWidth: "90px",
+  height: "auto",
+  padding: 0,
+  position: "relative",
+  top: "-1px",
+};
+
 interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  flyoutWidth: number;
 }
 
-export function ActiveFlyout({ wrap }: Props): JSX.Element {
+export function ActiveFlyout({
+  wrap,
+  flyoutWidth,
+}: Readonly<Props>): JSX.Element {
   const { project_id, flipTabs } = useProjectContext();
   const flipTab = flipTabs[0];
   const flipTabPrevious = usePrevious(flipTab);
@@ -178,6 +194,31 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
   // end of hooks
 
+  function handleFileClick(
+    e: React.MouseEvent,
+    path: string,
+    how: "file" | "undo",
+  ) {
+    if (shouldOpenFileInNewWindow(e)) {
+      actions?.open_file({
+        path,
+        new_browser_window: true,
+      });
+      track("open-file-in-new-window", {
+        path,
+        project_id,
+        how: `flyout-active-${how}-click`,
+      });
+    } else {
+      handle_log_click(e, path, project_id);
+      track("open-file", {
+        project_id,
+        path,
+        how: `flyout-active-${how}-click`,
+      });
+    }
+  }
+
   function renderFileItem(path: string, how: "file" | "undo", group?: string) {
     const isActive: boolean = activePath === path;
     const style = group != null ? randomLeftBorder(group) : undefined;
@@ -193,14 +234,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
         }}
         style={style}
         multiline={false}
-        onClick={(e) => {
-          track("open-file", {
-            project_id,
-            path,
-            how: `flyout-active-${how}-click`,
-          });
-          handle_log_click(e, path, project_id);
-        }}
+        onClick={(e: React.MouseEvent) => handleFileClick(e, path, how)}
         onClose={(e: React.MouseEvent, path: string) => {
           e.stopPropagation();
           actions?.close_tab(path);
@@ -217,6 +251,16 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
         onStar={(next: boolean) => {
           setStarredPath(path, next);
         }}
+        extra2={
+          flyoutWidth >= FLYOUT_DEFAULT_WIDTH_PX ? (
+            <UsersViewing
+              path={path}
+              project_id={project_id}
+              size={USERS_SIZE_PX}
+              style={USERS_STYLE}
+            />
+          ) : undefined
+        }
       />
     );
   }
@@ -395,10 +439,12 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
   }> {
     // our ordering, across the groups
     const groupKeys = getGroupKeys();
-    for (const [i, group] of groupKeys.entries()) {
+    let idx = 0;
+    for (const group of groupKeys) {
       const paths = getGroupFilenames(group);
-      for (const [j, path] of paths.entries()) {
-        yield { idx: i + j, group, path };
+      for (const path of paths) {
+        yield { idx, group, path };
+        idx += 1;
       }
     }
   }
