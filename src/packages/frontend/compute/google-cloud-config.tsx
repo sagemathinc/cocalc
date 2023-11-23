@@ -2,6 +2,7 @@ import type {
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
+import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 import {
   getMinDiskSizeGb,
   IMAGES,
@@ -46,19 +47,21 @@ import Ephemeral from "./ephemeral";
 
 export const SELECTOR_WIDTH = "350px";
 
-const DEFAULT_GPU_CONFIG = {
-  acceleratorType: "nvidia-l4",
-  acceleratorCount: 1,
-  machineType: "g2-standard-4",
-  region: "us-central1",
-  zone: "us-central1-b",
-  image: "pytorch",
-};
+const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu;
+
+//     {
+//   acceleratorType: "nvidia-l4",
+//   acceleratorCount: 1,
+//   machineType: "g2-standard-4",
+//   region: "us-central1",
+//   zone: "us-central1-b",
+//   image: "pytorch",
+// };
 
 const FALLBACK_INSTANCE = "n2-standard-4";
 // an n1-standard-1 is SO dinky it causes huge trouble
 // with downloading/processing models.
-const DEFAULT_GPU_INSTANCE = "n1-highmem-4";
+const DEFAULT_GPU_INSTANCE = "n1-highmem-2";
 
 interface ConfigurationType extends GoogleCloudConfigurationType {
   valid?: boolean;
@@ -420,7 +423,8 @@ export default function GoogleCloudConfiguration({
         <div style={{ textAlign: "center" }}>
           <MoneyStatistic
             value={cost}
-            title="Total Cost Per Hour While Running"
+            title={<b>Total Cost Per Hour While Running</b>}
+            costPerMonth={730 * cost}
           />
           <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
             You pay the above rate while the computer server VM is running. The

@@ -6,8 +6,9 @@ import { zIndexTip } from "./zindex";
 interface Props {
   value: number;
   title: ReactNode;
+  costPerMonth?: number;
 }
-export default function MoneyStatistic({ value, title }: Props) {
+export default function MoneyStatistic({ value, title, costPerMonth }: Props) {
   let body;
   if (value >= 0.0095) {
     body = (
@@ -45,9 +46,9 @@ export default function MoneyStatistic({ value, title }: Props) {
       title={() => (
         <>
           {title} (USD): ${round4(value)}
-          {typeof title == "string" && title?.includes("Cost per hour") ? (
+          {costPerMonth ? (
             <>
-              <br /> Cost per month (USD): {currency(value * 730)}
+              <br /> Cost per month (USD): {currency(costPerMonth)}
             </>
           ) : (
             ""
