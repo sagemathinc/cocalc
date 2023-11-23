@@ -106,6 +106,16 @@ const BTN_STYLE: CSS = {
   width: "20px",
 } as const;
 
+// this is a bit hacky, because of the larger font (otherwise it's just a really small (X))
+// the bottom is cut off slightly. With that padding and relative position move, it looks better.
+const CLOSE_ICON_STYLE: CSS = {
+  flex: "0",
+  fontSize: "120%",
+  top: "1px",
+  position: "relative",
+  paddingBottom: "1px",
+};
+
 interface Item {
   isopen?: boolean;
   isdir?: boolean;
@@ -183,7 +193,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     return (
       <Icon
         name="times-circle"
-        style={{ flex: "0", fontSize: "120%" }}
+        style={CLOSE_ICON_STYLE}
         onClick={(e) => {
           e?.stopPropagation();
           onClose?.(e, name);

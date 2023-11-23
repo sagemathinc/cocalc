@@ -46,11 +46,11 @@ import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
 import { FixedTab } from "./project/page/file-tab";
+import { FlyoutActiveMode, FlyoutLogMode } from "./project/page/flyouts/state";
 import {
   FLYOUT_ACTIVE_DEFAULT_MODE,
   FLYOUT_LOG_DEFAULT_MODE,
-} from "./project/page/flyouts/log";
-import { FlyoutActiveMode, FlyoutLogMode } from "./project/page/flyouts/state";
+} from "./project/page/flyouts/utils";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 

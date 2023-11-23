@@ -41,16 +41,7 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
 import { FileListItem, fileItemStyle } from "./file-list-item";
-import {
-  FlyoutActiveMode,
-  FlyoutLogMode,
-  getFlyoutLogMode,
-  isFlyoutLogMode,
-} from "./state";
-
-export const FLYOUT_LOG_DEFAULT_MODE: FlyoutLogMode = "files";
-
-export const FLYOUT_ACTIVE_DEFAULT_MODE: FlyoutActiveMode = "directory";
+import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
 
 interface OpenedFile {
   filename: string;

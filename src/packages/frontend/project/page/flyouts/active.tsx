@@ -6,7 +6,7 @@
 // Active files (editors) in the current project
 // Note: there is no corresponding full page – instead, this is based on the "editor tabs"
 
-import { Button, Input, InputRef, Radio, Space } from "antd";
+import { Alert, Button } from "antd";
 import { sortBy, uniq } from "lodash";
 
 import {
@@ -14,21 +14,15 @@ import {
   useActions,
   useEffect,
   useMemo,
-  useRef,
+  usePrevious,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
-import {
-  UNKNOWN_FILE_TYPE_ICON,
-  file_options,
-} from "@cocalc/frontend/editor-tmp";
+import { HelpIcon, Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import { handle_log_click } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import {
-  getRandomColor,
   path_split,
   search_match,
   search_split,
@@ -36,8 +30,12 @@ import {
   tab_to_path,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { FIX_BORDER } from "../common";
+import { FIXED_PROJECT_TABS } from "../file-tab";
+import { Group } from "./active-group";
+import { ActiveTop } from "./active-top";
 import { FLYOUT_PADDING } from "./consts";
-import { FileListItem, fileItemLeftBorder } from "./file-list-item";
+import { FileListItem } from "./file-list-item";
 import {
   FlyoutActiveMode,
   FlyoutActiveStarred,
@@ -47,8 +45,7 @@ import {
   isFlyoutActiveMode,
   storeFlyoutState,
 } from "./state";
-import { FIX_BORDER } from "../common";
-import { FIXED_PROJECT_TABS } from "../file-tab";
+import { GROUP_STYLE, randomLeftBorder } from "./utils";
 
 const groupSorter = {
   directory: (group: string) => group.toLowerCase(),
@@ -82,7 +79,9 @@ interface Props {
 }
 
 export function ActiveFlyout({ wrap }: Props): JSX.Element {
-  const { project_id } = useProjectContext();
+  const { project_id, flipTabs } = useProjectContext();
+  const flipTab = flipTabs[0];
+  const flipTabPrevious = usePrevious(flipTab);
   const actions = useActions({ project_id });
 
   const [mode, setActiveMode] = useState<FlyoutActiveMode>(
@@ -91,7 +90,6 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
   const [starred, setStarred] = useState<FlyoutActiveStarred>(
     getFlyoutActiveStarred(project_id),
   );
-  const filterRef = useRef<InputRef>(null);
 
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const recentlyClosed = useTypedRedux({ project_id }, "recently_closed_files");
@@ -101,6 +99,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
   const [showStarred, setShowStarred] = useState<boolean>(
     getFlyoutActiveShowStarred(project_id),
   );
+  const [showStarredTabs, setShowStarredTabs] = useState<boolean>(true);
 
   function setMode(mode: FlyoutActiveMode) {
     if (isFlyoutActiveMode(mode)) {
@@ -120,6 +119,14 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
   }
 
   useEffect(() => actions?.setFlyoutActiveMode(mode), [mode]);
+
+  // when flipTab changes, dispatch to doScroll
+  useEffect(() => {
+    if (flipTabPrevious != null && flipTabPrevious !== flipTab) {
+      // filters quick clicks, but maybe we don't want to do that. In any case, doScroll requires +/- 1
+      doScroll(flipTab - flipTabPrevious > 0 ? 1 : -1);
+    }
+  }, [flipTab]);
 
   const openFilesGrouped: { [group: string]: string[] } = useMemo(() => {
     const searchWords = search_split(filterTerm.trim().toLowerCase());
@@ -149,7 +156,7 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
     const grouped: { [group: string]: string[] } = {};
     files.forEach((path) => {
       const { head, tail } = path_split(path);
-      const group = mode === "directory" ? head : tail.split(".")[1] ?? "";
+      const group = mode === "folder" ? head : tail.split(".")[1] ?? "";
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
@@ -164,45 +171,6 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
     return grouped;
   }, [openFiles, mode, filterTerm, starred, showStarred]);
-
-  function renderConfiguration() {
-    return (
-      <Radio.Group
-        value={mode}
-        onChange={(val) => setMode(val.target.value)}
-        style={{ whiteSpace: "nowrap" }}
-        size="small"
-      >
-        <Radio.Button value="directory">
-          <Icon name="folder" /> Folder
-        </Radio.Button>
-        <Radio.Button value="type">
-          <Icon name="file" /> Type
-        </Radio.Button>
-        <Radio.Button value="tabs">
-          <Icon name="database" rotate="270" /> Tabs
-        </Radio.Button>
-      </Radio.Group>
-    );
-  }
-
-  function renderToggleShowStarred() {
-    return (
-      <BootstrapButton
-        bsSize="xsmall"
-        onClick={() => {
-          setShowStarred(!showStarred);
-          storeFlyoutState(project_id, "active", { showStarred: !showStarred });
-        }}
-        title={"Toggle, if stars and starred files should be hidden"}
-      >
-        <Icon
-          name={showStarred ? "star-filled" : "star"}
-          style={{ color: COLORS.STAR }}
-        />
-      </BootstrapButton>
-    );
-  }
 
   const activePath = useMemo(() => {
     return tab_to_path(activeTab);
@@ -249,61 +217,138 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
         onStar={(next: boolean) => {
           setStarredPath(path, next);
         }}
-        tooltip={
-          <span style={{ color: COLORS.GRAY_LLL, fontFamily: "monospace" }}>
-            {path}
-          </span>
-        }
       />
     );
   }
 
+  // when not showing starrd: for mode "type" and "folder", we only show groups that have files
+  // i.e. we do not show an empty group due to a starred file, if that file isn't going to be shown.
   function getGroupKeys() {
-    return sortBy(Object.keys(openFilesGrouped), groupSorter[mode]);
+    const groupNames = sortBy(Object.keys(openFilesGrouped), groupSorter[mode]);
+    return groupNames.filter((group) => {
+      if (!showStarred && (mode === "type" || mode === "folder")) {
+        return openFilesGrouped[group].length > 0;
+      }
+      return true;
+    });
   }
 
   function getGroupFilenames(group: string): string[] {
     return sortBy(openFilesGrouped[group], (path) => path.toLowerCase());
   }
 
-  function renderGroups(): JSX.Element {
-    // flat, same ordering as file tabs
-    if (mode === "tabs") {
-      const openRendered = openFiles.map((path) => {
-        return renderFileItem(path, "file");
-      });
-      // starred files (no directories) which aren't opened, are at the bottom
-      const starredRendered = showStarred
-        ? starred
-            .filter((path) => !path.endsWith("/") && !openFiles.includes(path))
-            .map((path) => {
-              return renderFileItem(path, "file");
-            })
-        : [];
-      return (
-        <div>
-          {openRendered}
-          {starredRendered.length > 0 ? (
-            <div
-              style={{
-                ...GROUP_STYLE,
-                padding: FLYOUT_PADDING,
-                borderTop: FIX_BORDER,
-              }}
-            >
-              <Icon name="star-filled" style={{ color: COLORS.STAR }} /> Starred
-            </div>
-          ) : undefined}
-          {starredRendered}
-        </div>
-      );
-    }
+  function renderEmpty(): JSX.Element {
+    return (
+      <div>
+        <Alert
+          type="info"
+          showIcon={false}
+          banner
+          description={
+            <>
+              <div>There are no opened files to show here.</div>
+              <div>
+                Use the{" "}
+                <Button
+                  size="small"
+                  icon={<Icon name={FIXED_PROJECT_TABS.files.icon} />}
+                  onClick={() => {
+                    actions?.toggleFlyout("files");
+                  }}
+                >
+                  {FIXED_PROJECT_TABS.files.label}
+                </Button>{" "}
+                to open a file.
+              </div>
+            </>
+          }
+        />
+      </div>
+    );
+  }
 
+  // here, there is no grouping – it's the custom ordering and below are (optionally) starred files
+  function renderTabs(): [JSX.Element, JSX.Element | null] {
+    const openRendered = openFiles.map((path) => {
+      return renderFileItem(path, "file");
+    });
+    // starred files (no directories) which aren't opened, are at the bottom
+    const starredRendered = showStarred
+      ? starred
+          .filter((path) => !path.endsWith("/") && !openFiles.includes(path))
+          .map((path) => {
+            return renderFileItem(path, "file");
+          })
+      : [];
+
+    return [
+      openRendered.size === 0 ? renderEmpty() : <div>{openRendered}</div>,
+      renderStarredInFiles(starredRendered),
+    ];
+  }
+
+  function renderStarredInFiles(starredRendered: JSX.Element[]) {
+    if (!showStarred || starredRendered.length === 0) return null;
+    return (
+      <div
+        style={{
+          flex: "1 1 auto",
+          display: "flex",
+          flexDirection: "column",
+          maxHeight: "30vh",
+          borderTop: FIX_BORDER,
+        }}
+      >
+        <div
+          style={{
+            flex: "1 0 auto",
+            padding: FLYOUT_PADDING,
+            ...GROUP_STYLE,
+          }}
+        >
+          <Icon name="star-filled" style={{ color: COLORS.STAR }} /> Starred{" "}
+          <HelpIcon title={"Starred files are like bookmarks."}>
+            These files are not opened, but you can quickly access them.
+            <br />
+            Use the <Icon
+              name="star-filled"
+              style={{ color: COLORS.STAR }}
+            />{" "}
+            icon to star/unstar a file.
+            <br />
+            The star above the list of active files toggles if starred files are
+            shown.
+          </HelpIcon>
+          <Button
+            size="small"
+            style={{ float: "right", color: COLORS.FILE_EXT }}
+            onClick={() => setShowStarredTabs(!showStarredTabs)}
+          >
+            {showStarredTabs ? (
+              <>
+                <Icon name="eye-slash" /> Hide
+              </>
+            ) : (
+              <>
+                <Icon name="eye" /> Show
+              </>
+            )}
+          </Button>
+        </div>
+        {showStarredTabs ? (
+          <div style={{ flex: "1 1 auto", overflowY: "auto" }}>
+            {starredRendered}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  // type "directory" and  "types" have actual groups
+  function renderGroupsOfGrouped(): JSX.Element {
     const groups: JSX.Element[] = [];
 
     for (const group of getGroupKeys()) {
-      // for type mode, we only show groups that have files
-      if (mode === "type" && openFilesGrouped[group].length === 0) continue;
       groups.push(
         <Group
           key={group}
@@ -321,98 +366,101 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
       }
     }
 
-    return <div>{groups}</div>;
+    if (groups.length === 0) {
+      return renderEmpty();
+    } else {
+      return <div>{groups}</div>;
+    }
+  }
+
+  function renderGroups(): JSX.Element {
+    // flat, same ordering as file tabs
+    if (mode === "tabs") {
+      const [tabs, stars] = renderTabs();
+      return (
+        <>
+          {wrap(tabs, { marginTop: "10px" })}
+          {stars}
+        </>
+      );
+    } else {
+      return wrap(renderGroupsOfGrouped(), { marginTop: "10px" });
+    }
+  }
+
+  function* iterAllGroups(): Generator<{
+    idx: number;
+    group: string;
+    path: string;
+  }> {
+    // our ordering, across the groups
+    const groupKeys = getGroupKeys();
+    for (const [i, group] of groupKeys.entries()) {
+      const paths = getGroupFilenames(group);
+      for (const [j, path] of paths.entries()) {
+        yield { idx: i + j, group, path };
+      }
+    }
   }
 
   function getOpenedIndex(): number {
-    let idx = -1;
     if (mode === "tabs") {
       // the ordering of the tabs
+      let idx = -1;
       openFiles.forEach((path, i) => {
         if (path === activePath) {
           idx = i;
           return false;
         }
       });
+      return idx;
     } else {
-      // our ordering, across the groups
-      const groupKeys = getGroupKeys();
-      groupKeys.forEach((group, i) => {
-        const paths = getGroupFilenames(group);
-        paths.forEach((path, j) => {
-          if (path === activePath) {
-            idx = i + j;
-            return false;
-          }
-        });
-        if (idx >= 0) return false;
-      });
+      for (const { idx, path } of iterAllGroups()) {
+        if (path === activePath) {
+          return idx;
+        }
+      }
+      return -1;
     }
-    return idx;
   }
 
-  function getOpenedFile(idx: number): string {
-    let ret = "";
+  function getOpenedFileByIdx(idx: number): string {
     if (mode === "tabs") {
+      let ret = "";
       openFiles.forEach((path, i) => {
         if (i === idx) {
           ret = path;
           return false;
         }
       });
+      return ret;
     } else {
-      // our ordering, across the groups
-      const groupKeys = getGroupKeys();
-      groupKeys.forEach((group, i) => {
-        const paths = getGroupFilenames(group);
-        paths.forEach((path, j) => {
-          if (i + j === idx) {
-            ret = path;
-            return false;
-          }
-        });
-        if (ret !== "") return false;
-      });
+      for (const { idx: pos, path } of iterAllGroups()) {
+        if (idx === pos) {
+          return path;
+        }
+      }
+      return "";
     }
-    return ret;
   }
 
   // this depends on the mode. We bascially check if a file is opened.
   // if that's the case, open the next opened file according to the ordering implied by the mode
   function doScroll(dx: -1 | 1) {
     let idx = getOpenedIndex();
-    console.log("dx", dx, "idx", idx);
     if (idx === -1) {
       idx = dx === 1 ? 0 : openFiles.size - 1;
     } else {
       idx = strictMod(idx + dx, openFiles.size);
     }
-    const openNext = getOpenedFile(idx);
-    console.log("openNext", openNext);
+    const openNext = getOpenedFileByIdx(idx);
     if (openNext !== "") {
       track("open-file", {
         project_id,
         path: openNext,
-        how: "flyout-active-scroll-scroll",
+        how: "flyout-active-tab-scroll",
       });
       handle_log_click(undefined, openNext, project_id);
-      // focus the filter input again
-      filterRef.current?.focus();
-    }
-  }
-
-  function onKeyDownHandler(e) {
-    e?.stopPropagation();
-
-    // if arrow key down or up, then scroll to next item
-    const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
-    if (dx != 0) {
-      doScroll(dx);
-    }
-
-    // if esc key is pressed, empty the search term and reset scroll index
-    if (e.key === "Escape") {
-      setFilterTerm("");
     }
   }
 
@@ -451,162 +499,17 @@ export function ActiveFlyout({ wrap }: Props): JSX.Element {
 
   return (
     <>
-      <Space wrap={false}>
-        {renderToggleShowStarred()}
-        {renderConfiguration()}
-        <Input
-          ref={filterRef}
-          placeholder="Filter..."
-          size="small"
-          value={filterTerm}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            setFilterTerm(e.target.value);
-          }}
-          onKeyDown={onKeyDownHandler}
-          allowClear
-          prefix={<Icon name="search" />}
-        />
-      </Space>
-      {wrap(renderGroups(), { marginTop: "10px" })}
+      <ActiveTop
+        mode={mode}
+        setMode={setMode}
+        showStarred={showStarred}
+        setShowStarred={setShowStarred}
+        filterTerm={filterTerm}
+        setFilterTerm={setFilterTerm}
+        doScroll={doScroll}
+      />
+      {renderGroups()}
       {renderUndo()}
     </>
-  );
-}
-
-interface GroupProps {
-  group: string;
-  mode: FlyoutActiveMode;
-  openFilesGrouped: { [group: string]: string[] };
-  starred: string[];
-  setStarredPath: (path: string, next: boolean) => void;
-  showStarred: boolean;
-}
-
-const GROUP_STYLE: CSS = {
-  fontWeight: "bold",
-  marginTop: "5px",
-} as const;
-
-function Group({
-  group,
-  mode,
-  openFilesGrouped,
-  starred,
-  setStarredPath,
-  showStarred,
-}: GroupProps): JSX.Element {
-  const { project_id } = useProjectContext();
-  const actions = useActions({ project_id });
-  const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const current_path = useTypedRedux({ project_id }, "current_path");
-
-  const title = group === "" ? "Home" : group;
-  const col = deterministicColor(group);
-
-  const style: CSS = {
-    ...GROUP_STYLE,
-    backgroundColor: col,
-    ...fileItemLeftBorder(col),
-  };
-
-  switch (mode) {
-    case "directory":
-      const isHome = group === "";
-      const isopen = openFilesGrouped[group].some((path) =>
-        openFiles.includes(path),
-      );
-      return (
-        <FileListItem
-          key={group}
-          style={style}
-          mode="active"
-          item={{
-            name: group,
-            isdir: true,
-            isopen,
-            isactive: current_path === group,
-          }}
-          multiline={false}
-          displayedNameOverride={title}
-          iconNameOverride={isHome ? "home" : undefined}
-          isStarred={
-            isHome || !showStarred ? undefined : starred.includes(`${group}/`)
-          }
-          onStar={(next) => {
-            setStarredPath(`${group}/`, next);
-          }}
-          onClose={(e: React.MouseEvent) => {
-            e.stopPropagation();
-            track("open-file", {
-              project_id,
-              group,
-              how: "flyout-active-directory-close",
-            });
-            // close all files in that group
-            for (const path of openFilesGrouped[group]) {
-              actions?.close_tab(path);
-            }
-          }}
-          onClick={(e) => {
-            track("open-file", {
-              project_id,
-              group,
-              how: "flyout-active-directory-open",
-            });
-            // trailing slash indicates to open a directory
-            handle_log_click(e, `${group}/`, project_id);
-          }}
-          tooltip={
-            <span style={{ color: COLORS.GRAY_LLL }}>Directory {title}/</span>
-          }
-        />
-      );
-
-    case "type":
-      const fileType = file_options(`foo.${group}`);
-      const iconName =
-        group === "" ? UNKNOWN_FILE_TYPE_ICON : fileType?.icon ?? "file";
-      const display = (group === "" ? "No extension" : fileType?.name) || group;
-      return (
-        <div
-          key={group}
-          style={{
-            ...style,
-            padding: FLYOUT_PADDING,
-          }}
-        >
-          <Icon name={iconName} />{" "}
-          <span style={{ textTransform: "capitalize" }}>{display}</span>
-        </div>
-      );
-
-    default:
-      return <div key={group}>{group}</div>;
-  }
-}
-
-function deterministicColor(group: string) {
-  return group === ""
-    ? COLORS.GRAY_L
-    : getRandomColor(group, { diff: 30, min: 180, max: 250 });
-}
-
-function randomLeftBorder(group: string): CSS {
-  const col = deterministicColor(group);
-  return fileItemLeftBorder(col);
-}
-
-export function ActiveHeader() {
-  // const { project_id } = useProjectContext();
-
-  function renderScroll() {
-    return <div style={{ float: "right" }}>up down</div>;
-  }
-
-  return (
-    <div style={{ flex: 1, fontWeight: "bold" }}>
-      <Icon name={FIXED_PROJECT_TABS.active.icon} />{" "}
-      {FIXED_PROJECT_TABS.active.label} {renderScroll()}
-    </div>
   );
 }

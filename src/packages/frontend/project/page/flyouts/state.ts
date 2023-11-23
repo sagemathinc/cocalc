@@ -6,7 +6,7 @@
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { FixedTab, isFixedTab } from "../file-tab";
 import { FLYOUT_DEFAULT_WIDTH_PX } from "./consts";
-import { FLYOUT_ACTIVE_DEFAULT_MODE, FLYOUT_LOG_DEFAULT_MODE } from "./log";
+import { FLYOUT_ACTIVE_DEFAULT_MODE, FLYOUT_LOG_DEFAULT_MODE } from "./utils";
 
 const LogModes = ["files", "history"] as const;
 export type FlyoutLogMode = (typeof LogModes)[number];
@@ -14,7 +14,7 @@ export function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
   return LogModes.includes(val as any);
 }
 
-const ActiveModes = ["directory", "type", "tabs"] as const;
+const ActiveModes = ["folder", "type", "tabs"] as const;
 export type FlyoutActiveMode = (typeof ActiveModes)[number];
 export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
   return ActiveModes.includes(val as any);

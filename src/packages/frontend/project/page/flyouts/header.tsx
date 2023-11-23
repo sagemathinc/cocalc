@@ -19,7 +19,7 @@ import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log";
-import { ActiveHeader } from "./active";
+import { ActiveHeader } from "./active-header";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -161,8 +161,8 @@ export function FlyoutHeader(_: Readonly<Props>) {
         return <LogHeader />;
       case "search":
         return <SearchHeader />;
-        case "active":
-          return <ActiveHeader />
+      case "active":
+        return <ActiveHeader />;
       default:
         return (
           <div style={{ flex: 1, fontWeight: "bold" }}>
