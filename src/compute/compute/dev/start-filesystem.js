@@ -53,6 +53,7 @@ async function main() {
       metadataFile: process.env.METADATA_FILE,
       syncIntervalMin: 60 * 5,
       syncIntervalMax: 60 * 15,
+      cacheTimeout: 0, // websocketfs -- critical to not use its cache, which is very painful for cocalc, e.g., when making new files.
     });
     unmount = exports.fs.unmount;
   } catch (err) {
