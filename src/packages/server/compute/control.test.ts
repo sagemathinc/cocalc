@@ -49,8 +49,14 @@ describe("creates account, project and a test compute server, then control it", 
 
   it("start the server", async () => {
     await control.start({ account_id, id });
-    await delay(10);
-    expect(await control.state({ account_id, id })).toBe("starting");
+    // we have to do something like this... because control.start is pretty
+    // complicated, involves api keys, the database, etc., and there is no
+    // telling how long it takes to change the state. Moroever, the state
+    // might be starting or running.  This will timeout with an error if the
+    // state were to fail to change.
+    while ((await control.state({ account_id, id })) == "off") {
+      await delay(10);
+    }
   });
 
   it("waits for the server to start running", async () => {
@@ -63,8 +69,9 @@ describe("creates account, project and a test compute server, then control it", 
 
   it("stop the server", async () => {
     control.stop({ account_id, id });
-    await delay(10);
-    expect(await control.state({ account_id, id })).toBe("stopping");
+    while ((await control.state({ account_id, id })) == "running") {
+      await delay(10);
+    }
   });
 
   it("wait for it to stop", async () => {
@@ -74,5 +81,4 @@ describe("creates account, project and a test compute server, then control it", 
     });
     expect(await control.state({ account_id, id })).toBe("off");
   });
-
 });
