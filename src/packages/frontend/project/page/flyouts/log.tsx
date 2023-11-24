@@ -26,7 +26,7 @@ import {
   EventRecordMap,
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
-import { handle_log_click } from "@cocalc/frontend/project/history/utils";
+import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 import {
@@ -257,7 +257,7 @@ export function LogFlyout({
             path,
             how: "click-on-log-file-flyout",
           });
-          handle_log_click(e, path, project_id);
+          handleFileEntryClick(e, path, project_id);
         }}
         onClose={(e: React.MouseEvent, path: string) => {
           e.stopPropagation();
@@ -326,7 +326,7 @@ export function LogFlyout({
       path: file.filename,
       how: "keypress-on-log-file-flyout",
     });
-    handle_log_click(e, file.filename, project_id);
+    handleFileEntryClick(e, file.filename, project_id);
   }
 
   function onKeyDownHandler(e) {

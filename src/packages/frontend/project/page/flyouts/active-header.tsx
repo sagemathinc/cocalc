@@ -7,10 +7,10 @@
 
 import { Button, Space } from "antd";
 
-import { Icon } from "@cocalc/frontend/components";
-import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
-import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 
 export function ActiveHeader() {
   const { flipTabs, project_id } = useProjectContext();

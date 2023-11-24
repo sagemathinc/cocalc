@@ -21,7 +21,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { handle_log_click } from "@cocalc/frontend/project/history/utils";
+import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import {
   path_split,
@@ -48,26 +48,28 @@ import {
   storeFlyoutState,
 } from "./state";
 import { GROUP_STYLE, randomLeftBorder } from "./utils";
+import { OpenFileTabs } from "./active-tabs";
+
+const FILE_TYPE_PRIORITY = [
+  "ipynb",
+  "sagews",
+  "term",
+  "md",
+  "tex",
+  "pdf",
+  "txt",
+  "py",
+  "course",
+  "sage-chat",
+] as const;
 
 const groupSorter = {
   directory: (group: string) => group.toLowerCase(),
   type: (group: string) => {
     // prioritize known file types, and some special ones even more
     // taken from our stats, and adding some, high priority at the start
-    const highPriority = [
-      "ipynb",
-      "sagews",
-      "term",
-      "md",
-      "tex",
-      "pdf",
-      "txt",
-      "py",
-      "course",
-      "sage-chat",
-    ];
-    const level = highPriority.indexOf(group.toLowerCase());
-    const l = highPriority.length;
+    const level = FILE_TYPE_PRIORITY.indexOf(group.toLowerCase() as any);
+    const l = FILE_TYPE_PRIORITY.length;
     return [
       // it only compares strings, hence we pad with zeros
       String(level >= 0 ? level : l).padStart(3, "0"),
@@ -78,23 +80,22 @@ const groupSorter = {
 
 const USERS_SIZE_PX = 18;
 
+// on top of the default for UsersViewing
 const USERS_STYLE: CSS = {
   maxWidth: "90px",
   height: "auto",
   padding: 0,
   position: "relative",
   top: "-1px",
-};
+} as const;
 
 interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
   flyoutWidth: number;
 }
 
-export function ActiveFlyout({
-  wrap,
-  flyoutWidth,
-}: Readonly<Props>): JSX.Element {
+export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
+  const { wrap, flyoutWidth } = props;
   const { project_id, flipTabs } = useProjectContext();
   const flipTab = flipTabs[0];
   const flipTabPrevious = usePrevious(flipTab);
@@ -122,7 +123,7 @@ export function ActiveFlyout({
       setActiveMode(mode);
       actions?.setFlyoutActiveMode(mode);
     } else {
-      console.warn(`Invalid flyout log mode: ${mode}`);
+      console.warn(`Invalid flyout active mode: ${mode}`);
     }
   }
 
@@ -144,7 +145,10 @@ export function ActiveFlyout({
     }
   }, [flipTab]);
 
-  const openFilesGrouped: { [group: string]: string[] } = useMemo(() => {
+  const [filteredFiles, openFilesGrouped]: [
+    string[],
+    { [group: string]: string[] },
+  ] = useMemo(() => {
     const searchWords = search_split(filterTerm.trim().toLowerCase());
 
     // we put starred files first, then open files – everything else is defined by grouping/sorting
@@ -156,37 +160,41 @@ export function ActiveFlyout({
       ...openFiles.toJS(),
     ]);
 
-    const files = allFiles.filter((path) => {
+    const filteredFiles = allFiles.filter((path) => doesMatch(path, false));
+
+    function doesMatch(path: string, isDir: boolean) {
       // if we have a filter term, then only show files that match
       if (filterTerm === "" || searchWords.length === 0) return true;
       // we only filter based on the base-filename, not the path
-      const { tail } = path_split(path);
-      return search_match(tail, searchWords);
-    });
-
-    if (mode === "tabs") {
-      return {}; // we use openFiles directly
+      const { head, tail } = path_split(path);
+      return search_match(isDir ? head : tail, searchWords);
     }
 
     // group files, an array of strings for path/filename, by directory or type (file extension)
     const grouped: { [group: string]: string[] } = {};
-    files.forEach((path) => {
+    filteredFiles.forEach((path) => {
       const { head, tail } = path_split(path);
       const group = mode === "folder" ? head : tail.split(".")[1] ?? "";
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
 
-    // for all starred directories (starred ending in /)
-    // make sure there is a group with an empty string array
-    const starredDirectories = starred.filter((path) => path.endsWith("/"));
-    starredDirectories.forEach((path) => {
-      const dirName = path.slice(0, -1);
-      if (grouped[dirName] == null) grouped[dirName] = [];
-    });
+    // in folder mode, show starred directories
+    if (mode === "folder") {
+      // for all starred directories (starred ending in /)
+      // make sure there is a group with an empty string array
+      // only show it, if it matches the search terms
+      const starredDirectories = starred
+        .filter((path) => path.endsWith("/"))
+        .filter((path) => doesMatch(path, true));
+      starredDirectories.forEach((path) => {
+        const dirName = path.slice(0, -1);
+        if (grouped[dirName] == null) grouped[dirName] = [];
+      });
+    }
 
-    return grouped;
-  }, [openFiles, mode, filterTerm, starred, showStarred]);
+    return [filteredFiles, grouped];
+  }, [filterTerm, openFiles, showStarred, mode, starred]);
 
   const activePath = useMemo(() => {
     return tab_to_path(activeTab);
@@ -199,23 +207,20 @@ export function ActiveFlyout({
     path: string,
     how: "file" | "undo",
   ) {
+    const trackInfo = {
+      path,
+      project_id,
+      how: `flyout-active-${how}-click`,
+    };
     if (shouldOpenFileInNewWindow(e)) {
       actions?.open_file({
         path,
         new_browser_window: true,
       });
-      track("open-file-in-new-window", {
-        path,
-        project_id,
-        how: `flyout-active-${how}-click`,
-      });
+      track("open-file-in-new-window", trackInfo);
     } else {
-      handle_log_click(e, path, project_id);
-      track("open-file", {
-        project_id,
-        path,
-        how: `flyout-active-${how}-click`,
-      });
+      handleFileEntryClick(e, path, project_id);
+      track("open-file", trackInfo);
     }
   }
 
@@ -245,9 +250,7 @@ export function ActiveFlyout({
             actions?.close_tab(path);
           }
         }}
-        isStarred={
-          showStarred && how === "file" ? starred.includes(path) : undefined
-        }
+        isStarred={showStarred ? starred.includes(path) : undefined}
         onStar={(next: boolean) => {
           setStarredPath(path, next);
         }}
@@ -281,6 +284,24 @@ export function ActiveFlyout({
     return sortBy(openFilesGrouped[group], (path) => path.toLowerCase());
   }
 
+  // if there are starred files but they're hidden, remind the user of that
+  function renderEmptyStarredInfo() {
+    if (starred.length === 0 || showStarred) return;
+    return (
+      <>
+        {" "}
+        or pick one from your
+        <Button
+          size="small"
+          icon={<Icon name="star-filled" style={{ color: COLORS.STAR }} />}
+          onClick={() => setShowStarred(true)}
+        >
+          starred files
+        </Button>
+      </>
+    );
+  }
+
   function renderEmpty(): JSX.Element {
     return (
       <div>
@@ -302,7 +323,7 @@ export function ActiveFlyout({
                 >
                   {FIXED_PROJECT_TABS.files.label}
                 </Button>{" "}
-                to open a file.
+                to open a file{renderEmptyStarredInfo()}.
               </div>
             </>
           }
@@ -311,22 +332,39 @@ export function ActiveFlyout({
     );
   }
 
+  function dndDragEnd({ active, over }) {
+    if (active == null || over == null || active.id == over.id) return;
+    actions?.move_file_tab({
+      old_index: openFiles.indexOf(active.id),
+      new_index: openFiles.indexOf(over.id),
+    });
+  }
+
   // here, there is no grouping – it's the custom ordering and below are (optionally) starred files
   function renderTabs(): [JSX.Element, JSX.Element | null] {
-    const openRendered = openFiles.map((path) => {
-      return renderFileItem(path, "file");
-    });
+    const openTabs = openFiles
+      .filter((path) => filteredFiles.includes(path))
+      .toJS();
     // starred files (no directories) which aren't opened, are at the bottom
     const starredRendered = showStarred
       ? starred
           .filter((path) => !path.endsWith("/") && !openFiles.includes(path))
+          .sort((a, b) => a.localeCompare(b))
           .map((path) => {
             return renderFileItem(path, "file");
           })
       : [];
 
     return [
-      openRendered.size === 0 ? renderEmpty() : <div>{openRendered}</div>,
+      openTabs.length === 0 ? (
+        renderEmpty()
+      ) : (
+        <OpenFileTabs
+          dndDragEnd={dndDragEnd}
+          openTabs={openTabs}
+          renderFileItem={renderFileItem}
+        />
+      ),
       renderStarredInFiles(starredRendered),
     ];
   }
@@ -449,6 +487,7 @@ export function ActiveFlyout({
     }
   }
 
+  // the getOpenedIndex and getOpenedFileByIdx functions are inverses of each other
   function getOpenedIndex(): number {
     if (mode === "tabs") {
       // the ordering of the tabs
@@ -470,6 +509,7 @@ export function ActiveFlyout({
     }
   }
 
+  // This is the inverse of the above
   function getOpenedFileByIdx(idx: number): string {
     if (mode === "tabs") {
       let ret = "";
@@ -487,26 +527,6 @@ export function ActiveFlyout({
         }
       }
       return "";
-    }
-  }
-
-  // this depends on the mode. We bascially check if a file is opened.
-  // if that's the case, open the next opened file according to the ordering implied by the mode
-  function doScroll(dx: -1 | 1) {
-    let idx = getOpenedIndex();
-    if (idx === -1) {
-      idx = dx === 1 ? 0 : openFiles.size - 1;
-    } else {
-      idx = strictMod(idx + dx, openFiles.size);
-    }
-    const openNext = getOpenedFileByIdx(idx);
-    if (openNext !== "") {
-      track("open-file", {
-        project_id,
-        path: openNext,
-        how: "flyout-active-tab-scroll",
-      });
-      handle_log_click(undefined, openNext, project_id);
     }
   }
 
@@ -543,6 +563,39 @@ export function ActiveFlyout({
     );
   }
 
+  // Scrolling depends on the mode. We bascially check if a file is opened.
+  // If that's the case, open the next opened file according to the ordering implied by the mode.
+  // Otherwise it jumps around erratically.
+  function doScroll(dx: -1 | 1) {
+    let idx = getOpenedIndex();
+    if (idx === -1) {
+      idx = dx === 1 ? 0 : openFiles.size - 1;
+    } else {
+      idx = strictMod(idx + dx, openFiles.size);
+    }
+    const openNext = getOpenedFileByIdx(idx);
+    if (openNext !== "") {
+      track("open-file", {
+        project_id,
+        path: openNext,
+        how: "flyout-active-tab-scroll",
+      });
+      handleFileEntryClick(undefined, openNext, project_id);
+    }
+  }
+
+  function openFirstMatchingFile() {
+    const path =
+      mode === "tabs" ? filteredFiles[0] : iterAllGroups().next().value?.path;
+
+    if (path != null) {
+      handleFileEntryClick(undefined, path, project_id);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   return (
     <>
       <ActiveTop
@@ -553,6 +606,7 @@ export function ActiveFlyout({
         filterTerm={filterTerm}
         setFilterTerm={setFilterTerm}
         doScroll={doScroll}
+        openFirstMatchingFile={openFirstMatchingFile}
       />
       {renderGroups()}
       {renderUndo()}

@@ -12,7 +12,7 @@ import {
   file_options,
 } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { handle_log_click } from "@cocalc/frontend/project/history/utils";
+import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { trunc_middle } from "@cocalc/util/misc";
 import { FLYOUT_PADDING } from "./consts";
@@ -101,7 +101,7 @@ export function Group({
               how: "flyout-active-directory-open",
             });
             // trailing slash indicates to open a directory
-            handle_log_click(e, `${group}/`, project_id);
+            handleFileEntryClick(e, `${group}/`, project_id);
           }}
         />
       );
