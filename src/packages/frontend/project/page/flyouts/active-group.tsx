@@ -6,7 +6,7 @@
 // Group headers of active files (editors) in the current project
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, IconName } from "@cocalc/frontend/components";
 import {
   UNKNOWN_FILE_TYPE_ICON,
   file_options,
@@ -14,8 +14,8 @@ import {
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
-import { trunc_middle } from "@cocalc/util/misc";
-import { FLYOUT_PADDING } from "./consts";
+import { capitalize, trunc_middle } from "@cocalc/util/misc";
+import { ACTIVE_FOLDER_TYPE, FLYOUT_PADDING } from "./consts";
 import { FileListItem, fileItemLeftBorder } from "./file-list-item";
 import { FlyoutActiveMode } from "./state";
 import { GROUP_STYLE, deterministicColor } from "./utils";
@@ -42,7 +42,7 @@ export function Group({
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const current_path = useTypedRedux({ project_id }, "current_path");
 
-  const components = group.split("/");
+  const components = group.replace(/^\.smc\/root\//, "/").split("/");
   const parts = [
     ...components.slice(0, -2).map(() => "•"), // &bull;
     ...components.slice(-2).map((x) => trunc_middle(x, 15)),
@@ -55,6 +55,25 @@ export function Group({
     backgroundColor: col,
     ...fileItemLeftBorder(col),
   } as const;
+
+  function getTypeIconDisplay(group: string): {
+    iconName: IconName;
+    display: string;
+  } {
+    if (group === ACTIVE_FOLDER_TYPE) {
+      return {
+        iconName: "folder",
+        display: "Starred folder",
+      };
+    }
+
+    const fileType = file_options(`foo.${group}`);
+    return {
+      iconName:
+        group === "" ? UNKNOWN_FILE_TYPE_ICON : fileType?.icon ?? "file",
+      display: (group === "" ? "No extension" : fileType?.name) || group,
+    };
+  }
 
   switch (mode) {
     case "folder":
@@ -107,10 +126,11 @@ export function Group({
       );
 
     case "type":
-      const fileType = file_options(`foo.${group}`);
-      const iconName =
-        group === "" ? UNKNOWN_FILE_TYPE_ICON : fileType?.icon ?? "file";
-      const display = (group === "" ? "No extension" : fileType?.name) || group;
+      const { iconName, display } = getTypeIconDisplay(group);
+      const displayCapitalized =
+        display.includes(" ") || display.length > 4
+          ? capitalize(display)
+          : display.toUpperCase();
       return (
         <div
           key={group}
@@ -119,8 +139,7 @@ export function Group({
             padding: FLYOUT_PADDING,
           }}
         >
-          <Icon name={iconName} />{" "}
-          <span style={{ textTransform: "capitalize" }}>{display}</span>
+          <Icon name={iconName} /> {displayCapitalized}
         </div>
       );
 

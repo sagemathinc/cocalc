@@ -19,7 +19,8 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Icon } from "@cocalc/frontend/components";
+import { HelpIcon, Icon, Paragraph } from "@cocalc/frontend/components";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
@@ -35,8 +36,13 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { shouldOpenFileInNewWindow } from "../utils";
 import { Group } from "./active-group";
+import { OpenFileTabs } from "./active-tabs";
 import { ActiveTop } from "./active-top";
-import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
+import {
+  ACTIVE_FOLDER_TYPE,
+  FLYOUT_DEFAULT_WIDTH_PX,
+  FLYOUT_PADDING,
+} from "./consts";
 import { FileListItem } from "./file-list-item";
 import {
   FlyoutActiveMode,
@@ -48,7 +54,6 @@ import {
   storeFlyoutState,
 } from "./state";
 import { GROUP_STYLE, randomLeftBorder } from "./utils";
-import { OpenFileTabs } from "./active-tabs";
 
 const FILE_TYPE_PRIORITY = [
   "ipynb",
@@ -63,16 +68,26 @@ const FILE_TYPE_PRIORITY = [
   "sage-chat",
 ] as const;
 
-const groupSorter = {
-  directory: (group: string) => group.toLowerCase(),
+const GROUP_SORTER: {
+  [mode in Exclude<FlyoutActiveMode, "tabs">]: (
+    group: string,
+  ) => string | string[];
+} = {
+  folder: (group: string) => group.toLowerCase(),
   type: (group: string) => {
     // prioritize known file types, and some special ones even more
     // taken from our stats, and adding some, high priority at the start
-    const level = FILE_TYPE_PRIORITY.indexOf(group.toLowerCase() as any);
-    const l = FILE_TYPE_PRIORITY.length;
+    const len = FILE_TYPE_PRIORITY.length;
+    const grp = group.toLowerCase();
+    let level = FILE_TYPE_PRIORITY.indexOf(grp as any);
+    // known file extensions are still above all other ones
+    if (level === -1) {
+      const fileType = file_options(`foo.${grp}`);
+      level = fileType != null ? len : len + 1;
+    }
     return [
       // it only compares strings, hence we pad with zeros
-      String(level >= 0 ? level : l).padStart(3, "0"),
+      String(level).padStart(3, "0"),
       group.toLowerCase(),
     ];
   },
@@ -180,17 +195,25 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     });
 
     // in folder mode, show starred directories
-    if (mode === "folder") {
-      // for all starred directories (starred ending in /)
-      // make sure there is a group with an empty string array
-      // only show it, if it matches the search terms
-      const starredDirectories = starred
-        .filter((path) => path.endsWith("/"))
-        .filter((path) => doesMatch(path, true));
-      starredDirectories.forEach((path) => {
-        const dirName = path.slice(0, -1);
-        if (grouped[dirName] == null) grouped[dirName] = [];
-      });
+    if (mode === "folder" || mode === "type") {
+      const starredFolders = starred.filter(
+        (path) => showStarred && path.endsWith("/") && doesMatch(path, true),
+      );
+
+      if (mode === "folder") {
+        // for all starred directories (starred ending in /)
+        // make sure there is a group with an empty string array
+        // only show it, if it matches the search terms
+        starredFolders.forEach((path) => {
+          const dirName = path.slice(0, -1);
+          if (grouped[dirName] == null) grouped[dirName] = [];
+        });
+      } // while in type mode, make a "folder" group for starred directories
+      else if (mode === "type") {
+        if (starredFolders.length > 0) {
+          grouped[ACTIVE_FOLDER_TYPE] = starredFolders;
+        }
+      }
     }
 
     return [filteredFiles, grouped];
@@ -228,6 +251,13 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     const isActive: boolean = activePath === path;
     const style = group != null ? randomLeftBorder(group) : undefined;
 
+    const isdir = path.endsWith("/");
+    // if it is a directory, remove the trailing slash
+    // and if it starts with ".smc/root/", replace that by a "/"
+    const display = isdir
+      ? path.slice(0, -1).replace(/^\.smc\/root\//, "/")
+      : undefined;
+
     return (
       <FileListItem
         key={path}
@@ -235,8 +265,10 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         item={{
           name: path,
           isopen: openFiles.includes(path),
+          isdir,
           isactive: isActive,
         }}
+        displayedNameOverride={display}
         style={style}
         multiline={false}
         onClick={(e: React.MouseEvent) => handleFileClick(e, path, how)}
@@ -271,7 +303,10 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   // when not showing starrd: for mode "type" and "folder", we only show groups that have files
   // i.e. we do not show an empty group due to a starred file, if that file isn't going to be shown.
   function getGroupKeys() {
-    const groupNames = sortBy(Object.keys(openFilesGrouped), groupSorter[mode]);
+    const groupNames = sortBy(
+      Object.keys(openFilesGrouped),
+      GROUP_SORTER[mode],
+    );
     return groupNames.filter((group) => {
       if (!showStarred && (mode === "type" || mode === "folder")) {
         return openFilesGrouped[group].length > 0;
@@ -281,7 +316,14 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   function getGroupFilenames(group: string): string[] {
-    return sortBy(openFilesGrouped[group], (path) => path.toLowerCase());
+    return sortBy(openFilesGrouped[group], (path) => {
+      const { head, tail } = path_split(path);
+      if (path.endsWith("/")) {
+        return head.toLowerCase();
+      } else {
+        return tail.toLowerCase();
+      }
+    });
   }
 
   // if there are starred files but they're hidden, remind the user of that
@@ -290,7 +332,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     return (
       <>
         {" "}
-        or pick one from your
+        or pick one from your{" "}
         <Button
           size="small"
           icon={<Icon name="star-filled" style={{ color: COLORS.STAR }} />}
@@ -311,8 +353,8 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
           banner
           description={
             <>
-              <div>There are no opened files to show here.</div>
-              <div>
+              <Paragraph strong>There are no open files to show.</Paragraph>
+              <Paragraph>
                 Use the{" "}
                 <Button
                   size="small"
@@ -324,7 +366,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
                   {FIXED_PROJECT_TABS.files.label}
                 </Button>{" "}
                 to open a file{renderEmptyStarredInfo()}.
-              </div>
+              </Paragraph>
             </>
           }
         />
@@ -426,7 +468,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  // type "directory" and  "types" have actual groups
+  // type "folder" and  "type" have actual groups
   function renderGroupsOfGrouped(): JSX.Element {
     const groups: JSX.Element[] = [];
 
@@ -470,7 +512,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     }
   }
 
-  function* iterAllGroups(): Generator<{
+  function* iterAllGroups(onlyOpened: boolean = false): Generator<{
     idx: number;
     group: string;
     path: string;
@@ -481,6 +523,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     for (const group of groupKeys) {
       const paths = getGroupFilenames(group);
       for (const path of paths) {
+        if (onlyOpened && !openFiles.includes(path)) continue;
         yield { idx, group, path };
         idx += 1;
       }
@@ -500,7 +543,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
       });
       return idx;
     } else {
-      for (const { idx, path } of iterAllGroups()) {
+      for (const { idx, path } of iterAllGroups(true)) {
         if (path === activePath) {
           return idx;
         }
@@ -521,7 +564,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
       });
       return ret;
     } else {
-      for (const { idx: pos, path } of iterAllGroups()) {
+      for (const { idx: pos, path } of iterAllGroups(true)) {
         if (idx === pos) {
           return path;
         }
