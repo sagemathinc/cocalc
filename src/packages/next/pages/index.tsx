@@ -10,7 +10,8 @@ import { join } from "path";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
-import CoCalcComFeatures, {
+import {
+  CoCalcComFeatures,
   Hero,
 } from "components/landing/cocalc-com-features";
 import Content from "components/landing/content";
