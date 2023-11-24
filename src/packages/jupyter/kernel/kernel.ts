@@ -80,7 +80,7 @@ import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 
-const MAX_KERNEL_SPAWN_TIME = 30000;
+const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
 const log = getLogger("jupyter:kernel");
 

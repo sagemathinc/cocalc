@@ -13,7 +13,6 @@ import { getCWD } from "./util";
 import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node-pty";
 import { throttle } from "lodash";
-import { delay } from "awaiting";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { isEqual } from "lodash";
 import type { Spark } from "primus";
@@ -23,10 +22,10 @@ const logger = getLogger("terminal:terminal");
 const CHECK_INTERVAL_MS = 5 * 1000;
 export const MAX_HISTORY_LENGTH = 1000 * 1000;
 const TRUNCATE_THRESH_MS = 500;
-const FREQUENT_RESTART_DELAY_MS = 1.5 * 1000;
-const FREQUENT_RESTART_INTERVAL_MS = 10 * 1000;
 const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
+
+const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
 export const REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS = 7.5 * 1000;
 
@@ -43,7 +42,6 @@ export class Terminal {
   private client_sizes = {};
   private last_truncate_time: number = Date.now();
   private truncating: number = 0;
-  private last_exit: number = 0;
   private size?: { rows: number; cols: number };
   private backendMessagesBuffer = "";
   private backendMessagesState: MessagesState = "none";
@@ -164,7 +162,7 @@ export class Terminal {
     localPty.onData(this.handleDataFromTerminal);
     localPty.onExit(async (exitInfo) => {
       dbg("exited with code ", exitInfo);
-      this.handleDataFromTerminal("\r\n\r\n[Process completed]\r\n\r\n");
+      this.handleDataFromTerminal(EXIT_MESSAGE);
       delete this.localPty;
     });
     localPty.write("\nreset;history -d $(history 1)\n");
@@ -517,7 +515,9 @@ export class Terminal {
       logger.debug("no pty active, but got data, so let's spawn one locally");
       const pty = await this.initLocalPty();
       if (pty != null) {
-        pty.write(data);
+        // we delete first character since it is the "any key"
+        // user hit to get terminal going.
+        pty.write(data.slice(1));
       }
     }
   };
@@ -668,16 +668,7 @@ export class Terminal {
             this.setComputeServerId(data.id);
             break;
           case "exit": {
-            // the pty exited.
-            const now = Date.now();
-            if (now - this.last_exit <= FREQUENT_RESTART_INTERVAL_MS) {
-              logger.debug("EXIT -- waiting a few seconds...");
-              await delay(FREQUENT_RESTART_DELAY_MS);
-            }
-            this.last_exit = now;
-            logger.debug("spawning remote pty...");
-            this.initRemotePty();
-            logger.debug("finished spawn");
+            this.handleDataFromTerminal(EXIT_MESSAGE);
             break;
           }
         }
