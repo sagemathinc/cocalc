@@ -25,6 +25,7 @@ import QuotaRow from "./quota-row";
 import { isEmpty } from "lodash";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../../context";
+import ComputeServersAlert from "@cocalc/frontend/compute/compute-servers-alert";
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -284,6 +285,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       <>
         <Paragraph>
           <Button
+            size="large"
             onClick={() => {
               if (!editing) {
                 track({ action: "open", project_id });
@@ -291,8 +293,9 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
               setEditing(!editing);
             }}
           >
-            <Icon name="credit-card" /> Upgrade...
+            <Icon name="credit-card" /> Upgrade this Project...
           </Button>
+          <ComputeServersAlert project_id={project_id} />
           {!projectIsRunning ? (
             <Button
               disabled={disabled}
@@ -410,6 +413,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           >
             Max
           </Tag>
+          <br />
           <hr />
         </div>
         {PROJECT_UPGRADES.field_order
