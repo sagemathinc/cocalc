@@ -46,8 +46,11 @@ import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
 import { FixedTab } from "./project/page/file-tab";
-import { FLYOUT_LOG_DEFAULT_MODE } from "./project/page/flyouts/log";
-import { FlyoutLogMode } from "./project/page/flyouts/state";
+import { FlyoutActiveMode, FlyoutLogMode } from "./project/page/flyouts/state";
+import {
+  FLYOUT_ACTIVE_DEFAULT_MODE,
+  FLYOUT_LOG_DEFAULT_MODE,
+} from "./project/page/flyouts/utils";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -64,6 +67,7 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
+  recently_closed_files: immutable.List<string>;
   public_paths?: immutable.Map<string, immutable.Map<string, any>>;
   directory_listings: immutable.Map<string, any>;
   show_upload: boolean;
@@ -80,6 +84,7 @@ export interface ProjectStoreState {
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
+  flyout_active_mode: FlyoutActiveMode;
 
   // Project Files
   activity: any; // immutable,
@@ -238,6 +243,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       history_path: "",
       open_files: immutable.Map<immutable.Map<string, any>>({}),
       open_files_order: immutable.List([]),
+      recently_closed_files: immutable.List([]),
       directory_listings: immutable.Map(), // immutable,
       show_upload: false,
       create_file_alert: false,
@@ -253,6 +259,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       num_ghost_file_tabs: 0,
       flyout: null,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
+      flyout_active_mode: FLYOUT_ACTIVE_DEFAULT_MODE,
 
       // Project Files
       activity: undefined,

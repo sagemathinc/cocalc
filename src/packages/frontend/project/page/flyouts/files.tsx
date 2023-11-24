@@ -565,6 +565,7 @@ export function FilesFlyout({
           );
     return (
       <FileListItem
+        mode="files"
         item={item}
         index={index}
         extra={renderListItemExtra(item)}

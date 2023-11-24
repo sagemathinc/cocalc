@@ -4,6 +4,7 @@
  */
 
 import { Button, Input, Radio } from "antd";
+import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import {
@@ -19,11 +20,13 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
 import {
   EventRecordMap,
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
+import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 import {
@@ -34,15 +37,11 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { debounce } from "lodash";
-import { handle_log_click } from "../../history/utils";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
-import { FileListItem, fileItemStyle } from "./file-list-item";
 import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
+import { FileListItem, fileItemStyle } from "./file-list-item";
 import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
-
-export const FLYOUT_LOG_DEFAULT_MODE = "files";
 
 interface OpenedFile {
   filename: string;
@@ -50,11 +49,9 @@ interface OpenedFile {
   account_id: string;
 }
 
-interface HeaderProps {
-  project_id: string;
-}
+export function LogHeader(): JSX.Element {
+  const { project_id } = useProjectContext();
 
-export function LogHeader({ project_id }: HeaderProps): JSX.Element {
   const [mode, setModeState] = useState<FlyoutLogMode>(
     getFlyoutLogMode(project_id),
   );
@@ -248,6 +245,7 @@ export function LogFlyout({
 
     return (
       <FileListItem
+        mode="log"
         item={{ name: path, isopen: isOpened, isactive: isActive }}
         extra={renderFileItemExtra(entry)}
         itemStyle={fileItemStyle(time?.getTime())}
@@ -259,7 +257,7 @@ export function LogFlyout({
             path,
             how: "click-on-log-file-flyout",
           });
-          handle_log_click(e, path, project_id);
+          handleFileEntryClick(e, path, project_id);
         }}
         onClose={(e: React.MouseEvent, path: string) => {
           e.stopPropagation();
@@ -328,7 +326,7 @@ export function LogFlyout({
       path: file.filename,
       how: "keypress-on-log-file-flyout",
     });
-    handle_log_click(e, file.filename, project_id);
+    handleFileEntryClick(e, file.filename, project_id);
   }
 
   function onKeyDownHandler(e) {

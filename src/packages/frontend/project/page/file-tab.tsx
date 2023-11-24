@@ -8,9 +8,10 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
-
 import { Popover, Tag } from "antd";
 import { CSSProperties, ReactNode } from "react";
+
+import { getAlertName } from "@cocalc/comm/project-status/types";
 import {
   CSS,
   useActions,
@@ -23,19 +24,20 @@ import {
   IconName,
   r_join,
 } from "@cocalc/frontend/components";
+import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import track from "@cocalc/frontend/user-tracking";
-import { getAlertName } from "@cocalc/comm/project-status/types";
-import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { PROJECT_INFO_TITLE } from "../info";
-import { TITLE as SERVERS_TITLE } from "../servers";
 import {
   ICON_UPGRADES,
   ICON_USERS,
   TITLE_UPGRADES,
   TITLE_USERS,
-} from "../servers/consts";
+} from "@cocalc/frontend/project/servers/consts";
+import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
+import track from "@cocalc/frontend/user-tracking";
+import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { PROJECT_INFO_TITLE } from "../info";
+import { TITLE as SERVERS_TITLE } from "../servers";
 import {
   CollabsFlyout,
   FilesFlyout,
@@ -47,13 +49,14 @@ import {
   ServersFlyout,
   SettingsFlyout,
 } from "./flyouts";
-import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
-import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
+import { ActiveFlyout } from "./flyouts/active";
 import { VBAR_KEY, getValidVBAROption } from "./vbar";
+import { shouldOpenFileInNewWindow } from "./utils";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
 export type FixedTab =
+  | "active"
   | "files"
   | "new"
   | "log"
@@ -79,6 +82,7 @@ type FixedTabs = {
     }) => JSX.Element;
     flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
+    noFullPage?: boolean; // if true, then this tab can't be opened in a full page
   };
 };
 
@@ -86,6 +90,14 @@ type FixedTabs = {
 // Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
+  active: {
+    label: "Active",
+    flyoutTitle: "Active files",
+    icon: "edit",
+    flyout: ActiveFlyout,
+    noAnonymous: false,
+    noFullPage: true,
+  },
   files: {
     label: "Explorer",
     icon: "folder-open",
@@ -214,7 +226,7 @@ export function FileTab(props: Readonly<Props>) {
   function click(e: React.MouseEvent) {
     e.stopPropagation();
     if (actions == null) return;
-    const anyModifierKey = e.ctrlKey || e.shiftKey || e.metaKey;
+    const anyModifierKey = shouldOpenFileInNewWindow(e);
     if (path != null) {
       if (anyModifierKey) {
         // shift/ctrl/option clicking on *file* tab opens in a new popout window.
@@ -236,7 +248,10 @@ export function FileTab(props: Readonly<Props>) {
         });
       }
     } else if (name != null) {
-      if (flyout != null && vbar !== "both") {
+      if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
+        // this tab can't be opened in a full page
+        actions?.toggleFlyout(flyout);
+      } else if (flyout != null && vbar !== "both") {
         if (anyModifierKey !== (vbar === "full")) {
           setActiveTab(name);
         } else {
@@ -398,6 +413,15 @@ export function FileTab(props: Readonly<Props>) {
       </div>
     </div>
   );
+
+  // in pure "full page" vbar mode, do not show a vertical tab, which has no fullpage
+  if (
+    vbar === "full" &&
+    flyout != null &&
+    FIXED_PROJECT_TABS[flyout].noFullPage
+  ) {
+    return null;
+  }
 
   if (
     props.noPopover ||
