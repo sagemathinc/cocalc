@@ -1128,11 +1128,21 @@ export class JupyterActions extends JupyterActions0 {
         maxsize_MB: 50,
       });
     } catch (err) {
-      // It would be better to have a button to push instead of suggesting running a
-      // command in the terminal, but adding that took 1 second.
-      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipynb in a terminal.`;
-      this.syncdb.set({ type: "fatal", error });
-      throw Error(error);
+      // possibly file doesn't exist -- set notebook to empty.
+      const exists = await callback2(this._client.path_exists, {
+        path,
+      });
+      if (!exists) {
+        content = "";
+      } else {
+        // It would be better to have a button to push instead of
+        // suggesting running a command in the terminal, but
+        // adding that took 1 second.  Better than both would be
+        // making it possible to edit huge files :-).
+        const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipynb in a terminal.`;
+        this.syncdb.set({ type: "fatal", error });
+        throw Error(error);
+      }
     }
     if (content.length === 0) {
       // Blank file, e.g., when creating in CoCalc.

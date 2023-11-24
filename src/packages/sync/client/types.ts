@@ -25,6 +25,7 @@ export interface ClientFs extends Client {
     cb: CB<string>; // cb(err, file content as string (not Buffer!))
   }) => Promise<void>;
   path_stat: (opts: { path: string; cb: CB }) => any;
+  path_exists: (opts: { path: string; cb: CB }) => any;
   watch_file: (opts: {
     path: string;
     interval?: number;

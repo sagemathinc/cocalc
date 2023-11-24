@@ -3,7 +3,7 @@ import Client from "./index";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { join } from "node:path";
 import { readFile, writeFile, stat as statFileAsync } from "node:fs/promises";
-import { stat } from "fs";
+import { exists, stat } from "fs";
 import type { CB } from "@cocalc/util/types/callback";
 import { Watcher } from "@cocalc/backend/watcher";
 
@@ -188,6 +188,13 @@ export class FileSystemClient {
     // see https://nodejs.org/api/fs.html#fs_class_fs_stats
     const path = join(this.home, opts.path);
     stat(path, opts.cb);
+  };
+
+  path_exists = (opts: { path: string; cb: CB }) => {
+    const path = join(this.home, opts.path);
+    exists(path, (exists) => {
+      opts.cb(undefined, exists);
+    });
   };
 
   watch_file = ({
