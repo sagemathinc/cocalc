@@ -13,6 +13,7 @@ export class ClientFs extends Client implements ClientFsType {
   write_file = this.filesystemClient.write_file;
   path_read = this.filesystemClient.path_read;
   path_stat = this.filesystemClient.path_stat;
+  path_exists = this.filesystemClient.path_exists;
   file_size_async = this.filesystemClient.file_size_async;
   file_stat_async = this.filesystemClient.file_stat_async;
   watch_file = this.filesystemClient.watch_file;
