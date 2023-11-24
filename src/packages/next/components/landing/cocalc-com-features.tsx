@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Col, Grid, Row } from "antd";
+import { Button, Col, Grid, Row, Tag } from "antd";
 import { join } from "path";
 import { useEffect, useState } from "react";
 
@@ -31,15 +31,17 @@ import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
 import SignIn from "./sign-in";
+import ComputeServerInfographic from "/public/features/cocalc-compute-infographic-20231124.jpg";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
-export default function CoCalcComFeatures() {
+export function CoCalcComFeatures() {
   const {
     siteName = "CoCalc",
     openaiEnabled,
     sandboxProjectId,
     jupyterApiEnabled,
+    computeServersEnabled,
     shareServer = false,
   } = useCustomize();
   const width = Grid.useBreakpoint();
@@ -87,6 +89,73 @@ export default function CoCalcComFeatures() {
           forth between your collaborators. You no longer waste time reviewing
           changes and merging documents.
         </Paragraph>
+      </Info>
+    );
+  }
+
+  function renderCompute() {
+    if (!computeServersEnabled) return;
+    return (
+      <Info
+        title={
+          <>
+            Compute Servers with GPU support{" "}
+            <sup>
+              <Tag color={COLORS.ANTD_GREEN}>new</Tag>
+            </sup>
+          </>
+        }
+        icon="servers"
+        image={ComputeServerInfographic}
+        narrow={true}
+        anchor="a-compute"
+        alt={
+          "Infographic showing how you connect from CoCalc to other machines for various tasks."
+        }
+        style={{ backgroundColor: COLORS.YELL_LLL }}
+      >
+        <Paragraph>
+          Extend your {siteName} projects with powerful{" "}
+          <Text strong>compute servers</Text>. They give you much more power,
+          GPU support, and flexibility for your computations.
+        </Paragraph>
+        <Paragraph>
+          From within your {siteName} project, spin up and connect to a powerful
+          machine. You simply{" "}
+          <Text strong>
+            tell your terminals and Jupyter Notebooks to run on these machines
+          </Text>
+          . These compute servers open up new possibilities by utilizing
+          enhanced computing resources, extending far beyond the bounds of what
+          you can do in your local project.
+        </Paragraph>
+        <Paragraph>
+          These machines optionally come with <Text strong>GPU support</Text>.
+          The pre-configured software environments make it very easy to make use
+          of them, right out of the box. These software environments include
+          SageMath, Google Colab, Julia, PyTorch, Tensorflow and CUDA Toolkit,
+          accommodating a versatile range of applications.
+        </Paragraph>
+        <Paragraph>
+          Your <Text strong>files are synchronized</Text> on demand. Therefore,
+          you can almost seamlessly switch between local and remote computing.
+          You also have much more temporary storage right there on the remote
+          machine.
+        </Paragraph>
+        <Paragraph>
+          Usage of these machines is <Text strong>billed by the second</Text>.
+          The pricing is highly competitive, especially when using spot
+          instances.
+        </Paragraph>
+        {/* <Paragraph>
+          <Button
+            onClick={() =>
+              (window.location.href = join(basePath, "/features/compute"))
+            }
+          >
+            More about compute servers on {siteName}
+          </Button>
+        </Paragraph> */}
       </Info>
     );
   }
@@ -538,6 +607,7 @@ export default function CoCalcComFeatures() {
 
   return (
     <>
+      {renderCompute()}
       {renderChatGPT()}
       {renderDemoCell()}
       {renderSandbox()}
