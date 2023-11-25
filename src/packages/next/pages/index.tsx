@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
-
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
