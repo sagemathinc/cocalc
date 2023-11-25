@@ -76,7 +76,14 @@ export function ImageLinks({ image }) {
     return null;
   }
   return (
-    <div style={{ display: "flex", marginTop: "10px", textAlign: "center" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        marginTop: "10px",
+        height: "90px", // so not squished vertically
+      }}
+    >
       <A style={{ flex: 1 }} href={data.url}>
         <Icon name="external-link" /> {data.label}
       </A>
