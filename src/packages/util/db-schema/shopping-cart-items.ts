@@ -16,7 +16,7 @@ import { SCHEMA as schema } from "./index";
 
 export type ProductType = "site-license" | "cash-voucher";
 
-interface CashVoucher {
+export interface CashVoucher {
   type: "cash-voucher";
   amount: number;
 }

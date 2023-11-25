@@ -5,9 +5,14 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 import getCart from "@cocalc/server/shopping/cart/get";
 
-import { Item as ShoppingCartItem, ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
+import { CashVoucher, Item as ShoppingCartItem, ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
-import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import {
+  CostInputPeriod,
+  PurchaseInfoQuota,
+  PurchaseInfoVM,
+  PurchaseInfoVoucher
+} from "@cocalc/util/licenses/purchase/types";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 import { round2 } from "@cocalc/util/misc";
@@ -16,6 +21,7 @@ import createStripeCheckoutSession from "./create-stripe-checkout-session";
 import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
+import { DedicatedDiskConfig } from "@cocalc/util/dist/types/dedicated";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
 
@@ -36,10 +42,23 @@ export interface CheckoutParams {
 export const toFriendlyDescription = (description: ProductDescription): string => {
   switch(description.type) {
     case "disk":
+      const diskConfig = description.dedicated_disk as DedicatedDiskConfig;
+      return `${diskConfig.size_gb} GB disk (${diskConfig.speed})`
     case "vm":
+      const {
+        dedicated_vm,
+      } = description as PurchaseInfoVM;
+      return `Virtual Machine (${dedicated_vm.name})`;
     case "quota":
+      const {
+        quantity,
+        upgrade,
+      } = description as PurchaseInfoQuota;
+      return `${quantity}x ${upgrade} quota upgrade(s)`;
     case "vouchers":
+      return `${(description as PurchaseInfoVoucher).quantity}x cash voucher(s)`;
     case "cash-voucher":
+      return `Cash voucher for $${round2((description as CashVoucher).amount).toFixed(2)}`
     default:
       return "Credit account to complete store purchase"
   }

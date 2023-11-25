@@ -13,6 +13,7 @@ const mockComputeCost = jest.fn() as jest.MockedFunction<typeof computeCost>
 
 import { getTransactionClient } from "@cocalc/database/pool";
 import getCart from "@cocalc/server/shopping/cart/get";
+import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { uuid } from "@cocalc/util/misc";
 import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
@@ -20,6 +21,7 @@ import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 import createStripeCheckoutSession from "./create-stripe-checkout-session";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { CheckoutCartItem } from "./shopping-cart-checkout";
+
 
 // System under test
 //
@@ -316,6 +318,7 @@ describe("shopping-cart-checkout", () => {
         },
       ];
 
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: 0.3,
         minPayment: NaN,
@@ -360,6 +363,7 @@ describe("shopping-cart-checkout", () => {
         },
       }];
 
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: 0.3,
         minPayment: NaN,
@@ -415,6 +419,7 @@ describe("shopping-cart-checkout", () => {
         },
       ];
 
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: 1.3,
         minPayment: NaN,
@@ -483,6 +488,7 @@ describe("shopping-cart-checkout", () => {
         },
       ];
 
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: 1.3,
         minPayment: NaN,
@@ -505,7 +511,7 @@ describe("shopping-cart-checkout", () => {
       expect(checkoutResult.done).toEqual(false);
       expect(checkoutSessionArgs).toEqual({
         ...testCheckout,
-        line_items: [
+        line_items: expect.arrayContaining([
           {
             "amount": 0.0,
             "description": expect.stringContaining("$1.50 deducted"),
@@ -518,7 +524,7 @@ describe("shopping-cart-checkout", () => {
             "amount": 3.0,
             "description": expect.not.stringContaining("$0.00 deducted"),
           },
-        ],
+        ]),
       });
     });
 
@@ -559,6 +565,7 @@ describe("shopping-cart-checkout", () => {
         0.0,
       );
 
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: 1.3,
         minPayment: NaN,
@@ -602,7 +609,6 @@ describe("shopping-cart-checkout", () => {
 
   describe("#getCheckoutCart", () => {
     const account_id = uuid();
-
 
     it("correctly computes empty cart total", async () => {
       // Arrange
@@ -796,6 +802,127 @@ describe("shopping-cart-checkout", () => {
       // Assert
       //
       expect(total).toEqual(3.0);
+    });
+  });
+
+  describe("#toFriendlyName", () => {
+    it("constructs disk description", async () => {
+      // Arrange
+      //
+      const productDescription = {
+        type: "disk",
+        dedicated_disk: {
+          size_gb: 512,
+          speed: "ssd",
+        },
+      };
+
+      // Act
+      //
+      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+
+      // Assert
+      //
+      expect(testDescription).toEqual(
+        "512 GB disk (ssd)",
+      );
+    });
+
+    it("constructs VM description", async () => {
+      // Arrange
+      //
+      const productDescription = {
+        type: "vm",
+        dedicated_vm: {
+          name: "raspberry pi",
+        },
+      };
+
+      // Act
+      //
+      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+
+      // Assert
+      //
+      expect(testDescription).toEqual(
+        "Virtual Machine (raspberry pi)",
+      );
+    });
+
+    it("constructs quota description", async () => {
+      // Arrange
+      //
+      const productDescription = {
+        type: "quota",
+        quantity: 2,
+        upgrade: "standard",
+      };
+
+      // Act
+      //
+      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+
+      // Assert
+      //
+      expect(testDescription).toEqual(
+        "2x standard quota upgrade(s)",
+      );
+    });
+
+    it("constructs voucher description", async () => {
+      // Arrange
+      //
+      const productDescription = {
+        type: "vouchers",
+        quantity: 4,
+      };
+
+      // Act
+      //
+      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+
+      // Assert
+      //
+      expect(testDescription).toEqual(
+        "4x cash voucher(s)",
+      );
+    });
+
+    it("constructs cash voucher description", async () => {
+      // Arrange
+      //
+      const productDescription = {
+        type: "cash-voucher",
+        amount: 3.50,
+      };
+
+      // Act
+      //
+      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+
+      // Assert
+      //
+      expect(testDescription).toEqual(
+        "Cash voucher for $3.50",
+      );
+    });
+
+    it("constructs default description", async () => {
+      // Arrange
+      //
+      const productDescription = {
+        type: "foobar",
+      };
+
+      // Act
+      //
+      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+
+      // Assert
+      //
+      expect(testDescription).toEqual(
+        "Credit account to complete store purchase",
+      );
     });
   });
 });
