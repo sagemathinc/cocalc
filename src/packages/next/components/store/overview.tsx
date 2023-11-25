@@ -32,7 +32,7 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <div style={{ fontSize: "13pt" }}>
-        Shop below or explore an{" "}
+        Shop below or explore {" "}
         <A href="/pricing">available products and pricing</A>.
       </div>
       <OverviewRow>
