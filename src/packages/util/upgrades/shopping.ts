@@ -13,33 +13,44 @@ export type Period = "range" | "monthly" | "yearly";
 
 export type DateRange = [Date | undefined, Date | undefined];
 
+type DiskCostProps = {
+  type: "disk";
+  dedicated_disk: DedicatedDisk;
+  period: Period;
+}
+
+type VMCostProps = {
+  type: "vm";
+  period: "range";
+  range: DateRange;
+  dedicated_vm: DedicatedVM;
+}
+
+type QuotaCostProps = {
+  type: "quota";
+  user: User;
+  run_limit: number;
+  period: Period;
+  range: DateRange;
+  ram: number;
+  cpu: number;
+  disk: number;
+  always_running: boolean;
+  member: boolean;
+  uptime: keyof typeof LicenseIdleTimeouts | "always_running";
+  boost?: boolean;
+}
+
+type CashVoucherCostProps = {
+  type: "cash-voucher";
+  amount: number;
+}
+
 export type ComputeCostProps =
-  | {
-      type: "quota";
-      user: User;
-      run_limit: number;
-      period: Period;
-      range: DateRange;
-      ram: number;
-      cpu: number;
-      disk: number;
-      always_running: boolean;
-      member: boolean;
-      uptime: keyof typeof LicenseIdleTimeouts | "always_running";
-      boost?: boolean;
-    }
-  | {
-      type: "vm";
-      period: "range";
-      range: DateRange;
-      dedicated_vm: DedicatedVM;
-    }
-  | {
-      type: "disk";
-      dedicated_disk: DedicatedDisk;
-      period: Period;
-    }
-  | { type: "cash-voucher"; amount: number };
+  | CashVoucherCostProps
+  | DiskCostProps
+  | QuotaCostProps
+  | VMCostProps
 
 export type ComputeCostPropsTypes = ComputeCostProps["type"];
 
@@ -48,31 +59,15 @@ export interface CustomDescription {
   description?: string; // user can change this
 }
 
+export interface QuotaCostPropsDB extends Omit<QuotaCostProps, 'range'|'always_running'> {
+  range?: readonly [string, string]; // should be converted to [Date, Date]
+  always_running?: boolean;
+}
+
 // server side, what comes out of the DB in the "description" column in the cart
 // for the implementation, check out what next/components/store/add-box.tsx is doing
 export type SiteLicenseDescriptionDB =
-  | ({
-      type: "quota";
-      user: User;
-      run_limit: number;
-      period: Period;
-      range?: readonly [string, string]; // should be converted to [Date, Date]
-      ram: number;
-      cpu: number;
-      disk: number;
-      always_running?: boolean;
-      member: boolean;
-      uptime: keyof typeof LicenseIdleTimeouts | "always_running";
-      boost?: boolean;
-    } & CustomDescription)
-  | ({
-      type: "vm";
-      period: "range";
-      range: DateRange;
-      dedicated_vm: DedicatedVM;
-    } & CustomDescription)
-  | ({
-      type: "disk";
-      dedicated_disk: DedicatedDisk;
-      period: Period;
-    } & CustomDescription);
+  | (QuotaCostPropsDB & CustomDescription)
+  | (VMCostProps & CustomDescription)
+  | (DiskCostProps & CustomDescription);
+

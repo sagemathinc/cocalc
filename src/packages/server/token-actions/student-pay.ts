@@ -19,11 +19,13 @@ export async function studentPay(token, description, account_id): Promise<any> {
     const url = await getTokenUrl(token);
     const session = await createStripeCheckoutSession({
       account_id,
-      amount,
-      description: `Add ${currency(
+      line_items: [{
         amount,
-        2
-      )} to your account (signed in as ${user}).`,
+        description: `Add ${currency(
+          amount,
+          2
+        )} to your account (signed in as ${user}).`,
+      }],
       success_url: url,
       cancel_url: url,
       force: true,
