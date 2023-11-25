@@ -14,6 +14,7 @@ import { HomeRecentFiles } from "./recent-files";
 import {
   computeServersEnabled,
   ComputeServers,
+  ComputeServerDocs,
 } from "@cocalc/frontend/compute";
 import AccountStatus from "@cocalc/frontend/purchases/account-status";
 
@@ -72,8 +73,9 @@ export default function HomePage() {
               }}
               title={
                 <Title level={4}>
+                  <ComputeServerDocs style={{ float: "right" }} />
                   <Icon
-                    name="server"
+                    name="servers"
                     style={{ fontSize: "20pt", marginRight: "5px" }}
                   />{" "}
                   Compute Servers
