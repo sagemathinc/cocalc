@@ -13,6 +13,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { randomColor } from "./color";
 import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import costPerHour from "./cost";
+import { Docs } from "./compute-servers";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -170,7 +171,12 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }}
         open={editing}
         title={"Create Compute Server"}
-        footer={footer}
+        footer={
+          <div style={{ display: "flex" }}>
+            {footer}
+            <Docs key="docs" style={{ flex: 1, marginTop: "10px" }} />
+          </div>
+        }
       >
         <div style={{ marginTop: "15px" }}>
           <ShowError error={error} setError={setError} />
