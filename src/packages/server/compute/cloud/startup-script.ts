@@ -94,6 +94,12 @@ setState install install-docker '' 120 20
 ${installDocker()}
 fi
 
+# We use group 999 for docker inside the compute container,
+# so that has to also be the case outside or docker without
+# sudo won't work.
+groupmod -g 999 docker
+chgrp docker /var/run/docker.sock
+
 setState install install-nodejs 60 50
 ${installNode()}
 if [ $? -ne 0 ]; then
