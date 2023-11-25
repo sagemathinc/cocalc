@@ -39,9 +39,9 @@ export default function SyncButton({
       mouseEnterDelay={0.9}
       title={
         <>
-          Synchronize files in the HOME directory of the compute server with the
-          HOME directory of the project, except excluded directories. You
-          usually must explicitly sync files.
+          Synchronize files in /user/home of the compute server with /user/home
+          of the project, except fast data directories. You usually must
+          explicitly sync files.
         </>
       }
     >
