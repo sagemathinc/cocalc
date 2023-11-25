@@ -3,7 +3,7 @@ import Client from "./index";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { join } from "node:path";
 import { readFile, writeFile, stat as statFileAsync } from "node:fs/promises";
-import { stat } from "fs";
+import { exists, stat } from "fs";
 import type { CB } from "@cocalc/util/types/callback";
 import { Watcher } from "@cocalc/backend/watcher";
 
@@ -13,6 +13,7 @@ export class ClientFs extends Client implements ClientFsType {
   write_file = this.filesystemClient.write_file;
   path_read = this.filesystemClient.path_read;
   path_stat = this.filesystemClient.path_stat;
+  path_exists = this.filesystemClient.path_exists;
   file_size_async = this.filesystemClient.file_size_async;
   file_stat_async = this.filesystemClient.file_stat_async;
   watch_file = this.filesystemClient.watch_file;
@@ -188,6 +189,13 @@ export class FileSystemClient {
     // see https://nodejs.org/api/fs.html#fs_class_fs_stats
     const path = join(this.home, opts.path);
     stat(path, opts.cb);
+  };
+
+  path_exists = (opts: { path: string; cb: CB }) => {
+    const path = join(this.home, opts.path);
+    exists(path, (exists) => {
+      opts.cb(undefined, exists);
+    });
   };
 
   watch_file = ({

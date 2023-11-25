@@ -1056,11 +1056,17 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  set_last_load = () => {
+  // if also set load is true, we also set the "last_ipynb_save" time.
+  set_last_load = (alsoSetLoad: boolean = false) => {
+    const last_load = new Date().getTime();
     this.syncdb.set({
       type: "file",
-      last_load: new Date().getTime(),
+      last_load,
     });
+    if (alsoSetLoad) {
+      // yes, load v save is inconsistent!
+      this.syncdb.set({ type: "settings", last_ipynb_save: last_load });
+    }
     this.syncdb.commit();
   };
 
@@ -1122,17 +1128,27 @@ export class JupyterActions extends JupyterActions0 {
         maxsize_MB: 50,
       });
     } catch (err) {
-      // It would be better to have a button to push instead of suggesting running a
-      // command in the terminal, but adding that took 1 second.
-      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipynb in a terminal.`;
-      this.syncdb.set({ type: "fatal", error });
-      throw Error(error);
+      // possibly file doesn't exist -- set notebook to empty.
+      const exists = await callback2(this._client.path_exists, {
+        path,
+      });
+      if (!exists) {
+        content = "";
+      } else {
+        // It would be better to have a button to push instead of
+        // suggesting running a command in the terminal, but
+        // adding that took 1 second.  Better than both would be
+        // making it possible to edit huge files :-).
+        const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipynb in a terminal.`;
+        this.syncdb.set({ type: "fatal", error });
+        throw Error(error);
+      }
     }
     if (content.length === 0) {
       // Blank file, e.g., when creating in CoCalc.
       // This is good, works, etc. -- just clear state, including error.
       this.syncdb.delete();
-      this.set_last_load();
+      this.set_last_load(true);
       return;
     }
 
@@ -1148,7 +1164,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.syncdb.delete({ type: "fatal" });
     await this.set_to_ipynb(parsed_content);
-    this.set_last_load();
+    this.set_last_load(true);
   };
 
   save_ipynb_file = async () => {

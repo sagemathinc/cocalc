@@ -117,6 +117,8 @@ const MAIN_COLORS = {
   ANTD_RED_WARN: "#f5222d", // used in official docs if there is red text to warn
   ANTD_YELL_M: "#fadb14",
 
+  STAR: "#FFD700", // gold star
+
   ANTD_RED: "#f5222d", // hefty warning (needs white text on top of it)
   ANTD_ORANGE: "#ffbb96", // mild warning
   ANTD_GREEN: "#87d068", // bright lime-ish green

@@ -109,6 +109,7 @@ function ActionButton({
   const [showOnPremDeprovision, setShowOnPremDeprovision] =
     useState<boolean>(false);
   const [cost_per_hour, setCostPerHour] = useState<number | null>(null);
+  const [popConfirm, setPopConfirm] = useState<boolean>(false);
   const updateCost = async () => {
     try {
       const c = await costPerHour({
@@ -213,6 +214,7 @@ function ActionButton({
   if (confirm) {
     button = (
       <Popconfirm
+        onOpenChange={setPopConfirm}
         placement="right"
         okButtonProps={{
           disabled: !configuration.ephemeral && danger && !understand,
@@ -309,8 +311,12 @@ function ActionButton({
     return content;
   }
 
+  // Do NOT use popover in case we're doing a popconfirm.
+  // Two popovers at once is just unprofessional and hard to use.
+
   return (
     <Popover
+      open={popConfirm ? false : undefined}
       placement="left"
       key={action}
       mouseEnterDelay={1}
@@ -324,7 +330,11 @@ function ActionButton({
           {description}{" "}
           {cost_per_hour != null && (
             <div style={{ textAlign: "center" }}>
-              <MoneyStatistic value={cost_per_hour} title="Cost per hour" />
+              <MoneyStatistic
+                value={cost_per_hour}
+                title="Cost per hour"
+                costPerMonth={730 * cost_per_hour}
+              />
             </div>
           )}
         </div>

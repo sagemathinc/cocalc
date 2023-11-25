@@ -6,12 +6,23 @@
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { FixedTab, isFixedTab } from "../file-tab";
 import { FLYOUT_DEFAULT_WIDTH_PX } from "./consts";
-import { FLYOUT_LOG_DEFAULT_MODE } from "./log";
+import { FLYOUT_ACTIVE_DEFAULT_MODE, FLYOUT_LOG_DEFAULT_MODE } from "./utils";
 
 const LogModes = ["files", "history"] as const;
 export type FlyoutLogMode = (typeof LogModes)[number];
 export function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
   return LogModes.includes(val as any);
+}
+
+const ActiveModes = ["folder", "type", "tabs"] as const;
+export type FlyoutActiveMode = (typeof ActiveModes)[number];
+export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
+  return ActiveModes.includes(val as any);
+}
+
+export type FlyoutActiveStarred = string[];
+export function isFlyoutActiveStarred(val?: any): val is FlyoutActiveStarred {
+  return Array.isArray(val) && val.every((x) => typeof x === "string");
 }
 
 interface FilesMode {
@@ -24,8 +35,11 @@ export type LSFlyout = {
   width?: number; // checked using isPositiveNumber
   expanded?: FixedTab | null;
   mode?: FlyoutLogMode; // check using isFlyoutLogMode
+  active?: FlyoutActiveMode; // check using isFlyoutActiveMode
   files?: FilesMode;
   settings?: string[]; // expanded panels
+  starred?: FlyoutActiveStarred;
+  showStarred?: boolean;
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -38,13 +52,16 @@ export function storeFlyoutState(
   project_id: string,
   flyout: FixedTab,
   state: {
-    scroll?: number;
+    active?: FlyoutActiveMode; // check using isFlyoutActiveMode
     expanded?: boolean;
-    width?: number | null;
-    mode?: string; // check using isFlyoutLogMode
     files?: FilesMode;
+    mode?: string; // check using isFlyoutLogMode
+    scroll?: number;
     settings?: string[]; // expanded panels
-  }
+    starred?: FlyoutActiveStarred;
+    showStarred?: boolean;
+    width?: number | null;
+  },
 ): void {
   const { scroll, expanded, width, mode, files } = state;
   const key = lsKey(project_id);
@@ -87,6 +104,20 @@ export function storeFlyoutState(
     current.settings = keys;
   }
 
+  if (flyout === "active") {
+    if (isFlyoutActiveMode(state.active)) {
+      current.active = state.active;
+    }
+
+    if (isFlyoutActiveStarred(state.starred)) {
+      current.starred = state.starred;
+    }
+
+    if (typeof state.showStarred === "boolean") {
+      current.showStarred = state.showStarred;
+    }
+  }
+
   LS.set(key, current);
 }
 
@@ -111,4 +142,19 @@ export function getFlyoutFiles(project_id: string): FilesMode {
 
 export function getFlyoutSettings(project_id: string): string[] {
   return LS.get<LSFlyout>(lsKey(project_id))?.settings ?? [];
+}
+
+export function getFlyoutActiveMode(project_id: string): FlyoutActiveMode {
+  const active = LS.get<LSFlyout>(lsKey(project_id))?.active;
+  return isFlyoutActiveMode(active) ? active : FLYOUT_ACTIVE_DEFAULT_MODE;
+}
+
+export function getFlyoutActiveStarred(
+  project_id: string,
+): FlyoutActiveStarred {
+  return LS.get<LSFlyout>(lsKey(project_id))?.starred ?? [];
+}
+
+export function getFlyoutActiveShowStarred(project_id: string): boolean {
+  return LS.get<LSFlyout>(lsKey(project_id))?.showStarred ?? true;
 }

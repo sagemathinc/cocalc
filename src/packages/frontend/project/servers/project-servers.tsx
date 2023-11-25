@@ -17,6 +17,7 @@ import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 import {
   computeServersEnabled,
   ComputeServers,
+  ComputeServerDocs,
 } from "@cocalc/frontend/compute";
 
 // Antd's 24 grid system
@@ -153,7 +154,10 @@ export function ProjectServers(props: Props) {
       </Title>
       {computeServersEnabled() && (
         <>
-          <h2><Icon name="servers" /> Compute Servers</h2>
+          <h2>
+            <ComputeServerDocs style={{ float: "right" }} />
+            <Icon name="servers" /> Compute Servers
+          </h2>
           <ComputeServers project_id={project_id} />
         </>
       )}

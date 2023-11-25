@@ -6,9 +6,8 @@
 /*
 Create a new site license.
 */
-import { Alert, Form, Input, Space, Switch } from "antd";
+import { Form, Input, Space, Switch } from "antd";
 import { useEffect, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   get_local_storage,
@@ -39,6 +38,7 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType } from "./util";
+import PaygInfo from "./payg-info";
 
 interface Props {
   noAccount: boolean;
@@ -81,21 +81,7 @@ export default function Boost(props: Props) {
             it to your <A href="/store/cart">shopping cart</A>.
           </Paragraph>
           <Paragraph>
-            <Alert
-              showIcon
-              type="info"
-              message="Pay As You Go"
-              description={
-                <div>
-                  If you just need to upgrade your project for a few minutes or
-                  a few hours, you can use{" "}
-                  <A href="https://doc.cocalc.com/paygo.html" external>
-                    Pay As You Go
-                  </A>{" "}
-                  instead of a boost license.
-                </div>
-              }
-            />
+            <PaygInfo what={"a boost license"} />
           </Paragraph>
           <Paragraph>
             <Icon name="lightbulb" style={{ color: COLORS.ANTD_ORANGE }} /> If

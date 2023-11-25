@@ -28,6 +28,7 @@ interface Customize extends ServerCustomize {
   serverTime?: number; // the time on the server, in milliseconds since the epoch
   openaiEnabled?: boolean; // backend is configured to provide openai integration.
   jupyterApiEnabled?: boolean; // backend configured to use a pool of projects for sandboxed ephemeral jupyter code execution
+  computeServersEnabled?: boolean; // backend configured to run on external compute servers
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

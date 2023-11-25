@@ -52,16 +52,16 @@ export default function ComputeServerTransition({
         display: "flex",
         borderBottom:
           requestedServer != null && !showDetails
-            ? `1px solid ${requestedServer.get("color")}`
-            : undefined,
-        height: "19px",
+            ? "1px solid #ccc"
+            : /*? `1px solid ${requestedServer.get("color")}` */
+              undefined,
+        height: "23px",
       }}
     >
       {progress == 100 && (
         <SyncButton
-          style={{ marginTop: "-3px" }}
+          style={{ marginTop: "-1px", marginLeft: "1px", marginRight: "5px" }}
           size="small"
-          type="text"
           compute_server_id={id}
           project_id={project_id}
           time={requestedServer?.getIn([
@@ -105,7 +105,7 @@ export default function ComputeServerTransition({
               id={requestedId}
               style={{
                 borderRadius: "5px",
-                height: "17px",
+                height: "22px",
                 cursor: "pointer",
                 width: `${progress}%`,
               }}
@@ -113,9 +113,8 @@ export default function ComputeServerTransition({
           </div>
           <Button
             size="small"
-            type="text"
             disabled={id != requestedId}
-            style={{ margin: "-3px 0", color: "#666" }}
+            style={{ marginTop: "-1px", marginRight: "1px", color: "#666" }}
           >
             <Icon name="servers" /> <Inline prompt id={requestedId} />
           </Button>

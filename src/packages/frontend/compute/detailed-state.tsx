@@ -20,7 +20,7 @@ const SPEC = {
   "filesystem-sync": {
     icon: "sync",
     label: "Sync",
-    tip: "Sync /home/user between compute server and project (except excluded directories)",
+    // no tip on purpose since button provides tip
   },
   "filesystem-cache": {
     icon: "disk-round",

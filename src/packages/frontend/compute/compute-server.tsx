@@ -19,6 +19,7 @@ import DetailedState from "./detailed-state";
 import { DisplayImage } from "./select-image";
 import State from "./state";
 import Title from "./title";
+import { Docs } from "./compute-servers";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -417,7 +418,12 @@ function ComputeServerEdit({
             <Icon name="edit" /> Edit Compute Server With Id={id}
           </>
         }
-        footer={[buttons]}
+        footer={
+          <div style={{ display: "flex" }}>
+            {buttons}
+            <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
+          </div>
+        }
       >
         <div
           style={{ fontSize: "12pt", color: COLORS.GRAY_M, display: "flex" }}

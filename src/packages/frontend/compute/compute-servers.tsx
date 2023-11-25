@@ -16,6 +16,14 @@ import {
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Icon } from "@cocalc/frontend/components";
 
+export function Docs({ style }: { style? }) {
+  return (
+    <A style={style} href="https://doc.cocalc.com/compute_server.html">
+      <Icon name="external-link" /> Docs
+    </A>
+  );
+}
+
 export default function ComputeServers({ project_id }: { project_id: string }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -30,14 +38,28 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         }}
         style={{ fontSize: "12pt" }}
       >
-        Do you need <strong>affordable GPU's</strong>,{" "}
-        <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
+        Do you need{" "}
+        <strong>
+          <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/ollama.md">
+            affordable GPU's
+          </A>
+        </strong>
+        , <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
         <strong>Docker</strong>, to host a{" "}
-        <strong>powerful public webserver</strong>, or use{" "}
-        <strong>commercial software</strong> in CoCalc? Compute servers are pay
-        as you go virtual machines where you can run Jupyter notebooks,
-        terminals and web servers collaboratively, with full access to this
-        project.
+        <strong>
+          <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/docs/cocalc.com.md">
+            powerful public webserver
+          </A>
+        </strong>
+        , or use{" "}
+        <strong>
+          <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
+            commercial software
+          </A>
+        </strong>{" "}
+        in CoCalc? Compute servers are pay as you go virtual machines where you
+        can run Jupyter notebooks, terminals and web servers collaboratively,
+        with full access to this project.
         <ul>
           <li>
             <Icon name="ubuntu" /> Full root and internet access on an Ubuntu
@@ -50,7 +72,11 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
           <li>
             <Icon name="mathematica" /> <Icon name="matlab" />{" "}
             <Icon name="maple" /> Install any free and commercial Linux software
-            (e.g., MATLAB, Mathematica, any Docker container, etc.)
+            (e.g., MATLAB,{" "}
+            <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
+              Mathematica
+            </A>
+            , any Docker container, etc.)
           </li>
           <li>
             {" "}
@@ -58,7 +84,8 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
           </li>
           <li>
             {" "}
-            <Icon name="sync" /> Files sync'd with this project
+            <Icon name="sync" /> Files sync'd with this project when you click
+            the "Sync files" button.
           </li>
         </ul>
         <h3>Getting Started</h3>

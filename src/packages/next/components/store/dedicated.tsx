@@ -11,7 +11,7 @@ import { Divider, Form, Input, Radio, Select, Typography } from "antd";
 import { sortBy } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-
+import PaygInfo from "./payg-info";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { HOME_PREFIX, ROOT } from "@cocalc/util/consts/dedicated";
@@ -105,6 +105,9 @@ export default function DedicatedResource(props: Props) {
               <A href={"/pricing/onprem"}>on-premises offerings</A>
             </Text>{" "}
             to learn more about this.
+          </Paragraph>
+          <Paragraph>
+            <PaygInfo what={"a dedicated VM or disk"} />
           </Paragraph>
         </>
       )}

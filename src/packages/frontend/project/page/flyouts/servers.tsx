@@ -13,6 +13,7 @@ import { FLYOUT_PADDING } from "./consts";
 import {
   computeServersEnabled,
   ComputeServers,
+  ComputeServerDocs,
 } from "@cocalc/frontend/compute";
 
 export function ServersFlyout({ project_id, wrap }) {
@@ -67,6 +68,7 @@ export function ServersFlyout({ project_id, wrap }) {
       {computeServersEnabled() && (
         <div>
           <Title level={5}>
+            <ComputeServerDocs style={{ float: "right" }} />
             <Icon name="servers" /> Compute Servers
           </Title>
           <ComputeServers project_id={project_id} />

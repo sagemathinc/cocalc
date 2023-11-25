@@ -30,7 +30,7 @@ export class ConfigurationActions {
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
     this.push_missing_handouts_and_assignments = reuseInFlight(
-      this.push_missing_handouts_and_assignments
+      this.push_missing_handouts_and_assignments,
     );
   }
 
@@ -47,7 +47,7 @@ export class ConfigurationActions {
   public set_description(description: string): void {
     this.set({ description, table: "settings" });
     this.course_actions.student_projects.set_all_student_project_descriptions(
-      description
+      description,
     );
     this.course_actions.shared_project.set_project_description();
   }
@@ -84,7 +84,7 @@ export class ConfigurationActions {
   }
 
   public set_site_license_strategy(
-    site_license_strategy: SiteLicenseStrategy
+    site_license_strategy: SiteLicenseStrategy,
   ): void {
     this.set({ site_license_strategy, table: "settings" });
   }
@@ -108,7 +108,7 @@ export class ConfigurationActions {
   }
 
   public async set_student_project_functionality(
-    student_project_functionality: StudentProjectFunctionality
+    student_project_functionality: StudentProjectFunctionality,
   ): Promise<void> {
     this.set({ student_project_functionality, table: "settings" });
     await this.course_actions.student_projects.configure_all_projects();
@@ -168,7 +168,7 @@ export class ConfigurationActions {
         if (site_license_id) {
           await actions.add_site_license_to_project(
             course_project_id,
-            site_license_id
+            site_license_id,
           );
         }
       }
@@ -209,7 +209,7 @@ export class ConfigurationActions {
     const store = this.course_actions.get_store();
     for (const student_id of store.get_student_ids({ deleted: false })) {
       await this.course_actions.students.push_missing_handouts_and_assignments(
-        student_id
+        student_id,
       );
     }
   }
@@ -222,9 +222,17 @@ export class ConfigurationActions {
   }
 
   public async configure_nbgrader_grade_project(
-    project_id?: string
+    project_id?: string,
   ): Promise<void> {
-    const store = this.course_actions.get_store();
+    let store;
+    try {
+      store = this.course_actions.get_store();
+    } catch (_) {
+      // this could get called during grading that is ongoing right when
+      // the user decides to close the document, and in that case get_store()
+      // would throw an error: https://github.com/sagemathinc/cocalc/issues/7050
+      return;
+    }
 
     if (project_id == null) {
       project_id = store.getIn(["settings", "nbgrader_grade_project"]);
@@ -257,7 +265,7 @@ export class ConfigurationActions {
           datastore,
           "nbgrader", // type of project
           undefined, // student_project_functionality
-          envvars
+          envvars,
         );
       }
 
@@ -278,7 +286,7 @@ export class ConfigurationActions {
       }
     } catch (err) {
       this.course_actions.set_error(
-        `Error configuring grading project - ${err}`
+        `Error configuring grading project - ${err}`,
       );
     } finally {
       this.course_actions.set_activity({ id });
@@ -320,7 +328,7 @@ export class ConfigurationActions {
   }
 
   public set_nbgrader_max_output_per_cell(
-    nbgrader_max_output_per_cell: number
+    nbgrader_max_output_per_cell: number,
   ): void {
     this.set({
       nbgrader_max_output_per_cell,
@@ -352,7 +360,7 @@ export class ConfigurationActions {
   }
 
   public async set_software_environment(
-    state: SoftwareEnvironmentState
+    state: SoftwareEnvironmentState,
   ): Promise<void> {
     const image = await derive_project_img_name(state);
     this.set_compute_image(image);

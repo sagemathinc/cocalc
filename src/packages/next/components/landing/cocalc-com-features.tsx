@@ -6,7 +6,6 @@
 import { Button, Col, Grid, Row } from "antd";
 import { join } from "path";
 import { useEffect, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { COLORS } from "@cocalc/util/theme";
@@ -31,10 +30,11 @@ import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
 import SignIn from "./sign-in";
-import RTC from "/public/features/cocalc-real-time-jupyter.png";
+import RTC from "public/features/cocalc-real-time-jupyter.png";
+import ComputeServers from "./compute-servers";
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
-export default function CoCalcComFeatures() {
+export function CoCalcComFeatures() {
   const {
     siteName = "CoCalc",
     openaiEnabled,
@@ -538,6 +538,7 @@ export default function CoCalcComFeatures() {
 
   return (
     <>
+      <ComputeServers />
       {renderChatGPT()}
       {renderDemoCell()}
       {renderSandbox()}

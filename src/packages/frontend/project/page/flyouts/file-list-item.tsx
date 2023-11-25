@@ -18,7 +18,7 @@ import {
   useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon } from "@cocalc/frontend/components";
+import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -35,6 +35,7 @@ import {
   filename_extension,
   hexColorToRGBA,
   human_readable_size,
+  path_split,
   path_to_file,
   plural,
   separate_file_extension,
@@ -48,7 +49,7 @@ import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 const BORDER_WIDTH_PX = "4px";
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
-  backgroundColor: COLORS.BLUE_LLL, // bit lighter than .cc-project-flyout-file-item:hover
+  backgroundColor: COLORS.BLUE_LLL, // bit darker than .cc-project-flyout-file-item:hover
 } as const;
 
 const FILE_ITEM_OPENED_STYLE: CSS = {
@@ -60,6 +61,11 @@ const FILE_ITEM_OPENED_STYLE: CSS = {
 const FILE_ITEM_ACTIVE_STYLE: CSS = {
   ...FILE_ITEM_OPENED_STYLE,
   color: COLORS.PROJECT.FIXED_LEFT_OPENED,
+};
+
+const FILE_ITEM_ACTIVE_STYLE_2: CSS = {
+  ...FILE_ITEM_ACTIVE_STYLE,
+  backgroundColor: COLORS.GRAY_L0,
 };
 
 const FILE_ITEM_STYLE: CSS = {
@@ -100,6 +106,16 @@ const BTN_STYLE: CSS = {
   width: "20px",
 } as const;
 
+// this is a bit hacky, because of the larger font (otherwise it's just a really small (X))
+// the bottom is cut off slightly. With that padding and relative position move, it looks better.
+const CLOSE_ICON_STYLE: CSS = {
+  flex: "0",
+  fontSize: "120%",
+  top: "1px",
+  position: "relative",
+  paddingBottom: "1px",
+};
+
 interface Item {
   isopen?: boolean;
   isdir?: boolean;
@@ -113,42 +129,55 @@ interface Item {
 interface FileListItemProps {
   // we only set this from the "files" flyout, not "log", since in the log you can't select multiple files
   checked_files?: immutable.Set<string>;
+  displayedNameOverride?: string; // override the name
   extra?: JSX.Element | string | null; // null means don't show anything
   extra2?: JSX.Element | string | null; // null means don't show anything
+  iconNameOverride?: IconName;
   index?: number;
+  isStarred?: boolean;
   item: Item;
   itemStyle?: CSS;
+  mode: "files" | "log" | "active";
   multiline?: boolean;
   onChecked?: (state: boolean) => void;
   onClick?: (e?: React.MouseEvent) => void;
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
   onMouseDown?: (e: React.MouseEvent, name: string) => void;
   onPublic?: (e?: React.MouseEvent) => void;
+  onStar?: (next: boolean) => void;
   selected?: boolean;
   setShowCheckboxIndex?: (index: number | null) => void;
   showCheckbox?: boolean;
+  style?: CSS;
   tooltip?: JSX.Element | string;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const {
     checked_files,
+    displayedNameOverride,
     extra,
     extra2,
+    iconNameOverride,
     index,
+    isStarred,
     item,
     itemStyle,
+    mode,
     multiline = false,
     onChecked,
     onClick,
     onClose,
     onMouseDown,
     onPublic,
+    onStar,
     selected,
     setShowCheckboxIndex,
     showCheckbox,
+    style,
     tooltip,
   } = props;
+  const isActive = mode === "active";
   const { project_id } = useProjectContext();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
@@ -159,12 +188,13 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  function renderCloseItem(item: Item): JSX.Element {
+  function renderCloseItem(item: Item): JSX.Element | null {
+    if (!item.isopen) return null;
     const { name } = item;
     return (
       <Icon
         name="times-circle"
-        style={{ flex: "0", fontSize: "120%" }}
+        style={CLOSE_ICON_STYLE}
         onClick={(e) => {
           e?.stopPropagation();
           onClose?.(e, name);
@@ -192,24 +222,40 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderName(): JSX.Element {
-    const { name, ext } = item.isdir
-      ? { name: item.name, ext: "" }
-      : separate_file_extension(item.name);
+    const name = item.name;
+
+    const path = isActive ? path_split(name).tail : name;
+    const { name: basename, ext } = item.isdir
+      ? { name: path, ext: "" }
+      : separate_file_extension(path);
+
+    // de-emphasize starred but closed files, unless a directory
+    const activeStyle = isActive
+      ? item.isopen
+        ? { fontWeight: "bold" }
+        : item.isdir
+        ? undefined
+        : { color: COLORS.FILE_EXT }
+      : undefined;
+
     return (
       <div
         ref={itemRef}
-        title={item.name}
+        title={name}
         style={{
           ...FILE_ITEM_STYLE,
           ...(multiline ? { whiteSpace: "normal" } : {}),
+          ...activeStyle,
         }}
       >
-        {name}
-        {ext === "" ? undefined : (
-          <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
-            {`.${ext}`}
-          </span>
-        )}
+        {displayedNameOverride ?? basename}
+        {displayedNameOverride == null ? (
+          ext === "" ? undefined : (
+            <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
+              {`.${ext}`}
+            </span>
+          )
+        ) : undefined}
       </div>
     );
   }
@@ -231,13 +277,14 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
   function renderBodyLeft(): JSX.Element {
     const iconName =
-      selectable && showCheckbox && item.name !== ".."
+      iconNameOverride ??
+      (selectable && showCheckbox && item.name !== ".."
         ? selected
           ? "check-square"
           : "square"
         : item.isdir
         ? "folder-open"
-        : file_options(item.name)?.icon ?? "file";
+        : file_options(item.name)?.icon ?? "file");
 
     return (
       <Icon
@@ -257,8 +304,27 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
+  function renderStarred(): JSX.Element | undefined {
+    if (isStarred == null) return;
+
+    return (
+      <Icon
+        name={isStarred ? "star-filled" : "star-o"}
+        style={{
+          ...ICON_STYLE,
+          color: isStarred && item.isopen ? COLORS.STAR : COLORS.GRAY_L,
+        }}
+        onClick={(e: React.MouseEvent) => {
+          e?.stopPropagation();
+          onStar?.(!isStarred);
+        }}
+      />
+    );
+  }
+
   function renderExtra(type: 1 | 2): JSX.Element | undefined {
-    if (extra == null) return;
+    const currentExtra = type === 1 ? extra : extra2;
+    if (currentExtra == null) return;
     const marginRight =
       type === 1
         ? (item.is_public ? 0 : 20) + (item.isopen ? 0 : 18)
@@ -294,7 +360,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             textAlign,
           }}
         >
-          {type === 1 ? extra : extra2}
+          {currentExtra}
         </div>
       </div>
     );
@@ -312,9 +378,9 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}
       >
-        {renderBodyLeft()} {renderName()} {renderExtra(2)} {renderExtra(1)}{" "}
-        {renderPublishedIcon()}
-        {item.isopen ? renderCloseItem(item) : undefined}
+        {renderBodyLeft()} {renderStarred()} {renderName()} {renderExtra(2)}{" "}
+        {renderExtra(1)} {renderPublishedIcon()}
+        {renderCloseItem(item)}
       </div>
     );
 
@@ -455,20 +521,31 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     return ctx;
   }
 
+  // if we render this within the "active files flyout", we do not add style
+  // because all those files are opened
+  const activeStyle: CSS =
+    mode === "active"
+      ? item.isactive
+        ? FILE_ITEM_ACTIVE_STYLE_2
+        : {}
+      : item.isopen
+      ? item.isactive
+        ? FILE_ITEM_ACTIVE_STYLE
+        : FILE_ITEM_OPENED_STYLE
+      : {};
+
   return (
     <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>
       <div
+        key={item.name}
         className="cc-project-flyout-file-item"
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}
         style={{
           ...FILE_ITEM_LINE_STYLE,
-          ...(item.isopen
-            ? item.isactive
-              ? FILE_ITEM_ACTIVE_STYLE
-              : FILE_ITEM_OPENED_STYLE
-            : {}),
+          ...activeStyle,
           ...itemStyle,
+          ...style,
           ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
         }}
       >
@@ -493,7 +570,11 @@ export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
     col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
   }
   return {
-    borderLeft: `${BORDER_WIDTH_PX} solid ${col}`,
+    ...fileItemLeftBorder(col),
     ...(masked ? { color: COLORS.GRAY_L } : {}),
   };
+}
+
+export function fileItemLeftBorder(col) {
+  return { borderLeft: `${BORDER_WIDTH_PX} solid ${col}` };
 }

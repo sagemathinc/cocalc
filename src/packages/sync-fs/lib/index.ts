@@ -21,8 +21,10 @@ import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
 import mkdirp from "mkdirp";
+import { throttle } from "lodash";
 
 const log = getLogger("sync-fs:index").debug;
+const REGISTER_INTERVAL_MS = 30000;
 
 export default function syncFS(opts: Options) {
   log("syncFS: ", opts);
@@ -73,6 +75,7 @@ class SyncFS {
   private project_id: string;
   private compute_server_id: number;
   private syncInterval: number;
+  private registerToSyncInterval?;
   private syncIntervalMin: number;
   private syncIntervalMax: number;
   private exclude: string[];
@@ -129,15 +132,15 @@ class SyncFS {
     } else if (compression == "lz4") {
       const alter = (v) => ["-I", "lz4"].concat(v);
       this.tar = {
-        send: ({ createArgs, extractArgs, HOME }) => {
+        send: async ({ createArgs, extractArgs, HOME }) => {
           createArgs = alter(createArgs);
           extractArgs = alter(extractArgs);
-          tar.send({ createArgs, extractArgs, HOME });
+          await tar.send({ createArgs, extractArgs, HOME });
         },
-        get: ({ createArgs, extractArgs, HOME }) => {
+        get: async ({ createArgs, extractArgs, HOME }) => {
           createArgs = alter(createArgs);
           extractArgs = alter(extractArgs);
-          tar.get({ createArgs, extractArgs, HOME });
+          await tar.get({ createArgs, extractArgs, HOME });
         },
       };
     } else {
@@ -166,6 +169,10 @@ class SyncFS {
       clearTimeout(this.timeout);
       delete this.timeout;
     }
+    if (this.registerToSyncInterval) {
+      clearInterval(this.registerToSyncInterval);
+      delete this.registerToSyncInterval;
+    }
     const args = ["-uz", this.mount];
     log("fusermount", args.join(" "));
     try {
@@ -179,6 +186,7 @@ class SyncFS {
       log("unmountExcludes fail -- ", err);
     }
     this.websocket?.removeListener("data", this.handleSyncRequest);
+    this.websocket?.removeListener("state", this.registerToSync);
   };
 
   // The sync api listens on the project websocket for requests
@@ -191,9 +199,23 @@ class SyncFS {
     );
     this.websocket.on("data", this.handleSyncRequest);
     log("initSyncRequestHandler: installed handler");
+    this.registerToSync();
+    // We use *both* a period interval and websocket state change,
+    // since we can't depend on just the state change to always
+    // be enough, unfortunately... :-(
+    this.registerToSyncInterval = setInterval(
+      this.registerToSync,
+      REGISTER_INTERVAL_MS,
+    );
+    this.websocket.on("state", this.registerToSync);
+  };
+
+  private registerToSync = async (state = "online") => {
+    if (state != "online") return;
+    log("registerToSync: registering");
     const api = await this.client.project_client.api(this.project_id);
     await api.computeServerSyncRegister(this.compute_server_id);
-    log("initSyncRequestHandler: registered");
+    log("registerToSync: registered");
   };
 
   private handleSyncRequest = async (data) => {
@@ -412,24 +434,27 @@ class SyncFS {
     }
   };
 
-  // save current state to database; useful to inform user as to what is going on.
-  private reportState = async (opts: {
-    state;
-    extra?;
-    timeout?;
-    progress?;
-  }) => {
-    log("reportState", opts);
-    try {
-      await apiCall("v2/compute/set-detailed-state", {
-        id: this.compute_server_id,
-        name: "filesystem-sync",
-        ...opts,
-      });
-    } catch (err) {
-      log("reportState: WARNING -- ", err);
-    }
-  };
+  // Save current state to database; useful to inform user as to what is going on.
+  // We throttle this, because if you call it, then immediately call it again,
+  // two different hub servers basically gets two different stats at the same time,
+  // and which state is saved to the database is pretty random! By spacing this out
+  // by 2s, such a problem is vastly less likely.
+  private reportState = throttle(
+    async (opts: { state; extra?; timeout?; progress? }) => {
+      log("reportState", opts);
+      try {
+        await apiCall("v2/compute/set-detailed-state", {
+          id: this.compute_server_id,
+          name: "filesystem-sync",
+          ...opts,
+        });
+      } catch (err) {
+        log("reportState: WARNING -- ", err);
+      }
+    },
+    1500,
+    { leading: true, trailing: true },
+  );
 
   private getDetailedState = async () => {
     return await apiCall("v2/compute/get-detailed-state", {
@@ -494,6 +519,7 @@ class SyncFS {
       });
       await this.receiveFiles(copyFromProjectTar);
     }
+    log("DONE receiving files from project as part of sync");
 
     if (isActive) {
       this.syncInterval = this.syncIntervalMin;
