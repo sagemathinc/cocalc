@@ -7,7 +7,6 @@ import { COLORS } from "@cocalc/util/theme";
 import A from "components/misc/A";
 
 export default function ComputeServers() {
-  console.log({ ComputeServerInfographic });
   const { computeServersEnabled, siteName } = useCustomize();
   if (!computeServersEnabled) {
     // note frontend also makes the constraint that at least one cloud is enabled.
