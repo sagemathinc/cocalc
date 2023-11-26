@@ -53,7 +53,7 @@ function Body({ siteName }): JSX.Element {
       </Title>
 
       <Title level={2}>
-        <Icon name="edit" /> {siteName} projects
+        <Icon name="edit" /> {siteName} Projects
       </Title>
       <Paragraph>
         Your work on <span>{siteName}</span> happens inside one or more{" "}
@@ -78,7 +78,7 @@ function Body({ siteName }): JSX.Element {
       </Paragraph>
 
       <Title level={2}>
-        <Icon name="gears" /> Upgrading projects
+        <Icon name="gears" /> Upgrading Projects
       </Title>
       <Paragraph>
         By default, a{" "}
@@ -103,7 +103,17 @@ function Body({ siteName }): JSX.Element {
       </Paragraph>
 
       <Title level={2}>
-        <Icon name="key" /> License keys
+        <Icon name="servers" /> Compute Servers
+      </Title>
+      <Paragraph>
+        You can use Jupyter notebooks and terminals with access to GPU's,
+        hundreds of CPU's, and thousands of GB of RAM by creating{" "}
+        <A href="https://doc.cocalc.com/compute_server.html">compute servers</A>{" "}
+        associated to a project.
+      </Paragraph>
+
+      <Title level={2}>
+        <Icon name="key" /> License Keys
       </Title>
       <Paragraph>
         <A href="https://doc.cocalc.com/licenses.html">License Keys</A> are
@@ -155,7 +165,7 @@ function Body({ siteName }): JSX.Element {
       </Paragraph>
 
       <Title level={2}>
-        <Icon name={PAYASYOUGO_ICON} /> Pay-as-you-go Upgrades
+        <Icon name={PAYASYOUGO_ICON} /> Pay As You Go Upgrades
       </Title>
       <Paragraph>
         Alternatively, without committing to a full license and an ongoing
@@ -166,16 +176,22 @@ function Body({ siteName }): JSX.Element {
       </Paragraph>
       <Paragraph>
         Learn more about{" "}
-        <A href={"https://doc.cocalc.com/paygo.html"}>Pay-as-you-go upgrades</A>{" "}
+        <A href={"https://doc.cocalc.com/paygo.html"}>Pay As You Go Upgrades</A>{" "}
         in our documentation.
       </Paragraph>
 
       <Title level={2}>
-        <Icon name="network-wired" /> On premises
+        <Icon name="network-wired" /> On Premises
       </Title>
       <Paragraph>
-        It's also possible to run CoCalc on your own hardware. Please see{" "}
-        <A href={"./onprem"}>on premises options</A> for more information.
+        It's also possible to run {siteName} on your own hardware. Please see{" "}
+        <A href={"./onprem"}>on premises licenses options</A> for more
+        information. You can also use your existing on premises servers
+        collaboratively on {siteName} using{" "}
+        <A href="https://doc.cocalc.com/compute_server.html">
+          OnPrem Compute Servers
+        </A>
+        .
       </Paragraph>
 
       <Title level={2}>Frequently Asked Questions</Title>
