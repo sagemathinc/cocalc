@@ -197,6 +197,7 @@ export const ACTION_INFO: {
     tip: string;
     description: string;
     confirm?: boolean;
+    confirmMessage?: string;
     danger?: boolean;
     target: State; // target stable state after doing this action.
     clouds?: Cloud[];
@@ -233,17 +234,22 @@ export const ACTION_INFO: {
     description:
       "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
+    confirmMessage: "I understand that my compute server disk will be deleted.",
     danger: true,
     target: "deprovisioned",
   },
   reboot: {
-    label: "Reboot",
+    label: "Hard Reboot",
     icon: "refresh",
     tip: "Hard reboot the virtual machine.",
     description:
       "Perform a HARD reset on the virtual machine, which wipes the memory contents and resets the virtual machine to its initial state. This should not delete data from the disk, but can lead to filesystem corruption.",
     confirm: true,
+    confirmMessage:
+      "I understand that this can lead to filesystem corruption and is slightly dangerous.",
+    danger: true,
     target: "running",
+    clouds: ["google-cloud"],
   },
   suspend: {
     label: "Suspend",
