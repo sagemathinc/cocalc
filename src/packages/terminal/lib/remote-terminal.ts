@@ -102,14 +102,11 @@ export class RemoteTerminal extends EventEmitter {
       }
     });
     this.conn.on("end", async () => {
-      logger.debug("channel: closed");
+      logger.debug("channel: end");
     });
     this.conn.on("close", async () => {
-      logger.debug("channel: closed");
+      logger.debug("channel: close");
       this.reconnect();
-    });
-    this.websocket.on("state", (state) => {
-      logger.debug("websocket: state=", state);
     });
   };
 
