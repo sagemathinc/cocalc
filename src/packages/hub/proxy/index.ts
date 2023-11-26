@@ -17,6 +17,7 @@ interface Options {
   httpServer; // got from express_app via httpServer = http.createServer(app).
   projectControl: ProjectControlFunction; // controls projects (aka "compute server")
   isPersonal: boolean; // if true, disables all access controls
+  listenersHack: boolean;
 }
 
 export default function init(opts: Options) {
