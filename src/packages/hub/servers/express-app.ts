@@ -43,6 +43,7 @@ interface Options {
   proxyServer: boolean;
   cert?: string;
   key?: string;
+  listenersHack: boolean;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -106,7 +107,7 @@ export default async function init(opts: Options): Promise<{
   // Static assets that are used by the webapp, the landing page, etc.
   router.use(
     "/webapp",
-    express.static(WEBAPP_PATH, { setHeaders: cacheLongTerm })
+    express.static(WEBAPP_PATH, { setHeaders: cacheLongTerm }),
   );
 
   // This is @cocalc/cdn – cocalc serves everything it might get from a CDN on its own.
@@ -148,6 +149,7 @@ export default async function init(opts: Options): Promise<{
       isPersonal: opts.isPersonal,
       httpServer,
       app,
+      listenersHack: opts.listenersHack,
     });
   }
 
@@ -165,11 +167,11 @@ export default async function init(opts: Options): Promise<{
 function cacheShortTerm(res) {
   res.setHeader(
     "Cache-Control",
-    `public, max-age=${SHORT_AGE}, must-revalidate`
+    `public, max-age=${SHORT_AGE}, must-revalidate`,
   );
   res.setHeader(
     "Expires",
-    new Date(Date.now().valueOf() + SHORT_AGE).toUTCString()
+    new Date(Date.now().valueOf() + SHORT_AGE).toUTCString(),
   );
 }
 
@@ -178,11 +180,11 @@ function cacheShortTerm(res) {
 function cacheLongTerm(res) {
   res.setHeader(
     "Cache-Control",
-    `public, max-age=${MAX_AGE}, must-revalidate'`
+    `public, max-age=${MAX_AGE}, must-revalidate'`,
   );
   res.setHeader(
     "Expires",
-    new Date(Date.now().valueOf() + MAX_AGE).toUTCString()
+    new Date(Date.now().valueOf() + MAX_AGE).toUTCString(),
   );
 }
 
@@ -205,7 +207,7 @@ async function initStatic(router) {
 
   if (compiler != null) {
     console.warn(
-      "\n-----------\n| WEBPACK: Running webpack dev server for frontend /static app.\n| Set env variable NO_WEBPACK_DEV_SERVER to disable.\n-----------\n"
+      "\n-----------\n| WEBPACK: Running webpack dev server for frontend /static app.\n| Set env variable NO_WEBPACK_DEV_SERVER to disable.\n-----------\n",
     );
     router.use("/static", webpackDevMiddleware(compiler, {}));
     router.use("/static", webpackHotMiddleware(compiler, {}));
@@ -214,11 +216,11 @@ async function initStatic(router) {
       join("/static", STATIC_PATH, "app.html"),
       express.static(join(STATIC_PATH, "app.html"), {
         setHeaders: cacheShortTerm,
-      })
+      }),
     );
     router.use(
       "/static",
-      express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
+      express.static(STATIC_PATH, { setHeaders: cacheLongTerm }),
     );
   }
 
