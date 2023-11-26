@@ -50,6 +50,21 @@ export default function Image(props: Props) {
     // Here's the issue: https://github.com/vercel/next.js/issues/22244
     src.src = join(basePath, src.src);
   }
+  if (process.env.NODE_ENV == "development") {
+    // The NextImage stuff just totally stopped working
+    // in dev mode recently.  No idea why. So we don't use
+    // it except in production.  See
+    //   https://github.com/sagemathinc/cocalc/issues/7064
+    return (
+      <img
+        src={src.src}
+        height={height}
+        width={width}
+        alt={alt}
+        style={{ ...style, maxWidth: "100%" }}
+      />
+    );
+  }
   if (height != null && width != null) {
     return (
       <NextImage
