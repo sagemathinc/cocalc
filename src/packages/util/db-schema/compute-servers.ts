@@ -62,7 +62,7 @@ export const IMAGES0 = {
   sagemath: {
     label: "SageMath",
     docker: `${DOCKER_USER}/sagemath`,
-    minDiskSizeGb: 14,
+    minDiskSizeGb: 20, // 14 doesn't work.
     dockerSizeGb: 9,
     gpu: false,
     icon: "sagemath",
@@ -114,7 +114,7 @@ export const IMAGES0 = {
     docker: `${DOCKER_USER}/cuda`,
     gpu: true,
     // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 13 + 10,
+    minDiskSizeGb: 13 + 10 + 10,
     dockerSizeGb: 8,
     icon: "nvidia",
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda",
@@ -128,8 +128,7 @@ export const IMAGES0 = {
     label: "PyTorch",
     docker: `${DOCKER_USER}/pytorch`,
     gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 29 + 10,
+    minDiskSizeGb: 29 + 10 + 10,
     dockerSizeGb: 24,
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
     icon: "pytorch",
@@ -141,8 +140,7 @@ export const IMAGES0 = {
     label: "Tensorflow",
     docker: `${DOCKER_USER}/tensorflow`,
     gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 28 + 10,
+    minDiskSizeGb: 28 + 10 + 10,
     dockerSizeGb: 23,
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
     icon: "tensorflow",
@@ -153,7 +151,7 @@ export const IMAGES0 = {
   colab: {
     label: "Google Colab",
     docker: `${DOCKER_USER}/colab`,
-    minDiskSizeGb: 33 + 10,
+    minDiskSizeGb: 33 + 10 + 10,
     dockerSizeGb: 28,
     gpu: true,
     icon: "google",

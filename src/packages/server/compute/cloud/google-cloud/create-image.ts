@@ -4,7 +4,8 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 >
 
-await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
+await require('./dist/compute/cloud/google-cloud/create-image').createImages({}); await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
+
 
 
 a = require('./dist/compute/cloud/google-cloud/create-image')
