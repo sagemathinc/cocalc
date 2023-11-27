@@ -4,7 +4,6 @@ import type {
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
 import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
-import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import {
   installDocker,
   installNode,
@@ -58,6 +57,8 @@ export default async function startupScript({
   if (!project_id) {
     throw Error("project_id must be specified");
   }
+  // handle deprecated image names.
+  image = imageDeprecation(image);
 
   const apiServer = await getApiServer();
 
@@ -126,7 +127,6 @@ setState vm start '' 60 60
 
 ${runCoCalcCompute({
   gpu,
-  arch,
   image,
 })}
 
@@ -172,8 +172,8 @@ ${compute(opts)}
 `;
 }
 
-function filesystem({ arch }) {
-  const image = `sagemathinc/compute-filesystem${getImagePostfix(arch)}`;
+function filesystem({}) {
+  const image = `sagemathinc/filesystem`;
 
   return `
 # Docker container that mounts the filesystem(s)
@@ -251,8 +251,9 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function compute({ arch, image, gpu }) {
-  const docker = IMAGES[image]?.docker ?? `sagemathinc/compute-${image}`;
+function compute({ image, gpu }) {
+  const docker = IMAGES[image]?.docker ?? `sagemathinc/${image}`;
+  const tag = getTag(image);
 
   // Start a container that connects to the project
   // and manages providing terminals and jupyter kernels
@@ -282,7 +283,7 @@ if [ $? -ne 0 ]; then
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v /cocalc:/cocalc \
-   ${docker}${getImagePostfix(arch)}
+   ${docker}:${tag}
   if [ $? -ne 0 ]; then
      setState compute error "problem creating compute Docker container"
      exit 1
@@ -295,21 +296,6 @@ else
 fi
  `;
 }
-
-/*
-I had this code for auto-pulling new image right after the if, but it's a really
-bad idea in production (especially with dockerhub bandwidth limits and these images
-can be big too).  Needs to be totally explicit or not at all:
-
-  setState compute pull '' 600 20
-  /cocalc/docker_pull.py ${docker}${getImagePostfix(arch)}
-  if [ $? -ne 0 ]; then
-     setState compute error "problem pulling Docker image ${docker}${getImagePostfix(
-       arch,
-     )}"
-     exit 1
-  fi
-*/
 
 export function defineSetStateFunction({
   api_key,
@@ -329,4 +315,28 @@ function setState {
   curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"state\\":\\"$state\\",\\"extra\\":\\"$extra\\",\\"timeout\\":$timeout,\\"progress\\":$progress}" ${apiServer}/api/v2/compute/set-detailed-state
 }
   `;
+}
+
+function imageDeprecation(image) {
+  if (image == "cuda12") {
+    return "cuda";
+  } else if (image == "sagemath-10.1") {
+    return "sagemath";
+  } else if (image == "rlang") {
+    return "rstats";
+  } else if (image == "colab-gpu") {
+    return "colab";
+  }
+  return image;
+}
+
+// For now we just get the newest tag, since there
+// is only one so far.  TODO!
+function getTag(image): string {
+  const { versions } = IMAGES[image] ?? {};
+  if (versions == null || versions.length == 0) {
+    return "latest";
+  }
+  const version = versions[versions.length - 1];
+  return version.tag ?? "latest";
 }

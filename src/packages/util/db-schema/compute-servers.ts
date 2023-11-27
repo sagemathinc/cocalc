@@ -14,6 +14,9 @@ export const CUDA_DISK_SIZE = 60;
 
 // Compute Server Images
 
+// for now the versions must be sorted from oldest to newest.
+type VERSIONS = { label: string; tag: string }[];
+
 interface ImageBase {
   label: string;
   docker: string;
@@ -23,7 +26,7 @@ interface ImageBase {
   url: string;
   icon: string;
   source: string;
-  versions: { label: string; tag: string }[];
+  versions: VERSIONS;
 }
 
 interface NonGPUImage extends ImageBase {
@@ -170,7 +173,7 @@ export const IMAGES0 = {
   //     docker: `${DOCKER_USER}/cocalc-docker`,
   //     minDiskSizeGb: 50,
   //   },
-} as const;
+};
 
 export type ImageName = keyof typeof IMAGES0;
 

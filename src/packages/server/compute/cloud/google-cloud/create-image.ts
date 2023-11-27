@@ -58,7 +58,6 @@ import type {
   ImageName,
   CudaVersion,
 } from "@cocalc/util/db-schema/compute-servers";
-import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import {
   getMinDiskSizeGb,
   IMAGES,
@@ -439,7 +438,7 @@ ${installCoCalc(arch)}
 docker pull ${DOCKER_USER}/compute-filesystem
 
 # Pre-pull code container
-docker pull ${docker}${getImagePostfix(arch)}
+docker pull ${docker}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda(cudaVersion) : ""}

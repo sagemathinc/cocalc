@@ -1200,7 +1200,7 @@ function Image(props) {
         <div style={{ color: "#666", marginBottom: "5px" }}>
           Select compute server image. You will be able to use sudo as root with
           no password, and can install anything into the Ubuntu Linux image,
-          including commercial software, via the fast free network.
+          including commercial software.
         </div>
       )}
       <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />
@@ -1209,6 +1209,9 @@ function Image(props) {
           You can only edit the image when server is deprovisioned.
         </div>
       )}
+      <div style={{ color: "#666", marginTop: "5px" }}>
+        {IMAGES[props.configuration?.image ?? ""]?.description}
+      </div>
     </div>
   );
 }
