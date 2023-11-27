@@ -18,9 +18,12 @@ interface ImageBase {
   label: string;
   docker: string;
   minDiskSizeGb: number;
+  dockerSizeGb: number;
+  description?: string;
   url: string;
   icon: string;
   source: string;
+  versions: { label: string; tag: string }[];
 }
 
 interface NonGPUImage extends ImageBase {
@@ -50,6 +53,8 @@ export const IMAGES0 = {
     url: "https://www.python.org/",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python",
+    // TODO: I don't like the tag/version here.
+    versions: [{ label: "3.10.12", tag: "latest" }],
   },
   sagemath: {
     label: "SageMath",
