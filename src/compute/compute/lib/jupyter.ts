@@ -12,6 +12,7 @@ import debug from "debug";
 import { once } from "@cocalc/util/async-utils";
 import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
 import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
+import { reuseInFlight } from "async-await-utils/hof";
 
 const log = debug("cocalc:compute:jupyter");
 
@@ -83,7 +84,13 @@ class RemoteJupyter {
     this.log("close: done");
   };
 
-  private registerWithProject = async () => {
+  // On reconnect, this registerWithProject can in some cases get
+  // called a bunch of times at once, so the reuseInFlight is
+  // very important.  Otherwise, we end over a long time with
+  // many disconnect and reconnects, with eventually more and
+  // more attempts to register, and the process crashes and runs
+  // out of memory.
+  private registerWithProject = reuseInFlight(async () => {
     if (this.sync_db == null) {
       return;
     }
@@ -107,6 +114,7 @@ class RemoteJupyter {
     // to handle code evaluation, i.e., we are the cell running.
     if (this.interval) {
       clearInterval(this.interval);
+      delete this.interval;
     }
     const registerAsCellRunner = async () => {
       this.log("registerAsCellRunner");
@@ -125,16 +133,20 @@ class RemoteJupyter {
     this.interval = setInterval(registerAsCellRunner, COMPUTE_THRESH_MS / 2);
     registerAsCellRunner();
 
-    this.websocket.on("state", (state) => {
-      if (state == "offline") {
-        // no point in registering with server while offline
-        clearInterval(this.interval);
-        delete this.interval;
-      } else if (state == "online") {
-        this.log("websocket online");
-        this.registerWithProject();
-      }
-    });
+    // remove it first, in case it was already installed:
+    this.websocket.removeListener("state", this.handleWebsocketStateChange);
+    this.websocket.on("state", this.handleWebsocketStateChange);
+  });
+
+  private handleWebsocketStateChange = (state) => {
+    if (state == "offline") {
+      // no point in registering with server while offline
+      clearInterval(this.interval);
+      delete this.interval;
+    } else if (state == "online") {
+      this.log("websocket online");
+      this.registerWithProject();
+    }
   };
 
   private initRedux = () => {

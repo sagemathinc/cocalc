@@ -9,13 +9,17 @@ import { CSSProperties, useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 
+// TODO: just putting a quick version here -- will redo.
 const OPTIONS = Object.keys(IMAGES).map((value) => {
-  const { label, icon } = IMAGES[value];
+  const { label, icon, versions } = IMAGES[value];
   return {
     key: value,
     value,
     label: (
       <div style={{ fontSize: "12pt" }}>
+        <div style={{ float: "right" }}>
+          {versions[versions.length - 1]?.label}
+        </div>
         <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
       </div>
     ),
@@ -46,6 +50,7 @@ export default function SelectImage({
     setValue(configuration.image);
   }, [configuration.image]);
   let options;
+  // [ ] TODO: we should allow gpu/non-gpu options in all cases, but just suggest one or the other.
   if (gpu != null) {
     options = OPTIONS.filter((x) => gpu == IMAGES[x.value].gpu);
   } else {

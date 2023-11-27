@@ -2,6 +2,7 @@ import type {
   State,
   OnPremCloudConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
+import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import { Select, Spin, Checkbox } from "antd";
 import { setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
@@ -9,7 +10,6 @@ import SelectImage from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
-
 import { SELECTOR_WIDTH } from "./google-cloud-config";
 
 interface Props {
@@ -141,6 +141,9 @@ function Image(props) {
         {...props}
         gpu={!!props.configuration.gpu}
       />
+      <div style={{ color: "#666", marginTop: "5px" }}>
+        {IMAGES[props.configuration?.image ?? ""]?.description}
+      </div>
       <ExcludeFromSync
         style={{ width: SELECTOR_WIDTH, marginTop: "10px" }}
         {...props}

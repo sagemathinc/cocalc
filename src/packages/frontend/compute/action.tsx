@@ -61,8 +61,20 @@ export default function getActions({
     if (!editModal && configuration.ephemeral && action == "stop") {
       continue;
     }
-    const { label, icon, tip, description, confirm, danger } = a;
+    const {
+      label,
+      icon,
+      tip,
+      description,
+      confirm,
+      danger,
+      confirmMessage,
+      clouds,
+    } = a;
     if (danger && !configuration.ephemeral && !editModal) {
+      continue;
+    }
+    if (clouds && !clouds.includes(configuration.cloud)) {
       continue;
     }
     v.push(
@@ -79,6 +91,7 @@ export default function getActions({
         confirm={confirm}
         configuration={configuration}
         danger={danger}
+        confirmMessage={confirmMessage}
         type={type}
         state={state ?? "off"}
         project_id={project_id}
@@ -97,6 +110,7 @@ function ActionButton({
   tip,
   setError,
   confirm,
+  confirmMessage,
   configuration,
   danger,
   type,
@@ -243,12 +257,17 @@ function ActionButton({
               />
             )}
             {!configuration.ephemeral && danger && (
-              <Checkbox
-                onChange={(e) => setUnderstand(e.target.checked)}
-                checked={understand}
-              >
-                <b>I understand that my compute server disk will be deleted.</b>
-              </Checkbox>
+              <div>
+                <Checkbox
+                  onChange={(e) => setUnderstand(e.target.checked)}
+                  checked={understand}
+                >
+                  <b>
+                    {confirmMessage ??
+                      "I understand that this may result in data loss."}
+                  </b>
+                </Checkbox>
+              </div>
             )}
           </div>
         }
@@ -307,12 +326,10 @@ function ActionButton({
       )}
     </>
   );
-  if (configuration.cloud == "onprem") {
-    return content;
-  }
 
   // Do NOT use popover in case we're doing a popconfirm.
   // Two popovers at once is just unprofessional and hard to use.
+  // That's why the "open={popConfirm ? false : undefined}" below
 
   return (
     <Popover

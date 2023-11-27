@@ -14,13 +14,19 @@ export const CUDA_DISK_SIZE = 60;
 
 // Compute Server Images
 
+// for now the versions must be sorted from oldest to newest.
+type VERSIONS = { label: string; tag: string }[];
+
 interface ImageBase {
   label: string;
   docker: string;
   minDiskSizeGb: number;
+  dockerSizeGb: number;
+  description?: string;
   url: string;
   icon: string;
   source: string;
+  versions: VERSIONS;
 }
 
 interface NonGPUImage extends ImageBase {
@@ -41,118 +47,123 @@ export const DOCKER_USER = "sagemathinc";
 export const IMAGES0 = {
   python: {
     label: "Python",
-    docker: `${DOCKER_USER}/compute-python`,
+    docker: `${DOCKER_USER}/python`,
     minDiskSizeGb: 10,
+    dockerSizeGb: 2,
     gpu: false,
     icon: "python",
     // TODO -- should be a much better
     url: "https://www.python.org/",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python",
+    // TODO: I don't like the tag/version here.
+    versions: [{ label: "3.10.12", tag: "latest" }],
   },
-  "sagemath-10.1": {
-    label: "SageMath 10.1",
-    docker: `${DOCKER_USER}/compute-sagemath-10.1`,
-    minDiskSizeGb: 15,
+  sagemath: {
+    label: "SageMath",
+    docker: `${DOCKER_USER}/sagemath`,
+    minDiskSizeGb: 20, // 14 doesn't work.
+    dockerSizeGb: 9,
     gpu: false,
     icon: "sagemath",
     url: "https://www.sagemath.org/",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/sagemath-10.1",
+    versions: [{ label: "10.1", tag: "10.1" }],
   },
-  pytorch: {
-    label: "PyTorch",
-    docker: `${DOCKER_USER}/compute-pytorch`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 30 + 10,
-    cudaVersion: "12.2",
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
-    icon: "pytorch",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch",
-  },
-  tensorflow: {
-    label: "Tensorflow",
-    docker: `${DOCKER_USER}/compute-tensorflow`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 30 + 10,
-    cudaVersion: "12.2",
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
-    icon: "tensorflow",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow",
-  },
-  cuda12: {
-    label: "CUDA Toolkit",
-    docker: `${DOCKER_USER}/compute-cuda`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 15 + 10,
-    cudaVersion: "12.2",
-    icon: "nvidia",
-    url: "https://developer.nvidia.com/cuda-toolkit",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
-  },
-  // Disabled -- not sure if it is worthwhile:
-  //   cuda11: {
-  //     label: "GPU - Dev Environment with Cuda 11.8",
-  //     docker: `${DOCKER_USER}/compute-cuda`,
-  //     gpu: true,
-  //     minDiskSizeGb: 35,
-  //     cudaVersion: "11.8",
-  //   },
-  rlang: {
+  rstats: {
     label: "R",
-    docker: `${DOCKER_USER}/compute-rlang`,
+    docker: `${DOCKER_USER}/rstats`,
     minDiskSizeGb: 10,
+    dockerSizeGb: 3,
     gpu: false,
     icon: "r",
     url: "https://www.r-project.org/",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/rlang",
-  },
-  anaconda: {
-    label: "Anaconda",
-    docker: `${DOCKER_USER}/compute-anaconda`,
-    minDiskSizeGb: 15,
-    gpu: false,
-    icon: "sagemath",
-    url: "https://www.sagemath.org/",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
-  },
-  "colab-gpu": {
-    label: "Google Colab",
-    docker: `${DOCKER_USER}/compute-colab`,
-    minDiskSizeGb: 35,
-    gpu: true,
-    icon: "google",
-    url: "https://github.com/googlecolab",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
-  },
-  colab: {
-    label: "Google Colab",
-    docker: `${DOCKER_USER}/compute-colab`,
-    minDiskSizeGb: 35,
-    gpu: false,
-    icon: "google",
-    url: "https://github.com/googlecolab",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/rstats",
+    versions: [{ label: "4.3.2", tag: "4.3.2" }],
   },
   julia: {
     label: "Julia",
-    docker: `${DOCKER_USER}/compute-julia`,
+    docker: `${DOCKER_USER}/julia`,
     minDiskSizeGb: 10,
+    dockerSizeGb: 3,
     gpu: false,
     icon: "julia",
     url: "https://julialang.org/",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/julia",
+    versions: [{ label: "1.9.4", tag: "1.9.4" }],
+  },
+  //   anaconda: {
+  //     label: "Anaconda",
+  //     docker: `${DOCKER_USER}/anaconda`,
+  //     minDiskSizeGb: 10,
+  //     dockerSizeGb: 2,
+  //     gpu: false,
+  //     icon: "python",
+  //     url: "https://www.sagemath.org/",
+  //     source:
+  //       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
+  //     description:
+  //       "Minimal Anaconda environment nicely setup and ready for you to install packages into.",
+  //     versions: [{ label: "2023-11-26", tag: "2023-11-26" }],
+  //   },
+  cuda: {
+    label: "CUDA Development Toolkit",
+    docker: `${DOCKER_USER}/cuda`,
+    gpu: true,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 13 + 10 + 10,
+    dockerSizeGb: 8,
+    icon: "nvidia",
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
+    description:
+      "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications. The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.",
+    versions: [{ label: "12.3.0", tag: "12.3.0-devel-ubuntu22.04" }],
+  },
+  pytorch: {
+    label: "PyTorch",
+    docker: `${DOCKER_USER}/pytorch`,
+    gpu: true,
+    minDiskSizeGb: 29 + 10 + 10,
+    dockerSizeGb: 24,
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
+    icon: "pytorch",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch",
+    versions: [{ label: "2.1.0a0+32f93b1", tag: "23.10-py3" }],
+  },
+  tensorflow: {
+    label: "Tensorflow",
+    docker: `${DOCKER_USER}/tensorflow`,
+    gpu: true,
+    minDiskSizeGb: 28 + 10 + 10,
+    dockerSizeGb: 23,
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
+    icon: "tensorflow",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow",
+    versions: [{ label: "2.13.0", tag: "23.10-tf2-py3" }],
+  },
+  colab: {
+    label: "Google Colab",
+    docker: `${DOCKER_USER}/colab`,
+    minDiskSizeGb: 33 + 10 + 10,
+    dockerSizeGb: 28,
+    gpu: true,
+    icon: "google",
+    url: "https://github.com/googlecolab",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
+    versions: [
+      {
+        label: "2023-09-21",
+        tag: "release-colab_20230921-060057_RC00",
+      },
+    ],
   },
 
   //   "cocalc-docker": {
@@ -160,7 +171,7 @@ export const IMAGES0 = {
   //     docker: `${DOCKER_USER}/cocalc-docker`,
   //     minDiskSizeGb: 50,
   //   },
-} as const;
+};
 
 export type ImageName = keyof typeof IMAGES0;
 
@@ -197,6 +208,7 @@ export const ACTION_INFO: {
     tip: string;
     description: string;
     confirm?: boolean;
+    confirmMessage?: string;
     danger?: boolean;
     target: State; // target stable state after doing this action.
     clouds?: Cloud[];
@@ -233,17 +245,22 @@ export const ACTION_INFO: {
     description:
       "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
+    confirmMessage: "I understand that my compute server disk will be deleted.",
     danger: true,
     target: "deprovisioned",
   },
   reboot: {
-    label: "Reboot",
+    label: "Hard Reboot",
     icon: "refresh",
     tip: "Hard reboot the virtual machine.",
     description:
       "Perform a HARD reset on the virtual machine, which wipes the memory contents and resets the virtual machine to its initial state. This should not delete data from the disk, but can lead to filesystem corruption.",
     confirm: true,
+    confirmMessage:
+      "I understand that this can lead to filesystem corruption and is slightly dangerous.",
+    danger: true,
     target: "running",
+    clouds: ["google-cloud"],
   },
   suspend: {
     label: "Suspend",

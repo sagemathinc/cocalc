@@ -4,7 +4,8 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 >
 
-await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
+await require('./dist/compute/cloud/google-cloud/create-image').createImages({}); await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
+
 
 
 a = require('./dist/compute/cloud/google-cloud/create-image')
@@ -58,7 +59,6 @@ import type {
   ImageName,
   CudaVersion,
 } from "@cocalc/util/db-schema/compute-servers";
-import { getImagePostfix } from "@cocalc/util/db-schema/compute-servers";
 import {
   getMinDiskSizeGb,
   IMAGES,
@@ -66,6 +66,7 @@ import {
 } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 
 const logger = getLogger("server:compute:google-cloud:create-image");
 
@@ -370,6 +371,7 @@ function createBuildConfiguration({
   arch: Architecture;
   cudaVersion?: CudaVersion;
 }): BuildConfig {
+  const tag = getTag(image);
   const { label, docker, gpu } = IMAGES[image] ?? {};
   logger.debug("createBuildConfiguration", {
     image,
@@ -435,11 +437,11 @@ ${installNode()}
 
 ${installCoCalc(arch)}
 
-# Pre-pull filesystem container
-docker pull ${DOCKER_USER}/compute-filesystem
+# Pre-pull filesystem Docker container
+docker pull ${DOCKER_USER}/filesystem
 
-# Pre-pull code container
-docker pull ${docker}${getImagePostfix(arch)}
+# Pre-pull compute Docker container
+docker pull ${docker}:${tag}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda(cudaVersion) : ""}
