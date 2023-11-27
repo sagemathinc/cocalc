@@ -276,6 +276,19 @@ export const ACTION_INFO: {
   },
 };
 
+export function imageDeprecation(image) {
+  if (image == "cuda12") {
+    return "cuda";
+  } else if (image == "sagemath-10.1") {
+    return "sagemath";
+  } else if (image == "rlang") {
+    return "rstats";
+  } else if (image == "colab-gpu") {
+    return "colab";
+  }
+  return image;
+}
+
 export const STATE_INFO: {
   [state: string]: {
     label: string;

@@ -435,7 +435,7 @@ ${installNode()}
 ${installCoCalc(arch)}
 
 # Pre-pull filesystem container
-docker pull ${DOCKER_USER}/compute-filesystem
+docker pull ${DOCKER_USER}/filesystem
 
 # Pre-pull code container
 docker pull ${docker}

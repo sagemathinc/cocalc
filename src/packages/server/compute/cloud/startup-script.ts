@@ -3,7 +3,10 @@ import type {
   Architecture,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
+import {
+  IMAGES,
+  imageDeprecation,
+} from "@cocalc/util/db-schema/compute-servers";
 import {
   installDocker,
   installNode,
@@ -315,19 +318,6 @@ function setState {
   curl -sk -u ${api_key}:  -H 'Content-Type: application/json' -d "{\\"id\\":$id,\\"name\\":\\"$name\\",\\"state\\":\\"$state\\",\\"extra\\":\\"$extra\\",\\"timeout\\":$timeout,\\"progress\\":$progress}" ${apiServer}/api/v2/compute/set-detailed-state
 }
   `;
-}
-
-function imageDeprecation(image) {
-  if (image == "cuda12") {
-    return "cuda";
-  } else if (image == "sagemath-10.1") {
-    return "sagemath";
-  } else if (image == "rlang") {
-    return "rstats";
-  } else if (image == "colab-gpu") {
-    return "colab";
-  }
-  return image;
 }
 
 // For now we just get the newest tag, since there

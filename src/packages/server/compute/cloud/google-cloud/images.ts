@@ -27,7 +27,10 @@ import type {
   GoogleCloudConfiguration,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
+import {
+  IMAGES,
+  imageDeprecation,
+} from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
 
@@ -100,6 +103,11 @@ export async function getAllImages({
     // gets all images
     prefix = `${await getGoogleCloudPrefix()}-`;
   } else {
+    // fix for when we rename images
+    image = imageDeprecation(image);
+    if (image == null) {
+      throw Error("bug");
+    }
     // restrict images by image and arch
     prefix = await imageName({ image, arch });
     if (sourceImage) {
