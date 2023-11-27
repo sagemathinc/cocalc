@@ -25,6 +25,7 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import {
+  filename_extension_notilde,
   path_split,
   search_match,
   search_split,
@@ -189,7 +190,8 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     const grouped: { [group: string]: string[] } = {};
     filteredFiles.forEach((path) => {
       const { head, tail } = path_split(path);
-      const group = mode === "folder" ? head : tail.split(".")[1] ?? "";
+      const group =
+        mode === "folder" ? head : filename_extension_notilde(tail) ?? "";
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
