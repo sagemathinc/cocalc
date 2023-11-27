@@ -66,6 +66,7 @@ import {
 } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 
 const logger = getLogger("server:compute:google-cloud:create-image");
 
@@ -370,6 +371,7 @@ function createBuildConfiguration({
   arch: Architecture;
   cudaVersion?: CudaVersion;
 }): BuildConfig {
+  const tag = getTag(image);
   const { label, docker, gpu } = IMAGES[image] ?? {};
   logger.debug("createBuildConfiguration", {
     image,
@@ -435,11 +437,11 @@ ${installNode()}
 
 ${installCoCalc(arch)}
 
-# Pre-pull filesystem container
+# Pre-pull filesystem Docker container
 docker pull ${DOCKER_USER}/filesystem
 
-# Pre-pull code container
-docker pull ${docker}
+# Pre-pull compute Docker container
+docker pull ${docker}:${tag}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda(cudaVersion) : ""}

@@ -319,7 +319,8 @@ function setState {
 
 // For now we just get the newest tag, since there
 // is only one so far.  TODO!
-function getTag(image): string {
+export function getTag(image): string {
+  image = imageDeprecation(image);
   const { versions } = IMAGES[image] ?? {};
   if (versions == null || versions.length == 0) {
     return "latest";
