@@ -652,6 +652,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         setFilterTerm={setFilterTerm}
         doScroll={doScroll}
         openFirstMatchingFile={openFirstMatchingFile}
+        flyoutWidth={flyoutWidth}
       />
       {renderGroups()}
       {renderUndo()}
