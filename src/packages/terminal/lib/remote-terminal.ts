@@ -213,7 +213,9 @@ export class RemoteTerminal extends EventEmitter {
 
     // set the prompt to show the remote hostname explicitly,
     // then clear the screen.
-    this.localPty.write('PS1="(\\h) \\w$ ";reset;history -d $(history 1)\n');
+    if (command == "/bin/bash") {
+      this.localPty.write('PS1="(\\h) \\w$ ";reset;history -d $(history 1)\n');
+    }
 
     return this.localPty;
   };
