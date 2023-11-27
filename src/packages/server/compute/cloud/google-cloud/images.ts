@@ -27,12 +27,10 @@ import type {
   GoogleCloudConfiguration,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
-import {
-  IMAGES,
-  imageDeprecation,
-} from "@cocalc/util/db-schema/compute-servers";
+import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
+import { imageDeprecation } from "@cocalc/server/compute/cloud/startup-script";
 
 // Return the latest available image of the given type on the configured cluster.
 // Returns null if no images of the given type are available.

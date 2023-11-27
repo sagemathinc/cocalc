@@ -3,10 +3,7 @@ import type {
   Architecture,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
-import {
-  IMAGES,
-  imageDeprecation,
-} from "@cocalc/util/db-schema/compute-servers";
+import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import {
   installDocker,
   installNode,
@@ -329,4 +326,17 @@ function getTag(image): string {
   }
   const version = versions[versions.length - 1];
   return version.tag ?? "latest";
+}
+
+export function imageDeprecation(image) {
+  if (image == "cuda12") {
+    return "cuda";
+  } else if (image == "sagemath-10.1") {
+    return "sagemath";
+  } else if (image == "rlang") {
+    return "rstats";
+  } else if (image == "colab-gpu") {
+    return "colab";
+  }
+  return image;
 }
