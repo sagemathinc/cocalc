@@ -8,11 +8,12 @@
 
 import { Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 
-import { useRef } from "@cocalc/frontend/app-framework";
+import { useMemo, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { COLORS } from "@cocalc/util/theme";
 import { FlyoutActiveMode, storeFlyoutState } from "./state";
+import { FLYOUT_DEFAULT_WIDTH_PX } from "./consts";
 
 interface ActiveTopProps {
   mode: FlyoutActiveMode;
@@ -23,6 +24,7 @@ interface ActiveTopProps {
   setFilterTerm: (term: string) => void;
   doScroll: (dx: -1 | 1) => void;
   openFirstMatchingFile: () => boolean;
+  flyoutWidth: number;
 }
 
 export function ActiveTop(props: Readonly<ActiveTopProps>) {
@@ -35,9 +37,20 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
     setFilterTerm,
     doScroll,
     openFirstMatchingFile,
+    flyoutWidth,
   } = props;
   const { project_id } = useProjectContext();
   const filterRef = useRef<InputRef>(null);
+
+  const showText: boolean = useMemo(
+    () => flyoutWidth > FLYOUT_DEFAULT_WIDTH_PX * 0.75,
+    [flyoutWidth],
+  );
+
+  function renderLabelText(text: string) {
+    if (!showText) return null;
+    return <> {text}</>;
+  }
 
   function renderConfiguration() {
     return (
@@ -49,17 +62,20 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
       >
         <Tooltip title={"Flat list, custom order by open tabs"} placement="top">
           <Radio.Button value="tabs">
-            <Icon name="database" rotate="270" /> Tabs
+            <Icon name="database" rotate="270" />
+            {renderLabelText("Tabs")}
           </Radio.Button>
         </Tooltip>
         <Tooltip title={"Group by folder (directory)"} placement="top">
           <Radio.Button value="folder">
-            <Icon name="folder" /> Folder
+            <Icon name="folder" />
+            {renderLabelText("Folder")}
           </Radio.Button>
         </Tooltip>
         <Tooltip title={"Group by file type"} placement="top">
           <Radio.Button value="type">
-            <Icon name="file" /> Type
+            <Icon name="file" />
+            {renderLabelText("Type")}
           </Radio.Button>
         </Tooltip>
       </Radio.Group>
@@ -121,6 +137,11 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
         <Input
           ref={filterRef}
           placeholder="Filter..."
+          style={
+            (!showText || flyoutWidth >= FLYOUT_DEFAULT_WIDTH_PX - 2)
+              ? { width: "6em" }
+              : undefined
+          }
           size="small"
           value={filterTerm}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,7 +156,7 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
   }
 
   return (
-    <Space wrap={false}>
+    <Space wrap={true}>
       {renderToggleShowStarred()}
       {renderConfiguration()}
       {renderInput()}
