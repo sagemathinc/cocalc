@@ -51,11 +51,8 @@ export default function SelectImage({
   }, [configuration.image]);
   let options;
   // [ ] TODO: we should allow gpu/non-gpu options in all cases, but just suggest one or the other.
-  // colab special case.
   if (gpu != null) {
-    options = OPTIONS.filter(
-      (x) => x.value == "colab" || gpu == IMAGES[x.value].gpu,
-    );
+    options = OPTIONS.filter((x) => gpu == IMAGES[x.value].gpu);
   } else {
     options = OPTIONS;
   }
