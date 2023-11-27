@@ -95,20 +95,20 @@ export const IMAGES0 = {
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/julia",
     versions: [{ label: "1.9.4", tag: "1.9.4" }],
   },
-  anaconda: {
-    label: "Anaconda",
-    docker: `${DOCKER_USER}/anaconda`,
-    minDiskSizeGb: 10,
-    dockerSizeGb: 2,
-    gpu: false,
-    icon: "python",
-    url: "https://www.sagemath.org/",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
-    description:
-      "Minimal Anaconda environment nicely setup and ready for you to install packages into.",
-    versions: [{ label: "2023-11-26", tag: "2023-11-26" }],
-  },
+  //   anaconda: {
+  //     label: "Anaconda",
+  //     docker: `${DOCKER_USER}/anaconda`,
+  //     minDiskSizeGb: 10,
+  //     dockerSizeGb: 2,
+  //     gpu: false,
+  //     icon: "python",
+  //     url: "https://www.sagemath.org/",
+  //     source:
+  //       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
+  //     description:
+  //       "Minimal Anaconda environment nicely setup and ready for you to install packages into.",
+  //     versions: [{ label: "2023-11-26", tag: "2023-11-26" }],
+  //   },
   cuda: {
     label: "CUDA Development Toolkit",
     docker: `${DOCKER_USER}/cuda`,
