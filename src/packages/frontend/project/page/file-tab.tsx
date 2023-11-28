@@ -52,6 +52,7 @@ import {
 import { ActiveFlyout } from "./flyouts/active";
 import { VBAR_KEY, getValidVBAROption } from "./vbar";
 import { shouldOpenFileInNewWindow } from "./utils";
+import { useProjectContext } from "../context";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -189,10 +190,13 @@ export function FileTab(props: Readonly<Props>) {
   } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
+
+  const { onCoCalcDocker } = useProjectContext();
   // this is @cocalc/comm/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
+  // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
-    name === "info"
+    !onCoCalcDocker && name === "info"
       ? project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
