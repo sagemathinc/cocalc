@@ -19,12 +19,13 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Icon, Paragraph } from "@cocalc/frontend/components";
+import { Icon, Paragraph } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import {
+  filename_extension_notilde,
   path_split,
   search_match,
   search_split,
@@ -36,6 +37,7 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { shouldOpenFileInNewWindow } from "../utils";
 import { Group } from "./active-group";
+import { StarredInTabs } from "./active-starred";
 import { OpenFileTabs } from "./active-tabs";
 import { ActiveTop } from "./active-top";
 import {
@@ -124,8 +126,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   );
 
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const recentlyClosed = useTypedRedux({ project_id }, "recently_closed_files");
-  //   const user_map = useTypedRedux("users", "user_map");
+  const justClosed = useTypedRedux({ project_id }, "just_closed_files");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const [filterTerm, setFilterTerm] = useState<string>("");
   const [showStarred, setShowStarred] = useState<boolean>(
@@ -189,7 +190,8 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     const grouped: { [group: string]: string[] } = {};
     filteredFiles.forEach((path) => {
       const { head, tail } = path_split(path);
-      const group = mode === "folder" ? head : tail.split(".")[1] ?? "";
+      const group =
+        mode === "folder" ? head : filename_extension_notilde(tail) ?? "";
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
@@ -226,9 +228,9 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   // end of hooks
 
   function handleFileClick(
-    e: React.MouseEvent,
+    e: React.MouseEvent | undefined,
     path: string,
-    how: "file" | "undo",
+    how: "file" | "undo" | "star",
   ) {
     const trackInfo = {
       path,
@@ -248,10 +250,12 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   function renderFileItem(path: string, how: "file" | "undo", group?: string) {
-    const isActive: boolean = activePath === path;
+    const isactive: boolean = activePath === path;
     const style = group != null ? randomLeftBorder(group) : undefined;
 
     const isdir = path.endsWith("/");
+    const isopen = openFiles.includes(path);
+
     // if it is a directory, remove the trailing slash
     // and if it starts with ".smc/root/", replace that by a "/"
     const display = isdir
@@ -262,18 +266,13 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
       <FileListItem
         key={path}
         mode="active"
-        item={{
-          name: path,
-          isopen: openFiles.includes(path),
-          isdir,
-          isactive: isActive,
-        }}
+        item={{ name: path, isopen, isdir, isactive }}
         displayedNameOverride={display}
         style={style}
         multiline={false}
-        onClick={(e: React.MouseEvent) => handleFileClick(e, path, how)}
-        onClose={(e: React.MouseEvent, path: string) => {
-          e.stopPropagation();
+        onClick={(e) => handleFileClick(e, path, how)}
+        onClose={(e, path: string) => {
+          e?.stopPropagation();
           actions?.close_tab(path);
         }}
         onMouseDown={(e: React.MouseEvent) => {
@@ -284,7 +283,14 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         }}
         isStarred={showStarred ? starred.includes(path) : undefined}
         onStar={(next: boolean) => {
-          setStarredPath(path, next);
+          // we only toggle star, if it is currently opeend!
+          // otherwise, when closed and accidentally clicking on the star
+          // the file unstarred and just vanishes
+          if (isopen) {
+            setStarredPath(path, next);
+          } else {
+            handleFileClick(undefined, path, "star");
+          }
         }}
         extra2={
           flyoutWidth >= FLYOUT_DEFAULT_WIDTH_PX ? (
@@ -407,65 +413,13 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
           renderFileItem={renderFileItem}
         />
       ),
-      renderStarredInFiles(starredRendered),
+      <StarredInTabs
+        showStarred={showStarred}
+        showStarredTabs={showStarredTabs}
+        setShowStarredTabs={setShowStarredTabs}
+        starredRendered={starredRendered}
+      />,
     ];
-  }
-
-  function renderStarredInFiles(starredRendered: JSX.Element[]) {
-    if (!showStarred || starredRendered.length === 0) return null;
-    return (
-      <div
-        style={{
-          flex: "1 1 auto",
-          display: "flex",
-          flexDirection: "column",
-          maxHeight: "30vh",
-          borderTop: FIX_BORDER,
-        }}
-      >
-        <div
-          style={{
-            flex: "1 0 auto",
-            padding: FLYOUT_PADDING,
-            ...GROUP_STYLE,
-          }}
-        >
-          <Icon name="star-filled" style={{ color: COLORS.STAR }} /> Starred{" "}
-          <HelpIcon title={"Starred files are like bookmarks."}>
-            These files are not opened, but you can quickly access them.
-            <br />
-            Use the <Icon
-              name="star-filled"
-              style={{ color: COLORS.STAR }}
-            />{" "}
-            icon to star/unstar a file.
-            <br />
-            The star above the list of active files toggles if starred files are
-            shown.
-          </HelpIcon>
-          <Button
-            size="small"
-            style={{ float: "right", color: COLORS.FILE_EXT }}
-            onClick={() => setShowStarredTabs(!showStarredTabs)}
-          >
-            {showStarredTabs ? (
-              <>
-                <Icon name="eye-slash" /> Hide
-              </>
-            ) : (
-              <>
-                <Icon name="eye" /> Show
-              </>
-            )}
-          </Button>
-        </div>
-        {showStarredTabs ? (
-          <div style={{ flex: "1 1 auto", overflowY: "auto" }}>
-            {starredRendered}
-          </div>
-        ) : null}
-      </div>
-    );
   }
 
   // type "folder" and  "type" have actual groups
@@ -574,7 +528,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   function renderUndo() {
-    if (recentlyClosed.size === 0) return;
+    if (justClosed.size === 0) return;
 
     return (
       <div
@@ -590,16 +544,16 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
             color: COLORS.FILE_EXT,
           }}
         >
-          <Icon name="undo" /> Recently closed
+          <Icon name="undo" /> Closed files
           <Button
             size="small"
             style={{ float: "right", color: COLORS.FILE_EXT }}
-            onClick={() => actions?.clear_recently_closed_files()}
+            onClick={() => actions?.clear_just_closed_files()}
           >
             <Icon name="times" /> Clear
           </Button>
         </div>
-        {recentlyClosed.reverse().map((path) => {
+        {justClosed.reverse().map((path) => {
           return renderFileItem(path, "undo");
         })}
       </div>
@@ -650,6 +604,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         setFilterTerm={setFilterTerm}
         doScroll={doScroll}
         openFirstMatchingFile={openFirstMatchingFile}
+        flyoutWidth={flyoutWidth}
       />
       {renderGroups()}
       {renderUndo()}

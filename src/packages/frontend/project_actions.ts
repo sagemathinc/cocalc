@@ -3285,9 +3285,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  public clear_recently_closed_files() {
+  public clear_just_closed_files() {
     this.setState({
-      recently_closed_files: List([]),
+      just_closed_files: List([]),
     });
   }
 }
