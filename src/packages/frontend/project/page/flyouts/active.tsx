@@ -19,7 +19,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Icon, Paragraph } from "@cocalc/frontend/components";
+import { Icon, Paragraph } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
@@ -37,6 +37,7 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { shouldOpenFileInNewWindow } from "../utils";
 import { Group } from "./active-group";
+import { StarredInTabs } from "./active-starred";
 import { OpenFileTabs } from "./active-tabs";
 import { ActiveTop } from "./active-top";
 import {
@@ -409,65 +410,13 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
           renderFileItem={renderFileItem}
         />
       ),
-      renderStarredInFiles(starredRendered),
+      <StarredInTabs
+        showStarred={showStarred}
+        showStarredTabs={showStarredTabs}
+        setShowStarredTabs={setShowStarredTabs}
+        starredRendered={starredRendered}
+      />,
     ];
-  }
-
-  function renderStarredInFiles(starredRendered: JSX.Element[]) {
-    if (!showStarred || starredRendered.length === 0) return null;
-    return (
-      <div
-        style={{
-          flex: "1 1 auto",
-          display: "flex",
-          flexDirection: "column",
-          maxHeight: "30vh",
-          borderTop: FIX_BORDER,
-        }}
-      >
-        <div
-          style={{
-            flex: "1 0 auto",
-            padding: FLYOUT_PADDING,
-            ...GROUP_STYLE,
-          }}
-        >
-          <Icon name="star-filled" style={{ color: COLORS.STAR }} /> Starred{" "}
-          <HelpIcon title={"Starred files are like bookmarks."}>
-            These files are not opened, but you can quickly access them.
-            <br />
-            Use the <Icon
-              name="star-filled"
-              style={{ color: COLORS.STAR }}
-            />{" "}
-            icon to star/unstar a file.
-            <br />
-            The star above the list of active files toggles if starred files are
-            shown.
-          </HelpIcon>
-          <Button
-            size="small"
-            style={{ float: "right", color: COLORS.FILE_EXT }}
-            onClick={() => setShowStarredTabs(!showStarredTabs)}
-          >
-            {showStarredTabs ? (
-              <>
-                <Icon name="eye-slash" /> Hide
-              </>
-            ) : (
-              <>
-                <Icon name="eye" /> Show
-              </>
-            )}
-          </Button>
-        </div>
-        {showStarredTabs ? (
-          <div style={{ flex: "1 1 auto", overflowY: "auto" }}>
-            {starredRendered}
-          </div>
-        ) : null}
-      </div>
-    );
   }
 
   // type "folder" and  "type" have actual groups
