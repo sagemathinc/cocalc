@@ -67,7 +67,7 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
-  recently_closed_files: immutable.List<string>;
+  just_closed_files: immutable.List<string>;
   public_paths?: immutable.Map<string, immutable.Map<string, any>>;
   directory_listings: immutable.Map<string, any>;
   show_upload: boolean;
@@ -243,7 +243,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       history_path: "",
       open_files: immutable.Map<immutable.Map<string, any>>({}),
       open_files_order: immutable.List([]),
-      recently_closed_files: immutable.List([]),
+      just_closed_files: immutable.List([]),
       directory_listings: immutable.Map(), // immutable,
       show_upload: false,
       create_file_alert: false,

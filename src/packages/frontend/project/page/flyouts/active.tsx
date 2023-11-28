@@ -126,7 +126,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   );
 
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const recentlyClosed = useTypedRedux({ project_id }, "recently_closed_files");
+  const justClosed = useTypedRedux({ project_id }, "just_closed_files");
   //   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const [filterTerm, setFilterTerm] = useState<string>("");
@@ -525,7 +525,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   function renderUndo() {
-    if (recentlyClosed.size === 0) return;
+    if (justClosed.size === 0) return;
 
     return (
       <div
@@ -541,16 +541,16 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
             color: COLORS.FILE_EXT,
           }}
         >
-          <Icon name="undo" /> Recently closed
+          <Icon name="undo" /> Closed files
           <Button
             size="small"
             style={{ float: "right", color: COLORS.FILE_EXT }}
-            onClick={() => actions?.clear_recently_closed_files()}
+            onClick={() => actions?.clear_just_closed_files()}
           >
             <Icon name="times" /> Clear
           </Button>
         </div>
-        {recentlyClosed.reverse().map((path) => {
+        {justClosed.reverse().map((path) => {
           return renderFileItem(path, "undo");
         })}
       </div>
