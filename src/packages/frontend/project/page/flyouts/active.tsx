@@ -230,7 +230,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   function handleFileClick(
     e: React.MouseEvent | undefined,
     path: string,
-    how: "file" | "undo",
+    how: "file" | "undo" | "star",
   ) {
     const trackInfo = {
       path,
@@ -250,10 +250,12 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   function renderFileItem(path: string, how: "file" | "undo", group?: string) {
-    const isActive: boolean = activePath === path;
+    const isactive: boolean = activePath === path;
     const style = group != null ? randomLeftBorder(group) : undefined;
 
     const isdir = path.endsWith("/");
+    const isopen = openFiles.includes(path);
+
     // if it is a directory, remove the trailing slash
     // and if it starts with ".smc/root/", replace that by a "/"
     const display = isdir
@@ -264,12 +266,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
       <FileListItem
         key={path}
         mode="active"
-        item={{
-          name: path,
-          isopen: openFiles.includes(path),
-          isdir,
-          isactive: isActive,
-        }}
+        item={{ name: path, isopen, isdir, isactive }}
         displayedNameOverride={display}
         style={style}
         multiline={false}
@@ -286,7 +283,14 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         }}
         isStarred={showStarred ? starred.includes(path) : undefined}
         onStar={(next: boolean) => {
-          setStarredPath(path, next);
+          // we only toggle star, if it is currently opeend!
+          // otherwise, when closed and accidentally clicking on the star
+          // the file unstarred and just vanishes
+          if (isopen) {
+            setStarredPath(path, next);
+          } else {
+            handleFileClick(undefined, path, "star");
+          }
         }}
         extra2={
           flyoutWidth >= FLYOUT_DEFAULT_WIDTH_PX ? (
