@@ -127,7 +127,6 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
 
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const justClosed = useTypedRedux({ project_id }, "just_closed_files");
-  //   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const [filterTerm, setFilterTerm] = useState<string>("");
   const [showStarred, setShowStarred] = useState<boolean>(
@@ -229,7 +228,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   // end of hooks
 
   function handleFileClick(
-    e: React.MouseEvent,
+    e: React.MouseEvent | undefined,
     path: string,
     how: "file" | "undo",
   ) {
@@ -274,9 +273,9 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         displayedNameOverride={display}
         style={style}
         multiline={false}
-        onClick={(e: React.MouseEvent) => handleFileClick(e, path, how)}
-        onClose={(e: React.MouseEvent, path: string) => {
-          e.stopPropagation();
+        onClick={(e) => handleFileClick(e, path, how)}
+        onClose={(e, path: string) => {
+          e?.stopPropagation();
           actions?.close_tab(path);
         }}
         onMouseDown={(e: React.MouseEvent) => {
