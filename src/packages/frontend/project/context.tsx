@@ -20,6 +20,10 @@ import {
 import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+} from "@cocalc/util/db-schema/site-defaults";
 
 export interface ProjectContextState {
   actions?: ProjectActions;
@@ -32,6 +36,8 @@ export interface ProjectContextState {
   project?: Project;
   status: ProjectStatus;
   flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
+  onCoCalcCom: boolean;
+  onCoCalcDocker: boolean;
 }
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -46,6 +52,8 @@ export const ProjectContext: Context<ProjectContextState> =
     status: INIT_PROJECT_STATE,
     hasInternet: undefined,
     flipTabs: [0, () => {}],
+    onCoCalcCom: true,
+    onCoCalcDocker: false,
   });
 
 export function useProjectContext() {
@@ -78,6 +86,10 @@ export function useProjectContextProvider(
   // shared data: used to flip through the open tabs in the active files flyout
   const flipTabs = useState<number>(0);
 
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const onCoCalcCom = kucalc === KUCALC_COCALC_COM;
+  const onCoCalcDocker = kucalc === KUCALC_DISABLED;
+
   return {
     actions,
     active_project_tab,
@@ -89,5 +101,7 @@ export function useProjectContextProvider(
     project,
     status,
     flipTabs,
+    onCoCalcCom,
+    onCoCalcDocker,
   };
 }

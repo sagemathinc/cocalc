@@ -36,6 +36,7 @@ import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { CGroupInfo, DUState } from "./types";
 import { filename, warning_color_disk, warning_color_pct } from "./utils";
+import { useProjectContext } from "../context";
 
 interface AboutContentProps {
   proc?: Process;
@@ -370,6 +371,7 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
       style,
     } = props;
     const isFlyout = mode === "flyout";
+    const { onCoCalcDocker } = useProjectContext();
     const progprops = useProgressProps(mode);
     const all_alerts = project_status?.get("alerts") ?? immutable.Map();
     const status_alerts: Readonly<string[]> = all_alerts.map((a) =>
@@ -470,7 +472,10 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
       );
     }
 
-    if (!have_cgroup) {
+    // explicitly get rid of cgroup related info from the project. it's defined but not correct.
+    // there is no quota management at all.
+    // https://github.com/sagemathinc/cocalc/issues/7077
+    if (!have_cgroup || onCoCalcDocker) {
       return null;
     } else {
       // for now, we only show row 2
