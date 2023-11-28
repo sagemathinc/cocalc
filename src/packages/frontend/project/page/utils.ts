@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export function shouldOpenFileInNewWindow(e: React.MouseEvent) {
+export function shouldOpenFileInNewWindow(e?: React.MouseEvent) {
+  if (e == null) return false;
   return e.ctrlKey || e.shiftKey || e.metaKey;
 }

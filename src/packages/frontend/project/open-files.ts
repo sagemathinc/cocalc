@@ -29,9 +29,10 @@ The point of this code here is ensure that these objects stay in sync properly.
 */
 
 import { List, Map } from "immutable";
+
+import { close } from "@cocalc/util/misc";
 import { ProjectActions } from "../project_actions";
 import { ProjectStore } from "../project_store";
-import { close } from "@cocalc/util/misc";
 
 type OpenFilesType = Map<string, Map<string, any>>;
 type OpenFilesOrderType = List<string>;
@@ -55,13 +56,13 @@ export class OpenFiles {
   private setState(
     open_files: OpenFilesType | undefined,
     open_files_order?: OpenFilesOrderType,
-    recently_closed_files?: ClosedFilesType,
+    just_closed_files?: ClosedFilesType,
   ): void {
     const x: any = {};
     if (open_files != null) x.open_files = open_files;
     if (open_files_order != null) x.open_files_order = open_files_order;
-    if (recently_closed_files != null) {
-      x.recently_closed_files = recently_closed_files;
+    if (just_closed_files != null) {
+      x.just_closed_files = just_closed_files;
     }
     this.actions.setState(x);
   }
@@ -80,17 +81,15 @@ export class OpenFiles {
     const index = open_files_order.indexOf(path);
     if (index == -1) return; // no-op if not there, like immutable.List delete.
     const open_files = this.store.get("open_files");
-    const recently_closed_files_old = this.store.get("recently_closed_files");
+    const just_closed_files_prev = this.store.get("just_closed_files");
 
     // keep the most recent 3
-    const recently_closed_files = recently_closed_files_old
-      .push(path)
-      .slice(-3);
+    const just_closed_files = just_closed_files_prev.push(path).slice(-3);
 
     this.setState(
       open_files.delete(path),
       open_files_order.delete(index),
-      recently_closed_files,
+      just_closed_files,
     );
   }
 
@@ -115,14 +114,14 @@ export class OpenFiles {
     } else {
       this.setState(open_files.set(path, cur.set(key, val)));
     }
-    // remove it from recently_closed_files, if it's there
-    const recently_closed_files = this.store.get("recently_closed_files");
+    // remove it from just_closed_files, if it's there
+    const just_closed_files = this.store.get("just_closed_files");
 
-    if (recently_closed_files.includes(path)) {
+    if (just_closed_files.includes(path)) {
       this.setState(
         undefined,
         undefined,
-        recently_closed_files.filter((x) => x !== path),
+        just_closed_files.filter((x) => x !== path),
       );
     }
   }
