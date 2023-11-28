@@ -21,7 +21,7 @@ export const GROUP_STYLE: CSS = {
 export function deterministicColor(group: string) {
   return group === ""
     ? COLORS.GRAY_L
-    : getRandomColor(group, { diff: 30, min: 190, max: 250 });
+    : getRandomColor(group, { diff: 30, min: 185, max: 245 });
 }
 
 export function randomLeftBorder(group: string): CSS {
