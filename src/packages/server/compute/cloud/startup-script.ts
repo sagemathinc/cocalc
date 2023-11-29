@@ -39,6 +39,7 @@ export default async function startupScript({
   arch,
   hostname,
   exclude_from_sync,
+  auth_token,
   installUser: doInstallUser,
 }: {
   image?: ImageName;
@@ -49,6 +50,7 @@ export default async function startupScript({
   arch: Architecture;
   hostname: string;
   exclude_from_sync: string;
+  auth_token: string;
   installUser?: boolean;
 }) {
   if (!api_key) {
@@ -81,6 +83,7 @@ ${await installConf({
   compute_server_id,
   hostname,
   exclude_from_sync,
+  auth_token,
 })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing configuration"

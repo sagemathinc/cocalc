@@ -19,6 +19,7 @@ export const SUPPORTED_CHANGES = [
   "acceleratorCount",
   "test",
   "excludeFromSync",
+  "authToken"
 ];
 
 export const RUNNING_CHANGES = ["ephemeral", "diskSizeGb"];

@@ -41,7 +41,7 @@ import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
-import SelectImage, { ImageLinks } from "./select-image";
+import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 
@@ -1210,7 +1210,7 @@ function Image(props) {
         </div>
       )}
       <div style={{ color: "#666", marginTop: "5px" }}>
-        {IMAGES[props.configuration?.image ?? ""]?.description}
+        <ImageDescription configuration={props.configuration} />
       </div>
     </div>
   );
