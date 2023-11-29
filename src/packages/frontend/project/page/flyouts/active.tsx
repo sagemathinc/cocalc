@@ -31,6 +31,7 @@ import {
   search_split,
   strictMod,
   tab_to_path,
+  unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
@@ -50,9 +51,11 @@ import { FlyoutFilterWarning } from "./filter-warning";
 import {
   FlyoutActiveMode,
   FlyoutActiveStarred,
+  FlyoutActiveTabSort,
   getFlyoutActiveMode,
   getFlyoutActiveShowStarred,
   getFlyoutActiveStarred,
+  getFlyoutActiveTabSort,
   isFlyoutActiveMode,
   storeFlyoutState,
 } from "./state";
@@ -126,6 +129,10 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     getFlyoutActiveStarred(project_id),
   );
 
+  const [sortTabs, setSortTabsState] = useState<FlyoutActiveTabSort>(
+    getFlyoutActiveTabSort(project_id),
+  );
+
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const justClosed = useTypedRedux({ project_id }, "just_closed_files");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
@@ -150,6 +157,11 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
       : starred.filter((p) => p !== path);
     setStarred(newStarred);
     storeFlyoutState(project_id, "active", { starred: newStarred });
+  }
+
+  function setSortTabs(sort: FlyoutActiveTabSort) {
+    setSortTabsState(sort);
+    storeFlyoutState(project_id, "active", { activeTabSort: sort });
   }
 
   useEffect(() => actions?.setFlyoutActiveMode(mode), [mode]);
@@ -393,6 +405,21 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   function renderTabs(): [JSX.Element, JSX.Element | null] {
     const openTabs = openFiles
       .filter((path) => filteredFiles.includes(path))
+      .sort((a, b) => {
+        switch (sortTabs) {
+          case "custom":
+            return 1;
+          case "alphanum-up":
+          case "alphanum-down":
+            const { tail: at } = path_split(a);
+            const { tail: bt } = path_split(b);
+            const val = at.localeCompare(bt);
+            return sortTabs === "alphanum-up" ? -val : val;
+          default:
+            unreachable(sortTabs);
+            return 1;
+        }
+      })
       .toJS();
     // starred files (no directories) which aren't opened, are at the bottom
     const starredRendered = showStarred
@@ -412,6 +439,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
           dndDragEnd={dndDragEnd}
           openTabs={openTabs}
           renderFileItem={renderFileItem}
+          disabled={sortTabs !== "custom"}
         />
       ),
       <StarredInTabs
@@ -612,6 +640,9 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         doScroll={doScroll}
         openFirstMatchingFile={openFirstMatchingFile}
         flyoutWidth={flyoutWidth}
+        filteredFiles={filteredFiles}
+        sortTabs={sortTabs}
+        setSortTabs={setSortTabs}
       />
       {renderWarnings()}
       {renderGroups()}
