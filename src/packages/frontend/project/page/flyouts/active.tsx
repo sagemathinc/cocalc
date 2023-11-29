@@ -46,6 +46,7 @@ import {
   FLYOUT_PADDING,
 } from "./consts";
 import { FileListItem } from "./file-list-item";
+import { FlyoutFilterWarning } from "./filter-warning";
 import {
   FlyoutActiveMode,
   FlyoutActiveStarred,
@@ -593,6 +594,12 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     }
   }
 
+  function renderWarnings() {
+    return (
+      <FlyoutFilterWarning filter={filterTerm} setFilter={setFilterTerm} />
+    );
+  }
+
   return (
     <>
       <ActiveTop
@@ -606,6 +613,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         openFirstMatchingFile={openFirstMatchingFile}
         flyoutWidth={flyoutWidth}
       />
+      {renderWarnings()}
       {renderGroups()}
       {renderUndo()}
     </>
