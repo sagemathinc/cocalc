@@ -13,6 +13,7 @@ import {
   Divider,
   Input,
   InputNumber,
+  Popconfirm,
   Radio,
   Select,
   Space,
@@ -44,6 +45,8 @@ import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
+import generateVouchers from "@cocalc/util/vouchers";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -360,6 +363,7 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           loading={loading}
           priceData={priceData}
+          state={state}
         />
       ),
     },
@@ -1705,7 +1709,7 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({ setConfig, configuration, loading, priceData }) {
+function Network({ setConfig, configuration, loading, priceData, state }) {
   const [externalIp, setExternalIp] = useState<boolean>(
     configuration.externalIp ?? true,
   );
@@ -1768,6 +1772,62 @@ function Network({ setConfig, configuration, loading, priceData }) {
           loading={loading}
         />
       )}
+      {externalIp && (
+        <AuthToken
+          setConfig={setConfig}
+          configuration={configuration}
+          state={state}
+        />
+      )}
+    </div>
+  );
+}
+
+function createToken() {
+  return generateVouchers({ count: 1, length: 16 })[0];
+}
+
+function AuthToken({ setConfig, configuration, state }) {
+  const { authToken } = IMAGES[configuration.image] ?? {};
+  if (!authToken) {
+    return null;
+  }
+  if (configuration.authToken == null) {
+    setConfig({ authToken: createToken() });
+  }
+  return (
+    <div style={{ color: "#666" }}>
+      <div style={{ marginTop: "15px", display: "flex" }}>
+        <div style={{ margin: "auto 30px auto 0" }}>
+          <b>Auth Token:</b>
+        </div>
+        <CopyToClipBoard value={configuration.authToken} />
+        <Popconfirm
+          onConfirm={() => {
+            setConfig({ authToken: createToken() });
+          }}
+          okText="Change token"
+          title={"Change auth token?"}
+          description={
+            <div style={{ width: "400px" }}>
+              <b>
+                WARNING: Changing the auth token will prevent people who you
+                shared the old token with from using the site.
+              </b>
+            </div>
+          }
+        >
+          <Button
+            style={{ marginLeft: "30px" }}
+            disabled={state != "deprovisioned" && state != "off"}
+          >
+            <Icon name="refresh" />
+            Randomize...
+          </Button>
+        </Popconfirm>
+      </div>
+      Use this token to access the web server that will runs on your compute
+      server.
     </div>
   );
 }

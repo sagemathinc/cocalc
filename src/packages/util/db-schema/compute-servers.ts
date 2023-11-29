@@ -27,6 +27,7 @@ interface ImageBase {
   icon: string;
   source: string;
   versions: VERSIONS;
+  authToken?: boolean; // if true, image has web interface that supports configurable auth token
 }
 
 interface NonGPUImage extends ImageBase {
@@ -191,7 +192,7 @@ export const IMAGES0 = {
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/ollama",
     description:
       "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
-    auth_token: true,
+    authToken: true,
     versions: [{ label: "0.1.12", tag: "0.1.12" }],
   },
 
