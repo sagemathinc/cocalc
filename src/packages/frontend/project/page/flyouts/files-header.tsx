@@ -27,6 +27,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 import { ActiveFileSort } from "./files";
+import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -212,20 +213,6 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  function renderClearSearchSmall() {
-    return (
-      <Tooltip title="Clear search" placement="bottom">
-        <Button
-          size="small"
-          type="text"
-          style={{ float: "right", color: COLORS.GRAY_M }}
-          onClick={() => setSearchState("")}
-          icon={<Icon name="close-circle-filled" />}
-        />
-      </Tooltip>
-    );
-  }
-
   function renderFileCreationError() {
     if (!file_creation_error) return;
     return (
@@ -247,18 +234,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     if (file_search === "") return;
     if (!isEmpty) {
       return (
-        <Alert
-          type="info"
-          banner
-          showIcon={false}
-          style={{ padding: FLYOUT_PADDING, margin: 0 }}
-          description={
-            <>
-              {renderClearSearchSmall()}
-              Only showing files matching "<Text code>{file_search}</Text>".
-            </>
-          }
-        />
+        <FlyoutFilterWarning filter={file_search} setFilter={setSearchState} />
       );
     }
   }
@@ -281,7 +257,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
         description={
           <>
             <div>
-              {renderClearSearchSmall()}
+              <FlyoutClearFilter setFilter={setSearchState} />
               No files match the current filter.
             </div>
             <div>

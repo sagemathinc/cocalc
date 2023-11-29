@@ -29,12 +29,14 @@ interface Props {
   openTabs: string[];
   dndDragEnd: (event: any) => void;
   renderFileItem: (path: string, how: "file" | "undo") => JSX.Element;
+  disabled: boolean;
 }
 
 export function OpenFileTabs({
   openTabs,
   dndDragEnd,
   renderFileItem,
+  disabled,
 }: Props): JSX.Element {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -54,7 +56,12 @@ export function OpenFileTabs({
       <SortableContext items={openTabs} strategy={verticalListSortingStrategy}>
         <DragOverlay modifiers={[restrictToWindowEdges]} />
         {openTabs.map((path: string) => (
-          <SortableTab key={path} path={path} renderFileItem={renderFileItem} />
+          <SortableTab
+            key={path}
+            path={path}
+            renderFileItem={renderFileItem}
+            disabled={disabled}
+          />
         ))}
       </SortableContext>
     </DndContext>
@@ -64,9 +71,11 @@ export function OpenFileTabs({
 function SortableTab({
   path,
   renderFileItem,
+  disabled,
 }: {
   path: string;
   renderFileItem: Props["renderFileItem"];
+  disabled: boolean;
 }) {
   const {
     attributes,
@@ -75,7 +84,7 @@ function SortableTab({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: path });
+  } = useSortable({ id: path, disabled });
 
   const style = {
     transform: DNDCSS.Transform.toString(transform),
