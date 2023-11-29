@@ -16,9 +16,11 @@ await a.createImages({image:"pytorch"});
 
 await a.createImages({image:"tensorflow"});
 
-await a.createImages({image:"cuda12"})
+await a.createImages({image:"cuda"})
 
-await a.createImages({image:"sagemath-10.1", arch:'x86_64'});
+await a.createImages({image:"ollama"})
+
+await a.createImages({image:"sagemath", arch:'x86_64'});
 
 
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({gpu:true})

@@ -443,9 +443,9 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   gpu: {
     image: "pytorch",
     spot: true,
-    zone: "europe-west2-a",
+    region: "asia-northeast1",
     cloud: "google-cloud",
-    region: "europe-west2",
+    zone: "asia-northeast1-a",
     diskType: "pd-balanced",
     diskSizeGb: getMinDiskSizeGb({ image: "pytorch" }) + 10,
     externalIp: true,
