@@ -193,7 +193,7 @@ export const IMAGES0 = {
     description:
       "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
     authToken: true,
-    versions: [{ label: "0.1.12", tag: "0.1.12" }],
+    versions: [{ label: "0.1.12", tag: "0.1.12.p1" }],
   },
 
   //   "cocalc-docker": {
