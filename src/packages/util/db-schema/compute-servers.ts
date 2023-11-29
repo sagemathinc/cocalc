@@ -184,7 +184,7 @@ export const IMAGES0 = {
     label: "Ollama with WebUI",
     docker: `${DOCKER_USER}/ollama`,
     dockerSizeGb: 2,
-    minDiskSizeGb: 10,
+    minDiskSizeGb: 30,
     gpu: true,
     icon: "robot",
     url: "https://ollama.ai/",
