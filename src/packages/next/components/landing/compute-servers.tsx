@@ -1,10 +1,18 @@
-import { useCustomize } from "lib/customize";
-import Info from "components/landing/info";
-import { Tag } from "antd";
-import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
-import { Paragraph, Text } from "components/misc";
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Button, Tag } from "antd";
+import { join } from "path";
+
+import basePath from "@cocalc/backend/base-path";
 import { COLORS } from "@cocalc/util/theme";
+import Info from "components/landing/info";
+import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
+import { useCustomize } from "lib/customize";
+import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
 
 export default function ComputeServers() {
   const { computeServersEnabled, siteName } = useCustomize();
@@ -62,7 +70,10 @@ export default function ComputeServers() {
       <Paragraph>
         Usage of these machines is <Text strong>billed by the second</Text>. The
         pricing is highly competitive, starting at{" "}
-        <b><i>under $0.15/hour for computer servers with a GPU</i></b>!
+        <b>
+          <i>under $0.15/hour for computer servers with a GPU</i>
+        </b>
+        !
       </Paragraph>
       <Paragraph>
         <A href="https://doc.cocalc.com/compute_server.html">Read the docs</A>{" "}
@@ -72,15 +83,15 @@ export default function ComputeServers() {
         </A>
         .
       </Paragraph>
-      {/* <Paragraph>
-          <Button
-            onClick={() =>
-              (window.location.href = join(basePath, "/features/compute"))
-            }
-          >
-            More about compute servers on {siteName}
-          </Button>
-        </Paragraph> */}
+      <Paragraph>
+        <Button
+          onClick={() =>
+            (window.location.href = join(basePath, "/features/compute-server"))
+          }
+        >
+          More about compute servers on {siteName}
+        </Button>
+      </Paragraph>
     </Info>
   );
 }
