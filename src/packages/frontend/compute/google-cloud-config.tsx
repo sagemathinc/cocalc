@@ -1789,11 +1789,15 @@ function createToken() {
 
 function AuthToken({ setConfig, configuration, state }) {
   const { authToken } = IMAGES[configuration.image] ?? {};
+  useEffect(() => {
+    // create token if it is not set but required
+    if (authToken && configuration.authToken == null) {
+      setConfig({ authToken: createToken() });
+    }
+  }, [authToken, configuration.authToken]);
+
   if (!authToken) {
     return null;
-  }
-  if (configuration.authToken == null) {
-    setConfig({ authToken: createToken() });
   }
   return (
     <div style={{ color: "#666" }}>
@@ -1801,7 +1805,7 @@ function AuthToken({ setConfig, configuration, state }) {
         <div style={{ margin: "auto 30px auto 0" }}>
           <b>Auth Token:</b>
         </div>
-        <CopyToClipBoard value={configuration.authToken} />
+        <CopyToClipBoard value={configuration.authToken ?? ""} />
         <Popconfirm
           onConfirm={() => {
             setConfig({ authToken: createToken() });
