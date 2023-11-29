@@ -484,7 +484,7 @@ const CLOUDS: {
     label: "Google Cloud Platform",
     image:
       "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
-    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.gpu,
+    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.gpu2,
   },
   lambda: {
     name: "lambda-cloud",
