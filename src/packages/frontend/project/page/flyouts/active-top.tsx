@@ -8,12 +8,12 @@
 
 import { Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 
-import { useMemo, useRef } from "@cocalc/frontend/app-framework";
+import { CSS, useMemo, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { COLORS } from "@cocalc/util/theme";
+import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 import { FlyoutActiveMode, storeFlyoutState } from "./state";
-import { FLYOUT_DEFAULT_WIDTH_PX } from "./consts";
 
 interface ActiveTopProps {
   mode: FlyoutActiveMode;
@@ -123,43 +123,64 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
     }
   }
 
-  function renderInput() {
+  function renderFilterSortRow() {
+    const style: CSS = {
+      ...(flyoutWidth > FLYOUT_DEFAULT_WIDTH_PX * 0.5
+        ? { width: "12em" }
+        : { width: "6em" }),
+      flex: "1 0 auto",
+    };
+
     return (
-      <Tooltip
-        title={
-          <>
-            Filter opened and starred files. [Return] openes the first match,
-            [ESC] clears the filter.
-          </>
-        }
-        placement="top"
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
       >
-        <Input
-          ref={filterRef}
-          placeholder="Filter..."
-          style={
-            (!showText || flyoutWidth >= FLYOUT_DEFAULT_WIDTH_PX - 2)
-              ? { width: "6em" }
-              : undefined
+        <Tooltip
+          title={
+            <>
+              Filter opened and starred files. [Return] openes the first match,
+              [ESC] clears the filter.
+            </>
           }
+          placement="top"
+        >
+          <Input
+            ref={filterRef}
+            placeholder="Filter..."
+            style={style}
+            size="small"
+            value={filterTerm}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setFilterTerm(e.target.value);
+            }}
+            onKeyDown={onKeyDownHandler}
+            allowClear
+            prefix={<Icon name="search" />}
+          />
+        </Tooltip>
+        <Space
+          direction="horizontal"
           size="small"
-          value={filterTerm}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            setFilterTerm(e.target.value);
-          }}
-          onKeyDown={onKeyDownHandler}
-          allowClear
-          prefix={<Icon name="search" />}
-        />
-      </Tooltip>
+          style={{ flex: "1 0 auto", justifyContent: "flex-end" }}
+        >
+          <Button size="small" icon={<Icon name="sort-amount-up" />} />
+          <Button size="small" icon={<Icon name="times" />} />
+        </Space>
+      </div>
     );
   }
 
   return (
-    <Space wrap={true}>
-      {renderToggleShowStarred()}
-      {renderConfiguration()}
-      {renderInput()}
-    </Space>
+    <>
+      <Space wrap={true} style={{ paddingBottom: FLYOUT_PADDING }}>
+        {renderToggleShowStarred()}
+        {renderConfiguration()}
+      </Space>
+      {renderFilterSortRow()}
+    </>
   );
 }
