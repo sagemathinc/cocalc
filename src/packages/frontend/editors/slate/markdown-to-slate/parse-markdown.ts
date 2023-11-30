@@ -56,7 +56,7 @@ function replaceSingleTrailingWhitespace(markdown: string): string {
   // suggests a slight modification that is UGLIER and slower, but works:
   return markdown.replace(
     /(?:\S)\ $/gm,
-    (match) => match[0] + TRAILING_WHITESPACE_SUB
+    (match) => match[0] + TRAILING_WHITESPACE_SUB,
   );
 }
 
@@ -73,7 +73,7 @@ function restoreSingleTrailingWhitespace(tokens) {
 
 export function parse_markdown(
   markdown: string,
-  no_meta?: boolean
+  no_meta?: boolean,
 ): {
   tokens: Token[];
   meta?: string;
@@ -113,9 +113,13 @@ function trailingCodeblockWhitespaceHack(markdown: string): string {
   // extensions, updating markdown-it, etc., and it just parses
   // code blocks wrong if there is trailing whitespace, despite the
   // online demo seeming fine.
+  if (!markdown) {
+    // some weird situation even resulted being undefined in prod, and
+    // this special case also works around that...
+    return "";
+  }
   // This reg exp just deletes the trailing whitespace from the backticks
   // that define code blocks.  it's tricky since it involves capture groups
   // since one can use more than 3 backticks as a delimiter.
-
   return markdown.replace(/^(```+)\s+$/gm, "$1");
 }

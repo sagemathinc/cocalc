@@ -5,6 +5,8 @@
 
 import { List, Map } from "immutable";
 type CursorMap = Map<string, any>;
+import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
+import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 
 export class CursorManager {
   private last_cursors: CursorMap = Map();
@@ -12,7 +14,7 @@ export class CursorManager {
   private process_one_user(
     info: CursorMap | undefined,
     account_id: string,
-    cells: CursorMap
+    cells: CursorMap,
   ): CursorMap {
     const last_info: CursorMap | undefined = this.last_cursors.get(account_id);
     if (last_info != null) {
@@ -60,7 +62,7 @@ export class CursorManager {
 
   public process(
     cells: CursorMap | undefined | null,
-    cursors: CursorMap
+    cursors: CursorMap,
   ): CursorMap | undefined {
     if (cells == null) {
       // cells need not be defined in which case, don't bother; see
@@ -81,4 +83,16 @@ export class CursorManager {
       return cells;
     }
   }
+
+  computeServerId = (cursors) => {
+    let minId = Infinity;
+    for (const [client_id, cursor] of cursors) {
+      if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
+        try {
+          minId = Math.min(minId, decodeUUIDtoNum(client_id));
+        } catch (_) {}
+      }
+    }
+    return isFinite(minId) ? minId : 0;
+  };
 }

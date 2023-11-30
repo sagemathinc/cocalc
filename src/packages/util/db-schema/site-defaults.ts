@@ -44,6 +44,7 @@ export type SiteSettingsKeys =
   | "ssh_gateway_fingerprint"
   | "versions"
   | "version_min_project"
+  | "version_compute_server_min_project"
   | "version_min_browser"
   | "version_recommended_browser"
   | "iframe_comm_hosts"
@@ -60,7 +61,13 @@ export type SiteSettingsKeys =
   | "sandbox_projects_enabled"
   | "sandbox_project_id"
   | "new_project_pool"
-  | "compute_servers_enabled";
+  | "compute_servers_enabled"
+  | "compute_servers_google-cloud_enabled"
+  | "compute_servers_onprem_enabled"
+  | "compute_servers_dns_enabled"
+  | "compute_servers_dns";
+
+//| "compute_servers_lambda-cloud_enabled"
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -160,7 +167,7 @@ export const displayJson = (conf) =>
   JSON.stringify(from_json(conf), undefined, 2);
 
 // TODO a cheap'n'dirty validation is good enough
-const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
+export const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 
 export const split_iframe_comm_hosts: ToValFunc<string[]> = (hosts) =>
   (hosts ?? "").match(/[a-z0-9.-]+/g) || [];
@@ -596,9 +603,54 @@ export const site_settings_conf: SiteSettings = {
   },
   compute_servers_enabled: {
     name: "Enable Compute Servers",
-    desc: "Whether or not to include user interface elements related to compute servers.  Set to 'yes' to include these elements.  You may also want to configure 'Compute Servers -- remote cloud services' elsewhere.",
+    desc: "Whether or not to include user interface elements related to compute servers.  Set to 'yes' to include these elements.  You will also need to configure 'Compute Servers -- remote cloud services' elsewhere.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+  },
+  version_compute_server_min_project: {
+    name: "Required project version for compute server",
+    desc: "Minimal *project* version required when starting a compute servers (if project older, error is displayed in frontend when user tries to start compute server).",
+    default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
+  },
+  "compute_servers_google-cloud_enabled": {
+    name: "Enable Compute Servers - Google Cloud",
+    desc: "Whether or not to include google cloud compute servers.  You must also configure a Google service account below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  compute_servers_onprem_enabled: {
+    name: "Enable Compute Servers - On Prem",
+    desc: "Whether or not to include on prem compute servers.  Right now, these are VM's that must be manually managed by a user and involve copy/paste, but someday they will be much more automated.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  //   "compute_servers_lambda-cloud_enabled": {
+  //     name: "Enable Compute Servers - Lambda Cloud",
+  //     desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.  **WARNING:** As of October 2023, there is no legal way to use Lambda cloud  without a reseller agreement with Lambda cloud, if you're selling use of a CoCalc server.  Such agreements don't exist yet.",
+  //     default: "no",
+  //     valid: only_booleans,
+  //     to_val: to_bool,
+  //   },
+  compute_servers_dns_enabled: {
+    name: "Enable Compute Servers - Cloudflare DNS",
+    desc: "Whether or not to include user interface elements related to Cloudflare DNS for compute servers, for automatic configuration of sites like https://foo.cocalc.io.  Set to 'yes' to include these elements.  You will also need to configure 'Compute Servers -- Domain Name, and Cloudflare API token' below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  compute_servers_dns: {
+    name: "Compute Servers: Domain name",
+    desc: "Base domain name for your compute servers, e.g. 'cocalc.io'.  This is used along with the 'CloudFlare API Token' below so that compute servers get a custom stable subdomain name foo.cocalc.io (say) along with an https certificate.  It's more secure for this to be different than the main site dns.",
+    default: "change me!",
+    valid: valid_dns_name,
+    to_val: to_trimmed_str,
+    show: (conf) =>
+      to_bool(conf.compute_servers_enabled) &&
+      to_bool(conf.compute_servers_dns_enabled),
   },
 } as const;

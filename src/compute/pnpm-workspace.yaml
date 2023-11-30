@@ -1,8 +1,10 @@
 packages:
   - "api-client"
   - "backend"
+  - "comm"
   - "jupyter"
   - "sync"
+  - "sync-fs"
   - "sync-client"
   - "util"
   - "terminal"

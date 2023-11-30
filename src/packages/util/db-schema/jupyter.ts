@@ -58,6 +58,10 @@ Table({
         type: "code",
       },
     },
+    expire: {
+      type: "timestamp",
+      desc: "expire a log entry after 1 month",
+    },
   },
   rules: {
     desc: "Jupyter Kernel Execution Log",
@@ -116,6 +120,10 @@ Table({
       render: {
         type: "json",
       },
+    },
+    expire: {
+      type: "timestamp",
+      desc: "this is last_active + 1 month",
     },
   },
   rules: {

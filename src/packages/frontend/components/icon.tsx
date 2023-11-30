@@ -223,6 +223,7 @@ const IconSpec: { [name: string]: any } = {
   atom: { IconFont: "Atom" },
   api: ApiOutlined,
   audio: AudioOutlined,
+  aws: { IconFont: "aws" },
   backward: BackwardOutlined,
   "battery-empty": { IconFont: "battery-empty" },
   "battery-quarter": { IconFont: "battery-quarter" },
@@ -276,6 +277,7 @@ const IconSpec: { [name: string]: any } = {
   "close-circle-filled": CloseCircleFilled,
   clone: { IconFont: "clone" },
   cloud: CloudFilled,
+  "cloud-dev": { IconFont: "cloud-dev" },
   "cloud-download": CloudDownloadOutlined,
   "cloud-download-alt": CloudDownloadOutlined,
   "cloud-upload": CloudUploadOutlined,
@@ -304,7 +306,12 @@ const IconSpec: { [name: string]: any } = {
   "deployment-unit": DeploymentUnitOutlined,
   dedicated: DatabaseOutlined, // icon for "dedicated resources", looks like a server rack
   desktop: DesktopOutlined,
+  digitalocean: { IconFont: "digitalocean" },
   discord: { IconFont: "discord" },
+  "disk-drive": { IconFont: "disk-drive" },
+  "disk-round": { IconFont: "disk-round" },
+  "disk-snapshot": { IconFont: "disk-snapshot" },
+  dns: { IconFont: "dns" },
   docker: { IconFont: "docker" },
   download: DownloadOutlined,
   "dot-circle": { IconFont: "dot-circle" },
@@ -354,10 +361,12 @@ const IconSpec: { [name: string]: any } = {
   global: GlobalOutlined,
   emacs: { IconFont: "gnuemacs" },
   google: GoogleOutlined,
+  googlecloud: { IconFont: "googlecloud" },
   "graduation-cap": { IconFont: "graduation" },
   graph: { IconFont: "graph" },
   grass: { IconFont: "grass" },
   group: { IconFont: "group" },
+  gpu: { IconFont: "gpu" },
   hand: { IconFont: "hand" },
   "hand-stop": PoweroffOutlined,
   header: { IconFont: "header" },
@@ -403,10 +412,14 @@ const IconSpec: { [name: string]: any } = {
   map: { IconFont: "map" },
   markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
+  maple: { IconFont: "maple" },
+  mathematica: { IconFont: "mathematica" },
+  matlab: { IconFont: "matlab" },
   medkit: MedicineBoxOutlined,
   "menu-outlined": MenuOutlined,
   meh: MehOutlined,
   microchip: { IconFont: "microchip" },
+  microsoft: { IconFont: "microsoft" },
   "minus-circle": MinusCircleOutlined,
   "minus-square": MinusSquareOutlined,
   money: CreditCardOutlined,
@@ -416,9 +429,12 @@ const IconSpec: { [name: string]: any } = {
   arrows: {
     IconFont: "move",
   } /* fa-arrows is used by the bqplot custom widget */,
+  network: { IconFont: "network" },
+  "network-server": { IconFont: "network-server" },
   "network-wired": ClusterOutlined,
   "node-js": { IconFont: "node-js" },
   note: { IconFont: "note-text" },
+  nvidia: { IconFont: "nvidia" },
   octave: { IconFont: "octave" },
   overview: AppstoreOutlined,
   outdent: { IconFont: "outdent" },
@@ -444,6 +460,7 @@ const IconSpec: { [name: string]: any } = {
   PoweroffOutlined,
   print: PrinterOutlined,
   python: { IconFont: "python" },
+  pytorch: { IconFont: "pytorch" },
   qgis: { IconFont: "qgis" },
   "question-circle": QuestionCircleOutlined,
   "quote-left": { IconFont: "quote-left" },
@@ -472,6 +489,7 @@ const IconSpec: { [name: string]: any } = {
   "select-outlined": SelectOutlined,
   settings: SettingOutlined,
   server: CloudServerOutlined,
+  servers: { IconFont: "servers" },
   "sign-in": LoginOutlined,
   "sign-out-alt": LogoutOutlined,
   sitemap: ClusterOutlined,
@@ -510,6 +528,7 @@ const IconSpec: { [name: string]: any } = {
   "tag-two-tone": TagTwoTone,
   "tags-two-tone": TagsTwoTone,
   "team-outlined": TeamOutlined,
+  tensorflow: { IconFont: "tensorflow" },
   terminal: CodeOutlined,
   tex: { IconFont: "tex" },
   text: { IconFont: "text" },
@@ -526,6 +545,7 @@ const IconSpec: { [name: string]: any } = {
   tool: ToolOutlined,
   trash: DeleteOutlined,
   twitter: TwitterOutlined,
+  ubuntu: { IconFont: "ubuntu" },
   underline: UnderlineOutlined,
   undo: UndoOutlined,
   ungroup: { IconFont: "ungroup" },
@@ -589,7 +609,7 @@ try {
             const id = `icon-${x}`;
             if (document.getElementById(id) == null) {
               console.error(
-                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`
+                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`,
               );
             }
           }
@@ -684,7 +704,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
     if (missing[props.name ?? ""] == null) {
       missing[props.name ?? ""] = true;
       console.warn(
-        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`
+        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`,
       );
     }
     // make it hopefully clear to devs that this icon is broken

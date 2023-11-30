@@ -28,13 +28,19 @@ import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
 import { delete_files } from "./delete-files";
 import { eval_code } from "./eval-code";
+import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files, rename_file } from "./move-files";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
-import { reuseInFlight } from "async-await-utils/hof";
 import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";
+import handleSyncFsApiCall, {
+  handleSyncFsRequestCall,
+  handleComputeServerSyncRegister,
+  handleCopy,
+} from "@cocalc/sync-fs/lib/handle-api-call";
+import { version } from "@cocalc/util/smc-version";
 
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("websocket-api");
@@ -42,17 +48,17 @@ const log = getLogger("websocket-api");
 let primus: any = undefined;
 export function init_websocket_api(_primus: any): void {
   primus = _primus;
-  primus.plugin("responder", require("primus-responder"));
 
   primus.on("connection", function (spark) {
-    // Now handle the connection
+    // Now handle the connection, which can be either from a web browser, or
+    // from a compute server.
     log.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
-    spark.on("request", async function (data, done) {
+    spark.on("request", async (data, done) => {
       log.debug("primus-api", "request", data, "REQUEST");
       const t0 = new Date().valueOf();
       try {
-        const resp = await handleApiCall(data);
+        const resp = await handleApiCall(data, spark);
         //log.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
@@ -79,9 +85,11 @@ export function init_websocket_api(_primus: any): void {
   });
 }
 
-async function handleApiCall0(data: Mesg): Promise<any> {
+async function handleApiCall(data: Mesg, spark): Promise<any> {
   const client = getClient();
   switch (data.cmd) {
+    case "version":
+      return version;
     case "listing":
       return await listing(data.path, data.hidden);
     case "delete_files":
@@ -101,13 +109,16 @@ async function handleApiCall0(data: Mesg): Promise<any> {
     case "formatter_string":
       return await run_formatter_string(data.path, data.str, data.options, log);
     case "jupyter":
+      // DEPRECATED: The "jupyter" endpoint is only here for browser client
+      // backward compatibility.   Can be safely deleted soon, but not immediately
+      // to make the release easier
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
     case "query":
       return await query(client, data.opts);
     case "eval_code":
-      return eval_code(data.code);
+      return await eval_code(data.code);
     case "terminal":
       return await terminal(primus, data.path, data.options);
     case "lean":
@@ -138,6 +149,17 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       return realpath(data.path);
     case "project_info":
       return await project_info_ws(primus, log);
+    case "compute_filesystem_cache":
+      return await computeFilesystemCache(data.opts);
+    case "sync_fs":
+      return await handleSyncFsApiCall(data.opts);
+    case "compute_server_sync_register":
+      return await handleComputeServerSyncRegister(data.opts, spark);
+    case "compute_server_sync_request":
+      return await handleSyncFsRequestCall(data.opts);
+    case "copy_from_project_to_compute_server":
+    case "copy_from_compute_server_to_project":
+      return await handleCopy({ event: data.cmd, ...data.opts });
     default:
       throw Error(
         `command "${
@@ -146,8 +168,6 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       );
   }
 }
-const handleApiCall = reuseInFlight(handleApiCall0);
-
 /* implementation of the api calls */
 
 import { DirectoryListingEntry } from "@cocalc/util/types";
@@ -159,7 +179,7 @@ async function listing(
   return await get_listing(path, hidden);
 }
 
-import { handle_request as jupyter } from "@cocalc/jupyter/kernel/websocket-api";
+import { handleApiRequest as jupyter } from "@cocalc/jupyter/kernel/websocket-api";
 
 // Execute code
 import { executeCode } from "@cocalc/backend/execute-code";

@@ -83,13 +83,16 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             value : required    # object
             cb    : undefined
 
-        expire = null
+        # always expire central_log entries after 1 year, unless …
+        expire = expire_time(365*24*60*60)
+        # exception events expire earlier
         if opts.event == 'uncaught_exception'
             expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
         else
+            # and user-related events according to the PII time, although "never" falls back to 1 year
             v = opts.value
             if v.ip_address? or v.email_address? or opts.event in PII_EVENTS
-                expire = await pii_expire(@)
+                expire = await pii_expire(@) ? expire
 
         @_query
             query  : 'INSERT INTO central_log'
@@ -1367,6 +1370,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if @_throttle('log_file_access', 60, opts.project_id, opts.account_id, opts.filename)
             opts.cb?()
             return
+
+        # If expire no pii expiration is set, use 1 year as a fallback
+        expire = await pii_expire(@) ? expire_time(365*24*60*60)
+
         @_query
             query  : 'INSERT INTO file_access_log'
             values :
@@ -1375,6 +1382,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'account_id :: UUID     ' : opts.account_id
                 'filename   :: TEXT     ' : opts.filename
                 'time       :: TIMESTAMP' : 'NOW()'
+                'expire     :: TIMESTAMP' : expire
             cb     : opts.cb
 
     ###

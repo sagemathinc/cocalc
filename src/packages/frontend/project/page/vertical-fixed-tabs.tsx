@@ -73,7 +73,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       }
     },
     50,
-    { trailing: true, leading: false }
+    { trailing: true, leading: false },
   );
 
   // layout effect, because it measures sizes before rendering
@@ -97,8 +97,8 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
           setHomePageButtonWidth(width);
         },
         50,
-        { trailing: true, leading: false }
-      )
+        { trailing: true, leading: false },
+      ),
     );
     observer.observe(parent.current);
 
@@ -133,7 +133,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         : undefined),
     };
 
-    items.push(
+    const tab = (
       <FileTab
         style={style}
         placement={"right"}
@@ -151,13 +151,14 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         flyout={name}
       />
     );
+    if (tab != null) items.push(tab);
   }
 
   function renderLayoutSelector() {
     const title = "Vertical bar layout";
 
     const items: NonNullable<MenuProps["items"]> = Object.entries(
-      VBAR_OPTIONS
+      VBAR_OPTIONS,
     ).map(([key, label]) => ({
       key,
       onClick: () => {

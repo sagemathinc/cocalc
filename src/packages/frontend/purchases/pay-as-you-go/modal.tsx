@@ -1,4 +1,5 @@
 import { Alert, Modal } from "antd";
+import { useRef } from "react";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -8,14 +9,15 @@ import ServiceTag from "../service";
 import Cost from "./cost";
 import { load_target } from "@cocalc/frontend/history";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { zIndex } from "./consts";
-export { zIndex };
+import MoneyStatistic from "../money-statistic";
+import { zIndexPayAsGo as zIndex } from "../zindex";
 
 // Ensure the billing Actions and Store are created, which are needed for purchases, etc., to work...
 import "@cocalc/frontend/billing/actions";
 
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");
+  const saveRef = useRef<any>();
 
   const storeState: {
     showModal?: boolean;
@@ -23,19 +25,21 @@ export default function PayAsYouGoModal({}) {
     allowed?: boolean;
     cost?: number;
     reason?: string;
+    cost_per_hour?: number;
   } = useTypedRedux("billing", "pay_as_you_go")?.toJS() ?? {};
 
   const updateAllowed = async () => {
     const x = await webapp_client.purchases_client.isPurchaseAllowed(
       storeState.service as Service,
-      storeState.cost
+      storeState.cost,
     );
     actions.setState({ pay_as_you_go: { ...storeState, ...x } as any });
   };
   const handleCancel = () => {
     actions.setState({ pay_as_you_go: { showModal: false } as any });
   };
-  const handleOk = () => {
+  const handleOk = async () => {
+    await saveRef.current?.();
     actions.setState({ pay_as_you_go: { showModal: false } as any });
   };
 
@@ -84,17 +88,32 @@ export default function PayAsYouGoModal({}) {
           description={<>Thanks, your purchase should now be allowed!</>}
         />
       )}
-      {storeState.service != null && !QUOTA_SPEC[storeState.service]?.noSet && (
-        <div>
-          <div style={{ color: "#666", marginBottom: "5px" }}>
-            This service is charged on a pay-as-you-go basis according to the
-            following rates:
+      {storeState.cost_per_hour != null && (
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          This purchase will be charged on a pay-as-you-go metered basis
+          according to the following rate:
+          <div style={{ textAlign: "center" }}>
+            <MoneyStatistic
+              value={storeState.cost_per_hour}
+              title="Cost per hour"
+            />
           </div>
-          <Cost service={storeState.service} />
         </div>
       )}
+      {storeState.cost_per_hour == null &&
+        storeState.service != null &&
+        !QUOTA_SPEC[storeState.service]?.noSet && (
+          <div>
+            <div style={{ color: "#666", marginBottom: "5px" }}>
+              This service is charged on a pay-as-you-go basis according to the
+              following rates:
+            </div>
+            <Cost service={storeState.service} />
+          </div>
+        )}
       <div style={{ marginBottom: "15px" }} />
       <QuotaConfig
+        saveRef={saveRef}
         service={storeState.service as Service}
         updateAllowed={updateAllowed}
         cost={storeState.allowed ? 0 : storeState.cost}

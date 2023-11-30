@@ -37,7 +37,7 @@ const STYLE: React.CSSProperties = {
   overflow: "hidden",
   border: "1px solid #cfcfcf",
   borderRadius: "5px",
-  padding: "10px 5px 10px 5px",
+  padding: "5px",
   lineHeight: "1.21429em",
 } as const;
 

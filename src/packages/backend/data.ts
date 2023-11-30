@@ -49,9 +49,6 @@ export const blobstore: "disk" | "sqlite" =
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";
-export let apiBasePath: string = process.env.API_BASE_PATH
-  ? process.env.API_BASE_PATH
-  : "/";
 
 // Delete API_KEY from environment to reduce chances of it leaking, e.g., to
 // spawned terminal subprocess.
@@ -60,25 +57,13 @@ export let apiBasePath: string = process.env.API_BASE_PATH
 // others will not.
 delete process.env.API_KEY;
 
-export function setApi({
-  key,
-  server,
-  basePath,
-}: {
-  key?: string;
-  server?: string;
-  basePath?: string;
-}) {
+export function setApi({ key, server }: { key?: string; server?: string }) {
   if (key != null) {
     apiKey = key;
   }
   if (server != null) {
     checkApiServer(server);
     apiServer = server;
-  }
-  if (basePath != null) {
-    checkBasePath(basePath);
-    apiBasePath = basePath ? basePath : "/";
   }
 }
 
@@ -95,7 +80,6 @@ function sanityChecks() {
     );
   }
   checkApiServer(apiServer);
-  checkBasePath(apiBasePath);
 }
 
 function checkApiServer(server) {
@@ -105,13 +89,6 @@ function checkApiServer(server) {
   }
   if (!server.startsWith("http://") && !server.startsWith("https://")) {
     throw Error("API_SERVER must start with http:// or https://");
-  }
-}
-
-function checkBasePath(basePath) {
-  if (!basePath) return;
-  if (!basePath.startsWith("/")) {
-    throw Error("base path must start with a slash");
   }
 }
 

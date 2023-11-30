@@ -45,6 +45,7 @@ export class JupyterActions extends JupyterActions0 {
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
   private usage_info?: UsageInfoWS;
+  private lastComputeServerId?: number;
 
   protected init2(): void {
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
@@ -108,7 +109,7 @@ export class JupyterActions extends JupyterActions0 {
       }
       this.widget_manager = new WidgetManager(
         ipywidgets_state,
-        this.setWidgetModelIdState.bind(this)
+        this.setWidgetModelIdState.bind(this),
       );
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
@@ -134,7 +135,7 @@ export class JupyterActions extends JupyterActions0 {
     // Put an entry in the project log once the jupyter notebook gets opened.
     // NOTE: Obviously, the project does NOT need to put entries in the log.
     this.syncdb.once("change", () =>
-      this.redux.getProjectActions(this.project_id).log_opened_time(this.path)
+      this.redux.getProjectActions(this.project_id).log_opened_time(this.path),
     );
 
     // project doesn't care about cursors, but browser clients do:
@@ -157,7 +158,7 @@ export class JupyterActions extends JupyterActions0 {
   public run_cell(
     id: string,
     save: boolean = true,
-    no_halt: boolean = false
+    no_halt: boolean = false,
   ): void {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
@@ -193,10 +194,10 @@ export class JupyterActions extends JupyterActions0 {
   private async api_call_formatter(
     str: string,
     config: FormatterConfig,
-    timeout_ms?: number
+    timeout_ms?: number,
   ): Promise<string | undefined> {
     if (this._state === "closed") {
-      throw Error("closed");
+      throw Error("closed -- api_call_formatter");
     }
     const api = await webapp_client.project_client.api(this.project_id);
     return await api.formatter_string(str, config, timeout_ms);
@@ -255,10 +256,10 @@ export class JupyterActions extends JupyterActions0 {
   // this just throws an exception if the formatting fails
   public async format_cells(
     cell_ids: string[],
-    sync: boolean = true
+    sync: boolean = true,
   ): Promise<void> {
     const jobs: string[] = cell_ids.filter((id) =>
-      this.store.is_cell_editable(id)
+      this.store.is_cell_editable(id),
     );
 
     // TODO: This is badly implemented in terms of performance.
@@ -285,7 +286,6 @@ export class JupyterActions extends JupyterActions0 {
 
   // don't forget the close() in the parent
   public async close(): Promise<void> {
-    // console.log("jupyter close_browser_actions", this.path);
     if (this.is_closed()) return;
     if (this.usage_info != null) {
       const key = this.usage_info.event_key(this.path);
@@ -317,7 +317,7 @@ export class JupyterActions extends JupyterActions0 {
 
   private setWidgetModelIdState(
     model_id: string,
-    state: string | null // '' = good; 'nonempty' = bad; null=delete
+    state: string | null, // '' = good; 'nonempty' = bad; null=delete
   ): void {
     let widgetModelIdState: Map<string, string> =
       this.store.get("widgetModelIdState");
@@ -341,15 +341,20 @@ export class JupyterActions extends JupyterActions0 {
       this.store == null ||
       this.syncdb == null ||
       this.cursor_manager == null
-    )
+    ) {
       return;
-    const cells = this.cursor_manager.process(
-      this.store.get("cells"),
-      this.syncdb.get_cursors() as any /* typescript is being dumb */
-    );
+    }
+    const cursors = this.syncdb.get_cursors();
+    const cells = this.cursor_manager.process(this.store.get("cells"), cursors);
     if (cells != null) {
       this.setState({ cells });
     }
+    const computeServerId = this.cursor_manager.computeServerId(cursors);
+    if (computeServerId != this.lastComputeServerId) {
+      this.lastComputeServerId = computeServerId;
+      this.fetch_jupyter_kernels();
+    }
+    this.setState({ computeServerId });
   };
 
   private account_change(state: Map<string, any>): void {
@@ -361,7 +366,7 @@ export class JupyterActions extends JupyterActions0 {
       const new_settings = state.get("editor_settings");
       if (
         this.account_change_editor_settings.get(
-          "jupyter_keyboard_shortcuts"
+          "jupyter_keyboard_shortcuts",
         ) !== new_settings.get("jupyter_keyboard_shortcuts")
       ) {
         this.update_keyboard_shortcuts();
@@ -378,7 +383,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const k = this.account_change_editor_settings.get(
-      "jupyter_keyboard_shortcuts"
+      "jupyter_keyboard_shortcuts",
     );
     if (k != null) {
       return JSON.parse(k);
@@ -467,7 +472,7 @@ export class JupyterActions extends JupyterActions0 {
   // be generically useful!
   // Display a confirmation dialog, then return the chosen option.
   public async confirm_dialog(
-    confirm_dialog: ConfirmDialogOptions
+    confirm_dialog: ConfirmDialogOptions,
   ): Promise<string> {
     this.blur_lock();
     this.setState({ confirm_dialog });
@@ -639,7 +644,7 @@ export class JupyterActions extends JupyterActions0 {
     if (cell == null) throw Error(`no cell with id ${id}`);
     const line_numbers: boolean = !!cell.get(
       "line_numbers",
-      this.get_local_storage("line_numbers")
+      this.get_local_storage("line_numbers"),
     );
     this.setState({
       cells: cells.set(id, cell.set("line_numbers", !line_numbers)),
@@ -777,7 +782,7 @@ export class JupyterActions extends JupyterActions0 {
 
   public custom_jupyter_kernel_docs(): void {
     open_popup_window(
-      "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
+      "https://doc.cocalc.com/howto/custom-jupyter-kernel.html",
     );
   }
 
@@ -822,7 +827,7 @@ export class JupyterActions extends JupyterActions0 {
         { name: "gfm2" },
         editor_settings,
         line_numbers,
-        read_only
+        read_only,
       ),
     });
 
@@ -848,7 +853,7 @@ export class JupyterActions extends JupyterActions0 {
 
   public set_header_state(visible: boolean): void {
     (this.redux.getActions("page") as any).set_fullscreen(
-      visible ? "default" : undefined
+      visible ? "default" : undefined,
     );
   }
 

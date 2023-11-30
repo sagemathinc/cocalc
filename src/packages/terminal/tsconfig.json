@@ -8,6 +8,7 @@
   "references": [
     { "path": "../api-client" },
     { "path": "../backend" },
+    { "path": "../comm" },
     { "path": "../util" }
   ]
 }

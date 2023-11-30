@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { Card, Divider, Tooltip, Space, Spin } from "antd";
-import { zIndexTip } from "./payment";
+import { zIndexTip } from "./zindex";
 import MoneyStatistic from "./money-statistic";
 import { currency } from "@cocalc/util/misc";
 import Payment from "./payment";
@@ -36,7 +36,7 @@ export default function Balance({
     );
   } else {
     let stat = (
-      <MoneyStatistic title={"Current Balance (USD)"} value={balance} />
+      <MoneyStatistic title={"Current Balance"} value={balance} />
     );
     if (balance < 0) {
       stat = (

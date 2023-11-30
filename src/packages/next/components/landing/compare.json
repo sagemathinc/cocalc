@@ -86,7 +86,7 @@
         "feature": "Paid Plans",
         "cocalc": {
           "type": true,
-          "note": " Basic - $2 person/month; Pro - scales linearly depending on the resources you need",
+          "note": " Basic - $2 person/month; Pro - scales linearly depending on the resources you need; Pay as you go access to all VM's that Google Cloud offers with uniquely powerful spot instance price discovery",
           "link": "https://cocalc.com/store"
         },
         "mybinder": { "type": false, "note": "Free only" },
@@ -108,7 +108,7 @@
       },
       {
         "feature": "Disk space",
-        "cocalc": "3GB/project for free",
+        "cocalc": "3GB/project for free, and can buy up to 65TB disks via compute servers",
         "mybinder": "Ephemeral",
         "colab": "Uses your Google Drive storage",
         "datalore": "Limit of two simultaneously running notebooks",
@@ -116,7 +116,7 @@
       },
       {
         "feature": "Memory",
-        "cocalc": "1GB/project for free",
+        "cocalc": "1GB/project for free, and can buy TB's of RAM via compute servers",
         "datalore": "Limit of two simultaneously running notebooks",
         "deepnote": "several GB for free"
       },
@@ -127,7 +127,7 @@
       },
       {
         "feature": "Network access",
-        "cocalc": "Only for non-free projects (due to abuse)",
+        "cocalc": "Only for non-free projects; also compute servers provide network access",
         "colab": true,
         "datalore": true,
         "mybinder": true,
@@ -143,11 +143,16 @@
       {
         "feature": "Self hosting",
         "cocalc": {
+          "note": "Docker image, Kubernetes Helm charts, on Prem compute servers",
           "type": true,
-          "link": "https://github.com/sagemathinc/cocalc-docker#readme"
+          "link": "https://doc.cocalc.com/on-premises.html"
         },
         "mybinder": true,
-        "colab": false,
+        "colab": {
+          "note": "Docker image local runtimes",
+          "type": true,
+          "link": "https://research.google.com/colaboratory/local-runtimes.html"
+        },
         "datalore": {
           "type": true,
           "link": "https://www.jetbrains.com/datalore/enterprise/"
@@ -158,7 +163,7 @@
         "feature": "Open source",
         "cocalc": {
           "type": false,
-          "note": "Partial (AGPLv3 + noncommercial use clause)",
+          "note": "Partial (noncommercial AGPLv3). Commercial license available.",
           "link": "https://github.com/sagemathinc/cocalc"
         },
         "mybinder": true,
@@ -176,9 +181,13 @@
       },
       {
         "feature": "GPUs",
-        "cocalc": { "type": false, "note": "Only when self hosted" },
+        "cocalc": {
+          "type": true,
+          "note": "YES -- pay as you go via compute servers and on prem",
+          "link": "https://doc.cocalc.com/compute_server.html"
+        },
         "mybinder": "Only when self hosted",
-        "colab": "Yes, for free, and even better when paid.",
+        "colab": "Yes, for free and paid.",
         "datalore": "Datalore Professional and when self-hosted",
         "deepnote": true
       }
@@ -285,7 +294,10 @@
       },
       {
         "feature": "WYSIWYG",
-        "cocalc": false,
+        "cocalc": {
+          "type": true,
+          "note": "This is WYSIWYG collaborative markdown editor, with LaTeX math support."
+        },
         "overleaf": {
           "type": true,
           "note": "This is only a partial WYSIWYG-like mode."
@@ -358,7 +370,16 @@
         "lxd": true,
         "webminal": true
       },
-      { "feature": "Full Linux", "cocalc": true, "cloud": true, "lxd": true },
+      {
+        "feature": "Full Linux",
+        "cocalc": {
+          "type": true,
+          "note": "Compute servers provide full root access to a dedicated virtual machine and ability to run any Docker containers.",
+          "link": "https://doc.cocalc.com/compute_server.html"
+        },
+        "cloud": true,
+        "lxd": true
+      },
       {
         "feature": "Count of of pre-installed packages, by running 'apt list --installed | wc -l' or 'rpm -qa | wc -l'",
         "cocalc": "~ 9500",
@@ -380,7 +401,7 @@
         "webminal": false
       },
       {
-        "feature": "Persistent of your data",
+        "feature": "Persistence of your data",
         "cocalc": true,
         "cloud": true,
         "lxd": false
@@ -394,7 +415,7 @@
       },
       {
         "feature": "Root access",
-        "cocalc": false,
+        "cocalc": true,
         "cloud": true,
         "lxd": true,
         "webminal": { "note": "Limited" }

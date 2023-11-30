@@ -1,4 +1,4 @@
-import { Collapse, CollapseProps, Divider } from "antd";
+import { Checkbox, Collapse, CollapseProps, Divider, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useState } from "react";
 
@@ -17,14 +17,16 @@ const cache: { activeKey: Key } = { activeKey: [] };
 
 export default function PurchasesPage() {
   const [activeKey, setActiveKey] = useState<Key>(cache.activeKey);
+  const [group, setGroup] = useState<boolean>(false);
+  const [activeOnly, setActiveOnly] = useState<boolean>(false);
 
   const items: CollapseProps["items"] = [
     {
       key: "transactions",
       label: (
         <>
-          <Icon name="credit-card" style={{ marginRight: "8px" }} />{" "}
-          Transactions: Every Purchase and Credit
+          <Icon name="credit-card" style={{ marginRight: "8px" }} /> All
+          Transactions
         </>
       ),
       children: <Purchases />,
@@ -34,7 +36,7 @@ export default function PurchasesPage() {
       label: (
         <>
           <Icon name="ColumnHeightOutlined" style={{ marginRight: "8px" }} />{" "}
-          Self-Imposed Spending Limits
+          Spending Limits
         </>
       ),
       children: <Quotas />,
@@ -59,11 +61,32 @@ export default function PurchasesPage() {
       <Divider style={{ marginTop: "30px" }}>
         Transactions During the Last Day
       </Divider>
+      <div style={{ float: "right" }}>
+        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
+          <Checkbox
+            checked={group}
+            onChange={(e) => setGroup(e.target.checked)}
+          >
+            Group by service and project
+          </Checkbox>
+        </Tooltip>
+        <Tooltip title="Only show unfinished active purchases">
+          <Checkbox
+            disabled={group}
+            checked={!group && activeOnly}
+            onChange={(e) => setActiveOnly(e.target.checked)}
+          >
+            Only Show Active Purchases
+          </Checkbox>
+        </Tooltip>
+      </div>{" "}
       <PurchasesTable
         limit={MAX_API_LIMIT}
         cutoff={dayjs().subtract(1, "day").toDate()}
         showRefresh
         showBalance
+        activeOnly={!group && activeOnly}
+        group={group}
       />
       <Divider style={{ marginTop: "30px" }}>
         All Transactions, Spending Limits, and Plots

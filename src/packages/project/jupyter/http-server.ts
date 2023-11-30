@@ -129,6 +129,8 @@ export default async function init(): Promise<Router> {
   let d = 3000;
   while (true) {
     try {
+      // This call right here causes the configured blobstore to be initialized in the file
+      // packages/jupyter/blobs/get.ts
       blob_store = await get_blob_store();
       get_ProjectStatusServer().clearComponentAlert("BlobStore");
       break;

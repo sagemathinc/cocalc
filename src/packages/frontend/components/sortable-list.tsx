@@ -43,6 +43,13 @@ export function SortableList({
   function onDragEnd(event) {
     const { active, over } = event;
     setDragId(null);
+    if (active != null && over == null) {
+      // moved to the very top or bottom
+      const oldIndex = items.indexOf(active.id);
+      const newIndex = event.delta?.y < 0 ? 0 : items.length - 1;
+      onDragStop?.(oldIndex, newIndex);
+      return;
+    }
     if (active == null || over == null || active.id == over.id) {
       return;
     }

@@ -60,7 +60,7 @@ Table({
         pg_where: ["time >= NOW() - interval '45 days'", "projects"],
         pg_changefeed: "projects",
         options: [{ order_by: "-time" }, { limit: 500 }],
-        throttle_changes: 3000,
+        throttle_changes: 2000,
         fields: {
           time: null,
           project_id: null,

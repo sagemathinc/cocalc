@@ -7,6 +7,8 @@ export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
 
 export * from "./misc-path";
 
+import LRU from "lru-cache";
+
 import {
   is_array,
   is_integer,
@@ -790,6 +792,14 @@ export function round2(num: number): number {
   return Math.round((num + 0.00001) * 100) / 100;
 }
 
+export function round3(num: number): number {
+  return Math.round((num + 0.000001) * 1000) / 1000;
+}
+
+export function round4(num: number): number {
+  return Math.round((num + 0.0000001) * 10000) / 10000;
+}
+
 // Round given number up to 2 decimal places
 export function round2up(num: number): number {
   return Math.ceil(num * 100) / 100;
@@ -1550,6 +1560,11 @@ export function parse_bup_timestamp(s: string): Date {
   return new Date(`${v[1]}/${v[2]}/${v[0]} ${v[3]}:${v[4]}:${v[5]} UTC`);
 }
 
+// NOTE: this hash works, but the crypto hashes in nodejs, eg.,
+// sha1 (as used here packages/backend/sha1.ts) are MUCH faster
+// for large strings.  If there is some way to switch to one of those,
+// it would be better, but we have to worry about how this is already deployed
+// e.g., hashes in the database.
 export function hash_string(s: string): number {
   if (typeof s != "string") {
     return 0; // just in case non-typescript code tries to use this
@@ -1728,13 +1743,13 @@ export function to_money(n: number, d = 2): string {
 }
 
 // Display currency with a dollar sign, rounded to *nearest*, and
-// if d is not given and n is less than 10 cents, will show 3 digits
+// if d is not given and n is less than 1 cent, will show 3 digits
 // instead of 2.
 export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.1 ? 3 : 2))}`;
+  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
 }
 
 export function stripeAmount(
@@ -1862,16 +1877,6 @@ export function range(n: number): number[] {
     v.push(i);
   }
   return v;
-}
-
-// foreground; otherwise, return false.
-export function should_open_in_foreground(e): boolean {
-  // for react.js synthetic mouse events, where e.which is undefined!
-  if (e.constructor.name === "SyntheticMouseEvent") {
-    e = e.nativeEvent;
-  }
-  //console.log("e: #{e}, e.which: #{e.which}", e)
-  return !(e.which === 2 || e.metaKey || e.altKey || e.ctrlKey);
 }
 
 // Like Python's enumerate
@@ -2410,24 +2415,52 @@ export function firstLetterUppercase(str: string | undefined) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+const randomColorCache = new LRU<string, string>({ max: 100 });
+
 /**
  * For a given string s, return a random bright color, but not too bright.
  * Use a hash to make this random, but deterministic.
+ *
+ * opts:
+ * - min: minimum value for each channel
+ * - max: maxium value for each channel
+ * - diff: mimimum difference across channels (increase, to avoid dull gray colors)
  */
 export function getRandomColor(
   s: string,
-  opts?: { min: number; max: number },
+  opts?: { min?: number; max?: number; diff?: number },
 ): string {
-  const { min = 120, max = 220 } = opts ?? {};
+  const diff = opts?.diff ?? 0;
+  const min = clip(opts?.min ?? 120, 0, 254);
+  const max = Math.max(min, clip(opts?.max ?? 230, 1, 255));
+
+  const key = `${s}-${min}-${max}-${diff}`;
+  const cached = randomColorCache.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  let iter = 0;
+  const iterLimit = "z".charCodeAt(0) - "A".charCodeAt(0);
   const mod = max - min;
 
-  const hash = sha1(s)
-    .split("")
-    .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
-  const r = (((hash >> 0) & 0xff) % mod) + min;
-  const g = (((hash >> 8) & 0xff) % mod) + min;
-  const b = (((hash >> 16) & 0xff) % mod) + min;
-  return `rgb(${r}, ${g}, ${b})`;
+  while (true) {
+    const hash = sha1(s + String.fromCharCode("A".charCodeAt(0) + iter))
+      .split("")
+      .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
+    const r = (((hash >> 0) & 0xff) % mod) + min;
+    const g = (((hash >> 8) & 0xff) % mod) + min;
+    const b = (((hash >> 16) & 0xff) % mod) + min;
+
+    iter += 1;
+    if (iter <= iterLimit && diff) {
+      const diffVal = Math.abs(r - g) + Math.abs(g - b) + Math.abs(b - r);
+      if (diffVal < diff) continue;
+    }
+    const col = `rgb(${r}, ${g}, ${b})`;
+    randomColorCache.set(key, col);
+    return col;
+  }
 }
 
 export function hexColorToRGBA(col: string, opacity?: number): string {
@@ -2444,4 +2477,8 @@ export function hexColorToRGBA(col: string, opacity?: number): string {
 
 export function strictMod(a: number, b: number): number {
   return ((a % b) + b) % b;
+}
+
+export function clip(val: number, min: number, max: number): number {
+  return Math.min(Math.max(val, min), max);
 }

@@ -25,6 +25,7 @@ import { callback } from "awaiting";
 import { default_filename } from "./account";
 import { alert_message } from "./alerts";
 import { Actions, project_redux_name, redux } from "./app-framework";
+import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { IconName } from "./components";
 import { local_storage } from "./editor-local-storage";
 import { get_editor } from "./editors/react-wrapper";
@@ -41,7 +42,11 @@ import {
 import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
-import { FlyoutLogMode, storeFlyoutState } from "./project/page/flyouts/state";
+import {
+  FlyoutActiveMode,
+  FlyoutLogMode,
+  storeFlyoutState,
+} from "./project/page/flyouts/state";
 import {
   ensure_project_running,
   is_running_or_starting,
@@ -66,6 +71,8 @@ import {
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
 import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
+import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
+
 const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
@@ -212,11 +219,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public open_files?: OpenFiles;
   private modal?: ModalInfo;
 
-  constructor(a, b) {
-    super(a, b);
+  constructor(name, b) {
+    super(name, b);
+    this.project_id = reduxNameToProjectId(name);
     this.new_filename_generator = new NewFilenames("", false);
     this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
+    computeServers.init(this.project_id);
   }
 
   public async api(): Promise<API> {
@@ -231,6 +240,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.remove_table(table);
     }
     this.open_files.close();
+    computeServers.close(this.project_id);
     delete this.open_files;
   };
 
@@ -615,6 +625,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public setFlyoutLogMode(mode: FlyoutLogMode): void {
     this.setState({ flyout_log_mode: mode });
     storeFlyoutState(this.project_id, "log", { mode });
+  }
+
+  public setFlyoutActiveMode(mode: FlyoutActiveMode): void {
+    this.setState({ flyout_active_mode: mode });
+    storeFlyoutState(this.project_id, "active", { active: mode });
   }
 
   add_a_ghost_file_tab(): void {
@@ -3019,6 +3034,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const last = segments.slice(-1).join();
     const main_segment = segments[0] as FixedTab | "home";
     switch (main_segment) {
+      case "active":
+        console.warn(
+          "there is no 'active files' page – those are the tabs in the projec",
+        );
+        return;
+
       case "files":
         if (target.endsWith("/") || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
@@ -3261,6 +3282,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public toggleActionButtons() {
     this.setState({
       hideActionButtons: !this.get_store()?.get("hideActionButtons"),
+    });
+  }
+
+  public clear_just_closed_files() {
+    this.setState({
+      just_closed_files: List([]),
     });
   }
 }

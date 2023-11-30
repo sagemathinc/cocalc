@@ -24,9 +24,6 @@ import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import Tags from "./tags";
-import FirstFile from "./first-file";
-import { filename_extension } from "@cocalc/util/misc";
-const FIRST_FILE = false;
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
@@ -35,7 +32,7 @@ const MIN_TAGS = 1;
 interface Props {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
-  onSuccess?: (opts: { firstFile: string }) => void; // if given, call after sign up *succeeds*.
+  onSuccess?: (opts?: {}) => void; // if given, call after sign up *succeeds*.
   has_site_license?: boolean;
   publicPathId?: string;
 }
@@ -69,7 +66,6 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
-    onCoCalcCom,
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
   const [terms, setTerms] = useState<boolean>(false);
@@ -91,14 +87,11 @@ function SignUp0({
   const submittable = useRef<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { strategies } = useCustomize();
-  const [firstFile, setFirstFile] = useState<string>(
-    FIRST_FILE ? "Untitled" : ""
-  );
 
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
   const [requiresToken2, setRequiresToken2] = useState<boolean | undefined>(
-    requiresToken
+    requiresToken,
   );
 
   useEffect(() => {
@@ -158,39 +151,7 @@ function SignUp0({
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
       } else {
-        if (onSuccess != null) {
-          let path = firstFile;
-          if (FIRST_FILE) {
-            if (!filename_extension(path)) {
-              // try to come up with one based on tags
-              for (const tag of [
-                "ipynb",
-                "py",
-                "sage",
-                "R",
-                "tex",
-                "jl",
-                "m",
-                "term",
-                "c",
-              ]) {
-                if (tags.has(tag)) {
-                  path += "." + tag.toLowerCase();
-                  break;
-                }
-              }
-            }
-
-            if (path.endsWith(".ipynb")) {
-              // maybe set default kernel for user based on tags
-              for (const tag of ["py", "sage", "R", "jl", "m", "c", "term"]) {
-                if (tags.has(tag)) {
-                }
-              }
-            }
-          }
-          onSuccess({ firstFile: path });
-        }
+        onSuccess?.({});
       }
     } catch (err) {
       setIssues({ error: `${err}` });
@@ -268,14 +229,6 @@ function SignUp0({
             tags={tags}
             minTags={MIN_TAGS}
             style={{ width: "880px", maxWidth: "100%" }}
-          />
-        )}
-        {FIRST_FILE && terms && !minimal && !needsTags && onCoCalcCom && (
-          <FirstFile
-            style={{ width: "880px", maxWidth: "100%" }}
-            tags={tags}
-            setPath={setFirstFile}
-            path={firstFile}
           />
         )}
         <form>

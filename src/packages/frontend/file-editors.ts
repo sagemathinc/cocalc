@@ -111,11 +111,13 @@ export function register_file_editor(opts: FileEditorInfo): void {
   // Assign to the extension(s)
   for (const ext of opts.ext) {
     const pub: string = `${!!opts.is_public}`;
-    if (DEBUG && file_editors[pub] && file_editors[pub][ext] != null) {
-      console.warn(
-        `duplicate registered extension '${pub}/${ext}' in register_file_editor`,
-      );
-    }
+    // We just ignore this so commenting it out and making an issue.
+    //   https://github.com/sagemathinc/cocalc/issues/6923
+    //     if (DEBUG && file_editors[pub] && file_editors[pub][ext] != null) {
+    //       console.warn(
+    //         `duplicate registered extension '${pub}/${ext}' in register_file_editor`
+    //       );
+    //     }
     file_editors[pub][ext] = {
       icon: opts.icon,
       component: opts.component,

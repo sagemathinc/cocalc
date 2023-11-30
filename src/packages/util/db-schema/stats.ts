@@ -62,30 +62,39 @@ export interface HistoricCounts {
   "30d"?: number;
 }
 
-interface CountsByExtension {
-  md?: string;
-  py?: string;
-  jpg?: string;
-  pdf?: string;
-  png?: string;
-  rmd?: string;
-  rnw?: string;
-  rst?: string;
-  svg?: string;
-  tex?: string;
-  txt?: string;
-  x11?: string;
-  jpeg?: string;
-  lean?: string;
-  rtex?: string;
-  sage?: string;
-  term?: string;
-  ipynb?: string;
-  tasks?: string;
-  course?: string;
-  sagews?: string;
-  "sage-chat"?: string;
-}
+export const EXTENSIONS = [
+  "board",
+  "chat",
+  "course",
+  "ipynb",
+  "jl",
+  "jpeg",
+  "jpg",
+  "lean",
+  "m",
+  "md",
+  "pdf",
+  "png",
+  "py",
+  "rmd",
+  "rnw",
+  "rst",
+  "rtex",
+  "sage-chat",
+  "sage",
+  "sagews",
+  "slides",
+  "svg",
+  "tasks",
+  "term",
+  "tex",
+  "txt",
+  "x11",
+] as const;
+
+type Extension = (typeof EXTENSIONS)[number];
+
+type CountsByExtension = Record<Extension, string>;
 
 export interface Stats {
   id: string;

@@ -15,7 +15,7 @@ import {
 } from "antd";
 import * as immutable from "immutable";
 import { ReactNode, useEffect } from "react";
-
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -25,7 +25,12 @@ import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { Mode } from "./mode";
-import { AlertLevel, BackendState, NotebookMode, Usage } from "@cocalc/jupyter/types";
+import {
+  AlertLevel,
+  BackendState,
+  NotebookMode,
+  Usage,
+} from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 import ProgressEstimate from "../components/progress-estimate";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
@@ -79,7 +84,8 @@ const BACKEND_STATE_STYLE: CSS = {
   display: "flex",
   marginRight: "5px",
   color: KERNEL_NAME_STYLE.color,
-  paddingTop: "2.5px",
+  marginTop: "-2.5px",
+  fontSize: "18px",
 } as const;
 
 const BACKEND_STATE_HUMAN = {
@@ -96,6 +102,7 @@ interface KernelProps {
   expected_cell_runtime?: number;
   mode?: NotebookMode;
   style?: CSS;
+  computeServerId?: number;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
@@ -107,6 +114,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       mode,
       style,
       usage,
+      computeServerId,
     } = props;
     const name = actions.name;
 
@@ -167,7 +175,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         // Definitely an unknown kernel
         const closestKernel = closest_kernel_match(
           kernel,
-          kernels as any // TODO
+          kernels as any, // TODO
         );
         if (closestKernel == null) {
           return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;
@@ -352,14 +360,24 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       } else if (backendIsStarting) {
         return "Kernel is starting";
       }
-      return "Kernel will start when you run code";
+      return (
+        <>
+          Kernel will start in{" "}
+          {computeServerId ? (
+            <ComputeServer id={computeServerId} noColor />
+          ) : (
+            " the project "
+          )}{" "}
+          when you run code
+        </>
+      );
     }
 
     function get_kernel_name(): JSX.Element {
       if (kernel_info != null) {
         const name = kernel_info.get(
           "display_name",
-          kernel_info.get("name", "No Kernel")
+          kernel_info.get("name", "No Kernel"),
         );
         return <div>Kernel: {name}</div>;
       } else {
@@ -395,13 +413,19 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           ""
         ) : (
           <>
-            Backend is {BACKEND_STATE_HUMAN[backend_state] ?? backend_state}.
+            Backend is {BACKEND_STATE_HUMAN[backend_state] ?? backend_state} in{" "}
+            {computeServerId ? (
+              <ComputeServer id={computeServerId} noColor />
+            ) : (
+              " the project "
+            )}
+            .
             <br />
           </>
         );
       const kernel_tip = kernelState();
 
-      const usage_tip = (
+      const usage_tip = computeServerId ? null : (
         <>
           <p>
             This shows this kernel's resource usage. The memory limit is
@@ -412,7 +436,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             <Typography.Text type="secondary">
               Keep in mind that "shared memory" could compete with other
               projects on the same machine and hence you might not be able to
-              fully attain it.
+              use all of it.
             </Typography.Text>
           </p>
           <p>
@@ -435,7 +459,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       ]);
       const language = capitalize(kernel_info?.get("language", "Unknown"));
       const langTxt = `${language}${description ? ` (${description})` : ""}`;
-      const langURL = kernel_info?.getIn(["metadata", "cocalc", "url"]) as string|undefined;
+      const langURL = kernel_info?.getIn(["metadata", "cocalc", "url"]) as
+        | string
+        | undefined;
       const lang = (
         <>
           Language:{" "}
@@ -473,6 +499,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     function render_usage_graphical() {
       if (kernel == null) return;
+
+      if (computeServerId) {
+        // [ ] TODO: implement usage info for compute servers!
+        return;
+      }
 
       const style: CSS = is_fullscreen
         ? { display: "flex" }
@@ -518,7 +549,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       // we calibrate "100%" at the median – color changes at 2 x timings_q
       const cpu_val = Math.min(
         100,
-        100 * (usage.cpu_runtime / expected_cell_runtime)
+        100 * (usage.cpu_runtime / expected_cell_runtime),
       );
 
       return (
@@ -573,6 +604,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // this ends up in the popover tip. it contains the actual values and the same color coded usage levels
     function render_usage_text() {
       if (usage == null) return;
+      if (computeServerId) return;
+
       const cpu_style = usage_text_style_level(usage.cpu_alert);
       const memory_style = usage_text_style_level(usage.mem_alert);
       const time_style = usage_text_style_level(usage.time_alert);
@@ -667,5 +700,5 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         {renderMode()}
       </div>
     );
-  }
+  },
 );

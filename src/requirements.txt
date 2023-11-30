@@ -1,0 +1,4 @@
+pyyaml==6.0.1
+
+./smc_pyutil
+./smc_sagews

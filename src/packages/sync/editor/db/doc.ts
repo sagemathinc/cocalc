@@ -69,7 +69,7 @@ export class DBDocument implements Document {
     records: Records = immutable.List(),
     everything?: immutable.Set<number>,
     indexes?: Indexes,
-    change_tracker?: ChangeTracker
+    change_tracker?: ChangeTracker,
   ) {
     this.set = this.set.bind(this);
     this.delete_array = this.delete_array.bind(this);
@@ -319,10 +319,10 @@ export class DBDocument implements Document {
   // Given an immutable map f, return its restriction
   // to the primary keys.
   private primary_key_cols(
-    f: immutable.Map<string, any>
+    f: immutable.Map<string, any>,
   ): immutable.Map<string, any> {
     return f.filter(
-      (_, k) => k != null && this.primary_keys.has(k)
+      (_, k) => k != null && this.primary_keys.has(k),
     ) as immutable.Map<string, any>;
   }
 
@@ -383,6 +383,8 @@ export class DBDocument implements Document {
   }
 
   public set(obj: SetCondition | SetCondition[]): DBDocument {
+    // If you ever want to know exactly what set something, uncomment this:
+    // console.trace("set ", obj);
     if (Array.isArray(obj)) {
       let z: DBDocument = this;
       for (const x of obj as SetCondition[]) {
@@ -418,7 +420,7 @@ export class DBDocument implements Document {
               // special case: a string patch
               record = record.set(
                 field,
-                string_apply_patch(value, before.get(field, ""))[0]
+                string_apply_patch(value, before.get(field, ""))[0],
               );
               continue;
             }
@@ -429,7 +431,7 @@ export class DBDocument implements Document {
               // to something that is not a string.  We'll next have
               // to wait for this exception to be triggered someday...
               throw Error(
-                `'${field}' must be a string, but tried to set to '${value}' of type ${typeof value}`
+                `'${field}' must be a string, but tried to set to '${value}' of type ${typeof value}`,
               );
             }
             // falls through to actually set it below.
@@ -456,7 +458,7 @@ export class DBDocument implements Document {
           this.records.set(first_match, record),
           this.everything,
           this.indexes,
-          { changes, from_db: this.change_tracker.from_db }
+          { changes, from_db: this.change_tracker.from_db },
         );
       } else {
         return this;
@@ -502,7 +504,7 @@ export class DBDocument implements Document {
         records,
         everything,
         indexes,
-        { changes, from_db: this.change_tracker.from_db }
+        { changes, from_db: this.change_tracker.from_db },
       );
     }
   }
@@ -532,7 +534,7 @@ export class DBDocument implements Document {
       changes = changes.union(
         this.records
           .filter((record) => record != null)
-          .map(this.primary_key_cols)
+          .map(this.primary_key_cols),
       );
       return new DBDocument(
         this.primary_keys,
@@ -540,7 +542,7 @@ export class DBDocument implements Document {
         undefined,
         undefined,
         undefined,
-        { changes, from_db: this.change_tracker.from_db }
+        { changes, from_db: this.change_tracker.from_db },
       );
     }
 
@@ -598,7 +600,7 @@ export class DBDocument implements Document {
       records,
       everything,
       indexes,
-      { changes, from_db: this.change_tracker.from_db }
+      { changes, from_db: this.change_tracker.from_db },
     );
   }
 
@@ -611,7 +613,7 @@ export class DBDocument implements Document {
     // The "as" is because Typescript just makes the result of
     // filter some more generic type (but it isn't).
     return immutable.List(
-      this.records.filter((_, n) => n != null && matches.includes(n))
+      this.records.filter((_, n) => n != null && matches.includes(n)),
     );
   }
 
@@ -650,10 +652,10 @@ export class DBDocument implements Document {
     // Get the defined records; there may be undefined ones due
     // to lazy delete.
     let t0: immutable.Set<Record> = immutable.Set(
-      immutable.Set(this.records).filter((x) => x != null)
+      immutable.Set(this.records).filter((x) => x != null),
     );
     let t1: immutable.Set<Record> = immutable.Set(
-      immutable.Set(other.records).filter((x) => x != null)
+      immutable.Set(other.records).filter((x) => x != null),
     );
 
     // Remove the common intersection -- nothing going on there.
@@ -677,7 +679,7 @@ export class DBDocument implements Document {
         immutable
           .Set(this.records)
           .filter((x) => x != null)
-          .map(this.primary_key_cols)
+          .map(this.primary_key_cols),
       );
     }
     return this.changed_keys(prev);
@@ -708,7 +710,7 @@ with DBDocument above.
 export function from_str(
   s: string,
   primary_keys: string[],
-  string_cols: string[]
+  string_cols: string[],
 ): DBDocument {
   const obj: jsmap[] = [];
   for (const line of s.split("\n")) {
@@ -728,6 +730,6 @@ export function from_str(
   return new DBDocument(
     new Set(primary_keys),
     new Set(string_cols),
-    immutable.fromJS(obj) as Records
+    immutable.fromJS(obj) as Records,
   );
 }

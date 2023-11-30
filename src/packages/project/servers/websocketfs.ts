@@ -14,12 +14,9 @@ const log = getLogger("cocalc:websocketfs");
 export default function initWebsocketFs(
   server: Server,
   basePath: string,
-  { host, port },
 ): void {
   const path = join(basePath, ".smc", "websocketfs");
-  log.info(
-    `Initalizing websocketfs filesystem server at "ws://${host}:${port}${path}"...`,
-  );
+  log.info(`Initializing websocketfs filesystem server`);
 
   const wss = new WebSocketServer({ noServer: true });
 
@@ -34,14 +31,12 @@ export default function initWebsocketFs(
 
   server.on("upgrade", (request, socket, head) => {
     const { pathname } = parse(request.url ?? "");
-    log.info("Got upgrade request for ", pathname);
+    // log.info("Got upgrade request for ", pathname);
     if (pathname === path) {
       log.info("creating new websocketfs handler");
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit("connection", ws, request);
       });
-    } else {
-      log.info("not handling here");
     }
   });
 }

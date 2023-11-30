@@ -56,6 +56,8 @@ import ChatGPT from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import SelectComputeServer from "@cocalc/frontend/compute/select-server";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -100,7 +102,7 @@ const MAX_TITLE_WIDTH = 25;
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND,
-  margin: "5px",
+  margin: "7.5px 5px",
   fontSize: "10pt",
   whiteSpace: "nowrap",
   display: "inline-block",
@@ -239,7 +241,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const otherSettings = useRedux(["account", "other_settings"]);
   const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
-
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
@@ -462,6 +463,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
+
         {render_types()}
       </div>
     );
@@ -1225,7 +1227,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         style={button_style()}
         onClick={() => {
           props.editor_actions.save(true);
-          props.actions.explicit_save();
           props.actions.focus(props.id);
         }}
         type={darkMode ? "default" : undefined}
@@ -1785,10 +1786,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         v.push(render_format_group());
       }
       v.push(render_halt_jupyter());
-      v.push(render_edit_init_script());
       v.push(render_clear());
-      v.push(render_count_words());
       v.push(render_kick_other_users_out());
+      v.push(render_edit_init_script());
+      v.push(render_count_words());
       v.push(render_shell(labels));
       v.push(render_print(labels));
       v.push(render_export_to_markdown(labels));
@@ -1917,6 +1918,31 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderComputeServer() {
+    if (!is_visible("compute_server") || !computeServersEnabled()) {
+      return null;
+    }
+    const { type } = props;
+    if (type != "terminal" && type != "jupyter_cell_notebook") {
+      // ONLY terminal and jupyter are supported
+      return null;
+    }
+    return (
+      <SelectComputeServer
+        actions={props.actions}
+        frame_id={props.id}
+        type={type}
+        style={{
+          marginRight: "3px",
+          marginTop: "1px",
+          height: button_height(),
+        }}
+        project_id={props.project_id}
+        path={props.path}
+      />
+    );
+  }
+
   function render_title(): Rendered {
     let title: string = "";
     let icon: IconName | undefined = undefined;
@@ -2026,7 +2052,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           <InputNumber
             style={{
               width: "9ex",
-              top: "-4px",
               height: !props.is_only && !props.is_full ? "30px" : undefined,
             }}
             step={-1}
@@ -2123,6 +2148,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         id={`titlebar-${props.id}`}
         className={"cc-frame-tree-title-bar"}
       >
+        {renderComputeServer()}
         {render_title()}
         {render_main_buttons()}
         {render_connection_status()}

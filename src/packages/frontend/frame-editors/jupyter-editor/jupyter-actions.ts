@@ -4,12 +4,16 @@
  */
 
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { JupyterStore, initial_jupyter_store_state } from "@cocalc/jupyter/redux/store";
+import {
+  JupyterStore,
+  initial_jupyter_store_state,
+} from "@cocalc/jupyter/redux/store";
 import { syncdb2 as new_syncdb } from "../generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { meta_file } from "@cocalc/util/misc";
 import { alert_message } from "@cocalc/frontend/alerts";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
+import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
 
 export function redux_name(name: string): string {
   return `jupyter-${name}`;
@@ -19,14 +23,14 @@ export function create_jupyter_actions(
   redux,
   name: string,
   path: string,
-  project_id: string
+  project_id: string,
 ): JupyterActions {
   name = redux_name(name);
   const actions = redux.createActions(name, JupyterActions);
   const store = redux.createStore(
     name,
     JupyterStore,
-    initial_jupyter_store_state
+    initial_jupyter_store_state,
   );
   const syncdb_path = meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
 
@@ -36,14 +40,9 @@ export function create_jupyter_actions(
   redux.getProjectStore(project_id)?.get_listings()?.undelete(syncdb_path);
 
   const syncdb = new_syncdb({
+    ...SYNCDB_OPTIONS,
     project_id,
     path: syncdb_path,
-    change_throttle: 50, // our UI/React can handle more rapid updates; plus we want output FAST.
-    patch_interval: 50,
-    primary_keys: ["type", "id"],
-    string_cols: ["input"],
-    cursors: true,
-    persistent: true,
   });
   enableSearchEmbeddings({
     project_id,

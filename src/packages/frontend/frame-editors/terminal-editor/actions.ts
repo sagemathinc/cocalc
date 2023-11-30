@@ -101,7 +101,7 @@ export class TerminalActions extends Actions {
       "commands_guide",
       "col",
       false,
-      3 / 4
+      3 / 4,
     );
     // the click to select TOC focuses the active id back on the notebook
     await delay(0);
@@ -115,6 +115,10 @@ export class TerminalActions extends Actions {
 
   public getTopBarActions(): TopBarActions {
     return [{ label: "Guide", icon: "magic", action: () => this.guide() }];
+  }
+
+  compute_server() {
+    // this is here just so the dropdown gets enabled
   }
 }
 

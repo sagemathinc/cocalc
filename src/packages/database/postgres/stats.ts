@@ -11,6 +11,7 @@ const required = defaults.required;
 import { map, zipObject } from "lodash";
 
 import { PostgreSQL } from "./types";
+import { EXTENSIONS } from "@cocalc/util/db-schema/stats";
 const { all_results } = require("../postgres-base");
 
 // some stats queries have to crunch a lot of rows, which could take a bit
@@ -79,15 +80,9 @@ async function _count_timespan(db: PostgreSQL, opts): Promise<any> {
   return parseInt(result?.rows?.[0]?.count);
 }
 
-async function _count_opened_files(db: PostgreSQL, opts): Promise<void> {
-  opts = defaults(opts, {
-    age_m: undefined,
-    key: required,
-    data: required,
-    distinct: required, // true or false
-  });
-  const { age_m, key, data, distinct } = opts;
-  const q = `\
+function _count_opened_files_query(distinct: boolean): string {
+  const extensions = EXTENSIONS.map((x) => `'${x}'`).join(", ");
+  return `\
 WITH filenames AS (
     SELECT ${distinct ? "DISTINCT" : ""} event ->> 'filename' AS fn
     FROM project_log
@@ -100,12 +95,19 @@ WITH filenames AS (
 )
 SELECT ext, cnt
 FROM ext_count
-WHERE ext IN ('sagews', 'ipynb', 'tex', 'rtex', 'rnw', 'x11',
-              'rmd', 'txt', 'py', 'md', 'sage', 'term', 'rst', 'lean',
-              'png', 'svg', 'jpeg', 'jpg', 'pdf', 'jl', 'm',
-              'tasks', 'course', 'sage-chat', 'chat', 'board')
-ORDER BY ext
+WHERE ext IN (${extensions}) ORDER BY ext
 `;
+}
+
+async function _count_opened_files(db: PostgreSQL, opts): Promise<void> {
+  opts = defaults(opts, {
+    age_m: undefined,
+    key: required,
+    data: required,
+    distinct: required, // true or false
+  });
+  const { age_m, key, data, distinct } = opts;
+  const q = _count_opened_files_query(distinct);
 
   const res = await cb2(db._query, {
     query: q,
@@ -134,7 +136,7 @@ function check_local_cache({ update, ttl_dt, ttl, ttl_db, dbg }): Stats | null {
     dbg(
       `using locally cached stats from ${
         (new Date().getTime() - _stats_cached.time) / 1000
-      } secs ago.`
+      } secs ago.`,
     );
     return _stats_cached;
   }
@@ -173,7 +175,7 @@ async function check_db_cache({
       dbg(
         `using db stats from ${
           (new Date().getTime() - x.time) / 1000
-        } secs ago.`
+        } secs ago.`,
       );
       // storing still valid result in local cache
       _stats_cached = misc.deep_copy(x);
@@ -303,7 +305,7 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
   const elapsed_t = process.hrtime(start_t);
   const duration_s = (elapsed_t[0] + elapsed_t[1] / 1e9).toFixed(4);
   dbg(
-    `everything succeeded above after ${duration_s} secs -- now insert stats`
+    `everything succeeded above after ${duration_s} secs -- now insert stats`,
   );
   // storing in local and db cache
   _stats_cached = misc.deep_copy(stats);
@@ -349,4 +351,9 @@ export async function calc_stats(db: PostgreSQL, opts: Opts) {
   //process.exit();
   cb?.(undefined, stats);
   return stats;
+}
+
+// for testing only
+if (process.env["NODE_DEV"] === "TEST") {
+  exports._count_opened_files_query = _count_opened_files_query;
 }

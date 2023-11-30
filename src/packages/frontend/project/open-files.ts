@@ -30,12 +30,13 @@ The point of this code here is ensure that these objects stay in sync properly.
 
 import { List, Map } from "immutable";
 
-import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { ProjectStore } from "@cocalc/frontend/project_store";
 import { close } from "@cocalc/util/misc";
+import { ProjectActions } from "../project_actions";
+import { ProjectStore } from "../project_store";
 
 type OpenFilesType = Map<string, Map<string, any>>;
 type OpenFilesOrderType = List<string>;
+type ClosedFilesType = List<string>;
 
 export class OpenFiles {
   private actions: ProjectActions;
@@ -55,10 +56,14 @@ export class OpenFiles {
   private setState(
     open_files: OpenFilesType | undefined,
     open_files_order?: OpenFilesOrderType,
+    just_closed_files?: ClosedFilesType,
   ): void {
     const x: any = {};
     if (open_files != null) x.open_files = open_files;
     if (open_files_order != null) x.open_files_order = open_files_order;
+    if (just_closed_files != null) {
+      x.just_closed_files = just_closed_files;
+    }
     this.actions.setState(x);
   }
 
@@ -76,7 +81,16 @@ export class OpenFiles {
     const index = open_files_order.indexOf(path);
     if (index == -1) return; // no-op if not there, like immutable.List delete.
     const open_files = this.store.get("open_files");
-    this.setState(open_files.delete(path), open_files_order.delete(index));
+    const just_closed_files_prev = this.store.get("just_closed_files");
+
+    // keep the most recent 3
+    const just_closed_files = just_closed_files_prev.push(path).slice(-3);
+
+    this.setState(
+      open_files.delete(path),
+      open_files_order.delete(index),
+      just_closed_files,
+    );
   }
 
   // Open or modify the given path, so it is inserted in the open_files Map,
@@ -99,6 +113,16 @@ export class OpenFiles {
       );
     } else {
       this.setState(open_files.set(path, cur.set(key, val)));
+    }
+    // remove it from just_closed_files, if it's there
+    const just_closed_files = this.store.get("just_closed_files");
+
+    if (just_closed_files.includes(path)) {
+      this.setState(
+        undefined,
+        undefined,
+        just_closed_files.filter((x) => x !== path),
+      );
     }
   }
 

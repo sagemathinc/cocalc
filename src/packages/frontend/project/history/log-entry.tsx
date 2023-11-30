@@ -53,6 +53,7 @@ import type {
   X11Event,
 } from "./types";
 import { isUnknownEvent } from "./types";
+import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
 
 const TRUNC = 90;
 
@@ -133,7 +134,7 @@ export const LogEntry: React.FC<Props> = React.memo(
 
     const software_envs: SoftwareEnvironments | null = useTypedRedux(
       "customize",
-      "software"
+      "software",
     );
 
     function render_open_file(event: OpenFile): JSX.Element {
@@ -183,7 +184,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_software_environment(
-      event: SoftwareEnvironmentEvent
+      event: SoftwareEnvironmentEvent,
     ): JSX.Element {
       const envs = software_envs?.get("environments");
       const prev: string = envs
@@ -266,7 +267,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       path: string,
       link: boolean,
       i: number,
-      project_id?: string
+      project_id?: string,
     ): JSX.Element {
       return (
         <PathLink
@@ -291,7 +292,7 @@ export const LogEntry: React.FC<Props> = React.memo(
 
     function multi_file_links(
       event: { files: string | string[] },
-      link?: boolean
+      link?: boolean,
     ) {
       if (link == null) {
         link = true;
@@ -398,7 +399,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span key={i}>
               set project image to{" "}
               <img src={value} width="16px" height="16px" />
-            </span>
+            </span>,
           );
           continue;
         }
@@ -416,7 +417,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             >
               {content}
             </a>
-          </span>
+          </span>,
         );
       }
       return result;
@@ -499,7 +500,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         v.push(
           <span key={param}>
             {display}: {n} {misc.plural(n, unit)}
-          </span>
+          </span>,
         );
       }
       const destination = v.length > 0 ? r_join(v) : "nothing";
@@ -566,6 +567,8 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
 
       switch (event.event) {
+        case "compute-server":
+          return <ComputeLogEntry event={event} project_id={project_id} />;
         case "start_project":
           return render_start_project(event);
         case "project_stop_requested":
@@ -651,6 +654,8 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
 
       switch (event.event) {
+        case "compute-server":
+          return "server";
         case "open_project":
           return "folder-open";
         case "open": // open a file
@@ -675,7 +680,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "invite_nonuser":
           return "user";
         case "software_environment":
-          return SOFTWARE_ENVIRONMENT_ICON
+          return SOFTWARE_ENVIRONMENT_ICON;
       }
 
       if (event.event.indexOf("project") !== -1) {
@@ -744,5 +749,5 @@ export const LogEntry: React.FC<Props> = React.memo(
         return <></>;
     }
   },
-  areEqual
+  areEqual,
 );

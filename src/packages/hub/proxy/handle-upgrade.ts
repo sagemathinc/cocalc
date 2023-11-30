@@ -6,19 +6,14 @@ import { versionCheckFails } from "./version";
 import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
-import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
+import { getEventListeners } from "node:events";
 
 const logger = getLogger("proxy:handle-upgrade");
 
-interface Options {
-  projectControl: ProjectControlFunction;
-  isPersonal: boolean;
-}
-
 export default function init(
-  { projectControl, isPersonal }: Options,
-  proxy_regexp: string
+  { projectControl, isPersonal, httpServer, listenersHack },
+  proxy_regexp: string,
 ) {
   const cache = new LRU({
     max: 5000,
@@ -50,7 +45,7 @@ export default function init(
     if (req.headers["cookie"] != null) {
       let cookie;
       ({ cookie, remember_me, api_key } = stripRememberMeCookie(
-        req.headers["cookie"]
+        req.headers["cookie"],
       ));
       req.headers["cookie"] = cookie;
     }
@@ -112,18 +107,74 @@ export default function init(
     proxy.ws(req, socket, head);
   }
 
-  return async (req, socket, head) => {
-    try {
-      await handleProxyUpgradeRequest(req, socket, head);
-    } catch (err) {
-      const msg = `WARNING: error upgrading websocket url=${req.url} -- ${err}`;
-      logger.debug(msg);
-      denyUpgrade(socket);
-    }
-  };
+  let handler;
+  if (listenersHack) {
+    // This is an insane horrible hack to fix https://github.com/sagemathinc/cocalc/issues/7067
+    // The problem is that there are four separate websocket "upgrade" handlers when we are doing
+    // development, and nodejs just doesn't hav a good solution to multiple websocket handlers,
+    // as explained here: https://github.com/nodejs/node/issues/6339
+    // The four upgrade handlers are:
+    //   - this proxy here
+    //   - the main hub primus one
+    //   - the HMR reloader for that static webpack server for the app
+    //   - the HMR reloader for nextjs
+    // These all just sort of randomly fight for any incoming "upgrade" event,
+    // and if they don't like it, tend to try to kill the socket.  It's totally insane.
+    // What's worse is that getEventListeners only seems to ever return *two*
+    // listeners.  By extensive trial and error, it seems to return first the primus
+    // listener, then the nextjs one.  I have no idea why the order is that way; I would
+    // expect the reverse.   And I don't know why this handler here isn't in the list.
+    // In any case, once we get a failed request *and* we see there are at least two
+    // other handlers (it's exactly two), we completely steal handling of the upgrade
+    // event here.  We then call the appropriate other handler when needed.
+    // I have no idea how the HMR reloader for that static webpack plays into this,
+    // but it appears to just work for some reason.
+
+    let listeners: any[] = [];
+    handler = async (req, socket, head) => {
+      logger.debug("Proxy websocket handling -- using listenersHack");
+      try {
+        await handleProxyUpgradeRequest(req, socket, head);
+      } catch (err) {
+        if (listeners.length == 0) {
+          const x = getEventListeners(httpServer, "upgrade");
+          if (x.length >= 2) {
+            logger.debug(
+              "Proxy websocket handling -- installing listenersHack",
+            );
+            listeners = [...x];
+            httpServer.removeAllListeners("upgrade");
+            httpServer.on("upgrade", handler);
+          }
+        }
+        if (req.url.includes("hub?_primus") && listeners.length >= 2) {
+          listeners[0](req, socket, head);
+          return;
+        }
+        if (req.url.includes("_next/webpack-hmr") && listeners.length >= 2) {
+          listeners[1](req, socket, head);
+          return;
+        }
+        const msg = `WARNING: error upgrading websocket url=${req.url} -- ${err}`;
+        logger.debug(msg);
+        denyUpgrade(socket);
+      }
+    };
+  } else {
+    handler = async (req, socket, head) => {
+      try {
+        await handleProxyUpgradeRequest(req, socket, head);
+      } catch (err) {
+        const msg = `WARNING: error upgrading websocket url=${req.url} -- ${err}`;
+        logger.debug(msg);
+        denyUpgrade(socket);
+      }
+    };
+  }
+
+  return handler;
 }
 
-// this was suggested by GPT4...
 function denyUpgrade(socket) {
   socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
   socket.destroy();

@@ -35,6 +35,7 @@ export const terminal = {
     "guide",
     "chatgpt",
     "tour",
+    "compute_server",
     /*"reload" */
   ]),
   hide_public: true, // never show this editor option for public view

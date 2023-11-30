@@ -31,15 +31,23 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   let tip: string | JSX.Element = "Enter code to be evaluated.";
   switch (props.state) {
     case "start":
-      n = <Icon name="arrow-circle-o-left" style={{ fontSize: "80%" }} />;
+      n = <Icon name="arrow-circle-o-left" style={{ color: "#faad14" }} />;
       tip = `Sending to be evaluated using ${kernel}.`;
       break;
     case "run":
-      n = <Icon name="cocalc-ring" style={{ fontSize: "80%" }} />;
+      n = <Icon name="hand" style={{ color: "#ff4d4f" }} />;
       tip = `Waiting for another computation to finish first. Will evaluate using ${kernel}.`;
       break;
     case "busy":
-      n = <Icon name="circle" style={{ fontSize: "80%", color: "#5cb85c" }} />;
+      n = (
+        <Icon
+          name="plus-circle-filled"
+          style={{
+            color: "#0a830a",
+            animation: "loadingCircle 3s infinite linear",
+          }}
+        />
+      );
       if (props.start != null) {
         tip = (
           <span>

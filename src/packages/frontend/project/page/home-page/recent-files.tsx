@@ -23,7 +23,7 @@ import {
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
-import { handle_log_click } from "../../history/utils";
+import { handleFileEntryClick } from "../../history/utils";
 import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 
 interface OpenedFile {
@@ -104,7 +104,7 @@ export function HomeRecentFiles({
     const name: IconName = info.icon ?? "file";
     return (
       <List.Item
-        onClick={(e) => handle_log_click(e, path, project_id)}
+        onClick={(e) => handleFileEntryClick(e, path, project_id)}
         className="cc-project-home-recent-files"
       >
         <Icon name={name} />{" "}

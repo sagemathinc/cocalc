@@ -18,6 +18,7 @@ interface Options {
   project_id?: string;
   cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
   cost_per_hour?: number;
+  cost_so_far?: number;
   period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.
   period_end?: Date;
   invoice_id?: string;
@@ -41,11 +42,22 @@ export default async function createPurchase(opts: Options): Promise<number> {
     tag,
     client,
     pending,
+    cost_so_far,
   } = opts;
-  if (cost == null && (cost_per_hour == null || period_start == null)) {
-    throw Error(
-      "if cost is not set, then cost_per_hour and period_start must both be set"
-    );
+  if (cost == null) {
+    if (period_start == null) {
+      throw Error("if cost is not set, then  period_start must be set");
+    }
+    if (cost_so_far == null && cost_per_hour == null) {
+      throw Error(
+        "if cost is not set, then at least one of cost_so_far (for a metered purchase) or cost_per_hour (for a rate based purchase) must be set",
+      );
+    }
+    if (cost_so_far != null && cost_per_hour != null) {
+      throw Error(
+        "cost_so_far and cost_per_hour must not both be set, since cost_so_far being set indicates a metered purchase (e.g., amount of data transfer), and cost_per_hour being set indicates a rate-based purchase (e.g., amount per hour), and these are two completely different things",
+      );
+    }
   }
   if (cost != null && period_start != null && period_end != null) {
     const hours = dayjs(period_end).diff(dayjs(period_start), "hour", true);
@@ -59,12 +71,13 @@ export default async function createPurchase(opts: Options): Promise<number> {
   }
 
   const { rows } = await (client ?? getPool()).query(
-    "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, period_start, period_end, service, description,invoice_id, notes, tag, pending) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
+    "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, cost_so_far, period_start, period_end, service, description,invoice_id, notes, tag, pending) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id",
     [
       account_id,
       project_id,
       cost,
       cost_per_hour,
+      cost_so_far,
       period_start,
       period_end,
       service,
@@ -73,7 +86,7 @@ export default async function createPurchase(opts: Options): Promise<number> {
       notes,
       tag,
       pending,
-    ]
+    ],
   );
   const { id } = rows[0];
   logger.debug("Created new purchase", "id=", id, "opts = ", opts);

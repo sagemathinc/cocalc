@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Context, createContext, useContext, useMemo } from "react";
+import { Context, createContext, useContext, useMemo, useState } from "react";
 
 import {
   ProjectActions,
@@ -20,6 +20,10 @@ import {
 import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+} from "@cocalc/util/db-schema/site-defaults";
 
 export interface ProjectContextState {
   actions?: ProjectActions;
@@ -31,6 +35,9 @@ export interface ProjectContextState {
   project_id: string;
   project?: Project;
   status: ProjectStatus;
+  flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
+  onCoCalcCom: boolean;
+  onCoCalcDocker: boolean;
 }
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -44,13 +51,16 @@ export const ProjectContext: Context<ProjectContextState> =
     isRunning: undefined,
     status: INIT_PROJECT_STATE,
     hasInternet: undefined,
+    flipTabs: [0, () => {}],
+    onCoCalcCom: true,
+    onCoCalcDocker: false,
   });
 
 export function useProjectContext() {
   const context = useContext(ProjectContext);
   if (context.project_id === "") {
     throw new Error(
-      "useProjectContext() must be used inside a <ProjectContext.Provider>"
+      "useProjectContext() must be used inside a <ProjectContext.Provider>",
     );
   }
   return context;
@@ -58,7 +68,7 @@ export function useProjectContext() {
 
 export function useProjectContextProvider(
   project_id: string,
-  is_active: boolean
+  is_active: boolean,
 ): ProjectContextState {
   const actions = useActions({ project_id });
   const { project, group } = useProject(project_id);
@@ -67,12 +77,18 @@ export function useProjectContextProvider(
   const hasInternet = useProjectHasInternetAccess(project_id);
   const isRunning = useMemo(
     () => status.get("state") === "running",
-    [status.get("state")]
+    [status.get("state")],
   );
   const active_project_tab = useTypedRedux(
     { project_id },
-    "active_project_tab"
+    "active_project_tab",
   );
+  // shared data: used to flip through the open tabs in the active files flyout
+  const flipTabs = useState<number>(0);
+
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const onCoCalcCom = kucalc === KUCALC_COCALC_COM;
+  const onCoCalcDocker = kucalc === KUCALC_DISABLED;
 
   return {
     actions,
@@ -84,5 +100,8 @@ export function useProjectContextProvider(
     project_id,
     project,
     status,
+    flipTabs,
+    onCoCalcCom,
+    onCoCalcDocker,
   };
 }

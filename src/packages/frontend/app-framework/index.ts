@@ -163,8 +163,7 @@ export class AppRedux extends AppReduxBase {
   // if they don't exist
   getProjectStore(project_id: string): ProjectStore {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
+      throw Error(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
       // Right now importing project_store breaks the share server,
@@ -179,8 +178,7 @@ export class AppRedux extends AppReduxBase {
   // T, C extends Actions<T>
   getProjectActions(project_id: string): ProjectActions {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
+      throw Error(`getProjectActions: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
       require("../project_store").init(project_id, this);
@@ -190,8 +188,7 @@ export class AppRedux extends AppReduxBase {
   // TODO -- Typing: Type project Table
   getProjectTable(project_id: string, name: string): any {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getProjectTable: INVALID project_id -- "${project_id}"`);
+      throw Error(`getProjectTable: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
       require("../project_store").init(project_id, this);
@@ -201,8 +198,7 @@ export class AppRedux extends AppReduxBase {
 
   removeProjectReferences(project_id: string): void {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(
+      throw Error(
         `getProjectReferences: INVALID project_id -- "${project_id}"`,
       );
     }

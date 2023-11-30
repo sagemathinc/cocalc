@@ -9,7 +9,7 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "make": "pnpm install && pnpm run build",
-    "build": "npx tsc",
+    "build": "npx tsc --build",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "bin": {
@@ -34,12 +34,16 @@
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
+    "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/cookie": "^0.5.1",
+    "@types/ws": "^8.5.9",
+    "async-await-utils": "^3.0.1",
+    "awaiting": "^3.0.0",
     "cookie": "^0.5.0",
-    "tmp-promise": "^3.0.3",
-    "websocketfs": "^0.7.1"
+    "debug": "^4.3.2",
+    "websocketfs": "^0.17.0",
+    "ws": "^8.13.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {
@@ -47,6 +51,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
+    "@types/cookie": "^0.5.1",
     "@types/node": "^18.16.14",
     "typescript": "^5.2.2"
   }

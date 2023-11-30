@@ -20,7 +20,7 @@ export interface SyncDBOpts extends SyncDBOpts0 {
 export class SyncDB extends SyncDoc {
   constructor(opts: SyncDBOpts0) {
     // Typescript question -- What is the right way to do this?
-    const opts1: SyncDBOpts = (opts as unknown) as SyncDBOpts;
+    const opts1: SyncDBOpts = opts as unknown as SyncDBOpts;
     if (opts1.primary_keys == null || opts1.primary_keys.length <= 0) {
       throw Error("primary_keys must have length at least 1");
     }

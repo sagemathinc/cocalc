@@ -10,8 +10,6 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
-import { useEffect, useMemo, useState } from "react";
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -27,16 +25,19 @@ import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import {
   auxFileToOriginal,
   filename_extension,
   path_split,
   path_to_file,
-  should_open_in_foreground,
+  search_match,
+  search_split,
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { search_match, search_split } from "@cocalc/util/misc";
+import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
+import { useEffect, useMemo, useState } from "react";
 
 const RESULTS_WELL_STYLE: React.CSSProperties = {
   backgroundColor: "white",
@@ -444,7 +445,7 @@ function ProjectSearchOutput({
         placeholder="Filter... (regexp in / /)"
         onSearch={setFilter}
         enterButton="Filter"
-        style={{ width: "350px", maxWidth:'100%', marginBottom: "15px" }}
+        style={{ width: "350px", maxWidth: "100%", marginBottom: "15px" }}
       />
       {too_many_results && (
         <Alert bsStyle="warning" banner={true} style={{ margin: "15px 0" }}>

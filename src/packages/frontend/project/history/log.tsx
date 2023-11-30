@@ -232,7 +232,15 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
   }
 
   return (
-    <div style={{ padding: "15px" }} className={"smc-vfill"}>
+    <div
+      style={{
+        padding: "15px",
+        width: "800px",
+        maxWidth: "100%",
+        margin: "auto",
+      }}
+      className={"smc-vfill"}
+    >
       <>
         <h1 style={{ marginTop: "0px" }}>
           <Icon name="history" /> Project Activity Log

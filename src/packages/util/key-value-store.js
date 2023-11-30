@@ -26,7 +26,7 @@ class KeyValueStore {
 
   assert_not_closed() {
     if (this._data == null) {
-      throw Error("closed");
+      throw Error("closed -- KeyValueStore");
     }
   }
 

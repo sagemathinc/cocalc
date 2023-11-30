@@ -84,6 +84,9 @@ async function _sign_in(opts, done) {
   }
   const tm = misc.walltime();
 
+  let signed_in_mesg: any = undefined;
+  let account: any = undefined;
+
   const sign_in_error = function (error) {
     dbg(`sign_in_error -- ${error}`);
     record_sign_in({
@@ -124,9 +127,6 @@ async function _sign_in(opts, done) {
     sign_in_error(`sign_in_check failure: ${m}`);
     return;
   }
-
-  let signed_in_mesg: any = undefined;
-  let account: any = undefined;
 
   return async.series(
     [

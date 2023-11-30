@@ -11,6 +11,7 @@ import { CSS, React, useState } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
@@ -189,7 +190,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       props.actions.open_directory(full_path());
       props.actions.set_file_search("");
     } else {
-      const foreground = misc.should_open_in_foreground(e);
+      const foreground = should_open_in_foreground(e);
       const path = full_path();
       track("open-file", {
         project_id: props.actions.project_id,

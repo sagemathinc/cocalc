@@ -29,11 +29,12 @@ import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
 import { delay } from "awaiting";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 
 function attachmentTransform(
   project_id: string | undefined,
   cell: Map<string, any>,
-  href?: string
+  href?: string,
 ): string | undefined {
   if (!href || !startswith(href, "attachment:")) {
     return;
@@ -76,6 +77,7 @@ export interface CellInputProps {
   id: string;
   index: number;
   chatgpt?;
+  computeServerId?: number;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -158,7 +160,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           registerEditor={(editor) => {
             frameActions.current?.register_input_editor(
               props.cell.get("id"),
-              editor
+              editor,
             );
           }}
           unregisterEditor={() => {
@@ -197,7 +199,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         }
         return fileContext.urlTransform?.(url, tag);
       },
-      [props.cell.get("attachments")]
+      [props.cell.get("attachments")],
     );
 
     function render_markdown(): Rendered {
@@ -381,7 +383,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           style={{
             position: "absolute",
             right: "2px",
-            top: "2px",
+            top: "-20px",
           }}
           className="hidden-xs"
         >
@@ -392,6 +394,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
               fontSize: "11px",
             }}
           >
+            {props.is_current && props.computeServerId ? (
+              <ComputeServerPrompt id={props.computeServerId} />
+            ) : null}
             {props.cell.get("start") != null && (
               <div style={{ marginTop: "5px" }}>
                 <CellTiming
@@ -454,7 +459,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                   marginLeft: "3px",
                   padding: "4px",
                   borderLeft: "1px solid #ccc",
-                  borderBottom: "1px solid #ccc",
+                  borderTop: "1px solid #ccc",
                 }}
               >
                 {props.index + 1}
@@ -507,7 +512,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
   },
   (
     cur,
-    next /* this has got ugly; the not is from converting from component */
+    next /* this has got ugly; the not is from converting from component */,
   ) =>
     !(
       next.cell.get("input") !== cur.cell.get("input") ||
@@ -532,7 +537,39 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.is_scrolling !== cur.is_scrolling ||
       next.cell_toolbar !== cur.cell_toolbar ||
       next.index !== cur.index ||
+      next.computeServerId != cur.computeServerId ||
       (next.cell_toolbar === "slideshow" &&
         next.cell.get("slide") !== cur.cell.get("slide"))
-    )
+    ),
 );
+
+function ComputeServerPrompt({ id }) {
+  return (
+    <Tooltip
+      title={
+        <>
+          This cell will run on <ComputeServer id={id} />.
+        </>
+      }
+    >
+      <div
+        style={{
+          fontSize: "11px",
+          margin: "5px 15px 0 0",
+        }}
+      >
+        <ComputeServer
+          id={id}
+          titleOnly
+          style={{
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+            display: "inline-block",
+            maxWidth: "125px",
+          }}
+        />
+      </div>
+    </Tooltip>
+  );
+}

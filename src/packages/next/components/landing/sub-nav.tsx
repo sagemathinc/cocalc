@@ -77,7 +77,8 @@ const features = {
   terminal: { label: "Terminal" },
   whiteboard: { label: "Whiteboard" },
   x11: { label: "X11" },
-  foo: { type: "divider" },
+  div1: { type: "divider" },
+  "compute-server": { label: "Compute" },
   "openai-chatgpt": { label: "ChatGPT" },
   compare: { label: "Compare" },
   api: { label: "API" },
@@ -229,7 +230,7 @@ export default function SubNav(props: Props) {
           style={{
             borderColor: COLORS.GRAY_D,
           }}
-        />
+        />,
       );
       continue; // this is a divider, not a tab to click on
     }
@@ -260,7 +261,7 @@ export default function SubNav(props: Props) {
           </>
         }
         href={href}
-      />
+      />,
     );
   }
 

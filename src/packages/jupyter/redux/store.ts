@@ -32,7 +32,7 @@ export type show_kernel_selector_reasons = "bad kernel" | "user request";
 
 export function canonical_language(
   kernel?: string | null,
-  kernel_info_lang?: string
+  kernel_info_lang?: string,
 ): string | undefined {
   let lang;
   // special case: sage is language "python", but the snippet dialog needs "sage"
@@ -96,6 +96,9 @@ export interface JupyterStoreState {
   start_time: any;
   toolbar?: boolean;
   widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
+  // computeServerId -- gets optionally set on the frontend (useful for react)
+  computeServerId?: number;
+  requestedComputeServerId?: number;
 }
 
 export const initial_jupyter_store_state: {
@@ -109,7 +112,6 @@ export const initial_jupyter_store_state: {
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {
-  private _is_project: any;
   // manipulated in jupyter/project-actions.ts
   public _more_output: any;
 
@@ -177,7 +179,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   get_kernel_info = (
-    kernel: string | null | undefined
+    kernel: string | null | undefined,
   ): KernelSpec | undefined => {
     // slow/inefficient, but ok since this is rarely called
     let info: any = undefined;
@@ -313,11 +315,12 @@ export class JupyterStore extends Store<JupyterStoreState> {
   }
 
   get_more_output = (id: string) => {
-    if (this._is_project) {
-      // This is ONLY used by the backend project for storing extra output.
-      if (this._more_output == null) {
-        this._more_output = {};
-      }
+    // this._more_output only gets set in project-actions in
+    // set_more_output, for the project or compute server that
+    // has that extra output.
+    if (this._more_output != null) {
+      // This is ONLY used by the backend for storing and retrieving
+      // extra output messages.
       const output = this._more_output[id];
       if (output == null) {
         return;
@@ -391,11 +394,11 @@ export class JupyterStore extends Store<JupyterStoreState> {
           .sort((a, b) => {
             const va = -(a.getIn(
               ["metadata", "cocalc", "priority"],
-              0
+              0,
             ) as number);
             const vb = -(b.getIn(
               ["metadata", "cocalc", "priority"],
-              0
+              0,
             ) as number);
             return cmp(va, vb);
           })
@@ -438,7 +441,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   public get_cell_metadata_flag(
     id: string,
     key: string,
-    default_value: boolean = false
+    default_value: boolean = false,
   ): boolean {
     return this.unsafe_getIn(["cells", id, "metadata", key], default_value);
   }
@@ -447,7 +450,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   public get_kernel_language(): string | undefined {
     return canonical_language(
       this.get("kernel"),
-      this.getIn(["kernel_info", "language"])
+      this.getIn(["kernel_info", "language"]),
     );
   }
 
@@ -473,14 +476,22 @@ export class JupyterStore extends Store<JupyterStoreState> {
   public async jupyter_kernel_key(): Promise<string> {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
-    const dflt_img = await this.redux
-      .getStore("customize")
-      .getDefaultComputeImage();
+    const customize = this.redux.getStore("customize");
+    const computeServerId =
+      this.redux.getActions(this.name)?.getComputeServerId() ?? 0;
+    if (customize == null) {
+      // the customize store doesn't exist, e.g., in a compute server.
+      // In that case no need for a complicated jupyter kernel key as
+      // there is only one image.
+      // (??)
+      return `${project_id}-${computeServerId}-default`;
+    }
+    const dflt_img = await customize.getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
-      dflt_img
+      dflt_img,
     );
-    const key = [project_id, compute_image].join("::");
+    const key = [project_id, `${computeServerId}`, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
   }

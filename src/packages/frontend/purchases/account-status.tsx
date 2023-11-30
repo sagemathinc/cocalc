@@ -18,7 +18,13 @@ import {
 } from "./api";
 import Next from "@cocalc/frontend/components/next";
 
-export default function AccountStatus() {
+export default function AccountStatus({
+  compact,
+  style,
+}: {
+  compact?: boolean;
+  style?;
+}) {
   const [loading, setLoading] = useState<boolean>(true);
   const [balance, setBalance] = useState<number | null>(null);
   const [pendingBalance, setPendingBalance] = useState<number | null>(null);
@@ -79,6 +85,7 @@ export default function AccountStatus() {
           </Button>
         </span>
       }
+      style={style}
     >
       {error && (
         <Alert
@@ -95,15 +102,21 @@ export default function AccountStatus() {
             refresh={handleRefresh}
           />
           <div style={{ width: "30px" }} />
-          <MinBalance minBalance={minBalance} />
-          <div style={{ width: "30px" }} />
-          <SpendRate spendRate={spendRate} />
+          {!compact && (
+            <>
+              <MinBalance minBalance={minBalance} />
+              <div style={{ width: "30px" }} />
+            </>
+          )}
+          <SpendRate spendRate={spendRate} compact={compact} />
         </Space>
       </div>
-      <div style={{ color: "#666", float: "right" }}>
-        To transfer money to another account,{" "}
-        <Next href={"store/vouchers"}>create a cash voucher</Next>.
-      </div>
+      {!compact && (
+        <div style={{ color: "#666", float: "right" }}>
+          To transfer money to another account,{" "}
+          <Next href={"store/vouchers"}>create a cash voucher</Next>.
+        </div>
+      )}
     </SettingBox>
   );
 }

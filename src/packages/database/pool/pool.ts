@@ -39,6 +39,11 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       // the test suite assumes small pool, or there will be random failures sometimes (?)
       max: process.env.PGDATABASE == TEST ? 2 : undefined,
     });
+    const end = pool.end.bind(pool);
+    pool.end = async () => {
+      pool = undefined;
+      end();
+    };
   }
   return pool;
 }

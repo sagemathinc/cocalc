@@ -12,8 +12,9 @@ import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
 import {
   computeServersEnabled,
-  ManageComputeServers,
-} from "@cocalc/frontend/compute-servers";
+  ComputeServers,
+  ComputeServerDocs,
+} from "@cocalc/frontend/compute";
 
 export function ServersFlyout({ project_id, wrap }) {
   const servers = [
@@ -64,16 +65,17 @@ export function ServersFlyout({ project_id, wrap }) {
 
   return wrap(
     <>
-      {renderEmbeddedServers()}
       {computeServersEnabled() && (
         <div>
-          <Divider />
           <Title level={5}>
-            <Icon name="server" /> Compute Servers
+            <ComputeServerDocs style={{ float: "right" }} />
+            <Icon name="servers" /> Compute Servers
           </Title>
-          <ManageComputeServers project_id={project_id} />
+          <ComputeServers project_id={project_id} />
         </div>
       )}
+      <Divider />
+      {renderEmbeddedServers()}
       {renderSageServerControl()}
     </>,
   );

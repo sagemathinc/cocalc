@@ -106,7 +106,7 @@ const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
     }
     return (
       <b>
-        <TimeAgo date={new Date(time)} minPeriod={1} />
+        <TimeAgo date={new Date(time)} />
       </b>
     );
   }
@@ -186,7 +186,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         ext = (
           backend_kernel_info.getIn(
             ["language_info", "file_extension"],
-            ""
+            "",
           ) as string
         ).slice(1);
         if (ext === "") {
@@ -283,7 +283,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       }
       time = (
         <b>
-          <TimeAgo date={new Date(time)} minPeriod={1} />
+          <TimeAgo date={new Date(time)} />
         </b>
       );
       return (
@@ -301,7 +301,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       }
       return (
         <span>
-          (started <TimeAgo date={new Date(start)} minPeriod={1} />)
+          (started <TimeAgo date={new Date(start)} />)
         </span>
       );
     }
@@ -372,7 +372,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
 
     function slides_url(): string {
       const base = misc.separate_file_extension(
-        misc.path_split(path).tail
+        misc.path_split(path).tail,
       ).name;
       const name = base + ".slides.html#/";
       return `https://cocalc.com/${project_id}/server/18080/` + name;
@@ -434,5 +434,5 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         {render_current()}
       </Modal>
     );
-  }
+  },
 );

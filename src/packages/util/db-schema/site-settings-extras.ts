@@ -28,6 +28,7 @@ import {
   from_json,
   parsableJson,
   displayJson,
+  to_trimmed_str,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -65,6 +66,10 @@ const pii_retention_display = (retention: string) => {
 const openai_enabled = (conf) => to_bool(conf.openai_enabled);
 
 const compute_servers_enabled = (conf) => to_bool(conf.compute_servers_enabled);
+const compute_servers_google_enabled = (conf) =>
+  to_bool(conf["compute_servers_google-cloud_enabled"]);
+// const compute_servers_lambda_enabled = (conf) =>
+//   to_bool(conf["compute_servers_lambda-cloud_enabled"]);
 
 const neural_search_enabled = (conf) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);
@@ -123,14 +128,16 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_price_project_upgrades"
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
-  | "lambda_cloud_api_key"
-  | "coreweave_kubeconfig"
+  //  | "lambda_cloud_api_key"
   | "google_cloud_service_account_json"
-  | "fluidstack_api_key"
-  | "fluidstack_api_token"
-  | "amazon_web_services_access_key"
-  | "amazon_web_services_secret_access_key"
-  | "fluidstack_api_token"
+  | "google_cloud_compute_servers_prefix"
+  | "compute_servers_cloudflare_api_key"
+  //   | "coreweave_kubeconfig"
+  //   | "fluidstack_api_key"
+  //   | "fluidstack_api_token"
+  //   | "amazon_web_services_access_key"
+  //   | "amazon_web_services_secret_access_key"
+  //   | "fluidstack_api_token"
   | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
@@ -521,53 +528,69 @@ export const EXTRAS: SettingsExtras = {
     to_val: toFloat,
     valid: onlyNonnegFloat,
   },
-  lambda_cloud_api_key: {
-    name: "Compute Servers - Lambda Cloud API Key (not implemented)",
-    desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.",
-    default: "",
-    password: true,
-    show: compute_servers_enabled,
-  },
-  coreweave_kubeconfig: {
-    name: "Compute Servers - CoreWeave Kubeconfig File (not implemented)",
-    desc: "Your [CoreWeave](https://cloud.coreweave.com/) KubeConfig from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
-    default: "",
-    multiline: 2,
-    show: compute_servers_enabled,
-  },
+  //   lambda_cloud_api_key: {
+  //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
+  //     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.  WARNING: Lambda Cloud integration is not yet useful for anything.",
+  //     default: "",
+  //     password: true,
+  //     show: compute_servers_lambda_enabled,
+  //   },
+  //   coreweave_kubeconfig: {
+  //     name: "Compute Servers: CoreWeave - Kubeconfig File (not implemented)",
+  //     desc: "Your [CoreWeave](https://cloud.coreweave.com/) KubeConfig from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
+  //     default: "",
+  //     multiline: 5,
+  //     password: true,
+  //     show: compute_servers_enabled,
+  //   },
   google_cloud_service_account_json: {
-    name: "Compute Servers - Google Cloud Service Account Json (not implemented)",
-    desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud, and you must enable the Compute Engine API for this project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
+    name: "Compute Servers: Google Cloud - Service Account Json",
+    desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud, and you must (1) [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
     default: "",
     multiline: 5,
     password: true,
-    show: compute_servers_enabled,
+    show: compute_servers_google_enabled,
   },
-  fluidstack_api_key: {
-    name: "Compute Servers - FluidStack API Key (not implemented)",
-    desc: "Your [FluidStack](https://www.fluidstack.io/) API Key from https://console2.fluidstack.io/.  Be sure to also enter your API token below. This supports managing compute servers on FluidStack Cloud.",
-    default: "",
-    show: compute_servers_enabled,
+  google_cloud_compute_servers_prefix: {
+    name: "Compute Servers: Google Cloud - Resource Prefix",
+    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server. If the prefix is 'cocalc-compute-server', then the compute server with id 17 will be called 'cocalc-compute-server-17'.",
+    default: "cocalc-compute-server",
+    to_val: to_trimmed_str,
+    show: compute_servers_google_enabled,
   },
-  fluidstack_api_token: {
-    name: "Compute Servers - FluidStack API Token (not implemented)",
-    desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
-    default: "",
-    password: true,
-    show: compute_servers_enabled,
-  },
-  amazon_web_services_access_key: {
-    name: "Compute Servers - Amazon Web Services IAM Access Key (not implemented)",
-    desc: "Your AWS API Key from the AWS console.  Be sure to also enter your secret access key below. This supports managing compute servers on Amazon Web Services EC2 Cloud.",
+
+  compute_servers_cloudflare_api_key: {
+    name: "Compute Servers: CloudFlare API Token",
+    desc: 'A CloudFlare [API Token](https://dash.cloudflare.com/profile/api-tokens) that has the "Edit zone DNS" capability for the domain that you set as "Compute Servers: Domain name" above.  This is used for custom subdomains, i.e., so users can make a compute server and connect to it at https://custom.cocalc.io (say).',
     default: "",
     password: true,
-    show: compute_servers_enabled,
+    show: (conf) => to_bool(conf.compute_servers_dns_enabled),
   },
-  amazon_web_services_secret_access_key: {
-    name: "Compute Servers - Amazon Web Services IAM Secret Access Key",
-    desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
-    default: "",
-    password: true,
-    show: compute_servers_enabled,
-  },
+  //   fluidstack_api_key: {
+  //     name: "Compute Servers: FluidStack - API Key (not implemented)",
+  //     desc: "Your [FluidStack](https://www.fluidstack.io/) API Key from https://console2.fluidstack.io/.  Be sure to also enter your API token below. This supports managing compute servers on FluidStack Cloud.",
+  //     default: "",
+  //     show: compute_servers_enabled,
+  //   },
+  //   fluidstack_api_token: {
+  //     name: "Compute Servers: FluidStack - API Token (not implemented)",
+  //     desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
+  //     default: "",
+  //     password: true,
+  //     show: compute_servers_enabled,
+  //   },
+  //   amazon_web_services_access_key: {
+  //     name: "Compute Servers: Amazon Web Services - IAM Access Key (not implemented)",
+  //     desc: "Your AWS API Key from the AWS console.  Be sure to also enter your secret access key below. This supports managing compute servers on Amazon Web Services EC2 Cloud.",
+  //     default: "",
+  //     password: true,
+  //     show: compute_servers_enabled,
+  //   },
+  //   amazon_web_services_secret_access_key: {
+  //     name: "Compute Servers: Amazon Web Services - IAM Secret Access Key",
+  //     desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
+  //     default: "",
+  //     password: true,
+  //     show: compute_servers_enabled,
+  //   },
 } as const;

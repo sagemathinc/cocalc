@@ -34,7 +34,7 @@ export class Client extends EventEmitter implements Client0 {
 
   constructor(
     initial_get_query: { [table: string]: any[] },
-    client_id: string
+    client_id: string,
   ) {
     super();
     this._client_id = client_id;
@@ -51,10 +51,10 @@ export class Client extends EventEmitter implements Client0 {
   }
 
   public dbg(_f: string): Function {
-    return (...args) => {
-      console.log(_f, ...args);
-    };
-    //return (..._) => {};
+    //     return (...args) => {
+    //       console.log(_f, ...args);
+    //     };
+    return (..._) => {};
   }
 
   public mark_file(_opts: {
@@ -148,7 +148,7 @@ export class Client extends EventEmitter implements Client0 {
     _project_id: string,
     query: any,
     options: any,
-    throttle_changes?: number
+    throttle_changes?: number,
   ): Promise<SyncTable> {
     const s = new SyncTable(query, options, this, throttle_changes);
     await once(s, "connected");
@@ -158,7 +158,7 @@ export class Client extends EventEmitter implements Client0 {
   async synctable_database(
     _query: any,
     _options: any,
-    _throttle_changes?: number
+    _throttle_changes?: number,
   ): Promise<SyncTable> {
     throw Error("not implemented");
   }

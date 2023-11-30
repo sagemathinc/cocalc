@@ -10,7 +10,7 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { handle_log_click } from "../project/history/utils";
+import { handleFileEntryClick } from "../project/history/utils";
 import { Tip } from "./tip";
 
 interface Props {
@@ -57,7 +57,7 @@ export const PathLink: React.FC<Props> = ({
         <a
           onClick={(e) => {
             onOpen?.();
-            handle_log_click(e, path, project_id);
+            handleFileEntryClick(e, path, project_id);
           }}
           style={{ color: COLORS.GRAY_D, fontWeight: "bold", ...style }}
         >

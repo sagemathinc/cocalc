@@ -56,12 +56,32 @@ function basePath(): string {
   if (process.env.BASE_PATH) {
     if (!isValidBasePath(process.env.BASE_PATH)) {
       throw Error(
-        `BASE_PATH (="${process.env.BASE_PATH}") is invalid - ${DEFN}.`
+        `BASE_PATH (="${process.env.BASE_PATH}") is invalid - ${DEFN}.`,
       );
     }
     return process.env.BASE_PATH;
   }
-  if (!process.env.COCALC_PROJECT_ID) return "/";
+  if (process.env.API_SERVER) {
+    // if an api server is set but BASE_PATH isn't (e.g., we're using a remote api server), then we
+    // deduce the base path from that URL. Examples:
+    //   API_SERVER=http://localhost:5000/6659c2e3-ff5e-4bb4-9a43-8830aa951282/port/5000 --> "/6659c2e3-ff5e-4bb4-9a43-8830aa951282/port/5000"
+    //   API_SERVER=https://compute.cocalc.io --> "/"
+    //   API_SERVER=https://cocalc.com --> "/"
+    const url = process.env.API_SERVER;
+    const i = url.indexOf("://");
+    if (i == -1) {
+      throw Error(`invalid API_SERVER url ${url}`);
+    }
+    const j = url.indexOf("/", i + 3);
+    if (j == -1) {
+      return "/";
+    }
+    return url.slice(j) ? url.slice(j) : "/";
+  }
+  if (!process.env.COCALC_PROJECT_ID) {
+    return "/";
+  }
+  // This is used by the project server, i.e., inside the project.
   return `/${process.env.COCALC_PROJECT_ID}/port/${PORT}`;
 }
 

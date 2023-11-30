@@ -16,52 +16,134 @@ This works in conjunction with src/compute/compute/terminal
 import getLogger from "@cocalc/backend/logger";
 import { spawn } from "node-pty";
 import type { Options, IPty } from "./types";
-import type { Spark } from "primus";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import { readlink, realpath } from "node:fs/promises";
+import { EventEmitter } from "events";
+import { getRemotePtyChannelName } from "./util";
+import { REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS } from "./terminal";
+
+// NOTE:  shorter than terminal.ts. This is like "2000 lines."
+const MAX_HISTORY_LENGTH = 100 * 2000;
 
 const logger = getLogger("terminal:remote");
 
 type State = "init" | "ready" | "closed";
 
-export class RemoteTerminal {
+export class RemoteTerminal extends EventEmitter {
   private state: State = "init";
-  private conn: Spark;
+  private websocket;
+  private path: string;
+  private conn: Channel;
   private cwd?: string;
+  private env?: object;
   private localPty?: IPty;
   private options?: Options;
   private size?: { rows: number; cols: number };
+  private computeServerId?: number;
+  private history: string = "";
+  private lastData: number = 0;
+  private healthCheckInterval;
 
-  constructor(conn, cwd?) {
-    this.conn = conn;
+  constructor(
+    websocket,
+    path,
+    { cwd, env }: { cwd?: string; env?: object } = {},
+    computeServerId?,
+  ) {
+    super();
+    this.computeServerId = computeServerId;
+    this.path = path;
+    this.websocket = websocket;
+    // offline and online and that's it!
+    this.cwd = cwd;
+    this.env = env;
+    logger.debug("create ", { cwd });
+    this.connect();
+    this.healthChecks();
+  }
+
+  private healthChecks = () => {
+    this.healthCheckInterval = setInterval(() => {
+      if (
+        Date.now() - this.lastData >=
+          REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000 &&
+        this.websocket.state == "online"
+      ) {
+        logger.debug("websocket online but no heartbeat so reconnecting");
+        this.reconnect();
+      }
+    }, REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000);
+  };
+
+  private reconnect = () => {
+    logger.debug("reconnect");
+    this.conn.removeAllListeners();
+    this.conn.end();
+    this.connect();
+  };
+
+  private connect = () => {
+    if (this.state == "closed") {
+      return;
+    }
+    const name = getRemotePtyChannelName(this.path);
+    logger.debug("connect: channel=", name);
+    this.conn = this.websocket.channel(name);
+    if (this.computeServerId != null) {
+      logger.debug("connect: sending id", this.computeServerId);
+      this.conn.write({ cmd: "setComputeServerId", id: this.computeServerId });
+    }
     this.conn.on("data", async (data) => {
+      // logger.debug("channel: data", data);
       try {
         await this.handleData(data);
       } catch (err) {
         logger.debug("error handling data -- ", err);
       }
     });
-    this.cwd = cwd;
-    logger.debug("create ", { cwd });
-  }
+    this.conn.on("end", async () => {
+      logger.debug("channel: end");
+    });
+    this.conn.on("close", async () => {
+      logger.debug("channel: close");
+      this.reconnect();
+    });
+  };
 
   close = () => {
     this.state = "closed";
+    this.emit("closed");
+    this.removeAllListeners();
     this.conn.end();
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
   };
 
   private handleData = async (data) => {
     if (this.state == "closed") return;
+    this.lastData = Date.now();
     if (typeof data == "string") {
       if (this.localPty != null) {
         this.localPty.write(data);
+      } else {
+        logger.debug("no pty active, but got data, so let's spawn one locally");
+        const pty = await this.initLocalPty();
+        if (pty != null) {
+          // we delete first character since it is the "any key"
+          // user hit to get terminal going.
+          pty.write(data.slice(1));
+        }
       }
     } else {
-      // console.log("command", data);
+      // console.log("COMMAND", data);
       switch (data.cmd) {
         case "init":
           this.options = data.options;
           this.size = data.size;
           await this.initLocalPty();
+          logger.debug("sending history of length", this.history.length);
+          this.conn.write(this.history);
           break;
 
         case "size":
@@ -72,6 +154,10 @@ export class RemoteTerminal {
 
         case "cwd":
           await this.sendCurrentWorkingDirectoryLocalPty();
+          break;
+
+        case undefined:
+          // logger.debug("received empty data (heartbeat)");
           break;
       }
     }
@@ -85,17 +171,24 @@ export class RemoteTerminal {
     if (this.localPty != null) {
       return;
     }
-    const localPty = spawn(
-      this.options.command ?? "/bin/bash",
-      this.options.args ?? [],
-      { cwd: this.cwd ?? this.options.cwd, env: this.options.env },
-    ) as IPty;
+    const command = this.options.command ?? "/bin/bash";
+    const args = this.options.args ?? [];
+    const cwd = this.cwd ?? this.options.cwd;
+    logger.debug("initLocalPty: spawn -- ", {
+      command,
+      args,
+      cwd,
+      size: this.size ? this.size : "size not defined",
+    });
+
+    const localPty = spawn(command, args, {
+      cwd,
+      env: { ...this.options.env, ...this.env },
+      rows: this.size?.rows,
+      cols: this.size?.cols,
+    }) as IPty;
     this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);
-
-    localPty.onData((data) => {
-      this.conn.write(data);
-    });
 
     localPty.onExit(() => {
       delete this.localPty; // no longer valid
@@ -106,6 +199,25 @@ export class RemoteTerminal {
     if (this.size) {
       this.localPty.resize(this.size.cols, this.size.rows);
     }
+
+    localPty.onData((data) => {
+      this.conn.write(data);
+
+      this.history += data;
+      const n = this.history.length;
+      if (n >= MAX_HISTORY_LENGTH) {
+        logger.debug("terminal data -- truncating");
+        this.history = this.history.slice(n - MAX_HISTORY_LENGTH / 2);
+      }
+    });
+
+    // set the prompt to show the remote hostname explicitly,
+    // then clear the screen.
+    if (command == "/bin/bash") {
+      this.localPty.write('PS1="(\\h) \\w$ ";reset;history -d $(history 1)\n');
+    }
+
+    return this.localPty;
   };
 
   private sendCurrentWorkingDirectoryLocalPty = async () => {

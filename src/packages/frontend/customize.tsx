@@ -134,6 +134,12 @@ export interface CustomizeState {
   software: SoftwareEnvironments;
   _is_configured: boolean;
   jupyter_api_enabled?: boolean;
+
+  compute_servers_enabled?: boolean;
+  compute_servers_google_enabled?: boolean;
+  compute_servers_lambda_enabled?: boolean;
+  compute_servers_dns_enabled?: boolean;
+  compute_servers_dns?: string;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

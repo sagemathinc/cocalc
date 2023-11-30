@@ -9,7 +9,6 @@ Efficient backend processing of iframe srcdoc and general text/html messages.
 MOTIVATION: Sage jmol.
 */
 
-import { BlobStoreInterface } from "@cocalc/jupyter/types/project-interface";
 import { replace_all } from "@cocalc/util/misc";
 
 export function is_likely_iframe(content: string): boolean {
@@ -28,9 +27,8 @@ export function is_likely_iframe(content: string): boolean {
 
 export function process(
   content: string,
-  blob_store: BlobStoreInterface | undefined
-) {
-  // TODO: type
+  saveToBlobStore: (data: string, type: string, ipynb?: string) => string,
+): string {
   const content_lower = content.toLowerCase();
   const i = content_lower.indexOf("<html>");
   const j = content_lower.lastIndexOf("</html>");
@@ -43,7 +41,7 @@ export function process(
   } else {
     src = `<html>${content}</html>`;
   }
-  return blob_store?.save?.(unescape(src), "text/html", content);
+  return saveToBlobStore(unescape(src), "text/html", content);
 }
 
 const entity_map = {

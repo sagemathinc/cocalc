@@ -7,7 +7,6 @@
 
 import { Map } from "immutable";
 import { throttle } from "lodash";
-
 import {
   CSS,
   React,
@@ -20,6 +19,9 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Terminal } from "./connected-terminal";
 import { background_color } from "./themes";
+import ComputeServerDocStatus from "@cocalc/frontend/compute/doc-status";
+import { useRedux } from "@cocalc/frontend/app-framework";
+import useResizeObserver from "use-resize-observer";
 
 interface Props {
   actions: any;
@@ -33,6 +35,7 @@ interface Props {
   desc: Map<string, any>;
   resize: number;
   is_visible: boolean;
+  name: string;
 }
 
 const COMMAND_STYLE = {
@@ -46,10 +49,19 @@ const COMMAND_STYLE = {
 export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const terminalDOMRef = useRef<any>(null);
+  const resize = useResizeObserver({ ref: terminalDOMRef });
   const isMountedRef = useIsMountedRef();
   const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id
+    props.project_id,
   );
+  const computeServerId = useRedux([
+    props.name,
+    "terminalComputeServerIds",
+  ])?.get(props.actions.terminals.get(props.id)?.term_path);
+  const requestedComputeServerId = useRedux([
+    props.name,
+    "terminalRequestedComputeServerIds",
+  ])?.get(props.actions.terminals.get(props.id)?.term_path);
 
   useEffect(() => {
     return delete_terminal; // clean up on unmount
@@ -81,7 +93,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
 
   useEffect(() => {
     measure_size();
-  }, [props.resize]);
+  }, [props.resize, resize]);
 
   function delete_terminal(): void {
     if (terminalRef.current == null) return; // already deleted or never created
@@ -174,6 +186,13 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   /* 4px padding is consistent with CodeMirror */
   return (
     <div className={"smc-vfill"}>
+      {computeServerId != null && requestedComputeServerId != null && (
+        <ComputeServerDocStatus
+          id={computeServerId}
+          requestedId={requestedComputeServerId}
+          project_id={props.project_id}
+        />
+      )}
       {render_command()}
       <div
         className={"smc-vfill"}
@@ -184,11 +203,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
           terminalRef.current?.focus();
         }}
       >
-        <div
-          className={"smc-vfill cocalc-xtermjs"}
-          ref={terminalDOMRef}
-          style={{ background: "#eee" }}
-        />
+        <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
       </div>
     </div>
   );

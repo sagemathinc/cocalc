@@ -27,7 +27,7 @@ import { Loading } from "@cocalc/frontend/components/loading";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
-import { JupyterActions } from "./browser-actions";
+import type { JupyterActions } from "./browser-actions";
 import { CellList } from "./cell-list";
 import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
@@ -46,6 +46,7 @@ import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import * as chatgpt from "./chatgpt";
 import KernelWarning from "./kernel-warning";
+import ComputeServerDocStatus from "@cocalc/frontend/compute/doc-status";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -181,6 +182,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "check_select_kernel_init",
   ]);
+  const computeServerId = useRedux([name, "computeServerId"]) ?? 0;
+  // this state right here is managed in frontend/compute/select-server.tsx
+  const requestedComputeServerId =
+    useRedux([name, "requestedComputeServerId"]) ?? 0;
 
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
@@ -197,7 +202,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const useWindowedListRef = useRef<boolean>(
     !redux
       .getStore("account")
-      .getIn(["editor_settings", "disable_jupyter_virtualization"])
+      .getIn(["editor_settings", "disable_jupyter_virtualization"]),
   );
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
@@ -232,6 +237,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         usage={usage}
         expected_cell_runtime={expected_cell_runtime}
         mode={mode}
+        computeServerId={computeServerId}
       />
     );
   }
@@ -342,6 +348,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
         chatgpt={chatgpt}
+        computeServerId={computeServerId}
       />
     );
   }
@@ -484,7 +491,12 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           overflowY: "hidden",
         }}
       >
-        <KernelWarning name={name} />
+        <ComputeServerDocStatus
+          id={computeServerId}
+          requestedId={requestedComputeServerId}
+          project_id={project_id}
+        />
+        <KernelWarning name={name} actions={actions} />
         {render_error()}
         {render_modals()}
         {render_heading()}

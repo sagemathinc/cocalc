@@ -16,17 +16,20 @@ This is mainly responsible for:
 import { SyncTable } from "@cocalc/sync/table";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
-import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type Client from "@cocalc/sync-client";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension } from "@cocalc/util/misc";
 import { initJupyterRedux } from "@cocalc/jupyter/kernel";
 import { EventEmitter } from "events";
+import { COMPUTER_SERVER_DB_NAME } from "@cocalc/util/compute/manager";
+import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
+
+type SyncDoc = SyncDB | SyncString;
 
 const COCALC_EPHEMERAL_STATE: boolean =
   process.env.COCALC_EPHEMERAL_STATE === "yes";
 
-class SyncDocs extends EventEmitter {
+export class SyncDocs extends EventEmitter {
   private syncdocs: { [path: string]: SyncDoc } = {};
   private closing: Set<string> = new Set();
 
@@ -67,7 +70,10 @@ class SyncDocs extends EventEmitter {
       log?.(`close ${path} -- recording that close succeeded`);
       delete this.syncdocs[path];
       this.closing.delete(path);
+      // I think close-${path} is used only internally in this.create below
       this.emit(`close-${path}`);
+      // This is used by computeServerOpenFileTracking
+      this.emit("close", path);
     }
   }
 
@@ -75,11 +81,19 @@ class SyncDocs extends EventEmitter {
     return this.syncdocs[path];
   }
 
+  getOpenPaths = (): string[] => {
+    return Object.keys(this.syncdocs);
+  };
+
+  isOpen = (path: string): boolean => {
+    return this.syncdocs[path] != null;
+  };
+
   async create(type, opts, log): Promise<SyncDoc> {
     const path = opts.path;
     if (this.closing.has(path)) {
       log(
-        `create ${path} -- waiting for previous version to completely finish closing...`
+        `create ${path} -- waiting for previous version to completely finish closing...`,
       );
       await once(this, `close-${path}`);
       log(`create ${path} -- successfully closed.`);
@@ -97,6 +111,12 @@ class SyncDocs extends EventEmitter {
     }
     this.syncdocs[path] = doc;
     log(`create ${path} -- successfully created.`);
+    // This is used by computeServerOpenFileTracking:
+    this.emit("open", path);
+    if (path == COMPUTER_SERVER_DB_NAME) {
+      log("also initializing open file tracking for ", COMPUTER_SERVER_DB_NAME);
+      computeServerOpenFileTracking(this, doc);
+    }
     return doc;
   }
 
@@ -114,7 +134,7 @@ const syncDocs = new SyncDocs();
 export function init_syncdoc(
   client: Client,
   synctable: SyncTable,
-  logger: any
+  logger: any,
 ): void {
   if (synctable.get_table() !== "syncstrings") {
     throw Error("table must be 'syncstrings'");
@@ -137,7 +157,7 @@ export function get_syncdoc(path: string): SyncDoc | undefined {
 async function init_syncdoc_async(
   client: Client,
   synctable: SyncTable,
-  logger: any
+  logger: any,
 ): Promise<void> {
   function log(...args): void {
     logger.debug("init_syncdoc -- ", ...args);
@@ -148,8 +168,8 @@ async function init_syncdoc_async(
   log("synctable ready.  Now getting type and opts");
   const { type, opts } = get_type_and_opts(synctable);
   opts.project_id = client.client_id();
-  log("type = ", type);
-  log("opts = ", JSON.stringify(opts));
+  //   log("type = ", type);
+  //   log("opts = ", JSON.stringify(opts));
   opts.client = client;
   log(`now creating syncdoc ${opts.path}...`);
   let syncdoc;
@@ -183,7 +203,7 @@ async function init_syncdoc_async(
 
 async function wait_until_synctable_ready(
   synctable: SyncTable,
-  log: Function
+  log: Function,
 ): Promise<void> {
   if (synctable.get_state() == "disconnected") {
     log("wait for synctable be connected");
@@ -247,7 +267,7 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
 export async function syncdoc_call(
   path: string,
   logger: any,
-  mesg: any
+  mesg: any,
 ): Promise<string> {
   logger.debug("syncdoc_call", path, mesg);
   const doc = syncDocs.get(path);
@@ -269,7 +289,7 @@ export async function syncdoc_call(
 // This is used when deleting a file/directory
 // filename may be a directory or actual filename
 export async function close_all_syncdocs_in_tree(
-  filename: string
+  filename: string,
 ): Promise<void> {
   return await syncDocs.closeAll(filename);
 }

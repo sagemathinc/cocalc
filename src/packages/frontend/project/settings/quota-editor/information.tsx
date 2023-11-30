@@ -7,17 +7,9 @@ export default function Information() {
       content={
         <div style={{ width: "550px", maxWidth: "90vw" }}>
           <p>
-            Set quotas here. When this project starts, any licenses and upgrades
-            are applied, then the quotas of the project are increased to at
-            least the values listed here, as long as you haven't exceeded your
-            monthly spending limit. You will be charged for usage that isn't
-            covered by any licenses and upgrades, and which you can monitor via
-            an indicator when the project is running.
-          </p>
-          <p>
-            You can configure your project so these minimal upgrades are
-            available only when <b>you</b> start the project, or when{" "}
-            <b>any collaborator</b> starts the project.
+            Set quotas here. IMPORTANT: When this project starts, any other
+            licenses and upgrades are NOT applied, and instead{" "}
+            <b>only the upgrades listed here are used</b>.
           </p>
           <p>
             There is a monthly spending limit on project upgrades, and if you

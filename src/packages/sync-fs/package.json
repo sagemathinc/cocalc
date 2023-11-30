@@ -1,0 +1,49 @@
+{
+  "name": "@cocalc/sync-fs",
+  "version": "0.1.0",
+  "description": "CoCalc Filesystem Sync",
+  "main": "./dist/lib/index.js",
+  "exports": {
+    ".": "./dist/lib/index.js",
+    "./*": "./dist/*.js",
+    "./lib/*": "./dist/lib/*.js"
+  },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "npx tsc --build",
+    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+  },
+  "author": "SageMath, Inc.",
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/api-client": "workspace:*",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/comm": "workspace:*",
+    "@cocalc/sync-client": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@types/lz4": "^0.6.3",
+    "execa": "^8.0.1",
+    "lodash": "^4.17.21",
+    "lz4": "^0.6.5",
+    "mkdirp": "^1.0.4",
+    "tsimportlib": "^0.0.5"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-fs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.14"
+  }
+}

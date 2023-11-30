@@ -95,6 +95,7 @@ interface CellListProps {
   trust?: boolean;
   use_windowed_list?: boolean;
   chatgpt?;
+  computeServerId?: number;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -121,6 +122,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     trust,
     use_windowed_list,
     chatgpt,
+    computeServerId,
   } = props;
 
   const cell_list_node = useRef<HTMLElement | null>(null);
@@ -295,17 +297,40 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
         });
       } else if (scroll == "cell visible") {
-        // We ONLY scroll if the cell is not in the visible
-        // range -- otherwise if the cell is halfway off the screen...
-        // TODO: this is really just a stupid hack that doesn't fully work,
-        // and I will have to implement something better.
+        // We ONLY scroll if the cell is not in the visible, since
+        // react-virtuoso's "scrollIntoView" aggressively scrolls, even
+        // if the item is in view.
         const n = index + EXTRA_TOP_CELLS;
-        if (
-          n <= virtuosoRangeRef.current.startIndex ||
-          n >= virtuosoRangeRef.current.endIndex
-        ) {
+        let isNotVisible = false;
+        let align: "start" | "center" | "end" = "start";
+        if (n < virtuosoRangeRef.current.startIndex) {
+          // If not rendered at all then clearly it is NOT visible.
+          align = "start";
+          isNotVisible = true;
+        } else if (n > virtuosoRangeRef.current.endIndex) {
+          align = "end";
+          isNotVisible = true;
+        } else {
+          const scroller = $(cell_list_node.current);
+          const cell = scroller.find(`#${cur_id}`);
+          if (scroller[0] == null) return;
+          if (cell[0] == null) return;
+          const scrollerRect = scroller[0].getBoundingClientRect();
+          const cellRect = cell[0].getBoundingClientRect();
+          const cellTop = cellRect.y;
+          const cellBottom = cellRect.y + cellRect.height;
+          if (cellBottom - 15 <= scrollerRect.y) {
+            align = "end";
+            isNotVisible = true;
+          } else if (cellTop + 15 >= scrollerRect.y + scrollerRect.height) {
+            align = "start";
+            isNotVisible = true;
+          }
+        }
+        if (isNotVisible) {
           virtuosoRef.current?.scrollIntoView({
             index: n,
+            align,
           });
           // don't do the requestAnimationFrame hack as below here
           // because that actually moves between top and bottom.
@@ -315,10 +340,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
         });
         // hack which seems necessary for jupyter at least.
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-          })
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+            }),
         );
       }
     } else if (scroll.startsWith("list")) {
@@ -328,11 +354,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "end",
         });
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-            align: "end",
-          })
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+              align: "end",
+            }),
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
@@ -340,11 +367,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "start",
         });
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-            align: "start",
-          })
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+              align: "start",
+            }),
         );
       }
     }
@@ -386,7 +414,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   function render_insert_cell(
     id: string,
-    position: "above" | "below" = "above"
+    position: "above" | "below" = "above",
   ): JSX.Element | null {
     if (actions == null) return null;
     return (
@@ -404,7 +432,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     id: string,
     isScrolling?: boolean,
     index?: number,
-    delayRendering?: number
+    delayRendering?: number,
   ) {
     const cell = cells.get(id);
     if (cell == null) return null;
@@ -451,6 +479,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
           chatgpt={chatgpt}
+          computeServerId={computeServerId}
         />
       </div>
     );
@@ -492,7 +521,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           },
           scrollerRef: handleCellListRef,
         }
-      : { disabled: true }
+      : { disabled: true },
   );
 
   useLayoutEffect(() => {
@@ -652,7 +681,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         <SortableItem id={id} key={id}>
           {actions != null && render_insert_cell(id)}
           {render_cell(id, false, index, index)}
-        </SortableItem>
+        </SortableItem>,
       );
       index += 1;
     });
@@ -711,6 +740,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           setTimeout(() => {
             frameActions.current?.scroll("cell visible");
           }, 0);
+          setTimeout(() => {
+            frameActions.current?.scroll("cell visible");
+          }, 50);
         }}
       >
         {body}

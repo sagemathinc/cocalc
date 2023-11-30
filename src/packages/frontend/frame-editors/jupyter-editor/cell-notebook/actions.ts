@@ -75,7 +75,7 @@ export class NotebookFrameActions {
     this.commands = commands(
       this.jupyter_actions,
       { current: this },
-      this.frame_tree_actions
+      this.frame_tree_actions,
     );
   }
 
@@ -90,11 +90,11 @@ export class NotebookFrameActions {
   private init_syncdb_change_hook(): void {
     this.jupyter_actions.store.on(
       "syncdb-before-change",
-      this.syncdb_before_change
+      this.syncdb_before_change,
     );
     this.jupyter_actions.store.on(
       "syncdb-after-change",
-      this.syncdb_after_change
+      this.syncdb_after_change,
     );
   }
 
@@ -190,15 +190,15 @@ export class NotebookFrameActions {
   public close(): void {
     this.jupyter_actions.store.removeListener(
       "syncdb-before-change",
-      this.syncdb_before_change
+      this.syncdb_before_change,
     );
     this.jupyter_actions.store.removeListener(
       "cell-list-recompute",
-      this.update_cur_id
+      this.update_cur_id,
     );
     this.jupyter_actions.store.removeListener(
       "syncdb-after-change",
-      this.syncdb_after_change
+      this.syncdb_after_change,
     );
     this.store.close();
     close(this);
@@ -213,7 +213,7 @@ export class NotebookFrameActions {
     if (!DEBUG) return;
     console.log(
       `NotebookFrameActions(frame_id='${this.frame_id}').${f}`,
-      ...args
+      ...args,
     );
   }
 
@@ -258,7 +258,7 @@ export class NotebookFrameActions {
       this.key_handler = create_key_handler(
         this.jupyter_actions,
         this,
-        this.frame_tree_actions
+        this.frame_tree_actions,
       );
     }
     if (this.key_handler != null) {
@@ -392,7 +392,7 @@ export class NotebookFrameActions {
       id,
       "input_hidden",
       undefined,
-      false
+      false,
     );
     let md_edit_ids = this.store.get("md_edit_ids");
     if (md_edit_ids == null) md_edit_ids = Set();
@@ -410,7 +410,7 @@ export class NotebookFrameActions {
       id,
       "input_hidden",
       undefined,
-      false
+      false,
     );
     let md_edit_ids = this.store.get("md_edit_ids");
     if (md_edit_ids == null || !md_edit_ids.contains(id)) {
@@ -535,6 +535,7 @@ export class NotebookFrameActions {
       this.set_cur_id(id);
       return;
     }
+    this.set_mode("escape");
     let sel_ids = this.store.get("sel_ids");
     if (cur_id === id) {
       // little to do...
@@ -653,7 +654,7 @@ export class NotebookFrameActions {
   */
   public set_input_editor_cursor(
     id: string,
-    pos: { x: number; y: number }
+    pos: { x: number; y: number },
   ): void {
     this.validate({ id });
     if (this.input_editors[id] == null) return;
@@ -742,7 +743,7 @@ export class NotebookFrameActions {
   public insert_cell(delta: 1 | -1): string {
     const id = this.jupyter_actions.insert_cell_adjacent(
       this.store.get("cur_id"),
-      delta
+      delta,
     );
     this.set_cur_id(id);
     this.scroll("cell visible force");
@@ -833,7 +834,7 @@ export class NotebookFrameActions {
     for (const id in this.store.get_selected_cell_ids()) {
       this.jupyter_actions.toggle_jupyter_metadata_boolean(
         id,
-        "outputs_hidden"
+        "outputs_hidden",
       );
     }
   }
@@ -844,7 +845,7 @@ export class NotebookFrameActions {
       cur_id,
       "source_hidden",
       undefined,
-      true
+      true,
     );
   }
 
@@ -886,7 +887,7 @@ export class NotebookFrameActions {
   public paste_cells(delta: 0 | 1 | -1 = 1): void {
     this.jupyter_actions.paste_cells_at(
       this.store.get_selected_cell_ids_list(),
-      delta
+      delta,
     );
   }
 
@@ -915,7 +916,7 @@ export class NotebookFrameActions {
     this.run_selected_cells(v);
     const new_id = this.jupyter_actions.insert_cell_adjacent(
       v[v.length - 1],
-      1
+      1,
     );
     // Set mode back to edit in the next loop.
     await delay(0);
@@ -976,7 +977,7 @@ export class NotebookFrameActions {
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
     this.jupyter_actions.toggle_outputs(
       this.store.get_selected_cell_ids_list(),
-      property
+      property,
     );
   }
 
@@ -991,7 +992,7 @@ export class NotebookFrameActions {
       this.frame_tree_actions.set_status("Formatting selected cells...");
       await this.jupyter_actions.format_cells(
         this.store.get_selected_cell_ids_list(),
-        sync
+        sync,
       );
     } catch (err) {
       this.frame_tree_actions.setFormatError(`${err}`, err.formatInput);
