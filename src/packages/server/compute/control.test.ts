@@ -4,7 +4,6 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
 import * as control from "./control";
-import { getServer } from "./get-servers";
 import { delay } from "awaiting";
 
 beforeAll(async () => {
@@ -37,7 +36,7 @@ describe("creates account, project and a test compute server, then control it", 
   let id;
   it("creates compute server on the 'test' cloud", async () => {
     const s = {
-      name: "myserver",
+      title: "myserver",
       idle_timeout: 15,
       cloud: "test",
     } as const;
@@ -50,7 +49,14 @@ describe("creates account, project and a test compute server, then control it", 
 
   it("start the server", async () => {
     await control.start({ account_id, id });
-    expect((await getServer({ account_id, id })).state).toBe("starting");
+    // we have to do something like this... because control.start is pretty
+    // complicated, involves api keys, the database, etc., and there is no
+    // telling how long it takes to change the state. Moroever, the state
+    // might be starting or running.  This will timeout with an error if the
+    // state were to fail to change.
+    while ((await control.state({ account_id, id })) == "off") {
+      await delay(10);
+    }
   });
 
   it("waits for the server to start running", async () => {
@@ -58,12 +64,14 @@ describe("creates account, project and a test compute server, then control it", 
       account_id,
       id,
     });
-    expect((await getServer({ account_id, id })).state).toBe("running");
+    expect(await control.state({ account_id, id })).toBe("running");
   });
 
   it("stop the server", async () => {
-    await control.stop({ account_id, id });
-    expect((await getServer({ account_id, id })).state).toBe("stopping");
+    control.stop({ account_id, id });
+    while ((await control.state({ account_id, id })) == "running") {
+      await delay(10);
+    }
   });
 
   it("wait for it to stop", async () => {
@@ -71,15 +79,6 @@ describe("creates account, project and a test compute server, then control it", 
       account_id,
       id,
     });
-    expect((await getServer({ account_id, id })).state).toBe("off");
-  });
-
-  it("start the server and see that it also automaticlaly  switches to running state", async () => {
-    await control.start({ account_id, id });
-    expect((await getServer({ account_id, id })).state).toBe("starting");
-    while ((await getServer({ account_id, id })).state != "running") {
-      await delay(20);
-    }
-    expect((await getServer({ account_id, id })).state).toBe("running");
+    expect(await control.state({ account_id, id })).toBe("off");
   });
 });

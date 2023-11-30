@@ -21,7 +21,10 @@ export async function state(server: ComputeServer): Promise<State> {
   throw Error("not implemented");
 }
 
-export async function cost(server: ComputeServer): Promise<number> {
-  logger.debug("cost", server);
+export async function cost(
+  server: ComputeServer,
+  state: State,
+): Promise<number> {
+  logger.debug("cost", server, state);
   throw Error("not implemented");
 }

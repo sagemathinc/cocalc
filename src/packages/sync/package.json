@@ -29,6 +29,7 @@
   "dependencies": {
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@types/debug": "^4.1.7",
     "@types/lodash": "^4.14.176",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",

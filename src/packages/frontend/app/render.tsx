@@ -4,17 +4,25 @@
  */
 
 import { createRoot } from "react-dom/client";
+import { ConfigProvider as AntdConfigProvider } from "antd";
 
 import { Redux } from "@cocalc/frontend/app-framework";
-import { AppContext, useAppStateProvider } from "./context";
+import {
+  AppContext,
+  useAppStateProvider,
+  useAntdStyleProvider,
+} from "./context";
 
 function Root({ Page }) {
   const appState = useAppStateProvider();
+  const { antdTheme } = useAntdStyleProvider();
 
   return (
     <Redux>
       <AppContext.Provider value={appState}>
-        <Page />
+        <AntdConfigProvider theme={antdTheme}>
+          <Page />
+        </AntdConfigProvider>
       </AppContext.Provider>
     </Redux>
   );
@@ -34,7 +42,7 @@ export async function xxx_render(): Promise<void> {
   const { Page } = await import("./page");
   ReactDOM.render(
     <Root Page={Page} />,
-    document.getElementById("cocalc-webapp-container")
+    document.getElementById("cocalc-webapp-container"),
   );
 }
 

@@ -58,27 +58,27 @@ export default class PlotView extends DOMWidgetView {
     pull(plots, this);
     this.K3DInstance.off(
       this.K3DInstance.events.CAMERA_CHANGE,
-      this.cameraChangeId
+      this.cameraChangeId,
     );
     this.K3DInstance.off(
       this.K3DInstance.events.OBJECT_CHANGE,
-      this.GUIObjectChanges
+      this.GUIObjectChanges,
     );
     this.K3DInstance.off(
       this.K3DInstance.events.PARAMETERS_CHANGE,
-      this.GUIParametersChanges
+      this.GUIParametersChanges,
     );
     this.K3DInstance.off(
       this.K3DInstance.events.VOXELS_CALLBACK,
-      this.voxelsCallback
+      this.voxelsCallback,
     );
     this.K3DInstance.off(
       this.K3DInstance.events.OBJECT_HOVERED,
-      this.objectHoverCallback
+      this.objectHoverCallback,
     );
     this.K3DInstance.off(
       this.K3DInstance.events.OBJECT_CLICKED,
-      this.objectClickCallback
+      this.objectClickCallback,
     );
 
     // Disable all listeners.  This is not done in upstream, which seems to be a mistake.
@@ -109,11 +109,10 @@ export default class PlotView extends DOMWidgetView {
       (obj) => {
         // console.log("PlotView: received msg:custom", obj);
         const { model } = this;
-
         if (obj.msg_type === "fetch_screenshot") {
           this.K3DInstance.getScreenshot(
             this.K3DInstance.parameters.screenshotScale,
-            obj.only_canvas
+            obj.only_canvas,
           ).then((canvas) => {
             const data = canvas.toDataURL().split(",")[1];
             // TODO: upstream had {patch:true}, which typescript and
@@ -131,7 +130,7 @@ export default class PlotView extends DOMWidgetView {
             "snapshot",
             this.K3DInstance.getHTMLSnapshot(obj.compression_level),
             // @ts-ignore
-            { patch: true }
+            { patch: true },
           );
         }
 
@@ -161,7 +160,7 @@ export default class PlotView extends DOMWidgetView {
           }
         }
       },
-      this
+      this,
     );
 
     try {
@@ -274,25 +273,7 @@ export default class PlotView extends DOMWidgetView {
     this._setMenuVisibility();
     this._setVoxelPaintColor();
 
-    this.model.get("object_ids").forEach(async (id) => {
-      while (objects[id] == null) {
-        await delay(100);
-      }
-
-      // group:null to workaround upstream bug (see NOTES above)
-      if (objects[id] == null) {
-        console.log(`plot-view: init - ${id} missing object`);
-        return;
-      }
-      const v = [{ group: null, ...objects[id]?.attributes }];
-      if (!v[0].type) {
-        console.log(`plot-view: init - ${id} missing TYPE`);
-        return;
-      }
-      // console.log(`plot-view: init - loading`, id);
-
-      this.renderPromises.push(this.K3DInstance.load({ objects: v }));
-    }, this);
+    this.loadModel();
 
     this.cameraChangeId = this.K3DInstance.on(
       this.K3DInstance.events.CAMERA_CHANGE,
@@ -302,7 +283,7 @@ export default class PlotView extends DOMWidgetView {
           // @ts-ignore -- see comment about {patch:true} elsewhere.
           self.model.save("camera", camera, { patch: true });
         }
-      }
+      },
     );
 
     this.GUIObjectChanges = this.K3DInstance.on(
@@ -318,7 +299,7 @@ export default class PlotView extends DOMWidgetView {
             patch: true,
           });
         }
-      }
+      },
     );
 
     this.GUIParametersChanges = this.K3DInstance.on(
@@ -326,7 +307,7 @@ export default class PlotView extends DOMWidgetView {
       (change) => {
         // @ts-ignore -- see comment about {patch:true} elsewhere.
         self.model.save(change.key, change.value, { patch: true });
-      }
+      },
     );
 
     this.voxelsCallback = this.K3DInstance.on(
@@ -338,7 +319,7 @@ export default class PlotView extends DOMWidgetView {
             coord: param.coord,
           });
         }
-      }
+      },
     );
 
     this.objectHoverCallback = this.K3DInstance.on(
@@ -355,7 +336,7 @@ export default class PlotView extends DOMWidgetView {
             uv: param.uv,
           });
         }
-      }
+      },
     );
 
     this.objectClickCallback = this.K3DInstance.on(
@@ -372,20 +353,38 @@ export default class PlotView extends DOMWidgetView {
             uv: param.uv,
           });
         }
-      }
+      },
     );
   }
 
+  loadModel = async () => {
+    for (const id of this.model.get("object_ids")) {
+      // wait with exponential backoff, but don't wait forever (e.g.,
+      // what if connection drops)
+      let d = 50;
+      let t = Date.now();
+      while (objects[id] == null && Date.now() - t <= 60000) {
+        await delay(d);
+        d = Math.max(3000, d * 1.2);
+      }
+    }
+    for (const id of this.model.get("object_ids")) {
+      // group:null to workaround upstream bug (see NOTES above)
+      const v = [{ group: null, ...objects[id]?.attributes }];
+      this.renderPromises.push(this.K3DInstance.load({ objects: v }));
+    }
+  };
+
   _setDirectionalLightingIntensity() {
     this.K3DInstance.setDirectionalLightingIntensity(
-      this.model.get("lighting")
+      this.model.get("lighting"),
     );
   }
 
   _setTime() {
     if (this.K3DInstance.parameters.time !== this.model.get("time")) {
       this.renderPromises.push(
-        this.K3DInstance.setTime(this.model.get("time"))
+        this.K3DInstance.setTime(this.model.get("time")),
       );
     }
   }
@@ -444,7 +443,7 @@ export default class PlotView extends DOMWidgetView {
 
   _setColorbarScientific() {
     this.K3DInstance.setColorbarScientific(
-      this.model.get("colorbar_scientific")
+      this.model.get("colorbar_scientific"),
     );
   }
 
@@ -492,7 +491,7 @@ export default class PlotView extends DOMWidgetView {
     this.K3DInstance.setCameraLock(
       this.model.get("camera_no_rotate"),
       this.model.get("camera_no_zoom"),
-      this.model.get("camera_no_pan")
+      this.model.get("camera_no_pan"),
     );
   }
 
@@ -500,7 +499,7 @@ export default class PlotView extends DOMWidgetView {
     this.K3DInstance.setCameraSpeeds(
       this.model.get("camera_rotate_speed"),
       this.model.get("camera_zoom_speed"),
-      this.model.get("camera_pan_speed")
+      this.model.get("camera_pan_speed"),
     );
   }
 
@@ -510,7 +509,7 @@ export default class PlotView extends DOMWidgetView {
 
   _setCameraDampingFactor() {
     this.K3DInstance.setCameraDampingFactor(
-      this.model.get("camera_damping_factor")
+      this.model.get("camera_damping_factor"),
     );
   }
 
@@ -537,7 +536,7 @@ export default class PlotView extends DOMWidgetView {
       this.renderPromises.push(
         this.K3DInstance.load({
           objects: [{ group: null, ...objects[id].attributes }],
-        })
+        }),
       );
     }, this);
   }
@@ -554,8 +553,8 @@ export default class PlotView extends DOMWidgetView {
       this.renderPromises.push(
         this.K3DInstance.reload(
           { group: null, ...objects[id].attributes },
-          changed
-        )
+          changed,
+        ),
       );
     }
   }

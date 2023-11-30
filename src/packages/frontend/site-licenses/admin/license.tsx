@@ -240,14 +240,7 @@ export const License: React.FC<Props> = (props: Props) => {
         );
         break;
       case "map":
-        let value: string = "";
-        if (val) {
-          if (typeof val != "string") {
-            value = JSON.stringify(val, undefined, 2);
-          } else {
-            value = val;
-          }
-        }
+        const value = toJsonString(val);
         x = (
           <div>
             <DebounceInput
@@ -390,20 +383,10 @@ export const License: React.FC<Props> = (props: Props) => {
         x = <DisplayQuota quota={val} />;
         break;
       case "map":
-        let value: string = "";
-        if (val) {
-          if (typeof val != "string") {
-            value = JSON.stringify(val, undefined, 2);
-          } else {
-            value = val;
-          }
-        }
+        const value = toJsonString(val);
         x = (
           <div>
-            <Owner
-              account_id={JSON.parse(value)?.purchased?.account_id}
-              license_id={license.get("id")}
-            />
+            <Owner info={value} license_id={license.get("id")} />
             <pre style={{ margin: 0, padding: "5px" }}>{value}</pre>
           </div>
         );
@@ -651,3 +634,15 @@ export const License: React.FC<Props> = (props: Props) => {
     </div>
   );
 };
+
+function toJsonString(val) {
+  if (val) {
+    if (typeof val != "string") {
+      return JSON.stringify(val, undefined, 2);
+    } else {
+      return val;
+    }
+  } else {
+    return "";
+  }
+}

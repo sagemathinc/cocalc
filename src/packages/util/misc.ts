@@ -7,6 +7,8 @@ export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
 
 export * from "./misc-path";
 
+import LRU from "lru-cache";
+
 import {
   is_array,
   is_date,
@@ -139,7 +141,7 @@ export function separate_file_extension(name: string): {
 // if there is no extension, add it.
 export function change_filename_extension(
   path: string,
-  new_ext: string
+  new_ext: string,
 ): string {
   const { name } = separate_file_extension(path);
   return `${name}.${new_ext}`;
@@ -276,7 +278,7 @@ import { v4 as v4uuid } from "uuid";
 export const uuid: () => string = v4uuid;
 
 const uuid_regexp = new RegExp(
-  /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
+  /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i,
 );
 export function is_valid_uuid_string(uuid?: any): boolean {
   return (
@@ -420,7 +422,11 @@ export function assert_valid_email_address(email: string): void {
 export const to_json = JSON.stringify;
 
 // gives the plural form of the word if the number should be plural
-export function plural(number, singular, plural = `${singular}s`) {
+export function plural(
+  number: number = 0,
+  singular: string,
+  plural: string = `${singular}s`,
+) {
   if (["GB", "G", "MB"].includes(singular)) {
     return singular;
   }
@@ -513,7 +519,7 @@ export function getIn(x: any, path: string[], default_value?: any): any {
 export function replace_all(
   s: string,
   search: string,
-  replace: string
+  replace: string,
 ): string {
   return s.split(search).join(replace);
 }
@@ -523,7 +529,7 @@ export function replace_all(
 export function replace_all_function(
   s: string,
   search: string,
-  replace_f: (i: number) => string
+  replace_f: (i: number) => string,
 ): string {
   const v = s.split(search);
   const w: string[] = [];
@@ -607,7 +613,7 @@ function get_methods(obj: object): string[] {
     Object.getOwnPropertyNames(current_obj).map((item) => properties.add(item));
   } while ((current_obj = Object.getPrototypeOf(current_obj)));
   return [...properties.keys()].filter(
-    (item) => typeof obj[item] === "function"
+    (item) => typeof obj[item] === "function",
   );
 }
 
@@ -621,7 +627,7 @@ function get_methods(obj: object): string[] {
 // loop and for which you want 'safer' semantics.
 export function bind_methods<T extends object>(
   obj: T,
-  method_names: undefined | string[] = undefined
+  method_names: undefined | string[] = undefined,
 ): T {
   if (method_names === undefined) {
     method_names = get_methods(obj);
@@ -635,7 +641,7 @@ export function bind_methods<T extends object>(
 
 export function human_readable_size(
   bytes: number | null | undefined,
-  short = false
+  short = false,
 ): string {
   if (bytes == null) {
     return "?";
@@ -726,7 +732,7 @@ https://security.stackexchange.com/questions/1952/how-long-should-a-random-nonce
 const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 export function secure_random_token(
   length: number = 16,
-  alphabet: string = BASE58 // default is this crypto base58 less ambiguous numbers/letters
+  alphabet: string = BASE58, // default is this crypto base58 less ambiguous numbers/letters
 ): string {
   let s = "";
   if (length == 0) return s;
@@ -786,6 +792,14 @@ export function round2(num: number): number {
   return Math.round((num + 0.00001) * 100) / 100;
 }
 
+export function round3(num: number): number {
+  return Math.round((num + 0.000001) * 1000) / 1000;
+}
+
+export function round4(num: number): number {
+  return Math.round((num + 0.0000001) * 10000) / 10000;
+}
+
 // Round given number up to 2 decimal places
 export function round2up(num: number): number {
   return Math.ceil(num * 100) / 100;
@@ -797,7 +811,7 @@ export function round2up(num: number): number {
 export function parse_number_input(
   input: any,
   round_number: boolean = true,
-  allow_negative: boolean = false
+  allow_negative: boolean = false,
 ): number | undefined {
   if (typeof input == "boolean") {
     return input ? 1 : 0;
@@ -875,7 +889,7 @@ export function coerce_codomain_to_numbers(map: { [k: string]: any }): {
 // pass in properly typed inputs.
 export function map_sum(
   a?: { [k: string]: number },
-  b?: { [k: string]: number }
+  b?: { [k: string]: number },
 ): { [k: string]: number } {
   if (a == null) {
     return coerce_codomain_to_numbers(b ?? {});
@@ -902,7 +916,7 @@ export function map_sum(
 
 export function map_diff(
   a?: { [k: string]: number },
-  b?: { [k: string]: number }
+  b?: { [k: string]: number },
 ): { [k: string]: number } {
   if (b == null) {
     return coerce_codomain_to_numbers(a ?? {});
@@ -936,7 +950,7 @@ export function map_diff(
 export function search_split(
   search: string,
   allowRegexp: boolean = true,
-  regexpOptions: string = "i"
+  regexpOptions: string = "i",
 ): (string | RegExp)[] {
   search = search.trim();
   if (
@@ -974,7 +988,7 @@ export function search_split(
       }
     } else {
       terms.push(
-        allowRegexp ? stringOrRegExp(element, regexpOptions) : element
+        allowRegexp ? stringOrRegExp(element, regexpOptions) : element,
       );
     }
   }
@@ -1272,7 +1286,7 @@ export function original_path(path: string): string {
   const ext = filename_extension(s.tail);
   let x = s.tail.slice(
     s.tail[0] === "." ? 1 : 0,
-    s.tail.length - (ext.length + 1)
+    s.tail.length - (ext.length + 1),
   );
   if (s.head !== "") {
     x = s.head + "/" + x;
@@ -1390,14 +1404,14 @@ export function retry_until_success(opts: {
     if (opts.log != null) {
       if (opts.max_tries != null) {
         opts.log(
-          `retry_until_success(${opts.name}) -- try ${tries}/${opts.max_tries}`
+          `retry_until_success(${opts.name}) -- try ${tries}/${opts.max_tries}`,
         );
       }
       if (opts.max_time != null) {
         opts.log(
           `retry_until_success(${opts.name}) -- try ${tries} (started ${
             Date.now() - start_time
-          }ms ago; will stop before ${opts.max_time}ms max time)`
+          }ms ago; will stop before ${opts.max_time}ms max time)`,
         );
       }
       if (opts.max_tries == null && opts.max_time == null) {
@@ -1412,12 +1426,12 @@ export function retry_until_success(opts: {
         }
         if (err && opts.warn != null) {
           opts.warn(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
+            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
           );
         }
         if (opts.log != null) {
           opts.log(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`
+            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
           );
         }
         if (opts.max_tries != null && opts.max_tries <= tries) {
@@ -1425,13 +1439,13 @@ export function retry_until_success(opts: {
             `maximum tries (=${
               opts.max_tries
             }) exceeded - last error ${JSON.stringify(err)}`,
-            err
+            err,
           );
           return;
         }
         delta = Math.min(
           opts.max_delay as number,
-          (opts.factor as number) * delta
+          (opts.factor as number) * delta,
         );
         if (
           opts.max_time != null &&
@@ -1441,7 +1455,7 @@ export function retry_until_success(opts: {
             `maximum time (=${
               opts.max_time
             }ms) exceeded - last error ${JSON.stringify(err)}`,
-            err
+            err,
           );
           return;
         }
@@ -1546,6 +1560,11 @@ export function parse_bup_timestamp(s: string): Date {
   return new Date(`${v[1]}/${v[2]}/${v[0]} ${v[3]}:${v[4]}:${v[5]} UTC`);
 }
 
+// NOTE: this hash works, but the crypto hashes in nodejs, eg.,
+// sha1 (as used here packages/backend/sha1.ts) are MUCH faster
+// for large strings.  If there is some way to switch to one of those,
+// it would be better, but we have to worry about how this is already deployed
+// e.g., hashes in the database.
 export function hash_string(s: string): number {
   if (typeof s != "string") {
     return 0; // just in case non-typescript code tries to use this
@@ -1618,7 +1637,7 @@ export function parse_hashtags(t: string): [number, number][] {
 // that might be dangerous, right)?
 export function path_is_in_public_paths(
   path: string,
-  paths: string[] | Set<string> | object | undefined
+  paths: string[] | Set<string> | object | undefined,
 ): boolean {
   return containing_public_path(path, paths) != null;
 }
@@ -1629,7 +1648,7 @@ export function path_is_in_public_paths(
 // paths can be an array or object (with keys the paths) or a Set
 export function containing_public_path(
   path: string,
-  paths: string[] | Set<string> | object | undefined
+  paths: string[] | Set<string> | object | undefined,
 ): undefined | string {
   if (paths == null || path == null) {
     // just in case of non-typescript clients
@@ -1693,7 +1712,7 @@ export function lstrip(s: string): string {
 }
 
 export function date_to_snapshot_format(
-  d: Date | undefined | null | number
+  d: Date | undefined | null | number,
 ): string {
   if (d == null) {
     d = 0;
@@ -1724,25 +1743,25 @@ export function to_money(n: number, d = 2): string {
 }
 
 // Display currency with a dollar sign, rounded to *nearest*, and
-// if d is not given and n is less than 10 cents, will show 3 digits
+// if d is not given and n is less than 1 cent, will show 3 digits
 // instead of 2.
 export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.1 ? 3 : 2))}`;
+  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
 }
 
 export function stripeAmount(
   unitPrice: number,
   currency: string,
-  units = 1
+  units = 1,
 ): string {
   // input is in pennies
   if (currency !== "usd") {
     // TODO: need to make this look nice with symbols for other currencies...
     return `${currency == "eur" ? "€" : ""}${to_money(
-      (units * unitPrice) / 100
+      (units * unitPrice) / 100,
     )} ${currency.toUpperCase()}`;
   }
   return `$${to_money((units * unitPrice) / 100)} USD`;
@@ -1750,7 +1769,7 @@ export function stripeAmount(
 
 export function planInterval(
   interval: string,
-  interval_count: number = 1
+  interval_count: number = 1,
 ): string {
   return `${interval_count} ${plural(interval_count, interval)}`;
 }
@@ -1770,7 +1789,7 @@ function seconds2hms_days(
   d: number,
   h: number,
   m: number,
-  longform: boolean
+  longform: boolean,
 ): string {
   h = h % 24;
   const s = h * 60 * 60 + m * 60;
@@ -1791,7 +1810,7 @@ export function seconds2hm(secs: number, longform: boolean = false): string {
 export function seconds2hms(
   secs: number,
   longform: boolean = false,
-  show_seconds: boolean = true
+  show_seconds: boolean = true,
 ): string {
   let s;
   if (!longform && secs < 10) {
@@ -1860,16 +1879,6 @@ export function range(n: number): number[] {
   return v;
 }
 
-// foreground; otherwise, return false.
-export function should_open_in_foreground(e): boolean {
-  // for react.js synthetic mouse events, where e.which is undefined!
-  if (e.constructor.name === "SyntheticMouseEvent") {
-    e = e.nativeEvent;
-  }
-  //console.log("e: #{e}, e.which: #{e.which}", e)
-  return !(e.which === 2 || e.metaKey || e.altKey || e.ctrlKey);
-}
-
 // Like Python's enumerate
 export function enumerate(v: any[]) {
   const w: [number, any][] = [];
@@ -1920,7 +1929,7 @@ export function has_null_leaf(obj: object): boolean {
 // It returns an object, mapping each student to a list of N peers.
 export function peer_grading(
   students: string[],
-  N: number = 2
+  N: number = 2,
 ): { [student_id: string]: string[] } {
   if (N <= 0) {
     throw Error("Number of peer assigments must be at least 1");
@@ -2032,7 +2041,7 @@ export function suggest_duplicate_filename(name: string): string {
 // Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM
 export function top_sort(
   DAG: { [node: string]: string[] },
-  opts: { omit_sources?: boolean } = { omit_sources: false }
+  opts: { omit_sources?: boolean } = { omit_sources: false },
 ): string[] {
   const { omit_sources } = opts;
   const source_names: string[] = [];
@@ -2217,7 +2226,7 @@ export function jupyter_language_to_name(lang: string): string {
 // Find the kernel whose name is closest to the given name.
 export function closest_kernel_match(
   name: string,
-  kernel_list: immutable.List<immutable.Map<string, string>>
+  kernel_list: immutable.List<immutable.Map<string, string>>,
 ): immutable.Map<string, string> {
   name = name.toLowerCase().replace("matlab", "octave");
   name = name === "python" ? "python3" : name;
@@ -2249,7 +2258,7 @@ export function closest_kernel_match(
         bestMatch &&
         compareVersionStrings(
           k.get("name") ?? "",
-          bestMatch.get("name") ?? ""
+          bestMatch.get("name") ?? "",
         ) === 1)
     ) {
       bestValue = v;
@@ -2405,6 +2414,8 @@ export function firstLetterUppercase(str: string | undefined) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+const randomColorCache = new LRU<string, string>({ max: 100 });
+
 /**
  * This is a special function to sanitize objects.
  * It prevents deep nesting and limits the size of strings.
@@ -2435,21 +2446,47 @@ export function sanitizeObject(obj: object, recursive = 2): any {
 /**
  * For a given string s, return a random bright color, but not too bright.
  * Use a hash to make this random, but deterministic.
+ *
+ * opts:
+ * - min: minimum value for each channel
+ * - max: maxium value for each channel
+ * - diff: mimimum difference across channels (increase, to avoid dull gray colors)
  */
 export function getRandomColor(
   s: string,
-  opts?: { min: number; max: number }
+  opts?: { min?: number; max?: number; diff?: number },
 ): string {
-  const { min = 120, max = 220 } = opts ?? {};
+  const diff = opts?.diff ?? 0;
+  const min = clip(opts?.min ?? 120, 0, 254);
+  const max = Math.max(min, clip(opts?.max ?? 230, 1, 255));
+
+  const key = `${s}-${min}-${max}-${diff}`;
+  const cached = randomColorCache.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  let iter = 0;
+  const iterLimit = "z".charCodeAt(0) - "A".charCodeAt(0);
   const mod = max - min;
 
-  const hash = sha1(s)
-    .split("")
-    .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
-  const r = (((hash >> 0) & 0xff) % mod) + min;
-  const g = (((hash >> 8) & 0xff) % mod) + min;
-  const b = (((hash >> 16) & 0xff) % mod) + min;
-  return `rgb(${r}, ${g}, ${b})`;
+  while (true) {
+    const hash = sha1(s + String.fromCharCode("A".charCodeAt(0) + iter))
+      .split("")
+      .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
+    const r = (((hash >> 0) & 0xff) % mod) + min;
+    const g = (((hash >> 8) & 0xff) % mod) + min;
+    const b = (((hash >> 16) & 0xff) % mod) + min;
+
+    iter += 1;
+    if (iter <= iterLimit && diff) {
+      const diffVal = Math.abs(r - g) + Math.abs(g - b) + Math.abs(b - r);
+      if (diffVal < diff) continue;
+    }
+    const col = `rgb(${r}, ${g}, ${b})`;
+    randomColorCache.set(key, col);
+    return col;
+  }
 }
 
 export function hexColorToRGBA(col: string, opacity?: number): string {
@@ -2466,4 +2503,8 @@ export function hexColorToRGBA(col: string, opacity?: number): string {
 
 export function strictMod(a: number, b: number): number {
   return ((a % b) + b) % b;
+}
+
+export function clip(val: number, min: number, max: number): number {
+  return Math.min(Math.max(val, min), max);
 }

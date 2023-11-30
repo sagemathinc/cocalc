@@ -12,6 +12,7 @@ import {
   Descriptions,
   Popover,
   Row,
+  Spin,
   Typography,
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
@@ -23,7 +24,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend//app-framework";
-import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
+import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
@@ -75,7 +76,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       "kernel_info",
     ]);
     const kernel_selection: undefined | ImmutableMap<string, string> = useRedux(
-      [actions.name, "kernel_selection"]
+      [actions.name, "kernel_selection"],
     );
     const kernels_by_name:
       | undefined
@@ -151,13 +152,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         .sort((a, b) => {
           return -misc.cmp(
             kbn.getIn([a, "metadata", "cocalc", "priority"], 0),
-            kbn.getIn([b, "metadata", "cocalc", "priority"], 0)
+            kbn.getIn([b, "metadata", "cocalc", "priority"], 0),
           );
         })
         .map((name, lang) => {
           const cocalc: ImmutableMap<string, any> = kbn.getIn(
             [name, "metadata", "cocalc"],
-            null
+            null,
           ) as any;
           if (cocalc == null) return;
           const prio: number = cocalc.get("priority", 0);
@@ -170,7 +171,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           entries.push(
             <Descriptions.Item key={lang} label={label}>
               <div>{render_suggested_link(cocalc)}</div>
-            </Descriptions.Item>
+            </Descriptions.Item>,
           );
         });
 
@@ -250,7 +251,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
             <Button.Group style={{ display: "flex", flexWrap: "wrap" }}>
               {kernels}
             </Button.Group>
-          </Descriptions.Item>
+          </Descriptions.Item>,
         );
         return true;
       });
@@ -281,7 +282,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       if (kernels_by_name == null) return;
       // also don't render "last", if we do not know that kernel!
       if (!kernels_by_name.has(name)) return;
-      if (editor_settings == null) return <Loading />;
+      if (editor_settings == null) return <Spin />;
       const ask_jupyter_kernel =
         editor_settings.get("ask_jupyter_kernel") ?? true;
 
@@ -406,7 +407,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_body(): Rendered {
       if (kernels_by_name == null || kernel_selection == null) {
-        return <Loading />;
+        return <Spin />;
       } else {
         return (
           <>
@@ -458,5 +459,5 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         </Card>
       </div>
     );
-  }
+  },
 );

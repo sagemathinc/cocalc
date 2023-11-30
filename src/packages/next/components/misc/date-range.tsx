@@ -15,6 +15,7 @@ interface Props {
   maxDaysInFuture?: number; // don't allow dates this far in the future from now
   disabled?: boolean;
   initialValues?: DateRangeType;
+  suffix?: string;
 }
 
 export default function DateRange(props: Props) {
@@ -25,6 +26,7 @@ export default function DateRange(props: Props) {
     maxDaysInFuture,
     disabled = false,
     initialValues = [undefined, undefined],
+    suffix
   } = props;
 
   const [dateRange, setDateRange] = useState<DateRangeType>(initialValues);
@@ -114,6 +116,9 @@ export default function DateRange(props: Props) {
             : undefined
         }
       />
+      {suffix && (
+        <span style={{marginLeft: '5px'}}>{suffix}</span>
+      )}
     </div>
   );
 }

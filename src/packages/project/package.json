@@ -26,6 +26,7 @@
     "@cocalc/project": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
+    "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@nteract/messaging": "^7.0.20",
@@ -64,7 +65,7 @@
     "tmp": "0.0.33",
     "uglify-js": "^3.17.4",
     "uuid": "^8.3.2",
-    "websocket-sftp": "^0.7.1",
+    "websocket-sftp": "^0.8.0",
     "which": "^2.0.2",
     "ws": "^8.13.0",
     "zeromq": "^5.2.8"
@@ -85,7 +86,9 @@
     "clean": "rm -rf dist"
   },
   "author": "SageMath, Inc.",
-  "contributors": ["William Stein <wstein@sagemath.com>"],
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

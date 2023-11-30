@@ -21,7 +21,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@qdrant/js-client-rest": "^1.1.5",
+    "@qdrant/js-client-rest": "^1.6.0",
     "@types/lodash": "^4.14.176",
     "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",
@@ -60,7 +60,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": ["postgresql", "cocalc"],
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

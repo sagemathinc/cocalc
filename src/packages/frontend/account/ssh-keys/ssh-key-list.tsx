@@ -3,10 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Popconfirm, Typography } from "antd";
+import { Button, Popconfirm, Typography } from "antd";
 import { Map } from "immutable";
-
-import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   HelpIcon,
@@ -16,7 +14,6 @@ import {
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
-import { FIX_BORDER } from "../../project/page/common";
 
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
@@ -29,7 +26,7 @@ interface SSHKeyListProps {
 // Children are rendered above the list of SSH Keys
 // Takes an optional Help string or node to render as a help modal
 export const SSHKeyList: React.FC<SSHKeyListProps> = (
-  props: SSHKeyListProps
+  props: SSHKeyListProps,
 ) => {
   const { ssh_keys, project_id, help, children, mode = "project" } = props;
   const isFlyout = mode === "flyout";
@@ -65,7 +62,7 @@ export const SSHKeyList: React.FC<SSHKeyListProps> = (
             />
           ),
         });
-      }
+      },
     );
     // sort in reverse order by last_use_date, then by fingerprint
     v.sort(function (a, b) {
@@ -124,12 +121,12 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
     const d = ssh_key.get("last_use_date");
     if (d) {
       return (
-        <div style={{ color: "#1e7e34" }}>
+        <span style={{ color: "#1e7e34" }}>
           Last used <TimeAgo date={new Date(d)} />
-        </div>
+        </span>
       );
     } else {
-      return <div style={{ color: "#333" }}>Never used</div>;
+      return <span style={{ color: "#333" }}>Never used</span>;
     }
   }
 
@@ -146,39 +143,22 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
   }
 
   const key_style: React.CSSProperties = {
-    fontSize: isFlyout ? "24px" : "42px",
-    color: ssh_key.get("last_use_date") ? "#1e7e34" : undefined,
+    fontSize: isFlyout ? "42px" : "72px",
+    color: ssh_key.get("last_use_date") ? "#1e7e34" : "#888",
   };
 
-  const rowStyle = isFlyout
-    ? {
-        border: "none",
-        padding: "5px 0px 5px 0px",
-        marginTop: "5px",
-        borderTop: FIX_BORDER,
-      }
-    : {
-        border: "1px solid lightgray",
-        padding: "5px",
-        marginBottom: "5px",
-      };
-
   return (
-    <Row style={rowStyle}>
-      <Col md={1} style={{ marginRight: "8px" }}>
+    <div
+      style={{
+        display: "flex",
+        borderBottom: "1px solid #ccc",
+        padding: "15px",
+      }}
+    >
+      <div style={{ width: isFlyout ? "48px" : "100px", display: "flex" }}>
         <Icon style={key_style} name="key" />
-      </Col>
-      <Col md={8}>
-        <div style={{ fontWeight: 600 }}>{ssh_key.get("title")}</div>
-        <span style={{ fontWeight: 600 }}>Fingerprint: </span>
-        <Typography.Text code style={{ fontSize: "80%" }}>
-          {ssh_key.get("fingerprint")}
-        </Typography.Text>
-        <br />
-        Added on {new Date(ssh_key.get("creation_date")).toLocaleDateString()}
-        {render_last_use()}
-      </Col>
-      <Col md={2}>
+      </div>
+      <div style={{ flex: 1 }}>
         <Popconfirm
           title={
             <div>
@@ -192,14 +172,25 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
           cancelText={"Cancel"}
         >
           <Button
-            bsStyle="warning"
-            bsSize={isFlyout ? "xsmall" : "small"}
+            size={isFlyout ? "small" : "middle"}
             style={{ float: "right" }}
           >
-            Delete...
+            <Icon name="trash" /> Delete...
           </Button>
         </Popconfirm>
-      </Col>
-    </Row>
+        <div style={{ fontWeight: 600 }}>{ssh_key.get("title")}</div>
+        <span style={{ fontWeight: 600 }}>Fingerprint: </span>
+        <Typography.Text code style={{ fontSize: "80%" }}>
+          {ssh_key.get("fingerprint")}
+        </Typography.Text>
+        <br />
+        Added on {new Date(ssh_key.get("creation_date")).toLocaleDateString()}
+        <div>
+          {" "}
+          {render_last_use()}
+          {" "}(NOTE: not all usage is tracked.)
+        </div>
+      </div>
+    </div>
   );
 }

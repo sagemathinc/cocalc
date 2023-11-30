@@ -56,18 +56,30 @@
     },
     {
       "path": "packages/compute"
+    },
+    {
+      "path": "packages/terminal"
+    },
+    {
+      "path": "packages/comm"
+    },
+    {
+      "path": "packages/api-client"
     }
   ],
   "settings": {
     "search.followSymlinks": false,
     "jest.disabledWorkspaceFolders": [
       "compute",
-      "sync-client"
+      "sync-client",
+      "comm",
+      "api-client"
     ],
     "jest.autoRun": "off",
     "files.exclude": {
       "dist": true,
       "node_modules": true
-    }
+    },
+    "prettier.trailingComma": "all"
   }
 }

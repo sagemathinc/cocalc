@@ -13,7 +13,6 @@ import { getCWD } from "./util";
 import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node-pty";
 import { throttle } from "lodash";
-import { delay } from "awaiting";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { isEqual } from "lodash";
 import type { Spark } from "primus";
@@ -21,12 +20,14 @@ import type { Spark } from "primus";
 const logger = getLogger("terminal:terminal");
 
 const CHECK_INTERVAL_MS = 5 * 1000;
-const MAX_HISTORY_LENGTH = 10 * 1000 * 1000;
-const TRUNCATE_THRESH_MS = 10 * 1000;
-const FREQUENT_RESTART_DELAY_MS = 1 * 1000;
-const FREQUENT_RESTART_INTERVAL_MS = 10 * 1000;
+export const MAX_HISTORY_LENGTH = 1000 * 1000;
+const TRUNCATE_THRESH_MS = 500;
 const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
+
+const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
+
+export const REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS = 7.5 * 1000;
 
 type MessagesState = "none" | "reading";
 type State = "init" | "ready" | "closed";
@@ -41,13 +42,14 @@ export class Terminal {
   private client_sizes = {};
   private last_truncate_time: number = Date.now();
   private truncating: number = 0;
-  private last_exit: number = 0;
   private size?: { rows: number; cols: number };
   private backendMessagesBuffer = "";
   private backendMessagesState: MessagesState = "none";
   // two different ways of providing the backend support -- local or remote
   private localPty?: IPty;
   private remotePty?: Spark;
+  private computeServerId: number = 0;
+  private remotePtyHeartbeatInterval;
 
   constructor(primus: PrimusWithChannels, path: string, options: Options = {}) {
     this.options = { command: DEFAULT_COMMAND, ...options };
@@ -55,7 +57,15 @@ export class Terminal {
     this.channel = primus.channel(getChannelName(path));
     this.channel.on("connection", this.handleClientConnection);
     this.remotePtyChannel = primus.channel(getRemotePtyChannelName(path));
-    this.remotePtyChannel.on("connection", this.handleRemotePtyConnection);
+    this.remotePtyChannel.on("connection", (conn) => {
+      logger.debug("new remote terminal connection");
+      this.handleRemotePtyConnection(conn);
+    });
+    this.remotePtyHeartbeatInterval = setInterval(() => {
+      // we always do this (basically a no-op) even if there
+      // is no remote pty.
+      this.remotePty?.write({});
+    }, REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS);
   }
 
   init = async () => {
@@ -63,9 +73,18 @@ export class Terminal {
   };
 
   private initLocalPty = async () => {
-    if (this.state == "closed") return;
+    if (this.state == "closed") {
+      throw Error("terminal is closed");
+    }
+    const dbg = (...args) => {
+      logger.debug("initLocalPty: ", ...args);
+    };
     if (this.remotePty != null) {
-      // don't init local pty if there is a remote one.
+      dbg("don't init local pty since there is a remote one.");
+      return;
+    }
+    if (this.localPty != null) {
+      dbg("don't init local pty since there is already a local one.");
       return;
     }
 
@@ -77,7 +96,7 @@ export class Terminal {
         if (typeof arg === "string") {
           args.push(arg);
         } else {
-          logger.debug("WARNING -- discarding invalid non-string arg ", arg);
+          dbg("WARNING -- discarding invalid non-string arg ", arg);
         }
       }
     } else {
@@ -86,6 +105,11 @@ export class Terminal {
         args.push("--init-file");
         args.push(path_split(initFilename).tail);
       }
+    }
+    if (this.remotePty) {
+      // switched to a different remote so don't finish initializing a local one
+      // (we check after each async call)
+      return;
     }
 
     const { head: pathHead, tail: pathTail } = path_split(this.path);
@@ -112,40 +136,40 @@ export class Terminal {
     try {
       this.history = (await readFile(this.path)).toString();
     } catch (err) {
-      logger.debug("WARNING: failed to load", this.path, err);
+      dbg("WARNING: failed to load", this.path, err);
     }
-    const localPty = spawn(command, args, { cwd, env }) as IPty;
-    logger.debug("pid=", localPty.pid, { command, args });
+    if (this.remotePty) {
+      // switched to a different remote, so don't finish initializing a local one
+      return;
+    }
+
+    this.setComputeServerId(0);
+    dbg("spawn", {
+      command,
+      args,
+      cwd,
+      size: this.size ? this.size : "size not defined",
+    });
+    const localPty = spawn(command, args, {
+      cwd,
+      env,
+      rows: this.size?.rows,
+      cols: this.size?.cols,
+    }) as IPty;
+    dbg("pid=", localPty.pid, { command, args });
     this.localPty = localPty;
 
-    localPty.on("data", this.handleDataFromTerminal);
-
-    // Whenever localPty ends, we just respawn it, but potentially
-    // with a pause to avoid weird crash loops bringing down the project.
-    localPty.on("exit", async () => {
-      if (this.state == "closed") return;
-      if (this.remotePty != null) {
-        // do not create a new localPty since we're switching to a remotePty.
-        return;
-      }
-      logger.debug("EXIT -- spawning again");
-      const now = Date.now();
-      if (now - this.last_exit <= FREQUENT_RESTART_INTERVAL_MS) {
-        // frequent exit; we wait a few seconds, since otherwise channel
-        // restarting could burn all cpu and break everything.
-        logger.debug("EXIT -- waiting a few seconds...");
-        await delay(FREQUENT_RESTART_DELAY_MS);
-      }
-      this.last_exit = now;
-      logger.debug("spawning local pty...");
-      await this.initLocalPty();
-      logger.debug("finished spawn");
+    localPty.onData(this.handleDataFromTerminal);
+    localPty.onExit(async (exitInfo) => {
+      dbg("exited with code ", exitInfo);
+      this.handleDataFromTerminal(EXIT_MESSAGE);
+      delete this.localPty;
     });
-
+    if (command == "/bin/bash") {
+      localPty.write("\nreset;history -d $(history 1)\n");
+    }
     this.state = "ready";
-
-    // set the size
-    this.resize();
+    return localPty;
   };
 
   close = () => {
@@ -154,11 +178,13 @@ export class Terminal {
       return;
     }
     this.state = "closed";
-    if (this.localPty != null) {
-      this.killPty();
-    }
+    this.killPty();
+    this.localPty?.destroy();
     this.channel.destroy();
     this.remotePtyChannel.destroy();
+    clearInterval(this.remotePtyHeartbeatInterval);
+    delete this.localPty;
+    delete this.remotePty;
   };
 
   getPid = (): number | undefined => {
@@ -193,6 +219,9 @@ export class Terminal {
       // remote pty
       this.remotePty.write({ cmd: "set_command", command, args });
     } else if (this.localPty != null) {
+      this.localPty.onExit(() => {
+        this.initLocalPty();
+      });
       this.killLocalPty();
     }
   };
@@ -379,6 +408,8 @@ export class Terminal {
     // ensure valid values
     rows = Math.max(rows ?? 1, rows);
     cols = Math.max(cols ?? 1, cols);
+    // cache for future use.
+    this.size = { rows, cols };
     return { rows, cols };
   };
 
@@ -404,11 +435,16 @@ export class Terminal {
     }
   };
 
+  private setComputeServerId = (id: number) => {
+    this.computeServerId = id;
+    this.channel.write({ cmd: "computeServerId", id });
+  };
+
   private sendCurrentWorkingDirectory = async (spark: Spark) => {
     if (this.localPty != null) {
-      this.sendCurrentWorkingDirectoryLocalPty(spark);
+      await this.sendCurrentWorkingDirectoryLocalPty(spark);
     } else if (this.remotePty != null) {
-      this.sendCurrentWorkingDirectoryRemotePty(spark);
+      await this.sendCurrentWorkingDirectoryRemotePty(spark);
     }
   };
 
@@ -469,11 +505,22 @@ export class Terminal {
     });
   };
 
-  private writeToPty = (data) => {
+  private writeToPty = async (data) => {
+    if (this.state == "closed") return;
+    // only for VERY low level debugging:
+    // logger.debug("writeToPty", { data });
     if (this.localPty != null) {
       this.localPty.write(data);
     } else if (this.remotePty != null) {
       this.remotePty.write(data);
+    } else {
+      logger.debug("no pty active, but got data, so let's spawn one locally");
+      const pty = await this.initLocalPty();
+      if (pty != null) {
+        // we delete first character since it is the "any key"
+        // user hit to get terminal going.
+        pty.write(data.slice(1));
+      }
     }
   };
 
@@ -495,6 +542,9 @@ export class Terminal {
   ) => {
     // control message
     //logger.debug("terminal channel control message", JSON.stringify(data));
+    if (this.localPty == null && this.remotePty == null) {
+      await this.initLocalPty();
+    }
     switch (data.cmd) {
       case "size":
         this.setSize(spark, { rows: data.rows, cols: data.cols });
@@ -543,6 +593,8 @@ export class Terminal {
       spark.write({ cmd: "size", rows, cols });
     }
 
+    spark.write({ cmd: "computeServerId", id: this.computeServerId });
+
     // send burst info
     if (this.truncating) {
       spark.write({ cmd: "burst" });
@@ -587,9 +639,19 @@ export class Terminal {
       this.path,
       `new pty connection from ${remotePty.address.ip} -- ${remotePty.id}`,
     );
+    if (this.remotePty != null) {
+      // already an existing remote connection
+      // Remove listeners and end it.  We have to
+      // remove listeners or calling end will trigger
+      // the remotePty.on("end",...) below, which messes
+      // up everything.
+      this.remotePty.removeAllListeners();
+      this.remotePty.end();
+    }
 
     remotePty.on("end", async () => {
       if (this.state == "closed") return;
+      logger.debug("ending existing remote terminal");
       delete this.remotePty;
       await this.initLocalPty();
     });
@@ -599,22 +661,16 @@ export class Terminal {
       if (typeof data == "string") {
         this.handleDataFromTerminal(data);
       } else {
+        if (this.localPty != null) {
+          // already switched back to local
+          return;
+        }
         switch (data.cmd) {
+          case "setComputeServerId":
+            this.setComputeServerId(data.id);
+            break;
           case "exit": {
-            // the pty exited.
-            if (this.localPty != null) {
-              // do not create a new remotePty since we're switching back to local one
-              return;
-            }
-            const now = Date.now();
-            if (now - this.last_exit <= FREQUENT_RESTART_INTERVAL_MS) {
-              logger.debug("EXIT -- waiting a few seconds...");
-              await delay(FREQUENT_RESTART_DELAY_MS);
-            }
-            this.last_exit = now;
-            logger.debug("spawning remote pty...");
-            this.initRemotePty();
-            logger.debug("finished spawn");
+            this.handleDataFromTerminal(EXIT_MESSAGE);
             break;
           }
         }

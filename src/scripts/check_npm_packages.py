@@ -29,7 +29,7 @@ root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 
 whitelist: Final[List[str]] = [
     'async',  # we really want to get rid of using this at all!  And we have to use two very different versions across our packages :-(
-    'entities'  # it breaks when you upgrade in static to 4.x
+    'entities',  # it breaks when you upgrade in static to 4.x
 ]
 
 
@@ -54,8 +54,9 @@ def get_versions(packages) -> Tuple[T_installs, Set[str]]:
             modules.add(module)
             for name, vers in pkgs.get(dep_type, {}).items():
                 assert installs[name].get(module) is None, \
-                    f"{name}/{module} already exists as a depdency – don't add it as a devDepedency as well"
-                installs[name][module] = vers
+                    f"{name}/{module} already exists as a dependency – don't add it as a devDepedency as well"
+                # don't worry about the patch version
+                installs[name][module] = vers[:vers.rfind('.')]
     return installs, modules
 
 

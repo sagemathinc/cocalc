@@ -7,19 +7,19 @@ import { fromJS } from "immutable";
 import { join } from "path";
 
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Actions } from "@cocalc/util/redux/Actions";
 import { AccountClient } from "@cocalc/frontend/client/account";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { set_url } from "@cocalc/frontend/history";
 import { track_conversion } from "@cocalc/frontend/misc";
 import { deleteRememberMe } from "@cocalc/frontend/misc/remember-me";
+import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { define, required } from "@cocalc/util/fill";
 import { encode_path } from "@cocalc/util/misc";
+import { Actions } from "@cocalc/util/redux/Actions";
 import { show_announce_end, show_announce_start } from "./dates";
-import { AccountState } from "./types";
 import { AccountStore } from "./store";
-import track from "@cocalc/frontend/user-tracking";
+import { AccountState } from "./types";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -338,6 +338,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       table.set({ tours });
     }
   }
+
   setTourNotDone(tour: string) {
     const table = this.redux.getTable("account");
     if (!table) return;
@@ -345,7 +346,12 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     if (!store) return;
     const tours: string[] = store.get("tours")?.toJS() ?? [];
     if (tours?.includes(tour)) {
-      table.set({ tours: tours.map((x) => x != tour) });
+      // TODO fix this workaround for https://github.com/sagemathinc/cocalc/issues/6929
+      table.set({ tours: null });
+      table.set({
+        // filtering true false strings because of #6929 did create them in the past
+        tours: tours.filter((x) => x != tour && x !== "true" && x !== "false"),
+      });
     }
   }
 }

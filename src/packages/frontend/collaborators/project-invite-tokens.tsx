@@ -18,7 +18,7 @@ TODO:
 
 import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
 
-import { Button, Card, Popconfirm, Table } from "antd";
+import { Button, Card, Popconfirm, Table, DatePicker, Form, Modal } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
 import { CopyToClipBoard, Icon, Loading, Gap, TimeAgo } from "../components";
 import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
@@ -27,14 +27,16 @@ import { alert_message } from "../alerts";
 import { secure_random_token, server_weeks_ago } from "@cocalc/util/misc";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import dayjs from "dayjs";
+const { useForm } = Form;
 
 const TOKEN_LENGTH = 16;
 const MAX_TOKENS = 200;
 const COLUMNS = [
-  { title: "Token", dataIndex: "token", key: "token", width: 250 },
+  { title: "Invite Link", dataIndex: "token", key: "token", width: 300 },
   { title: "Created", dataIndex: "created", key: "created", width: 150 },
   { title: "Expires", dataIndex: "expires", key: "expires", width: 150 },
-  { title: "Users", dataIndex: "counter", key: "counter" },
+  { title: "Redemption Count", dataIndex: "counter", key: "counter" },
   /* { title: "Limit", dataIndex: "usage_limit", key: "usage_limit" },*/
 ];
 
@@ -47,10 +49,13 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     // blah
     const [expanded, set_expanded] = useState<boolean>(false);
     const [tokens, set_tokens] = useState<undefined | ProjectInviteToken[]>(
-      undefined
+      undefined,
     );
     const is_mounted_ref = useIsMountedRef();
     const [fetching, set_fetching] = useState<boolean>(false);
+    const [addModalVisible, setAddModalVisible] = useState<boolean>(false);
+    const [form] = useForm();
+  
 
     async function fetch_tokens() {
       try {
@@ -92,14 +97,14 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
             }
             set_expanded(!expanded);
           }}
-          style={{ cursor: "pointer" }}
+          style={{ cursor: "pointer", fontSize: "12pt" }}
         >
           {" "}
           <Icon
             style={{ width: "20px" }}
             name={expanded ? "caret-down" : "caret-right"}
           />{" "}
-          Invite collaborators by sending them a project invite token...
+          Invite collaborators by sending them an invite URL...
         </a>
       </div>
     );
@@ -107,7 +112,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       return heading;
     }
 
-    async function add_token() {
+    async function add_token(expires) {
       if (tokens != null && tokens.length > MAX_TOKENS) {
         // TODO: just in case of some weird abuse... and until we implement
         // deletion of tokens.  Maybe the backend will just purge
@@ -120,6 +125,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         return;
       }
       const token = secure_random_token(TOKEN_LENGTH);
+
       try {
         await webapp_client.async_query({
           query: {
@@ -127,7 +133,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
               token,
               project_id,
               created: webapp_client.server_time(),
-              expires: server_weeks_ago(-2),
+              expires: expires,
             },
           },
         });
@@ -141,23 +147,56 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       fetch_tokens();
     }
 
+    async function add_token_two_week() {
+        let expires = server_weeks_ago(-2);
+        add_token(expires);
+    }
+
     function render_create_token() {
       return (
         <Popconfirm
           title={
             "Create a link that people can use to get added as a collaborator to this project."
           }
-          onConfirm={add_token}
+          onConfirm={add_token_two_week}
           okText={"Yes, create token"}
           cancelText={"Cancel"}
         >
           <Button disabled={fetching}>
-            <Icon name="plus" />
-            <Gap /> Create token...
+          <Icon name="plus-circle" />
+            <Gap /> Create two weeks token
           </Button>
         </Popconfirm>
       );
     }
+    const handleAdd = () => {
+        setAddModalVisible(true);
+    };
+    
+    const handleModalOK = () => {
+        // const name = form.getFieldValue("name");
+        const expire = form.getFieldValue("expire");
+        add_token(expire);
+        setAddModalVisible(false);
+        form.resetFields();
+      };
+
+      const handleModalCancel = () => {
+        setAddModalVisible(false);
+        form.resetFields();
+      };
+    
+    
+
+    function render_create_custom_token() {
+        return (
+            <Button onClick={handleAdd}
+            >
+                <Icon name="plus-circle" /> Create custom token 
+              </Button>
+        );
+      }
+  
 
     function render_refresh() {
       return (
@@ -192,46 +231,24 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
 
     function render_expire_button(token, expires) {
       if (expires && expires <= webapp_client.server_time()) {
-        return "(EXPIRED)";
+        return "(REVOKED)";
       }
       return (
         <Popconfirm
-          title={
-            "Expire this token?  This will make it so this token cannot be used anymore."
+          title={"Revoke this token?"}
+          description={
+            <div style={{ maxWidth: "400px" }}>
+              This will make it so this token cannot be used anymore. Anybody
+              who has already redeemed the token is not removed from this
+              project.
+            </div>
           }
           onConfirm={() => expire_token(token)}
-          okText={"Yes, expire token"}
+          okText={"Yes, revoke this token"}
           cancelText={"Cancel"}
         >
-          <Button>Expire...</Button>
+          <Button size="small">Revoke...</Button>
         </Popconfirm>
-      );
-    }
-
-    function render_link(data: ProjectInviteToken) {
-      const { token, expires } = data;
-      if (expires && expires <= webapp_client.server_time()) {
-        return <div>This token is expired.</div>;
-      }
-      return (
-        <div>
-          Make this link available to people who you would like to join this
-          project:
-          <br />
-          <br />
-          <CopyToClipBoard
-            value={`${document.location.origin}${join(
-              appBasePath,
-              "app"
-            )}?${PROJECT_INVITE_QUERY_PARAM}=${token}`}
-            style={{ width: "100%" }}
-          />
-          <br />
-          When they click the link, they will get added to this project (this
-          will even work without an account!). You can also share the token
-          above, which they can enter on the top right side of the projects
-          page.
-        </div>
       );
     }
 
@@ -246,7 +263,13 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
             expires && expires <= webapp_client.server_time() ? (
               <span style={{ textDecoration: "line-through" }}>{token}</span>
             ) : (
-              <CopyToClipBoard value={token} />
+              <CopyToClipBoard
+                inputWidth="250px"
+                value={`${document.location.origin}${join(
+                  appBasePath,
+                  "app",
+                )}?${PROJECT_INVITE_QUERY_PARAM}=${token}`}
+              />
             ),
           counter,
           usage_limit: usage_limit ?? "∞",
@@ -266,11 +289,6 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           columns={COLUMNS}
           pagination={{ pageSize: 4 }}
           scroll={{ y: 240 }}
-          expandable={{
-            expandedRowRender: ({ data }) => {
-              return <div style={{ margin: 0 }}>{render_link(data)}</div>;
-            },
-          }}
         />
       );
     }
@@ -282,11 +300,47 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         <br />
         {render_create_token()}
         <Gap />
+        {render_create_custom_token()}
+        <Gap />
         {render_refresh()}
         <br />
         <br />
         {render_tokens()}
+        <br />
+        <br />
+        <Modal
+          open={addModalVisible}
+          title="Create a New Inviting Token"
+          okText="Create token"
+          cancelText="Cancel"
+          onCancel={handleModalCancel}
+          onOk={handleModalOK}
+        >
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="expire"
+              label="Expire"
+              rules={[
+                {
+                  required: false,
+                  message:
+                    "Optional date when token will be automatically expired",
+                },
+              ]}
+            >
+              <DatePicker
+                changeOnBlur
+                showTime
+                disabledDate={(current) => {
+                  // disable all dates before today
+                  return current && current < dayjs();
+                }}
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
+
       </Card>
     );
-  }
+  },
 );

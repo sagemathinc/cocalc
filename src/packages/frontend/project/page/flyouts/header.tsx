@@ -3,17 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
+import { useEffect, useState } from "react";
 
+import { TourName } from "@cocalc/frontend/account/tours";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
+import track from "@cocalc/frontend/user-tracking";
 import { capitalize } from "@cocalc/util/misc";
-import { useProjectContext } from "../../context";
-import { PathNavigator } from "../../explorer/path-navigator";
+import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log";
+import { ActiveHeader } from "./active-header";
+
+const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
 interface Props {
   flyoutWidth: number;
@@ -23,7 +31,19 @@ interface Props {
 
 export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
-  const { actions, project_id } = useProjectContext();
+  const { actions, project_id, is_active } = useProjectContext();
+  // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
+  const tours = useTypedRedux("account", "tours");
+  const [highlightFullpage, setHighlightFullpage] = useState<boolean>(false);
+
+  useEffect(() => {
+    // we only want to show the highlight if the project page is in the front (active)
+    // and the user has not seen the tour yet.
+    const show =
+      is_active &&
+      (tours == null || !tours.includes(FLYOUT_FULLPAGE_TOUR_NAME));
+    setHighlightFullpage(show || false);
+  }, [is_active]);
 
   function renderDefaultTitle() {
     const title = FIXED_PROJECT_TABS[flyout].flyoutTitle;
@@ -59,6 +79,73 @@ export function FlyoutHeader(_: Readonly<Props>) {
     );
   }
 
+  function markFullpageTourDone() {
+    if (!highlightFullpage) return;
+    const actions = redux.getActions("account");
+    actions.setTourDone(FLYOUT_FULLPAGE_TOUR_NAME);
+    setHighlightFullpage(false);
+  }
+
+  function renderFullpagePopupTitle() {
+    return (
+      <>
+        <div>Open this flyout panel as a full page.</div>
+        {highlightFullpage ? (
+          <>
+            <hr />
+            <div>
+              You can change the behavior of these buttons on the side, via the
+              vertical menu layout button selector at the bottom left.
+            </div>
+            <div style={{ textAlign: "center", marginTop: "10px" }}>
+              <Button onClick={markFullpageTourDone}>
+                Don't show this again
+              </Button>
+            </div>
+          </>
+        ) : null}
+      </>
+    );
+  }
+
+  function fullPageBtn() {
+    // active files has no fullpage equivalent – it's the tabs
+    if (flyout === "active") return null;
+
+    const style = {
+      marginRight: FLYOUT_PADDING,
+      padding: FLYOUT_PADDING,
+      fontSize: "12px",
+      ...(highlightFullpage
+        ? { backgroundColor: COLORS.ANTD_ORANGE }
+        : undefined),
+    };
+
+    return (
+      <>
+        <Tooltip title={renderFullpagePopupTitle()} placement="bottom">
+          <Icon
+            name="expand"
+            className="cc-project-fixedtab-fullpage"
+            style={style}
+            onClick={() => {
+              // flyouts and full pages share the same internal name
+              actions?.set_active_tab(flyout);
+              track("switch-to-fixed-tab", {
+                project_id,
+                flyout,
+                how: "click-on-flyout-expand-button",
+              });
+              markFullpageTourDone();
+              // now, close the flyout panel, to finish the transition
+              actions?.toggleFlyout(flyout);
+            }}
+          />
+        </Tooltip>
+      </>
+    );
+  }
+
   function renderTitle() {
     switch (flyout) {
       case "files":
@@ -71,31 +158,11 @@ export function FlyoutHeader(_: Readonly<Props>) {
           />
         );
       case "log":
-        return <LogHeader project_id={project_id} />;
+        return <LogHeader />;
       case "search":
-        return (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              fontWeight: "bold",
-            }}
-          >
-            <Icon
-              name="search"
-              style={{ fontSize: "120%", marginRight: "10px" }}
-            />{" "}
-            <PathNavigator
-              style={{ flex: "1 0 auto" }}
-              mode={"flyout"}
-              project_id={project_id}
-              className={"cc-project-flyout-path-navigator"}
-            />
-          </div>
-        );
+        return <SearchHeader />;
+      case "active":
+        return <ActiveHeader />;
       default:
         return (
           <div style={{ flex: 1, fontWeight: "bold" }}>
@@ -124,7 +191,32 @@ export function FlyoutHeader(_: Readonly<Props>) {
       }}
     >
       {renderTitle()}
+      {fullPageBtn()}
       {closeBtn()}
+    </div>
+  );
+}
+
+function SearchHeader() {
+  const { project_id } = useProjectContext();
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        fontWeight: "bold",
+      }}
+    >
+      <Icon name="search" style={{ fontSize: "120%", marginRight: "10px" }} />{" "}
+      <PathNavigator
+        style={{ flex: "1 0 auto" }}
+        mode={"flyout"}
+        project_id={project_id}
+        className={"cc-project-flyout-path-navigator"}
+      />
     </div>
   );
 }

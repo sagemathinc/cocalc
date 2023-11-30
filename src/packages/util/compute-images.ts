@@ -133,6 +133,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     descr: "Frozen on 2023-05-15 and no longer updated",
     group: "Ubuntu 22.04",
   },
+  "ubuntu2204-2023-09-11": {
+    title: "Ubuntu 22.04 (2023-09-11)",
+    short: "2023-09-11",
+    descr: "Frozen on 2023-09-11 and no longer updated",
+    group: "Ubuntu 22.04",
+  },
   [UBUNTU2004_DEV]: {
     title: "Ubuntu 20.04 (Testing)",
     short: "Testing",

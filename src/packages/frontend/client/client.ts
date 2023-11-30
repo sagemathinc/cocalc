@@ -27,6 +27,19 @@ import { version } from "@cocalc/util/smc-version";
 import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
+import debug from "debug";
+
+// This DEBUG variable comes from webpack:
+declare const DEBUG;
+
+const log = debug("cocalc");
+// To get actual extreme logging though you have to also set
+//
+// localStorage.DEBUG='cocalc'
+//
+// and refresh your browser.  Example, this will turn on
+// all the sync activity logging and everything that calls
+// client.dbg.
 
 export type AsyncCall = (opts: object) => Promise<any>;
 
@@ -67,7 +80,7 @@ export interface WebappClient extends EventEmitter {
     project_id: string,
     path: string,
     model_id: string,
-    buffer_path: string
+    buffer_path: string,
   ) => Promise<ArrayBuffer>;
   log_error: (any) => void;
   async_call: AsyncCall;
@@ -145,7 +158,7 @@ class Client extends EventEmitter implements WebappClient {
     project_id: string,
     path: string,
     model_id: string,
-    buffer_path: string
+    buffer_path: string,
   ) => Promise<ArrayBuffer>;
 
   log_error: (any) => void;
@@ -169,7 +182,13 @@ class Client extends EventEmitter implements WebappClient {
   constructor() {
     super();
 
-    this.dbg = this.dbg.bind(this);
+    if (DEBUG) {
+      this.dbg = this.dbg.bind(this);
+    } else {
+      this.dbg = (..._) => {
+        return (..._) => {};
+      };
+    }
 
     this.hub_client = bind_methods(new HubClient(this));
     this.is_signed_in = this.hub_client.is_signed_in.bind(this.hub_client);
@@ -180,10 +199,10 @@ class Client extends EventEmitter implements WebappClient {
 
     this.stripe = bind_methods(new StripeClient(this.call.bind(this)));
     this.project_collaborators = bind_methods(
-      new ProjectCollaborators(this.async_call.bind(this))
+      new ProjectCollaborators(this.async_call.bind(this)),
     );
     this.support_tickets = bind_methods(
-      new SupportTickets(this.async_call.bind(this))
+      new SupportTickets(this.async_call.bind(this)),
     );
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));
@@ -195,16 +214,16 @@ class Client extends EventEmitter implements WebappClient {
     this.sync_db = this.sync_client.sync_db;
 
     this.admin_client = bind_methods(
-      new AdminClient(this.async_call.bind(this))
+      new AdminClient(this.async_call.bind(this)),
     );
     this.openai_client = bind_methods(new OpenAIClient(this));
     //this.purchases_client = bind_methods(new PurchasesClient(this));
     this.purchases_client = bind_methods(new PurchasesClient());
     this.jupyter_client = bind_methods(
-      new JupyterClient(this.async_call.bind(this))
+      new JupyterClient(this.async_call.bind(this)),
     );
     this.users_client = bind_methods(
-      new UsersClient(this.call.bind(this), this.async_call.bind(this))
+      new UsersClient(this.call.bind(this), this.async_call.bind(this)),
     );
     this.tracking_client = bind_methods(new TrackingClient(this));
     this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
@@ -219,14 +238,14 @@ class Client extends EventEmitter implements WebappClient {
     this.exec = this.project_client.exec.bind(this.project_client);
     this.touch_project = this.project_client.touch.bind(this.project_client);
     this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
-      this.project_client
+      this.project_client,
     );
 
     this.synctable_database = this.sync_client.synctable_database.bind(
-      this.sync_client
+      this.sync_client,
     );
     this.synctable_project = this.sync_client.synctable_project.bind(
-      this.sync_client
+      this.sync_client,
     );
 
     this.query = this.query_client.query.bind(this.query_client);
@@ -276,20 +295,14 @@ class Client extends EventEmitter implements WebappClient {
   }
 
   public dbg(f): Function {
-    return function (...m) {
-      let s;
-      switch (m.length) {
-        case 0:
-          s = "";
-          break;
-        case 1:
-          s = m[0];
-          break;
-        default:
-          s = JSON.stringify(m);
-      }
-      console.log(`${new Date().toISOString()} - Client.${f}: ${s}`);
-    };
+    if (log.enabled) {
+      return (...args) => log(new Date().toISOString(), f, ...args);
+    } else {
+      return (..._) => {};
+    }
+    //     return function (...m) {
+    //       console.log(`${new Date().toISOString()} - Client.${f}: `, ...m);
+    //     };
   }
 
   public version(): number {

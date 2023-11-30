@@ -37,6 +37,19 @@ export interface PageState {
   last_status_time?: Date;
   get_api_key?: string; // Set, e.g., when you visit https://cocalc.com/app?get_api_key=myapp -- see https://doc.cocalc.com/api/index.html#authentication
   kiosk_project_id?: string;
+
+  // If true, a modal asking whether you want to use a project invite token appears.
+  // This is 100% for avoiding tricking a user into clicking on a link and silently
+  // adding them to a project.  If they are explicitly on purpose trying to use a project
+  // invite token, then they will say yes. Otherwise, they will say no.
+  popconfirm?: {
+    title?;
+    description?;
+    open?: boolean;
+    ok?: boolean;
+    cancelText?: string;
+    okText?: string;
+  };
 }
 
 export class PageStore extends Store<PageState> {}

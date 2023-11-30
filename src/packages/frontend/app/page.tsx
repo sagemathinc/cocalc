@@ -40,6 +40,7 @@ import { Notification } from "./notifications";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
+import PopconfirmModal from "./popconfirm-modal";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -99,7 +100,7 @@ export const Page: React.FC = () => {
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const doing_anonymous_setup = useTypedRedux(
     "account",
-    "doing_anonymous_setup"
+    "doing_anonymous_setup",
   );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
@@ -382,6 +383,7 @@ export const Page: React.FC = () => {
       )}
       <ActiveContent />
       <PayAsYouGoModal />
+      <PopconfirmModal />
     </div>
   );
 };

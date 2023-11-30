@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import dayjs from "dayjs";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
-import { zIndex as zIndexPayAsGo } from "../pay-as-you-go/modal";
+import { zIndexPayAsGo } from "../zindex";
 import Cost, { getCost } from "./cost";
 import { isPurchaseAllowed, studentPay } from "../api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -133,7 +133,7 @@ export default function PayNow({
         </>
       )}
       <hr />
-      <div style={{ float:'right' }}>
+      <div style={{ float: "right" }}>
         <Button
           onClick={() => {
             const actions = redux.getActions("page");

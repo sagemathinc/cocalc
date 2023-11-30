@@ -16,12 +16,12 @@ export async function setPurchaseQuota({
     throw Error(
       `"${service}" must be one of the following: ${Object.keys(QUOTA_SPEC)
         .filter((x) => !QUOTA_SPEC[x].noSet)
-        .join(", ")}`
+        .join(", ")}`,
     );
   }
   if (QUOTA_SPEC[service]?.noSet) {
     throw Error(
-      `you cannot change the quota for the service "${QUOTA_SPEC[service].display}"`
+      `you cannot change the quota for the service "${QUOTA_SPEC[service].display}"`,
     );
   }
   if (typeof value != "number" || !Number.isFinite(value) || value < 0) {
@@ -32,13 +32,26 @@ export async function setPurchaseQuota({
   if (services[service] != null) {
     await pool.query(
       "UPDATE purchase_quotas SET value=$3 WHERE service=$2 AND account_id=$1",
-      [account_id, service, value]
+      [account_id, service, value],
     );
   } else {
     await pool.query(
       "INSERT INTO purchase_quotas(account_id,service,value) VALUES($1,$2,$3)",
-      [account_id, service, value]
+      [account_id, service, value],
     );
+    if (
+      service == "compute-server" &&
+      services["compute-server-network-usage"] == null
+    ) {
+      // special case -- when you set the compute-server quota for the first time, the
+      // compute-server-network-usage also gets set if it isn't set already.  This is
+      // mainly to avoid confusion, but also just because I don't want to have to make
+      // the new user frontend UI complicated right now with multiple quotas to buy one thing.
+      await pool.query(
+        "INSERT INTO purchase_quotas(account_id,service,value) VALUES($1,$2,$3)",
+        [account_id, "compute-server-network-usage", value],
+      );
+    }
   }
 }
 
@@ -49,12 +62,12 @@ export interface PurchaseQuotas {
 
 export async function getPurchaseQuotas(
   account_id: string,
-  client?: PoolClient
+  client?: PoolClient,
 ): Promise<PurchaseQuotas> {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     "SELECT service, value FROM purchase_quotas WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   const services: { [service: string]: number } = {};
   for (const { service, value } of rows) {
@@ -67,12 +80,12 @@ export async function getPurchaseQuotas(
 export async function getPurchaseQuota(
   account_id: string,
   service: Service,
-  client?: PoolClient
+  client?: PoolClient,
 ): Promise<number | null> {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     "SELECT value FROM purchase_quotas WHERE account_id=$1 AND service=$2",
-    [account_id, service]
+    [account_id, service],
   );
   return rows[0]?.value ?? null;
 }

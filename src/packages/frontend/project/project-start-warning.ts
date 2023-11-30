@@ -21,9 +21,9 @@ NOTE:
 // can't **immediately* detect starting the project.
 const explicitly_started: { [project_id: string]: number } = {};
 
-function is_running_or_starting(project_id: string): boolean {
+export function is_running_or_starting(project_id: string): boolean {
   const t = explicitly_started[project_id];
-  if (t != null && new Date().valueOf() - t <= 15000) return true;
+  if (t != null && Date.now() - t <= 15000) return true;
 
   const project_map = redux.getStore("projects")?.get("project_map");
   if (!project_map) return false;

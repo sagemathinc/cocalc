@@ -28,7 +28,7 @@ if (DEBUG) {
 import nodeCleanup from "node-cleanup";
 import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "async-await-utils/hof";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
@@ -77,10 +77,12 @@ import { redux_name } from "@cocalc/util/redux/name";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
-import type Client from "@cocalc/sync-client";
+import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 
-const log = getLogger("jupyter");
+const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
+
+const log = getLogger("jupyter:kernel");
 
 // We make it so nbconvert functionality can be dynamically enabled
 // by calling this at runtime.  The reason is because some users of
@@ -105,20 +107,20 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 });
 
 // Initialize the actions and store for working with a specific
-// ipython notebook.  The syncdb is the syncdoc associated to
+// Jupyter notebook.  The syncdb is the syncdoc associated to
 // the ipynb file, and this function creates the corresponding
 // actions and store, which make it possible to work with this
 // notebook.
-export function initJupyterRedux(
-  syncdb: SyncDB,
-  client: Client,
-): void {
+export function initJupyterRedux(syncdb: SyncDB, client: Client): void {
   const dbg = getLogger("jupyter-redux");
   dbg.debug();
 
   const project_id = syncdb.project_id;
   if (project_id == null) {
     throw Error("project_id must be defined");
+  }
+  if (syncdb.get_state() == "closed") {
+    throw Error("syncdb must not be closed");
   }
 
   // This path is the file we will watch for changes and save to, which is in the original
@@ -145,7 +147,7 @@ export function initJupyterRedux(
 // and also close the kernel if it is running.
 export async function removeJupyterRedux(
   path: string,
-  project_id: string
+  project_id: string,
 ): Promise<void> {
   // if there is a kernel, close it
   try {
@@ -219,7 +221,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     name: string | undefined,
     _path: string,
     _actions: JupyterActions | undefined,
-    ulimit: string | undefined
+    ulimit: string | undefined,
   ) {
     super();
 
@@ -238,7 +240,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     this._actions = _actions;
 
     this.store = key_value_store();
-    const { head, tail } = path_split(this._path);
+    const { head, tail } = path_split(getAbsolutePathFromHome(this._path));
     this._directory = head;
     this._filename = tail;
     this._set_state("off");
@@ -274,7 +276,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   async spawn(spawn_opts?: { env?: { [key: string]: string } }): Promise<void> {
     if (this._state === "closed") {
       // game over!
-      throw Error("closed");
+      throw Error("closed -- kernel spawn");
     }
     if (!this.name) {
       // spawning not allowed.
@@ -318,7 +320,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
 
     // !!! WARNING: do NOT add anything new here that depends on that path!!!!
-    // Otherwise the pool will switch to fallling back to not being used, and
+    // Otherwise the pool will switch to falling back to not being used, and
     // cocalc would then be massively slower.
     // Non-uniform customization.
     // launchJupyterKernel is explicitly smart enough to deal with opts.cwd
@@ -334,8 +336,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       this._kernel = await launchJupyterKernel(this.name, opts);
       await this.finish_spawn();
     } catch (err) {
+      dbg("ERROR spawning kernel", err);
       if (this._state === "closed") {
-        throw Error("closed");
+        throw Error("closed -- kernel spawn later");
       }
       this._set_state("off");
       throw err;
@@ -358,7 +361,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     return this._kernel?.connectionFile;
   }
 
-  private async finish_spawn(): Promise<void> {
+  private finish_spawn = async () => {
     const dbg = this.dbg("finish_spawn");
     dbg("now finishing spawn of kernel...");
 
@@ -373,6 +376,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       const error = `${err}\n${this.stderr}`;
       dbg("kernel error", error);
       this.emit("kernel_error", error);
+      this._set_state("off");
     });
 
     // Track stderr from the subprocess itself (the kernel).
@@ -399,11 +403,47 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     });
 
     dbg("create main channel...", this._kernel.config);
-    this.channel = await createMainChannel(
+
+    // This horrible code is becacuse createMainChannel will just "hang
+    // forever" if the kernel doesn't get spawned for some reason.
+    // Thus we do some tests, waiting for at least 2 seconds for there
+    // to be a pid.  This is complicated and ugly, and I'm sorry about that,
+    // but sometimes that's life.
+    let i = 0;
+    while (i < 20 && this._state == "spawning" && !this._kernel?.spawn?.pid) {
+      i += 1;
+      await delay(100);
+    }
+    if (this._state != "spawning" || !this._kernel?.spawn?.pid) {
+      if (this._state == "spawning") {
+        this.emit("kernel_error", "Failed to start kernel process.");
+        this._set_state("off");
+      }
+      return;
+    }
+    const local = { success: false, gaveUp: false };
+    setTimeout(() => {
+      if (!local.success) {
+        local.gaveUp = true;
+        // it's been 30s and the channels didn't work.  Let's give up.
+        // probably the kernel process just failed.
+        this.emit("kernel_error", "Failed to start kernel process.");
+        this._set_state("off");
+        // We can't "cancel" createMainChannel itself -- that will require
+        // rewriting that dependency.
+        //      https://github.com/sagemathinc/cocalc/issues/7040
+      }
+    }, MAX_KERNEL_SPAWN_TIME);
+    const channel = await createMainChannel(
       this._kernel.config,
       "",
-      this.identity
+      this.identity,
     );
+    if (local.gaveUp) {
+      return;
+    }
+    this.channel = channel;
+    local.success = true;
     dbg("created main channel");
 
     this.channel?.subscribe((mesg) => {
@@ -444,19 +484,22 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     });
 
     this._kernel.spawn.on("exit", (exit_code, signal) => {
+      if (this._state === "closed") {
+        return;
+      }
       this.dbg("kernel_exit")(
-        `spawned kernel terminated with exit code ${exit_code} (signal=${signal}); stderr=${this.stderr}`
+        `spawned kernel terminated with exit code ${exit_code} (signal=${signal}); stderr=${this.stderr}`,
       );
       const stderr = this.stderr ? `\n...\n${this.stderr}` : "";
       if (signal != null) {
         this.emit(
           "kernel_error",
-          `Kernel last terminated by signal ${signal}.${stderr}`
+          `Kernel last terminated by signal ${signal}.${stderr}`,
         );
       } else if (exit_code != null) {
         this.emit(
           "kernel_error",
-          `Kernel last exited with code ${exit_code}.${stderr}`
+          `Kernel last exited with code ${exit_code}.${stderr}`,
         );
       }
       this.close();
@@ -464,11 +507,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     // so we can start sending code execution to the kernel, etc.
     this._set_state("starting");
-
-    if (this._state === "closed") {
-      throw Error("closed");
-    }
-  }
+  };
 
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
@@ -477,7 +516,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     const spawn = this._kernel != null ? this._kernel.spawn : undefined;
     const pid = spawn?.pid;
     dbg(`pid=${pid}, signal=${signal}`);
-    if (pid == null) return;
+    if (pid == null) {
+      return;
+    }
     try {
       this.clear_execute_code_queue();
       process.kill(-pid, signal); // negative to kill the process group
@@ -525,7 +566,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         `jupyter.Kernel('${this.name ?? "no kernel"}',path='${
           this._path
         }').${f}`,
-        ...args
+        ...args,
       );
     };
   }
@@ -535,7 +576,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     dbg("Enabling");
     if (this._kernel) {
       this._kernel.spawn.all?.on("data", (data) =>
-        dbg("STDIO", data.toString())
+        dbg("STDIO", data.toString()),
       );
     }
     // for low level debugging only...
@@ -568,14 +609,14 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   execute_code(
     opts: ExecOpts,
-    skipToFront = false
+    skipToFront = false,
   ): CodeExecutionEmitterInterface {
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
       opts.halt_on_error = true;
     }
     if (this._state === "closed") {
-      throw Error("closed");
+      throw Error("closed -- kernel -- execute_code");
     }
     const code = new CodeExecutionEmitter(this, opts);
     if (skipToFront) {
@@ -604,7 +645,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
     if (this._execute_code_queue.length > 1) {
       dbg(
-        "mutate this._execute_code_queue removing everything with the given id"
+        "mutate this._execute_code_queue removing everything with the given id",
       );
       for (let i = this._execute_code_queue.length - 1; i--; i >= 1) {
         const code = this._execute_code_queue[i];
@@ -641,7 +682,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
     dbg(
       `queue has ${n} items; ensure kernel running`,
-      this._execute_code_queue
+      this._execute_code_queue,
     );
     try {
       await this.ensure_running();
@@ -682,7 +723,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
     this.dbg("execute_code_now")();
     if (this._state === "closed") {
-      throw Error("closed");
+      throw Error("closed -- kernel -- execute_code_now");
     }
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
@@ -697,41 +738,58 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       return;
     }
     const dbg = this.dbg("process_output");
-    // https://github.com/sagemathinc/cocalc/issues/6665
-    // NO do not do this sort of thing.  This is exactly the sort of situation where
-    // content could be very large, and JSON.stringify could use huge amounts of memory.
-    // If you need to see this for debugging, uncomment it.
-    // dbg(trunc(JSON.stringify(content), 300));
     if (content.data == null) {
+      // No data -- https://github.com/sagemathinc/cocalc/issues/6665
+      // NO do not do this sort of thing.  This is exactly the sort of situation where
+      // content could be very large, and JSON.stringify could use huge amounts of memory.
+      // If you need to see this for debugging, uncomment it.
+      // dbg(trunc(JSON.stringify(content), 300));
       // todo: FOR now -- later may remove large stdout, stderr, etc...
-      dbg("no data, so nothing to do");
+      // dbg("no data, so nothing to do");
       return;
     }
 
     remove_redundant_reps(content.data);
 
+    let saveToBlobStore;
+    try {
+      const blob_store = get_blob_store_sync();
+      saveToBlobStore = (
+        data: string,
+        type: string,
+        ipynb?: string,
+      ): string => {
+        const sha1 = blob_store.save(data, type, ipynb);
+        if (this._actions?.is_compute_server) {
+          this._actions?.saveBlobToProject(data, type, ipynb);
+        }
+        return sha1;
+      };
+    } catch (err) {
+      dbg(`WARNING: Jupyter blob store is not available -- ${err}`);
+      // there is nothing to process without the blob store to save
+      // data in!
+      return;
+    }
+
     let type: string;
     for (type of JUPYTER_MIMETYPES) {
-      if (content.data[type] != null) {
-        if (type.split("/")[0] === "image" || type === "application/pdf") {
-          const blob_store = get_blob_store_sync();
-          if (blob_store != null) {
-            content.data[type] = blob_store.save(content.data[type], type);
-          }
-        } else if (
-          type === "text/html" &&
-          is_likely_iframe(content.data[type])
-        ) {
-          // Likely iframe, so we treat it as such.  This is very important, e.g.,
-          // because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
-          // and remove these and serve them from the backend.
-          //  {iframe: sha1 of srcdoc}
-          content.data["iframe"] = iframe_process(
-            content.data[type],
-            get_blob_store_sync()
-          );
-          delete content.data[type];
-        }
+      if (content.data[type] == null) {
+        continue;
+      }
+      if (type.split("/")[0] === "image" || type === "application/pdf") {
+        // Store all images and PDF in the blob store:
+        content.data[type] = saveToBlobStore(content.data[type], type);
+      } else if (type === "text/html" && is_likely_iframe(content.data[type])) {
+        // Likely iframe, so we treat it as such.  This is very important, e.g.,
+        // because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
+        // and remove these and serve them from the backend.
+        //  {iframe: sha1 of srcdoc}
+        content.data["iframe"] = iframe_process(
+          content.data[type],
+          saveToBlobStore,
+        );
+        delete content.data[type];
       }
     }
   }
@@ -782,7 +840,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       const g = () => {
         this.removeListener("shell", f);
         this.removeListener("closed", g);
-        cb("closed");
+        cb("closed - jupyter - kernel - call");
       };
       this.on("shell", f);
       this.on("closed", g);
@@ -804,7 +862,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   }): Promise<any> {
     const dbg = this.dbg("introspect");
     dbg(
-      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`
+      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`,
     );
     return await this.call("inspect_request", opts);
   }
@@ -902,18 +960,18 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   public ipywidgetsGetBuffer(
     model_id: string,
-    buffer_path: string
+    buffer_path: string,
   ): Buffer | undefined {
     return this._actions?.syncdb.ipywidgets_state?.getBuffer(
       model_id,
-      buffer_path
+      buffer_path,
     );
   }
 
   public send_comm_message_to_kernel(
     msg_id: string,
     comm_id: string,
-    data: any
+    data: any,
   ): void {
     const dbg = this.dbg("send_comm_message_to_kernel");
 
@@ -941,6 +999,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   async chdir(path: string): Promise<void> {
     if (!this.name) return; // no kernel, no current directory
     const dbg = this.dbg("chdir");
+    dbg({ path });
     let lang;
     try {
       // using probably cached data, so likely very fast

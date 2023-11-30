@@ -16,3 +16,8 @@ test("convert string[] to string key", () => {
 test("convert undefined to string key", () => {
   expect(to_key(undefined)).toBe(undefined);
 });
+
+test("convert number to string key", () => {
+  // numbers come up in postgresql sequential id primary keys
+  expect(to_key(10)).toBe("10");
+});

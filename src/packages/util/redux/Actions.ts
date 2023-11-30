@@ -10,7 +10,10 @@ import { bind_methods } from "@cocalc/util/misc";
 // from stores.  The table will set stores (via creating actions) as
 // needed when it changes.
 export class Actions<T> {
-  constructor(readonly name: string, readonly redux: AppRedux) {
+  constructor(
+    readonly name: string,
+    readonly redux: AppRedux,
+  ) {
     bind_methods(this); // see comment in Store.ts.
     if (this.name == null) {
       throw Error("name must be defined");
@@ -36,7 +39,14 @@ export class Actions<T> {
   };
 
   destroy = (): void => {
-    if (this.redux == null) { return; }
+    if (this.name == null) {
+      throw Error("unable to destroy actions because this.name is not defined");
+    }
+    if (this.redux == null) {
+      throw Error(
+        `unable to destroy actions '${this.name}' since this.redux is not defined`,
+      );
+    }
     // On the share server this.redux can be undefined at this point.
     this.redux.removeActions(this.name);
   };

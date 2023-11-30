@@ -6,16 +6,19 @@ import type {
   ProjectWebsocket,
   WebsocketState,
 } from "@cocalc/sync/client/types";
-import debug from "debug";
-import { apiKey, apiServer, apiBasePath } from "@cocalc/backend/data";
+import { apiKey, apiServer } from "@cocalc/backend/data";
 import versionCookie from "./version-cookie";
 import { toCookieHeader } from "./cookies";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import basePath from "@cocalc/backend/base-path";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("sync-client:connect");
+const log = logger.debug;
 
 export default async function connectToProject(
   project_id,
 ): Promise<ProjectWebsocket> {
-  const log = debug("cocalc:compute:sync:connect");
   if (!apiServer) {
     throw Error("API_SERVER must be set");
   }
@@ -23,9 +26,9 @@ export default async function connectToProject(
     throw Error("api key must be set (e.g., set API_KEY env variable)");
   }
   const server = apiServer;
-  const pathname = join(apiBasePath, project_id, "raw/.smc/ws");
-  const target = `${server}${pathname}`;
-  log("connecting to ", target);
+  const pathname = join(basePath, project_id, "raw/.smc/ws");
+  const target = join(server, project_id, "raw/.smc/ws");
+  log("connectToProject -- ", { pathname, target });
   const opts = {
     pathname,
     transformer: "websockets",
@@ -44,7 +47,24 @@ export default async function connectToProject(
       rejectUnauthorized: false,
       headers: { Cookie },
     },
+    // even with this, it seems to take far too long to connect to
+    // a project, e.g., as compared to the frontend browser.
+    // I think there is maybe an issue in the proxy server.
+    reconnect: {
+      factor: 1.3,
+      min: 750,
+      max: 10000,
+      retries: 10000,
+    },
   }) as any;
+
+  // Every single individual channel creates listeners
+  // on this socket, and we create several channels per
+  // document, so we expect a relatively large number
+  // of listeners on this socket.  This is OK, because
+  // it is rare for events to fire (e.g., it happens when
+  // the network is down or project restarts).
+  socket.setMaxListeners(500);
 
   function updateState(state: WebsocketState) {
     if (socket.state == state) {

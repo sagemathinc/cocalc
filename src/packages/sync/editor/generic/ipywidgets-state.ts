@@ -237,7 +237,7 @@ export class IpywidgetsState extends EventEmitter {
       // async get of the buffer efficiently via HTTP:
       if (this.client.ipywidgetsGetBuffer == null) {
         throw Error(
-          "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers"
+          "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
         );
       }
       try {
@@ -245,7 +245,7 @@ export class IpywidgetsState extends EventEmitter {
           this.syncdoc.project_id,
           auxFileToOriginal(this.syncdoc.path),
           model_id,
-          path
+          path,
         );
         this.arrayBuffers[model_id][path] = { buffer, hash };
         buffer_paths.push(JSON.parse(path));
@@ -270,7 +270,7 @@ export class IpywidgetsState extends EventEmitter {
     model_id: string,
     buffer_paths: string[],
     buffers: Buffer[],
-    fire_change_event: boolean = true
+    fire_change_event: boolean = true,
   ): void {
     const dbg = this.dbg("set_model_buffers");
     dbg("buffer_paths = ", buffer_paths);
@@ -310,7 +310,7 @@ export class IpywidgetsState extends EventEmitter {
   public set_model_value(
     model_id: string,
     value: Value,
-    fire_change_event: boolean = true
+    fire_change_event: boolean = true,
   ): void {
     this.set(model_id, "value", value, fire_change_event);
   }
@@ -318,7 +318,7 @@ export class IpywidgetsState extends EventEmitter {
   public set_model_state(
     model_id: string,
     state: any,
-    fire_change_event: boolean = true
+    fire_change_event: boolean = true,
   ): void {
     this.set(model_id, "state", state, fire_change_event);
   }
@@ -328,7 +328,7 @@ export class IpywidgetsState extends EventEmitter {
     model_id: string,
     type: "value" | "state" | "buffers" | "message",
     data: any,
-    fire_change_event: boolean = true
+    fire_change_event: boolean = true,
   ): void {
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
@@ -358,7 +358,7 @@ export class IpywidgetsState extends EventEmitter {
     this.table.set(
       { string_id, type, model_id, data },
       merge,
-      fire_change_event
+      fire_change_event,
     );
   }
 
@@ -377,7 +377,6 @@ export class IpywidgetsState extends EventEmitter {
 
   private dbg(_f): Function {
     if (this.client.is_project()) {
-      // TODO
       return this.client.dbg(`IpywidgetsState.${_f}`);
     } else {
       return (..._) => {};
@@ -425,7 +424,7 @@ export class IpywidgetsState extends EventEmitter {
         this.table.set(
           { string_id, type, model_id, data: null },
           "none",
-          false
+          false,
         );
       }
     });
@@ -557,7 +556,7 @@ export class IpywidgetsState extends EventEmitter {
   or updating state of widgets.
   */
   public async process_comm_message_from_kernel(
-    msg: CommMessage
+    msg: CommMessage,
   ): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
     // WARNING: serializing any msg could cause huge server load, e.g., it could contain
@@ -608,7 +607,7 @@ export class IpywidgetsState extends EventEmitter {
         model_id,
         content.data.buffer_paths,
         msg.buffers,
-        false
+        false,
       );
     }
 
@@ -621,6 +620,7 @@ export class IpywidgetsState extends EventEmitter {
         // We now send the message.
         this.sendCustomMessage(model_id, message, false);
         break;
+
       case "update":
         if (state == null) return;
         dbg("method -- update");
@@ -694,7 +694,7 @@ export class IpywidgetsState extends EventEmitter {
   updating other widgets).
   */
   public async process_comm_message_from_browser(
-    msg: CommMessage
+    msg: CommMessage,
   ): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_browser");
     dbg(msg);
@@ -750,7 +750,7 @@ export class IpywidgetsState extends EventEmitter {
   private async sendCustomMessage(
     model_id: string,
     message: object,
-    fire_change_event: boolean = true
+    fire_change_event: boolean = true,
   ): Promise<void> {
     /*
     Send a custom message.

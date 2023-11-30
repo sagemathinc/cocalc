@@ -88,7 +88,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
 
   test("making change to invalid field raises error", () => {
     expect(() => synctable.set({ foobar: "medium" })).toThrow(
-      "Cannot coerce: no field 'foobar' in table system_notifications"
+      "Cannot coerce: no field 'foobar' in table 'system_notifications'"
     );
   });
 

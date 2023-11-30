@@ -17,6 +17,8 @@ import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { CourseInfo } from "./projects";
+import * as computeServers from "./compute-servers";
+
 export type Reason =
   | "duplicate"
   | "fraudulent"
@@ -37,6 +39,8 @@ export type Service =
   | "openai-gpt-3.5-turbo-16k"
   | "openai-text-embedding-ada-002"
   | "project-upgrade"
+  | "compute-server"
+  | "compute-server-network-usage"
   | "license"
   | "voucher"
   | "edit-license";
@@ -90,6 +94,20 @@ export interface ProjectUpgrade {
   };
 }
 
+export interface ComputeServer {
+  type: "compute-server";
+  state: computeServers.State;
+  compute_server_id: number;
+  configuration: computeServers.Configuration;
+}
+
+export interface ComputeServerNetworkUsage {
+  type: "compute-server-network-usage";
+  compute_server_id: number;
+  amount: number; // amount of data used in GB
+  last_updated: number;
+}
+
 export interface License {
   type: "license";
   info: PurchaseInfo;
@@ -134,6 +152,8 @@ export type Description =
   | OpenaiGPT35_16k
   | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
+  | ComputeServer
+  | ComputeServerNetworkUsage
   | Credit
   | Refund
   | License
@@ -159,7 +179,8 @@ export interface Purchase {
   time: Date;
   account_id: string;
   cost?: number;
-  cost_per_hour?: number;
+  cost_per_hour?: number; // for purchases with a specific rate (e.g., an upgrade)
+  cost_so_far?: number; // for purchases that accumulate (e.g., data transfer)
   period_start?: Date;
   period_end?: Date;
   pending?: boolean;
@@ -190,8 +211,14 @@ Table({
       desc: "If true, then this transaction is considered pending, which means that for a few days it doesn't count against the user's quotas for the purposes of deciding whether or not a purchase is allowed.  This is needed so we can charge a user for their subscriptions, then collect the money from them, without all of the running pay-as-you-go project upgrades suddenly breaking (etc.).",
     },
     cost_per_hour: {
-      title: "Cost per Hour",
+      title: "Cost Per Hour",
       desc: "The cost in US dollars per hour.  This is used to compute the cost so far for metered purchases when the cost field isn't set yet.  The cost so far is the number of hours since period_start times the cost_per_hour.  The description field may also contain redundant cost per hour information, but this cost_per_hour field is the definitive source of truth.  Once the cost field is set, this cost_per_hour is just useful for display purposes.",
+      type: "number",
+      pg_type: "real",
+    },
+    cost_so_far: {
+      title: "Cost So Far",
+      desc: "The cost so far in US dollars for a metered purchase that accumulates.  This is used, e.g., for data transfer charges.",
       type: "number",
       pg_type: "real",
     },
@@ -266,6 +293,7 @@ Table({
           cost: null,
           pending: null,
           cost_per_hour: null,
+          cost_so_far: null,
           service: null,
           description: null,
           invoice_id: null,
@@ -296,6 +324,7 @@ Table({
           cost: null,
           pending: null,
           cost_per_hour: null,
+          cost_so_far: null,
           service: null,
           description: null,
           invoice_id: null,

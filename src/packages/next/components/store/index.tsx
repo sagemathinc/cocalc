@@ -5,6 +5,7 @@
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+
 import { COLORS } from "@cocalc/util/theme";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
@@ -15,13 +16,13 @@ import useCustomize from "lib/use-customize";
 import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
-import Vouchers from "./vouchers";
 import Congrats from "./congrats";
 import DedicatedResource from "./dedicated";
 import Menu from "./menu";
 import Overview from "./overview";
 import SiteLicense from "./site-license";
 import { StoreInplaceSignInOrUp } from "./store-inplace-signup";
+import Vouchers from "./vouchers";
 
 const { Content } = Layout;
 

@@ -52,11 +52,16 @@ const COLUMNS = [
     key: "output",
     dataIndex: "output",
     width: "40%",
-    render: (output) => (
-      <div style={INFO_STYLE}>
-        <pre style={PRE_STYLE}>{output}</pre>
-      </div>
-    ),
+    render: (output) => {
+      return {
+        props: { style: { padding: "0 0 1em 0" } },
+        children: (
+          <div style={INFO_STYLE}>
+            <pre style={PRE_STYLE}>{output}</pre>
+          </div>
+        ),
+      };
+    },
   },
 ];
 
@@ -74,7 +79,7 @@ export default function ExecutablesTable({
       debounce((e) => {
         setSearch(e.target.value);
       }, 300),
-    []
+    [],
   );
 
   let data: Item[];

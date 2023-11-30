@@ -38,20 +38,21 @@ const img_sorter = (a, b): number => {
 
 interface ComputeImageSelectorProps {
   selected_image: string;
-  layout: "vertical" | "horizontal";
+  layout: "vertical" | "horizontal" | "compact";
   onBlur?: () => void;
   onFocus?: () => void;
   onSelect: (e) => void;
+  disabled?: boolean;
 }
 
 export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
-  props: ComputeImageSelectorProps
+  props: ComputeImageSelectorProps,
 ) => {
-  const { selected_image, onFocus, onBlur, onSelect, layout } = props;
+  const { selected_image, onFocus, onBlur, onSelect, layout, disabled } = props;
 
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
-    "software"
+    "software",
   );
 
   if (software_envs === undefined) {
@@ -63,7 +64,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   }
 
   const computeEnvs = fromJS(software_envs.get("environments")).sort(
-    img_sorter
+    img_sorter,
   );
 
   const defaultComputeImg = software_envs.get("default");
@@ -87,7 +88,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   function render_menu_children(group: string): MenuItem[] {
     return computeEnvs
       .filter(
-        (item) => item.get("group") === group && !item.get("hidden", false)
+        (item) => item.get("group") === group && !item.get("hidden", false),
       )
       .map((img, key) => {
         const registry = img.get("registry");
@@ -126,8 +127,13 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 
   function render_selector() {
     return (
-      <Dropdown menu={getMenu()} trigger={["click"]}>
-        <Button onBlur={onBlur} onFocus={onFocus} size="small">
+      <Dropdown menu={getMenu()} trigger={["click"]} disabled={disabled}>
+        <Button
+          onBlur={onBlur}
+          onFocus={onFocus}
+          size="small"
+          disabled={disabled}
+        >
           {selected_title} <DownOutlined />
         </Button>
       </Dropdown>
@@ -168,12 +174,17 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   }
 
   switch (layout) {
+    case "compact":
+      return render_selector();
     case "vertical":
       // used in project settings → project control
       return (
         <Row gutter={[10, 10]} style={{ marginRight: 0, marginLeft: 0 }}>
           <Col xs={24}>
-            <Icon name={SOFTWARE_ENVIRONMENT_ICON} style={{ marginTop: "5px" }} />
+            <Icon
+              name={SOFTWARE_ENVIRONMENT_ICON}
+              style={{ marginTop: "5px" }}
+            />
             <Gap />
             Selected image
             <Gap />

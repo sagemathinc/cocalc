@@ -4,7 +4,7 @@
     "incremental": true,
     "lib": ["es5", "es6", "es2017", "dom"],
     "outDir": "dist",
-    "rootDirs": ["./src", "./node_modules/@cocalc/frontend/"],
+    "rootDirs": ["./src"],
     "sourceMap": true
   },
   "references": [
@@ -12,23 +12,5 @@
     { "path": "../frontend" },
     { "path": "../util" }
   ],
-  "exclude": [
-    "*__test__*",
-    "*__tests__*",
-    "account/test",
-    "admin",
-    "app-framework/__tests__/",
-    "app",
-    "components/__tests__",
-    "dist",
-    "frame-editors/generic/mocha-tests",
-    "frame-editors/sagews-editor",
-    "frame-editors/settings/__tests__",
-    "jupyter/output-messages/__test__",
-    "jupyter/test",
-    "misc/__test__",
-    "node_modules",
-    "test-mocha",
-    "test"
-  ]
+  "exclude": ["dist", "node_modules"]
 }

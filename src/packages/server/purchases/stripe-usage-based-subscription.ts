@@ -40,6 +40,11 @@ wiggle room in case the usage-based subscription fails.
 If the user doesn't have a usage based subscription we still compute A,B, but
 we also send the user an email encouraging them to sign in and add credit to
 their account (if necessary) so that their subscriptions will renew.
+
+NOTE: All currencies presented to the user are in US dollars, unfortunately,
+as documented at https://stripe.com/docs/payments/checkout/present-local-currencies where
+it says "Automatic currency conversion doesn’t apply for any Sessions with multi-currency 
+prices, subscriptions".
 */
 
 import getConn from "@cocalc/server/stripe/connection";

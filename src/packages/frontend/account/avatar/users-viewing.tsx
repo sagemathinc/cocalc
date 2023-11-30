@@ -4,15 +4,16 @@
  */
 
 import { useInterval } from "react-interval-hook";
-import { cmp } from "@cocalc/util/misc";
+
 import {
+  CSS,
   redux,
   useMemo,
-  useTypedRedux,
   useState,
-  CSS,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import { cmp } from "@cocalc/util/misc";
 import { Avatar } from "./avatar";
 
 // How frequently all UsersViewing componenents are completely updated.
@@ -65,14 +66,11 @@ interface Props {
   style?: React.CSSProperties;
 }
 
-export const UsersViewing: React.FC<Props> = (props) => {
-  const {
-    path,
-    project_id,
-    max_age_s = MAX_AGE_S,
-    style = DEFAULT_STYLE,
-    size = 24,
-  } = props;
+function useUsersViewing(
+  project_id?: string,
+  path?: string,
+  max_age_s?: number,
+) {
   const [counter, set_counter] = useState(0); // used to force update periodically.
 
   // only so component is updated immediately whenever file use changes
@@ -84,19 +82,33 @@ export const UsersViewing: React.FC<Props> = (props) => {
         path,
         max_age_s,
       }),
-    [file_use, project_id, path, max_age_s]
-  );
-
-  // so we can exclude ourselves from list of faces
-  const our_account_id: string | undefined = useTypedRedux(
-    "account",
-    "account_id"
+    [file_use, project_id, path, max_age_s],
   );
 
   useInterval(() => {
     // cause an update
     set_counter(counter + 1);
   }, UPDATE_INTERVAL_S * 1000);
+
+  return { users, file_use };
+}
+
+export function UsersViewing(props: Readonly<Props>) {
+  const {
+    path,
+    project_id,
+    max_age_s = MAX_AGE_S,
+    style = DEFAULT_STYLE,
+    size = 24,
+  } = props;
+
+  const { users, file_use } = useUsersViewing(project_id, path, max_age_s);
+
+  // so we can exclude ourselves from list of faces
+  const our_account_id: string | undefined = useTypedRedux(
+    "account",
+    "account_id",
+  );
 
   function render_active_users(users) {
     const v: {
@@ -128,7 +140,7 @@ export const UsersViewing: React.FC<Props> = (props) => {
             path={path}
             size={size}
             activity={activity}
-          />
+          />,
         );
       }
     }
@@ -139,5 +151,9 @@ export const UsersViewing: React.FC<Props> = (props) => {
     return <Loading />;
   }
 
-  return <div style={{ ...USERS_VIEWING_STYLE, ...style }}>{render_active_users(users)}</div>;
-};
+  return (
+    <div style={{ ...USERS_VIEWING_STYLE, ...style }}>
+      {render_active_users(users)}
+    </div>
+  );
+}

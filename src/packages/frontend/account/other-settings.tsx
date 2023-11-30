@@ -309,9 +309,40 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
+  private render_antd(): Rendered {
+    return (
+      <>
+        <Checkbox
+          checked={this.props.other_settings.get("antd_rounded", true)}
+          onChange={(e) => this.on_change("antd_rounded", e.target.checked)}
+        >
+          <b>Rounded Design</b>: use rounded corners for buttons, etc.
+        </Checkbox>
+        <Checkbox
+          checked={this.props.other_settings.get("antd_animate", true)}
+          onChange={(e) => this.on_change("antd_animate", e.target.checked)}
+        >
+          <b>Animations</b>: briefly animate some aspects, e.g. buttons
+        </Checkbox>
+        <Checkbox
+          checked={this.props.other_settings.get("antd_brandcolors", false)}
+          onChange={(e) => this.on_change("antd_brandcolors", e.target.checked)}
+        >
+          <b>Color Scheme</b>: use brand colors instead of default colors
+        </Checkbox>
+        <Checkbox
+          checked={this.props.other_settings.get("antd_compact", false)}
+          onChange={(e) => this.on_change("antd_compact", e.target.checked)}
+        >
+          <b>Compact Design</b>: use a more compact design
+        </Checkbox>
+      </>
+    );
+  }
+
   render_vertical_fixed_bar_options(): Rendered {
     const selected = getValidVBAROption(
-      this.props.other_settings.get(VBAR_KEY)
+      this.props.other_settings.get(VBAR_KEY),
     );
     return (
       <LabeledRow label="Vertical Project Bar">
@@ -341,53 +372,67 @@ export class OtherSettings extends Component<Props> {
       return <Loading />;
     }
     return (
-      <Panel
-        header={
-          <>
-            <Icon name="gear" /> Other
-          </>
-        }
-      >
-        {this.render_dark_mode()}
-        {this.render_confirm()}
-        {this.render_katex()}
-        {this.render_time_ago_absolute()}
-        {this.render_global_banner()}
-        {this.render_mask_files()}
-        {this.render_hide_project_popovers()}
-        {this.render_hide_file_popovers()}
-        {this.render_hide_button_tooltips()}
-        {this.render_no_free_warnings()}
-        {redux.getStore("customize").get("openai_enabled") && (
+      <>
+        <Panel
+          header={
+            <>
+              <Icon name="highlighter" /> Theme
+            </>
+          }
+        >
+          {this.render_dark_mode()}
+          {this.render_antd()}
+        </Panel>
+
+        <Panel
+          header={
+            <>
+              <Icon name="gear" /> Other
+            </>
+          }
+        >
+          {this.render_confirm()}
+          {this.render_katex()}
+          {this.render_time_ago_absolute()}
+          {this.render_global_banner()}
+          {this.render_mask_files()}
+          {this.render_hide_project_popovers()}
+          {this.render_hide_file_popovers()}
+          {this.render_hide_button_tooltips()}
+          {this.render_no_free_warnings()}
+          {redux.getStore("customize").get("openai_enabled") && (
+            <Checkbox
+              checked={!!this.props.other_settings.get("openai_disabled")}
+              onChange={(e) => {
+                this.on_change("openai_disabled", e.target.checked);
+                redux.getStore("projects").clearOpenAICache();
+              }}
+            >
+              <strong>Disable all OpenAI/ChatGPT integrations</strong>, e.g.,
+              extra buttons in Jupyter, @chatgpt mentions, etc.
+            </Checkbox>
+          )}
           <Checkbox
-            checked={!!this.props.other_settings.get("openai_disabled")}
+            checked={
+              !!this.props.other_settings.get("disable_markdown_codebar")
+            }
             onChange={(e) => {
-              this.on_change("openai_disabled", e.target.checked);
-              redux.getStore("projects").clearOpenAICache();
+              this.on_change("disable_markdown_codebar", e.target.checked);
             }}
           >
-            <strong>Disable all OpenAI/ChatGPT integrations</strong>, e.g.,
-            extra buttons in Jupyter, @chatgpt mentions, etc.
+            <strong>Disable the markdown code bar</strong> in all markdown
+            documents. Checking this hides the extra run, copy, and explain
+            buttons in fenced code blocks.
           </Checkbox>
-        )}
-        <Checkbox
-          checked={!!this.props.other_settings.get("disable_markdown_codebar")}
-          onChange={(e) => {
-            this.on_change("disable_markdown_codebar", e.target.checked);
-          }}
-        >
-          <strong>Disable the markdown code bar</strong> in all markdown
-          documents. Checking this hides the extra run, copy, and explain
-          buttons in fenced code blocks.
-        </Checkbox>
-        {this.render_vertical_fixed_bar_options()}
-        {this.render_new_filenames()}
-        {this.render_default_file_sort()}
-        {this.render_page_size()}
-        {this.render_standby_timeout()}
-        <div style={{ height: "10px" }} />
-        <Tours />
-      </Panel>
+          {this.render_vertical_fixed_bar_options()}
+          {this.render_new_filenames()}
+          {this.render_default_file_sort()}
+          {this.render_page_size()}
+          {this.render_standby_timeout()}
+          <div style={{ height: "10px" }} />
+          <Tours />
+        </Panel>
+      </>
     );
   }
 }

@@ -42,5 +42,9 @@ Table({
     time: {
       type: "timestamp",
     },
+    expire: {
+      type: "timestamp",
+      desc: "Either expire after the given PII retention period, or after 1 year, whichever is sooner.",
+    },
   },
 });

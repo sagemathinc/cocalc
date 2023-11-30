@@ -5,7 +5,6 @@
 
 import { Col, Divider, Modal, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
-
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
@@ -17,8 +16,9 @@ import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 import {
   computeServersEnabled,
-  ManageComputeServers,
-} from "@cocalc/frontend/compute-servers";
+  ComputeServers,
+  ComputeServerDocs,
+} from "@cocalc/frontend/compute";
 
 // Antd's 24 grid system
 const md = 6;
@@ -152,24 +152,27 @@ export function ProjectServers(props: Props) {
       <Title level={2}>
         <Icon name={ICON_NAME} /> {TITLE}
       </Title>
+      {computeServersEnabled() && (
+        <>
+          <h2>
+            <ComputeServerDocs style={{ float: "right" }} />
+            <Icon name="servers" /> Compute Servers
+          </h2>
+          <ComputeServers project_id={project_id} />
+        </>
+      )}
+      <Divider plain />
       <h2>Notebook and Code Editing Servers</h2>
       <Paragraph>
         You can run various servers inside this project. They run in the same
         environment, have access to the same files, and stop when the project
-        stops. If you're adventurous, you can also{" "}
+        stops. You can also{" "}
         <A href={"https://doc.cocalc.com/howto/webserver.html"}>
           run your own servers
         </A>
         .
       </Paragraph>
       {renderNamedServers()}
-      {computeServersEnabled() && (
-        <>
-          <Divider plain />
-          <h2>Compute Servers</h2>
-          <ManageComputeServers project_id={project_id} />
-        </>
-      )}
       <Divider plain />
       {renderSageServerControl()}
     </div>

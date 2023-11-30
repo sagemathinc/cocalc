@@ -9,6 +9,7 @@ import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import type { ComputeServerEvent } from "@cocalc/util/compute/log";
 
 export type EventRecord = {
   id: string;
@@ -29,6 +30,7 @@ export type ProjectLogMap = Map<string, EventRecordMap>;
 export type ProjectEvent =
   | UnknownEvent
   | AssistantEvent
+  | ComputeServerEvent
   | ProjectControlEvent
   | FileActionEvent
   | LibraryEvent

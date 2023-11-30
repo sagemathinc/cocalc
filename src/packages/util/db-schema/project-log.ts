@@ -53,6 +53,7 @@ Table({
     project_id: {
       type: "uuid",
       desc: "where",
+      render: { type: "project_link" },
     },
     time: {
       type: "timestamp",

@@ -60,9 +60,15 @@ class SyncTableChannel extends EventEmitter {
       client,
       throttle_changes,
       [],
-      project_id
+      project_id,
     );
     (this.synctable as any).channel = this; // for debugging
+    this.synctable.setOnDisconnect = (changes, merge) => {
+      this.send_mesg_to_project({ event: "set-on-disconnect", changes, merge });
+    };
+    this.synctable.sendMessageToProject = (data) => {
+      this.send_mesg_to_project({ event: "message", data });
+    };
     this.project_id = project_id;
     this.client = client;
     this.query = query;
@@ -78,9 +84,9 @@ class SyncTableChannel extends EventEmitter {
     return this.connected;
   }
 
-  private log(..._args): void {
-    // console.log("SyncTableChannel", this.query, ..._args);
-  }
+  private log = (..._args) => {
+    //console.log("SyncTableChannel", this.query, ..._args);
+  };
 
   private async connect(): Promise<void> {
     this.log("connect...");
@@ -130,14 +136,14 @@ class SyncTableChannel extends EventEmitter {
     this.client.touch_project(this.project_id);
     // Get a websocket.
     this.websocket = await this.client.project_client.websocket(
-      this.project_id
+      this.project_id,
     );
     if (this.websocket.state != "online") {
       // give websocket state one chance to change.
       // It could change to destroyed or online.
       this.log(
         "wait for websocket to connect since state is",
-        this.websocket.state
+        this.websocket.state,
       );
       await once(this.websocket, "state");
     }
@@ -222,6 +228,10 @@ class SyncTableChannel extends EventEmitter {
         console.warn(message);
       }
     }
+    if (mesg.event == "message") {
+      this.synctable.emit("message", mesg.data);
+      return;
+    }
     if (mesg.init != null) {
       this.log("project --> client: init_browser_client");
       this.synctable.init_browser_client(mesg.init);
@@ -237,15 +247,20 @@ class SyncTableChannel extends EventEmitter {
 
   private send_mesg_to_project(mesg): void {
     this.log("project <-- client: ", mesg);
-    if (
-      !this.connected ||
-      this.websocket == null ||
-      this.channel == null ||
-      this.websocket.state != "online"
-    ) {
-      throw Error("websocket must be online");
+    if (!this.connected) {
+      throw Error("must be connected");
     }
-
+    if (this.websocket == null) {
+      throw Error("websocket must not be null");
+    }
+    if (this.channel == null) {
+      throw Error("channel must not be null");
+    }
+    if (this.websocket.state != "online") {
+      throw Error(
+        `websocket state must be online but it is '${this.websocket.state}'`,
+      );
+    }
     this.channel.write(mesg);
   }
 }
@@ -272,7 +287,7 @@ const cache: { [key: string]: SyncTableChannel } = {};
 // and this is the best by far.
 function key(opts: Options): string {
   return `${opts.id}-${opts.project_id}-${JSON.stringify(
-    opts.query
+    opts.query,
   )}-${JSON.stringify(opts.options)}`;
 }
 

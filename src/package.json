@@ -38,5 +38,8 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc"
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "devDependencies": {
+    "pnpm": "^8.10.2"
+  }
 }

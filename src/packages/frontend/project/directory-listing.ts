@@ -17,7 +17,7 @@ if (prom_client.enabled) {
     {
       buckets: [1, 2, 5, 7, 10, 15, 20, 30, 50],
       labels: ["public", "state", "err"],
-    }
+    },
   );
 }
 
@@ -27,9 +27,10 @@ interface ListingOpts {
   hidden: boolean;
   max_time_s: number;
   group: string;
+  trigger_start_project?: boolean;
 }
 
-export async function get_directory_listing(opts: ListingOpts): Promise<any> {
+export async function get_directory_listing(opts: ListingOpts) {
   let prom_dir_listing_start, prom_labels;
   if (prom_client.enabled) {
     prom_dir_listing_start = server_time();
@@ -37,6 +38,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
   }
 
   let method, state, time0, timeout;
+
   if (["owner", "collaborator", "admin"].indexOf(opts.group) != -1) {
     method = webapp_client.project_client.directory_listing;
     // Also, make sure project starts running, in case it isn't.
@@ -52,6 +54,9 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
     if (state != null && state !== "running") {
       timeout = 0.5;
       time0 = server_time();
+      if (opts.trigger_start_project === false) {
+        return { files: [] };
+      }
       redux.getActions("projects").start_project(opts.project_id);
     } else {
       timeout = 1;
@@ -141,23 +146,30 @@ export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
   while (true) {
     if (listings.get_missing(opts.path)) {
       if (store.getIn(["directory_listings", opts.path]) != null) {
-        // just update an already loading listing:
+        // just update an already loaded listing:
         try {
-          return { files: await listings.get_listing_directly(opts.path) };
+          const files = await listings.get_listing_directly(
+            opts.path,
+            opts.trigger_start_project,
+          );
+          return { files };
         } catch (err) {
           console.warn(
-            `WARNING: problem getting directory listing ${err}; falling back`
+            `WARNING: problem getting directory listing ${err}; falling back`,
           );
         }
       } else {
         // ensure all listing entries get loaded soon.
         redux
           .getProjectActions(opts.project_id)
-          ?.fetch_directory_listing_directly(opts.path);
+          ?.fetch_directory_listing_directly(
+            opts.path,
+            opts.trigger_start_project,
+          );
       }
     }
     // return what we have now:
-    const files = await listings.get(opts.path);
+    const files = await listings.get(opts.path, opts.trigger_start_project);
     if (files != null) {
       return { files };
     }

@@ -380,7 +380,7 @@ export function FilesBottom({
 
   function renderFileInfo() {
     if (singleFile != null) {
-      const { size, mtime, isdir } = singleFile;
+      const { size , mtime, isdir } = singleFile;
       const age = typeof mtime === "number" ? 1000 * mtime : null;
       return (
         <Descriptions size="small" layout="horizontal" column={1}>

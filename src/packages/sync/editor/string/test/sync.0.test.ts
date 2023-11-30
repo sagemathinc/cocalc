@@ -22,9 +22,9 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("call set_cursor_locs, an error since cursors aren't enabled", () => {
-    expect(() => syncstring.set_cursor_locs([])).toThrow(
-      "cursors are not enabled"
-    );
+    expect(async () => {
+      await syncstring.set_cursor_locs([]);
+    }).rejects.toThrow("cursors are not enabled");
   });
 
   it("calls each public get method", () => {
@@ -37,13 +37,13 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
 
   it("the db-style get methods all fail on a string", () => {
     expect(() => syncstring.get()).toThrow(
-      "queries on strings don't have meaning"
+      "queries on strings don't have meaning",
     );
     expect(() => syncstring.get_one()).toThrow(
-      "queries on strings don't have meaning"
+      "queries on strings don't have meaning",
     );
     expect(() => syncstring.delete()).toThrow(
-      "delete on strings doesn't have meaning"
+      "delete on strings doesn't have meaning",
     );
   });
 

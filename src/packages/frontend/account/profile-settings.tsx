@@ -66,7 +66,7 @@ class ProfileSettings extends Component<Props, State> {
       <Panel header={this.render_header()}>
         <LabeledRow label="Color">
           <ColorPicker
-            color={this.props.profile.get("color")}
+            color={this.props.profile?.get("color")}
             justifyContent={"flex-start"}
             onChange={this.onColorChange}
           />

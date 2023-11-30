@@ -8,7 +8,7 @@ Create a new site license.
 */
 import { Form, Input } from "antd";
 import { useEffect, useRef, useState } from "react";
-
+import PaygInfo from "./payg-info";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
@@ -100,12 +100,10 @@ export default function SiteLicense(props: Props) {
             >
               edited or canceled at any time for a prorated refund.{" "}
             </A>
-            If you just need to upgrade your project for a few minutes or a few
-            hours, you can skip buying a license and use{" "}
-            <A href="https://doc.cocalc.com/paygo.html" external>
-              Pay As You Go
-            </A>
-            .
+          </Paragraph>
+
+          <Paragraph>
+            <PaygInfo what="a license" />
           </Paragraph>
           <Paragraph>
             You might also be interested in a{" "}

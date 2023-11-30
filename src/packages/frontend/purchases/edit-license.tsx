@@ -146,7 +146,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
                     setMakingChange(true);
                     const { allowed, reason } = await isPurchaseAllowed(
                       service,
-                      cost
+                      cost,
                     );
                     if (!allowed) {
                       await webapp_client.purchases_client.quotaModal({
@@ -277,6 +277,14 @@ export default function EditLicense({ license_id, refresh }: Props) {
                 <b>{currency(Math.abs(cost))}</b> is the prorated difference
                 between the cost of the original license and the edited one.
               </span>
+            )}
+            {info.type !== "quota" && (
+              <div>
+                <b>
+                  NOTE: This is an old license, so license editing is not
+                  available.
+                </b>
+              </div>
             )}
           </div>
         </Card>

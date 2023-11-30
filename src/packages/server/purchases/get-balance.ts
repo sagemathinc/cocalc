@@ -10,18 +10,18 @@ compute the sum of the following, over all rows of the table for a given account
   current time.
 */
 
-// selects the cost, or if not done, the metered cost so far (see above):
+// selects the cost, or if not done, the rate-based cost cost so far, or if not that the usage based cost so far.
 export const COST_OR_METERED_COST =
-  "COALESCE(cost, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)";
+  "COALESCE(cost, COALESCE(cost_so_far, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600))";
 
 export default async function getBalance(
   account_id: string,
-  client?: PoolClient
+  client?: PoolClient,
 ): Promise<number> {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING IS NOT true`,
-    [account_id]
+    [account_id],
   );
   return rows[0]?.balance ?? 0;
 }
@@ -29,12 +29,12 @@ export default async function getBalance(
 // get sum of the *pending* transactions only for this user.
 export async function getPendingBalance(
   account_id: string,
-  client?: PoolClient
+  client?: PoolClient,
 ) {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING=true`,
-    [account_id]
+    [account_id],
   );
   return rows[0]?.balance ?? 0;
 }
@@ -44,7 +44,7 @@ export async function getTotalBalance(account_id: string, client?: PoolClient) {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
-    [account_id]
+    [account_id],
   );
   return rows[0]?.balance ?? 0;
 }

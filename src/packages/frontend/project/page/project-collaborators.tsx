@@ -17,11 +17,7 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
-import {
-  ICON_USERS,
-  ROOT_STYLE,
-  TITLE_USERS,
-} from "../servers/consts";
+import { ICON_USERS, ROOT_STYLE, TITLE_USERS } from "../servers/consts";
 import { useProject } from "./common";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 
@@ -71,7 +67,14 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
   }
 
   return (
-    <div style={ROOT_STYLE}>
+    <div
+      style={{
+        ...ROOT_STYLE,
+        width: "1000px",
+        maxWidth: "100%",
+        margin: "auto",
+      }}
+    >
       <Title level={2}>
         <Icon name={ICON_USERS} /> {TITLE_USERS}
       </Title>

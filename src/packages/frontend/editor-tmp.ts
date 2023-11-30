@@ -58,8 +58,10 @@ export function file_options(filename: string, content?: string) {
     if (icon != null) {
       x.icon = icon;
     } else {
-      x.icon = "question-circle";
+      x.icon = UNKNOWN_FILE_TYPE_ICON;
     }
   }
   return x;
 }
+
+export const UNKNOWN_FILE_TYPE_ICON = "question-circle"

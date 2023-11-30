@@ -9,7 +9,7 @@ interface Options {
   project_id?: string;
 }
 
-// Get all compute servers associated to a given project
+// Get all compute servers associated to a given project or account
 export default async function getServers({
   account_id,
   id,
@@ -54,4 +54,32 @@ export async function getServer({ account_id, id }): Promise<ComputeServer> {
     throw Error("permission denied");
   }
   return x[0];
+}
+
+export async function getServerNoCheck(id: number): Promise<ComputeServer> {
+  const { rows } = await getPool().query(
+    "SELECT * FROM compute_servers WHERE id=$1",
+    [id],
+  );
+  if (rows.length == 0) {
+    throw Error(`no server with id=${id}`);
+  }
+  return rows[0];
+}
+
+export async function getTitle({
+  account_id,
+  id,
+}): Promise<{ title: string; color: string }> {
+  if (id == 0) {
+    return { title: "The Project", color: "#666" };
+  }
+  const { rows } = await getPool().query(
+    "SELECT title, color FROM compute_servers WHERE id=$1 AND account_id=$2",
+    [id, account_id],
+  );
+  if (rows.length == 0) {
+    throw Error(`users does not own a server with id=${id}`);
+  }
+  return { title: rows[0].title ?? "", color: rows[0].color ?? "" };
 }

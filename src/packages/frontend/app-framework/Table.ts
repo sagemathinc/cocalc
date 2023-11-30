@@ -4,8 +4,8 @@
  */
 
 import { AppRedux } from "../app-framework";
-import { WebappClient } from "../client/client";
 import { bind_methods } from "@cocalc/util/misc";
+import { webapp_client } from "../webapp-client";
 
 declare let Primus;
 
@@ -33,22 +33,17 @@ export abstract class Table {
     bind_methods(this);
     this.name = name;
     this.redux = redux;
-    // TODO: Unfortunately, we currently have to do this later import,
-    // due to circular imports:
-    const {
-      webapp_client,
-    }: { webapp_client: WebappClient } = require("../webapp-client");
     if (this.no_changefeed()) {
       // Create the table but with no changefeed.
       this._table = webapp_client.sync_client.synctable_no_changefeed(
         this.query(),
-        this.options()
+        this.options(),
       );
     } else {
       // Set up a changefeed
       this._table = webapp_client.sync_client.sync_table(
         this.query(),
-        this.options()
+        this.options(),
       );
     }
 
@@ -64,11 +59,15 @@ export abstract class Table {
     }
   }
 
-  async set(
+  close = () => {
+    this._table.close();
+  };
+
+  set = async (
     changes: object,
     merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see @cocalc/sync/table/synctable.ts)
-    cb?: (error?: string) => void
-  ): Promise<void> {
+    cb?: (error?: string) => void,
+  ): Promise<void> => {
     if (cb == null) {
       // No callback, so let async/await report errors.
       // Do not let the error silently hide (like using the code below did)!!
@@ -87,5 +86,5 @@ export abstract class Table {
       e = err.toString();
     }
     cb(e);
-  }
+  };
 }

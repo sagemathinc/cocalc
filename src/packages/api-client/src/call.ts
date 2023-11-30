@@ -1,27 +1,25 @@
 import { apiKey } from "@cocalc/backend/data";
-import { dynamicImport } from "tsimportlib";
 import { siteUrl } from "./urls";
 import { join } from "path";
 
 export async function apiCall(endpoint: string, params: object): Promise<any> {
-  const got = (await dynamicImport("got", module))
-    .default as typeof import("got").default;
   const url = siteUrl(join("api", endpoint));
-  const response = (await got
-    .post(url, {
-      username: apiKey,
-      json: params,
-      // In case of localhost allow connection even if self signed
-      // leaving this in since might be useful later?
-      //       ...(url.startsWith("https://localhost")
-      //         ? { https: { rejectUnauthorized: false } }
-      //         : undefined),
-    })
-    .json()) as any;
-  if (response?.event == "error") {
-    throw Error(response.error ?? "error");
+
+  let headers = new Headers();
+  headers.append("Authorization", "Basic " + btoa(apiKey + ":"));
+  headers.append("Content-Type", "application/json");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(params),
+  });
+
+  let res = await response.json();
+  if (res?.event == "error") {
+    throw Error(res.error ?? "error");
   }
-  delete response.id;
-  delete response.event;
-  return response;
+  delete res.id;
+  delete res.event;
+  return res;
 }

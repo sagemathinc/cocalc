@@ -3,19 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import type { Action, Key } from "./types";
-import getName from "@cocalc/server/accounts/get-name";
+import { getServerSettings } from "@cocalc/database/settings";
+import siteURL from "@cocalc/database/settings/site-url";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import getName from "@cocalc/server/accounts/get-name";
+import sendEmail from "@cocalc/server/email/send-email";
 import getProjectTitle from "@cocalc/server/projects/get-title";
 import { trunc } from "@cocalc/util/misc";
-import siteURL from "@cocalc/database/settings/site-url";
-import { getServerSettings } from "@cocalc/database/settings";
-import sendEmail from "@cocalc/server/email/send-email";
+import { COLORS } from "@cocalc/util/theme";
+import type { Action, Key } from "./types";
+
+const HOWTO_REPLY = `Note: You have to either contact the person directly or respond via the linked chat.
+Just replying to this email will not work.`;
 
 export default async function sendNotificationIfPossible(
   key: Key,
   source: string,
-  description: string
+  description: string,
 ): Promise<Action> {
   const to = await getEmailAddress(key.target);
   if (!to) {
@@ -42,6 +46,9 @@ export default async function sendNotificationIfPossible(
 ${sourceName} mentioned you in
 <a href="${url}">a chat at ${key.path} in ${projectTitle}</a>.
 ${context}
+<br/>
+<br/>
+<div style="color: ${COLORS.GRAY_M};">${HOWTO_REPLY}</div>
 `;
 
   const text = `
@@ -50,6 +57,10 @@ ${sourceName} mentioned you in a chat at ${key.path} in ${projectTitle}.
     ${url}
 
 ${description ? "> " : ""}${description}
+
+---
+
+${HOWTO_REPLY}
 `;
 
   const { help_email } = await getServerSettings();
@@ -65,7 +76,7 @@ ${description ? "> " : ""}${description}
       categories: ["notification"],
       asm_group: 148185, // see https://app.sendgrid.com/suppressions/advanced_suppression_manager
     },
-    source
+    source,
   );
   return "email";
 }

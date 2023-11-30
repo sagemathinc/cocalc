@@ -84,7 +84,7 @@ const Avatar0: React.FC<Props> = (props) => {
       }
     }, // Update image and/or color if the account_id changes *or* the profile itself changes:
     //    https://github.com/sagemathinc/cocalc/issues/5013
-    [props.account_id, user_map.getIn([props.account_id, "profile"])]
+    [props.account_id, user_map.getIn([props.account_id, "profile"])],
   );
 
   function click_avatar() {
@@ -105,7 +105,8 @@ const Avatar0: React.FC<Props> = (props) => {
         return;
       case "file":
         const actions = redux.getEditorActions(project_id, path);
-        const gotoUser = actions["gotoUser"];
+        // actions could be undefined, if file is closed
+        const gotoUser = actions?.["gotoUser"];
         if (gotoUser != null) {
           // This is at least implemented for the whiteboard (which doesn't
           // have a good notion of lines), but should be done more
@@ -138,13 +139,13 @@ const Avatar0: React.FC<Props> = (props) => {
     if (props.first_name != null || props.last_name != null) {
       return trunc_middle(
         `${props.first_name ?? ""} ${props.last_name ?? ""}`.trim(),
-        30
+        30,
       );
     }
     if (!props.account_id) return "Unknown";
     return trunc_middle(
       redux.getStore("users").get_name(props.account_id)?.trim(),
-      30
+      30,
     );
   }
 
@@ -251,7 +252,7 @@ const Avatar0: React.FC<Props> = (props) => {
         (webapp_client.server_time().valueOf() - last_used.valueOf()) /
           (props.max_age_s * 1000),
       0,
-      0.85
+      0.85,
     );
   }
 

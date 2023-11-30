@@ -119,7 +119,7 @@ export const SiteLicenses: React.FC<{}> = () => {
         disabled={loading || !search}
         style={{ margin: "15px 0" }}
       >
-        Update Search
+        <Icon name="refresh" /> Refresh
       </Button>
     );
   }

@@ -187,16 +187,17 @@ function Body() {
               database.
             </li>
             <li>
-              Regarding storage, a network file-system like{" "}
-              <Text strong>NFS</Text>, supporting{" "}
+              Regarding storage, a shared network file-system like{" "}
+              <Text strong>NFS</Text> will hold the data of all projects. The
+              only pre-requisite is it needs to support the Kubernetes{" "}
               <A
                 href={
                   "https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes"
                 }
               >
                 ReadWriteMany
-              </A>
-              , will hold the data of all projects.
+              </A>{" "}
+              file-system access mode.
             </li>
           </ul>
         </Paragraph>
@@ -256,6 +257,12 @@ function Body() {
         <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc - On
         Premises Offerings
       </Title>
+
+      <Paragraph>
+        CoCalc's on-premises offerings allow you to run CoCalc on your own
+        machine or cluster in order to keep your data on-site and use compute
+        resources that you already have.
+      </Paragraph>
       <div>
         <Alert
           type="info"

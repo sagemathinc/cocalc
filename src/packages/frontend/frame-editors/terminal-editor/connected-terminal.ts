@@ -104,7 +104,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     parent: HTMLElement,
     command?: string,
     args?: string[],
-    workingDir?: string
+    workingDir?: string,
   ) {
     bind_methods(this);
     this.ask_for_cwd = debounce(this.ask_for_cwd);
@@ -372,7 +372,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.history += data;
     if (this.history.length > MAX_HISTORY_LENGTH) {
       this.history = this.history.slice(
-        this.history.length - Math.round(MAX_HISTORY_LENGTH / 1.5)
+        this.history.length - Math.round(MAX_HISTORY_LENGTH / 1.5),
       );
     }
     try {
@@ -419,6 +419,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_keyhandler(): void {
+    if (this.state === "closed") {
+      return;
+    }
     if (this.keyhandler_initialized) {
       return;
     }
@@ -487,6 +490,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     rows?: number;
     cols?: number;
     payload: any;
+    id?: number;
   }): void {
     //console.log("handle_mesg", this.id, mesg);
     switch (mesg.cmd) {
@@ -510,23 +514,32 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       case "close":
         this.close_request();
         break;
+      case "computeServerId":
+        if (this.actions.store != null && this.actions.setState != null) {
+          const terminalComputeServerIds =
+            this.actions.store.get("terminalComputeServerIds")?.toJS() ?? {};
+          terminalComputeServerIds[this.term_path] = mesg.id;
+          this.actions.setState({ terminalComputeServerIds });
+        }
+        break;
       case "message":
         const payload = mesg.payload;
         if (payload == null) {
           break;
         }
-        if (payload.event === "open") {
-          if (payload.paths !== undefined) {
-            this.open_paths(payload.paths);
-          }
-          break;
+        switch (payload.event) {
+          case "open":
+            if (payload.paths !== undefined) {
+              this.open_paths(payload.paths);
+            }
+            break;
+          case "close":
+            if (payload.paths !== undefined) {
+              this.close_paths(payload.paths);
+            }
+            break;
         }
-        if (payload.event === "close") {
-          if (payload.paths !== undefined) {
-            this.close_paths(payload.paths);
-          }
-          break;
-        }
+
         break;
       default:
         console.warn("handle_mesg -- unhandled", this.id, mesg);
@@ -595,6 +608,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         }
         // cause render to actually appear now.
         await delay(0);
+        if (this.state === "closed") {
+          return;
+        }
         try {
           this.terminal.refresh(0, this.terminal.rows - 1);
         } catch (err) {

@@ -32,6 +32,7 @@ const codemirror_associations: { [ext: string]: string } = {
   asm: "text/x-gas",
   bash: "shell",
   c: "text/x-c",
+  cu: "text/x-c",
   zig: "text/x-c", // wrong, but much better than nothing
   "c++": "text/x-c++src",
   cob: "text/x-cobol",

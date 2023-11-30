@@ -132,7 +132,7 @@ export class ProjectAndUserTracker extends EventEmitter {
         const callbacks = this.register_todo[account_id];
         if (callbacks != null) {
           for (const cb of callbacks) {
-            cb("closed");
+            cb("closed - project-and-user-tracker");
           }
         }
       }
@@ -263,7 +263,7 @@ export class ProjectAndUserTracker extends EventEmitter {
   private remove_user_from_project(
     account_id: string,
     project_id: string,
-    no_emit: boolean = false
+    no_emit: boolean = false,
   ): void {
     this.assert_state("ready", "remove_user_from_project");
     if (
@@ -313,12 +313,13 @@ export class ProjectAndUserTracker extends EventEmitter {
   }
 
   private register_cb(account_id: string, cb: Function): void {
+    if (this.state == "closed") return;
     const dbg = this.dbg(`register(account_id="${account_id}"`);
     if (this.accounts[account_id] != null) {
       dbg(
         `already registered -- listener counts ${JSON.stringify(
-          this.listener_counts(account_id)
-        )}`
+          this.listener_counts(account_id),
+        )}`,
       );
       cb();
       return;
@@ -418,6 +419,7 @@ export class ProjectAndUserTracker extends EventEmitter {
   // TODO: not actually used by any client yet... but obviously it should
   // be since this would be a work/memory leak, right?
   public unregister(account_id: string): void {
+    if (this.state == "closed") return;
     if (!this.accounts[account_id]) return; // nothing to do
 
     const v: string[] = [];
@@ -447,6 +449,7 @@ export class ProjectAndUserTracker extends EventEmitter {
 
   // Return *set* of projects that this user is a collaborator on
   public get_projects(account_id: string): { [project_id: string]: boolean } {
+    if (this.state == "closed") return {};
     if (!this.accounts[account_id]) {
       // This should never happen, but very rarely it DOES.  I do not know why, having studied the
       // code.  But when it does, just raising an exception blows up the server really badly.
@@ -492,7 +495,7 @@ function all_query(db: PostgreSQL, opts: QueryOptions, cb: Function): void {
 
 async function query<T>(
   db: PostgreSQL,
-  opts: QueryOptions
+  opts: QueryOptions,
 ): Promise<QueryResult<T>[]> {
   return await callback(all_query, db, opts);
 }

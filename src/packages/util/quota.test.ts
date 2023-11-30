@@ -39,10 +39,11 @@ const reasons = reasons0 as (a?, b?, c?, d?) => ReturnType<typeof reasons0>;
 
 import { isBoostLicense } from "./upgrades/utils";
 
-import { PRICES } from "./upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "./consts/site-license";
-import { SiteLicense, SiteLicenses } from "./types/site-licenses";
 import { deep_copy } from "./misc";
+import { SiteLicense, SiteLicenses } from "./types/site-licenses";
+import { DEDICATED_VM_ONPREM_MACHINE } from "./upgrades/consts";
+import { PRICES } from "./upgrades/dedicated";
 
 describe("main quota functionality", () => {
   it("basics are fine", () => {
@@ -1643,6 +1644,123 @@ describe("dedicated", () => {
     const q = quota({}, { userX: {} }, site_license);
     // @ts-ignore
     expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm.machine);
+  });
+
+  it("on-prem dedicated VM/default", () => {
+    const site_license = {
+      a: {
+        quota: {
+          dedicated_vm: {
+            machine: DEDICATED_VM_ONPREM_MACHINE,
+            name: "baz123",
+          },
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    // @ts-ignore
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0,
+      dedicated_disks: [],
+      dedicated_vm: {
+        machine: "onprem",
+        name: "baz123",
+      },
+      disk_quota: 0,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 1000,
+      memory_request: 0,
+      network: true,
+      pay_as_you_go: null,
+      privileged: false,
+    });
+  });
+
+  it("on-prem dedicated VM/upgraded", () => {
+    const site_license = {
+      a: {
+        quota: {
+          cpu: 3,
+          ram: 40,
+          member: true,
+          idle_timeout: "medium",
+          always_running: false,
+          dedicated_vm: {
+            machine: DEDICATED_VM_ONPREM_MACHINE,
+            name: "foo123",
+          },
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    // @ts-ignore
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 3,
+      cpu_request: 0,
+      dedicated_disks: [],
+      dedicated_vm: {
+        machine: "onprem",
+        name: "foo123",
+      },
+      disk_quota: 0,
+      idle_timeout: 7200,
+      member_host: true,
+      memory_limit: 40000,
+      memory_request: 0,
+      network: true,
+      pay_as_you_go: null,
+      privileged: false,
+    });
+  });
+
+  it("on-prem dedicated VM/always_running", () => {
+    const site_license = {
+      a: {
+        quota: {
+          cpu: 1,
+          ram: 5,
+          member: true,
+          always_running: true,
+          dedicated_vm: {
+            machine: DEDICATED_VM_ONPREM_MACHINE,
+            name: "foo123",
+          },
+        },
+      },
+      b: {
+        // any other license should be ignored, only the VM license is taken into account
+        quota: {
+          cpu: 1,
+          ram: 2,
+          member: true,
+          always_running: true,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    // @ts-ignore
+    expect(q).toEqual({
+      always_running: true,
+      cpu_limit: 1,
+      cpu_request: 0,
+      dedicated_disks: [],
+      dedicated_vm: {
+        machine: "onprem",
+        name: "foo123",
+      },
+      disk_quota: 0,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 5000,
+      memory_request: 0,
+      network: true,
+      pay_as_you_go: null,
+      privileged: false,
+    });
   });
 });
 

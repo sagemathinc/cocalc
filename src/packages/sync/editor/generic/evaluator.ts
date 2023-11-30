@@ -111,7 +111,7 @@ export class Evaluator {
     this.inputs_table = await this.create_synctable(
       query,
       this.table_options,
-      0
+      0,
     );
   }
 
@@ -129,7 +129,7 @@ export class Evaluator {
     this.outputs_table = await this.create_synctable(
       query,
       this.table_options,
-      0
+      0,
     );
     this.outputs_table.setMaxListeners(200); // in case of many evaluations at once.
   }
@@ -140,7 +140,7 @@ export class Evaluator {
 
   private assert_not_closed(): void {
     if (this.state === "closed") {
-      throw Error("closed");
+      throw Error("closed -- sync evaluator");
     }
   }
 
@@ -310,7 +310,7 @@ export class Evaluator {
 
       dbg("browser client didn't maintain sync promptly. fixing");
       dbg(
-        `sage_execute_code: i=${i}, n=${n}, output_line.length=${output_line.length}`
+        `sage_execute_code: i=${i}, n=${n}, output_line.length=${output_line.length}`,
       );
       dbg(`output_line='${output_line}', sync_line='${content.slice(i, n)}'`);
       const x = content.slice(0, i);
@@ -477,7 +477,7 @@ export class Evaluator {
   // Runs only in the project
   private async evaluate_using_sage(
     input: SageCallOpts["input"],
-    cb: SageCallOpts["cb"]
+    cb: SageCallOpts["cb"],
   ): Promise<void> {
     this.assert_is_project();
     const dbg = this.dbg("evaluate_using_sage");
@@ -487,7 +487,7 @@ export class Evaluator {
     if (input.event === "execute_code") {
       input = copy_with(input, ["code", "data", "preparse", "event", "id"]);
       dbg(
-        "ensure sage session is running, so we can actually execute the code"
+        "ensure sage session is running, so we can actually execute the code",
       );
     }
     try {

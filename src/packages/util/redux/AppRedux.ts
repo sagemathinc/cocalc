@@ -95,11 +95,11 @@ export abstract class AppRedux implements AppReduxInterface {
 
   createStore<
     State extends Record<string, any>,
-    C extends Store<State> = Store<State>
+    C extends Store<State> = Store<State>,
   >(
     name: string,
     store_class?: StoreConstructorType<State, C>,
-    init?: {} | State
+    init?: {} | State,
   ): C {
     let S: any = this._stores[name];
     if (S != null) throw Error(`store ${name} already exists`);
@@ -152,7 +152,7 @@ export abstract class AppRedux implements AppReduxInterface {
   // ACTIONS
   createActions<T, C extends Actions<T>>(
     name: string,
-    ActionsClass?: new (a, b) => C
+    ActionsClass?: new (a, b) => C,
   ): C {
     if (name == null) {
       throw Error("name must be a string");
@@ -197,16 +197,14 @@ export abstract class AppRedux implements AppReduxInterface {
 
   getEditorStore(project_id: string, path: string) {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
+      throw Error(`getEditorStore: INVALID project_id -- "${project_id}"`);
     }
     return this.getStore(redux_name(project_id, path));
   }
 
   getEditorActions(project_id: string, path: string) {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
+      throw Error(`getEditorActions: INVALID project_id -- "${project_id}"`);
     }
     return this.getActions(redux_name(project_id, path));
   }
@@ -219,8 +217,7 @@ export abstract class AppRedux implements AppReduxInterface {
   // if they don't exist
   getProjectStore(project_id: string) {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
+      throw Error(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
       throw Error(`no project store for project_id - ${project_id}`);
@@ -233,8 +230,7 @@ export abstract class AppRedux implements AppReduxInterface {
   // T, C extends Actions<T>
   getProjectActions(project_id: string) {
     if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
+      throw Error(`getProjectActions: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
       throw Error(`no project actions for project_id - ${project_id}`);

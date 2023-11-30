@@ -12,7 +12,13 @@ on:
   pull_request:
     branches:
       - master
-
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 
 env:
   PGDATABASE: smc
@@ -42,9 +48,15 @@ jobs:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         node-version:
-          - "18.x"
+          - "18.17.1"
 
     steps:
+      # Enable tmate debugging of manually-triggered workflows if the input option was provided
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        with:
+          detached: true
       - uses: actions/checkout@v3
       - name: Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3

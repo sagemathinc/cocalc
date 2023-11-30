@@ -128,9 +128,18 @@ interface Options {
 function process(
   markdown_string: string,
   mode: "default" | "frontmatter",
-  options?: Options
+  options?: Options,
 ): MD2html {
-  const text = markdown_string;
+  let text = markdown_string;
+  if (typeof text != "string") {
+    console.warn(
+      "WARNING: called markdown process with non-string input",
+      text,
+    );
+    // this function can get used for rendering markdown errors, and it's better
+    // to show something then blow up in our face.
+    text = JSON.stringify(text);
+  }
 
   let html: string;
   let frontmatter = "";
@@ -141,7 +150,7 @@ function process(
       MarkdownItFrontMatter,
       (fm) => {
         frontmatter = fm;
-      }
+      },
     );
     html = md_frontmatter.render(text);
   } else {

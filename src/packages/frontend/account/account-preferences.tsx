@@ -3,22 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux, useTypedRedux } from "../app-framework";
-import { ProfileSettings } from "./profile-settings";
-import { TerminalSettings } from "./terminal-settings";
-import { KeyboardSettings } from "./keyboard-settings";
-import { AccountSettings } from "./settings/account-settings";
 import { Form, Switch, Tooltip } from "antd";
-import { Row, Col } from "../antd-bootstrap";
-import { Footer } from "@cocalc/frontend/customize";
-import { OtherSettings } from "./other-settings";
-import { EditorSettings } from "./editor-settings/editor-settings";
-import { A, Loading } from "../components";
-import TableError from "./table-error";
 import { join } from "path";
+
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { A, Loading } from "@cocalc/frontend/components";
+import { Footer } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import track from "@cocalc/frontend/user-tracking";
+import { EditorSettings } from "./editor-settings/editor-settings";
+import { KeyboardSettings } from "./keyboard-settings";
+import { OtherSettings } from "./other-settings";
+import { ProfileSettings } from "./profile-settings";
+import { AccountSettings } from "./settings/account-settings";
 import ApiKeys from "./settings/api-keys";
+import TableError from "./table-error";
+import { TerminalSettings } from "./terminal-settings";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");

@@ -60,6 +60,7 @@ export type PurchaseInfoQuota = {
   quote_info?: string;
   payment_method?: string;
   cost?: Cost;
+  cost_per_hour?: number;
   custom_ram: number;
   custom_dedicated_ram: number;
   custom_cpu: number;
@@ -103,28 +104,26 @@ export type PurchaseInfo =
       CustomDescription);
 
 // stripe's metadata can only handle string or number values.
-export type ProductMetadataQuota =
-  | Record<
-      | "user"
-      | "ram"
-      | "cpu"
-      | "dedicated_ram"
-      | "dedicated_cpu"
-      | "disk"
-      | "uptime"
-      | "member"
-      | "subscription"
-      | "boost",
-      string | number | null
-    > & {
-      duration_days?: number;
-    };
+export type ProductMetadataQuota = Record<
+  | "user"
+  | "ram"
+  | "cpu"
+  | "dedicated_ram"
+  | "dedicated_cpu"
+  | "disk"
+  | "uptime"
+  | "member"
+  | "subscription"
+  | "boost",
+  string | number | null
+> & {
+  duration_days?: number;
+};
 
-export type ProductMetadataVM =
-  | Record<"machine", string | number | null> & {
-      duration_days?: number;
-      type: "vm";
-    };
+export type ProductMetadataVM = Record<"machine", string | number | null> & {
+  duration_days?: number;
+  type: "vm";
+};
 
 export type ProductMetadataDisk = Record<
   "size_gb" | "speed",

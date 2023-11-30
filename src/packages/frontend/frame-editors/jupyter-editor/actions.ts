@@ -83,7 +83,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   private init_changes_state(): void {
     const syncdb = this.jupyter_actions.syncdb;
     syncdb.on("has-uncommitted-changes", (has_uncommitted_changes) =>
-      this.setState({ has_uncommitted_changes })
+      this.setState({ has_uncommitted_changes }),
     );
     syncdb.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
@@ -156,7 +156,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.redux,
       this.name,
       this.path,
-      this.project_id
+      this.project_id,
     );
   }
 
@@ -263,7 +263,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   protected async get_shell_spec(
-    id: string
+    id: string,
   ): Promise<undefined | { command: string; args: string[] }> {
     id = id; // not used
     const connection_file = this.jupyter_actions.store.get("connection_file");
@@ -326,7 +326,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   public async jump_to_cell(
     cell_id: string,
-    align: "center" | "top" = "top"
+    align: "center" | "top" = "top",
   ): Promise<void> {
     // Open or focus a notebook viewer and scroll to the given cell.
     if (this._state === "closed") return;
@@ -341,13 +341,13 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   public async show_table_of_contents(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "jupyter_table_of_contents",
       "col",
       true,
-      1 / 3
+      1 / 3,
     );
     // the click to select TOC focuses the active id back on the notebook
     await delay(0);
@@ -360,7 +360,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       "commands_guide",
       "col",
       false,
-      3 / 4
+      3 / 4,
     );
     // the click to select focuses the active id back on the notebook
     await delay(0);
@@ -447,7 +447,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   chatgptGetText(
     frameId: string,
-    scope: "selection" | "cell" | "all" = "all"
+    scope: "selection" | "cell" | "all" = "all",
   ): string {
     const actions = this.frame_actions[frameId];
     if (!actions) return ""; // no frames (?)
@@ -526,6 +526,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   chatgptGetScopes() {
     return new Set<"selection" | "cell">(["selection", "cell"]);
+  }
+
+  compute_server() {
+    // this is here just so the dropdown gets enabled
   }
 }
 

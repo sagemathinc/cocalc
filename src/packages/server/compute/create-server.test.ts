@@ -4,6 +4,7 @@ import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
+import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -42,7 +43,14 @@ describe("creates account, project and then compute servers in various ways", ()
       await getServers({
         account_id,
       }),
-    ).toEqual([{ id, account_id, project_id }]);
+    ).toEqual([
+      expect.objectContaining({
+        id,
+        account_id,
+        project_id,
+        state: "deprovisioned",
+      }),
+    ]);
 
     // get by id:
     expect(
@@ -50,12 +58,19 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         id,
       }),
-    ).toEqual([{ id, account_id, project_id }]);
+    ).toEqual([
+      expect.objectContaining({
+        id,
+        account_id,
+        project_id,
+        state: "deprovisioned",
+      }),
+    ]);
   });
 
   it("creates compute server with every parameters set to something", async () => {
     const s = {
-      name: "myserver",
+      title: "myserver",
       color: "red",
       idle_timeout: 60 * 15,
       autorestart: true,
@@ -71,7 +86,16 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         id,
       }),
-    ).toEqual([{ id, account_id, project_id, ...s }]);
+    ).toEqual([
+      expect.objectContaining({
+        id,
+        account_id,
+        project_id,
+        ...s,
+        state: "deprovisioned",
+        configuration: CLOUDS_BY_NAME["google-cloud"].defaultConfiguration,
+      }),
+    ]);
   });
 
   it("a user can't create a compute server on a project they aren't a collaborator on", async () => {

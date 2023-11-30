@@ -32,4 +32,7 @@ export interface ConnectedTerminalInterface {
 
   _get_project_actions(): ProjectActions;
   open_code_editor_frame(path: string);
+
+  store?;
+  setState?;
 }

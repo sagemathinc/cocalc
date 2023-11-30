@@ -14,7 +14,7 @@ import {
 } from "./base";
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
-import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
+import { expire_time, is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 
 import getLogger from "@cocalc/backend/logger";
 const winston = getLogger("project-control-kucalc");
@@ -57,22 +57,27 @@ class Project extends BaseProject {
       this.stateChanging = { state: "starting" };
 
       // TODO: once "manage" processes site licenses, we can remove this line!
-      // Manage has do the equivalent of this.computeQuota()
+      // Manage has to do the equivalent of this.computeQuota()
       await this.siteLicenseHook(false);
       await this.actionRequest("start");
       await this.waitUntilProject(
         (project) =>
           project.state?.state == "running" || project.action_request?.finished,
-        120
+        120,
       );
     } finally {
       this.stateChanging = undefined;
     }
   }
 
+  // TODO/ATTN: I don't think this is actualy used by kucalc yet.
+  // In kucalc there's cluster2/addons/manage/image/src/k8s-control.coffee
+  // which does a lot of this stuff *directly* via the database and
+  // kubernetes.  It needs to be rewritten...
   async stop(): Promise<void> {
     if (this.stateChanging != null) return;
     winston.info("stop ", this.project_id);
+    await this.closePayAsYouGoPurchases();
     if ((await this.state()).state != "running") {
       return;
     }
@@ -85,7 +90,7 @@ class Project extends BaseProject {
             project.state != "running" &&
             project.state != "stopping") ||
           project.action_request?.finished,
-        60
+        60,
       );
     } finally {
       this.stateChanging = undefined;
@@ -111,17 +116,45 @@ class Project extends BaseProject {
     const copyID = uuid();
     dbg(`copyID=${copyID}`);
 
-    if (opts.scheduled && opts.scheduled instanceof Date) {
-      // We have to remove the timezone info, b/c the PostgreSQL field is without timezone.
-      // Ideally though, this is always UTC, e.g. "2019-08-08T18:34:49".
-      const d = new Date(opts.scheduled);
-      const offset = d.getTimezoneOffset() / 60;
-      opts.scheduled = new Date(d.getTime() - offset);
-      opts.wait_until_done = false;
-      dbg(`opts.scheduled = ${opts.scheduled}`);
+    // expire in 1 month
+    const oneMonthSecs = 60 * 60 * 24 * 30;
+    let expire: Date = expire_time(oneMonthSecs);
+
+    if (opts.scheduled) {
+      // we parse it if it is a string
+      if (typeof opts.scheduled === "string") {
+        const scheduledTS: number = Date.parse(opts.scheduled);
+
+        if (isNaN(scheduledTS)) {
+          throw new Error(
+            `opts.scheduled = ${opts.scheduled} is not a valid date. Can't be parsed by Date.parse()`,
+          );
+        }
+
+        opts.scheduled = new Date(scheduledTS);
+      }
+
+      if (opts.scheduled instanceof Date) {
+        // We have to remove the timezone info, b/c the PostgreSQL field is without timezone.
+        // Ideally though, this is always UTC, e.g. "2019-08-08T18:34:49".
+        const d = new Date(opts.scheduled);
+        const offset = d.getTimezoneOffset() / 60;
+        opts.scheduled = new Date(d.getTime() - offset);
+        opts.wait_until_done = false;
+        dbg(`opts.scheduled = ${opts.scheduled}`);
+        // since scheduled could be in the future, we want to expire it 1 month after that
+        expire = new Date(
+          Math.max(opts.scheduled.getTime(), Date.now()) + oneMonthSecs * 1000,
+        );
+      } else {
+        throw new Error(
+          `opts.scheduled = ${opts.scheduled} is not a valid date.`,
+        );
+      }
     }
 
     dbg("write query requesting the copy to happen to the database");
+
     await callback2(db()._query, {
       query: "INSERT INTO copy_paths",
       values: {
@@ -139,6 +172,7 @@ class Project extends BaseProject {
         "timeout           ::NUMERIC": opts.timeout,
         "scheduled         ::TIMESTAMP": opts.scheduled,
         "exclude           ::TEXT[]": opts.exclude,
+        "expire            ::TIMESTAMP": expire,
       },
     });
 
@@ -181,7 +215,7 @@ class Project extends BaseProject {
 
   private async waitUntilProject(
     until: (obj) => boolean,
-    timeout: number // in seconds
+    timeout: number, // in seconds
   ): Promise<void> {
     let synctable: any = undefined;
     try {
@@ -206,7 +240,7 @@ class Project extends BaseProject {
 
   private async waitUntilCopyFinished(
     copyID: string,
-    timeout: number // in seconds
+    timeout: number, // in seconds
   ): Promise<void> {
     let synctable: any = undefined;
     try {

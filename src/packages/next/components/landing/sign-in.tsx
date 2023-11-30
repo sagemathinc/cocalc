@@ -37,7 +37,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
           title={`Open the ${siteName} app and view your projects.`}
           type="primary"
         >
-          Open your {siteName} projects...
+          Your {siteName} projects...
         </Button>
       </Paragraph>
     );

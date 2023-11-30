@@ -76,12 +76,16 @@ export class NewsActions extends Actions<NewsState> {
   public updateUnreadCount(readUntil: number): void {
     let unread = 0;
     const now = webapp_client.server_time();
+    const account_created = redux.getStore("account")?.get("created");
     this.getStore()
       .getNews()
       .map((m, _id) => {
         if (m.get("hide", false)) return;
         const date = m.get("date");
         if (date != null && date.getTime() > readUntil && date < now) {
+          // further filter news, which are older then when the user's account has been created
+          // if they open the news panel, they'll still see them, though – but initially there is no notification
+          if (account_created && date < account_created) return;
           unread++;
         }
       });

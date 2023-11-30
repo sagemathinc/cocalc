@@ -153,6 +153,7 @@ if exists(saml20fn):
             "name": "saml20",
             "entryPoint": "http://localhost:7000/saml/sso",
             "path": "/auth/saml20/return",
+            #"audience": False, # "https://localhost:5000/", # false is set as default
             "login_info": {
                 "first_name": "firstName",
                 "last_name": "lastName",

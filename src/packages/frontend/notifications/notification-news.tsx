@@ -34,7 +34,6 @@ interface NewsPanelProps {
 export function NewsPanel(props: NewsPanelProps) {
   const { news, filter } = props;
   const news_actions = useActions("news");
-  const news_unread = useTypedRedux("news", "unread");
   const account_other = useTypedRedux("account", "other_settings");
   const news_read_until: number | undefined =
     account_other?.get("news_read_until");
@@ -54,11 +53,11 @@ export function NewsPanel(props: NewsPanelProps) {
     news_actions.markNewsRead();
   }, []);
 
-  const newsData: NewsItemWebapp[] = useMemo(() => {
-    if (!isNewsFilter(filter)) return [];
+  const [newsData, anyUnread]: [NewsItemWebapp[], boolean] = useMemo(() => {
+    if (!isNewsFilter(filter)) return [[], false];
     const now = webapp_client.server_time();
     // weird: using news.valueSeq().toJS() makes object reappear, which were overwritten when an update came in!?
-    return Object.values(news.toJS() as any)
+    const data: NewsItemWebapp[] = Object.values(news.toJS() as any)
       .filter((n: any) => {
         if (n.hide ?? false) return false;
         if (n.date > now) return false;
@@ -70,7 +69,12 @@ export function NewsPanel(props: NewsPanelProps) {
         }
       })
       .sort((a: any, b: any) => -cmp_Date(a.date, b.date)) as any;
-  }, [news, filter]);
+    // if any entry in data is unread, then anyUnread is true
+    const anyUnread = data.some(
+      (n: any) => news_read_until == null || n?.date.getTime() > news_read_until
+    );
+    return [data, anyUnread];
+  }, [news, filter, news_read_until]);
 
   // If a user clicks on a news item, we assume they saw all news up until that point.
   // (and even if not, it's fine, they don't vanish)
@@ -109,7 +113,7 @@ export function NewsPanel(props: NewsPanelProps) {
         <Button href={`${BASE_URL}/news`} target="_blank">
           <Icon name="file-alt" /> Read All
         </Button>
-        {news_unread ?? 0 > 0 ? (
+        {anyUnread ? (
           <Button onClick={() => news_actions.markNewsRead()} type="primary">
             <Icon name="check-square" /> Mark all read
           </Button>

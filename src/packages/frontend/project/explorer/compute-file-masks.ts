@@ -40,6 +40,7 @@ const MASKED_FILE_EXTENSIONS = {
     "synctex.gz",
     "synctex.gz(busy)",
     "toc",
+    "vrb", // https://github.com/sagemathinc/cocalc/issues/6977
     "xyc",
   ],
   rnw: ["tex", "NODOT-concordance.tex"],
@@ -56,7 +57,7 @@ const MASKED_FILE_EXTENSIONS = {
 export function compute_file_masks(listing: DirectoryListing): void {
   // map filename to file for easier lookup
   const filename_map: { [name: string]: DirectoryListingEntry } = dict(
-    listing.map((item) => [item.name, item])
+    listing.map((item) => [item.name, item]),
   );
   for (const file of listing) {
     // mask certain known directories

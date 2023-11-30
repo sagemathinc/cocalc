@@ -86,6 +86,10 @@ Table({
       type: "string",
       desc: "if the copy failed or output any errors, they are put here.",
     },
+    expire: {
+      type: "timestamp",
+      desc: "expire after 1 month",
+    },
   },
   rules: {
     primary_key: "id",

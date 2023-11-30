@@ -46,8 +46,11 @@ import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
 import { FixedTab } from "./project/page/file-tab";
-import { FLYOUT_LOG_DEFAULT_MODE } from "./project/page/flyouts/log";
-import { FlyoutLogMode } from "./project/page/flyouts/state";
+import { FlyoutActiveMode, FlyoutLogMode } from "./project/page/flyouts/state";
+import {
+  FLYOUT_ACTIVE_DEFAULT_MODE,
+  FLYOUT_LOG_DEFAULT_MODE,
+} from "./project/page/flyouts/utils";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -64,6 +67,7 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
+  just_closed_files: immutable.List<string>;
   public_paths?: immutable.Map<string, immutable.Map<string, any>>;
   directory_listings: immutable.Map<string, any>;
   show_upload: boolean;
@@ -80,6 +84,7 @@ export interface ProjectStoreState {
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
+  flyout_active_mode: FlyoutActiveMode;
 
   // Project Files
   activity: any; // immutable,
@@ -150,6 +155,9 @@ export interface ProjectStoreState {
 
   // if true, show the explorer tour
   explorerTour?: boolean;
+
+  compute_servers?;
+  create_compute_server?: boolean;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
@@ -236,6 +244,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       history_path: "",
       open_files: immutable.Map<immutable.Map<string, any>>({}),
       open_files_order: immutable.List([]),
+      just_closed_files: immutable.List([]),
       directory_listings: immutable.Map(), // immutable,
       show_upload: false,
       create_file_alert: false,
@@ -251,6 +260,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       num_ghost_file_tabs: 0,
       flyout: null,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
+      flyout_active_mode: FLYOUT_ACTIVE_DEFAULT_MODE,
 
       // Project Files
       activity: undefined,
@@ -299,7 +309,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           const { SCHEMA, client_db } = require("@cocalc/util/schema");
           return SCHEMA.public_paths.user_query.set.fields.id(
             { project_id, path },
-            client_db
+            client_db,
           );
         };
       },
@@ -321,7 +331,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       fn: () => {
         const search_escape_char = "/";
         const listingStored = this.get("directory_listings").get(
-          this.get("current_path")
+          this.get("current_path"),
         );
         if (typeof listingStored === "string") {
           if (
@@ -380,7 +390,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 } else {
                   return misc.cmp_array(
                     a.name.split(".").reverse(),
-                    b.name.split(".").reverse()
+                    b.name.split(".").reverse(),
                   );
                 }
               };
@@ -434,7 +444,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         mutate_data_to_compute_public_files(
           data,
           this.get("stripped_public_paths"),
-          this.get("current_path")
+          this.get("current_path"),
         );
 
         return data;
@@ -455,7 +465,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 result.push(misc.copy_without(x, ["id", "project_id"]));
               }
               return result;
-            })()
+            })(),
           );
         }
       },
@@ -507,7 +517,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // returns false, if this project isn't capable of opening a file with the given extension
   async can_open_file_ext(
     ext: string,
-    actions: ProjectActions
+    actions: ProjectActions,
   ): Promise<boolean> {
     // to make sure we know about disabled file types
     const conf = await actions.init_configuration("main");
@@ -590,11 +600,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
           if (this.listings.get_missing(path)) {
             try {
               files = immutable.fromJS(
-                await this.listings.get_listing_directly(path)
+                await this.listings.get_listing_directly(path),
               );
             } catch (err) {
               console.warn(
-                `WARNING: problem getting directory listing ${err}; falling back`
+                `WARNING: problem getting directory listing ${err}; falling back`,
               );
               files = await this.listings.get_for_store(path);
             }
@@ -644,7 +654,7 @@ function compute_snapshot_display_names(listing): void {
 export function mutate_data_to_compute_public_files(
   data,
   public_paths,
-  current_path
+  current_path,
 ) {
   const { listing } = data;
   const pub = data.public;
@@ -677,7 +687,7 @@ function _sort_on_string_field(field) {
   return function (a, b) {
     return misc.cmp(
       a[field] !== undefined ? a[field].toLowerCase() : "",
-      b[field] !== undefined ? b[field].toLowerCase() : ""
+      b[field] !== undefined ? b[field].toLowerCase() : "",
     );
   };
 }
@@ -686,7 +696,7 @@ function _sort_on_numerical_field(field, factor = 1) {
   return (a, b) => {
     const c = misc.cmp(
       (a[field] != null ? a[field] : -1) * factor,
-      (b[field] != null ? b[field] : -1) * factor
+      (b[field] != null ? b[field] : -1) * factor,
     );
     if (c) return c;
     // break ties using the name, so well defined.
@@ -709,7 +719,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   >(name, ProjectStore);
   const actions = redux.createActions<ProjectStoreState, ProjectActions>(
     name,
-    ProjectActions
+    ProjectActions,
   );
   store.project_id = project_id;
   actions.project_id = project_id; // so actions can assume this is available on the object
@@ -751,7 +761,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
     q.query.project_id = project_id;
     redux.createTable(
       project_redux_name(project_id, table_name),
-      create_table(table_name, q)
+      create_table(table_name, q),
     );
   }
 

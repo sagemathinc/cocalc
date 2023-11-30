@@ -79,7 +79,7 @@ export abstract class BaseProject extends EventEmitter {
       const pool = getPool();
       await pool.query(
         "UPDATE projects SET last_edited=NOW() WHERE project_id=$1",
-        [this.project_id]
+        [this.project_id],
       );
     }
     await this.start();
@@ -89,7 +89,7 @@ export abstract class BaseProject extends EventEmitter {
     await site_license_hook(db(), this.project_id, havePAYGO);
   }
 
-  private async closePayAsYouGoPurchases() {
+  protected async closePayAsYouGoPurchases() {
     try {
       await closePayAsYouGoPurchases(this.project_id);
     } catch (err) {

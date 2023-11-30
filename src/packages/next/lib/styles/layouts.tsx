@@ -7,7 +7,7 @@ import { Col, Row } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
-import { Paragraph, Title } from "components/misc";
+import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 
 const gridProps = { sm: 24, md: 12 } as const;
@@ -37,26 +37,57 @@ export const OVERVIEW_LARGE_ICON_MARGIN: React.CSSProperties = {
   fontSize: "80px",
 } as const;
 
+const ICON_SIZE = "50px";
+const ICON_STYLE: CSS = { fontSize: ICON_SIZE, fontWeight: "bold" } as const;
+
 export function Product({
   icon,
+  icon2,
   title,
   href,
   children,
   external,
 }: {
   icon;
+  icon2?;
   title;
   href;
   children;
   external?;
 }) {
+  function renderIcon2() {
+    if (!icon2) return null;
+    return (
+      <>
+        <span
+          style={{
+            fontSize: "30px",
+            paddingLeft: "10px",
+            paddingRight: "10px",
+          }}
+        >
+          /
+        </span>
+        <Icon style={ICON_STYLE} name={icon2} />
+      </>
+    );
+  }
+
   return (
     <Col {...gridProps}>
-      <A href={href} external={external}>
-        <Icon
-          style={{ fontSize: "50px", fontWeight: "bold", display: "block" }}
-          name={icon}
-        />
+      {/* display: flex to avoid line breaks if there are 2 icons */}
+      <A
+        href={href}
+        external={external}
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          marginBottom: "10px",
+        }}
+      >
+        <Icon style={ICON_STYLE} name={icon} />
+        {renderIcon2()}
       </A>
       <Title
         level={2}

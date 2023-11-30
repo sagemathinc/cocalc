@@ -19,7 +19,7 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import { capitalize, plural } from "@cocalc/util/misc";
+import { capitalize, plural, round2, round4 } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -38,6 +38,10 @@ import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import AdminRefund from "./admin-refund";
 import { A } from "@cocalc/frontend/components/A";
 import getSupportURL from "@cocalc/frontend/support/url";
+import {
+  ComputeServerDescription,
+  ComputeServerNetworkUsageDescription,
+} from "@cocalc/frontend/compute/purchases";
 
 const DEFAULT_LIMIT = 150;
 
@@ -65,6 +69,7 @@ function Purchases0({
   account_id,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
+  const [activeOnly, setActiveOnly] = useState<boolean>(false);
   const [thisMonth, setThisMonth] = useState<boolean>(true);
   const [noStatement, setNoStatement] = useState<boolean>(false);
 
@@ -119,6 +124,15 @@ function Purchases0({
             Not on any statement yet
           </Checkbox>
         </Tooltip>
+        <Tooltip title="Only show unfinished active purchases">
+          <Checkbox
+            disabled={group}
+            checked={!group && activeOnly}
+            onChange={(e) => setActiveOnly(e.target.checked)}
+          >
+            Only Show Active
+          </Checkbox>
+        </Tooltip>
       </div>
       <PurchasesTable
         project_id={project_id}
@@ -128,8 +142,10 @@ function Purchases0({
         day_statement_id={day_statement_id}
         month_statement_id={month_statement_id}
         noStatement={noStatement}
+        showBalance
         showTotal
         showRefresh
+        activeOnly={activeOnly}
       />
     </SettingBox>
   );
@@ -144,29 +160,39 @@ export function PurchasesTable({
   day_statement_id,
   month_statement_id,
   noStatement,
+  showBalance,
   showTotal,
   showRefresh,
   style,
   limit = DEFAULT_LIMIT,
   filename,
+  activeOnly,
 }: Props & {
   thisMonth?: boolean;
   cutoff?: Date;
   noStatement?: boolean;
+  showBalance?: boolean;
   showTotal?: boolean;
   showRefresh?: boolean;
   style?: CSSProperties;
   limit?: number;
   filename?: string;
+  activeOnly?: boolean;
 }) {
-  const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
+  const [purchaseRecords, setPurchaseRecords] = useState<
+    Partial<Purchase & { sum?: number }>[] | null
+  >(null);
+  const [purchases, setPurchases] = useState<
+    Partial<Purchase & { sum?: number }>[] | null
+  >(null);
   const [groupedPurchases, setGroupedPurchases] = useState<
-    Partial<Purchase>[] | null
+    Partial<Purchase & { sum?: number }>[] | null
   >(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
+  const [balance, setBalance] = useState<number>(0);
 
   const getNextPage = () => {
     setOffset((prevOffset) => prevOffset + limit);
@@ -176,50 +202,88 @@ export function PurchasesTable({
     setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
   };
 
-  const getPurchases = async () => {
+  const getBalance = async () => {
     try {
-      setTotal(null);
-      setPurchases(null);
-      setGroupedPurchases(null);
+      const userBalance = account_id
+        ? await api.getBalanceAdmin(account_id)
+        : await api.getBalance();
+
+      setBalance(userBalance);
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
+  const getPurchaseRecords = async () => {
+    try {
+      setPurchaseRecords(null);
+
       const opts = {
-        thisMonth,
         cutoff,
-        limit,
-        offset,
-        group,
-        service,
-        project_id,
         day_statement_id,
         month_statement_id,
+        group,
+        limit,
         no_statement: noStatement,
+        offset,
+        project_id,
+        service,
+        thisMonth,
       };
       const x = account_id
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
-      if (group) {
-        setGroupedPurchases(x);
-      } else {
-        setPurchases(x);
-      }
-      let t = 0;
-      for (const row of x) {
-        t += row["sum"] ?? row["cost"] ?? 0;
-      }
-      setTotal(t);
+
+      setPurchaseRecords(x);
     } catch (err) {
       setError(`${err}`);
     }
   };
 
   useEffect(() => {
-    getPurchases();
-  }, [limit, offset, group, service, project_id, thisMonth, noStatement]);
+    getBalance();
+  }, []);
+
+  useEffect(() => {
+    getPurchaseRecords();
+  }, [group, limit, noStatement, offset, project_id, service, thisMonth]);
+
+  useEffect(() => {
+    if (purchaseRecords == null) {
+      return;
+    }
+
+    setTotal(null);
+
+    let b = balance;
+    let t = 0;
+    const purchases: Partial<Purchase & { balance: number }>[] = [];
+    for (const row of purchaseRecords) {
+      if (activeOnly && row.cost != null) {
+        continue;
+      }
+      const cost = getCost(row);
+      // Compute incremental balance
+      purchases.push({ ...row, balance: b });
+      b += cost;
+
+      // Compute total cost
+      t += cost;
+    }
+
+    if (group) {
+      setGroupedPurchases(purchases);
+    } else {
+      setPurchases(purchases);
+    }
+    setTotal(t);
+  }, [balance, purchaseRecords, activeOnly]);
 
   //const download = (format: "csv" | "json") => {};
 
   return (
     <div style={style}>
-      {showRefresh && <Refresh refresh={getPurchases} />}
+      {showRefresh && <Refresh refresh={getPurchaseRecords} />}
       <ShowError error={error} setError={setError} />
       <div
         style={{
@@ -266,16 +330,28 @@ export function PurchasesTable({
         )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
-        {!group && (
+        {group ? (
+          <GroupedPurchaseTable purchases={groupedPurchases} />
+        ) : (
           <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
         )}
-        {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
       </div>
-      {showTotal && total != null && (
-        <div style={{ fontSize: "12pt", marginTop: "15px" }}>
-          Total of Displayed Costs: ${(-total).toFixed(2)}
-        </div>
-      )}
+      <div
+        style={{
+          fontSize: "12pt",
+          marginTop: "15px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {showTotal && total != null && (
+          <span>Total of Displayed Costs: ${(-total).toFixed(2)}</span>
+        )}
+        {showBalance && balance != null && (
+          <span>Current Balance: ${balance.toFixed(2)}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -304,11 +380,11 @@ function GroupedPurchaseTable({ purchases }) {
             },
             {
               title: "Amount (USD)",
-              dataIndex: "sum",
-              key: "sum",
+              dataIndex: "cost",
+              key: "cost",
               align: "right" as "right",
-              render: (amount) => <Amount record={{ cost: amount }} />,
-              sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
+              render: (cost) => <Amount record={{ cost }} />,
+              sorter: (a: any, b: any) => (a.cost ?? 0) - (b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
 
@@ -342,7 +418,7 @@ function DetailedPurchaseTable({
   purchases,
   admin,
 }: {
-  purchases: Partial<Purchase>[] | null;
+  purchases: Partial<Purchase & { balance?: number }>[] | null;
   admin: boolean;
 }) {
   if (purchases == null) {
@@ -362,15 +438,24 @@ function DetailedPurchaseTable({
               title: "Id",
               dataIndex: "id",
               key: "id",
+              sorter: (a, b) => (a.id ?? 0) - (b.id ?? 0),
+              sortDirections: ["ascend", "descend"],
             },
             {
               title: "Description",
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (_, { id, description, invoice_id, notes }) => (
+              render: (
+                _,
+                { id, description, invoice_id, notes, period_end, service },
+              ) => (
                 <div>
-                  <Description description={description} />
+                  <Description
+                    service={service}
+                    description={description}
+                    period_end={period_end}
+                  />
                   {invoice_id && (
                     <div
                       style={{ marginLeft: "15px", display: "inline-block" }}
@@ -404,40 +489,7 @@ function DetailedPurchaseTable({
               title: "Time",
               dataIndex: "time",
               key: "time",
-              render: (text, record) => {
-                if (record.service == "project-upgrade") {
-                  let minutes;
-                  if (
-                    record.description?.type == "project-upgrade" &&
-                    record.description.stop != null &&
-                    record.description.start != null
-                  ) {
-                    minutes = Math.ceil(
-                      (record.description.stop - record.description.start) /
-                        1000 /
-                        60
-                    );
-                  } else {
-                    minutes = null;
-                  }
-                  return (
-                    <span>
-                      <TimeAgo date={text} />
-                      {record.description?.type == "project-upgrade" &&
-                      record.description.stop != null ? (
-                        <>
-                          {" "}
-                          to <TimeAgo date={record.description?.stop} />
-                        </>
-                      ) : null}
-                      {minutes != null ? (
-                        <div>
-                          Total: {minutes} {plural(minutes, "minute")}
-                        </div>
-                      ) : null}
-                    </span>
-                  );
-                }
+              render: (text) => {
                 return <TimeAgo date={text} />;
               },
               sorter: (a, b) =>
@@ -445,6 +497,31 @@ function DetailedPurchaseTable({
                 new Date(b.time ?? 0).getTime(),
               sortDirections: ["ascend", "descend"],
             },
+            {
+              title: "Period",
+              dataIndex: "period_start",
+              key: "period",
+              render: (_, record) => (
+                <>
+                  <Active record={record} />
+                  <Period record={record} />
+                </>
+              ),
+              sorter: (a, b) =>
+                new Date(a.period_start ?? 0).getTime() -
+                new Date(b.period_start ?? 0).getTime(),
+              sortDirections: ["ascend", "descend"],
+            },
+            {
+              title: "Project",
+              dataIndex: "project_id",
+              key: "project_id",
+              render: (project_id) =>
+                project_id ? (
+                  <ProjectTitle project_id={project_id} trunc={20} />
+                ) : null,
+            },
+
             {
               title: "Service",
               dataIndex: "service",
@@ -469,13 +546,12 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
-              title: "Project",
-              dataIndex: "project_id",
-              key: "project_id",
-              render: (project_id) =>
-                project_id ? (
-                  <ProjectTitle project_id={project_id} trunc={20} />
-                ) : null,
+              title: "Balance (USD)",
+              align: "right" as "right",
+              dataIndex: "balance",
+              key: "balance",
+              render: (_, { balance }) =>
+                balance != undefined ? <Balance balance={balance} /> : null,
             },
           ]}
         />
@@ -484,13 +560,13 @@ function DetailedPurchaseTable({
   );
 }
 
-// "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license"
+// "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license", etc.
 
-function Description({ description }: { description?: Description }) {
+function Description({ description, period_end, service }) {
   if (description == null) {
     return null;
   }
-  if (description.type == "openai-gpt-4") {
+  if (service == "openai-gpt-4") {
     return (
       <Tooltip
         title={() => (
@@ -506,7 +582,7 @@ function Description({ description }: { description?: Description }) {
     );
   }
   //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
-  if (description.type == "license") {
+  if (service == "license") {
     const { license_id } = description;
     return (
       <Popover
@@ -531,7 +607,7 @@ function Description({ description }: { description?: Description }) {
       </Popover>
     );
   }
-  if (description.type == "credit") {
+  if (service == "credit") {
     return (
       <Space>
         <Tooltip title="Thank you!">
@@ -547,7 +623,7 @@ function Description({ description }: { description?: Description }) {
       </Space>
     );
   }
-  if (description.type == "refund") {
+  if (service == "refund") {
     const { notes, reason, purchase_id } = description;
     return (
       <Tooltip
@@ -568,11 +644,34 @@ function Description({ description }: { description?: Description }) {
     );
   }
 
-  if (description.type == "project-upgrade") {
+  if (service == "project-upgrade") {
     const quota = description?.quota ?? {};
-    return <DisplayProjectQuota quota={quota} />;
+    return (
+      <>
+        Project upgraded with <DisplayProjectQuota quota={quota} />
+      </>
+    );
   }
-  if (description.type == "voucher") {
+
+  if (service == "compute-server") {
+    return (
+      <ComputeServerDescription
+        description={description}
+        period_end={period_end}
+      />
+    );
+  }
+
+  if (service == "compute-server-network-usage") {
+    return (
+      <ComputeServerNetworkUsageDescription
+        description={description}
+        period_end={period_end}
+      />
+    );
+  }
+
+  if (service == "voucher") {
     const { title, quantity, voucher_id } = description;
     return (
       <div>
@@ -582,7 +681,7 @@ function Description({ description }: { description?: Description }) {
       </div>
     );
   }
-  if (description.type == "edit-license") {
+  if (service == "edit-license") {
     const { license_id } = description;
     return (
       <Popover
@@ -622,7 +721,7 @@ function Description({ description }: { description?: Description }) {
       <Popover
         title={() => <pre>{JSON.stringify(description, undefined, 2)}</pre>}
       >
-        {capitalize(description.type)}
+        {capitalize(service)}
       </Popover>
     </>
   );
@@ -725,27 +824,31 @@ function InvoiceLink({ invoice_id }) {
 
 function Amount({ record }) {
   const { cost } = record;
-  if (
-    cost == null &&
-    record.period_start != null &&
-    record.cost_per_hour != null
-  ) {
-    return (
-      <Space>
+  if (cost == null) {
+    // it's a partial ongoing purchase
+    if (record.period_start && record.cost_per_hour) {
+      // it's a pay-as-you-go purchase with a fixed rate
+      return (
         <DynamicallyUpdatingCost
           costPerHour={record.cost_per_hour}
           start={new Date(record.period_start).valueOf()}
         />
-        <Tag color="green">Active</Tag>
-      </Space>
-    );
+      );
+    } else if (record.period_start && record.cost_so_far != null) {
+      // it's a metered pay as you go purchase
+      return (
+        <span style={getAmountStyle(record.cost_so_far)}>
+          {currency(record.cost_so_far, 2)}
+        </span>
+      );
+    }
   }
   if (cost != null) {
     const amount = -cost;
     return (
-      <span style={getAmountStyle(amount)}>
-        {currency(amount, Math.abs(amount) < 0.1 ? 3 : 2)}
-      </span>
+      <Tooltip title={` (USD): $${round4(amount)}`}>
+        <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>
+      </Tooltip>
     );
   }
   return <>-</>;
@@ -762,6 +865,17 @@ function Pending({ record }) {
       </Tooltip>
     </div>
   );
+}
+
+function Balance({ balance }) {
+  if (balance != null) {
+    return (
+      <Tooltip title={` (USD): $${round4(balance)}`}>
+        <span style={getAmountStyle(balance)}>{currency(balance, 2)}</span>
+      </Tooltip>
+    );
+  }
+  return <>-</>;
 }
 
 function getFilename({ thisMonth, cutoff, limit, offset, noStatement }) {
@@ -798,4 +912,96 @@ export function PurchasesButton(props: Props) {
       )}
     </div>
   );
+}
+
+// this should match with sql formula in server/purchases/get-balance.ts
+function getCost(row: Partial<Purchase>) {
+  if (row.cost != null) {
+    return row.cost;
+  }
+  if (row.cost_so_far != null) {
+    return row.cost_so_far;
+  }
+  if (row.cost_per_hour != null && row.period_start != null) {
+    const hours = periodLengthInHours(row);
+    return row.cost_per_hour * hours;
+  }
+  return 0;
+}
+
+// start = end = iso time strings
+// if end not given, assumed now
+function periodLengthInHours({
+  period_start,
+  period_end,
+}: {
+  period_start?: Date;
+  period_end?: Date;
+}) {
+  if (period_start == null) {
+    return 0;
+  }
+  const end = period_end != null ? period_end.valueOf() : Date.now();
+  const start = period_start.valueOf();
+  const ms = end - start;
+  const hours = ms / (1000 * 3600);
+  return hours;
+}
+
+function Active({ record }) {
+  const { cost } = record;
+  if (cost != null) {
+    return null; // not active
+  }
+  // it's a partial ongoing purchase
+  if (record.period_start && record.cost_per_hour != null) {
+    // it's a pay-as-you-go purchase with a fixed rate
+    return (
+      <Tooltip
+        title={`This is an active purchase at a rate of ${currency(
+          record.cost_per_hour,
+        )}/hour. Active purchases are finalized within a day.`}
+      >
+        <Tag color="green" style={{ margin: 0 }}>
+          Active
+        </Tag>
+      </Tooltip>
+    );
+  } else if (record.period_start && record.cost_so_far != null) {
+    // it's a metered pay as you go purchase
+    return (
+      <Tooltip
+        title={`This is an active metered purchase. Active purchases are finalized within a day.`}
+      >
+        <Tag color="green" style={{ margin: 0 }}>
+          Active
+        </Tag>
+      </Tooltip>
+    );
+  }
+  return null;
+}
+
+function Period({ record }) {
+  if (record.period_start) {
+    const hours = periodLengthInHours(record);
+    const x = <div>{round2(hours)} hours</div>;
+    if (!record.period_end) {
+      return (
+        <div>
+          <TimeAgo date={record.period_start} /> - now
+          {x}
+        </div>
+      );
+    } else {
+      return (
+        <div>
+          <TimeAgo date={record.period_start} /> -{" "}
+          <TimeAgo date={record.period_end} />
+          {x}
+        </div>
+      );
+    }
+  }
+  return null;
 }

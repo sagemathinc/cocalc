@@ -42,7 +42,7 @@ export interface CommandDescription {
 export function commands(
   jupyter_actions: JupyterActions,
   frameActions: { current?: NotebookFrameActions },
-  editor_actions: JupyterEditorActions
+  editor_actions: JupyterEditorActions,
 ): { [name: string]: CommandDescription } {
   if (jupyter_actions == null || editor_actions == null) {
     // Typescript should check this, but just in case
@@ -656,20 +656,26 @@ export function commands(
       f: () => frame_actions.run_all_below(),
     },
 
+    "run cell and insert below": {
+      m: "Run selected cells and insert cell below",
+      k: [{ which: 13, alt: true }],
+      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below(),
+    },
+
+    // NOTE: This entry *must* be below "run cell and insert below", since
+    // the meta has to take precedence over the alt (which is also meta automatically
+    // on a mac). https://github.com/sagemathinc/cocalc/issues/7000
     "run cell": {
       m: "Run selected cells",
-      k: [{ which: 13, ctrl: true }],
+      k: [
+        { which: 13, ctrl: true },
+        { which: 13, meta: true },
+      ],
       f() {
         frame_actions.run_selected_cells();
         frame_actions.set_mode("escape");
         frame_actions.scroll("cell visible");
       },
-    },
-
-    "run cell and insert below": {
-      m: "Run selected cells and insert cell below",
-      k: [{ which: 13, alt: true }],
-      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below(),
     },
 
     "run cell and select next": {

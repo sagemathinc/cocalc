@@ -7,17 +7,29 @@ import { getLogger } from "./logger";
 
 let bugCount: number = 0;
 
+const STARS =
+  "\nBUG ****************************************************************************\n";
+
 export function init() {
-  const winston = getLogger("BUG (uncaughtException)");
-  process.addListener("uncaughtException", (err) => {
-    bugCount += 1;
-    const border = `BUG (count=${bugCount}) ****************************************************************************`;
-    winston.debug(border);
-    winston.debug(`Uncaught exception: ${err}`);
-    winston.debug(err.stack);
-    winston.debug(border);
-    console?.trace?.();
+  const log = getLogger("BUG (uncaughtException)");
+  getLogger("handler").debug("initializing uncaughtException handler");
+
+  process.on("uncaughtExceptionMonitor", (err, origin) => {
+    // sometimes we only get one output and then process terminates, despite the uncaughtException,
+    // so we make the best of it:
+    log.error(STARS, err, origin, err.stack);
   });
+
+  const f = (err) => {
+    bugCount += 1;
+    const border = `BUG (count=${bugCount}) ${STARS}`;
+    log.error(border);
+    log.error(`Uncaught exception: ${err}`);
+    log.error(err.stack);
+    log.error(border);
+  };
+  process.on("uncaughtException", f);
+  process.on("unhandledRejection", f);
 }
 
 export default function getBugCount(): number {

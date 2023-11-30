@@ -45,18 +45,18 @@ export const SSHKeysPage: React.FC = () => {
   return (
     <div style={{ marginTop: "1em" }}>
       <Row>
-        <Col md={8}>
+        <Col md={10}>
           {render_pre_list_message()}
           <SSHKeyList help={help()} ssh_keys={ssh_keys} />
-        </Col>
-        <Col md={4}>
           <SSHKeyAdder
             add_ssh_key={(opts) =>
               redux.getActions("account").add_ssh_key(opts)
             }
             style={{ marginBottom: "0px" }}
           />
-          <div style={{ marginTop: "10px" }}>
+        </Col>
+        <Col md={2}>
+          <div style={{ marginTop: "10px", fontSize: "12pt" }}>
             <A href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key">
               How to create SSH Keys...
             </A>

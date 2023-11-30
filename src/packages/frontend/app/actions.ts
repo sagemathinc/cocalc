@@ -14,6 +14,7 @@ import {
   isFullscreen,
   requestFullscreen,
 } from "@cocalc/frontend/misc/fullscreen";
+import { once } from "@cocalc/util/async-utils";
 
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;
@@ -37,7 +38,7 @@ export class PageActions extends Actions<PageState> {
   public set_active_key_handler(
     handler?: (e) => void,
     project_id?: string,
-    path?: string // IMPORTANT: This is the path for the tab! E.g., if setting keyboard handler for a frame, make sure to pass path for the tab. This is a terrible and confusing design and needs to be redone, probably via a hook!
+    path?: string, // IMPORTANT: This is the path for the tab! E.g., if setting keyboard handler for a frame, make sure to pass path for the tab. This is a terrible and confusing design and needs to be redone, probably via a hook!
   ): void {
     if (project_id != null) {
       if (
@@ -264,7 +265,7 @@ export class PageActions extends Actions<PageState> {
   }
 
   async set_fullscreen(
-    fullscreen?: "default" | "kiosk" | "project" | undefined
+    fullscreen?: "default" | "kiosk" | "project" | undefined,
   ) {
     // val = 'default', 'kiosk', 'project', undefined
     // if kiosk is ever set, disable toggling back
@@ -299,7 +300,7 @@ export class PageActions extends Actions<PageState> {
 
   toggle_fullscreen() {
     this.set_fullscreen(
-      redux.getStore("page").get("fullscreen") != null ? undefined : "default"
+      redux.getStore("page").get("fullscreen") != null ? undefined : "default",
     );
   }
 
@@ -377,6 +378,16 @@ export class PageActions extends Actions<PageState> {
   sign_in() {
     return false;
   }
+
+  popconfirm = async (opts): Promise<boolean> => {
+    // this causes the modal to appear
+    this.setState({ popconfirm: { open: true, ...opts } });
+    const store = redux.getStore("page");
+    while (store.getIn(["popconfirm", "open"])) {
+      await once(store, "change");
+    }
+    return !!store.getIn(["popconfirm", "ok"]);
+  };
 }
 
 export function init_actions() {

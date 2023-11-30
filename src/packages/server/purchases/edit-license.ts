@@ -378,13 +378,13 @@ export async function getPurchaseInfo(
 ): Promise<PurchaseInfo & { account_id: string }> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT info->'purchased' as info, activates, expires FROM site_licenses WHERE id=$1",
+    "SELECT info->'purchased' as info, activates, expires, subscription_id FROM site_licenses WHERE id=$1",
     [license_id],
   );
   if (rows.length == 0) {
     throw Error(`no license with id ${license_id}`);
   }
-  const { info, activates, expires } = rows[0];
+  const { info, activates, expires, subscription_id } = rows[0];
   if (activates != null) {
     info.start = activates;
   } else if (info.start != null) {
@@ -397,7 +397,40 @@ export async function getPurchaseInfo(
       info.end = new Date(info.end);
     }
   }
+  if (subscription_id != null) {
+    // this is a subscription license, so include the cost from the subscription
+    info.cost_per_hour = await getSubscriptionCostPerHour(subscription_id);
+  }
+
   return info;
+}
+
+async function getSubscriptionCostPerHour(
+  subscription_id: number,
+): Promise<number> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT current_period_start, current_period_end, cost FROM subscriptions WHERE id=$1",
+    [subscription_id],
+  );
+  if (rows.length == 0) {
+    // should never happen: returns 0 if no such subscription, instead of an error.
+    return 0;
+  }
+  const { current_period_start, current_period_end, cost } = rows[0];
+  if (
+    current_period_start == null ||
+    current_period_end == null ||
+    cost == null
+  ) {
+    return 0;
+  }
+  // How many hours in the current period
+  const hoursInPeriod =
+    (current_period_end.valueOf() - current_period_start.valueOf()) /
+    (1000 * 60 * 60);
+  // Divide cost of current period by hours in the period to get the cost per hour.
+  return cost / hoursInPeriod;
 }
 
 async function restartProjectsUsingLicense(license_id: string) {

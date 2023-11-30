@@ -146,6 +146,8 @@ export default async function getCustomize(): Promise<Customize> {
     // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.
     jupyterApiEnabled: settings.jupyter_api_enabled,
 
+    computeServersEnabled: settings.compute_servers_enabled,
+
     // GitHub proxy project
     githubProjectId: settings.github_project_id,
 

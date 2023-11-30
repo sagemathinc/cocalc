@@ -56,6 +56,8 @@ import ChatGPT from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import SelectComputeServer from "@cocalc/frontend/compute/select-server";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -101,7 +103,7 @@ const MAX_TITLE_WIDTH = 25;
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND,
-  margin: "5px",
+  margin: "7.5px 5px",
   fontSize: "10pt",
   whiteSpace: "nowrap",
   display: "inline-block",
@@ -201,7 +203,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     useState<boolean>(false);
 
   const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id
+    props.project_id,
   );
 
   if (props.editor_actions?.name == null) {
@@ -234,13 +236,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const fullscreen: undefined | "default" | "kiosk" = useRedux(
     "page",
-    "fullscreen"
+    "fullscreen",
   );
 
-  const hideButtonTooltips = useRedux(["account", "other_settings"]).get(
-    "hide_button_tooltips"
-  );
-
+  const otherSettings = useRedux(["account", "other_settings"]);
+  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
+  const darkMode = otherSettings.get("dark_mode");
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
@@ -286,7 +287,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         } catch (err) {
           console.trace(`${err}`);
           props.actions.set_error(
-            `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`
+            `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
           );
         }
       };
@@ -385,7 +386,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         // makes this easier to debug.
         console.log(props.editor_spec);
         throw Error(
-          `BUG -- ${type} must be defined by the editor_spec, but is not`
+          `BUG -- ${type} must be defined by the editor_spec, but is not`,
         );
       }
       if (is_public && spec.hide_public) {
@@ -463,6 +464,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
+
         {render_types()}
       </div>
     );
@@ -480,7 +482,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
             track("unset-full");
             props.actions.unset_frame_full();
           }}
-          bsStyle={"warning"}
+          bsStyle={!darkMode ? "warning" : undefined}
+          style={{ color: darkMode ? "orange" : undefined }}
         >
           <Icon name={"compress"} />
         </StyledButton>
@@ -808,7 +811,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={debounce(
           () => props.editor_actions.paste(props.id, true),
           200,
-          { leading: true, trailing: false }
+          { leading: true, trailing: false },
         )}
         disabled={read_only}
         bsSize={button_size()}
@@ -985,7 +988,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function button_text(
     button_name: string,
-    labels?: boolean
+    labels?: boolean,
   ): string | undefined {
     if (!labels) return;
     const custom = props.editor_spec[props.type].customize_buttons;
@@ -1020,7 +1023,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <AntdButton
         key={"timetravel"}
         title={"Show edit history"}
-        style={{ ...button_style(), color: "white", background: "#5bc0de" }}
+        style={{
+          ...button_style(),
+          ...(!darkMode
+            ? { color: "white", background: "#5bc0de" }
+            : undefined),
+        }}
         size={button_size()}
         onClick={(event) => {
           track("time-travel");
@@ -1062,8 +1070,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         buttonSize={button_size()}
         buttonStyle={{
           ...button_style(),
-          backgroundColor: "rgb(16, 163, 127)",
-          color: "white",
+          ...(!darkMode
+            ? { backgroundColor: "rgb(16, 163, 127)", color: "white" }
+            : undefined),
         }}
         labels={labels}
         visible={props.tab_is_visible && props.is_visible}
@@ -1090,7 +1099,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           // be defined and it won't work.
           setTimeout(
             () => props.actions.set_frame_tree({ id: props.id, tour: true }),
-            1
+            1,
           );
         }}
         style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
@@ -1219,9 +1228,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         style={button_style()}
         onClick={() => {
           props.editor_actions.save(true);
-          props.actions.explicit_save();
           props.actions.focus(props.id);
         }}
+        type={darkMode ? "default" : undefined}
       />
     );
   }
@@ -1247,7 +1256,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       !is_visible("format") ||
       !props.editor_actions.has_format_support(
         props.id,
-        props.available_features
+        props.available_features,
       )
     ) {
       return;
@@ -1719,7 +1728,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_buttons(
     forceLabels?: boolean,
     style?: CSS,
-    noRefs?
+    noRefs?,
   ): Rendered {
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
@@ -1778,10 +1787,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         v.push(render_format_group());
       }
       v.push(render_halt_jupyter());
-      v.push(render_edit_init_script());
       v.push(render_clear());
-      v.push(render_count_words());
       v.push(render_kick_other_users_out());
+      v.push(render_edit_init_script());
+      v.push(render_count_words());
       v.push(render_shell(labels));
       v.push(render_print(labels));
       v.push(render_export_to_markdown(labels));
@@ -1849,7 +1858,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
                 {render_buttons(
                   true,
                   { maxHeight: "50vh", display: "block" },
-                  true
+                  true,
                 )}
               </div>
               <div>{render_types()}</div>
@@ -1907,6 +1916,31 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <span style={style} title={props.connection_status}>
         <ConnectionStatusIcon status={props.connection_status} />
       </span>
+    );
+  }
+
+  function renderComputeServer() {
+    if (!is_visible("compute_server") || !computeServersEnabled()) {
+      return null;
+    }
+    const { type } = props;
+    if (type != "terminal" && type != "jupyter_cell_notebook") {
+      // ONLY terminal and jupyter are supported
+      return null;
+    }
+    return (
+      <SelectComputeServer
+        actions={props.actions}
+        frame_id={props.id}
+        type={type}
+        style={{
+          marginRight: "3px",
+          marginTop: "1px",
+          height: button_height(),
+        }}
+        project_id={props.project_id}
+        path={props.path}
+      />
     );
   }
 
@@ -2019,7 +2053,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           <InputNumber
             style={{
               width: "9ex",
-              top: "-4px",
               height: !props.is_only && !props.is_full ? "30px" : undefined,
             }}
             step={-1}
@@ -2116,6 +2149,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         id={`titlebar-${props.id}`}
         className={"cc-frame-tree-title-bar"}
       >
+        {renderComputeServer()}
         {render_title()}
         {render_main_buttons()}
         {render_connection_status()}

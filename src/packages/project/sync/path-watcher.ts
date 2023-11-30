@@ -37,13 +37,13 @@ const L = getLogger("fs-watcher");
 const COCALC_FS_WATCHER = process.env.COCALC_FS_WATCHER ?? "inotify";
 if (!["inotify", "poll"].includes(COCALC_FS_WATCHER)) {
   throw new Error(
-    `$COCALC_FS_WATCHER=${COCALC_FS_WATCHER} -- must be "inotify" or "poll"`
+    `$COCALC_FS_WATCHER=${COCALC_FS_WATCHER} -- must be "inotify" or "poll"`,
   );
 }
 const POLLING = COCALC_FS_WATCHER === "poll";
 
 const DEFAULT_POLL_MS = parseInt(
-  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "2000"
+  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "2000",
 );
 
 const ChokidarOpts: WatchOptions = {
@@ -60,6 +60,7 @@ const ChokidarOpts: WatchOptions = {
   //   pollInterval: 50,
   // },
   ignorePermissionErrors: true,
+  alwaysStat: false,
 } as const;
 
 export class Watcher extends EventEmitter {
@@ -74,9 +75,11 @@ export class Watcher extends EventEmitter {
   constructor(path: string, debounce_ms: number) {
     super();
     this.log = L.extend(path).debug;
-    this.log(`initalizing: poll=${POLLING}`);
-    if (process.env.HOME == null) throw Error("bug -- HOME must be defined");
-    this.path = join(process.env.HOME, path);
+    this.log(`initializing: poll=${POLLING}`);
+    if (process.env.HOME == null) {
+      throw Error("bug -- HOME must be defined");
+    }
+    this.path = path.startsWith("/") ? path : join(process.env.HOME, path);
     this.debounce_ms = debounce_ms;
     this.debouncedChange = debounce(this.change.bind(this), this.debounce_ms, {
       leading: true,
@@ -86,11 +89,14 @@ export class Watcher extends EventEmitter {
   }
 
   private async init(): Promise<void> {
+    this.log("init watching", this.path);
     this.exists = await exists(this.path);
     if (this.path != "") {
+      this.log("init watching", this.path, " for existence");
       this.initWatchExistence();
     }
     if (this.exists) {
+      this.log("init watching", this.path, " contents");
       this.initWatchContents();
     }
   }
@@ -98,12 +104,18 @@ export class Watcher extends EventEmitter {
   private initWatchContents(): void {
     this.watchContents = watch(this.path, ChokidarOpts);
     this.watchContents.on("all", this.debouncedChange);
+    this.watchContents.on("error", (err) => {
+      this.log(`error watching listings -- ${err}`);
+    });
   }
 
   private async initWatchExistence(): Promise<void> {
     const containing_path = path_split(this.path).head;
     this.watchExistence = watch(containing_path, ChokidarOpts);
     this.watchExistence.on("all", this.watchExistenceChange(containing_path));
+    this.watchExistence.on("error", (err) => {
+      this.log(`error watching for existence of ${this.path} -- ${err}`);
+    });
   }
 
   private watchExistenceChange = (containing_path) => async (_, filename) => {

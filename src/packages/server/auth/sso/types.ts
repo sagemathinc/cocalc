@@ -3,12 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { AuthenticateOptions } from "passport";
+import { Strategy as SAMLStrategyNew } from "@node-saml/passport-saml";
 import { Router } from "express";
+import { AuthenticateOptions, Strategy as PassportStrategy } from "passport";
+import { Strategy as SAMLStrategyOld } from "passport-saml";
+import { Strategy as TwitterStrategy } from "passport-twitter";
+import { Strategy as GoogleStrategyOld } from "@passport-next/passport-google-oauth2";
+import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Strategy as GithubStrategy } from "passport-github2";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+
 import { PostgreSQL } from "@cocalc/database/postgres/types";
 import type {
-  PassportTypes,
   LoginInfoDerivator,
+  PassportTypes,
 } from "@cocalc/database/settings/auth-sso-types";
 
 export interface InitPassport {
@@ -23,10 +31,37 @@ export interface PassportManagerOpts {
   database: PostgreSQL;
   host: string;
 }
+
+export class TwitterWrapper extends TwitterStrategy {
+  constructor(
+    { clientID: consumerKey, clientSecret: consumerSecret, callbackURL },
+    verify,
+  ) {
+    super({ consumerKey, consumerSecret, callbackURL }, verify);
+  }
+}
+
+export type PassportStrategyConstructorType =
+  | typeof PassportStrategy
+  | typeof SAMLStrategyNew
+  | typeof SAMLStrategyOld
+  | typeof TwitterWrapper
+  | typeof FacebookStrategy
+  | typeof GithubStrategy
+  | typeof GoogleStrategy
+  | typeof GoogleStrategyOld;
+
+export interface StrategyInstanceOpts {
+  type: PassportTypes;
+  opts: { [key: string]: any };
+  userinfoURL: string | undefined;
+  PassportStrategyConstructor: PassportStrategyConstructorType;
+}
+
 export interface StrategyConf {
   name: string; // our custom name
   type: PassportTypes; // e.g. "saml"
-  PassportStrategyConstructor: any;
+  PassportStrategyConstructor: PassportStrategyConstructorType;
   extra_opts?: {
     enableProof?: boolean; // facebook
     profileFields?: string[]; // facebook

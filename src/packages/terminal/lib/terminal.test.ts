@@ -8,15 +8,6 @@ import {
 } from "./support";
 import { getChannelName } from "./util";
 
-afterAll(() => {
-  // TODO: Somehow pty-node or something else randomly doesn't
-  // allow jest for the terminal tests to exist.  I could
-  // not figure this out after hours and hours, and we don't
-  // need a guaranteed clean exit, so I'm putting this in for
-  // now.  It would be nice if it wasn't needed.
-  setTimeout(process.exit, 250);
-});
-
 describe("very basic test of creating a terminal and changing shell", () => {
   let terminal;
   const { path, options } = getOpts();
@@ -76,8 +67,11 @@ describe("create a shell, connect a client, and communicate with it", () => {
   });
 
   it("waits to receive no-ignore command", async () => {
-    const mesg = await spark.waitForMessage();
-    expect(mesg).toEqual({ cmd: "no-ignore" });
+    expect(await spark.waitForMessage()).toEqual({
+      cmd: "computeServerId",
+      id: 0,
+    });
+    expect(await spark.waitForMessage()).toEqual({ cmd: "no-ignore" });
   });
 
   it("sets the terminal size and confirm it was set", async () => {
@@ -105,9 +99,11 @@ describe("create a shell, connect a client, and communicate with it", () => {
     expect(resp).toContain(process.cwd());
   });
 
-  it("send kill command and see that pid changes", async () => {
+  it("send kill command, send some input (to start new shell), and see that pid changes", async () => {
     const pid = terminal.getPid();
     spark.emit("data", { cmd: "kill" });
+    spark.emit("data", "pwd\n");
+    spark.data = "";
     const newPid = await waitForPidToChange(terminal, pid);
     expect(pid).not.toBe(newPid);
     expect(await isPidRunning(pid)).toBe(false);
@@ -134,8 +130,16 @@ describe("create a shell, connect a client, and communicate with it", () => {
     const id = spark.id;
     spark = channel.createSpark("192.168.2.1");
     expect(id).not.toEqual(spark.id);
-    const mesg = await spark.waitForMessage();
-    expect(mesg).toEqual({ cmd: "no-ignore" });
+    expect(await spark.waitForMessage()).toEqual({
+      cmd: "size",
+      cols: 100,
+      rows: 10,
+    });
+    expect(await spark.waitForMessage()).toEqual({
+      cmd: "computeServerId",
+      id: 0,
+    });
+    expect(await spark.waitForMessage()).toEqual({ cmd: "no-ignore" });
     expect(spark.data).toContain("hello cocalc");
     spark.data = "";
   });
@@ -161,6 +165,10 @@ describe("collaboration -- two clients connected to the same terminal session", 
     spark1 = channel.createSpark("192.168.2.1");
     spark2 = channel.createSpark("192.168.2.2");
     for (const s of [spark1, spark2]) {
+      expect(await s.waitForMessage()).toEqual({
+        cmd: "computeServerId",
+        id: 0,
+      });
       const mesg = await s.waitForMessage();
       expect(mesg).toEqual({ cmd: "no-ignore" });
     }
