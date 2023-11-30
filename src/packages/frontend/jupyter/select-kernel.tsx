@@ -4,7 +4,9 @@
  */
 
 // help users selecting a kernel
+import type { TabsProps } from "antd";
 import {
+  Alert,
   Button,
   Card,
   Checkbox,
@@ -13,26 +15,38 @@ import {
   Popover,
   Row,
   Spin,
+  Tabs,
   Typography,
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
+import { sortBy } from "lodash";
 
 import {
   CSS,
   React,
   Rendered,
+  useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend//app-framework";
-import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
+import {
+  A,
+  Icon,
+  Markdown,
+  Paragraph,
+  Text,
+} from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import track from "@cocalc/frontend/user-tracking";
+import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
+import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { KernelStar } from "../components/run-button/kernel-star";
+import { useProjectContext } from "../project/context";
+import { FIXED_PROJECT_TABS } from "../project/page/file-tab";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
-import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
-import { KernelStar } from "../components/run-button/kernel-star";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",
@@ -86,6 +100,11 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     ]);
     const kernels_by_language: undefined | OrderedMap<string, List<string>> =
       useRedux([actions.name, "kernels_by_language"]);
+
+    const compute_servers_enabled = useTypedRedux(
+      "customize",
+      "compute_servers_enabled",
+    );
 
     function kernel_name(name: string): string | undefined {
       return kernel_attr(name, "display_name");
@@ -261,18 +280,49 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       return all;
     }
 
-    function render_all() {
+    function showComputeServersTab(items) {
+      if (!compute_servers_enabled) return;
+
+      items.push({
+        key: "compute_servers",
+        label: (
+          <>
+            <Icon name="servers" /> Compute servers
+          </>
+        ),
+        children: <ComputeServerInfo />,
+      });
+    }
+
+    function render_select_all() {
       const all = render_all_langs();
 
+      const items: TabsProps["items"] = [
+        {
+          key: "all",
+          label: (
+            <>
+              <Icon name="jupyter" /> All kernels by language
+            </>
+          ),
+          children: (
+            <Descriptions bordered column={1} style={SELECTION_STYLE}>
+              {all}
+            </Descriptions>
+          ),
+        },
+      ];
+
+      showComputeServersTab(items);
+
       return (
-        <Descriptions
-          title="All kernels by language"
-          bordered
-          column={1}
-          style={SELECTION_STYLE}
-        >
-          {all}
-        </Descriptions>
+        <Tabs
+          defaultActiveKey="all"
+          items={items}
+          onTabClick={(key) => {
+            track("jupyter-selector", { action: "tab-click", tab: key });
+          }}
+        />
       );
     }
 
@@ -415,7 +465,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
             {render_unknown()}
             {render_last()}
             {render_suggested()}
-            {render_all()}
+            {render_select_all()}
             {render_custom()}
             <hr />
             {render_footer()}
@@ -461,3 +511,73 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     );
   },
 );
+
+function ComputeServerInfo() {
+  const { project_id } = useProjectContext();
+  const actions = useActions({ project_id });
+
+  // get the keys of the IMAGES map and sort them by IMAGES[key].label
+  const sortedImageKeys = sortBy(
+    Object.keys(IMAGES),
+    (key) => IMAGES[key].label,
+  );
+
+  const computeImages: Rendered[] = sortedImageKeys.map((key) => {
+    const image = IMAGES[key];
+
+    const label = (
+      <span style={ALL_LANGS_LABEL_STYLE}>
+        <Icon name={image.icon} /> {image.label}
+      </span>
+    );
+
+    return (
+      <Descriptions.Item key={key} label={label}>
+        <Markdown value={image.description} />
+      </Descriptions.Item>
+    );
+  });
+
+  return (
+    <div>
+      <Paragraph>
+        Besides all locally available kernels inside this project, you can also
+        instantiate a{" "}
+        <Text strong>
+          <A href={"https://doc.cocalc.com/compute_server.html"}>
+            Compute Server
+          </A>
+        </Text>{" "}
+        and configure this notebook to connect to one of its kernels. This is
+        useful if you want to get access to a{" "}
+        <Text strong>GPU accellerator</Text>, run a kernel that is{" "}
+        <Text strong>not available locally</Text>, or if you want to make use of{" "}
+        <Text strong>a much more powerful machine</Text>.
+      </Paragraph>
+      <Paragraph>
+        Compute servers are not only more powerful, but also much more
+        configurable. You can install any software you want and also connect via
+        a <A href="https://doc.cocalc.com/terminal.html">Terminal</A>.
+      </Paragraph>
+      <Alert
+        type="info"
+        message={
+          <>
+            To get started, open the{" "}
+            <Button onClick={() => actions?.set_active_tab("servers")}>
+              <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
+              {FIXED_PROJECT_TABS.servers.label}
+            </Button>{" "}
+            panel and instantiate and start your compute machine. Then, select
+            the machine for this notebook, and pick one of the available kernels
+            of that machine.
+          </>
+        }
+      />
+
+      <Descriptions bordered column={1} style={SELECTION_STYLE}>
+        {computeImages}
+      </Descriptions>
+    </div>
+  );
+}
