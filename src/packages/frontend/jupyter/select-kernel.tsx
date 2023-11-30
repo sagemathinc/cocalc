@@ -516,9 +516,9 @@ function ComputeServerInfo() {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
 
-  // get the keys of the IMAGES map and sort them by IMAGES[key].label
+  // sort all images with a jupyter kernel by IMAGES[key].label
   const sortedImageKeys = sortBy(
-    Object.keys(IMAGES),
+    Object.keys(IMAGES).filter((key) => IMAGES[key].jupyterKernels !== false),
     (key) => IMAGES[key].label,
   );
 
