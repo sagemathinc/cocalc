@@ -28,6 +28,7 @@ interface ImageBase {
   source: string;
   versions: VERSIONS;
   authToken?: boolean; // if true, image has web interface that supports configurable auth token
+  jupyterKernels?: false | true | string[]; // if false, no jupyter kernels included. If true or a list of names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
 }
 
 interface NonGPUImage extends ImageBase {
@@ -132,6 +133,7 @@ export const IMAGES0 = {
     description:
       "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications.  The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.   It enables dramatic increases in computing performance by harnessing the power of NVIDIA graphics processing units (GPUs) for a wide range of computing tasks.",
     versions: [{ label: "12.3.0", tag: "12.3.0-devel-ubuntu22.04" }],
+    jupyterKernels: false,
   },
   pytorch: {
     label: "PyTorch",
@@ -194,6 +196,7 @@ export const IMAGES0 = {
       "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
     authToken: true,
     versions: [{ label: "0.1.12", tag: "0.1.12.p2" }],
+    jupyterKernels: false,
   },
 
   //   "cocalc-docker": {
