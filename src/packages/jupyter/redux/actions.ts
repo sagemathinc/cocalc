@@ -94,7 +94,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     client: Client,
   ): void {
     this._client = client;
-    this.dbg("_init")("Initializing Jupyter Actions");
+    const dbg = this.dbg("_init");
+    dbg("Initializing Jupyter Actions");
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
@@ -112,6 +113,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb = syncdb;
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
+    if (this.is_project) {
+      this.syncdb.on("first-load", () => {
+        dbg("handling first load of syncdb in project");
+        // Clear settings the first time the syncdb is ever
+        // loaded, since it has settings like "ipynb last save"
+        // and trust, which shouldn't be initialized to
+        // what they were before. Not doing this caused
+        // https://github.com/sagemathinc/cocalc/issues/7074
+        this.syncdb.delete({ type: "settings" });
+        this.syncdb.commit();
+      });
+    }
+
     this.is_compute_server = !!client.is_compute_server;
 
     let directory: any;
