@@ -2,18 +2,19 @@
 Dropdown on frame title bar for running that Jupyter notebook or terminal on a compute server.
 */
 
+import { Modal, Select, Tooltip } from "antd";
+import { delay } from "awaiting";
+import { Map } from "immutable";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Select, Tooltip } from "antd";
-import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { cmp } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components";
-import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { capitalize } from "@cocalc/util/misc";
-import { DisplayImage } from "./select-image";
-import { delay } from "awaiting";
+
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
+import { capitalize, cmp } from "@cocalc/util/misc";
+import { DisplayImage } from "./select-image";
 
 const PROJECT_COLOR = "#337ab7";
 
@@ -31,8 +32,9 @@ interface Props {
   path: string;
   frame_id: string;
   style?: CSSProperties;
-  actions?;
+  actions?; // comes from frame-editors/frame-tree/title-bar.tsx
   type: "terminal" | "jupyter_cell_notebook";
+  titlebar_state: Map<string, any>;
 }
 
 export default function SelectComputeServer({
@@ -42,6 +44,7 @@ export default function SelectComputeServer({
   actions,
   style,
   type,
+  titlebar_state,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
   const getPath = (path) => {
@@ -53,13 +56,21 @@ export default function SelectComputeServer({
   const [confirmSwitch, setConfirmSwitch] = useState<boolean>(false);
   const [idNum, setIdNum] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
-  const [open, setOpen] = useState<boolean>(false);
   const computeServers =
     useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
   const computeServerAssociations = useMemo(() => {
     return webapp_client.project_client.computeServers(project_id);
   }, [project_id]);
   const [value, setValue] = useState<string | null>(null);
+
+  const open: boolean = (titlebar_state?.getIn([
+    frame_id,
+    "compute_server_open",
+  ]) ?? false) as boolean;
+  // console.log("titlebar_state", open, " – ", titlebar_state?.toJS());
+  function setOpen(next: boolean) {
+    actions?.save_toolbar_state(frame_id, { compute_server_open: next });
+  }
 
   const okButtonRef = useRef();
   useEffect(() => {

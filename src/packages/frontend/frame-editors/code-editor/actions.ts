@@ -98,6 +98,9 @@ import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 
+// key in local_view_state, holding a map of toolbar states for each editor
+export const TITLEBAR_STATE_KEY = "titlebar";
+
 interface gutterMarkerParams {
   line: number;
   gutter_id: string;
@@ -1092,6 +1095,32 @@ export class Actions<
     }
     this.setState({
       local_view_state: local.set("editor_state", editor_state),
+    });
+    this._save_local_view_state();
+  }
+
+  // similar to the above, store the frame id specific toolbar state
+  // TODO: this is code duplication of the above, combine this in one function with wrappers
+  save_toolbar_state(id: string, new_toolbar_state?: any): void {
+    if (this._state === "closed") {
+      return;
+    }
+    const local = this.store.get("local_view_state");
+    if (local == null) {
+      return;
+    }
+    let toolbar_state = local.get(TITLEBAR_STATE_KEY) ?? Map();
+    if (new_toolbar_state == null) {
+      if (!toolbar_state.has(id)) {
+        return;
+      }
+      toolbar_state = toolbar_state.delete(id);
+    } else {
+      toolbar_state = toolbar_state.set(id, fromJS(new_toolbar_state));
+    }
+    console.log("next_toolbar_state", toolbar_state.toJS());
+    this.setState({
+      local_view_state: local.set(TITLEBAR_STATE_KEY, toolbar_state),
     });
     this._save_local_view_state();
   }

@@ -34,6 +34,7 @@ export interface Actions {
   registerSlateEditor?: (id: string, editor: SlateEditor) => void;
   ensure_syncstring_is_saved?: () => Promise<void>;
   save_editor_state?: (id: string, new_editor_state?: any) => void;
+  save_toolbar_state?: (id: string, new_toolbar_state?: any) => void;
   set_cursor_locs?: (locs: any[]) => void;
   set_value?: (value: string) => void;
   syncstring_commit?: () => void;

@@ -34,16 +34,18 @@ import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import React from "react";
+
+import { AccountState } from "@cocalc/frontend/account/types";
 import {
   ReactDOM,
-  redux,
   Rendered,
-  useState,
+  redux,
   useEffect,
+  useState,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { Actions } from "../code-editor/actions";
+import { Actions, TITLEBAR_STATE_KEY } from "../code-editor/actions";
 import { cm as cm_spec } from "../code-editor/editor";
 import { is_safari } from "../generic/browser";
 import { TimeTravelActions } from "../time-travel-editor/actions";
@@ -54,7 +56,6 @@ import { get_file_editor } from "./register";
 import { FrameTitleBar } from "./title-bar";
 import * as tree_ops from "./tree-ops";
 import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
-import { AccountState } from "@cocalc/frontend/account/types";
 
 interface FrameTreeProps {
   actions: Actions;
@@ -237,7 +238,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     function render_titlebar(
       desc: NodeDesc,
       spec: EditorDescription,
-      editor_actions: Actions
+      editor_actions: Actions,
     ): Rendered {
       const id = desc.get("id");
       return (
@@ -263,6 +264,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           pages={desc.get("pages")}
           is_visible={is_visible}
           tab_is_visible={tab_is_visible}
+          titlebar_state={local_view_state?.get(TITLEBAR_STATE_KEY)}
         />
       );
     }
@@ -271,7 +273,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       desc: NodeDesc,
       component: any,
       spec: EditorDescription,
-      editor_actions: Actions
+      editor_actions: Actions,
     ) {
       const type = desc.get("type");
       const project_id_leaf = desc.get("project_id", project_id);
@@ -536,5 +538,5 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       </div>
     );
   },
-  shouldMemoize
+  shouldMemoize,
 );
