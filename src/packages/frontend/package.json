@@ -11,6 +11,7 @@
     "./markdown": "./dist/markdown/index.js",
     "./misc": "./dist/misc/index.js",
     "./tracker": "./dist/tracker/index.js",
+    "./compute": "./dist/compute/index.js",
     "./misc/*": "./dist/misc/*.js",
     "./course": "./dist/course/index.js",
     "./billing": "./dist/billing/index.js",

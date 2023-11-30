@@ -79,7 +79,7 @@ export default function ChatGPTGenerateJupyterNotebook({
 }: Props) {
   const [model, setModel] = useState<Model>(DEFAULT_MODEL);
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
-    null
+    null,
   );
   const projectState = useTypedRedux("projects", "project_map")?.getIn([
     project_id,
@@ -112,7 +112,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         }
       } catch (err) {
         setKernelSpecs(
-          "Unable to load Jupyter kernels.  Make sure the project is running and Jupyter is installed."
+          "Unable to load Jupyter kernels.  Make sure the project is running and Jupyter is installed.",
         );
       }
     })();
@@ -160,7 +160,7 @@ export default function ChatGPTGenerateJupyterNotebook({
       await updateNotebook(gptStream);
     } catch (err) {
       setError(
-        `${err}\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
+        `${err}\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`,
       );
       setQuerying(false);
     }
@@ -189,7 +189,7 @@ export default function ChatGPTGenerateJupyterNotebook({
   }
 
   async function getJupyterFrameActions(
-    path
+    path,
   ): Promise<JupyterEditorActions | null> {
     // first we open the file
     await projectActions?.open_file({
@@ -200,7 +200,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     for (let i = 0; i < 20; i++) {
       const jupyterFrameActions = redux.getEditorActions(
         project_id,
-        path
+        path,
       ) as JupyterEditorActions;
       if (jupyterFrameActions != null) {
         return jupyterFrameActions;
@@ -223,9 +223,8 @@ export default function ChatGPTGenerateJupyterNotebook({
       let path = await createNotebook(filenameGPT);
       // Start it running, so user doesn't have to wait... but actions
       // might not be immediately available...
-      const jea: JupyterEditorActions | null = await getJupyterFrameActions(
-        path
-      );
+      const jea: JupyterEditorActions | null =
+        await getJupyterFrameActions(path);
       if (jea == null) {
         throw new Error(`Unable to create Jupyter Notebook for ${path}`);
       }
@@ -248,10 +247,10 @@ export default function ChatGPTGenerateJupyterNotebook({
       jfa.set_cell_input(
         fistCell,
         `# ${modelToName(
-          model
+          model,
         )} generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [${modelToName(
-          model
-        )}](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
+          model,
+        )}](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`,
       );
       ja.set_cell_type(fistCell, "markdown");
 
@@ -270,13 +269,13 @@ export default function ChatGPTGenerateJupyterNotebook({
         const allCells = splitCells(answer);
         if (jfa == null) {
           console.warn(
-            "unable to update cells since jupyter frame actions are not defined"
+            "unable to update cells since jupyter frame actions are not defined",
           );
           return;
         }
         if (ja == null) {
           console.warn(
-            "unable to update cells since jupyter actions are not defined"
+            "unable to update cells since jupyter actions are not defined",
           );
           return;
         }
@@ -296,7 +295,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         }
       },
       1000,
-      { leading: true, trailing: true }
+      { leading: true, trailing: true },
     );
 
     let answer = "";
@@ -374,13 +373,7 @@ export default function ChatGPTGenerateJupyterNotebook({
       </Title>
       {typeof kernelSpecs == "string" && (
         <Alert
-          description={
-            kernelSpecs == "start" ? (
-              <StartButton />
-            ) : (
-              kernelSpecs
-            )
-          }
+          description={kernelSpecs == "start" ? <StartButton /> : kernelSpecs}
           type="info"
           showIcon
         />
@@ -449,7 +442,7 @@ export default function ChatGPTGenerateJupyterNotebook({
                     disabled={querying || !prompt?.trim() || !spec}
                   >
                     <Icon name="paper-plane" /> Create Notebook using{" "}
-                  {modelToName(model)} (shift+enter)
+                    {modelToName(model)} (shift+enter)
                   </Button>
                 </Paragraph>
               )}
@@ -493,7 +486,7 @@ export default function ChatGPTGenerateJupyterNotebook({
  * The text string contains markdown text with code blocks. This split this into cells of type markdown and code.
  */
 function splitCells(
-  text: string
+  text: string,
 ): { cell_type: "markdown" | "code"; source: string[] }[] {
   const ret: { cell_type: "markdown" | "code"; source: string[] }[] = [];
 
@@ -553,10 +546,10 @@ export function ChatGPTGenerateNotebookButton({
   return (
     <>
       <Button onClick={() => setShow(true)} style={style}>
-        Generate Jupyter Notebook...
+        AI Generated Notebook...
       </Button>
       <Modal
-        title="Generate Jupyter Notebook"
+        title="Create Jupyter Notebook using ChatGPT"
         width={600}
         open={show}
         onCancel={handleCancel}
