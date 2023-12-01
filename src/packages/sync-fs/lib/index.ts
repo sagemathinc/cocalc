@@ -213,10 +213,21 @@ class SyncFS {
 
   private registerToSync = async (state = "online") => {
     if (state != "online") return;
-    log("registerToSync: registering");
-    const api = await this.client.project_client.api(this.project_id);
-    await api.computeServerSyncRegister(this.compute_server_id);
-    log("registerToSync: registered");
+    try {
+      log("registerToSync: registering");
+      const api = await this.client.project_client.api(this.project_id);
+      await api.computeServerSyncRegister(this.compute_server_id);
+      await apiCall("v2/compute/set-detailed-state", {
+        id: this.compute_server_id,
+        state: "ready",
+        progress: 100,
+        name: "filesystem",
+        timeout: Math.round(REGISTER_INTERVAL_MS / 1000) + 15,
+      });
+      log("registerToSync: registered");
+    } catch (err) {
+      log("registerToSync: ERROR -- ", err);
+    }
   };
 
   private handleSyncRequest = async (data) => {

@@ -24,6 +24,7 @@ import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
 import { JupyterActions } from "../../jupyter/browser-actions";
 import { NotebookFrameActions } from "./cell-notebook/actions";
 import { open_new_tab } from "../../misc";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -253,6 +254,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     try {
       this.setState({ is_saving: true });
       await this.jupyter_actions.save();
+      syncAllComputeServers(this.project_id);
     } catch (err) {
       console.warn("save_to_disk", this.path, "ERROR", err);
       if (this._state == "closed") return;

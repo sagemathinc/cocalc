@@ -228,7 +228,6 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function click(e: React.MouseEvent) {
-    console.log("tab onclick fired");
     e.stopPropagation();
     if (actions == null) return;
     const anyModifierKey = shouldOpenFileInNewWindow(e);
