@@ -39,7 +39,10 @@ export interface ChatState {
   unsent_user_mentions: MentionList;
   is_uploading: boolean;
   font_size: number;
-  scrollToBottom?: number; // whenever this changes and is defined, the chat log scrolls to the bottom.
+  // whenever this changes and is defined, do a scroll.
+  //  scrollToBottom = 0 -- scroll to the bottom
+  //  scrollToBottom = ms since epoch -- scroll to the bottom of that thread
+  scrollToBottom?: number;
 }
 
 export class ChatStore extends Store<ChatState> {

@@ -49,7 +49,7 @@ export default async function createChat({
   const chatActions = await getChatActions(
     actions.redux,
     actions.project_id,
-    actions.path
+    actions.path,
   );
   const delim = backtickSequence(input);
   const head = `${modelToMention(model)} ${capitalize(command)}:\n`;
@@ -71,8 +71,6 @@ ${codegen && input.trim() ? "Show the new version." : ""}`;
   } else {
     message += ". I am using the bash Ubuntu Linux terminal in CoCalc.";
   }
-  // scroll to bottom *after* the message gets sent.
-  setTimeout(() => chatActions.scrollToBottom(), 100);
   if (message.includes("<details")) {
     message = `${head}\n\n${message}`;
   } else {
@@ -83,4 +81,7 @@ ${codegen && input.trim() ? "Show the new version." : ""}`;
     tag: `code-editor-${tag ?? command}`,
     noNotification: true,
   });
+  chatActions.scrollToBottom();
+  // scroll to bottom again *after* the message starts getting responded to.
+  setTimeout(() => chatActions.scrollToBottom(), 1000);
 }

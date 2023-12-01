@@ -281,7 +281,7 @@ export class ChatActions extends Actions<ChatState> {
 
     this.syncdb.set({
       history: [{ author_id, content, date }].concat(
-        message.get("history").toJS()
+        message.get("history").toJS(),
       ),
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
@@ -307,7 +307,7 @@ export class ChatActions extends Actions<ChatState> {
     // full tree structure, which is powerful but too confusing.
     const reply_to = getReplyToRoot(
       message,
-      this.store?.get("messages") ?? fromJS({})
+      this.store?.get("messages") ?? fromJS({}),
     );
     const time = reply_to?.valueOf() ?? 0;
     this.delete_draft(-time);
@@ -323,7 +323,7 @@ export class ChatActions extends Actions<ChatState> {
   public delete_draft(
     date: number,
     commit: boolean = true,
-    sender_id: string | undefined = undefined
+    sender_id: string | undefined = undefined,
   ) {
     if (!this.syncdb) return;
     this.syncdb.delete({
@@ -367,12 +367,14 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ saved_position: position, height, offset });
   }
 
-  public scrollToBottom() {
-    // whenever this counter gets incremented, the UI should scroll chat
-    // to the bottom:
-    this.setState({
-      scrollToBottom: (this.store?.get("scrollToBottom") ?? 0) + 1,
-    });
+  // scroll to the bottom of the chat log
+  // if date is given, scrolls to the bottom of the chat *thread*
+  // that starts with that date.
+  // safe to call after closing actions.
+  public scrollToBottom(index: number = -1) {
+    if (this.syncdb == null) return;
+    // this triggers scroll behavior in the chat-log component.
+    this.setState({ scrollToBottom: index });
   }
 
   public set_uploading(is_uploading: boolean): void {
@@ -553,7 +555,7 @@ export class ChatActions extends Actions<ChatState> {
 
     if (this.chatStreams.size > MAX_CHATSTREAM) {
       console.trace(
-        `processChatGPT called when ${MAX_CHATSTREAM} streams active`
+        `processChatGPT called when ${MAX_CHATSTREAM} streams active`,
       );
       if (this.syncdb != null) {
         // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
@@ -593,9 +595,12 @@ export class ChatActions extends Actions<ChatState> {
     // submit question to chatgpt
     const id = uuid();
     this.chatStreams.add(id);
-    setTimeout(() => {
-      this.chatStreams.delete(id);
-    }, 3 * 60 * 1000);
+    setTimeout(
+      () => {
+        this.chatStreams.delete(id);
+      },
+      3 * 60 * 1000,
+    );
     const chatStream = webapp_client.openai_client.chatgptStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
@@ -662,12 +667,13 @@ export class ChatActions extends Actions<ChatState> {
     for (const message of messages // @ts-ignore -- immutablejs typings are wrong (?)
       .filter(
         (message) =>
-          message.get("reply_to") == d || message.get("date").toISOString() == d
+          message.get("reply_to") == d ||
+          message.get("date").toISOString() == d,
       )
       .valueSeq()
       .sort((a, b) => cmp(a.get("date"), b.get("date")))) {
       const content = stripMentions(
-        message.get("history").last().get("content")
+        message.get("history").last().get("content"),
       );
       history.push({
         content,

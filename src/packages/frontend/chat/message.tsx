@@ -53,6 +53,7 @@ const REPLY_STYLE = {
 } as const;
 
 interface Props {
+  index: number;
   actions?: ChatActions;
 
   get_user_name: (account_id: string) => string;
@@ -499,6 +500,7 @@ export default function Message(props: Props) {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     props.actions.send_reply({ message: props.message, reply });
+    props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
 
