@@ -15,7 +15,7 @@ import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-const PROJECT_COLOR = "#337ab7";
+const PROJECT_COLOR = "#f6ffed";
 
 interface Option {
   position?: number;
@@ -203,7 +203,6 @@ export default function SelectComputeServer({
               <div
                 style={{
                   background: PROJECT_COLOR,
-                  color: "white",
                   padding: "0 5px",
                   borderRadius: "3px",
                 }}
@@ -291,11 +290,9 @@ export default function SelectComputeServer({
         bordered={false}
         disabled={loading}
         placeholder={
-          <span style={{ color: "white" }}>
-            <Icon
-              style={{ color: "white", marginRight: "5px" }}
-              name="server"
-            />
+          <span style={{ color: "#666" }}>
+            <Icon style={{ marginRight: "5px", color: "#666" }} name="servers" />{" "}
+            Server...
           </span>
         }
         open={open}
@@ -312,7 +309,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value && value != "0" ? "175px" : "64px",
+          width: open ? "300px" : value && value != "0" ? "175px" : "120px",
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
