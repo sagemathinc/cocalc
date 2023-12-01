@@ -274,6 +274,7 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <MachineType
+          state={state}
           disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
@@ -769,14 +770,32 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
   );
 }
 
-function MachineType({ priceData, setConfig, configuration, disabled }) {
+function MachineType({ priceData, setConfig, configuration, disabled, state }) {
+  const [archType, setArchType] = useState<"x86_64" | "arm64">(
+    configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
+  );
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newMachineType, setNewMachineType] = useState<string>(
     configuration.machineType ?? "",
   );
   useEffect(() => {
     setNewMachineType(configuration.machineType);
-  }, [configuration]);
+    setArchType(
+      configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
+    );
+  }, [configuration.machineType]);
+  useEffect(() => {
+    if (archType == "arm64" && !configuration.machineType.startsWith("t2a-")) {
+      setNewMachineType("t2a-standard-4");
+      setConfig({ machineType: "t2a-standard-4" });
+      return;
+    }
+    if (archType == "x86_64" && configuration.machineType.startsWith("t2a-")) {
+      setNewMachineType("t2d-standard-4");
+      setConfig({ machineType: "t2d-standard-4" });
+      return;
+    }
+  }, [archType, configuration.machineType]);
 
   const machineTypes = Object.keys(priceData.machineTypes);
   let allOptions = machineTypes
@@ -784,6 +803,12 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       const { acceleratorType } = configuration;
       if (!acceleratorType) {
         if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+          return false;
+        }
+        if (archType == "arm64" && !machineType.startsWith("t2a-")) {
+          return false;
+        }
+        if (archType == "x86_64" && machineType.startsWith("t2a-")) {
           return false;
         }
       } else {
@@ -857,6 +882,30 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
+        <Tooltip
+          title={
+            (state ?? "deprovisioned") != "deprovisioned"
+              ? "Can only be changed when machine is deprovisioned"
+              : archType == "x86_64"
+              ? "Intel or AMD X86_64 architecture machines"
+              : "ARM64 architecture machines"
+          }
+        >
+          <Switch
+            style={{ float: "right" }}
+            disabled={
+              disabled ||
+              configuration.acceleratorType ||
+              (state ?? "deprovisioned") != "deprovisioned"
+            }
+            unCheckedChildren={"ARM64"}
+            checkedChildren={"X86"}
+            checked={archType == "x86_64"}
+            onChange={() => {
+              setArchType(archType == "x86_64" ? "arm64" : "x86_64");
+            }}
+          />
+        </Tooltip>
         <b>
           <Icon name="microchip" /> Machine Type
         </b>
