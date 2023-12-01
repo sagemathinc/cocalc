@@ -165,7 +165,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
           <Col sm={4}>
             {render_delete_undelete_button(
               project.get("deleted"),
-              show_delete_conf
+              show_delete_conf,
             )}
           </Col>
         </Row>
@@ -195,7 +195,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
     return renderBody();
   } else {
     return (
-      <SettingBox title="Hide or delete project" icon="warning">
+      <SettingBox title="Hide or Delete Project" icon="warning">
         {renderBody()}
       </SettingBox>
     );

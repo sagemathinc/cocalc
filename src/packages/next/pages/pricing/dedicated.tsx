@@ -207,7 +207,7 @@ export default function Products({ customize }) {
               <Icon name="info-circle" /> To ease data transfer, make sure to
               check out how to mount{" "}
               <A href={DOC_CLOUD_STORAGE_URL}>
-                cloud storage or remote file-systems
+                cloud storage or remote filesystems
               </A>{" "}
               into your project as well.
             </Paragraph>

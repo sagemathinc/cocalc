@@ -155,7 +155,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
   switch (mode) {
     case "project":
       return (
-        <SettingBox title="Current collaborators" icon="user">
+        <SettingBox title="Current Collaborators" icon="user">
           {introText}
           <hr />
           {render_collaborators_list()}
@@ -165,7 +165,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
       return (
         <div style={{ paddingLeft: "5px" }}>
           <Title level={3}>
-            <Icon name="user" /> Current collaborators
+            <Icon name="user" /> Current Collaborators
           </Title>
           <Paragraph
             type="secondary"

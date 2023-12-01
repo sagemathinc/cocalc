@@ -204,7 +204,7 @@ const gateway_dns_to_val: ToValFunc<string> = (
   );
 };
 
-export const DATASTORE_TITLE = "Cloud storage & remote file-systems";
+export const DATASTORE_TITLE = "Cloud Storage & Remote Filesystems";
 export const KUCALC_DISABLED = "no";
 export const KUCALC_COCALC_COM = "yes";
 export const KUCALC_ON_PREMISES = "onprem";

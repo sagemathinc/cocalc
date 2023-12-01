@@ -131,7 +131,7 @@ export const Environment: React.FC<Props> = ({
     );
   } else {
     return (
-      <SettingBox title="Custom environment variables" icon={ENV_VARS_ICON}>
+      <SettingBox title="Custom Environment Variables" icon={ENV_VARS_ICON}>
         {renderBody()}
         <br />
         {instructions}

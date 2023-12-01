@@ -5,13 +5,8 @@
 
 import React from "react";
 import { Col, Row } from "react-bootstrap";
-
-import {
-  redux,
-  useActions,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
-import { Icon, Paragraph, SettingBox } from "@cocalc/frontend/components";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Customer, ProjectMap } from "@cocalc/frontend/todo-types";
 import {
@@ -19,13 +14,6 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { is_different } from "@cocalc/util/misc";
-import { NewFileButton } from "../new/new-file-button";
-import {
-  ICON_UPGRADES,
-  ICON_USERS,
-  TITLE_UPGRADES,
-  TITLE_USERS,
-} from "../servers/consts";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { AboutBox } from "./about-box";
@@ -58,7 +46,6 @@ const is_same = (prev: ReactProps, next: ReactProps) => {
 
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const { project_id, account_id, project } = props;
-  const project_actions = useActions({ project_id });
   const kucalc = useTypedRedux("customize", "kucalc");
   const runQuota = useRunQuota(project_id, null);
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
@@ -96,21 +83,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             name={project.get("name")}
             actions={redux.getActions("projects")}
           />
-          <SettingBox title="Quotas and Licenses moved" icon="move">
-            <Paragraph>
-              The panel for checking up on quotas, adding licenses and
-              configuring updates has been moved to the "{TITLE_UPGRADES}" tab.
-            </Paragraph>
-            <NewFileButton
-              name={`Moved to "${TITLE_UPGRADES}" tab.`}
-              icon={ICON_UPGRADES}
-              on_click={() => {
-                project_actions?.set_active_tab("upgrades", {
-                  change_history: true,
-                });
-              }}
-            />
-          </SettingBox>
           <HideDeleteBox
             key="hidedelete"
             project={project}
@@ -127,21 +99,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
           />
         </Col>
         <Col sm={6}>
-          <SettingBox title="Collaborators moved" icon="move">
-            <Paragraph>
-              The panel for configuring collaborators has been moved to the "
-              {TITLE_USERS}" tab.
-            </Paragraph>
-            <NewFileButton
-              name={`Moved to "${TITLE_USERS}" tab.`}
-              icon={ICON_USERS}
-              on_click={() => {
-                project_actions?.set_active_tab("users", {
-                  change_history: true,
-                });
-              }}
-            />
-          </SettingBox>
           <ProjectControl key="control" project={project} />
           {!student.disableSSH &&
             (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (

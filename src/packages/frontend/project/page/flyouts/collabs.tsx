@@ -41,7 +41,7 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
           <>
             <br />
             <Title level={3}>
-              <Icon name="UserAddOutlined" /> Add new collaborators
+              <Icon name="UserAddOutlined" /> Add New Collaborators
             </Title>
             <AddCollaborators
               project_id={project.get("project_id")}

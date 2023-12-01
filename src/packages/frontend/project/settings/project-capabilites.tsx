@@ -169,9 +169,9 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
 
       return (
         <>
-          <h3>Available features</h3>
+          <h3>Available Features</h3>
           {features}
-          <h3>Available formatter</h3>
+          <h3>Available Formatters</h3>
           {formatter}
           {non_avail_1 || non_avail_2 ? render_noavail_info() : undefined}
         </>
@@ -208,7 +208,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
     }
 
     function render_title(): Rendered {
-      return <span>{render_reload()}Features and configuration</span>;
+      return <span>{render_reload()}Features and Configuration</span>;
     }
 
     const conf = configuration;

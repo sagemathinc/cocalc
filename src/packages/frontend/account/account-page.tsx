@@ -181,7 +181,7 @@ export const AccountPage: React.FC = () => {
         key: "ssh-keys",
         label: (
           <span>
-            <Icon name="key" /> SSH keys
+            <Icon name="key" /> SSH Keys
           </span>
         ),
         children: active_page === "ssh-keys" && <SSHKeysPage />,
@@ -202,7 +202,7 @@ export const AccountPage: React.FC = () => {
       key: "public-files",
       label: (
         <span>
-          <Icon name="bullhorn" /> Public files
+          <Icon name="bullhorn" /> Public Files
         </span>
       ),
       children: active_page === "public-files" && <PublicPaths />,
