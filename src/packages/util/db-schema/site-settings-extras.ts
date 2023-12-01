@@ -64,6 +64,9 @@ const pii_retention_display = (retention: string) => {
 };
 
 const openai_enabled = (conf) => to_bool(conf.openai_enabled);
+const vertexai_enabled = (conf) => to_bool(conf.vertexai_enabled);
+const any_llm_enabled = (conf) =>
+  openai_enabled(conf) || vertexai_enabled(conf);
 
 const compute_servers_enabled = (conf) => to_bool(conf.compute_servers_enabled);
 const compute_servers_google_enabled = (conf) =>
@@ -96,6 +99,7 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_secure"
   | "openai_section"
   | "openai_api_key"
+  | "google_vertexai_key"
   | "qdrant_api_key"
   | "qdrant_cluster_url"
   | "salesloft_api_key"
@@ -145,10 +149,10 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
   openai_section: {
-    name: "OpenAI Configuration",
+    name: "Language Model Configuration",
     desc: "",
     default: "",
-    show: openai_enabled,
+    show: any_llm_enabled,
     type: "header",
   },
   openai_api_key: {
@@ -157,6 +161,13 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: openai_enabled,
+  },
+  google_vertexai_key: {
+    name: "Google VertexAI",
+    desc: "Create a [Generative AI Key](https://makersuite.google.com/app/apikey) in the MakerSuite and paste the content.",
+    default: "",
+    password: true,
+    show: vertexai_enabled,
   },
   qdrant_cluster_url: {
     name: "Qdrant Cluster URL (needed for OpenAI Neural Search)",

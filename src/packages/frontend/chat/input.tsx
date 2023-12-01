@@ -181,14 +181,14 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
-      chatGPT={redux.getStore("projects").hasOpenAI(project_id)}
+      chatGPT={redux.getStore("projects").hasLanguageModelEnabled(project_id)}
     />
   );
 }
 
 function getPlaceholder(project_id, placeholder?: string): string {
   if (placeholder != null) return placeholder;
-  if (redux.getStore("projects").hasOpenAI(project_id)) {
+  if (redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
     return "Type a new message (use @chatgpt for ChatGPT)...";
   }
   return "Type a new message...";

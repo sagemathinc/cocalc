@@ -149,7 +149,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     try {
       setQuerying(true);
 
-      const gptStream = webapp_client.openai_client.chatgptStream({
+      const gptStream = webapp_client.openai_client.languageModelStream({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
@@ -338,7 +338,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     gptStream.emit("start");
   }
 
-  if (!redux.getStore("projects").hasOpenAI(project_id)) {
+  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
     return null;
   }
 
@@ -536,7 +536,7 @@ export function ChatGPTGenerateNotebookButton({
   style?: CSSProperties;
 }) {
   const [show, setShow] = useState<boolean>(false);
-  if (!redux.getStore("projects").hasOpenAI(project_id)) {
+  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
     return null;
   }
   const handleCancel = () => {

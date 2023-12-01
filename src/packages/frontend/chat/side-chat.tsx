@@ -184,7 +184,7 @@ function AddChatCollab({ addCollab, project_id }) {
   return (
     <div>
       You can{" "}
-      {redux.getStore("projects").hasOpenAI(project_id) && (
+      {redux.getStore("projects").hasLanguageModelEnabled(project_id) && (
         <>put @chatgpt in any message to get a response from ChatGPT, </>
       )}
       <A href="https://github.com/sagemathinc/cocalc/discussions">
@@ -202,7 +202,7 @@ function AddChatCollab({ addCollab, project_id }) {
 function CollabList({ project, addCollab, actions }) {
   const hasOpenAI = redux
     .getStore("projects")
-    .hasOpenAI(project.get("project_id"));
+    .hasLanguageModelEnabled(project.get("project_id"));
   return (
     <div
       style={

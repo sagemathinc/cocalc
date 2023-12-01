@@ -601,7 +601,7 @@ export class ChatActions extends Actions<ChatState> {
       },
       3 * 60 * 1000,
     );
-    const chatStream = webapp_client.openai_client.chatgptStream({
+    const chatStream = webapp_client.openai_client.languageModelStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
       project_id,

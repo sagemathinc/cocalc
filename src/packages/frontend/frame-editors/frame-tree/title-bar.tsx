@@ -1056,7 +1056,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_chatgpt(labels): Rendered {
     if (
       !is_visible("chatgpt") ||
-      !redux.getStore("projects").hasOpenAI(props.project_id)
+      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
     ) {
       return;
     }

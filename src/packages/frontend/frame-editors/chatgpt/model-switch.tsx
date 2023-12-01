@@ -1,8 +1,10 @@
 import { Radio, Tooltip } from "antd";
-import { OPENAI_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
-export type { Model };
 
-export const DEFAULT_MODEL = "gpt-3.5-turbo";
+import { OPENAI_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
+import { DEFAULT_MODEL } from "@cocalc/util/db-schema/openai";
+
+export type { Model };
+export { DEFAULT_MODEL };
 
 interface Props {
   model: Model;
@@ -36,7 +38,7 @@ export default function ModelSwitch({ style, model, setModel, size }: Props) {
       </Tooltip>
       <Tooltip
         title={`NOT FREE: Same as ${modelToName(
-          "gpt-3.5-turbo"
+          "gpt-3.5-turbo",
         )} but with much larger context size (16k token context)`}
       >
         <Radio.Button value="gpt-3.5-turbo-16k">
@@ -63,6 +65,6 @@ export function modelToName(model: Model): string {
 
 export function modelToMention(model: Model): string {
   return `<span class="user-mention" account-id=openai-${model} >@${modelToName(
-    model
+    model,
   )}</span>`;
 }

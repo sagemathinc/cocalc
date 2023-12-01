@@ -27,7 +27,7 @@ export default function HomePage() {
   function renderGPTGenerator() {
     // if not available, the entire block should be gone
     // making room for the toher blocks to move into its place
-    if (!redux.getStore("projects").hasOpenAI(project_id)) return null;
+    if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) return null;
 
     return (
       <Col {...SPAN}>

@@ -3,18 +3,23 @@ A generic button for helping a user fix problems using chatgpt.
 If chatgpt is disabled or not available it renders as null.
 */
 
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Alert, Button } from "antd";
-import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { CSSProperties, useState } from "react";
-import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
-import shortenError from "./shorten-error";
-import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
-import type { Model } from "./model-switch";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+
+import getChatActions from "@cocalc/frontend/chat/get-actions";
+import { Icon } from "@cocalc/frontend/components/icon";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
-import { Icon } from "@cocalc/frontend/components/icon";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
+import type { Model } from "./model-switch";
+import ModelSwitch, {
+  DEFAULT_MODEL,
+  modelToMention,
+  modelToName,
+} from "./model-switch";
+import shortenError from "./shorten-error";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -48,7 +53,7 @@ export default function HelpMeFix({
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  const [model, setModel] = useState<Model>("gpt-3.5-turbo");
+  const [model, setModel] = useState<Model>(DEFAULT_MODEL);
   if (
     redux == null ||
     !redux.getStore("projects").hasOpenAI(project_id, "help-me-fix")

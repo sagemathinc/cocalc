@@ -50,7 +50,7 @@ export function InsertCell({
   const { project_id } = useFrameContext();
   const haveChatGTP =
     chatgpt &&
-    redux.getStore("projects").hasOpenAI(project_id, "generate-cell");
+    redux.getStore("projects").hasLanguageModelEnabled(project_id, "generate-cell");
   const frameActions = useNotebookFrameActions();
   const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
 

@@ -236,7 +236,7 @@ async function queryChatGPT({
     fa.set_mode("escape"); // while tokens come in ...
     if (gptCellId == null) return; // to make TS happy
 
-    const reply = await webapp_client.openai_client.chatgptStream({
+    const reply = await webapp_client.openai_client.languageModelStream({
       input,
       project_id,
       path,

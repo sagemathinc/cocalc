@@ -33,7 +33,7 @@ export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 const openAICache = new LRU<string, boolean>({ max: 50, ttl: 1000 * 60 });
 
 const ZERO_QUOTAS = fromPairs(
-  Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
+  Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0]),
 );
 
 // TODO fix this "Project" type, shouldn't this be ./project/settings/types::Project ?
@@ -77,7 +77,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   */
   public sort_by_activity(
     users: { account_id: string; last_active?: Date }[],
-    project_id: string
+    project_id: string,
   ): { account_id: string; last_active?: Date }[] {
     const last_active = this.getIn(["project_map", project_id, "last_active"]);
     if (last_active == null) {
@@ -102,13 +102,13 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   public get_users(
-    project_id: string
+    project_id: string,
   ): Map<string, Map<string, any>> | undefined {
     return this.getIn(["project_map", project_id, "users"]);
   }
 
   public get_last_active(
-    project_id: string
+    project_id: string,
   ): Map<string, Map<string, Date>> | undefined {
     return this.getIn(["project_map", project_id, "last_active"]);
   }
@@ -151,7 +151,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   has expired.
   */
   public date_when_course_payment_required(
-    project_id: string
+    project_id: string,
   ): undefined | Date {
     const account = redux.getStore("account");
     if (account == null) {
@@ -273,7 +273,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   public wait_until_project_is_open(
     project_id: string,
     timeout: number, // timeout in seconds (NOT milliseconds!)
-    cb: (err?) => void
+    cb: (err?) => void,
   ): void {
     this.wait({
       until: () => this.is_project_open(project_id),
@@ -285,7 +285,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   public wait_until_project_exists(
     project_id: string,
     timeout: number,
-    cb: (err?) => void
+    cb: (err?) => void,
   ): void {
     this.wait({
       until: () => this.getIn(["project_map", project_id]) != null,
@@ -416,7 +416,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   // site licenses.  Does not return undefined, even if all
   // contributions are 0.
   public get_total_site_license_upgrades_to_project(
-    project_id: string
+    project_id: string,
   ): Upgrades {
     const site_license = this.getIn([
       "project_map",
@@ -491,7 +491,7 @@ export class ProjectsStore extends Store<ProjectsState> {
       this.get_total_site_license_upgrades_to_project(project_id);
     const quota = map_sum(
       map_sum(base_values, upgrades as any),
-      site_license_upgrades as any
+      site_license_upgrades as any,
     );
     this.new_format_license_quota(project_id, quota);
     return quota;
@@ -499,7 +499,7 @@ export class ProjectsStore extends Store<ProjectsState> {
 
   // rough distinction between different types of projects
   public classify_project(
-    project_id: string
+    project_id: string,
   ): { kind: "free" | "member"; upgraded: boolean } | undefined {
     const quotas = this.get_total_project_quotas(project_id);
     if (quotas == null) {
@@ -638,7 +638,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   private project_is_in_filter(
     project_id: string,
     hidden: boolean,
-    deleted: boolean
+    deleted: boolean,
   ): boolean {
     const account_id = webapp_client.account_id;
     const project = this.getIn(["project_map", "project", project_id]);
@@ -691,7 +691,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   public get_student_project_functionality(
-    project_id: string
+    project_id: string,
   ): StudentProjectFunctionality {
     if (!is_valid_uuid_string(project_id)) {
       throw Error(`${project_id} must be a UUID`);
@@ -712,7 +712,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     max: 1000,
   });
   public async getProjectAvatarImage(
-    project_id: string
+    project_id: string,
   ): Promise<string | undefined> {
     if (this.projectAvatarImageCache.has(project_id)) {
       return this.projectAvatarImageCache.get(project_id);
@@ -734,7 +734,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     openAICache.clear();
   }
 
-  hasOpenAI(project_id?: string, tag?: string): boolean {
+  hasLanguageModelEnabled(project_id?: string, tag?: string): boolean {
     // cache answer for a few seconds, in case this gets called a lot:
 
     let courseLimited = false;
@@ -753,13 +753,19 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (openAICache.has(key)) {
       return !!openAICache.get(key);
     }
-    const value = this._hasOpenAI(project_id, courseLimited);
+    const value = this._hasLanguageModelEnabled(project_id, courseLimited);
     openAICache.set(key, value);
     return value;
   }
 
-  private _hasOpenAI(project_id?: string, courseLimited?: boolean): boolean {
-    if (!redux.getStore("customize").get("openai_enabled")) {
+  private _hasLanguageModelEnabled(
+    project_id?: string,
+    courseLimited?: boolean,
+  ): boolean {
+    if (
+      !redux.getStore("customize").get("openai_enabled") &&
+      !redux.getStore("customize").get("google_vertexai_enabled")
+    ) {
       return false;
     }
     if (
