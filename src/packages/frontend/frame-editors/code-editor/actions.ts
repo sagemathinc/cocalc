@@ -1477,12 +1477,14 @@ export class Actions<
   }
 
   public focus(id?: string): void {
+    console.log("focus! ", this.path);
     if (id === undefined) {
       id = this._get_active_id();
     }
 
     const cm: CodeMirror.Editor | undefined = this._cm[id];
     if (cm) {
+      console.log("focusing cm for", this.path);
       // Save that it was focused just now; this is just a quick solution to
       // "give me last active cm" -- we will switch to something
       // more generic later -- TODO: switch to use _active_id_history
