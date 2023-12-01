@@ -34,8 +34,8 @@ export default function ExcludeFromSync({
           <>
             List of subdirectories of HOME to exclude from sync. Files you
             change or create on the compute server in these directories will not
-            be saved back to the project when you click the Sync button. Disk IO
-            in these directories is{" "}
+            be saved back to the project when you click the Sync button or Save
+            a file. Disk IO in these directories is{" "}
             <b>
               <i>VERY fast</i>
             </b>
