@@ -335,6 +335,11 @@ class SyncFS {
       this.state = "sync";
       await this.__doSync();
       this.numFails = 0; // it worked
+      this.reportState({
+        state: "ready",
+        progress: 100,
+        timeout: 3 + this.syncInterval,
+      });
     } catch (err) {
       this.numFails += 1;
       let extra;
@@ -348,16 +353,12 @@ class SyncFS {
           this.numFails
         } times in a row with -- ${err.message.slice(0, 200)}...`;
       }
+      // extra here sets visible error state that the user sees.
       this.reportState({ state: "error", extra, timeout: 60, progress: 0 });
       await this.logSyncError(extra);
       throw Error(extra);
     } finally {
       if (this.state != ("closed" as State)) {
-        this.reportState({
-          state: "ready",
-          progress: 100,
-          timeout: 3 + this.syncInterval,
-        });
         this.state = "ready";
       }
       log("sync - done, time=", (Date.now() - t0) / 1000);
