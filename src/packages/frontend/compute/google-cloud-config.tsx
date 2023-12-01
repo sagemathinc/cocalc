@@ -242,6 +242,7 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <GPU
+          state={state}
           disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
@@ -1293,7 +1294,7 @@ const ACCELERATOR_TYPES = [
         </A>
 */
 
-function GPU({ priceData, setConfig, configuration, disabled }) {
+function GPU({ priceData, setConfig, configuration, disabled, state }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
@@ -1311,7 +1312,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
 
   const theSwitch = (
     <Switch
-      disabled={disabled}
+      disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
       checkedChildren={"NVIDIA GPU"}
       unCheckedChildren={"NO GPU"}
       checked={!!acceleratorType}
@@ -1382,7 +1383,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       {theSwitch}
       <div style={{ marginTop: "15px" }}>
         <Select
-          disabled={disabled}
+          disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
           style={{ width: SELECTOR_WIDTH }}
           options={options as any}
           value={acceleratorType}
@@ -1396,7 +1397,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
         />
         <Select
           style={{ marginLeft: "15px", width: "75px" }}
-          disabled={disabled}
+          disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
           options={countOptions}
           value={acceleratorCount}
           onChange={(count) => {
@@ -1420,6 +1421,14 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
                 server.
               </>
             )}
+            {
+              (state ?? "deprovisioned") != "deprovisioned" && (
+                <div>
+                  You can only change the GPU configuration when the server is
+                  deprovisioned.
+                </div>
+              ) /* this is mostly a google limitation, not cocalc, though we will eventually do somthing involving recreating the machine.  BUT note that e.g., changing the count for L4's actually breaks booting up! */
+            }
           </div>
         )}
       </div>
