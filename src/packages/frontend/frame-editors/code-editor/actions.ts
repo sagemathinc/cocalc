@@ -1477,7 +1477,6 @@ export class Actions<
   }
 
   public focus(id?: string): void {
-    console.log("focus! ", this.path);
     if (id === undefined) {
       id = this._get_active_id();
     }

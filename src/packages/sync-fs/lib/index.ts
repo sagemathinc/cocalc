@@ -22,6 +22,7 @@ import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
 import mkdirp from "mkdirp";
 import { throttle } from "lodash";
+import { trunc_middle } from "@cocalc/util/misc";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -343,15 +344,11 @@ class SyncFS {
     } catch (err) {
       this.numFails += 1;
       let extra;
+      let message = trunc_middle(`${err.message}`, 500);
       if (this.numFails >= MAX_FAILURES_IN_A_ROW) {
-        extra = `Sync failed ${MAX_FAILURES_IN_A_ROW} in a row.  FIX THE PROBLEM, THEN CLEAR THIS ERROR TO RESUME SYNC. -- ${err.message.slice(
-          0,
-          250,
-        )}`;
+        extra = `XXX Sync failed ${MAX_FAILURES_IN_A_ROW} in a row.  FIX THE PROBLEM, THEN CLEAR THIS ERROR TO RESUME SYNC. -- ${message}`;
       } else {
-        extra = `Sync failed ${
-          this.numFails
-        } times in a row with -- ${err.message.slice(0, 200)}...`;
+        extra = `XXX Sync failed ${this.numFails} times in a row with -- ${message}`;
       }
       // extra here sets visible error state that the user sees.
       this.reportState({ state: "error", extra, timeout: 60, progress: 0 });

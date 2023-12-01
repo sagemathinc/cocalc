@@ -606,7 +606,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           topItemCount={EXTRA_TOP_CELLS}
           style={{
             fontSize: `${font_size}px`,
-            height: "100%",
+            flex: 1,
             overflowX: "hidden",
           }}
           totalCount={
@@ -700,7 +700,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         style={{
           fontSize: `${font_size}px`,
           paddingLeft: "5px",
-          height: "100%",
+          flex: 1,
           overflowY: "auto",
           overflowX: "hidden",
         }}
