@@ -40,7 +40,7 @@ export default function ComputeServerTransition({
     setShowDetails(null);
   }, [id, requestedId]);
 
-  const requestedServer = computeServers.get(`${requestedId}`);
+  const requestedServer = computeServers?.get(`${requestedId}`);
   const syncState = requestedServer?.getIn([
     "detailed_state",
     "filesystem-sync",
@@ -54,6 +54,10 @@ export default function ComputeServerTransition({
   }, [syncState?.get("extra")]);
 
   if (id == 0 && requestedId == 0) {
+    return null;
+  }
+
+  if (computeServers == null) {
     return null;
   }
 
@@ -131,7 +135,7 @@ export default function ComputeServerTransition({
   }
 
   const server: ComputeServerUserInfo | undefined = computeServers
-    .get(`${requestedId}`)
+    ?.get(`${requestedId}`)
     ?.toJS();
   const { progress, message, status } = getProgress(
     server,
