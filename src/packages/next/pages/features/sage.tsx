@@ -152,9 +152,9 @@ export default function Sage({ customize }) {
                     height="315"
                     src="https://www.youtube.com/embed/b8e8qq-KWbA?si=620SEO8C1JBYXpJL"
                     title="YouTube video player"
-                    frameborder="0"
+                    frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen
+                    allowFullScreen
                   ></iframe>
                 </Paragraph>
               </>
