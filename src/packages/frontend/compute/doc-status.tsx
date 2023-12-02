@@ -97,7 +97,6 @@ export default function ComputeServerTransition({
       >
         <div
           onClick={() => {
-            if (progress < 100) return;
             setShowDetails(showDetails === true ? false : true);
           }}
           style={{ display: "flex", flex: 1 }}
@@ -113,11 +112,11 @@ export default function ComputeServerTransition({
                 cursor: "pointer",
                 width: `${progress}%`,
               }}
+              colorLabel={progress < 100 ? `${progress}%` : ""}
             />
           </div>
           <Button
             size="small"
-            disabled={id != requestedId}
             style={{ marginTop: "-1px", marginRight: "1px", color: "#666" }}
           >
             <Icon name="servers" /> <Inline prompt id={requestedId} />
@@ -164,9 +163,8 @@ export default function ComputeServerTransition({
             textAlign: "center",
           }}
         >
-          <Space style={{ width: "100%", margin: "15px" }}>
+          <Space style={{ width: "100%", margin: "15px 0" }}>
             <Button
-              disabled={id != requestedId}
               size="large"
               type="text"
               onClick={() => setShowDetails(false)}
