@@ -8,7 +8,7 @@
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
 import { Button, Popconfirm } from "antd";
 
-import { useActions } from "@cocalc/frontend/app-framework";
+import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { useProjectState } from "../page/project-state-hook";
 
 interface Props {
@@ -38,11 +38,18 @@ export function RestartProject({
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>
-      Restarting the project server will terminate all processes, update the
-      project code, and start the project running again. It takes a few seconds,
-      and can fix some issues in case things are not working properly. You'll
-      not lose any files, but you have to start your notebooks and worksheets
-      again.
+      Restarting the project server will terminate all processes in the project,
+      update the project code, and start the project running again. Running{" "}
+      <a
+        onClick={() => {
+          redux.getProjectActions(project_id)?.set_active_tab("servers");
+        }}
+      >
+        compute servers
+      </a>{" "}
+      are not affected. It takes a few seconds, and can fix some issues in case
+      things are not working properly. You'll not lose any files, but you have
+      to start your notebooks and worksheets again.
     </div>
   );
 
