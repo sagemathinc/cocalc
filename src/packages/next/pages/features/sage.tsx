@@ -121,6 +121,14 @@ export default function Sage({ customize }) {
                       students just have to sign in to CoCalc to get started!
                     </li>
                     <li>
+                      You can easily{" "}
+                      <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/build-sage.md">
+                        build Sage from source and run it on extremely powerful
+                        computers
+                      </A>{" "}
+                      for only a few cents.
+                    </li>
+                    <li>
                       You can still easily run <b>older versions of Sage</b>{" "}
                       since many are all preinstalled in every CoCalc project.
                     </li>
@@ -139,6 +147,15 @@ export default function Sage({ customize }) {
                       worry about messing up your own computer.{" "}
                     </li>
                   </ul>
+                  <iframe
+                    width="560"
+                    height="315"
+                    src="https://www.youtube.com/embed/b8e8qq-KWbA?si=620SEO8C1JBYXpJL"
+                    title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                  ></iframe>
                 </Paragraph>
               </>
             }
