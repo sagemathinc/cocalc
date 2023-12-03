@@ -58,4 +58,9 @@ export class ClientTest extends EventEmitter {
   }
 
   public touch_project(_): void {}
+
+  is_deleted = (_path: string, _project_id: string) => {
+    // not implemented yet in general
+    return undefined;
+  };
 }

@@ -15,6 +15,7 @@ export interface Client extends EventEmitter {
   touch_project: (project_id: string) => void;
   set_connected?: Function;
   is_compute_server?: boolean;
+  is_deleted: (path: string, project_id: string) => true | false | undefined;
 }
 
 export interface ClientFs extends Client {
@@ -33,7 +34,6 @@ export interface ClientFs extends Client {
   }) => any;
   server_time: () => Date;
   client_id: () => string | undefined;
-  is_deleted?: (path: string, project_id: string) => true | false | undefined;
 }
 
 export interface Channel {

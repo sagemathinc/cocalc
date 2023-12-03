@@ -2355,6 +2355,10 @@ export class SyncDoc extends EventEmitter {
       delete this.file_watcher;
       delete this.watch_path;
     }
+    if (path != null && this.client.is_deleted(path, this.project_id)) {
+      dbg(`not setting up watching since "${path}" is explicitly deleted`);
+      return;
+    }
     if (path == null) {
       dbg("not opening another watcher");
       this.watch_path = path;
@@ -2371,6 +2375,10 @@ export class SyncDoc extends EventEmitter {
     this.watch_path = path;
     try {
       if (!(await callback2(this.client.path_exists, { path }))) {
+        if (this.client.is_deleted(path, this.project_id)) {
+          dbg(`not setting up watching since "${path}" is explicitly deleted`);
+          return;
+        }
         // path does not exist
         dbg(
           `write '${path}' to disk from syncstring in-memory database version`,

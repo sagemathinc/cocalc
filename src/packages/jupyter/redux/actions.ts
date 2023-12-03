@@ -918,8 +918,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public save = async (): Promise<void> => {
-    if (this.store.get("read_only")) {
-      // can't save when readonly
+    if (this.store.get("read_only") || this.isDeleted()) {
+      // can't save when readonly or deleted
       return;
     }
     if (this.store.get("mode") === "edit") {
@@ -2712,6 +2712,18 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   };
 
+  // Returns true if the .ipynb file was explicitly deleted.
+  // Returns false if it is NOT known to be explicitly deleted.
+  // Returns undefined if not known or implemented.
+  // NOTE: this is different than the file not being present on disk.
+  protected isDeleted = () => {
+    if (this.store == null || this._client == null) {
+      return;
+    }
+    return this._client.is_deleted?.(this.store.get("path"), this.project_id);
+    // [ ] TODO: we also need to do this on compute servers, but
+    // they don't yet have the listings table.
+  };
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {
