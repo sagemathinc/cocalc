@@ -1,9 +1,7 @@
-import { Button, Tag } from "antd";
+import { Tag } from "antd";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TAGS } from "@cocalc/util/db-schema/accounts";
-
-const { CheckableTag } = Tag;
 
 interface Props {
   tags: Set<string>;
@@ -33,39 +31,31 @@ export default function Tags({ tags, setTags, minTags, style }: Props) {
           padding: "10px",
         }}
       >
-        {TAGS.map(({ label, tag, icon }) => {
+        {TAGS.map(({ label, tag, icon, color }) => {
           const iconName = icon ?? file_associations[tag]?.icon;
           return (
-            <CheckableTag
-              style={{ fontSize: "14px", width: "105px" }}
-              key={tag}
-              checked={tags.has(tag)}
-              onChange={(checked) => {
-                handleTagChange(tag, checked);
+            <Tag
+              style={{
+                fontSize: "14px",
+                width: "105px",
+                cursor: "pointer",
+                ...(tags.has(tag)
+                  ? { color: "white", background: "#1677ff" }
+                  : undefined),
               }}
+              key={tag}
+              onClick={() => {
+                handleTagChange(tag, !tags.has(tag));
+              }}
+              color={tags.has(tag) ? undefined : color}
             >
               {iconName && (
                 <Icon name={iconName} style={{ marginRight: "5px" }} />
               )}
               {label}
-            </CheckableTag>
+            </Tag>
           );
         })}
-        <Button
-          type={tags.size == TAGS.length ? "link" : undefined}
-          style={{ float: "right", marginRight: "10px", marginTop: "5px" }}
-          size="small"
-          onClick={() => {
-            if (tags.size == TAGS.length) {
-              setTags(new Set([]));
-            } else {
-              setTags(new Set(TAGS.map((x) => x.tag)));
-            }
-          }}
-        >
-          <Icon name="atom" />
-          {tags.size == TAGS.length ? "Clear" : "Everything!"}
-        </Button>
       </div>
     </div>
   );
