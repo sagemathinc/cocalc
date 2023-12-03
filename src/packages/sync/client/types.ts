@@ -33,6 +33,7 @@ export interface ClientFs extends Client {
   }) => any;
   server_time: () => Date;
   client_id: () => string | undefined;
+  is_deleted?: (path: string) => true | false | undefined;
 }
 
 export interface Channel {

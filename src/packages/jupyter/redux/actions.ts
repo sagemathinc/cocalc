@@ -267,8 +267,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     };
     const resp = await callback(waitForResponse);
     return resp;
-    //     const api = await this._client.project_client.api(this.project_id);
-    //     return await api.jupyter(this.path, endpoint, query, timeout_ms);
   }
 
   protected dbg = (f: string) => {
@@ -2713,6 +2711,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
     this.save_asap();
   };
+
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {

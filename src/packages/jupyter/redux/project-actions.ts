@@ -287,6 +287,11 @@ export class JupyterActions extends JupyterActions0 {
   // If running is true, starts the kernel and waits until running.
   ensure_backend_kernel_setup = () => {
     const dbg = this.dbg("ensure_backend_kernel_setup");
+    if (this.isDeleted()) {
+      dbg("file is deleted");
+      return;
+    }
+
     const kernel = this.store.get("kernel");
 
     let current: string | undefined = undefined;
@@ -1167,9 +1172,29 @@ export class JupyterActions extends JupyterActions0 {
     this.set_last_load(true);
   };
 
+  private isDeleted = () => {
+    if (this.store == null || this._client == null) {
+      return;
+    }
+    if (this.is_project) {
+      return this._client.is_deleted?.(this.store.get("path"));
+    }
+    // [ ] TODO: we also need to do this on compute servers, but
+    // they don't yet have the listings table.
+  };
+
   save_ipynb_file = async () => {
     const dbg = this.dbg("save_ipynb_file");
     dbg("saving to file");
+
+    // Check first if file was deleted, in which case instead of saving to disk,
+    // we should terminate and clean up everything.
+    if (this.isDeleted()) {
+      dbg("ipynb file is deleted, so NOT saving to disk and closing");
+      this.close({ noSave: true });
+      return;
+    }
+
     if (this.jupyter_kernel == null) {
       // The kernel is needed to get access to the blob store, which
       // may be needed to save to disk.
