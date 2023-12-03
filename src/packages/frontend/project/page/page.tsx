@@ -310,7 +310,10 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   return (
     <ProjectContext.Provider value={projectCtx}>
       <div className="container-content" style={PAGE_STYLE}>
-        <StudentPayUpgrade project_id={project_id} />
+        <StudentPayUpgrade
+          project_id={project_id}
+          style={{ marginTop: "5px" }}
+        />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />
         <RamWarning project_id={project_id} />

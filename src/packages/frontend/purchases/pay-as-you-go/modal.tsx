@@ -60,7 +60,7 @@ export default function PayAsYouGoModal({}) {
               load_target("settings/purchases");
             }}
           >
-            Pay As You Go
+            Pay
           </a>{" "}
           for{" "}
           <ServiceTag
