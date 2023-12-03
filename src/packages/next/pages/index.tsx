@@ -168,11 +168,6 @@ export default function Home(props: Props) {
     if (onCoCalcCom) {
       return (
         <div style={{ margin: "0 auto", textAlign: "center" }}>
-          <Title level={3}>
-            <A href="https://about.cocalc.com">
-              Mission and Features of CoCalc
-            </A>
-          </Title>
           <Paragraph>
             <iframe
               style={{ marginTop: "30px", maxWidth: "100%" }}

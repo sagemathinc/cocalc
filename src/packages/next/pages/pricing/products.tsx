@@ -181,7 +181,7 @@ function Body({ siteName }): JSX.Element {
       </Paragraph>
 
       <Title level={2}>
-        <Icon name="network-wired" /> On Premises
+        <Icon name="network-wired" /> On-Premises
       </Title>
       <Paragraph>
         It's also possible to run {siteName} on your own hardware. Please see{" "}
