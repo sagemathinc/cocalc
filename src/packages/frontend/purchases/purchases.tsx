@@ -19,7 +19,7 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import { capitalize, plural, round2, round4 } from "@cocalc/util/misc";
+import { capitalize, plural, round1, round4 } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -985,7 +985,9 @@ function Active({ record }) {
 function Period({ record }) {
   if (record.period_start) {
     const hours = periodLengthInHours(record);
-    const x = <div>{round2(hours)} hours</div>;
+    const x = (
+      <div style={{ borderTop: "1px solid #ccc" }}>{round1(hours)} hours</div>
+    );
     if (!record.period_end) {
       return (
         <div>
