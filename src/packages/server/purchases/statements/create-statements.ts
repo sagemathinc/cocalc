@@ -87,6 +87,23 @@ export async function createStatements({
   // included in its computation!
   const client = await getTransactionClient();
 
+  // in case of 'day' get a list of accounts that already received a statement today.
+  let alreadyHasStatement;
+  if (interval == "day") {
+    // get all accounts that had a statement already within the last day
+    const { rows } = await client.query(
+      "SELECT account_id FROM statements WHERE interval='day' AND time > NOW() - INTERVAL '1 day'",
+    );
+    alreadyHasStatement = new Set(rows.map((row) => row.account_id));
+  } else {
+    // month interval case -- really day would work for this as well because statements
+    // are issued on the closing day only.
+    const { rows } = await client.query(
+      "SELECT account_id FROM statements WHERE interval='day' AND time > NOW() - INTERVAL '1 week'",
+    );
+    alreadyHasStatement = new Set(rows.map((row) => row.account_id));
+  }
+
   try {
     /*
     For every purchase where `${interval}_statement_id` is null and purchase_time <= time, compute:
@@ -97,7 +114,9 @@ export async function createStatements({
     const credits = await getData(time, client, interval, "credits");
     const accounts = new Set(Object.keys(charges));
     for (const account_id of Object.keys(credits)) {
-      accounts.add(account_id);
+      if (!alreadyHasStatement.has(account_id)) {
+        accounts.add(account_id);
+      }
     }
     logger.debug(
       "createStatements",
@@ -132,10 +151,11 @@ export async function createStatements({
       logger.debug(
         "createStatements",
         { time, interval },
-        " inserting ",
+        " inserting up to ",
         statements.length,
         " statements into database",
       );
+
       const { query, values } = multiInsert(
         "INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits) ",
         statements.map(

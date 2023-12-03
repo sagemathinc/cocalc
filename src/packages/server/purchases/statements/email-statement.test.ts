@@ -87,6 +87,10 @@ describe("creates an account, then creates statements and corresponding emails a
       "UPDATE accounts SET purchase_closing_day = $1 WHERE account_id = $2",
       [new Date().getDate(), account_id],
     );
+    // delete existing statements so that a new statement will get created.
+    await pool.query("DELETE FROM statements WHERE account_id = $1", [
+      account_id,
+    ]);
 
     await createStatements({
       time: new Date(Date.now() - 1),
