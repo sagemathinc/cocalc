@@ -25,7 +25,6 @@ import {
   twoRandomTestimonials,
 } from "components/testimonials";
 import basePath from "lib/base-path";
-import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
@@ -56,7 +55,7 @@ export function CoCalcComFeatures() {
   function renderCollaboration(): JSX.Element {
     return (
       <Info
-        title="Collaborative Computational Documents"
+        title="Collaborative Jupyter, Terminals, LaTeX and more"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
@@ -66,7 +65,7 @@ export function CoCalcComFeatures() {
         belowWide={true}
       >
         <Paragraph>
-          {siteName} makes it possible to collaboratively edit computational
+          {siteName} makes it very easy to collaboratively edit computational
           documents with your colleagues, students, or friends. Edit{" "}
           <A href={"/features/jupyter-notebook"}>
             <strong>Jupyter Notebooks</strong>
@@ -74,18 +73,19 @@ export function CoCalcComFeatures() {
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
           <A href="/features/sage">SageMath Worksheets</A>,{" "}
           <A href={"/features/whiteboard"}>Computational Whiteboards</A> and
-          many more with your collaborators in a real-time.
+          much more with your collaborators.
         </Paragraph>
 
         <Paragraph>
           The code code runs in the same environment for everyone, giving
-          consistent results. All changes are synchronized in real-time.
+          consistent results, with all changes synchronized, and easy integrated
+          revision history, so you can easily find what happened.
         </Paragraph>
 
         <Paragraph>
-          Therefore, you can forget the frustration of sending files back and
-          forth between your collaborators. You no longer waste time reviewing
-          changes and merging documents.
+          You can forget the frustration of sending files back and forth between
+          your collaborators. You no longer waste time reviewing changes and
+          merging documents.
         </Paragraph>
       </Info>
     );
@@ -94,7 +94,7 @@ export function CoCalcComFeatures() {
   function renderTeaching() {
     return (
       <Info
-        title="Teach a Course"
+        title="Integrated Course Management System"
         icon="graduation-cap"
         image={assignments}
         anchor="a-teaching"
@@ -230,10 +230,12 @@ export function CoCalcComFeatures() {
               alt="Available Software"
             >
               <Paragraph>
-                {siteName} comes with a variety of software pre-installed, e.g.{" "}
+                {siteName} comes with a variety of software pre-installed,
+                including
                 <A href={"/features/python"}>Python</A>,{" "}
-                <A href={"/features/sage"}>SageMath</A> and{" "}
-                <A href={"/features/octave"}>Octave</A>. You can{" "}
+                <A href={"/features/sage"}>SageMath</A>,{" "}
+                <A href={"/features/r-statistical-software"}>R</A> and{" "}
+                <A href={"/features/julia"}>Julia</A> . You can{" "}
                 <A
                   href={"https://doc.cocalc.com/howto/install-python-lib.html"}
                 >
@@ -253,7 +255,7 @@ export function CoCalcComFeatures() {
             >
               <Paragraph>
                 Use a full featured collaborative whiteboard – with support for
-                computational elements – to express and share your ideas.
+                Jupyter notebook cells – to express and share your ideas.
               </Paragraph>
               {!width.md && whiteboard}
             </Tool>
@@ -263,7 +265,7 @@ export function CoCalcComFeatures() {
               icon="wrench"
               href="/features"
               alt="Features"
-              title="Features Overview"
+              title="Feature Overview"
             >
               <Paragraph>
                 {siteName} offers a variety of features to make your life
@@ -339,16 +341,16 @@ export function CoCalcComFeatures() {
           size="large"
           style={{ fontWeight: "bold" }}
           onClick={() => (window.location.href = join(basePath, urlOnprem))}
-          title={"On-premises Offerings"}
+          title={"On-Premises Offerings"}
         >
-          On-premises Offerings
+          On-Premises Offerings
         </Button>
       </Paragraph>
     );
 
     return (
       <Info
-        title="Offered Solutions"
+        title="Solutions"
         icon="shopping-cart"
         anchor="products"
         style={{ backgroundColor: COLORS.BLUE_D }}
@@ -359,7 +361,7 @@ export function CoCalcComFeatures() {
             <Tool
               icon="server"
               href={urlProducts}
-              title="Online Service"
+              title="Online Service with GPU's"
               alt="Online Service"
               textStyle={{ color: toolCol }}
             >
@@ -382,16 +384,23 @@ export function CoCalcComFeatures() {
                 {siteName}.
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
-                Upgrade your projects at any time, to unlock internet access,
-                better hosting quality, and other upgrades by purchasing a{" "}
+                Upgrade your projects to unlock internet access, better hosting
+                quality, and other upgrades by purchasing a{" "}
                 <A style={link} href={"/store/site-license"}>
-                  site license
+                  license
                 </A>{" "}
                 or upgrade via{" "}
                 <A style={link} href={"https://doc.cocalc.com/paygo.html"}>
                   pay-as-you-go
+                </A>{" "}
+                and use GPU's and HPC resources via{" "}
+                <A
+                  style={link}
+                  href={"https://doc.cocalc.com/compute_server.html"}
+                >
+                  compute servers
                 </A>
-                .
+                !
               </Paragraph>
               {!width.md && productsLink}
             </Tool>
@@ -417,7 +426,10 @@ export function CoCalcComFeatures() {
                   course license options
                 </A>{" "}
                 are very flexible: they range from small professional training
-                up to large university courses.
+                up to large university courses. The students can pay {siteName}{" "}
+                directly, or you can pay on their behalf, and it is easy to
+                change a license at any time if you need more resources or the
+                number of students changes.
               </Paragraph>
               {!width.md && courseLink}
             </Tool>
@@ -426,18 +438,49 @@ export function CoCalcComFeatures() {
             <Tool
               icon="network-wired"
               href={urlOnprem}
-              alt="On-premises"
-              title={"On-premises"}
+              alt="On-Premises"
+              title={"On-Premises"}
               textStyle={{ color: toolCol }}
             >
               <Paragraph style={{ color: txtCol }}>
-                It is possible to run {siteName} on your own infrastructure.
+                It is very easy to run {siteName} on your own computer or
+                cluster.
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
-                There are two options available: an easy to setup{" "}
-                <strong>single-server</strong> variant for a small working group
-                and a highly scalable variant for a{" "}
-                <strong>Kubernetes cluster</strong>.
+                There are three options available:
+                <ol>
+                  <li>
+                    Make your computer available in a {siteName} project via an{" "}
+                    <A
+                      style={link}
+                      href={"https://doc.cocalc.com/compute_server.html"}
+                    >
+                      on-prem compute server
+                    </A>
+                    .
+                  </li>
+                  <li>
+                    Run your own {siteName} server easily via{" "}
+                    <A
+                      style={link}
+                      href="https://github.com/sagemathinc/cocalc-docker#readme"
+                    >
+                      <strong>cocalc-docker</strong>
+                    </A>{" "}
+                    for a small group.
+                  </li>
+                  <li>
+                    Deploy a highly scalable variant of {siteName} on your{" "}
+                    <strong>Kubernetes cluster</strong> via{" "}
+                    <A
+                      style={link}
+                      href="https://doc.cocalc.com/cocalc-cloud.html"
+                    >
+                      <strong>cocalc-cloud</strong>
+                    </A>
+                    .
+                  </li>
+                </ol>
               </Paragraph>
               {!width.md && onpremLink}
             </Tool>
@@ -490,7 +533,7 @@ export function CoCalcComFeatures() {
     if (!openaiEnabled) return;
     return (
       <Info
-        title="LLMs are here to help you"
+        title="Extensive ChatGPT Integration"
         icon="robot"
         imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
         anchor="a-realtimesync"
@@ -498,14 +541,10 @@ export function CoCalcComFeatures() {
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
       >
         <Paragraph>
-          {siteName}'s file editors are enhanced by{" "}
-          <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
-            large language models
-          </A>{" "}
-          like <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A>. They
-          help you{" "}
+          <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A> is highly
+          integrated into {siteName}. This helps you{" "}
           <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
-            fixing errors
+            fix errors
           </A>
           , generate code or LaTeX snippets, summarize documents, and much more.
         </Paragraph>
@@ -564,24 +603,8 @@ export function Hero() {
         marginTop: "30px",
         paddingTop: "45px",
       }}
-      description={
-        <Paragraph
-          italic
-          style={{
-            color: COLORS.GRAY_LL,
-            paddingTop: "30px",
-            maxWidth: MAX_WIDTH, // bit less wide on wide screens, so its easier to read
-            margin: "0 auto",
-          }}
-        >
-          <strong>Mission</strong>: Enable better collaboration in science,
-          engineering and mathematics by providing easily accessible and
-          sustainable tools for computing, teaching, and publishing.
-        </Paragraph>
-      }
     >
-      <Icon name="user-plus" /> Improve your research, teaching, and publishing
-      using realtime collaborative{" "}
+      Realtime collaborative{" "}
       <A href="/features/jupyter-notebook" style={{ color: "white" }}>
         Jupyter notebooks
       </A>
@@ -589,7 +612,7 @@ export function Hero() {
       <A href="/features/latex-editor" style={{ color: "white" }}>
         LaTeX
       </A>
-      , Markdown, and Linux.
+      , Markdown, and Linux with GPU's
     </Info.Heading>
   );
 }

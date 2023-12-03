@@ -130,8 +130,9 @@ function State({
         project_id={project_id}
         time={time}
         syncing={
+          !extra &&
           progress <
-          80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
+            80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
         }
         style={{ marginTop: "3px" }}
       />

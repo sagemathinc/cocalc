@@ -23,7 +23,9 @@ export default function currentLicenseValue({ info }: Options): number {
     // if this is set, we use it to compute the value
     // The value is cost_per_hour times the number of hours left until info.end.
     const hoursRemaining = (info.end.valueOf() - Date.now()) / (1000 * 60 * 60);
-    return hoursRemaining * info.cost_per_hour;
+    // the hoursRemaining can easily be *negative* if info.end is in the past.
+    // However the value of a license is never negative, so we max with 0.
+    return Math.max(0, hoursRemaining * info.cost_per_hour);
   }
 
   // fall back to computing value using the current rate.

@@ -97,6 +97,7 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 
 interface gutterMarkerParams {
   line: number;
@@ -1232,6 +1233,7 @@ export class Actions<
     if (explicit) {
       this.explicit_save();
     }
+    syncAllComputeServers(this.project_id);
   }
 
   // Gets the most recent time of a save; if self_only is false (the default),

@@ -254,7 +254,9 @@ function SubscriptionActions({
           title={
             <div style={{ maxWidth: "450px" }}>
               Are you sure you want to resume this subscription? The
-              corresponding license will become active again.
+              corresponding license will become active again, and you will only
+              be charged for the remainder of the current period (at most{" "}
+              {currency(cost)}).
             </div>
           }
           onConfirm={handleResume}
@@ -379,15 +381,9 @@ export default function Subscriptions() {
         title: "Cost",
         dataIndex: "cost",
         key: "cost",
-        render: (cost, record) => `${currency(cost)} / ${record.interval}`,
+        render: (cost, record) => `${currency(cost)}/${record.interval}`,
       },
 
-      {
-        title: "Created",
-        dataIndex: "created",
-        key: "created",
-        render: (date) => <TimeAgo date={date} />,
-      },
       {
         width: "15%",
         title: "Current Period",
@@ -408,7 +404,6 @@ export default function Subscriptions() {
       },
       {
         title: "Action",
-        width: "25%",
         key: "action",
         render: (_, { cost, id, metadata, status }) => (
           <SubscriptionActions
@@ -419,6 +414,12 @@ export default function Subscriptions() {
             cost={cost}
           />
         ),
+      },
+      {
+        title: "Created",
+        dataIndex: "created",
+        key: "created",
+        render: (date) => <TimeAgo date={date} />,
       },
     ],
     [],

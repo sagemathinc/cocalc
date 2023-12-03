@@ -432,6 +432,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       update_file_listing?: boolean;
       change_history?: boolean;
       new_ext?: string;
+      noFocus?: boolean;
     } = {
       update_file_listing: true,
       change_history: true,
@@ -580,10 +581,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // of the component that displays this editor.  Otherwise, the user
             // would just see a spinner until they tab away and tab back.
             this.open_files.set(path, "component", { ...info });
-            // just like in the case where it is already loaded, we have to "show" it
+            // just like in the case where it is already loaded, we have to "show" it.
             // this is important, because e.g. the store has a "visible" field, which stays undefined
             // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
-            this.show_file(path);
+            if (!opts.noFocus) {
+              this.show_file(path);
+            }
             // If a fragment identifier is set, we also jump there.
             const fragmentId = store
               .get("open_files")
@@ -596,7 +599,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
           })();
         } else {
-          this.show_file(path);
+          if (!opts.noFocus) {
+            this.show_file(path);
+          }
         }
     }
     this.setState(change);

@@ -28,7 +28,7 @@ interface Props {
   aboveImage?: ReactNode;
   alignItems?: "center" | "flex-start";
   alt?: string;
-  caption?: string;
+  caption?;
   description?: ReactNode;
   image?: string | StaticImageData;
   imageAlternative?: JSX.Element | string; // string as markdown, replaces the image

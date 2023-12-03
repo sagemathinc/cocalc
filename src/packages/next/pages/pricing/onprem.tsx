@@ -24,7 +24,7 @@ export default function OnPrem({ customize }) {
   const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head title={`${siteName} – On Premises Offerings`} />
+      <Head title={`${siteName} – On-Premises Offerings`} />
       <Layout>
         <Header page="pricing" subPage="onprem" />
         <Layout.Content

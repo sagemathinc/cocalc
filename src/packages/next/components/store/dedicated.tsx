@@ -102,7 +102,7 @@ export default function DedicatedResource(props: Props) {
             It is also possible to run <SiteName /> on your own hardware. Check
             out the{" "}
             <Text strong>
-              <A href={"/pricing/onprem"}>on-premises offerings</A>
+              <A href={"/pricing/onprem"}>on premises offerings</A>
             </Text>{" "}
             to learn more about this.
           </Paragraph>

@@ -68,7 +68,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       // **This should never fail** so be loud if it does.
       throw Error(
         "BUG -- each entry in openFiles must be defined -- " +
-          JSON.stringify(openFiles.toJS())
+          JSON.stringify(openFiles.toJS()),
       );
     }
     paths.push(path);
@@ -104,7 +104,19 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   function onDragEnd(event) {
     if (actions == null) return;
     const { active, over } = event;
-    if (active == null || over == null || active.id == over.id) return;
+    if (active == null || over == null) {
+      return;
+    }
+    setTimeout(() => {
+      // This is a scary hack to fix https://github.com/sagemathinc/cocalc/issues/7029
+      // which is I think working around some weirdness/optimization in CodeMirror 5.
+      // I hate doing this, but it's better than the alternatives I can figure out right now.
+      actions.show();
+    }, 250);
+
+    if (active.id == over.id) {
+      return;
+    }
     actions.move_file_tab({
       old_index: keys.indexOf(active.id),
       new_index: keys.indexOf(over.id),
@@ -118,7 +130,11 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   function onDragStart(event) {
     if (actions == null) return;
     if (event?.active?.id != activeKey) {
-      actions.set_active_tab(path_to_tab(keyToPath(event?.active?.id)));
+      actions.set_active_tab(path_to_tab(keyToPath(event?.active?.id)), {
+        // noFocus -- critical to not focus when dragging or codemirror focus breaks on end of drag.
+        // See  https://github.com/sagemathinc/cocalc/issues/7029
+        noFocus: true,
+      });
     }
   }
 
