@@ -1177,7 +1177,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     if (this.is_project) {
-      return this._client.is_deleted?.(this.store.get("path"));
+      return this._client.is_deleted?.(this.store.get("path"), this.project_id);
     }
     // [ ] TODO: we also need to do this on compute servers, but
     // they don't yet have the listings table.

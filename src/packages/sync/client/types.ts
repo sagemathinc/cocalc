@@ -98,7 +98,7 @@ export interface ProjectClient {
 
 export interface AppClient extends Client {
   client_id(): string | undefined; // undefined = not signed in so don't know our id.
-  is_deleted(filename: string, project_id: string): boolean;
+  is_deleted(filename: string, project_id: string): boolean | undefined;
   mark_file(opts: any): Promise<void>;
   project_client: ProjectClient;
 }
