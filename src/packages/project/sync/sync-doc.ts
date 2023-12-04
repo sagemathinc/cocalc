@@ -204,11 +204,11 @@ async function init_syncdoc_async(
   switch (ext) {
     case "sage-jupyter2":
       log("initializing Jupyter backend");
-      initJupyterRedux(syncdoc, client);
+      await initJupyterRedux(syncdoc, client);
       const path = original_path(syncdoc.get_path());
-      synctable.on("closed", () => {
+      synctable.on("closed", async () => {
         log("removing Jupyter backend");
-        removeJupyterRedux(path, project_id);
+        await removeJupyterRedux(path, project_id);
       });
       break;
   }
