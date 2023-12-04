@@ -28,6 +28,7 @@ const MANAGE_LICENSE_URL = join(appBasePath, "/licenses/managed");
 interface NoInternetBannerProps {
   project_id: string;
   projectSiteLicenses: string[];
+  student_pay?: boolean;
 }
 
 const STYLE: CSS = {
@@ -37,7 +38,7 @@ const STYLE: CSS = {
 
 export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
   (props: NoInternetBannerProps) => {
-    const { project_id, projectSiteLicenses } = props;
+    const { project_id, projectSiteLicenses, student_pay } = props;
 
     const actions = useActions({ project_id });
 
@@ -45,19 +46,27 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
 
     const internet_warning_closed = useTypedRedux(
       { project_id },
-      "internet_warning_closed"
+      "internet_warning_closed",
     );
 
+    // CRITICAL: Do NOT show a message with a link to upgrade to students,
+    // since that causes massive confusion with normal student pay, as they end
+    // up buying the wrong thing.
     function renderMessage() {
       return (
         <>
           <strong>No internet access</strong> – Inside this project{" "}
-          {NO_INTERNET}. You{" "}
-          <a style={A_STYLE} onClick={() => setShowAddLicense(true)}>
-            need to apply
-          </a>{" "}
-          a <A href={MANAGE_LICENSE_URL}>valid license</A> providing upgrades or{" "}
-          <A href={BUY_A_LICENSE_URL}>purchase one</A>!
+          {NO_INTERNET}.
+          {!student_pay && (
+            <>
+              You{" "}
+              <a style={A_STYLE} onClick={() => setShowAddLicense(true)}>
+                need to apply
+              </a>{" "}
+              a <A href={MANAGE_LICENSE_URL}>valid license</A> providing
+              upgrades or <A href={BUY_A_LICENSE_URL}>purchase one</A>!
+            </>
+          )}
         </>
       );
     }
@@ -110,5 +119,5 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
         />
       </VisibleMDLG>
     );
-  }
+  },
 );

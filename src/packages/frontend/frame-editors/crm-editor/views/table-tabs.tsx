@@ -13,7 +13,6 @@ import Views from "./index";
 import {
   renderTabBar,
   SortableTabs,
-  useItemContext,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { arrayMove } from "@dnd-kit/sortable";
 import useTables from "../syncdb/use-tables";
@@ -29,7 +28,6 @@ interface TabItem {
 }
 
 function Label({ table }) {
-  const { width } = useItemContext();
   let icon, title;
   try {
     ({ icon, title } = getTableDescription(table));
@@ -38,7 +36,7 @@ function Label({ table }) {
     title = `Deprecated Table (${table})`;
   }
   return (
-    <div style={{ width, overflow: "hidden", textOverflow: "ellipsis" }}>
+    <div>
       {icon != null && <Icon name={icon} />} {title}
     </div>
   );
@@ -129,7 +127,7 @@ function AddTable({ setAdding, tables, setTables }) {
     const all = getTables();
     return all
       .sort((t0, t1) =>
-        cmp(getTableDescription(t0).title, getTableDescription(t1).title)
+        cmp(getTableDescription(t0).title, getTableDescription(t1).title),
       )
       .filter((x) => !cur.has(x))
       .map((table) => {
@@ -181,22 +179,25 @@ function AddTable({ setAdding, tables, setTables }) {
         />
       )}
       {options.length > 0 && (
-        <Select
-          ref={selectRef}
-          mode="multiple"
-          allowClear
-          value={value}
-          style={{ width: "100%", marginTop: "10px" }}
-          dropdownStyle={{ width: "100%" }}
-          onChange={setValue}
-          showSearch
-          placeholder="Add Tables..."
-          optionFilterProp="children"
-          filterOption={(input, option) =>
-            `${option?.value ?? ""}`.toLowerCase().includes(input.toLowerCase())
-          }
-          options={options}
-        />
+        <div>
+          <Select
+            ref={selectRef}
+            mode="multiple"
+            allowClear
+            value={value}
+            style={{ width: "325px", marginTop: "10px" }}
+            onChange={setValue}
+            showSearch
+            placeholder="Add Tables..."
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              `${option?.value ?? ""}`
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+            options={options}
+          />
+        </div>
       )}
     </Modal>
   );

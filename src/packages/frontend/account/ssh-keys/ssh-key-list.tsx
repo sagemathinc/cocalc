@@ -34,7 +34,7 @@ export const SSHKeyList: React.FC<SSHKeyListProps> = (
   function render_header() {
     return (
       <>
-        SSH keys <Gap />
+        SSH Keys <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
       </>
     );

@@ -27,6 +27,8 @@ interface ImageBase {
   icon: string;
   source: string;
   versions: VERSIONS;
+  authToken?: boolean; // if true, image has web interface that supports configurable auth token
+  jupyterKernels?: false | true | string[]; // if false, no jupyter kernels included. If true or a list of names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
 }
 
 interface NonGPUImage extends ImageBase {
@@ -58,6 +60,8 @@ export const IMAGES0 = {
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python",
     // TODO: I don't like the tag/version here.
     versions: [{ label: "3.10.12", tag: "latest" }],
+    description:
+      "[Python](https://python.org) is a versatile and user-friendly programming language, known for its clear syntax and readability. It is widely used for web development, data analysis, artificial intelligence, and scientific computing.",
   },
   sagemath: {
     label: "SageMath",
@@ -70,6 +74,8 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/sagemath-10.1",
     versions: [{ label: "10.1", tag: "10.1" }],
+    description:
+      "[SageMath](https://sagemath.org) is an open-source mathematics software system, integrating numerous software packages and providing a unified interface. It is designed for advanced algebra, geometry, number theory, cryptography, and various other fields of mathematics, accessible through a Python-based language.",
   },
   rstats: {
     label: "R",
@@ -82,6 +88,8 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/rstats",
     versions: [{ label: "4.3.2", tag: "4.3.2" }],
+    description:
+      "[R](https://www.r-project.org/) is a powerful statistical computing language and environment, widely used for data analysis, statistical modeling, and visualization. Its extensive package ecosystem and flexible scripting capabilities make it ideal for both simple and complex data exploration tasks.",
   },
   julia: {
     label: "Julia",
@@ -94,6 +102,8 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/julia",
     versions: [{ label: "1.9.4", tag: "1.9.4" }],
+    description:
+      "[Julia](https://julialang.org/) is a high-performance programming language designed for technical computing, combining the speed of C with the ease of use of Python. It excels in numerical analysis, computational science, and data processing with its efficient syntax and ability to handle high-level mathematical operations.",
   },
   //   anaconda: {
   //     label: "Anaconda",
@@ -121,8 +131,9 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
     description:
-      "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications. The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.",
+      "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications.  The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.   It enables dramatic increases in computing performance by harnessing the power of NVIDIA graphics processing units (GPUs) for a wide range of computing tasks.",
     versions: [{ label: "12.3.0", tag: "12.3.0-devel-ubuntu22.04" }],
+    jupyterKernels: false,
   },
   pytorch: {
     label: "PyTorch",
@@ -135,6 +146,8 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch",
     versions: [{ label: "2.1.0a0+32f93b1", tag: "23.10-py3" }],
+    description:
+      "[PyTorch](https://pytorch.org/) is an open-source machine learning library, known for its flexibility and ease of use, particularly in deep learning applications. It provides a dynamic computation graph and a rich ecosystem of tools and libraries, making it a preferred choice for researchers and developers in AI.",
   },
   tensorflow: {
     label: "Tensorflow",
@@ -147,6 +160,8 @@ export const IMAGES0 = {
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow",
     versions: [{ label: "2.13.0", tag: "23.10-tf2-py3" }],
+    description:
+      "[TensorFlow](https://www.tensorflow.org/) is an open-source machine learning framework developed by Google, widely used for building and training neural networks. Its flexible architecture allows for easy deployment of computation across various platforms, from servers to edge devices, making it suitable for a broad range of AI applications.",
   },
   colab: {
     label: "Google Colab",
@@ -164,6 +179,24 @@ export const IMAGES0 = {
         tag: "release-colab_20230921-060057_RC00",
       },
     ],
+    description:
+      "[Google Colab](https://colab.google/) comes preinstalled with a wide range of popular data science and machine learning libraries, such as TensorFlow, PyTorch, Matplotlib, and Pandas. It also includes support for Python and its various packages, enabling users to jump straight into coding without worrying about setup and installation.",
+  },
+  ollama: {
+    label: "Ollama with WebUI",
+    docker: `${DOCKER_USER}/ollama`,
+    dockerSizeGb: 2,
+    minDiskSizeGb: 30,
+    gpu: true,
+    icon: "robot",
+    url: "https://ollama.ai/",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/ollama",
+    description:
+      "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
+    authToken: true,
+    versions: [{ label: "0.1.12", tag: "0.1.12.p2" }],
+    jupyterKernels: false,
   },
 
   //   "cocalc-docker": {
@@ -401,9 +434,9 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {
     image: "python",
     cloud: "google-cloud",
-    region: "us-east1",
-    zone: "us-east1-d",
-    machineType: "c2-standard-4",
+    region: "us-east5",
+    zone: "us-east5-a",
+    machineType: "n2d-standard-4",
     spot: true,
     diskSizeGb: getMinDiskSizeGb({ image: "python" }),
     diskType: "pd-balanced",
@@ -413,9 +446,9 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   gpu: {
     image: "pytorch",
     spot: true,
-    zone: "europe-west2-a",
+    region: "asia-northeast1",
     cloud: "google-cloud",
-    region: "europe-west2",
+    zone: "asia-northeast1-a",
     diskType: "pd-balanced",
     diskSizeGb: getMinDiskSizeGb({ image: "pytorch" }) + 10,
     externalIp: true,
@@ -506,6 +539,8 @@ interface BaseConfiguration {
   // If true, view data on the compute server as ephemeral.
   // Currently this is only meant to impact the user interface.
   ephemeral?: boolean;
+  // Token used for authentication at https://compute-server...
+  authToken?: string;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {

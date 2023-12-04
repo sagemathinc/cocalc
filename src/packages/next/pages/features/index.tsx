@@ -42,8 +42,31 @@ import WhiteboardImage from "/public/features/whiteboard-sage.png";
 import x11Screenshot from "/public/features/x11-01.png";
 import x11Logo from "/public/features/x11-logo.svg";
 import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
+import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
+
+import {
+  component as computeServerName,
+  title as compueServerTitle,
+  logo as computeServerLogo,
+} from "./compute-server";
 
 const dataSource = [
+  {
+    link: "/features/compute-server",
+    title: computeServerName,
+    logo: computeServerLogo,
+    logoBackground: "white",
+    image: ComputeServerInfographic,
+    description: (
+      <>
+        {compueServerTitle}. Read more in the{" "}
+        <A href="https://doc.cocalc.com/compute_server.html">
+          Compute Server documentation
+        </A>
+        .
+      </>
+    ),
+  },
   {
     link: "/features/jupyter-notebook",
     title: "Jupyter notebooks",

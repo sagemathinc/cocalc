@@ -32,43 +32,30 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <div style={{ fontSize: "13pt" }}>
-        Shop below or explore {" "}
+        Shop below or explore{" "}
         <A href="/pricing">available products and pricing</A>.
       </div>
       <OverviewRow>
-        <Product icon="key" title="License" href="/store/site-license">
+        <Product icon="key" title="Licenses" href="/store/site-license">
           Buy a license to upgrade projects, remove the warning banner, get
           internet access, more CPU and memory, etc.
         </Product>
-        <Product icon="rocket" title="License Booster" href="/store/boost">
-          Add additional upgrades to an existing and <em>compatible</em>{" "}
-          license.
-        </Product>
-        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
-          Purchase a <A href={"/vouchers"}>voucher code</A> and gift it to
-          someone else.
-        </Product>
         <Product
-          href={"https://doc.cocalc.com/paygo.html"}
+          href={"https://doc.cocalc.com/compute_server.html"}
           icon={PAYASYOUGO_ICON}
-          title="Pay As You Go"
+          title="Pay As You Go Servers"
         >
-          Define resources for a project or service and pay only for what you
+          Run Jupyter Notebooks and Linux Terminals on GPU's and high powered
+          virtual machines with full admin privileges. Pay only for what you
           actually use.
-        </Product>
-        <Product
-          href={"/store/dedicated"}
-          icon="save"
-          icon2="dedicated"
-          title="Dedicated Disk/VM"
-        >
-          Attach a large dedicated disk for more storage to your project or run
-          your project on a dedicated Virtual Machine to harness much more CPU
-          and memory.
         </Product>
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
           Run CoCalc on your own machine or cluster in order to keep your data
           on-site and use compute resources that you already have.
+        </Product>
+        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
+          Purchase a <A href={"/vouchers"}>voucher code</A> and gift it to
+          someone else.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>
@@ -83,3 +70,21 @@ export default function Overview() {
     </div>
   );
 }
+
+/*
+        <Product icon="rocket" title="License Booster" href="/store/boost">
+          Add additional upgrades to an existing and <em>compatible</em>{" "}
+          license.
+        </Product>
+        <Product
+          href={"/store/dedicated"}
+          icon="save"
+          icon2="dedicated"
+          title="Dedicated Disk/VM"
+        >
+          Attach a large dedicated disk for more storage to your project or run
+          your project on a dedicated Virtual Machine to harness much more CPU
+          and memory.
+        </Product>
+
+*/

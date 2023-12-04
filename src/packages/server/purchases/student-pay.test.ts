@@ -57,7 +57,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     try {
       await studentPay({ account_id: uuid(), project_id });
     } catch (e) {
-      expect(e.message).toMatch("can pay the course fee");
+      expect(e.message).toMatch("is not a valid account");
     }
   });
 

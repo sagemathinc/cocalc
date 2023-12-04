@@ -56,17 +56,22 @@ function RuntimeInfo({ configuration, data }) {
   return (
     <div style={{ display: "flex", textAlign: "center" }}>
       {data?.externalIp && (
-        <div style={{ flex: "1", display: "flex" }}>
+        <div style={{ flex: 1, display: "flex" }}>
           <CopyToClipBoard value={data?.externalIp} size="small" />
         </div>
       )}
-      {data?.externalIp && configuration.dns && (
-        <div style={{ flex: "1", display: "flex" }}>
-          <DnsLink dns={configuration.dns} />
-        </div>
-      )}
+      <div style={{ flex: 1, display: "flex" }}>
+        {data?.externalIp && configuration.dns ? (
+          <DnsLink {...configuration} />
+        ) : (
+          <ExternalIpLink
+            externalIp={data?.externalIp}
+            authToken={configuration.authToken}
+          />
+        )}
+      </div>
       {data?.lastStartTimestamp && (
-        <div style={{ flex: "1", textAlign: "center" }}>
+        <div style={{ flex: 1, textAlign: "center" }}>
           Started: <TimeAgo date={data?.lastStartTimestamp} />
         </div>
       )}
@@ -74,14 +79,28 @@ function RuntimeInfo({ configuration, data }) {
   );
 }
 
-function DnsLink({ dns }) {
+function DnsLink({ dns, authToken }) {
   const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
   if (!compute_servers_dns) {
     return null;
   }
+  const auth = getQuery(authToken);
   return (
-    <A href={`https://${dns}.${compute_servers_dns}`}>
+    <A href={`https://${dns}.${compute_servers_dns}${auth}`}>
       <Icon name="external-link" /> https://{dns}.{compute_servers_dns}
     </A>
   );
+}
+
+function ExternalIpLink({ externalIp, authToken }) {
+  const auth = getQuery(authToken);
+  return (
+    <A href={`https://${externalIp}${auth}`}>
+      <Icon name="external-link" /> https://{externalIp}
+    </A>
+  );
+}
+
+function getQuery(authToken) {
+  return authToken ? `?auth_token=${authToken}` : "";
 }

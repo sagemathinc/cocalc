@@ -22,6 +22,7 @@ import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
 import mkdirp from "mkdirp";
 import { throttle } from "lodash";
+import { trunc_middle } from "@cocalc/util/misc";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -212,10 +213,21 @@ class SyncFS {
 
   private registerToSync = async (state = "online") => {
     if (state != "online") return;
-    log("registerToSync: registering");
-    const api = await this.client.project_client.api(this.project_id);
-    await api.computeServerSyncRegister(this.compute_server_id);
-    log("registerToSync: registered");
+    try {
+      log("registerToSync: registering");
+      const api = await this.client.project_client.api(this.project_id);
+      await api.computeServerSyncRegister(this.compute_server_id);
+      await apiCall("v2/compute/set-detailed-state", {
+        id: this.compute_server_id,
+        state: "ready",
+        progress: 100,
+        name: "filesystem",
+        timeout: Math.round(REGISTER_INTERVAL_MS / 1000) + 15,
+      });
+      log("registerToSync: registered");
+    } catch (err) {
+      log("registerToSync: ERROR -- ", err);
+    }
   };
 
   private handleSyncRequest = async (data) => {
@@ -335,29 +347,26 @@ class SyncFS {
       this.state = "sync";
       await this.__doSync();
       this.numFails = 0; // it worked
+      this.reportState({
+        state: "ready",
+        progress: 100,
+        timeout: 3 + this.syncInterval,
+      });
     } catch (err) {
       this.numFails += 1;
       let extra;
+      let message = trunc_middle(`${err.message}`, 500);
       if (this.numFails >= MAX_FAILURES_IN_A_ROW) {
-        extra = `Sync failed ${MAX_FAILURES_IN_A_ROW} in a row.  FIX THE PROBLEM, THEN CLEAR THIS ERROR TO RESUME SYNC. -- ${err.message.slice(
-          0,
-          250,
-        )}`;
+        extra = `XXX Sync failed ${MAX_FAILURES_IN_A_ROW} in a row.  FIX THE PROBLEM, THEN CLEAR THIS ERROR TO RESUME SYNC. -- ${message}`;
       } else {
-        extra = `Sync failed ${
-          this.numFails
-        } times in a row with -- ${err.message.slice(0, 200)}...`;
+        extra = `XXX Sync failed ${this.numFails} times in a row with -- ${message}`;
       }
+      // extra here sets visible error state that the user sees.
       this.reportState({ state: "error", extra, timeout: 60, progress: 0 });
       await this.logSyncError(extra);
       throw Error(extra);
     } finally {
       if (this.state != ("closed" as State)) {
-        this.reportState({
-          state: "ready",
-          progress: 100,
-          timeout: 3 + this.syncInterval,
-        });
         this.state = "ready";
       }
       log("sync - done, time=", (Date.now() - t0) / 1000);

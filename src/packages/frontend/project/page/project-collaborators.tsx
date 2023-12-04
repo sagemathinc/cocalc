@@ -38,7 +38,7 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
           user_map={user_map}
         />
         {!student.disableCollaborators && (
-          <SettingBox title="Add new collaborators" icon="UserAddOutlined">
+          <SettingBox title="Add New Collaborators" icon="UserAddOutlined">
             <AddCollaborators
               project_id={project.get("project_id")}
               where="project-settings"

@@ -158,7 +158,7 @@ export default function AccountNavTab({ style }: Props) {
           menuItem(
             "ssh",
             <A href={join(basePath, "settings", "ssh-keys")} external>
-              SSH keys
+              SSH Keys
             </A>,
             "key"
           )

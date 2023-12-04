@@ -157,6 +157,7 @@ export interface ProjectStoreState {
   explorerTour?: boolean;
 
   compute_servers?;
+  create_compute_server?: boolean;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {

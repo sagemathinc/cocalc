@@ -82,7 +82,7 @@ import { getLogger } from "@cocalc/backend/logger";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
-const log = getLogger("jupyter:kernel");
+const logger = getLogger("jupyter:kernel");
 
 // We make it so nbconvert functionality can be dynamically enabled
 // by calling this at runtime.  The reason is because some users of
@@ -111,10 +111,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 // the ipynb file, and this function creates the corresponding
 // actions and store, which make it possible to work with this
 // notebook.
-export function initJupyterRedux(syncdb: SyncDB, client: Client): void {
-  const dbg = getLogger("jupyter-redux");
-  dbg.debug();
-
+export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
   const project_id = syncdb.project_id;
   if (project_id == null) {
     throw Error("project_id must be defined");
@@ -126,21 +123,33 @@ export function initJupyterRedux(syncdb: SyncDB, client: Client): void {
   // This path is the file we will watch for changes and save to, which is in the original
   // official ipynb format:
   const path = original_path(syncdb.get_path());
+  logger.debug("initJupyterRedux", path);
 
   const name = redux_name(project_id, path);
   if (redux.getStore(name) != null && redux.getActions(name) != null) {
+    logger.debug(
+      "initJupyterRedux",
+      path,
+      " -- existing actions, so removing them",
+    );
     // The redux info for this notebook already exists, so don't
-    // try to make it again (which would be an error).
+    // try to make it again without first deleting the existing one.
+    // Having two at once basically results in things feeling hung.
+    // This should never happen, but we ensure it
     // See https://github.com/sagemathinc/cocalc/issues/4331
-    return;
+    await removeJupyterRedux(path, project_id);
   }
   const store = redux.createStore(name, JupyterStore);
   const actions = redux.createActions(name, JupyterActions);
 
   actions._init(project_id, path, syncdb, store, client);
 
-  syncdb.once("error", (err) => dbg.error(`syncdb ERROR -- ${err}`));
-  syncdb.once("ready", () => dbg.debug("syncdb ready"));
+  syncdb.once("error", (err) =>
+    logger.error("initJupyterRedux", path, "syncdb ERROR", err),
+  );
+  syncdb.once("ready", () =>
+    logger.debug("initJupyterRedux", path, "syncdb ready"),
+  );
 }
 
 // Remove the store/actions for a given Jupyter notebook,
@@ -149,6 +158,7 @@ export async function removeJupyterRedux(
   path: string,
   project_id: string,
 ): Promise<void> {
+  logger.debug("removeJupyterRedux", path);
   // if there is a kernel, close it
   try {
     await get_existing_kernel(path)?.close();
@@ -160,8 +170,13 @@ export async function removeJupyterRedux(
   if (actions != null) {
     try {
       await actions.close();
-    } catch (_err) {
-      // ignore.
+    } catch (err) {
+      logger.debug(
+        "removeJupyterRedux",
+        path,
+        " WARNING -- issue closing actions",
+        err,
+      );
     }
   }
   redux.removeStore(name);
@@ -562,7 +577,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   dbg(f: string): Function {
     return (...args) => {
       //console.log(
-      log.debug(
+      logger.debug(
         `jupyter.Kernel('${this.name ?? "no kernel"}',path='${
           this._path
         }').${f}`,
@@ -572,7 +587,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   }
 
   low_level_dbg(): void {
-    const dbg = (...args) => log.silly("low_level_debug", ...args);
+    const dbg = (...args) => logger.silly("low_level_debug", ...args);
     dbg("Enabling");
     if (this._kernel) {
       this._kernel.spawn.all?.on("data", (data) =>

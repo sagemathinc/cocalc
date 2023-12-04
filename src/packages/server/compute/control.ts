@@ -461,6 +461,15 @@ export async function validateConfigurationChange({
     return;
   }
 
+  if (changed.has("authToken")) {
+    if (state == "running" || state == "suspended" || state == "suspending") {
+      throw Error("cannot change authToken while server is running");
+    }
+    if (typeof newConfiguration.authToken != "string") {
+      throw Error("authToken must be a string");
+    }
+  }
+
   if (changed.has("excludeFromSync")) {
     if (state == "running" || state == "suspended" || state == "suspending") {
       throw Error("cannot change excludeFromSync while server is running");
@@ -621,15 +630,18 @@ async function getStartupParams(id: number): Promise<{
   arch: Architecture;
   image: ImageName;
   exclude_from_sync: string;
+  auth_token: string;
 }> {
   const server = await getServerNoCheck(id);
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
+  const auth_token = server.configuration?.authToken ?? "";
   const exclude_from_sync = excludeFromSync.join("|");
   switch (server.cloud) {
     case "google-cloud":
       return {
         ...(await googleCloud.getStartupParams(server)),
         exclude_from_sync,
+        auth_token,
       };
     case "onprem":
       const { configuration } = server;
@@ -642,6 +654,7 @@ async function getStartupParams(id: number): Promise<{
         arch: configuration.arch ?? "x86_64",
         image: configuration.image ?? "python",
         exclude_from_sync,
+        auth_token,
       };
     default:
       throw Error(
@@ -664,12 +677,13 @@ export async function getStartupScript({
   api_key;
   installUser?;
 }): Promise<string> {
+  const params = await getStartupParams(id);
   return await startupScript({
     compute_server_id: id,
     api_key,
     hostname: await getHostname(id),
-    ...(await getStartupParams(id)),
     installUser,
+    ...params,
   });
 }
 

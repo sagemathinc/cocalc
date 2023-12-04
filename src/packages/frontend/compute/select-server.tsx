@@ -15,7 +15,7 @@ import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-const PROJECT_COLOR = "#337ab7";
+const PROJECT_COLOR = "#f6ffed";
 
 interface Option {
   position?: number;
@@ -53,7 +53,27 @@ export default function SelectComputeServer({
   const [confirmSwitch, setConfirmSwitch] = useState<boolean>(false);
   const [idNum, setIdNum] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
-  const [open, setOpen] = useState<boolean>(false);
+
+  // see https://github.com/sagemathinc/cocalc/issues/7083 and https://github.com/sagemathinc/cocalc/pull/7086
+  // The component doesn't mount/remount, and the problem is
+  // not solved by moving open state elsewhere.  Instead, we just
+  // use a hack and don't close it within a half second of opening
+  // it; there is something funny with focus going on
+  // that breaks this select, and this works around it. I don't think this is
+  // a great solution, but it is easy to understand, self contained, and unlikely
+  // to cause great harm.
+  const lastOpenRef = useRef<number>(0);
+  const [open, setOpen0] = useState<boolean>(false);
+  const setOpen = (open) => {
+    const now = Date.now();
+    console.log(now - lastOpenRef.current);
+    if (now - lastOpenRef.current < 500) {
+      return;
+    }
+    lastOpenRef.current = now;
+    setOpen0(open);
+  };
+
   const computeServers =
     useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
   const computeServerAssociations = useMemo(() => {
@@ -203,7 +223,6 @@ export default function SelectComputeServer({
               <div
                 style={{
                   background: PROJECT_COLOR,
-                  color: "white",
                   padding: "0 5px",
                   borderRadius: "3px",
                 }}
@@ -291,11 +310,12 @@ export default function SelectComputeServer({
         bordered={false}
         disabled={loading}
         placeholder={
-          <span style={{ color: "white" }}>
+          <span style={{ color: "#666" }}>
             <Icon
-              style={{ color: "white", marginRight: "5px" }}
-              name="server"
-            />
+              style={{ marginRight: "5px", color: "#666" }}
+              name="servers"
+            />{" "}
+            Server...
           </span>
         }
         open={open}
@@ -312,7 +332,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value && value != "0" ? "175px" : "64px",
+          width: open ? "300px" : value && value != "0" ? "175px" : "120px",
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}

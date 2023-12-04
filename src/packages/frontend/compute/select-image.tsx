@@ -4,9 +4,9 @@ import type {
   State,
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Select } from "antd";
+import { Alert, Select } from "antd";
 import { CSSProperties, useEffect, useState } from "react";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Markdown } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 
 // TODO: just putting a quick version here -- will redo.
@@ -15,6 +15,7 @@ const OPTIONS = Object.keys(IMAGES).map((value) => {
   return {
     key: value,
     value,
+    search: label?.toLowerCase() ?? "",
     label: (
       <div style={{ fontSize: "12pt" }}>
         <div style={{ float: "right" }}>
@@ -56,6 +57,9 @@ export default function SelectImage({
   } else {
     options = OPTIONS;
   }
+  const filterOption = (input: string, option?: { search: string }) =>
+    (option?.search ?? "").includes(input.toLowerCase());
+
   return (
     <div>
       <Select
@@ -70,6 +74,8 @@ export default function SelectImage({
           setValue(val);
           setConfig({ image: val });
         }}
+        showSearch
+        filterOption={filterOption}
       />
     </div>
   );
@@ -113,5 +119,19 @@ export function DisplayImage({ configuration }) {
     <span>
       <Icon name={data.icon} style={{ marginRight: "5px" }} /> {data.label}
     </span>
+  );
+}
+
+export function ImageDescription({ configuration }) {
+  return (
+    <Alert
+      style={{ padding: "7.5px 15px", marginTop: "10px" }}
+      type="info"
+      description={
+        <Markdown
+          value={IMAGES[configuration?.image ?? ""]?.description ?? ""}
+        />
+      }
+    />
   );
 }

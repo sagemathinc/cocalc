@@ -147,7 +147,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
       style={{
         ...INPUT_STYLE,
         cursor: "pointer",
-        marginTop: "12.5px",
+        marginTop: "8.5px",
         ...props.style,
       }}
     >

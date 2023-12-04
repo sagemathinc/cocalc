@@ -321,7 +321,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       key: "features",
       label: (
         <>
-          <Icon name="clipboard-check" /> Features and configuration
+          <Icon name="clipboard-check" /> Features and Configuration
         </>
       ),
       style: { borderRadius: 0 },

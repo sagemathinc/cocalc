@@ -7,7 +7,13 @@ import { Alert, Tag } from "antd";
 import humanizeList from "humanize-list";
 import { join } from "path";
 
-import { CSS, React, useMemo, useState } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  React,
+  useMemo,
+  useState,
+  redux,
+} from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import {
@@ -128,19 +134,36 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       <strong>No upgrades</strong>
     );
 
+    function renderComputeServer() {
+      return (
+        <a
+          style={a_style}
+          onClick={() => {
+            const actions = redux.getProjectActions(project_id);
+            actions.setState({ create_compute_server: true });
+            actions.set_active_tab("servers", {
+              change_history: true,
+            });
+          }}
+        >
+          using a compute server
+        </a>
+      );
+    }
+
     function renderBuyAndUpgrade(text: string = "with a license"): JSX.Element {
       return (
         <>
           <BuyLicenseForProject
             project_id={project_id}
             buyText={text}
-            voucherText={"redeem a voucher"}
+            voucherText={"by redeeming a voucher"}
             asLink={true}
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
-          . Price starts at {LICENSE_MIN_PRICE}. Then,{" "}
+          . Price starts at {LICENSE_MIN_PRICE}.{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
-            apply it to this project
+            Apply your license to this project.
           </a>
         </>
       );
@@ -161,7 +184,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         return (
           <span>
             {trial_project} You can improve hosting quality and get internet
-            access {renderBuyAndUpgrade()}.
+            access {renderComputeServer()} or {renderBuyAndUpgrade()}.
             <br />
             Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
             {"."}
@@ -277,7 +300,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         }
       />
     );
-  }
+  },
 );
 
 interface ApplyLicenseProps {
@@ -287,7 +310,7 @@ interface ApplyLicenseProps {
 }
 
 export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
-  props: ApplyLicenseProps
+  props: ApplyLicenseProps,
 ) => {
   const { projectSiteLicenses, project_id, setShowAddLicense } = props;
 

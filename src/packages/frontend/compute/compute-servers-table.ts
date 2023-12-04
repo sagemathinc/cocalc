@@ -89,3 +89,4 @@ export function close(project_id: string) {
   tables[project_id].close();
   delete tables[project_id];
 }
+

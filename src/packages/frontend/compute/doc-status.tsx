@@ -40,11 +40,26 @@ export default function ComputeServerTransition({
     setShowDetails(null);
   }, [id, requestedId]);
 
+  const requestedServer = computeServers?.get(`${requestedId}`);
+  const syncState = requestedServer?.getIn([
+    "detailed_state",
+    "filesystem-sync",
+  ]);
+
+  // show sync errors
+  useEffect(() => {
+    if (syncState?.get("extra")) {
+      setShowDetails(true);
+    }
+  }, [syncState?.get("extra")]);
+
   if (id == 0 && requestedId == 0) {
     return null;
   }
 
-  const requestedServer = computeServers.get(`${requestedId}`);
+  if (computeServers == null) {
+    return null;
+  }
 
   const topBar = (progress) => (
     <div
@@ -53,7 +68,7 @@ export default function ComputeServerTransition({
         borderBottom:
           requestedServer != null && !showDetails
             ? "1px solid #ccc"
-            : /*? `1px solid ${requestedServer.get("color")}` */
+            : /*? `1px solid ${requestedServer?.get("color")}` */
               undefined,
         height: "23px",
       }}
@@ -64,18 +79,11 @@ export default function ComputeServerTransition({
           size="small"
           compute_server_id={id}
           project_id={project_id}
-          time={requestedServer?.getIn([
-            "detailed_state",
-            "filesystem-sync",
-            "time",
-          ])}
+          time={syncState?.get("time")}
           syncing={
             requestedServer?.get("state") == "running" &&
-            (requestedServer?.getIn([
-              "detailed_state",
-              "filesystem-sync",
-              "progress",
-            ]) ?? 100) <
+            !syncState?.get("extra") &&
+            (syncState?.get("progress") ?? 100) <
               80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
           }
         >
@@ -93,7 +101,6 @@ export default function ComputeServerTransition({
       >
         <div
           onClick={() => {
-            if (progress < 100) return;
             setShowDetails(showDetails === true ? false : true);
           }}
           style={{ display: "flex", flex: 1 }}
@@ -109,11 +116,11 @@ export default function ComputeServerTransition({
                 cursor: "pointer",
                 width: `${progress}%`,
               }}
+              colorLabel={progress < 100 ? `${progress}%` : ""}
             />
           </div>
           <Button
             size="small"
-            disabled={id != requestedId}
             style={{ marginTop: "-1px", marginRight: "1px", color: "#666" }}
           >
             <Icon name="servers" /> <Inline prompt id={requestedId} />
@@ -128,7 +135,7 @@ export default function ComputeServerTransition({
   }
 
   const server: ComputeServerUserInfo | undefined = computeServers
-    .get(`${requestedId}`)
+    ?.get(`${requestedId}`)
     ?.toJS();
   const { progress, message, status } = getProgress(
     server,
@@ -141,9 +148,10 @@ export default function ComputeServerTransition({
   }
 
   return (
-    <div>
+    <div className="smc-vfill" style={{ flex: 100 }}>
       <div>{topBar(progress)}</div>
       <div
+        className="smc-vfill"
         style={{
           border: `1px solid #ccc`,
           borderRadius: "5px",
@@ -151,6 +159,7 @@ export default function ComputeServerTransition({
           padding: "5px",
           boxShadow: "rgba(33, 33, 33, 0.5) 1px 5px 7px",
           marginTop: "0px",
+          overflow: "auto",
         }}
       >
         <div
@@ -158,9 +167,8 @@ export default function ComputeServerTransition({
             textAlign: "center",
           }}
         >
-          <Space style={{ width: "100%", margin: "15px" }}>
+          <Space style={{ width: "100%", margin: "15px 0" }}>
             <Button
-              disabled={id != requestedId}
               size="large"
               type="text"
               onClick={() => setShowDetails(false)}

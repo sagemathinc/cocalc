@@ -337,7 +337,7 @@ export const License: React.FC<Props> = (props: Props) => {
               </span>
             );
           } else {
-            x = <span>Will expire {x}</span>;
+            x = <span>Could expire {x} if not extended</span>;
           }
         } else if (field == "activates") {
           if (!val) {

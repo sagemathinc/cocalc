@@ -13,6 +13,7 @@ import {
   Divider,
   Input,
   InputNumber,
+  Popconfirm,
   Radio,
   Select,
   Space,
@@ -41,9 +42,11 @@ import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
-import SelectImage, { ImageLinks } from "./select-image";
+import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
+import generateVouchers from "@cocalc/util/vouchers";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -239,6 +242,7 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <GPU
+          state={state}
           disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
@@ -271,6 +275,7 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <MachineType
+          state={state}
           disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
@@ -360,6 +365,7 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           loading={loading}
           priceData={priceData}
+          state={state}
         />
       ),
     },
@@ -765,14 +771,32 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
   );
 }
 
-function MachineType({ priceData, setConfig, configuration, disabled }) {
+function MachineType({ priceData, setConfig, configuration, disabled, state }) {
+  const [archType, setArchType] = useState<"x86_64" | "arm64">(
+    configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
+  );
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newMachineType, setNewMachineType] = useState<string>(
     configuration.machineType ?? "",
   );
   useEffect(() => {
     setNewMachineType(configuration.machineType);
-  }, [configuration]);
+    setArchType(
+      configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
+    );
+  }, [configuration.machineType]);
+  useEffect(() => {
+    if (archType == "arm64" && !configuration.machineType.startsWith("t2a-")) {
+      setNewMachineType("t2a-standard-4");
+      setConfig({ machineType: "t2a-standard-4" });
+      return;
+    }
+    if (archType == "x86_64" && configuration.machineType.startsWith("t2a-")) {
+      setNewMachineType("t2d-standard-4");
+      setConfig({ machineType: "t2d-standard-4" });
+      return;
+    }
+  }, [archType, configuration.machineType]);
 
   const machineTypes = Object.keys(priceData.machineTypes);
   let allOptions = machineTypes
@@ -780,6 +804,12 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
       const { acceleratorType } = configuration;
       if (!acceleratorType) {
         if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+          return false;
+        }
+        if (archType == "arm64" && !machineType.startsWith("t2a-")) {
+          return false;
+        }
+        if (archType == "x86_64" && machineType.startsWith("t2a-")) {
           return false;
         }
       } else {
@@ -853,6 +883,30 @@ function MachineType({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
+        <Tooltip
+          title={
+            (state ?? "deprovisioned") != "deprovisioned"
+              ? "Can only be changed when machine is deprovisioned"
+              : archType == "x86_64"
+              ? "Intel or AMD X86_64 architecture machines"
+              : "ARM64 architecture machines"
+          }
+        >
+          <Switch
+            style={{ float: "right" }}
+            disabled={
+              disabled ||
+              configuration.acceleratorType ||
+              (state ?? "deprovisioned") != "deprovisioned"
+            }
+            unCheckedChildren={"ARM64"}
+            checkedChildren={"X86"}
+            checked={archType == "x86_64"}
+            onChange={() => {
+              setArchType(archType == "x86_64" ? "arm64" : "x86_64");
+            }}
+          />
+        </Tooltip>
         <b>
           <Icon name="microchip" /> Machine Type
         </b>
@@ -1210,7 +1264,7 @@ function Image(props) {
         </div>
       )}
       <div style={{ color: "#666", marginTop: "5px" }}>
-        {IMAGES[props.configuration?.image ?? ""]?.description}
+        <ImageDescription configuration={props.configuration} />
       </div>
     </div>
   );
@@ -1240,7 +1294,7 @@ const ACCELERATOR_TYPES = [
         </A>
 */
 
-function GPU({ priceData, setConfig, configuration, disabled }) {
+function GPU({ priceData, setConfig, configuration, disabled, state }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
@@ -1258,7 +1312,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
 
   const theSwitch = (
     <Switch
-      disabled={disabled}
+      disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
       checkedChildren={"NVIDIA GPU"}
       unCheckedChildren={"NO GPU"}
       checked={!!acceleratorType}
@@ -1329,7 +1383,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
       {theSwitch}
       <div style={{ marginTop: "15px" }}>
         <Select
-          disabled={disabled}
+          disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
           style={{ width: SELECTOR_WIDTH }}
           options={options as any}
           value={acceleratorType}
@@ -1343,7 +1397,7 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
         />
         <Select
           style={{ marginLeft: "15px", width: "75px" }}
-          disabled={disabled}
+          disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
           options={countOptions}
           value={acceleratorCount}
           onChange={(count) => {
@@ -1367,6 +1421,14 @@ function GPU({ priceData, setConfig, configuration, disabled }) {
                 server.
               </>
             )}
+            {
+              (state ?? "deprovisioned") != "deprovisioned" && (
+                <div>
+                  You can only change the GPU configuration when the server is
+                  deprovisioned.
+                </div>
+              ) /* this is mostly a google limitation, not cocalc, though we will eventually do somthing involving recreating the machine.  BUT note that e.g., changing the count for L4's actually breaks booting up! */
+            }
           </div>
         )}
       </div>
@@ -1705,7 +1767,7 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({ setConfig, configuration, loading, priceData }) {
+function Network({ setConfig, configuration, loading, priceData, state }) {
   const [externalIp, setExternalIp] = useState<boolean>(
     configuration.externalIp ?? true,
   );
@@ -1768,6 +1830,66 @@ function Network({ setConfig, configuration, loading, priceData }) {
           loading={loading}
         />
       )}
+      {externalIp && (
+        <AuthToken
+          setConfig={setConfig}
+          configuration={configuration}
+          state={state}
+        />
+      )}
+    </div>
+  );
+}
+
+function createToken() {
+  return generateVouchers({ count: 1, length: 16 })[0];
+}
+
+function AuthToken({ setConfig, configuration, state }) {
+  const { authToken } = IMAGES[configuration.image] ?? {};
+  useEffect(() => {
+    // create token if it is not set but required
+    if (authToken && configuration.authToken == null) {
+      setConfig({ authToken: createToken() });
+    }
+  }, [authToken, configuration.authToken]);
+
+  if (!authToken) {
+    return null;
+  }
+  return (
+    <div style={{ color: "#666" }}>
+      <div style={{ marginTop: "15px", display: "flex" }}>
+        <div style={{ margin: "auto 30px auto 0" }}>
+          <b>Auth Token:</b>
+        </div>
+        <CopyToClipBoard value={configuration.authToken ?? ""} />
+        <Popconfirm
+          onConfirm={() => {
+            setConfig({ authToken: createToken() });
+          }}
+          okText="Change token"
+          title={"Change auth token?"}
+          description={
+            <div style={{ width: "400px" }}>
+              <b>
+                WARNING: Changing the auth token will prevent people who you
+                shared the old token with from using the site.
+              </b>
+            </div>
+          }
+        >
+          <Button
+            style={{ marginLeft: "30px" }}
+            disabled={state != "deprovisioned" && state != "off"}
+          >
+            <Icon name="refresh" />
+            Randomize...
+          </Button>
+        </Popconfirm>
+      </div>
+      Use this token to access the web server that will runs on your compute
+      server.
     </div>
   );
 }

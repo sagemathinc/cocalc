@@ -108,24 +108,6 @@ export default function AllQuotasConfig() {
       render: (service) => <ServiceTag service={service} />,
     },
     {
-      title: "This Month Spend (USD)",
-      dataIndex: "current",
-      align: "center" as "center",
-      render: (current: number, record: ServiceQuota) => {
-        if (record.quota == null) return null;
-        return (
-          <div>
-            {currency(current)}{" "}
-            <Progress
-              percent={Math.round((current / record.quota) * 100)}
-              strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
-            />
-            of {currency(record.quota)}
-          </div>
-        );
-      },
-    },
-    {
       title: "Monthly Limit (USD)",
       dataIndex: "quota",
       align: "center" as "center",
@@ -156,6 +138,24 @@ export default function AllQuotasConfig() {
           />
         </div>
       ),
+    },
+    {
+      title: "This Month Spend (USD)",
+      dataIndex: "current",
+      align: "center" as "center",
+      render: (current: number, record: ServiceQuota) => {
+        if (record.quota == null) return null;
+        return (
+          <div>
+            {currency(current)}{" "}
+            <Progress
+              percent={Math.round((current / record.quota) * 100)}
+              strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
+            />
+            of {currency(record.quota)}
+          </div>
+        );
+      },
     },
     {
       title: "Cost",
@@ -189,7 +189,8 @@ export default function AllQuotasConfig() {
         />
       )}
       <div style={{ color: "#666", marginBottom: "15px" }}>
-        These are monthly spending caps to prevent overspending.
+        These are your personal monthly spending caps to prevent overspending.
+        You can change them to whatever you want at any time.
       </div>
       <div style={{ marginBottom: "15px" }}>
         <Button.Group style={{ marginRight: "5px" }}>
@@ -208,12 +209,14 @@ export default function AllQuotasConfig() {
         </Button.Group>
       </div>
       {serviceQuotas != null ? (
-        <Table
-          dataSource={serviceQuotas}
-          columns={columns}
-          pagination={false}
-          rowKey="service"
-        />
+        <div style={{ overflow: "auto" }}>
+          <Table
+            dataSource={serviceQuotas}
+            columns={columns}
+            pagination={false}
+            rowKey="service"
+          />
+        </div>
       ) : (
         <div style={{ textAlign: "center" }}>
           <Spin size="large" delay={500} />

@@ -102,6 +102,7 @@ export async function installConf({
   compute_server_id,
   hostname,
   exclude_from_sync,
+  auth_token,
 }) {
   const auth = await authorizedKeys(project_id);
   return `
@@ -113,6 +114,7 @@ echo "${project_id}" > /cocalc/conf/project_id
 echo "${compute_server_id}" > /cocalc/conf/compute_server_id
 echo "${hostname}" > /cocalc/conf/hostname
 echo '${auth}' > /cocalc/conf/authorized_keys
+echo '${auth_token}' > /cocalc/conf/auth_token
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
 `;
 }

@@ -94,7 +94,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     client: Client,
   ): void {
     this._client = client;
-    this.dbg("_init")("Initializing Jupyter Actions");
+    const dbg = this.dbg("_init");
+    dbg("Initializing Jupyter Actions");
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
@@ -112,6 +113,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb = syncdb;
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
+    if (this.is_project) {
+      this.syncdb.on("first-load", () => {
+        dbg("handling first load of syncdb in project");
+        // Clear settings the first time the syncdb is ever
+        // loaded, since it has settings like "ipynb last save"
+        // and trust, which shouldn't be initialized to
+        // what they were before. Not doing this caused
+        // https://github.com/sagemathinc/cocalc/issues/7074
+        this.syncdb.delete({ type: "settings" });
+        this.syncdb.commit();
+      });
+    }
+
     this.is_compute_server = !!client.is_compute_server;
 
     let directory: any;
@@ -253,8 +267,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     };
     const resp = await callback(waitForResponse);
     return resp;
-    //     const api = await this._client.project_client.api(this.project_id);
-    //     return await api.jupyter(this.path, endpoint, query, timeout_ms);
   }
 
   protected dbg = (f: string) => {
@@ -906,8 +918,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public save = async (): Promise<void> => {
-    if (this.store.get("read_only")) {
-      // can't save when readonly
+    if (this.store.get("read_only") || this.isDeleted()) {
+      // can't save when readonly or deleted
       return;
     }
     if (this.store.get("mode") === "edit") {
@@ -2698,6 +2710,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       kernel_error: `${err}`,
     });
     this.save_asap();
+  };
+
+  // Returns true if the .ipynb file was explicitly deleted.
+  // Returns false if it is NOT known to be explicitly deleted.
+  // Returns undefined if not known or implemented.
+  // NOTE: this is different than the file not being present on disk.
+  protected isDeleted = () => {
+    if (this.store == null || this._client == null) {
+      return;
+    }
+    return this._client.is_deleted?.(this.store.get("path"), this.project_id);
+    // [ ] TODO: we also need to do this on compute servers, but
+    // they don't yet have the listings table.
   };
 }
 

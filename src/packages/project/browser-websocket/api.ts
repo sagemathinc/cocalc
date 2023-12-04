@@ -142,7 +142,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
         data.options,
       );
     case "syncdoc_call":
-      return await syncdoc_call(data.path, log, data.mesg);
+      return await syncdoc_call(data.path, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, log, data.name);
     case "realpath":

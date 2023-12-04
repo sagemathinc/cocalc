@@ -9,7 +9,7 @@ import {
 } from "@cocalc/util/db-schema/compute-servers";
 import ShowError from "@cocalc/frontend/components/error";
 import ComputeServer from "./compute-server";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux, useRedux, redux } from "@cocalc/frontend/app-framework";
 import { randomColor } from "./color";
 import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import costPerHour from "./cost";
@@ -34,7 +34,15 @@ function defaultConfiguration() {
 
 export default function CreateComputeServer({ project_id, onCreate }) {
   const account_id = useTypedRedux("account", "account_id");
-  const [editing, setEditing] = useState<boolean>(false);
+  const create_compute_server = useRedux(["create_compute_server"], project_id);
+  const [editing, setEditing] = useState<boolean>(create_compute_server);
+  useEffect(() => {
+    if (create_compute_server) {
+      redux
+        .getProjectActions(project_id)
+        .setState({ create_compute_server: false });
+    }
+  }, [create_compute_server]);
   const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -137,6 +145,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         size="large"
         disabled={creating || editing}
         onClick={() => {
+          resetConfig();
           setEditing(true);
         }}
         style={{
@@ -170,6 +179,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           resetConfig();
         }}
         open={editing}
+        destroyOnClose
         title={"Create Compute Server"}
         footer={
           <div style={{ display: "flex" }}>

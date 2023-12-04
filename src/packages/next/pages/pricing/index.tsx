@@ -89,7 +89,7 @@ const dataSource: DataSource = [
   },
   {
     link: "/pricing/onprem",
-    title: "On Premises Installations",
+    title: "On-Premises Installations",
     logo: "network-wired",
     description: (
       <>

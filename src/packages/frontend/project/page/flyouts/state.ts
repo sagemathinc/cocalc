@@ -20,6 +20,14 @@ export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
   return ActiveModes.includes(val as any);
 }
 
+const ActiveTabSorts = ["custom", "alphanum-up", "alphanum-down"] as const;
+export type FlyoutActiveTabSort = (typeof ActiveTabSorts)[number];
+export function isFlyoutActiveTabSort(
+  val?: string,
+): val is FlyoutActiveTabSort {
+  return ActiveTabSorts.includes(val as any);
+}
+
 export type FlyoutActiveStarred = string[];
 export function isFlyoutActiveStarred(val?: any): val is FlyoutActiveStarred {
   return Array.isArray(val) && val.every((x) => typeof x === "string");
@@ -40,6 +48,7 @@ export type LSFlyout = {
   settings?: string[]; // expanded panels
   starred?: FlyoutActiveStarred;
   showStarred?: boolean;
+  activeTabSort?: FlyoutActiveTabSort;
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -61,6 +70,7 @@ export function storeFlyoutState(
     starred?: FlyoutActiveStarred;
     showStarred?: boolean;
     width?: number | null;
+    activeTabSort?: FlyoutActiveTabSort;
   },
 ): void {
   const { scroll, expanded, width, mode, files } = state;
@@ -116,6 +126,10 @@ export function storeFlyoutState(
     if (typeof state.showStarred === "boolean") {
       current.showStarred = state.showStarred;
     }
+
+    if (isFlyoutActiveTabSort(state.activeTabSort)) {
+      current.activeTabSort = state.activeTabSort;
+    }
   }
 
   LS.set(key, current);
@@ -157,4 +171,11 @@ export function getFlyoutActiveStarred(
 
 export function getFlyoutActiveShowStarred(project_id: string): boolean {
   return LS.get<LSFlyout>(lsKey(project_id))?.showStarred ?? true;
+}
+
+export function getFlyoutActiveTabSort(
+  project_id: string,
+): FlyoutActiveTabSort {
+  const activeTabSort = LS.get<LSFlyout>(lsKey(project_id))?.activeTabSort;
+  return isFlyoutActiveTabSort(activeTabSort) ? activeTabSort : "custom";
 }

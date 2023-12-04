@@ -1352,6 +1352,7 @@ export class SyncDoc extends EventEmitter {
 
   private async load_from_disk_if_newer(): Promise<boolean> {
     const last_changed = this.last_changed();
+    const firstLoad = this.versions().length == 0;
     const dbg = this.dbg("load_from_disk_if_newer");
     let is_read_only: boolean = false;
     let size: number = 0;
@@ -1364,9 +1365,16 @@ export class SyncDoc extends EventEmitter {
         const stats = await callback2(this.client.path_stat, {
           path: this.path,
         });
-        if (stats.ctime > last_changed) {
-          dbg("disk file changed more recently than edits, so loading");
+        if (firstLoad || stats.ctime > last_changed) {
+          dbg(
+            `disk file changed more recently than edits (or first load), so loading, ${stats.ctime} > ${last_changed}; firstLoad=${firstLoad}`,
+          );
           size = await this.load_from_disk();
+          if (firstLoad) {
+            dbg("emitting first-load event");
+            // this event is emittd the first time the document is ever loaded from disk.
+            this.emit("first-load");
+          }
           dbg("loaded");
         } else {
           dbg("stick with database version");
@@ -2347,6 +2355,10 @@ export class SyncDoc extends EventEmitter {
       delete this.file_watcher;
       delete this.watch_path;
     }
+    if (path != null && this.client.is_deleted(path, this.project_id)) {
+      dbg(`not setting up watching since "${path}" is explicitly deleted`);
+      return;
+    }
     if (path == null) {
       dbg("not opening another watcher");
       this.watch_path = path;
@@ -2363,6 +2375,10 @@ export class SyncDoc extends EventEmitter {
     this.watch_path = path;
     try {
       if (!(await callback2(this.client.path_exists, { path }))) {
+        if (this.client.is_deleted(path, this.project_id)) {
+          dbg(`not setting up watching since "${path}" is explicitly deleted`);
+          return;
+        }
         // path does not exist
         dbg(
           `write '${path}' to disk from syncstring in-memory database version`,

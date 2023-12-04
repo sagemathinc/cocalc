@@ -78,12 +78,12 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const has_unsaved_changes = useRedux(
     ["has_unsaved_changes"],
     project_id,
-    path
+    path,
   );
   const has_uncommitted_changes = useRedux(
     ["has_uncommitted_changes"],
     project_id,
-    path
+    path,
   );
   const input: string = useRedux(["input"], project_id, path);
   const [preview] = useDebounce(input, 250);
@@ -256,7 +256,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         default_value={search}
         on_change={debounce(
           (value) => actions.setState({ search: value }),
-          250
+          250,
         )}
         style={{ margin: 0, width: "100%", marginBottom: "5px" }}
       />
