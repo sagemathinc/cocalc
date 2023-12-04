@@ -63,7 +63,7 @@ export default function ChatInput({
   }
   const sender_id = useMemo(
     () => redux.getStore("account").get_account_id(),
-    []
+    [],
   );
   const [input, setInput] = useState<string>(() => {
     const dbInput = syncdb
@@ -117,7 +117,7 @@ export default function ChatInput({
       }
     },
     SAVE_DEBOUNCE_MS,
-    { leading: true }
+    { leading: true },
   );
   useEffect(() => {
     if (syncdb == null) return;
@@ -181,7 +181,12 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
-      chatGPT={redux.getStore("projects").hasLanguageModelEnabled(project_id)}
+      chatGPT={redux
+        .getStore("projects")
+        .hasLanguageModelEnabled(project_id, undefined, "openai")}
+      vertexAI={redux
+        .getStore("projects")
+        .hasLanguageModelEnabled(project_id, undefined, "google")}
     />
   );
 }

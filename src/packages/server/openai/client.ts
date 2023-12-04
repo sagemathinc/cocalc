@@ -3,8 +3,8 @@ Get openai client.
 */
 
 import { Configuration, OpenAIApi } from "openai";
-const { TextServiceClient } = require("@google-ai/generativelanguage").v1beta2;
-const { DiscussServiceClient } = require("@google-ai/generativelanguage");
+import { TextServiceClient } from "@google-ai/generativelanguage";
+import { DiscussServiceClient } from "@google-ai/generativelanguage";
 const { GoogleAuth } = require("google-auth-library");
 
 import getLogger from "@cocalc/backend/logger";
@@ -55,7 +55,7 @@ export default async function getClient(
         throw Error("this should never happen");
       }
 
-      const vai = new VertexAIClient(google_vertexai_key, model);
+      const vai = new VertexAIClient({ apiKey: google_vertexai_key }, model);
       clientCache[key] = vai;
       return vai;
 
@@ -67,27 +67,30 @@ export default async function getClient(
 
 const VERTEX_AI_LOCATION = process.env.COCALC_VERTEX_AI_LOCATION || "us-east1";
 
+interface AuthMethods {
+  apiKey?: string;
+  serviceAccountJSON?: string;
+}
+
 export class VertexAIClient {
   gcp_project_id?: string;
   location = VERTEX_AI_LOCATION;
-  client: any;
+  clientText: TextServiceClient;
+  clientDiscuss: DiscussServiceClient;
 
-  constructor(
-    auth: { apiKey?: string; serviceAccountJSON?: string },
-    model: LanguageModel,
-  ) {
-    const { apiKey, serviceAccountJSON } = auth;
-    const authClient = this.getAuthClient(apiKey, serviceAccountJSON);
+  constructor(auth: AuthMethods, model: LanguageModel) {
+    const authClient = this.getAuthClient(auth);
     if (model === "text-bison-001") {
-      this.client = new TextServiceClient({ authClient });
+      this.clientText = new TextServiceClient({ authClient });
     } else if (model === "chat-bison-001") {
-      this.client = new DiscussServiceClient({ authClient });
+      this.clientDiscuss = new DiscussServiceClient({ authClient });
     } else {
       throw new Error(`unknown model: ${model}`);
     }
   }
 
-  private getAuthClient(apiKey?: string, serviceAccountJSON?: string) {
+  private getAuthClient(auth: AuthMethods) {
+    const { apiKey, serviceAccountJSON } = auth;
     if (typeof serviceAccountJSON === "string") {
       const sa = JSON.parse(serviceAccountJSON);
       this.gcp_project_id = sa.project_id;
@@ -110,12 +113,15 @@ export class VertexAIClient {
     maxTokens?: number;
   }) {
     // note: model must be text-bison-001
-    const resp = await this.client.generateText({
+    if (model !== "text-bison-001") {
+      throw new Error("model must be text-bison-001");
+    }
+    const resp = await this.clientText.generateText({
       model: `models/${model}`,
       prompt: {
         text: prompt,
       },
-      max_output_tokens: maxTokens ?? 1024,
+      maxOutputTokens: maxTokens ?? 1024,
     });
 
     log.debug("got response from vertex ai", resp);
@@ -130,9 +136,12 @@ export class VertexAIClient {
     model: "chat-bison-001";
     context?: string;
     messages: { content: string }[];
-  }): Promise<string> {
+  }): Promise<string | null | undefined> {
     // note: model must be chat-bison-001
-    const result = await this.client.generateMessage({
+    if (model !== "chat-bison-001") {
+      throw new Error("model must be chat-bison-001");
+    }
+    const result = await this.clientDiscuss.generateMessage({
       model: `models/${model}`,
       candidateCount: 1, // Optional. The number of candidate results to generate.
       prompt: {
@@ -145,6 +154,6 @@ export class VertexAIClient {
 
     log.debug("got response from vertex ai", result);
 
-    return result[0].candidates[0].content;
+    return result[0].candidates?.[0]?.content;
   }
 }

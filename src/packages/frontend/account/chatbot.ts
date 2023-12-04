@@ -7,7 +7,7 @@ When new models are added, e.g., Claude soon (!), they will go here.
 
 */
 
-import { OPENAI_USERNAMES } from "@cocalc/util/db-schema/openai";
+import { LLM_USERNAMES } from "@cocalc/util/db-schema/openai";
 
 export function isChatBot(account_id?: string) {
   return account_id?.startsWith("chatgpt") || account_id?.startsWith("openai-");
@@ -15,10 +15,10 @@ export function isChatBot(account_id?: string) {
 
 export function chatBotName(account_id?: string): string {
   if (account_id?.startsWith("chatgpt")) {
-    return OPENAI_USERNAMES[account_id] ?? "ChatGPT";
+    return LLM_USERNAMES[account_id] ?? "ChatGPT";
   }
   if (account_id?.startsWith("openai-")) {
-    return OPENAI_USERNAMES[account_id.slice("openai-".length)] ?? "ChatGPT";
+    return LLM_USERNAMES[account_id.slice("openai-".length)] ?? "ChatGPT";
   }
   return "ChatBot";
 }

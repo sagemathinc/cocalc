@@ -75,7 +75,7 @@ export async function evaluate({
     stream: stream != null,
     maxTokens,
   });
-  if (!isValidModel(model) || !model.startsWith("gpt")) {
+  if (!isValidModel(model)) {
     throw Error(`unsupported model "${model}"`);
   }
   const start = Date.now();

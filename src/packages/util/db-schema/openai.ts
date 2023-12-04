@@ -69,7 +69,7 @@ export type Model = (typeof MODELS)[number];
 // Map from psuedo account_id to what should be displayed to user.
 // This is used in various places in the frontend.
 // Google PaLM: https://cloud.google.com/vertex-ai/docs/generative-ai/pricing
-export const OPENAI_USERNAMES = {
+export const LLM_USERNAMES = {
   chatgpt: "GPT-3.5",
   chatgpt3: "GPT-3.5",
   chatgpt4: "GPT-4",
@@ -77,9 +77,9 @@ export const OPENAI_USERNAMES = {
   "gpt-4-32k": "GPT-4-32k",
   "gpt-3.5-turbo": "GPT-3.5",
   "gpt-3.5-turbo-16k": "GPT-3.5-16k",
-  "text-bison-001": "PaLM 2 (Google)",
-  "chat-bison-001": "PaLM 2 (Google)",
-  "embedding-gecko-001": "PaLM 2 (Google)",
+  "text-bison-001": "PaLM 2",
+  "chat-bison-001": "PaLM 2",
+  "embedding-gecko-001": "PaLM 2",
 } as const;
 
 export function isFreeModel(model: Model) {

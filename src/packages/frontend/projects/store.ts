@@ -734,7 +734,11 @@ export class ProjectsStore extends Store<ProjectsState> {
     openAICache.clear();
   }
 
-  hasLanguageModelEnabled(project_id?: string, tag?: string): boolean {
+  hasLanguageModelEnabled(
+    project_id?: string,
+    tag?: string,
+    vendor?: "openai" | "google" | "any",
+  ): boolean {
     // cache answer for a few seconds, in case this gets called a lot:
 
     let courseLimited = false;
@@ -753,7 +757,11 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (openAICache.has(key)) {
       return !!openAICache.get(key);
     }
-    const value = this._hasLanguageModelEnabled(project_id, courseLimited);
+    const value = this._hasLanguageModelEnabled(
+      project_id,
+      courseLimited,
+      vendor,
+    );
     openAICache.set(key, value);
     return value;
   }
@@ -761,13 +769,19 @@ export class ProjectsStore extends Store<ProjectsState> {
   private _hasLanguageModelEnabled(
     project_id?: string,
     courseLimited?: boolean,
+    vendor: "openai" | "google" | "any" = "any",
   ): boolean {
-    if (
-      !redux.getStore("customize").get("openai_enabled") &&
-      !redux.getStore("customize").get("google_vertexai_enabled")
-    ) {
-      return false;
-    }
+    const haveOpenAI = redux.getStore("customize").get("openai_enabled");
+    const haveGoogle = redux
+      .getStore("customize")
+      .get("google_vertexai_enabled");
+
+    if (!haveOpenAI && !haveGoogle) return false;
+    if (vendor === "openai" && !haveOpenAI) return false;
+    if (vendor === "google" && !haveGoogle) return false;
+    if (vendor === "any" && !haveOpenAI && !haveGoogle) return false;
+
+    // any customization regarding disabling chatgpt accounts for any language model vendor
     if (
       redux.getStore("account").getIn(["other_settings", "openai_disabled"])
     ) {

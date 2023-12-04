@@ -135,7 +135,7 @@ export default function ChatGPT({
   const [truncated, setTruncated] = useState<number>(0);
   const [truncatedReason, setTruncatedReason] = useState<string>("");
   const [scope, setScope] = useState<Scope | "all">(() =>
-    showChatGPT ? getScope(id, actions) : "all"
+    showChatGPT ? getScope(id, actions) : "all",
   );
   const describeRef = useRef<any>(null);
   const buttonsRef = useRef<any>(null);
@@ -175,15 +175,15 @@ export default function ChatGPT({
       Math.round(
         100 *
           (1 -
-            (inputOrig.length - input.length) / Math.max(1, inputOrig.length))
-      )
+            (inputOrig.length - input.length) / Math.max(1, inputOrig.length)),
+      ),
     );
     setTruncatedReason(
       `Input truncated from ${inputOrig.length} to ${input.length} characters.${
         model == "gpt-3.5-turbo"
           ? "  Try using a different model with a bigger context size."
           : ""
-      }`
+      }`,
     );
   };
 
@@ -192,7 +192,7 @@ export default function ChatGPT({
   }, [id, scope, visible, path, showChatGPT, model]);
 
   const [description, setDescription] = useState<string>(
-    showOptions ? "" : getCustomDescription(frameType)
+    showOptions ? "" : getCustomDescription(frameType),
   );
 
   const chatgpt = async (options) => {
@@ -339,7 +339,7 @@ export default function ChatGPT({
                       NOT Truncated (100% included)
                     </div>
                   )}
-                  ChatGPT will see:
+                  {modelToName(model)} will see:
                   <Radio.Group
                     size="small"
                     style={{ margin: "0 10px" }}
@@ -405,7 +405,7 @@ async function updateInput(
   actions,
   id,
   scope,
-  model
+  model,
 ): Promise<{ input: string; inputOrig: string }> {
   if (scope == "none") {
     return { input: "", inputOrig: "" };

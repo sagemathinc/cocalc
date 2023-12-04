@@ -1,6 +1,6 @@
 import { Radio, Tooltip } from "antd";
 
-import { OPENAI_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
+import { LLM_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
 import { DEFAULT_MODEL } from "@cocalc/util/db-schema/openai";
 
 export type { Model };
@@ -14,6 +14,8 @@ interface Props {
 }
 
 // The tooltips below are adopted from chat.openai.com
+
+const GOOGLE_GENAI: Model = "chat-bison-001";
 
 export default function ModelSwitch({ style, model, setModel, size }: Props) {
   return (
@@ -52,7 +54,14 @@ export default function ModelSwitch({ style, model, setModel, size }: Props) {
       >
         <Radio.Button value="gpt-4">
           {modelToName("gpt-4")}
-          {model == "gpt-4" ? " (not free)" : ""}
+          {model === "gpt-4" ? " (not free)" : ""}
+        </Radio.Button>
+      </Tooltip>
+      <Tooltip
+        title={`Google's PaLM 2 Generative AI model ('${GOOGLE_GENAI}', 8k token context)`}
+      >
+        <Radio.Button value={GOOGLE_GENAI}>
+          {modelToName(GOOGLE_GENAI)}
         </Radio.Button>
       </Tooltip>
     </Radio.Group>
@@ -60,7 +69,7 @@ export default function ModelSwitch({ style, model, setModel, size }: Props) {
 }
 
 export function modelToName(model: Model): string {
-  return OPENAI_USERNAMES[model] ?? model;
+  return LLM_USERNAMES[model] ?? model;
 }
 
 export function modelToMention(model: Model): string {
