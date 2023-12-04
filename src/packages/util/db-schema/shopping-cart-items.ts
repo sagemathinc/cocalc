@@ -11,8 +11,8 @@ query for everything for account with canceled if everything they decided not to
 */
 
 import { Table } from "./types";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { SCHEMA as schema } from "./index";
+import { SiteLicenseDescriptionDB } from "../upgrades/shopping";
 
 export type ProductType = "site-license" | "cash-voucher";
 
@@ -21,7 +21,7 @@ export interface CashVoucher {
   amount: number;
 }
 
-export type ProductDescription = PurchaseInfo | CashVoucher;
+export type ProductDescription = SiteLicenseDescriptionDB | CashVoucher;
 
 export interface Item {
   id: number;

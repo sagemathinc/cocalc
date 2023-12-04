@@ -13,10 +13,9 @@ const mockComputeCost = jest.fn() as jest.MockedFunction<typeof computeCost>
 
 import { getTransactionClient } from "@cocalc/database/pool";
 import getCart from "@cocalc/server/shopping/cart/get";
-import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { uuid } from "@cocalc/util/misc";
-import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
+import { CashVoucherCostProps, SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
 import createStripeCheckoutSession from "./create-stripe-checkout-session";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
@@ -130,6 +129,7 @@ describe("shopping-cart-checkout", () => {
       await expect(sut.shoppingCartCheckout({
         ...testCheckout,
         paymentAmount: 0.5,
+        ignoreBalance: true,
       }))
         .rejects
         .toThrow("insufficient to complete");
@@ -205,8 +205,8 @@ describe("shopping-cart-checkout", () => {
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: NaN,
         minPayment: NaN,
-        amountDue: 4.5,
-        chargeAmount: 5.0, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
+        amountDue: 0.0,
+        chargeAmount: 0.5, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
         total: NaN,
         minBalance: NaN,
         cart: []
@@ -236,76 +236,6 @@ describe("shopping-cart-checkout", () => {
     it("adds line item for extra account credit", async () => {
       // Arrange
       //
-      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
-        balance: NaN,
-        minPayment: NaN,
-        amountDue: 5.0,
-        chargeAmount: 5.0,
-        total: NaN,
-        minBalance: NaN,
-        cart: []
-      }));
-
-      // Act
-      //
-      const checkoutResult = await sut.shoppingCartCheckout({
-        ...testCheckout,
-        paymentAmount: 6.0,
-      });
-      const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
-
-      // Assert
-      //
-      expect(checkoutResult.done).toEqual(false);
-      expect(checkoutSessionArgs).toEqual({
-        ...testCheckout,
-        line_items: [
-          {
-            "amount": 1.0,
-            "description": expect.stringContaining("account credit"),
-          },
-        ],
-      });
-    });
-
-    it("omits line item for extra account credit when `paymentAmount` is greater than minimum charge", async () => {
-      // Arrange
-      //
-      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
-        balance: NaN,
-        minPayment: NaN,
-        amountDue: 4.5,
-        chargeAmount: 5.0, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
-        total: NaN,
-        minBalance: NaN,
-        cart: []
-      }));
-
-      // Act
-      //
-      const checkoutResult = await sut.shoppingCartCheckout({
-        ...testCheckout,
-        paymentAmount: 6.0,
-      });
-      const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
-
-      // Assert
-      //
-      expect(checkoutResult.done).toEqual(false);
-      expect(checkoutSessionArgs).toEqual({
-        ...testCheckout,
-        line_items: [
-          {
-            "amount": 1.0,
-            "description": expect.stringContaining("account credit"),
-          },
-        ],
-      });
-    });
-
-    it("adds line items for cart items fully paid for by existing balance", async () => {
-      // Arrange
-      //
       const testCart = [
         {
           cost: {
@@ -320,19 +250,20 @@ describe("shopping-cart-checkout", () => {
 
       jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
-        balance: 0.3,
+        balance: NaN,
         minPayment: NaN,
         amountDue: 1.0,
         chargeAmount: 1.0,
         total: NaN,
-        minBalance: -0.7,
-        cart: testCart as CheckoutCartItem[],
+        minBalance: NaN,
+        cart: testCart,
       }));
 
       // Act
       //
       const checkoutResult = await sut.shoppingCartCheckout({
         ...testCheckout,
+        paymentAmount: 2.0,
       });
       const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
 
@@ -342,10 +273,63 @@ describe("shopping-cart-checkout", () => {
       expect(checkoutSessionArgs).toEqual({
         ...testCheckout,
         line_items: [
+          expect.objectContaining({
+            description: "test",
+          }),
           {
-            "amount": 0,
-            "description": expect.stringContaining("$1.00 deducted"),
+            "amount": 1.0,
+            "description": expect.stringContaining("account credit"),
           },
+        ],
+      });
+    });
+
+    it("omits line item for extra account credit when `paymentAmount` is equal to minimum charge", async () => {
+      // Arrange
+      //
+      const testCart = [
+        {
+          cost: {
+            discounted_cost: 4.5
+          },
+          description: {
+            type: "disk",
+            description: "foo",
+          },
+        },
+      ];
+
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
+      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
+        balance: NaN,
+        minPayment: NaN,
+        amountDue: 4.5,
+        chargeAmount: 5.0, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
+        total: NaN,
+        minBalance: NaN,
+        cart: testCart,
+      }));
+
+      // Act
+      //
+      const checkoutResult = await sut.shoppingCartCheckout({
+        ...testCheckout,
+        paymentAmount: 5.0,
+      });
+      const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
+
+      // Assert
+      //
+      expect(checkoutResult.done).toEqual(false);
+      expect(checkoutSessionArgs).toEqual({
+        ...testCheckout,
+        line_items: [
+          expect.objectContaining({
+            description: "test",
+          }),
+          expect.objectContaining({
+            description: expect.stringContaining("minimum payment charge"),
+          }),
         ],
       });
     });
@@ -367,8 +351,8 @@ describe("shopping-cart-checkout", () => {
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: 0.3,
         minPayment: NaN,
-        amountDue: 1.5,
-        chargeAmount: 1.5,
+        amountDue: 0.5,
+        chargeAmount: 0.5,
         total: NaN,
         minBalance: -0.7,
         cart: testCart as CheckoutCartItem[],
@@ -423,8 +407,8 @@ describe("shopping-cart-checkout", () => {
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: 1.3,
         minPayment: NaN,
-        amountDue: 4.5,
-        chargeAmount: 4.5,
+        amountDue: 2.5,
+        chargeAmount: 2.5,
         total: NaN,
         minBalance: -0.7,
         cart: testCart as CheckoutCartItem[],
@@ -528,7 +512,7 @@ describe("shopping-cart-checkout", () => {
       });
     });
 
-    it("adds line items without using account balance when paymentAmount is provided", async () => {
+    it("adds line items without using account balance when ignoreBalance is true", async () => {
       // Arrange
       //
       const testCart = [
@@ -581,6 +565,7 @@ describe("shopping-cart-checkout", () => {
       const checkoutResult = await sut.shoppingCartCheckout({
         ...testCheckout,
         paymentAmount: cartTotal,
+        ignoreBalance: true,
       });
       const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
 
@@ -634,7 +619,7 @@ describe("shopping-cart-checkout", () => {
     it("computes cost from item description", async () => {
       // Arrange
       //
-      const testDescription: ComputeCostProps = {
+      const testDescription: CashVoucherCostProps = {
         type: "cash-voucher",
         amount: 1.5,
       };
@@ -819,12 +804,12 @@ describe("shopping-cart-checkout", () => {
 
       // Act
       //
-      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+      const testDescription = sut.toFriendlyDescription(productDescription as SiteLicenseDescriptionDB);
 
       // Assert
       //
       expect(testDescription).toEqual(
-        "512 GB disk (ssd)",
+        "Dedicated Disk (512G size and fast speed)",
       );
     });
 
@@ -835,17 +820,18 @@ describe("shopping-cart-checkout", () => {
         type: "vm",
         dedicated_vm: {
           name: "raspberry pi",
+          machine: "n2-standard-2",
         },
       };
 
       // Act
       //
-      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+      const testDescription = sut.toFriendlyDescription(productDescription as SiteLicenseDescriptionDB);
 
       // Assert
       //
       expect(testDescription).toEqual(
-        "Virtual Machine (raspberry pi)",
+        "Dedicated VM 2 CPU cores, 6G RAM",
       );
     });
 
@@ -853,38 +839,26 @@ describe("shopping-cart-checkout", () => {
       // Arrange
       //
       const productDescription = {
-        type: "quota",
-        quantity: 2,
-        upgrade: "standard",
+        "cpu": 1,
+        "ram": 2,
+        "disk": 3,
+        "type": "quota",
+        "user": "business",
+        "boost": false,
+        "member": true,
+        "period": "monthly",
+        "uptime": "short",
+        "run_limit": 1
       };
 
       // Act
       //
-      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+      const testDescription = sut.toFriendlyDescription(productDescription as SiteLicenseDescriptionDB);
 
       // Assert
       //
       expect(testDescription).toEqual(
-        "2x standard quota upgrade(s)",
-      );
-    });
-
-    it("constructs voucher description", async () => {
-      // Arrange
-      //
-      const productDescription = {
-        type: "vouchers",
-        quantity: 4,
-      };
-
-      // Act
-      //
-      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
-
-      // Assert
-      //
-      expect(testDescription).toEqual(
-        "4x cash voucher(s)",
+        "Business license providing 2G RAM, 1 shared CPU, 3G disk, member hosting, 30 minutes timeout, network",
       );
     });
 
@@ -898,12 +872,12 @@ describe("shopping-cart-checkout", () => {
 
       // Act
       //
-      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+      const testDescription = sut.toFriendlyDescription(productDescription as CashVoucherCostProps);
 
       // Assert
       //
       expect(testDescription).toEqual(
-        "Cash voucher for $3.50",
+        "$3.50 account credit",
       );
     });
 
@@ -916,7 +890,7 @@ describe("shopping-cart-checkout", () => {
 
       // Act
       //
-      const testDescription = sut.toFriendlyDescription(productDescription as ProductDescription);
+      const testDescription = sut.toFriendlyDescription(productDescription as SiteLicenseDescriptionDB);
 
       // Assert
       //

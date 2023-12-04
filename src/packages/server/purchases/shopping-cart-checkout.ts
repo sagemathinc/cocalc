@@ -5,23 +5,19 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 import getCart from "@cocalc/server/shopping/cart/get";
 
-import { CashVoucher, Item as ShoppingCartItem, ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
+import { CashVoucher, Item as ShoppingCartItem } from "@cocalc/util/db-schema/shopping-cart-items";
+import { dedicatedDiskDisplay, dedicatedVmDisplay } from "@cocalc/util/upgrades/utils";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
+import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
-import {
-  CostInputPeriod,
-  PurchaseInfoQuota,
-  PurchaseInfoVM,
-  PurchaseInfoVoucher
-} from "@cocalc/util/licenses/purchase/types";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
-import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
-import { round2 } from "@cocalc/util/misc";
+import { ComputeCostProps, SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
+import { currency } from "@cocalc/util/misc";
 
 import createStripeCheckoutSession from "./create-stripe-checkout-session";
 import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
-import { DedicatedDiskConfig } from "@cocalc/util/dist/types/dedicated";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
 
@@ -39,28 +35,18 @@ export interface CheckoutParams {
   cart; // big object that describes actual contents of the cart
 }
 
-export const toFriendlyDescription = (description: ProductDescription): string => {
+export const toFriendlyDescription = (description: SiteLicenseDescriptionDB | CashVoucher): string => {
   switch(description.type) {
     case "disk":
-      const diskConfig = description.dedicated_disk as DedicatedDiskConfig;
-      return `${diskConfig.size_gb} GB disk (${diskConfig.speed})`
+      return `Dedicated Disk (${dedicatedDiskDisplay(description.dedicated_disk)})`;
     case "vm":
-      const {
-        dedicated_vm,
-      } = description as PurchaseInfoVM;
-      return `Virtual Machine (${dedicated_vm.name})`;
+      return `Dedicated VM ${dedicatedVmDisplay(description.dedicated_vm)}`;
     case "quota":
-      const {
-        quantity,
-        upgrade,
-      } = description as PurchaseInfoQuota;
-      return `${quantity}x ${upgrade} quota upgrade(s)`;
-    case "vouchers":
-      return `${(description as PurchaseInfoVoucher).quantity}x cash voucher(s)`;
+      return describe_quota(description);
     case "cash-voucher":
-      return `Cash voucher for $${round2((description as CashVoucher).amount).toFixed(2)}`
+      return `${currency((description as CashVoucher).amount)} account credit`;
     default:
-      return "Credit account to complete store purchase"
+      return "Credit account to complete store purchase";
   }
 }
 
@@ -69,10 +55,12 @@ export const shoppingCartCheckout = async({
   success_url,
   cancel_url,
   paymentAmount,
+  ignoreBalance,
 }: {
   account_id: string;
   success_url: string;
   cancel_url?: string;
+  ignoreBalance?: boolean;
   paymentAmount?: number;
 }) => {
   logger.debug("shoppingCartCheckout", { account_id, success_url, cancel_url });
@@ -81,7 +69,6 @@ export const shoppingCartCheckout = async({
   // account balance.
   //
   const paymentAmountValue = Number(paymentAmount ?? 0).valueOf();
-  const useBalance = (paymentAmount ?? 0) == 0;
 
   // Assert validity of user-provided payment amount
   //
@@ -90,15 +77,15 @@ export const shoppingCartCheckout = async({
   }
 
   const params = await getShoppingCartCheckoutParams(account_id);
-  const surplusCredit = paymentAmountValue - params.chargeAmount;
+  const surplusCredit = Math.max(paymentAmountValue - params.chargeAmount, 0);
 
   // Validate paymentAmount is sufficient when not debiting from user's balance
   //
-  if (!useBalance && surplusCredit < 0) {
+  if (ignoreBalance && paymentAmountValue < params.chargeAmount) {
     throw Error("Payment amount is insufficient to complete transaction.");
   }
 
-  if (useBalance && params.chargeAmount <= 0) {
+  if (!ignoreBalance && params.chargeAmount <= 0) {
     // If the user has sufficient balance to complete the cart checkout AND we're to use
     // the existing account balance, we immediately create all the purchase items and
     // products for the user and deduct the charges for each from the existing balance.
@@ -150,7 +137,7 @@ export const shoppingCartCheckout = async({
     // item from the available balance, but mark it as an entry in the Stripe invoice for
     // reference.
     //
-    if (useBalance) {
+    if (!ignoreBalance) {
       if (availableBalance >= itemCharge) {
         // When sufficient account balance exists, deduct entire charge from that.
         //
@@ -158,7 +145,7 @@ export const shoppingCartCheckout = async({
 
         return {
           amount: 0,
-          description: `${description} ($${round2(itemCharge).toFixed(2)} deducted from account balance)`
+          description: `${description} [${currency(itemCharge)} deducted from account balance]`
         };
       } else if (availableBalance > 0) {
         // Otherwise, deduct remaining available balance and charge the remainder accordingly.
@@ -168,7 +155,7 @@ export const shoppingCartCheckout = async({
 
         return {
           amount: itemCharge - remainingAvailableBalance,
-          description: `${description} ($${round2(remainingAvailableBalance).toFixed(2)} deducted from account balance)`
+          description: `${description} [${currency(remainingAvailableBalance)} deducted from account balance]`
         };
       }
 
@@ -184,17 +171,14 @@ export const shoppingCartCheckout = async({
     };
   });
 
-  // Add line item corresponding to minimum payment requirement. If paymentAmountValue
-  // is non-zero, it's already been verified to be greater than the minimum required
-  // payment so that we don't need to add the extra charge.
+  // If balance has gone below minimum account balance (e.g., if the user's minimum account balance is changed by
+  // an admin), then we add a line item to correct that here.
   //
-  // (see src/packages/util/purchases/charge-amount.ts)
-  //
-  const minimumPaymentCharge = params.chargeAmount - params.amountDue;
-  if (minimumPaymentCharge > 0 && !paymentAmountValue) {
+  const balanceDeficit = params.balance - params.minBalance;
+  if (balanceDeficit < 0) {
     stripeCheckoutList.push({
-      amount: minimumPaymentCharge,
-      description: "Pay-as-you-go minimum payment charge"
+      amount: balanceDeficit,
+      description: "Cure existing balance deficit"
     });
   }
 
@@ -203,8 +187,27 @@ export const shoppingCartCheckout = async({
   if (surplusCredit > 0) {
     stripeCheckoutList.push({
       amount: surplusCredit,
-      description: "User-requested account credit"
+      description: `${currency(surplusCredit)} account credit`
     });
+  }
+
+  // Add line item corresponding to minimum payment requirement. If paymentAmountValue
+  // is non-zero, it's already been verified to be greater than the minimum required
+  // payment so that we don't need to add the extra charge.
+  //
+  // (see src/packages/util/purchases/charge-amount.ts)
+  //
+  const minimumPaymentCharge = params.chargeAmount - params.amountDue;
+  if (minimumPaymentCharge > 0) {
+    stripeCheckoutList.push({
+      amount: minimumPaymentCharge,
+      description: "Pay-as-you-go minimum payment charge"
+    });
+  }
+
+  const checkoutTotal = stripeCheckoutList.reduce((total, item) => total += item.amount, 0);
+  if (currency(checkoutTotal, 2) !== currency(params.chargeAmount + surplusCredit, 2)) {
+    throw Error(`Computed cart total ${currency(checkoutTotal)} does not match expected charge amount ${currency(params.chargeAmount + surplusCredit)}.`);
   }
 
   const session = await createStripeCheckoutSession({

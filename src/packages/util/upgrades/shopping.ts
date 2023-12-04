@@ -13,20 +13,20 @@ export type Period = "range" | "monthly" | "yearly";
 
 export type DateRange = [Date | undefined, Date | undefined];
 
-type DiskCostProps = {
+export type DiskCostProps = {
   type: "disk";
   dedicated_disk: DedicatedDisk;
   period: Period;
 }
 
-type VMCostProps = {
+export type VMCostProps = {
   type: "vm";
   period: "range";
   range: DateRange;
   dedicated_vm: DedicatedVM;
 }
 
-type QuotaCostProps = {
+export type QuotaCostProps = {
   type: "quota";
   user: User;
   run_limit: number;
@@ -41,7 +41,7 @@ type QuotaCostProps = {
   boost?: boolean;
 }
 
-type CashVoucherCostProps = {
+export type CashVoucherCostProps = {
   type: "cash-voucher";
   amount: number;
 }
