@@ -177,7 +177,7 @@ export const shoppingCartCheckout = async({
   const balanceDeficit = params.balance - params.minBalance;
   if (balanceDeficit < 0) {
     stripeCheckoutList.push({
-      amount: balanceDeficit,
+      amount: -balanceDeficit,
       description: "Cure existing balance deficit"
     });
   }

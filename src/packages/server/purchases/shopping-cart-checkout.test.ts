@@ -135,6 +135,29 @@ describe("shopping-cart-checkout", () => {
         .toThrow("insufficient to complete");
     });
 
+    it("throws an error when computed cart total does not match chargeAmount", async () => {
+      // Arrange
+      //
+      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
+        balance: NaN,
+        minPayment: NaN,
+        amountDue: 0.5,
+        chargeAmount: 0.5,
+        total: NaN,
+        minBalance: NaN,
+        cart: []
+      }));
+
+      // Assert
+      //
+      await expect(sut.shoppingCartCheckout({
+        ...testCheckout,
+        paymentAmount: 0.5,
+      }))
+        .rejects
+        .toThrow("Computed cart total $0.00 does not match expected charge amount $0.50.");
+    });
+
     it("uses account balance when available", async () => {
       // Arrange
       //
@@ -279,6 +302,57 @@ describe("shopping-cart-checkout", () => {
           {
             "amount": 1.0,
             "description": expect.stringContaining("account credit"),
+          },
+        ],
+      });
+    });
+
+    it("adds line item to settle account credit", async () => {
+      // Arrange
+      //
+      const testCart = [
+        {
+          cost: {
+            discounted_cost: 1.0
+          },
+          description: {
+            type: "disk",
+            description: "foo",
+          },
+        },
+      ];
+
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
+      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
+        balance: -0.1,
+        minPayment: NaN,
+        amountDue: 1.1,
+        chargeAmount: 1.1,
+        total: NaN,
+        minBalance: 0.0,
+        cart: testCart,
+      }));
+
+      // Act
+      //
+      const checkoutResult = await sut.shoppingCartCheckout({
+        ...testCheckout,
+        paymentAmount: 1.1,
+      });
+      const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
+
+      // Assert
+      //
+      expect(checkoutResult.done).toEqual(false);
+      expect(checkoutSessionArgs).toEqual({
+        ...testCheckout,
+        line_items: [
+          expect.objectContaining({
+            description: "test",
+          }),
+          {
+            "amount": 0.1,
+            "description": expect.stringContaining("existing balance deficit"),
           },
         ],
       });
