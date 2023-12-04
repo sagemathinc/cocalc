@@ -29,6 +29,7 @@ import {
   parsableJson,
   displayJson,
   to_trimmed_str,
+  SiteSettings,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -63,21 +64,24 @@ const pii_retention_display = (retention: string) => {
   }
 };
 
-const openai_enabled = (conf) => to_bool(conf.openai_enabled);
-const vertexai_enabled = (conf) => to_bool(conf.vertexai_enabled);
-const any_llm_enabled = (conf) =>
+const openai_enabled = (conf: SiteSettings) => to_bool(conf.openai_enabled);
+const vertexai_enabled = (conf: SiteSettings) =>
+  to_bool(conf.google_vertexai_enabled);
+const any_llm_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) || vertexai_enabled(conf);
 
-const compute_servers_enabled = (conf) => to_bool(conf.compute_servers_enabled);
-const compute_servers_google_enabled = (conf) =>
+const compute_servers_enabled = (conf: SiteSettings) =>
+  to_bool(conf.compute_servers_enabled);
+const compute_servers_google_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_google-cloud_enabled"]);
-// const compute_servers_lambda_enabled = (conf) =>
+// const compute_servers_lambda_enabled = (conf: SiteSettings) =>
 //   to_bool(conf["compute_servers_lambda-cloud_enabled"]);
 
-const neural_search_enabled = (conf) =>
+const neural_search_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);
 
-const jupyter_api_enabled = (conf) => to_bool(conf.jupyter_api_enabled);
+const jupyter_api_enabled = (conf: SiteSettings) =>
+  to_bool(conf.jupyter_api_enabled);
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
@@ -100,8 +104,10 @@ export type SiteSettingsExtrasKeys =
   | "openai_section"
   | "openai_api_key"
   | "google_vertexai_key"
+  | "qdrant_section"
   | "qdrant_api_key"
   | "qdrant_cluster_url"
+  | "salesloft_section"
   | "salesloft_api_key"
   | "jupyter_section"
   | "jupyter_account_id"
@@ -163,11 +169,18 @@ export const EXTRAS: SettingsExtras = {
     show: openai_enabled,
   },
   google_vertexai_key: {
-    name: "Google VertexAI",
+    name: "Google Generative AI Key",
     desc: "Create a [Generative AI Key](https://makersuite.google.com/app/apikey) in the MakerSuite and paste the content.",
     default: "",
     password: true,
     show: vertexai_enabled,
+  },
+  qdrant_section: {
+    name: "Qdrant Configuration",
+    desc: "",
+    default: "",
+    show: neural_search_enabled,
+    type: "header",
   },
   qdrant_cluster_url: {
     name: "Qdrant Cluster URL (needed for OpenAI Neural Search)",
@@ -181,6 +194,13 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: neural_search_enabled,
+  },
+  salesloft_section: {
+    name: "Salesloft Configuration",
+    desc: "",
+    default: "",
+    show: only_cocalc_com,
+    type: "header",
   },
   salesloft_api_key: {
     name: "Salesloft API key (needed for Salesloft integration)",
