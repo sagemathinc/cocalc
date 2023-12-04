@@ -87,22 +87,14 @@ export async function createStatements({
   // included in its computation!
   const client = await getTransactionClient();
 
-  // in case of 'day' get a list of accounts that already received a statement today.
-  let alreadyHasStatement;
-  if (interval == "day") {
-    // get all accounts that had a statement already within the last day
-    const { rows } = await client.query(
-      "SELECT account_id FROM statements WHERE interval='day' AND time > NOW() - INTERVAL '1 day'",
-    );
-    alreadyHasStatement = new Set(rows.map((row) => row.account_id));
-  } else {
-    // month interval case -- really day would work for this as well because statements
-    // are issued on the closing day only.
-    const { rows } = await client.query(
-      "SELECT account_id FROM statements WHERE interval='day' AND time > NOW() - INTERVAL '1 week'",
-    );
-    alreadyHasStatement = new Set(rows.map((row) => row.account_id));
-  }
+  // Get all accounts that had a statement already with this time and interval
+  // -- the time is UTC midnight of a given day, hence why we just us an
+  // quality test.
+  const { rows } = await client.query(
+    "SELECT account_id FROM statements WHERE interval=$1 AND time=$2",
+    [interval, time],
+  );
+  const alreadyHasStatement = new Set(rows.map((row) => row.account_id));
 
   try {
     /*

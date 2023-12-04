@@ -27,7 +27,7 @@ export function synctable_no_changefeed(
   query,
   options,
   client: Client,
-  throttle_changes?: undefined | number
+  throttle_changes?: undefined | number,
 ): SyncTable {
   if (options == null) {
     options = [];
@@ -112,4 +112,9 @@ class ClientNoChangefeed extends EventEmitter {
       this.client.alert_message(opts);
     }
   }
+
+  is_deleted = (_path: string, _project_id: string) => {
+    // not implemented yet in general
+    return undefined;
+  };
 }

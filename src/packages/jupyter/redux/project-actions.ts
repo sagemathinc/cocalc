@@ -287,6 +287,11 @@ export class JupyterActions extends JupyterActions0 {
   // If running is true, starts the kernel and waits until running.
   ensure_backend_kernel_setup = () => {
     const dbg = this.dbg("ensure_backend_kernel_setup");
+    if (this.isDeleted()) {
+      dbg("file is deleted");
+      return;
+    }
+
     const kernel = this.store.get("kernel");
 
     let current: string | undefined = undefined;
@@ -1170,6 +1175,15 @@ export class JupyterActions extends JupyterActions0 {
   save_ipynb_file = async () => {
     const dbg = this.dbg("save_ipynb_file");
     dbg("saving to file");
+
+    // Check first if file was deleted, in which case instead of saving to disk,
+    // we should terminate and clean up everything.
+    if (this.isDeleted()) {
+      dbg("ipynb file is deleted, so NOT saving to disk and closing");
+      this.close({ noSave: true });
+      return;
+    }
+
     if (this.jupyter_kernel == null) {
       // The kernel is needed to get access to the blob store, which
       // may be needed to save to disk.

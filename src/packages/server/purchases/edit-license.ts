@@ -132,9 +132,9 @@ export default async function editLicense(
     note += " ";
   }
   if (cost0) {
-    note += `We use the fixed cost ${currency(cost)}.`;
+    note += `We use the fixed cost ${currency(Math.abs(cost))}.`;
   } else {
-    note += `We use the current prorated cost ${currency(cost)}.`;
+    note += `We use the current prorated cost ${currency(Math.abs(cost))}.`;
   }
 
   logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);

@@ -25,7 +25,7 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
   const runQuota = useRunQuota(project_id, null);
   const student_pay = useMemo(
     () => projects_store.date_when_course_payment_required(project_id),
-    [project_map, project_id]
+    [project_map, project_id],
   );
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const isSandbox = project_map?.getIn([project_id, "sandbox"]);
@@ -62,7 +62,10 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
     }
     // we exclude students, but still show a warning about internet
     if (student_pay) {
-      return showNoInternetBanner();
+      if (!internet) {
+        return showNoInternetBanner();
+      }
+      return null;
     }
     if (!host && !internet) {
       return null;
@@ -99,6 +102,7 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
         <NoInternetBanner
           project_id={project_id}
           projectSiteLicenses={projectSiteLicenses}
+          student_pay={!!student_pay}
         />
       );
   }

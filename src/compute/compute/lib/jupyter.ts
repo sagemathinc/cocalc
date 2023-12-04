@@ -25,8 +25,8 @@ class RemoteJupyter {
   private websocket;
   private path: string;
   private sync_db;
-  private actions;
-  private store;
+  private actions?;
+  private store?;
   private interval;
 
   constructor({ client, path }: { client: SyncClient; path: string }) {
@@ -149,9 +149,9 @@ class RemoteJupyter {
     }
   };
 
-  private initRedux = () => {
+  private initRedux = async () => {
     this.log("initializing jupyter redux...");
-    initJupyterRedux(this.sync_db, this.client);
+    await initJupyterRedux(this.sync_db, this.client);
     const { project_id } = this.client;
     const { path } = this;
     this.actions = redux.getEditorActions(project_id, path);

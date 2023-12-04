@@ -7,15 +7,28 @@ import PaySoon from "./pay-soon";
 import InstructorBanner from "./instructor-banner";
 import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
 
-export default function StudentPayUpgrade({ project_id }) {
+export default function StudentPayUpgrade({
+  project_id,
+  style,
+}: {
+  project_id: string;
+  style?;
+}) {
   const [open, setOpen] = useState<boolean>(false);
   const course = useRedux(
     ["project_map", project_id, "course"],
-    "projects"
+    "projects",
   )?.toJS();
   const account_id = useTypedRedux("account", "account_id");
+  const email_address = useTypedRedux("account", "email_address");
 
-  const { when, paid, purchaseInfo, student_account_id } = useMemo(() => {
+  const {
+    when,
+    paid,
+    purchaseInfo,
+    student_account_id,
+    student_email_address,
+  } = useMemo(() => {
     if (course == null) {
       return { when: null, purchaseInfo: null, paid: null };
     }
@@ -42,18 +55,23 @@ export default function StudentPayUpgrade({ project_id }) {
       paid: course.paid ? dayjs(course.paid) : null,
       purchaseInfo,
       student_account_id: course.account_id,
+      student_email_address: course.email_address,
     };
   }, [course]);
 
   if (!when) {
     return null;
   }
-  if (account_id == student_account_id) {
+  let body;
+  if (
+    account_id == student_account_id ||
+    email_address == student_email_address
+  ) {
     if (paid) {
       return null;
     }
     if (when <= dayjs()) {
-      return (
+      body = (
         <PayNow
           project_id={project_id}
           when={when}
@@ -61,26 +79,27 @@ export default function StudentPayUpgrade({ project_id }) {
           open={true}
         />
       );
+    } else {
+      body = (
+        <>
+          <PaySoon
+            when={when}
+            purchaseInfo={purchaseInfo}
+            setOpen={setOpen}
+            project_id={project_id}
+          />
+          <PayNow
+            open={open}
+            setOpen={setOpen}
+            project_id={project_id}
+            when={when}
+            purchaseInfo={purchaseInfo}
+          />
+        </>
+      );
     }
-    return (
-      <>
-        <PaySoon
-          when={when}
-          purchaseInfo={purchaseInfo}
-          setOpen={setOpen}
-          project_id={project_id}
-        />
-        <PayNow
-          open={open}
-          setOpen={setOpen}
-          project_id={project_id}
-          when={when}
-          purchaseInfo={purchaseInfo}
-        />
-      </>
-    );
   } else {
-    return (
+    body = (
       <InstructorBanner
         when={when}
         purchaseInfo={purchaseInfo}
@@ -89,4 +108,5 @@ export default function StudentPayUpgrade({ project_id }) {
       />
     );
   }
+  return <div style={style}>{body}</div>;
 }

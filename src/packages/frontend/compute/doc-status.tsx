@@ -68,7 +68,7 @@ export default function ComputeServerTransition({
         borderBottom:
           requestedServer != null && !showDetails
             ? "1px solid #ccc"
-            : /*? `1px solid ${requestedServer.get("color")}` */
+            : /*? `1px solid ${requestedServer?.get("color")}` */
               undefined,
         height: "23px",
       }}
@@ -82,8 +82,8 @@ export default function ComputeServerTransition({
           time={syncState?.get("time")}
           syncing={
             requestedServer?.get("state") == "running" &&
-            !syncState.get("extra") &&
-            (syncState.get("progress") ?? 100) <
+            !syncState?.get("extra") &&
+            (syncState?.get("progress") ?? 100) <
               80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
           }
         >

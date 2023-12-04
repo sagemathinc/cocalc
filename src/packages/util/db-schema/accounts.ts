@@ -404,7 +404,7 @@ Table({
             const id = await db.nameToAccountOrOrganization(obj["name"]);
             if (id != null && id != account_id) {
               cb(
-                `name "${obj["name"]}" is already taken by another organization or account`
+                `name "${obj["name"]}" is already taken by another organization or account`,
               );
               return;
             }
@@ -560,16 +560,24 @@ interface Tag {
   welcome?: string; // a simple "welcome" of this type
   jupyterExtra?: string;
   torun?: string; // how to run this in a terminal (e.g., for a .py file).
+  color?: string;
 }
 
 export const TAGS: Tag[] = [
-  { label: "Jupyter", tag: "ipynb" },
+  { label: "Jupyter", tag: "ipynb", color: "magenta" },
   {
     label: "Python",
     tag: "py",
     language: "python",
     welcome: 'print("Welcome to CoCalc from Python!")',
     torun: "# Click Terminal, then type 'python3 welcome.py'",
+    color: "red",
+  },
+  {
+    label: "AI / GPU's",
+    tag: "gpu",
+    color: "volcano",
+    icon: "gpu",
   },
   {
     label: "R Stats",
@@ -577,6 +585,7 @@ export const TAGS: Tag[] = [
     language: "r",
     welcome: 'print("Welcome to CoCalc from R!")',
     torun: "# Click Terminal, then type 'Rscript welcome.R'",
+    color: "orange",
   },
   {
     label: "SageMath",
@@ -584,19 +593,24 @@ export const TAGS: Tag[] = [
     language: "sagemath",
     welcome: "print('Welcome to CoCalc from Sage!', factor(2023))",
     torun: "# Click Terminal, then type 'sage welcome.sage'",
+    color: "gold",
   },
   {
     label: "Octave",
+    icon: "octave",
     tag: "m",
     language: "octave",
     welcome: `disp("Welcome to CoCalc from Octave!")`,
     torun: "% Click Terminal, then type 'octave --no-window-system welcome.m'",
+    color: "geekblue",
   },
   {
     label: "Linux",
+    icon: "linux",
     tag: "term",
     language: "bash",
     welcome: "echo 'Welcome to CoCalc from Linux/BASH!'",
+    color: "green",
   },
   {
     label: "LaTeX",
@@ -606,11 +620,13 @@ export const TAGS: Tag[] = [
 \\begin{document}
 \\maketitle
 \\end{document}`,
+    color: "cyan",
   },
   {
     label: "C/C++",
     tag: "c",
     language: "C++17",
+    icon: "cube",
     welcome: `
 #include <stdio.h>
 int main() {
@@ -619,32 +635,31 @@ int main() {
 }`,
     jupyterExtra: "\nmain();\n",
     torun: "/* Click Terminal, then type 'gcc welcome.c && ./a.out' */",
+    color: "blue",
   },
   {
     label: "Julia",
     language: "julia",
+    icon: "julia",
     tag: "jl",
     welcome: 'println("Welcome to CoCalc from Julia!")',
     torun: "# Click Terminal, then type 'julia welcome.jl' */",
+    color: "geekblue",
   },
   {
     label: "Markdown",
     tag: "md",
     welcome:
       "# Welcome to CoCalc from Markdown!\n\nYou can directly edit the rendered markdown -- try it!\n\nAnd run code:\n\n```py\n2+3\n```\n",
+    color: "purple",
   },
-  {
-    label: "Whiteboard",
-    tag: "board",
-    welcome: `{"data":{"color":"#252937"},"h":96,"id":"1244fb1f","page":"b7cda7e9","str":"# Welcome to CoCalc from a Whiteboard!\\n\\n","type":"text","w":779,"x":-305,"y":-291,"z":1}
-{"data":{"pos":0},"id":"b7cda7e9","type":"page","z":0}`,
-  },
-  { label: "Teaching", tag: "course" },
-  {
-    label: "Chat",
-    tag: "sage-chat",
-    welcome: `{"date":"2023-04-26T18:27:39.842Z","event":"chat","history":[{"content":"Welcome to CoCalc!","date":"2023-04-26T18:27:39.842Z"}]}`,
-  },
+  //   {
+  //     label: "Whiteboard",
+  //     tag: "board",
+  //     welcome: `{"data":{"color":"#252937"},"h":96,"id":"1244fb1f","page":"b7cda7e9","str":"# Welcome to CoCalc from a Whiteboard!\\n\\n","type":"text","w":779,"x":-305,"y":-291,"z":1}
+  // {"data":{"pos":0},"id":"b7cda7e9","type":"page","z":0}`,
+  //   },
+  { label: "Teaching", tag: "course", color: "green" },
 ];
 
 export const TAGS_MAP: { [key: string]: Tag } = {};
