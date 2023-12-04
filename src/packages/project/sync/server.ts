@@ -242,7 +242,7 @@ class SyncTableChannel {
     }
     if (this.synctable.table === "syncstrings") {
       this.log("init_synctable -- syncstrings: also initialize syncdoc...");
-      init_syncdoc(this.client, this.synctable, this.logger);
+      init_syncdoc(this.client, this.synctable);
     }
 
     this.synctable.on(
