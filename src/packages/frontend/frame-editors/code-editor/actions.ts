@@ -1200,6 +1200,7 @@ export class Actions<
     ) {
       return;
     }
+    const hasUnsavedChanges = this.store.get("has_unsaved_changes");
     // TODO: Maybe just move this to some explicit menu of actions, which also includes
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
@@ -1233,7 +1234,9 @@ export class Actions<
     if (explicit) {
       this.explicit_save();
     }
-    syncAllComputeServers(this.project_id);
+    if (hasUnsavedChanges) {
+      syncAllComputeServers(this.project_id);
+    }
   }
 
   // Gets the most recent time of a save; if self_only is false (the default),
