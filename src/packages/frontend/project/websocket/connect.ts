@@ -78,10 +78,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // So that the store reflects that we are not connected but are trying.
   set_project_websocket_state(project_id, "offline");
 
-  const MAX_AJAX_TIMEOUT_MS: number = 3500;
+  const MAX_AJAX_TIMEOUT_MS: number = 10000;
 
   async function get_primus(do_eval: boolean) {
-    let timeout: number = 750;
+    let timeout: number = 7500;
     await retry_until_success({
       f: async function () {
         if (do_eval && READING_PRIMUS_JS) {
@@ -144,7 +144,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
             });
           };
           log(
-            `load_primus: attempt to get primus.js with timeout=${timeout}ms and do_eval=${do_eval}`
+            `load_primus: attempt to get primus.js with timeout=${timeout}ms and do_eval=${do_eval}`,
           );
           await callback(load_primus);
           log("load_primus: done");
@@ -161,19 +161,19 @@ async function connection_to_project0(project_id: string): Promise<any> {
           //console.log("success!");
         }
       },
-      start_delay: 150,
-      max_delay: 5000, // do not make too aggressive or it DDOS proxy server;
+      start_delay: 1000,
+      max_delay: 10000, // do not make too aggressive or it DDOS proxy server;
       // but also not too slow since project startup will feel slow to user.
       // NOTE that since we wait until the project is running before any attempt to connect,
       // most of the time we do a GET request, then wait for it to fail, which takes timeout ms.
       // This delay here (that retry_until_success introduces) is really only due to
       // paranoia that maybe the GET request fails very quickly (I don't know if that
       // is even possible).
-      factor: 1.2,
+      factor: 1.3,
       desc: "connecting to project",
-//       log: (...x) => {
-//         log("retry primus:", ...x);
-//       },
+      //       log: (...x) => {
+      //         log("retry primus:", ...x);
+      //       },
     });
 
     log("got primus.js successfully");
