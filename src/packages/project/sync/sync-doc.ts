@@ -18,8 +18,8 @@ import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import type Client from "@cocalc/sync-client";
 import { once } from "@cocalc/util/async-utils";
-import { filename_extension } from "@cocalc/util/misc";
-import { initJupyterRedux } from "@cocalc/jupyter/kernel";
+import { filename_extension, original_path } from "@cocalc/util/misc";
+import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { EventEmitter } from "events";
 import { COMPUTER_SERVER_DB_NAME } from "@cocalc/util/compute/manager";
 import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
@@ -175,7 +175,7 @@ async function init_syncdoc_async(
   await wait_until_synctable_ready(synctable);
   log("synctable ready.  Now getting type and opts");
   const { type, opts } = get_type_and_opts(synctable);
-  opts.project_id = client.client_id();
+  const project_id = (opts.project_id = client.client_id());
   //   log("type = ", type);
   //   log("opts = ", JSON.stringify(opts));
   opts.client = client;
@@ -188,12 +188,12 @@ async function init_syncdoc_async(
     // TODO: how to properly inform clients and deal with this?!
     return;
   }
-  synctable.on("closed", function () {
+  synctable.on("closed", () => {
     log("synctable closed, so closing syncdoc", opts.path);
     syncDocs.close(opts.path);
   });
 
-  syncdoc.on("error", function (err) {
+  syncdoc.on("error", (err) => {
     log(`syncdoc error -- ${err}`);
     syncDocs.close(opts.path);
   });
@@ -203,8 +203,13 @@ async function init_syncdoc_async(
   log("ext = ", ext);
   switch (ext) {
     case "sage-jupyter2":
-      log("activating jupyter backend");
+      log("initializing Jupyter backend");
       initJupyterRedux(syncdoc, client);
+      const path = original_path(syncdoc.get_path());
+      synctable.on("closed", () => {
+        log("removing Jupyter backend");
+        removeJupyterRedux(path, project_id);
+      });
       break;
   }
 }

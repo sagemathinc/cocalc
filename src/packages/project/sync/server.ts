@@ -93,7 +93,6 @@ interface Channel {
   destroy: Function;
 }
 
-
 interface Primus {
   channel: (str: string) => Channel;
 }
@@ -555,7 +554,6 @@ async function synctable_channel0(
     if (query?.listings != null) {
       register_listings_table(
         synctable_channels[name].get_synctable(),
-        logger,
         client.client_id(),
       );
     } else if (query?.project_info != null) {

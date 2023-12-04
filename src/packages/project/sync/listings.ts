@@ -25,12 +25,15 @@ import {
 import { Watcher } from "./path-watcher";
 import { close_all_syncdocs_in_tree } from "./sync-doc";
 import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
+import { getLogger } from "@cocalc/backend/logger";
+
+const logger = getLogger("project:sync:listings");
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
 const WATCH_DEBOUNCE_MS = parseInt(
-  process.env.COCALC_FS_WATCH_DEBOUNCE_MS ?? "1500"
+  process.env.COCALC_FS_WATCH_DEBOUNCE_MS ?? "1500",
 );
 
 // See https://github.com/sagemathinc/cocalc/issues/4623
@@ -64,14 +67,12 @@ export type ImmutableListing = TypedMap<Listing>;
 
 class ListingsTable {
   private readonly table?: SyncTable; // might be removed by close()
-  private logger: undefined | { debug: Function };
   private project_id: string;
   private watchers: { [path: string]: Watcher } = {};
 
-  constructor(table: SyncTable, logger: any, project_id: string) {
+  constructor(table: SyncTable, project_id: string) {
     this.project_id = project_id;
-    this.logger = logger;
-    this.log("register");
+    this.log("constructor");
     this.table = table;
     this.setup_watchers();
   }
@@ -144,8 +145,7 @@ class ListingsTable {
   }
 
   private log(...args): void {
-    if (this.logger == null) return;
-    this.logger.debug("listings_table", ...args);
+    logger.debug("ListingsTable", ...args);
   }
 
   private is_ready(): boolean {
@@ -162,7 +162,7 @@ class ListingsTable {
   async set(obj: Listing): Promise<void> {
     this.get_table().set(
       merge({ project_id: this.project_id }, obj),
-      "shallow"
+      "shallow",
     );
     await this.get_table().save();
   }
@@ -214,7 +214,7 @@ class ListingsTable {
     } catch (err) {
       this.log(
         "ensure_watching -- failed to compute listing so not starting watching",
-        err
+        err,
       );
       return;
     }
@@ -352,7 +352,7 @@ class ListingsTable {
   // for the containing path in the database.  (TODO: we may change this
   // to create the record if it doesn't exist.)
   public async set_deleted(filename: string): Promise<void> {
-    this.log(`set_deleted: ${filename}`);
+    this.log("set_deleted:", filename);
     if (!this.is_ready()) {
       // set_deleted is a convenience, so dropping it in case of a project
       // with no network is OK.
@@ -391,7 +391,7 @@ class ListingsTable {
 
     // If it is a Jupyter kernel, close that too
     if (endswith(filename, ".ipynb")) {
-      this.log(`set_deleted: handling jupyter kernel for ${filename}`);
+      this.log("set_deleted: handling jupyter kernel for", filename);
       await removeJupyterRedux(filename, this.project_id);
       if (!this.is_ready()) return;
     }
@@ -430,8 +430,7 @@ let listings_table: ListingsTable | undefined = undefined;
 
 export function register_listings_table(
   table: SyncTable,
-  logger: any,
-  project_id: string
+  project_id: string,
 ): void {
   logger.debug("register_listings_table");
   if (listings_table != null) {
@@ -439,7 +438,7 @@ export function register_listings_table(
     // before making a new one.
     listings_table.close();
   }
-  listings_table = new ListingsTable(table, logger, project_id);
+  listings_table = new ListingsTable(table, project_id);
   return;
 }
 
