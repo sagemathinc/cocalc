@@ -473,6 +473,21 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   },
 } as const;
 
+export const ON_PREM_DEFAULTS = {
+  cpu: {
+    image: "python",
+    gpu: false,
+    cloud: "onprem",
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+  },
+  gpu: {
+    image: "pytorch",
+    gpu: true,
+    cloud: "onprem",
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+  },
+};
+
 // The ones that are at all potentially worth exposing to users.
 const CLOUDS: {
   [short: string]: {

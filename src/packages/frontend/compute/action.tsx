@@ -23,6 +23,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import ShowError from "@cocalc/frontend/components/error";
 import { redux, useStore } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { A } from "@cocalc/frontend/components";
 
 export default function getActions({
   id,
@@ -291,8 +292,7 @@ function ActionButton({
           id={id}
           title={
             <>
-              <Icon name="server" /> Connect Your Virtual Machine to this
-              Project
+              <Icon name="server" /> Connect Your Virtual Machine to CoCalc
             </>
           }
         />
@@ -389,12 +389,28 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
     >
       {action == "start" && (
         <div>
-          You can connect any <b>Ubuntu Linux Virtual Machine (VM)</b> with root
-          access to this project as a compute server. This VM can be anywhere
-          (your laptop or a cloud hosting providing). Your VM needs to be able
-          to create outgoing network connections, but does NOT need to have a
-          public ip address, and it must be an actual VM, not a Docker
-          container.{" "}
+          You can connect any <b>Ubuntu 22.04 Linux Virtual Machine (VM)</b>{" "}
+          with root access to this project. This VM can be anywhere (your laptop
+          or a cloud hosting providing). Your VM needs to be able to create
+          outgoing network connections, but does NOT need to have a public ip
+          address.
+          <Alert
+            style={{ margin: "15px 0" }}
+            type="warning"
+            showIcon
+            message={<b>USE AN ACTUAL UBUNTU 22.04 VIRTUAL MACHINE</b>}
+            description={
+              <div>
+                Install a Virtual Machine on your compute using{" "}
+                <A href="https://www.virtualbox.org/">VirtualBox</A> or{" "}
+                <A href="https://mac.getutm.app/">UTM</A> or some other
+                virtualization software, or create a VM on a cloud hosting
+                provider. Do not try to run the command below directly on your
+                computer or just using Docker, since that is insecure and not
+                likely to work.
+              </div>
+            }
+          />
           {configuration.gpu && (
             <span>
               Since you clicked GPU, you must also have an NVIDIA GPU and the
@@ -427,7 +443,8 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
         {apiKey && (
           <div>
             <div style={{ marginBottom: "10px" }}>
-              Run the following in your VM:
+              Copy and paste the following into a terminal in your{" "}
+              <b>Virtual Machine</b>:
             </div>
             <CopyToClipBoard
               inputWidth={"700px"}
