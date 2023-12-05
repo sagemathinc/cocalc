@@ -26,6 +26,7 @@ interface Props {
   value?: string; // currently selected project
   defaultValue?: string;
   style?: CSS;
+  minimal?: boolean;
 }
 
 export const SelectProject: React.FC<Props> = ({
@@ -35,11 +36,12 @@ export const SelectProject: React.FC<Props> = ({
   value,
   defaultValue,
   style,
+  minimal,
 }) => {
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
 
   // include deleted projects in the selector
@@ -137,30 +139,34 @@ export const SelectProject: React.FC<Props> = ({
             </Select.Option>
           ))}
         </Select>
-        <div style={{ margin: "auto" }}>
-          <Checkbox
-            checked={include_hidden}
-            onChange={(e) => set_include_hidden(e.target.checked)}
-          >
-            Hidden
-          </Checkbox>
-          <Checkbox
-            checked={include_deleted}
-            onChange={(e) => set_include_deleted(e.target.checked)}
-          >
-            Deleted
-          </Checkbox>
-          {!all_projects_have_been_loaded && (
-            <span>
-              <br />
-              <a
-                onClick={() => redux.getActions("projects").load_all_projects()}
-              >
-                Load all projects...
-              </a>
-            </span>
-          )}
-        </div>
+        {!minimal && (
+          <div style={{ margin: "auto" }}>
+            <Checkbox
+              checked={include_hidden}
+              onChange={(e) => set_include_hidden(e.target.checked)}
+            >
+              Hidden
+            </Checkbox>
+            <Checkbox
+              checked={include_deleted}
+              onChange={(e) => set_include_deleted(e.target.checked)}
+            >
+              Deleted
+            </Checkbox>
+            {!all_projects_have_been_loaded && (
+              <span>
+                <br />
+                <a
+                  onClick={() =>
+                    redux.getActions("projects").load_all_projects()
+                  }
+                >
+                  Load all projects...
+                </a>
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

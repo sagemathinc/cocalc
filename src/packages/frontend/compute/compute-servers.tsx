@@ -24,107 +24,19 @@ export function Docs({ style }: { style? }) {
   );
 }
 
-export default function ComputeServers({ project_id }: { project_id: string }) {
+export default function ComputeServers({
+  project_id,
+  hideHelp,
+}: {
+  project_id: string;
+  hideHelp?: boolean;
+}) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
 
   return (
     <div style={{ paddingRight: "15px" }}>
-      <Typography.Paragraph
-        ellipsis={{
-          expandable: true,
-          rows: 2,
-          symbol: "more",
-        }}
-        style={{ fontSize: "12pt" }}
-      >
-        Do you need{" "}
-        <strong>
-          <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/ollama.md">
-            affordable GPU's
-          </A>
-        </strong>
-        , <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
-        <strong>Docker</strong>, to host a{" "}
-        <strong>
-          <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/docs/cocalc.com.md">
-            powerful public webserver
-          </A>
-        </strong>
-        , or use{" "}
-        <strong>
-          <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
-            commercial software
-          </A>
-        </strong>{" "}
-        in CoCalc? Compute servers are pay as you go virtual machines where you
-        can run Jupyter notebooks, terminals and web servers collaboratively,
-        with full access to this project.
-        <ul>
-          <li>
-            <Icon name="ubuntu" /> Full root and internet access on an Ubuntu
-            Linux server,
-          </li>
-          <li>
-            <Icon name="server" /> Dedicated GPU's, hundreds of very fast
-            vCPU's, and thousands of GB of RAM
-          </li>
-          <li>
-            <Icon name="mathematica" /> <Icon name="matlab" />{" "}
-            <Icon name="maple" /> Install any free and commercial Linux software
-            (e.g., MATLAB,{" "}
-            <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
-              Mathematica
-            </A>
-            , any Docker container, etc.)
-          </li>
-          <li>
-            {" "}
-            <Icon name="dns" /> Public ip address and (optional) domain name
-          </li>
-          <li>
-            {" "}
-            <Icon name="sync" /> Files sync'd with this project when you click
-            the "Sync files" button.
-          </li>
-        </ul>
-        <h3>Getting Started</h3>
-        <ul>
-          <li>Create a compute server below and start it.</li>
-          <li>
-            Once your compute server is running, select it in the upper left of
-            any terminal or Jupyter notebook in this project.{" "}
-          </li>
-          <li>
-            Compute servers stay running independently of your project, so if
-            you need to restart your project for any reason, that doesn't impact
-            running notebooks and terminals on your compute servers.
-          </li>
-          <li>
-            A compute server belongs to the user who created it; only they can
-            start or stop it, and they will be billed by the second for usage.
-            Any project collaborator can connect to a running compute server.
-          </li>
-          <li>
-            You can ssh to root@ or user@ the ip address of your compute server
-            using any{" "}
-            <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
-              project
-            </A>{" "}
-            or{" "}
-            <A href="https://doc.cocalc.com/account/ssh.html">
-              account public ssh keys
-            </A>{" "}
-            that has access to this project (you must restart the compute server
-            if you add keys). Once there, type{" "}
-            <code>docker exec -it compute bash</code> to access your compute
-            image. If you start a web service on any port P on your compute
-            server, type <code>ssh -L P:localhost:P root@ip_address</code>
-            on your laptop, and you can connect to that web service on localhost
-            on your laptop.
-          </li>
-        </ul>
-      </Typography.Paragraph>
+      {!hideHelp && <Help />}
       {availableClouds().length == 0 ? (
         <b>No Compute Server Clouds are currently enabled.</b>
       ) : (
@@ -135,6 +47,106 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         />
       )}
     </div>
+  );
+}
+
+function Help() {
+  return (
+    <Typography.Paragraph
+      ellipsis={{
+        expandable: true,
+        rows: 2,
+        symbol: "more",
+      }}
+      style={{ fontSize: "12pt" }}
+    >
+      Do you need{" "}
+      <strong>
+        <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/ollama.md">
+          affordable GPU's
+        </A>
+      </strong>
+      , <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
+      <strong>Docker</strong>, to host a{" "}
+      <strong>
+        <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/docs/cocalc.com.md">
+          powerful public webserver
+        </A>
+      </strong>
+      , or use{" "}
+      <strong>
+        <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
+          commercial software
+        </A>
+      </strong>{" "}
+      in CoCalc? Compute servers are pay as you go virtual machines where you
+      can run Jupyter notebooks, terminals and web servers collaboratively, with
+      full access to this project.
+      <ul>
+        <li>
+          <Icon name="ubuntu" /> Full root and internet access on an Ubuntu
+          Linux server,
+        </li>
+        <li>
+          <Icon name="server" /> Dedicated GPU's, hundreds of very fast vCPU's,
+          and thousands of GB of RAM
+        </li>
+        <li>
+          <Icon name="mathematica" /> <Icon name="matlab" />{" "}
+          <Icon name="maple" /> Install any free and commercial Linux software
+          (e.g., MATLAB,{" "}
+          <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
+            Mathematica
+          </A>
+          , any Docker container, etc.)
+        </li>
+        <li>
+          {" "}
+          <Icon name="dns" /> Public ip address and (optional) domain name
+        </li>
+        <li>
+          {" "}
+          <Icon name="sync" /> Files sync'd with this project when you click the
+          "Sync files" button.
+        </li>
+      </ul>
+      <h3>Getting Started</h3>
+      <ul>
+        <li>Create a compute server below and start it.</li>
+        <li>
+          Once your compute server is running, select it in the upper left of
+          any terminal or Jupyter notebook in this project.{" "}
+        </li>
+        <li>
+          Compute servers stay running independently of your project, so if you
+          need to restart your project for any reason, that doesn't impact
+          running notebooks and terminals on your compute servers.
+        </li>
+        <li>
+          A compute server belongs to the user who created it; only they can
+          start or stop it, and they will be billed by the second for usage. Any
+          project collaborator can connect to a running compute server.
+        </li>
+        <li>
+          You can ssh to root@ or user@ the ip address of your compute server
+          using any{" "}
+          <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
+            project
+          </A>{" "}
+          or{" "}
+          <A href="https://doc.cocalc.com/account/ssh.html">
+            account public ssh keys
+          </A>{" "}
+          that has access to this project (you must restart the compute server
+          if you add keys). Once there, type{" "}
+          <code>docker exec -it compute bash</code> to access your compute
+          image. If you start a web service on any port P on your compute
+          server, type <code>ssh -L P:localhost:P root@ip_address</code>
+          on your laptop, and you can connect to that web service on localhost
+          on your laptop.
+        </li>
+      </ul>
+    </Typography.Paragraph>
   );
 }
 
@@ -259,10 +271,10 @@ function ComputeServerTable({
             placeholder="Filter servers..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 250 }}
+            style={{ width: 250, float: "right", marginBottom: "10px" }}
           />
         )}
-        {computeServers.size > 1 && (
+        {false && computeServers.size > 1 && (
           <span style={{ marginLeft: "15px" }}>
             Sort:{" "}
             <Radio.Group
