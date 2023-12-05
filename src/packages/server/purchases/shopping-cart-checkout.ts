@@ -178,7 +178,7 @@ export const shoppingCartCheckout = async({
   if (balanceDeficit < 0) {
     stripeCheckoutList.push({
       amount: -balanceDeficit,
-      description: "Cure existing balance deficit"
+      description: "Adjust for existing balance deficit"
     });
   }
 

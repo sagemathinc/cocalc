@@ -458,7 +458,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   const router = useRouter();
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
   const [runLimit, setRunLimit] = useState<number>(
-    description.type == "quota" ? description.run_limit ?? 0 : 0
+    description.type == "quota" ? description.run_limit ?? 0 : 0,
   );
   if (cost == null) {
     // don't crash when used on deprecated items
