@@ -56,6 +56,8 @@ export const useIFrameContext: () => IFrameContextType = () => {
 const EXTRA_TOP_CELLS = 2;
 const EXTRA_BOTTOM_CELLS = 1;
 
+const CELL_VISIBLE_THRESH = 50;
+
 // the extra bottom cell at the very end
 // See https://github.com/sagemathinc/cocalc/issues/6141 for a discussion
 // of why this.  It's the best I could come up with that was very simple
@@ -89,7 +91,8 @@ interface CellListProps {
   more_output?: immutable.Map<string, any>;
   name?: string;
   project_id?: string;
-  scroll?: Scroll; // scroll by this amount
+  scroll?: Scroll; // scroll as described by this, e.g., cecll visible'
+  scroll_seq?: number; // indicates
   scrollTop?: any;
   sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
@@ -117,6 +120,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     name,
     project_id,
     scroll,
+    scroll_seq,
     scrollTop,
     sel_ids,
     trust,
@@ -164,13 +168,15 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }, [is_focused]);
 
+  const lastScrollSeqRef = useRef<number>(-1);
   useEffect(() => {
+    if (scroll_seq == null) return;
     // scroll state may have changed
-    if (scroll != null) {
+    if (scroll != null && lastScrollSeqRef.current < scroll_seq) {
+      lastScrollSeqRef.current = scroll_seq;
       scroll_cell_list(scroll);
-      frameActions.current?.scroll(); // reset scroll request state
     }
-  }, [cur_id, scroll]);
+  }, [cur_id, scroll, scroll_seq]);
 
   const handleCellListRef = useCallback((node: any) => {
     cell_list_node.current = node;
@@ -292,11 +298,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       const cellList = actions?.store.get("cell_list");
       const index = cellList?.indexOf(cur_id);
       if (index == null) return;
-      if (scroll == "cell visible force") {
-        virtuosoRef.current?.scrollIntoView({
-          index: index + EXTRA_TOP_CELLS,
-        });
-      } else if (scroll == "cell visible") {
+      if (scroll == "cell visible") {
         // We ONLY scroll if the cell is not in the visible, since
         // react-virtuoso's "scrollIntoView" aggressively scrolls, even
         // if the item is in view.
@@ -319,11 +321,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           const cellRect = cell[0].getBoundingClientRect();
           const cellTop = cellRect.y;
           const cellBottom = cellRect.y + cellRect.height;
-          if (cellBottom - 15 <= scrollerRect.y) {
-            align = "end";
-            isNotVisible = true;
-          } else if (cellTop + 15 >= scrollerRect.y + scrollerRect.height) {
+          if (cellBottom <= scrollerRect.y + CELL_VISIBLE_THRESH) {
+            // the cell is entirely above the visible window
             align = "start";
+            isNotVisible = true;
+          } else if (
+            cellTop >=
+            scrollerRect.y + scrollerRect.height - CELL_VISIBLE_THRESH
+          ) {
+            // cell is completely below the visible window.
+            align = "end";
             isNotVisible = true;
           }
         }
@@ -384,7 +391,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     } else {
       // scroll not using windowed list
       scroll_cell_list_not_windowed(scroll);
-      return;
     }
   }
 

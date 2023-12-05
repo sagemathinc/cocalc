@@ -124,7 +124,7 @@ export class HubClient {
   private write_data(data: string): void {
     if (this.conn == null) {
       console.warn(
-        "HubClient.write_data: can't write data since not connected"
+        "HubClient.write_data: can't write data since not connected",
       );
       return;
     }
@@ -426,16 +426,19 @@ export class HubClient {
     // of running this code.  However, sometimes it doesn't -- timing is random
     // and whether it is defined here depends on a hub being available to
     // serve it up.  So we just keep trying until it is defined.
-    let d = 100;
+    // There is no need to back off or delay, since we aren't
+    // actually doing anything at all here in terms of work!
+    log("Loading global websocket client library from hub-websocket...");
     while (window.Primus == null) {
-      console.log("Waiting for global websocket client library...");
-      await delay(d);
-      d = Math.max(3000, d * 1.3);
+      await delay(200);
     }
+    log(
+      "Loaded global websocket library!  Now creating websocket connection to hub-websocket...",
+    );
     const conn = (this.conn = new window.Primus({
       reconnect: {
         max: 30000,
-        min: 500,
+        min: 3000,
         retries: 1000,
       },
     }));
@@ -508,7 +511,7 @@ export class HubClient {
       conn.removeAllListeners("data");
       this.delete_websocket_cookie();
       log(
-        `reconnect scheduled (attempt ${opts.attempt} out of ${opts.retries})`
+        `reconnect scheduled (attempt ${opts.attempt} out of ${opts.retries})`,
       );
     });
 

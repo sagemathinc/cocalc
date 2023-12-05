@@ -218,7 +218,7 @@ export default function Payment({ balance, update, cost }: Props) {
             : "Add Money..."}
         </Button>
         {typeof session == "object" && session?.id && (
-          <Button disabled={cancelling} onClick={cancelPayment}>
+          <Button size="large" disabled={cancelling} onClick={cancelPayment}>
             Cancel
             {cancelling && (
               <>

@@ -74,7 +74,9 @@ interface Props {
   sel_ids?: immutable.Set<any>; // set of selected cells
   md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
 
-  scroll?: Scroll; // Causes a scroll when it *changes*
+  scroll?: Scroll; // how to scroll when scroll_seq changes
+  scroll_seq?: number; //
+
   scrollTop?: number;
   hook_offset?: number;
 }
@@ -92,10 +94,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     sel_ids,
     md_edit_ids,
     scroll,
+    scroll_seq,
     scrollTop,
     hook_offset,
   } = props;
-
   // status of tab completion
   const complete: undefined | immutable.Map<any, any> = useRedux([
     name,
@@ -343,6 +345,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         name={name}
         project_id={project_id}
         scroll={scroll}
+        scroll_seq={scroll_seq}
         scrollTop={scrollTop}
         sel_ids={sel_ids}
         trust={trust}
