@@ -297,6 +297,7 @@ export async function shoppingCartCheckout(opts: {
   success_url: string;
   cancel_url?: string;
   paymentAmount?: number;
+  ignoreBalance?: boolean;
 }): Promise<
   { done: true } | { done: false; session: { url: string; id: string } }
 > {

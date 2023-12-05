@@ -121,6 +121,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 1.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -145,6 +147,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.5,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -168,6 +172,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -196,6 +202,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: [{
           foo: "bar",
         }]
@@ -232,6 +240,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.5, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: 0.5,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -279,6 +289,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 1.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart,
       }));
 
@@ -324,12 +336,14 @@ describe("shopping-cart-checkout", () => {
 
       jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
-        balance: -0.1,
+        balance: -0.1234,
         minPayment: NaN,
-        amountDue: 1.1,
-        chargeAmount: 1.1,
+        amountDue: 1.0,
+        chargeAmount: 1.1234,
         total: NaN,
         minBalance: 0.0,
+        minimumPaymentCharge: NaN,
+        cureAmount: 0.1234,
         cart: testCart,
       }));
 
@@ -337,7 +351,7 @@ describe("shopping-cart-checkout", () => {
       //
       const checkoutResult = await sut.shoppingCartCheckout({
         ...testCheckout,
-        paymentAmount: 1.1,
+        paymentAmount: 1.1234,
       });
       const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
 
@@ -351,7 +365,7 @@ describe("shopping-cart-checkout", () => {
             description: "test",
           }),
           {
-            "amount": 0.1,
+            "amount": 0.1234,
             "description": expect.stringContaining("existing balance deficit"),
           },
         ],
@@ -376,11 +390,13 @@ describe("shopping-cart-checkout", () => {
       jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: NaN,
-        minPayment: NaN,
+        minPayment: 5.0,
         amountDue: 4.5,
-        chargeAmount: 5.0, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
+        chargeAmount: 5.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: 0.5,
+        cureAmount: NaN,
         cart: testCart,
       }));
 
@@ -429,6 +445,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.5,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 
@@ -485,6 +503,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 2.5,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 
@@ -554,6 +574,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 4.0,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 
@@ -631,6 +653,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: cartTotal,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 

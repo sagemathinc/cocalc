@@ -76,6 +76,12 @@ This will do `pnpm install` for all packages, and also build the typescript/coff
 
 The hub will send minimal logging to stdout, and the rest to `data/logs/log`.
 
+To get real-time updates from, e.g., the `packages/server` directory, you'll also need to run
+
+```sh
+~/cocalc/src/packages/server$ pnpm tsc # in yet another terminal
+```
+
 If you need to do a production build instead:
 
 ```sh

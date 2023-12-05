@@ -1,4 +1,4 @@
-import { Divider, InputNumber, Space, Spin, Tag, Tooltip } from "antd";
+import { Checkbox, Divider, InputNumber, Space, Spin, Tag, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
@@ -6,6 +6,7 @@ import { zIndexPayAsGo } from "./zindex";
 import * as api from "./api";
 import MoneyStatistic from "./money-statistic";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import type { CheckboxChangeEvent } from "antd/es/checkbox";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -18,6 +19,7 @@ interface Props {
   paymentAmount: number;
   totalCost?: number; // optional exact amount of the entire purchase -- just results in another preset tag
   setPaymentAmount: (paymentAmount: number) => void;
+  setApplyBalance?: (applyBalance: boolean) => void;
 }
 
 export default function PaymentConfig({
@@ -26,6 +28,7 @@ export default function PaymentConfig({
   paymentAmount,
   totalCost,
   setPaymentAmount,
+  setApplyBalance,
 }: Props) {
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
@@ -66,11 +69,11 @@ export default function PaymentConfig({
                 Minimum: {currency(minPayment)}
               </Preset>
             )}
-            {minAmount > minPayment && (
-              <Preset amount={minAmount} setPaymentAmount={setPaymentAmount}>
-                Due: {currency(minAmount)}
-              </Preset>
-            )}
+            {/*{minAmount > minPayment && (*/}
+            {/*  <Preset amount={minAmount} setPaymentAmount={setPaymentAmount}>*/}
+            {/*    Due: {currency(minAmount)}*/}
+            {/*  </Preset>*/}
+            {/*)}*/}
             {!!totalCost && (
               <Preset amount={totalCost} setPaymentAmount={setPaymentAmount}>
                 Total: {currency(totalCost)}
@@ -102,6 +105,11 @@ export default function PaymentConfig({
           </div>
         )}
         <Space>
+          { setApplyBalance && (
+            <Checkbox onChange={ (e: CheckboxChangeEvent) => setApplyBalance(e.target.checked) }>
+              Use { currency(balance) } balance
+            </Checkbox>
+          ) }
           <InputNumber
             min={Math.max(minAmount, minPayment)}
             max={MAX_COST}

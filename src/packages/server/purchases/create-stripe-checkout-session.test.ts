@@ -10,7 +10,7 @@ const mockGetStripeConnection = jest.fn() as jest.MockedFunction<typeof getConn>
 const mockIsValidAccount = jest.fn() as jest.MockedFunction<typeof isValidAccount>;
 
 import { uuid } from "@cocalc/util/misc";
-import { getServerSettings } from "@cocalc/database/dist/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 import getConn from "@cocalc/server/stripe/connection";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 

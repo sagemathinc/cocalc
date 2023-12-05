@@ -44,6 +44,7 @@ export default function Checkout() {
   };
 
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [applyBalance, setApplyBalance] = useState<boolean>(true);
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async () => {
     try {
@@ -119,6 +120,7 @@ export default function Checkout() {
         success_url,
         cancel_url: currentUrl,
         paymentAmount,
+        ignoreBalance: !applyBalance,
       });
       if (result.done) {
         // done -- nothing further to do!
@@ -243,6 +245,7 @@ export default function Checkout() {
                       paymentAmount={paymentAmount}
                       totalCost={totalCost}
                       setPaymentAmount={setPaymentAmount}
+                      setApplyBalance={setApplyBalance}
                     />
                   )}
                 </Col>

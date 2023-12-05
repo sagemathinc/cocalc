@@ -193,10 +193,9 @@ export const shoppingCartCheckout = async ({
   // If balance has gone below minimum account balance (e.g., if the user's minimum account balance is changed by
   // an admin), then we add a line item to correct that here.
   //
-  const balanceDeficit = params.balance - params.minBalance;
-  if (balanceDeficit < 0) {
+  if (params.cureAmount > 0) {
     stripeCheckoutList.push({
-      amount: -balanceDeficit,
+      amount: params.cureAmount,
       description: "Adjust for existing balance deficit",
     });
   }
@@ -216,10 +215,9 @@ export const shoppingCartCheckout = async ({
   //
   // (see src/packages/util/purchases/charge-amount.ts)
   //
-  const minimumPaymentCharge = params.chargeAmount - params.amountDue;
-  if (minimumPaymentCharge > 0) {
+  if (params.minimumPaymentCharge > 0) {
     stripeCheckoutList.push({
-      amount: minimumPaymentCharge,
+      amount: params.minimumPaymentCharge,
       description: "Pay-as-you-go minimum payment charge",
     });
   }
@@ -288,12 +286,12 @@ export const getCheckoutCart = async (
 
 export const getShoppingCartCheckoutParams = async (
   account_id: string,
-): Promise<CheckoutParams> => {
+): Promise<CheckoutParams & { minimumPaymentCharge: number, cureAmount: number }> => {
   const { total, cart } = await getCheckoutCart(account_id);
   const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
-  const { amountDue, chargeAmount } = getChargeAmount({
+  const { amountDue, chargeAmount, minimumPaymentCharge, cureAmount } = getChargeAmount({
     cost: total,
     balance,
     minBalance,
@@ -308,6 +306,8 @@ export const getShoppingCartCheckoutParams = async (
     chargeAmount,
     total,
     cart,
+    minimumPaymentCharge,
+    cureAmount,
   };
 };
 
