@@ -117,7 +117,7 @@ export function describeItem({
   voucherPeriod,
 }: DescribeItemProps): ReactNode {
   if (info.type == "cash-voucher") {
-    return <>Cash Voucher for {currency(info.amount)}</>;
+    return <>{currency(info.amount)} account credit</>;
   }
   if (info.type === "disk") {
     return (

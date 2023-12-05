@@ -74,34 +74,38 @@ export type PurchaseInfoQuota = {
 } & StartEndDates &
   CustomDescription;
 
+export type PurchaseInfoVoucher = {
+  type: "vouchers";
+  id: number;
+  quantity: number;
+  cost: number;
+  tax: number;
+};
+
+export type PurchaseInfoVM = {
+  type: "vm";
+  quantity: 1;
+  dedicated_vm: DedicatedVM;
+  subscription: "no";
+  cost?: Cost;
+  payment_method?: string;
+};
+
+export type PurchaseInfoDisk = {
+  // note that start is set automatically when actually purchasing
+  type: "disk";
+  quantity: 1;
+  subscription: Omit<Subscription, "no">;
+  dedicated_disk: DedicatedDisk;
+  cost?: Cost;
+  payment_method?: string;
+};
+
 export type PurchaseInfo =
   | PurchaseInfoQuota
-  | ({
-      type: "vouchers";
-      id: number;
-      quantity: number;
-      cost: number;
-      tax: number;
-    } & CustomDescription)
-  | ({
-      type: "vm";
-      quantity: 1;
-      dedicated_vm: DedicatedVM;
-      subscription: "no";
-      cost?: Cost;
-      payment_method?: string;
-    } & StartEndDates &
-      CustomDescription)
-  | ({
-      // note that start is set automatically when actually purchasing
-      type: "disk";
-      quantity: 1;
-      subscription: Omit<Subscription, "no">;
-      dedicated_disk: DedicatedDisk;
-      cost?: Cost;
-      payment_method?: string;
-    } & StartEndDates &
-      CustomDescription);
+  | (PurchaseInfoVoucher & CustomDescription)
+  | (PurchaseInfoVM & StartEndDates & CustomDescription)
+  | (PurchaseInfoDisk & StartEndDates & CustomDescription);
 
 // stripe's metadata can only handle string or number values.
 export type ProductMetadataQuota = Record<

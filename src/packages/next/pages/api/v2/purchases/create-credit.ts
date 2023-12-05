@@ -30,8 +30,10 @@ async function get(req) {
   } = getParams(req);
   return await createStripeCheckoutSession({
     account_id,
-    amount,
-    description,
+    line_items: [{
+      amount,
+      description,
+    }],
     success_url,
     cancel_url,
   });
