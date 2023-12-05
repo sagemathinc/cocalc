@@ -16,6 +16,7 @@ interface Props {
   balance?: number; // current account balance
   minAmount?: number; // minimal amount that user must add
   paymentAmount: number;
+  totalCost?: number; // optional exact amount of the entire purchase -- just results in another preset tag
   setPaymentAmount: (paymentAmount: number) => void;
 }
 
@@ -23,6 +24,7 @@ export default function PaymentConfig({
   balance,
   minAmount = 0,
   paymentAmount,
+  totalCost,
   setPaymentAmount,
 }: Props) {
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
@@ -67,6 +69,11 @@ export default function PaymentConfig({
             {minAmount > minPayment && (
               <Preset amount={minAmount} setPaymentAmount={setPaymentAmount}>
                 Due: {currency(minAmount)}
+              </Preset>
+            )}
+            {!!totalCost && (
+              <Preset amount={totalCost} setPaymentAmount={setPaymentAmount}>
+                Total: {currency(totalCost)}
               </Preset>
             )}
             {-balance >= Math.max(minAmount, minPayment) && (

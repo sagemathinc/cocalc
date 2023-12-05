@@ -52,7 +52,7 @@ export default function Overview() {
 
       {isCommercial && (
         <p>
-          You can also <A href="/store/site-license">buy a site license</A>,{" "}
+          You can also <A href="/store/site-license">buy a license</A>,{" "}
           <A href="/billing/subscriptions">
             manage your purchased subscriptions
           </A>{" "}

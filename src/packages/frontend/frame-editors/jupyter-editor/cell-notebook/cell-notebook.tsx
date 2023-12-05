@@ -49,6 +49,7 @@ export class CellNotebook extends Component<Props, {}> {
         sel_ids={this.data("sel_ids")}
         md_edit_ids={this.data("md_edit_ids")}
         scroll={this.data("scroll")}
+        scroll_seq={this.data("scroll_seq")}
         scrollTop={this.data("scrollTop")}
         hook_offset={this.data("hook_offset")}
       />

@@ -54,6 +54,7 @@ export class NotebookFrameActions {
   public store: NotebookFrameStore;
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
   private windowed_list_ref?: any;
+  private scroll_seq: number = 0;
 
   constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
     bind_methods(this);
@@ -77,6 +78,8 @@ export class NotebookFrameActions {
       { current: this },
       this.frame_tree_actions,
     );
+
+    this.setState({ scroll: "", scroll_seq: -1 });
   }
 
   public set_windowed_list_ref(windowed_list_ref) {
@@ -379,7 +382,8 @@ export class NotebookFrameActions {
 
   public scroll(scroll?: Scroll): void {
     if (scroll != 0) {
-      this.setState({ scroll });
+      this.scroll_seq += 1;
+      this.setState({ scroll, scroll_seq: this.scroll_seq });
     }
   }
 
@@ -746,8 +750,9 @@ export class NotebookFrameActions {
       delta,
     );
     this.set_cur_id(id);
-    this.scroll("cell visible force");
-    setTimeout(() => this.scroll("cell visible force"), 0);
+    this.scroll("cell visible");
+    setTimeout(() => this.scroll("cell visible"), 0);
+    setTimeout(() => this.scroll("cell visible"), 10);
     return id;
   }
 

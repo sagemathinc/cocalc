@@ -35,7 +35,7 @@ export default function Checkout() {
     noCache: true,
   });
   const [session, setSession] = useState<{ id: string; url: string } | null>(
-    null
+    null,
   );
   const updateSession = async () => {
     const session = await purchasesApi.getCurrentCheckoutSession();
@@ -158,6 +158,7 @@ export default function Checkout() {
   }
 
   const columns = getColumns();
+  const totalCost = discountedCost(params.cart);
 
   return (
     <>
@@ -240,13 +241,14 @@ export default function Checkout() {
                       balance={params.balance}
                       minAmount={params.chargeAmount}
                       paymentAmount={paymentAmount}
+                      totalCost={totalCost}
                       setPaymentAmount={setPaymentAmount}
                     />
                   )}
                 </Col>
                 <Col sm={12}>
                   <div style={{ fontSize: "15pt" }}>
-                    <TotalCost items={params.cart} />
+                    <TotalCost totalCost={totalCost} />
                     <br />
                     <Terms />
                   </div>
@@ -310,11 +312,11 @@ export function discountedCost(items) {
   return discounted_cost;
 }
 
-function TotalCost({ items }) {
-  const cost = discountedCost(items);
+function TotalCost({ totalCost }) {
   return (
     <>
-      Total: <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
+      Total:{" "}
+      <b style={{ float: "right", color: "darkred" }}>{money(totalCost)}</b>
     </>
   );
 }
@@ -381,7 +383,7 @@ function GetAQuote({ items }) {
     const body = `Hello,\n\nI would like to request a quote.  I filled out the online form with the\ndetails listed below:\n\n\`\`\`\n${JSON.stringify(
       x,
       undefined,
-      2
+      2,
     )}\n\`\`\``;
     router.push({
       pathname: "/support/new",

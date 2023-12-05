@@ -16,7 +16,7 @@ import type {
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
 import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
-import { plural } from "@cocalc/util/misc";
+import { plural, round2 } from "@cocalc/util/misc";
 import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
 import {
   dedicatedDiskDisplay,
@@ -146,7 +146,7 @@ export function describeItem({
   }
 
   const { always_running, idle_timeout } = untangleUptime(
-    info.custom_uptime ?? "short"
+    info.custom_uptime ?? "short",
   );
 
   const quota = {
@@ -229,7 +229,7 @@ export function describePeriod({
     }
 
     // days are calculated based on the actual selection
-    const days = getDays({ start, end });
+    const days = round2(getDays({ start, end }));
 
     if (voucherPeriod) {
       return (

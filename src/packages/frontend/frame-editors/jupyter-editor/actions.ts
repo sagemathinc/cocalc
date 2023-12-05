@@ -328,7 +328,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   public async jump_to_cell(
     cell_id: string,
-    align: "center" | "top" = "top",
+    align: "center" | "top" = "center",
   ): Promise<void> {
     // Open or focus a notebook viewer and scroll to the given cell.
     if (this._state === "closed") return;

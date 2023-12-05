@@ -932,7 +932,7 @@ describe("shopping-cart-checkout", () => {
       // Assert
       //
       expect(testDescription).toEqual(
-        "Business license providing 2G RAM, 1 shared CPU, 3G disk, member hosting, 30 minutes timeout, network",
+        "Business license providing 2G RAM, 1 shared CPU, 3G disk, member hosting, 30 minutes timeout, network, up to 1 simultaneous running project",
       );
     });
 
