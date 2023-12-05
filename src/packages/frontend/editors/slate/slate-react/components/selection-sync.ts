@@ -6,7 +6,7 @@ We then rewrote it to work with windowing, which of course discards
 the DOM outside the visible window, hence full sync no longer makes
 sense -- instead the slate selection is the sole source of truth, and
 the DOM just partly reflects that, and user manipulation of the DOM
-merely influences slates state, rather than completely determining it.
+merely influences slate's state, rather than completely determining it.
 
 I spent forever (!) trying various strategies involving locks and
 timeouts, which could never work perfectly on many different
@@ -78,7 +78,7 @@ export const useUpdateDOMSelection = ({
       // give up by setting the selection to empty, so it will get cleared in
       // the DOM.  I saw this once in development.
       console.warn(
-        `getWindowedSelection warning - ${err} - so clearing selection`
+        `getWindowedSelection warning - ${err} - so clearing selection`,
       );
       Transforms.deselect(editor); // just clear selection
       selection = undefined;
@@ -169,7 +169,7 @@ export const useUpdateDOMSelection = ({
       newDomRange.startContainer,
       newDomRange.startOffset,
       newDomRange.endContainer,
-      newDomRange.endOffset
+      newDomRange.endOffset,
     );
   };
 
@@ -277,12 +277,12 @@ export const useDOMSelectionChange = ({
             const a = Editor.string(
               editor,
               { focus: range.focus, anchor: selection.anchor },
-              { voids: true }
+              { voids: true },
             ).length;
             const b = Editor.string(
               editor,
               { focus: range.focus, anchor: selection.focus },
-              { voids: true }
+              { voids: true },
             ).length;
             range.anchor = a > b ? selection.anchor : selection.focus;
           }
@@ -305,7 +305,7 @@ export const useDOMSelectionChange = ({
     return () => {
       window.document.removeEventListener(
         "selectionchange",
-        onDOMSelectionChange
+        onDOMSelectionChange,
       );
     };
   }, [onDOMSelectionChange]);
@@ -333,7 +333,7 @@ function getWindowedSelection(editor: ReactEditor): Selection | null {
 function clipPoint(
   editor: Editor,
   point: Point,
-  visibleRange: { startIndex: number; endIndex: number }
+  visibleRange: { startIndex: number; endIndex: number },
 ): Point {
   const { startIndex, endIndex } = visibleRange;
   const n = point.path[0];
