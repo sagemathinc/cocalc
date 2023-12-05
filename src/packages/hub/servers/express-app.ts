@@ -115,12 +115,16 @@ export default async function init(opts: Options): Promise<{
   router.use("/cdn", express.static(CDN_PATH, { setHeaders: cacheLongTerm }));
 
   // Redirect requests to /app to /static/app.html.
-  // TODO: this will likely go away when rewrite the landing pages to not
-  // redirect users to /app in the first place.
   router.get("/app", (req, res) => {
     // query is exactly "?key=value,key=..."
     const query = parseURL(req.url, true).search || "";
     res.redirect(join(basePath, "static/app.html") + query);
+  });
+
+  router.get("/compute", (req, res) => {
+    // query is exactly "?key=value,key=..."
+    const query = parseURL(req.url, true).search || "";
+    res.redirect(join(basePath, "static/compute.html") + query);
   });
 
   initBlobs(router);

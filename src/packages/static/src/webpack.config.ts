@@ -11,6 +11,7 @@ This webpack config file might look scary, but it only consists of a few moving 
 The Entry Points:
   - load: showed immediately when you start loading the page
   - app: the main web application -- this is the entire application.
+  - compute: entry point for a minimal compute server oriented application
 
 NOTE: we used to have css and polyfill entry point, but the webpack
 author specifically says this is an old antipattern about 38 minutes
@@ -97,7 +98,7 @@ export default function getConfig({ middleware }: Options = {}) {
   function registerPlugin(
     desc: string,
     plugin: WebpackPluginInstance,
-    disable?: boolean
+    disable?: boolean,
   ) {
     if (disable) {
       console.log("Disabling plugin:  ", desc);
@@ -136,7 +137,7 @@ export default function getConfig({ middleware }: Options = {}) {
     "define React",
     new ProvidePlugin({
       React: "react",
-    })
+    }),
   );
 
   if (MEASURE) {
@@ -200,6 +201,12 @@ export default function getConfig({ middleware }: Options = {}) {
         ]),
         dependOn: "load",
       },
+      compute: {
+        import: insertHotMiddlewareUrl([
+          resolve("dist-ts/src/compute.js"),
+        ]),
+        dependOn: "load",
+      },
     },
     /* Why chunkhash below, rather than contenthash? This says contenthash is a special
      thing for css and other text files only (??):
@@ -232,12 +239,12 @@ export default function getConfig({ middleware }: Options = {}) {
         "../../../../node_modules/requirejs/require": resolve(
           "..",
           "node_modules",
-          ".pnpm/requirejs@2.3.6/node_modules/requirejs/require"
+          ".pnpm/requirejs@2.3.6/node_modules/requirejs/require",
         ),
         "../../../../node_modules/fflate/umd/index": resolve(
           "..",
           "node_modules",
-          ".pnpm/fflate@0.7.4/node_modules/fflate/umd/index"
+          ".pnpm/fflate@0.7.4/node_modules/fflate/umd/index",
         ),
       },
       // So we can "import 'file'" instead of "import 'file.tsx'"

@@ -4,7 +4,7 @@ import { resolve } from "path";
 export default function appLoaderPlugin(
   registerPlugin,
   PRODMODE: boolean,
-  title: string
+  title: string,
 ) {
   registerPlugin(
     "HTML -- generates the app.html file",
@@ -14,7 +14,18 @@ export default function appLoaderPlugin(
       template: resolve(__dirname, "../app.html"),
       hash: PRODMODE,
       chunks: ["load", "app"],
-    })
+    }),
+  );
+
+  registerPlugin(
+    "HTML -- generates the compute.html file",
+    new HtmlWebpackPlugin({
+      title,
+      filename: "compute.html",
+      template: resolve(__dirname, "../compute.html"),
+      hash: PRODMODE,
+      chunks: ["load", "compute"],
+    }),
   );
 
   registerPlugin(
@@ -25,6 +36,6 @@ export default function appLoaderPlugin(
       template: resolve(__dirname, "../app.html"),
       hash: PRODMODE,
       chunks: ["load", "embed"],
-    })
+    }),
   );
 }
