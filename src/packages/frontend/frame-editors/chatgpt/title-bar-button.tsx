@@ -4,21 +4,24 @@
  */
 
 /*
-A ChatGPT component that allows users to interact with OpenAI's language model
-for several text and code related function.  This calls the chatgpt actions
+A Language Model component that allows users to interact with ChatGPT and other language models.
+for several text and code related function.  This calls the language model actions
 to do the work.
 */
 
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Actions } from "../code-editor/actions";
 import Context from "./context";
-import ModelSwitch, { modelToName } from "./model-switch";
+import ModelSwitch, { LanguageModel, modelToName } from "./model-switch";
 import TitleBarButtonTour from "./title-bar-button-tour";
+import type { Scope } from "./types";
 
 interface Preset {
   command: string;
@@ -45,7 +48,7 @@ const PRESETS: Preset[] = [
     icon: "pen",
     label: "Autocomplete",
     description:
-      "Finish writing this. ChatGPT can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
+      "Finish writing this. Language models can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
   },
   {
     command: "Explain in detail how this code works",
@@ -104,7 +107,7 @@ function getCustomDescription(frameType) {
 
 interface Props {
   id: string;
-  actions;
+  actions: Actions;
   buttonSize;
   buttonStyle;
   labels?: boolean;
@@ -113,10 +116,7 @@ interface Props {
   buttonRef;
 }
 
-import { useLanguageModelSetting } from "../../account/useLanguageModelSetting";
-import type { Scope } from "./types";
-
-export default function ChatGPT({
+export default function LanguageModelTitleBarButtonDialog({
   id,
   actions,
   buttonSize,
@@ -126,7 +126,7 @@ export default function ChatGPT({
   path,
   buttonRef,
 }: Props) {
-  const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
+  const [showDialog, setShowDialog] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [custom, setCustom] = useState<string>("");
   const frameType = actions._get_frame_type(id);
@@ -137,7 +137,7 @@ export default function ChatGPT({
   const [truncated, setTruncated] = useState<number>(0);
   const [truncatedReason, setTruncatedReason] = useState<string>("");
   const [scope, setScope] = useState<Scope | "all">(() =>
-    showChatGPT ? getScope(id, actions) : "all",
+    showDialog ? getScope(id, actions) : "all",
   );
   const describeRef = useRef<any>(null);
   const buttonsRef = useRef<any>(null);
@@ -147,14 +147,14 @@ export default function ChatGPT({
   const [model, setModel] = useLanguageModelSetting();
 
   useEffect(() => {
-    if (showChatGPT) {
+    if (showDialog) {
       setScope(getScope(id, actions));
     }
-  }, [showChatGPT]);
+  }, [showDialog]);
 
   const scopeOptions = useMemo(() => {
     const options: { label: string; value: Scope }[] = [];
-    const available = actions.chatgptGetScopes();
+    const available = actions.languageModelGetScopes();
     for (const value of available) {
       options.push({ label: capitalize(value), value });
     }
@@ -167,7 +167,7 @@ export default function ChatGPT({
   }, [actions]);
 
   const doUpdateInput = async () => {
-    if (!(visible && showChatGPT)) {
+    if (!(visible && showDialog)) {
       // don't waste time on update if it is not visible.
       return;
     }
@@ -191,17 +191,17 @@ export default function ChatGPT({
 
   useEffect(() => {
     doUpdateInput();
-  }, [id, scope, visible, path, showChatGPT, model]);
+  }, [id, scope, visible, path, showDialog, model]);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType),
   );
 
-  const chatgpt = async (options) => {
+  const queryLLM = async (options) => {
     setError("");
     try {
       setQuerying(true);
-      await actions.chatgpt(id, options, input);
+      await actions.languageModel(id, options, input);
       setCustom("");
     } catch (err) {
       setError(`${err}`);
@@ -212,7 +212,7 @@ export default function ChatGPT({
 
   const doIt = () => {
     if (custom.trim()) {
-      chatgpt({
+      queryLLM({
         command: custom.trim(),
         codegen: false,
         allowEmpty: true,
@@ -223,11 +223,11 @@ export default function ChatGPT({
     }
     for (const preset of PRESETS) {
       if (preset.tag == tag) {
-        chatgpt(preset);
+        queryLLM(preset);
         break;
       }
     }
-    setShowChatGPT(false);
+    setShowDialog(false);
     setError("");
     actions.focus();
   };
@@ -241,7 +241,7 @@ export default function ChatGPT({
           would you like to do using {modelToName(model)}?
           <Button
             onClick={() => {
-              setShowChatGPT(false);
+              setShowDialog(false);
               setError("");
               actions.focus();
             }}
@@ -261,7 +261,7 @@ export default function ChatGPT({
           </div>
         </div>
       }
-      open={visible && showChatGPT}
+      open={visible && showDialog}
       content={() => {
         return (
           <Space
@@ -359,7 +359,10 @@ export default function ChatGPT({
                   </Button>
                 </div>
                 <div ref={contextRef} style={{ overflowY: "auto" }}>
-                  <Context value={input} info={actions.chatgptGetLanguage()} />
+                  <Context
+                    value={input}
+                    info={actions.languageModelGetLanguage()}
+                  />
                 </div>
               </div>
             )}{" "}
@@ -388,12 +391,12 @@ export default function ChatGPT({
         size={buttonSize}
         onClick={() => {
           setError("");
-          setShowChatGPT(!showChatGPT);
+          setShowDialog(!showDialog);
           actions.blur();
         }}
       >
         <span ref={buttonRef}>
-          <Tooltip title="Get assistance from ChatGPT">
+          <Tooltip title="Get assistance from a language model">
             <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
           </Tooltip>
           <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
@@ -404,15 +407,15 @@ export default function ChatGPT({
 }
 
 async function updateInput(
-  actions,
+  actions: Actions,
   id,
   scope,
-  model,
+  model: LanguageModel,
 ): Promise<{ input: string; inputOrig: string }> {
   if (scope == "none") {
     return { input: "", inputOrig: "" };
   }
-  let input = actions.chatgptGetContext(id, scope);
+  let input = actions.languageModelGetContext(id, scope);
   const inputOrig = input;
   if (input.length > 2000) {
     // Truncate input (also this MUST be a lazy import):
@@ -425,13 +428,13 @@ async function updateInput(
   return { input, inputOrig };
 }
 
-function getScope(id, actions): Scope {
-  const scopes = actions.chatgptGetScopes();
+function getScope(id, actions: Actions): Scope {
+  const scopes = actions.languageModelGetScopes();
   // don't know: selection if something is selected; otherwise,
   // ballback below.
   if (
     scopes.has("selection") &&
-    actions.chatgptGetContext(id, "selection")?.trim()
+    actions.languageModelGetContext(id, "selection")?.trim()
   ) {
     return "selection";
   }

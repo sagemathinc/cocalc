@@ -1549,11 +1549,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.delete(pageId, commit);
   }
 
-  chatgptExtraFileInfo() {
+  languageModelExtraFileInfo() {
     return "Whiteboard/Markdown";
   }
 
-  chatgptGetText(frameId: string, scope): string {
+  languageModelGetText(frameId: string, scope): string {
     const elts = this.store.get("elements")?.toJS() as any;
     if (elts == null) {
       return "";
@@ -1583,11 +1583,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     return "";
   }
 
-  chatgptGetScopes() {
+  languageModelGetScopes() {
     return new Set<"selection" | "page">(["selection", "page"]);
   }
 
-  chatgptGetLanguage() {
+  languageModelGetLanguage() {
     return "md";
   }
 }

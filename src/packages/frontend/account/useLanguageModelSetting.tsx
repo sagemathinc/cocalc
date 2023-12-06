@@ -14,7 +14,7 @@ export function useLanguageModelSetting(): [
   const other_settings = useTypedRedux("account", "other_settings");
   const llm = useMemo(() => {
     return getValidLanguageModelName(other_settings?.get("language_model"));
-  }, [other_settings?.get("language_model")]);
+  }, [other_settings]);
 
   function setLLM(llm: LanguageModel) {
     if (USER_SELECTABLE_LANGUAGE_MODELS.includes(llm as any)) {

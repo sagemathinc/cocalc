@@ -52,7 +52,7 @@ import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
-import ChatGPT from "../chatgpt/title-bar-button";
+import LanguageModel from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -1061,7 +1061,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <ChatGPT
+      <LanguageModel
         buttonRef={getTourRef("chatgpt")}
         key={"chatgpt"}
         id={props.id}

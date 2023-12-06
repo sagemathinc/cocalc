@@ -9,15 +9,21 @@ Show errors and warnings.
 
 import { Alert } from "antd";
 import { sortBy } from "lodash";
-import { capitalize, is_different, path_split } from "@cocalc/util/misc";
-import { React, Rendered, useRedux } from "../../app-framework";
-import { TypedMap } from "../../app-framework";
-import { BuildLogs } from "./actions";
+
+import {
+  CSS,
+  React,
+  Rendered,
+  TypedMap,
+  useRedux,
+} from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Loading } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
-import { use_build_logs } from "./hooks";
-import { EditorState } from "../frame-tree/types";
 import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+import { capitalize, is_different, path_split } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { EditorState } from "../frame-tree/types";
+import { Actions, BuildLogs } from "./actions";
+import { use_build_logs } from "./hooks";
 
 function group_to_level(group: string): string {
   switch (group) {
@@ -56,7 +62,7 @@ export const SPEC: SpecDesc = {
   },
 };
 
-const ITEM_STYLES = {
+const ITEM_STYLES: { [name: string]: CSS } = {
   warning: {
     borderLeft: `2px solid ${SPEC.warning.color}`,
     padding: "15px",
@@ -83,7 +89,7 @@ interface item {
 }
 
 interface ItemProps {
-  actions: any;
+  actions: Actions;
   item: TypedMap<item>;
   group: string;
 }
@@ -102,7 +108,7 @@ const Item: React.FC<ItemProps> = React.memo(
       }
       if (!path) return;
       actions.goto_line_in_file(line, path);
-      actions.synctex_tex_to_pdf(line, 0, item.get("file"));
+      actions.synctex_tex_to_pdf(line, 0, path);
     }
 
     function render_location(): React.ReactElement<any> | undefined {
@@ -149,7 +155,7 @@ const Item: React.FC<ItemProps> = React.memo(
             return v + `% this is line number ${line + 1}`;
           }}
           language={"latex"}
-          extraFileInfo={actions.chatgptExtraFileInfo()}
+          extraFileInfo={actions.languageModelExtraFileInfo()}
           tag={"latex-error-frame"}
           prioritizeLastInput
         />
@@ -165,7 +171,7 @@ const Item: React.FC<ItemProps> = React.memo(
       </div>
     );
   },
-  (prev, next) => prev.item === next.item
+  (prev, next) => prev.item === next.item,
 );
 
 interface MsgGroup {
@@ -245,7 +251,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
     function render_group(
       tool: string,
       group: string,
-      num: number
+      num: number,
     ): MsgGroup | undefined {
       if (tool == "knitr" && !knitr) {
         return undefined;
@@ -288,11 +294,11 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
         if (group != null) groups.push(group);
       };
       ["errors", "typesetting", "warnings"].forEach((group) =>
-        add(render_group("latex", group, 0))
+        add(render_group("latex", group, 0)),
       );
       add(render_group("sagetex", "errors", 1));
       ["errors", "warnings"].forEach((group) =>
-        add(render_group("knitr", group, 2))
+        add(render_group("knitr", group, 2)),
       );
       add(render_group("pythontex", "errors", 3));
 
@@ -335,5 +341,5 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
       </div>
     );
   },
-  should_memoize
+  should_memoize,
 );

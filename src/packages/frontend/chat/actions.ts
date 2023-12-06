@@ -224,7 +224,7 @@ export class ChatActions extends Actions<ChatState> {
       let action;
       if (
         noNotification ||
-        mentionsChatGPT(input) ||
+        mentionsLanguageModel(input) ||
         this.isChatGPTThread(reply_to)
       ) {
         // Note: don't mark it is a chat if it is with chatgpt,
@@ -492,7 +492,7 @@ export class ChatActions extends Actions<ChatState> {
         input?.includes("account-id=openai-") ||
         input?.includes("account-id=chatgpt")
       ) {
-        return getChatGPTModel(input);
+        return getLanguageModel(input);
       }
       const reply_to = message.get("reply_to");
       if (reply_to == null) return false;
@@ -528,7 +528,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!store) return;
 
     let model: LanguageModel | false;
-    if (!mentionsChatGPT(input)) {
+    if (!mentionsLanguageModel(input)) {
       // doesn't mention chatgpt explicitly, but might be a reply
       // to something that does:
       if (reply_to == null) {
@@ -541,7 +541,7 @@ export class ChatActions extends Actions<ChatState> {
       }
     } else {
       // it mentions chatgpt -- which model?
-      model = getChatGPTModel(input);
+      model = getLanguageModel(input);
     }
 
     if (model === false) {
@@ -751,14 +751,16 @@ function stripMentions(value: string): string {
 //   return value.replace(/<details>/g, "").replace(/<\/details>/g, "");
 // }
 
-function mentionsChatGPT(input?: string): boolean {
+function mentionsLanguageModel(input?: string): boolean {
+  const x = input?.toLowerCase() ?? "";
   return !!(
-    input?.toLowerCase().includes("account-id=chatgpt") ||
-    input?.toLowerCase().includes("account-id=openai-")
+    x.includes("account-id=chatgpt") ||
+    x.includes("account-id=openai-") ||
+    x.includes("account-id=google-chat-bison-001")
   );
 }
 
-function getChatGPTModel(input?: string): false | LanguageModel {
+function getLanguageModel(input?: string): false | LanguageModel {
   if (!input) return false;
   const x = input.toLowerCase();
   if (x.includes("account-id=chatgpt4")) {
@@ -766,6 +768,9 @@ function getChatGPTModel(input?: string): false | LanguageModel {
   }
   if (x.includes("account-id=chatgpt")) {
     return "gpt-3.5-turbo";
+  }
+  if (x.includes("account-id=google-chat-bison-001")) {
+    return "chat-bison-001";
   }
   const i = x.indexOf("account-id=openai-");
   if (i != -1) {

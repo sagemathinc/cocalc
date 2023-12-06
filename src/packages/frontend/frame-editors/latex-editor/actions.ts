@@ -1507,7 +1507,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.programmatical_goto_line(parseInt(entry.id), true, true, id);
   }
 
-  chatgptExtraFileInfo() {
+  languageModelExtraFileInfo() {
     return "LaTeX";
   }
 

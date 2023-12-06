@@ -14,6 +14,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { IProcessedLatexLog, Error } from "./latex-log-parser";
 import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+import { Actions } from "../code-editor/actions";
 
 export function update_gutters(opts: {
   log: IProcessedLatexLog;
@@ -49,7 +50,7 @@ function component(
   level: string,
   message: string,
   content: string | undefined,
-  actions,
+  actions: Actions,
   group: string,
   line: number
 ) {
@@ -84,7 +85,7 @@ function component(
                   return v + `% this is line number ${line + 1}`;
                 }}
                 language={"latex"}
-                extraFileInfo={actions.chatgptExtraFileInfo()}
+                extraFileInfo={actions.languageModelExtraFileInfo()}
                 tag={"latex-error-popover"}
                 prioritizeLastInput
               />
