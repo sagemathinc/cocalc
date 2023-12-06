@@ -30,6 +30,14 @@ import {
 } from "../project/page/vbar";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
+import {
+  LLM_USERNAMES,
+  USER_SELECTABLE_LANGUAGE_MODELS,
+  getValidLanguageModelName,
+  isFreeModel,
+} from "@cocalc/util/db-schema/openai";
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
+import ChatGPTAvatar from "../components/openai-avatar";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -367,6 +375,42 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
+  render_language_model(): Rendered {
+    const defaultModel = getValidLanguageModelName(
+      this.props.other_settings.get(SETTINGS_LANGUAGE_MODEL_KEY),
+    );
+
+    const options: { value: string; display: JSX.Element }[] = [];
+
+    for (const key of USER_SELECTABLE_LANGUAGE_MODELS) {
+      const txt = isFreeModel(key) ? " (free)" : "";
+      const display = (
+        <>
+          <strong>{LLM_USERNAMES[key]}</strong> {txt}
+        </>
+      );
+      options.push({ value: key, display });
+    }
+
+    return (
+      <LabeledRow
+        label={
+          <>
+            <ChatGPTAvatar size={16} /> Language model
+          </>
+        }
+      >
+        <SelectorInput
+          selected={defaultModel}
+          options={options}
+          on_change={(value) => {
+            this.on_change(SETTINGS_LANGUAGE_MODEL_KEY, value);
+          }}
+        />
+      </LabeledRow>
+    );
+  }
+
   render() {
     if (this.props.other_settings == null) {
       return <Loading />;
@@ -408,10 +452,12 @@ export class OtherSettings extends Component<Props> {
                 redux.getStore("projects").clearOpenAICache();
               }}
             >
-              <strong>Disable all OpenAI/ChatGPT integrations</strong>, e.g.,
-              extra buttons in Jupyter, @chatgpt mentions, etc.
+              <strong>Disable all language model integrations</strong>, e.g.,
+              code generation or explanation buttons in Jupyter, @chatgpt
+              mentions, etc.
             </Checkbox>
           )}
+          {this.render_language_model()}
           <Checkbox
             checked={
               !!this.props.other_settings.get("disable_markdown_codebar")

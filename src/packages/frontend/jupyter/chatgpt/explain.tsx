@@ -2,20 +2,22 @@
 Use ChatGPT to explain what the code in a cell does.
 */
 
-import { CSSProperties, useState } from "react";
 import { Alert, Button } from "antd";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import type { JupyterActions } from "../browser-actions";
+import { CSSProperties, useState } from "react";
+
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import { Icon } from "@cocalc/frontend/components/icon";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ModelSwitch, {
+  LanguageModel,
   modelToMention,
   modelToName,
-  Model,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import type { JupyterActions } from "../browser-actions";
 
 interface Props {
   actions?;
@@ -27,7 +29,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   const { project_id, path } = useFrameContext();
   const [gettingExplanation, setGettingExplanation] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [model, setModel] = useState<Model>("gpt-3.5-turbo");
+  const [model, setModel] = useLanguageModelSetting();
 
   if (
     actions == null ||
@@ -129,7 +131,7 @@ async function getExplanation({
   actions: JupyterActions;
   project_id: string;
   path: string;
-  model: Model;
+  model: LanguageModel;
 }) {
   const message = createMessage({ id, actions, model, open: false });
   if (!message) {
@@ -154,12 +156,10 @@ function createMessage({ id, actions, model, open }): string {
   const kernel_info = actions.store.get("kernel_info");
   const language = kernel_info.get("language");
   const message = `${modelToMention(
-    model
+    model,
   )} Explain the following ${kernel_info.get(
-    "display_name"
-  )} code that is in a Jupyter notebook:\n\n<details${
-    open ? " open" : ""
-  }>\n\n
+    "display_name",
+  )} code that is in a Jupyter notebook:\n\n<details${open ? " open" : ""}>\n\n
 \`\`\`${language}
 ${cell.get("input")}
 \`\`\`

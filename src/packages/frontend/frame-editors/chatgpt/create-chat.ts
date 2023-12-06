@@ -1,14 +1,14 @@
-import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { capitalize } from "@cocalc/util/misc";
-import { modelToMention, Model } from "./model-switch";
+import { modelToMention, type LanguageModel } from "./model-switch";
 
 interface Options {
   codegen?: boolean;
   command: string;
   allowEmpty?: boolean;
   tag?: string;
-  model: Model;
+  model: LanguageModel;
 }
 
 export default async function createChat({

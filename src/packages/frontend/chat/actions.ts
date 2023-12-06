@@ -16,7 +16,10 @@ import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
-import type { Model } from "@cocalc/util/db-schema/openai";
+import {
+  model2service,
+  type LanguageModel,
+} from "@cocalc/util/db-schema/openai";
 import { cmp, parse_hashtags } from "@cocalc/util/misc";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
@@ -474,7 +477,7 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb?.redo();
   }
 
-  isChatGPTThread(date?: Date): false | Model {
+  isChatGPTThread(date?: Date): false | LanguageModel {
     if (date == null) {
       return false;
     }
@@ -524,7 +527,7 @@ export class ChatActions extends Actions<ChatState> {
     const store = this.store;
     if (!store) return;
 
-    let model: Model | false;
+    let model: LanguageModel | false;
     if (!mentionsChatGPT(input)) {
       // doesn't mention chatgpt explicitly, but might be a reply
       // to something that does:
@@ -541,11 +544,15 @@ export class ChatActions extends Actions<ChatState> {
       model = getChatGPTModel(input);
     }
 
+    if (model === false) {
+      return;
+    }
+
     // without any mentions, of course:
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
-    const sender_id = `openai-${model}`;
+    const sender_id = model2service(model);
     let date: string = this.send_reply({
       message,
       reply: ":robot: Thinking...",
@@ -595,12 +602,9 @@ export class ChatActions extends Actions<ChatState> {
     // submit question to chatgpt
     const id = uuid();
     this.chatStreams.add(id);
-    setTimeout(
-      () => {
-        this.chatStreams.delete(id);
-      },
-      3 * 60 * 1000,
-    );
+    setTimeout(() => {
+      this.chatStreams.delete(id);
+    }, 3 * 60 * 1000);
     const chatStream = webapp_client.openai_client.languageModelStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
@@ -723,7 +727,7 @@ function getReplyToRoot(message, messages): Date | undefined {
 
 function stripMentions(value: string): string {
   // We strip out any cased version of the string @chatgpt and also all mentions.
-  for (const name of ["@chatgpt4", "@chatgpt"]) {
+  for (const name of ["@chatgpt4", "@chatgpt", "@palm"]) {
     while (true) {
       const i = value.toLowerCase().indexOf(name);
       if (i == -1) break;
@@ -754,7 +758,7 @@ function mentionsChatGPT(input?: string): boolean {
   );
 }
 
-function getChatGPTModel(input?: string): false | Model {
+function getChatGPTModel(input?: string): false | LanguageModel {
   if (!input) return false;
   const x = input.toLowerCase();
   if (x.includes("account-id=chatgpt4")) {

@@ -11,13 +11,14 @@ to do the work.
 
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { COLORS } from "@cocalc/util/theme";
 import { capitalize } from "@cocalc/util/misc";
-import TitleBarButtonTour from "./title-bar-button-tour";
-import ModelSwitch, { modelToName, Model } from "./model-switch";
+import { COLORS } from "@cocalc/util/theme";
 import Context from "./context";
+import ModelSwitch, { modelToName } from "./model-switch";
+import TitleBarButtonTour from "./title-bar-button-tour";
 
 interface Preset {
   command: string;
@@ -112,6 +113,7 @@ interface Props {
   buttonRef;
 }
 
+import { useLanguageModelSetting } from "../../account/useLanguageModelSetting";
 import type { Scope } from "./types";
 
 export default function ChatGPT({
@@ -142,7 +144,7 @@ export default function ChatGPT({
   const scopeRef = useRef<any>(null);
   const contextRef = useRef<any>(null);
   const submitRef = useRef<any>(null);
-  const [model, setModel] = useState<Model>("gpt-3.5-turbo");
+  const [model, setModel] = useLanguageModelSetting();
 
   useEffect(() => {
     if (showChatGPT) {

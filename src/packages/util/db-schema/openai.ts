@@ -18,7 +18,24 @@ export const LANGUAGE_MODELS = [
   "embedding-gecko-001",
 ] as const;
 
+export const USER_SELECTABLE_LANGUAGE_MODELS: Readonly<LanguageModel[]> = [
+  "gpt-3.5-turbo",
+  "gpt-3.5-turbo-16k",
+  "gpt-4",
+  "chat-bison-001",
+] as const;
+
 export type LanguageModel = (typeof LANGUAGE_MODELS)[number];
+
+export function getValidLanguageModelName(
+  model: string | undefined,
+): LanguageModel {
+  if (model == null) return DEFAULT_MODEL;
+  if (!LANGUAGE_MODELS.includes(model as LanguageModel)) {
+    return DEFAULT_MODEL;
+  }
+  return model as LanguageModel;
+}
 
 export type LanguageService =
   | "openai-gpt-3.5-turbo"

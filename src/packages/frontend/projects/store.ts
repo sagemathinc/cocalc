@@ -779,7 +779,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (vendor === "openai" && !haveOpenAI) return false;
     if (vendor === "google" && !haveGoogle) return false;
 
-    // any customization regarding disabling chatgpt accounts for any language model vendor
+    // this customization accounts for disabling any language model vendor
     const openai_disabled = redux
       .getStore("account")
       .getIn(["other_settings", "openai_disabled"]);

@@ -7,10 +7,7 @@ TODO:
 - input description box could be Markdown wysiwyg editor
 */
 
-import { Alert, Button, Input, Modal } from "antd";
-import { delay } from "awaiting";
-import { throttle } from "lodash";
-import { CSSProperties, useEffect, useState } from "react";
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   redux,
   useActions,
@@ -29,6 +26,10 @@ import {
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import ModelSwitch, {
+  modelToName,
+} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
@@ -39,13 +40,11 @@ import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Alert, Button, Input, Modal } from "antd";
+import { delay } from "awaiting";
+import { throttle } from "lodash";
+import { CSSProperties, useEffect, useState } from "react";
 import { Block } from "./block";
-import ModelSwitch, {
-  modelToName,
-  Model,
-  DEFAULT_MODEL,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const TAG = "generate-jupyter";
 
@@ -77,7 +76,7 @@ export default function ChatGPTGenerateJupyterNotebook({
   onSuccess,
   project_id,
 }: Props) {
-  const [model, setModel] = useState<Model>(DEFAULT_MODEL);
+  const [model, setModel] = useLanguageModelSetting();
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null,
   );
@@ -223,8 +222,9 @@ export default function ChatGPTGenerateJupyterNotebook({
       let path = await createNotebook(filenameGPT);
       // Start it running, so user doesn't have to wait... but actions
       // might not be immediately available...
-      const jea: JupyterEditorActions | null =
-        await getJupyterFrameActions(path);
+      const jea: JupyterEditorActions | null = await getJupyterFrameActions(
+        path,
+      );
       if (jea == null) {
         throw new Error(`Unable to create Jupyter Notebook for ${path}`);
       }

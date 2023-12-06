@@ -6,6 +6,7 @@ If chatgpt is disabled or not available it renders as null.
 import { Alert, Button } from "antd";
 import { CSSProperties, useState } from "react";
 
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { Icon } from "@cocalc/frontend/components/icon";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
@@ -13,12 +14,7 @@ import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard"
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
-import type { Model } from "./model-switch";
-import ModelSwitch, {
-  DEFAULT_MODEL,
-  modelToMention,
-  modelToName,
-} from "./model-switch";
+import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
 import shortenError from "./shorten-error";
 
 interface Props {
@@ -53,7 +49,7 @@ export default function HelpMeFix({
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  const [model, setModel] = useState<Model>(DEFAULT_MODEL);
+  const [model, setModel] = useLanguageModelSetting();
   if (
     redux == null ||
     !redux.getStore("projects").hasOpenAI(project_id, "help-me-fix")

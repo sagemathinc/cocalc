@@ -1,23 +1,29 @@
 import { Radio, Tooltip } from "antd";
 
-import { LLM_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
-import { DEFAULT_MODEL } from "@cocalc/util/db-schema/openai";
+import { CSS } from "@cocalc/frontend/app-framework";
+import {
+  DEFAULT_MODEL,
+  LLM_USERNAMES,
+  LanguageModel,
+  model2service,
+} from "@cocalc/util/db-schema/openai";
 
-export type { Model };
 export { DEFAULT_MODEL };
+export type { LanguageModel };
 
 interface Props {
-  model: Model;
-  setModel: (model: Model) => void;
+  model: LanguageModel;
+  setModel: (model: LanguageModel) => void;
   size?;
-  style?;
+  style?: CSS;
 }
 
 // The tooltips below are adopted from chat.openai.com
 
-const GOOGLE_GENAI: Model = "chat-bison-001";
+const GOOGLE_GENAI: LanguageModel = "chat-bison-001";
 
 export default function ModelSwitch({ style, model, setModel, size }: Props) {
+  // all models selectable here must be in util/db-schema/openai::USER_SELECTABLE_LANGUAGE_MODELS
   return (
     <Radio.Group
       style={style}
@@ -68,12 +74,12 @@ export default function ModelSwitch({ style, model, setModel, size }: Props) {
   );
 }
 
-export function modelToName(model: Model): string {
+export function modelToName(model: LanguageModel): string {
   return LLM_USERNAMES[model] ?? model;
 }
 
-export function modelToMention(model: Model): string {
-  return `<span class="user-mention" account-id=openai-${model} >@${modelToName(
+export function modelToMention(model: LanguageModel): string {
+  return `<span class="user-mention" account-id=${model2service(
     model,
-  )}</span>`;
+  )} >@${modelToName(model)}</span>`;
 }
