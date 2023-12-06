@@ -91,12 +91,14 @@ export default function SelectLicense(props: Props) {
                   <span style={{ whiteSpace: "normal" }}>
                     {quota && describeQuota(quota, true)}
                   </span>
-                  {expires && <span>, Expires {expires.toLocaleString()}</span>}
+                  {expires && (
+                    <span>, Paid until {expires.toLocaleString()}</span>
+                  )}
                 </span>
               </>
             }
           />
-        </Option>
+        </Option>,
       );
     }
     return v;
@@ -135,7 +137,7 @@ export default function SelectLicense(props: Props) {
               }}
             >
               <Icon name="check" /> {confirmLabel ?? "Apply License"}
-            </Button>
+            </Button>,
           )}
         {onCancel && <Button onClick={onCancel}>Cancel</Button>}
         {extraButtons != null ? (
