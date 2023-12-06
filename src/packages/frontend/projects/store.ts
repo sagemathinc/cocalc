@@ -735,9 +735,9 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   hasLanguageModelEnabled(
-    project_id?: string,
+    project_id: string = "global",
     tag?: string,
-    vendor?: "openai" | "google" | "any",
+    vendor: "openai" | "google" | "any" = "any",
   ): boolean {
     // cache answer for a few seconds, in case this gets called a lot:
 
@@ -753,7 +753,7 @@ export class ProjectsStore extends Store<ProjectsState> {
       // better we base the key only on those possibilities.
       courseLimited = true;
     }
-    const key = `${project_id ?? "global"}-${courseLimited}`;
+    const key = `${project_id}-${courseLimited}-${vendor}`;
     if (openAICache.has(key)) {
       return !!openAICache.get(key);
     }
@@ -767,27 +767,26 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   private _hasLanguageModelEnabled(
-    project_id?: string,
+    project_id: string | "global" = "global",
     courseLimited?: boolean,
     vendor: "openai" | "google" | "any" = "any",
   ): boolean {
-    const haveOpenAI = redux.getStore("customize").get("openai_enabled");
-    const haveGoogle = redux
-      .getStore("customize")
-      .get("google_vertexai_enabled");
+    const customize = redux.getStore("customize");
+    const haveOpenAI = customize.get("openai_enabled");
+    const haveGoogle = customize.get("google_vertexai_enabled");
 
-    if (!haveOpenAI && !haveGoogle) return false;
+    if (!haveOpenAI && !haveGoogle) return false; // the vendor == "any" case
     if (vendor === "openai" && !haveOpenAI) return false;
     if (vendor === "google" && !haveGoogle) return false;
-    if (vendor === "any" && !haveOpenAI && !haveGoogle) return false;
 
     // any customization regarding disabling chatgpt accounts for any language model vendor
-    if (
-      redux.getStore("account").getIn(["other_settings", "openai_disabled"])
-    ) {
+    const openai_disabled = redux
+      .getStore("account")
+      .getIn(["other_settings", "openai_disabled"]);
+    if (openai_disabled) {
       return false;
     }
-    if (project_id != null) {
+    if (project_id != "global") {
       const s = this.getIn([
         "project_map",
         project_id,
