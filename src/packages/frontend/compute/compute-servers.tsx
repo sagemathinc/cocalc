@@ -27,9 +27,11 @@ export function Docs({ style }: { style? }) {
 export default function ComputeServers({
   project_id,
   hideHelp,
+  onOpen,
 }: {
   project_id: string;
   hideHelp?: boolean;
+  onOpen?: (id: number) => void;
 }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -44,6 +46,7 @@ export default function ComputeServers({
           computeServers={computeServers}
           project_id={project_id}
           account_id={account_id}
+          onOpen={onOpen}
         />
       )}
     </div>
@@ -158,6 +161,7 @@ function ComputeServerTable({
   computeServers: computeServers0,
   project_id,
   account_id,
+  onOpen,
 }) {
   const [computeServers, setComputeServers] = useState<any>(computeServers0);
   useEffect(() => {
@@ -248,6 +252,7 @@ function ComputeServerTable({
           {...data}
           setShowDeleted={setShowDeleted}
           setSearch={setSearch}
+          onOpen={onOpen != null ? () => onOpen(id) : undefined}
         />
       </div>
     );

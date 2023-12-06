@@ -163,7 +163,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }}
       >
         <Icon
-          name="server"
+          name="servers"
           style={{
             color: "rgb(66, 139, 202)",
             fontSize: "200%",

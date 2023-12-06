@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@types/cookie": "^0.5.1",
+    "@types/jest": "^29.5.10",
     "@types/node": "^18.16.14",
     "typescript": "^5.2.2"
   }

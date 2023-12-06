@@ -1,14 +1,17 @@
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useEffect, useState } from "react";
 import { ComputeServers } from "@cocalc/frontend/compute";
-import { Layout } from "antd";
+import Inline from "@cocalc/frontend/compute/inline";
+import { Button, Divider, Layout } from "antd";
 const { Header, Footer, Sider, Content } = Layout;
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { AppLogo } from "@cocalc/frontend/app/logo";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import CreateProject from "./create-project";
 
 export function Page({}) {
   const [project_id, setProjectId] = useState<string | undefined>(undefined);
+  const [compute_server_id, setComputeServerId] = useState<number>(0);
   const projectMap = useTypedRedux("projects", "project_map");
   const account_id = useTypedRedux("account", "account_id");
 
@@ -51,14 +54,51 @@ export function Page({}) {
       <Layout hasSider>
         <Sider theme={"light"} style={{ padding: "15px" }}>
           <div>
-            <div style={{ color: "#666" }}>Project</div>
-            <SelectProject value={project_id} onChange={setProjectId} minimal />
+            <div
+              style={{
+                color: "#666",
+                textAlign: "center",
+                marginBottom: "5px",
+              }}
+            >
+              Project
+            </div>
+            <SelectProject
+              value={project_id == "new" ? undefined : project_id}
+              onChange={(project_id) => {
+                setProjectId(project_id);
+                setComputeServerId(0);
+              }}
+              minimal
+              onCreate={() => {}}
+            />
+            {compute_server_id > 0 && (
+              <div style={{ textAlign: "center" }}>
+                <Divider />
+                <Inline id={compute_server_id} />
+                <Button
+                  style={{ marginTop: "5px" }}
+                  onClick={() => setComputeServerId(0)}
+                >
+                  Close
+                </Button>
+              </div>
+            )}
           </div>
         </Sider>
         <Content style={{ overflow: "auto" }}>
-          {project_id != null && (
-            <ComputeServers project_id={project_id} hideHelp />
-          )}
+          {project_id != null &&
+            compute_server_id == 0 &&
+            project_id != "new" && (
+              <ComputeServers
+                project_id={project_id}
+                hideHelp
+                onOpen={(compute_server_id) => {
+                  setComputeServerId(compute_server_id);
+                }}
+              />
+            )}
+          {project_id == "new" && <CreateProject onCreate={setProjectId} />}
         </Content>
       </Layout>
       <Footer>

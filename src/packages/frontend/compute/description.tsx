@@ -26,7 +26,7 @@ export default function Description({
   state,
 }: Props) {
   return (
-    <div>
+    <div style={{ display: "flex" }}>
       {!short && (
         <>
           {account_id != null && (
@@ -44,9 +44,13 @@ export default function Description({
           .
         </>
       )}
-      <Configuration configuration={configuration} />
+      <div style={{ flex: 1 }}>
+        <Configuration configuration={configuration} />
+      </div>
       {state == "running" && data != null && (
-        <RuntimeInfo data={data} configuration={configuration} />
+        <div style={{ flex: 1 }}>
+          <RuntimeInfo data={data} configuration={configuration} />
+        </div>
       )}
     </div>
   );
@@ -84,6 +88,9 @@ function DnsLink({ dns, authToken }) {
   if (!compute_servers_dns) {
     return null;
   }
+  if (!dns) {
+    return null;
+  }
   const auth = getQuery(authToken);
   return (
     <A href={`https://${dns}.${compute_servers_dns}${auth}`}>
@@ -94,6 +101,9 @@ function DnsLink({ dns, authToken }) {
 
 function ExternalIpLink({ externalIp, authToken }) {
   const auth = getQuery(authToken);
+  if (!externalIp) {
+    return null;
+  }
   return (
     <A href={`https://${externalIp}${auth}`}>
       <Icon name="external-link" /> https://{externalIp}

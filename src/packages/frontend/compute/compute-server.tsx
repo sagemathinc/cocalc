@@ -33,6 +33,7 @@ interface Props extends Omit<ComputeServerUserInfo, "id"> {
   onCloudChange?;
   onConfigurationChange?;
   setIsValid?: (valid) => void;
+  onOpen?: () => void;
 }
 
 export default function ComputeServer({
@@ -60,6 +61,7 @@ export default function ComputeServer({
   onColorChange,
   onCloudChange,
   onConfigurationChange,
+  onOpen,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [edit, setEdit] = useState<boolean>(id == null);
@@ -108,7 +110,17 @@ export default function ComputeServer({
         </Button>,
       );
     }
-
+    if (onOpen != null) {
+      actions.unshift(
+        <Button
+          key="files"
+          type={state == "running" ? "primary" : "text"}
+          onClick={onOpen}
+        >
+          <Icon name="folder-open" /> Open
+        </Button>,
+      );
+    }
     // TODO: for later
     //     actions.push(
     //       <div>

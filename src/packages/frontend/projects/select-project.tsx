@@ -15,7 +15,7 @@ import {
   useTypedRedux,
 } from "../app-framework";
 import { webapp_client } from "../webapp-client";
-import { Loading } from "../components";
+import { Icon, Loading } from "../components";
 
 type ProjectSelectionList = { id: string; title: string }[];
 
@@ -27,6 +27,7 @@ interface Props {
   defaultValue?: string;
   style?: CSS;
   minimal?: boolean;
+  onCreate?: () => void;
 }
 
 export const SelectProject: React.FC<Props> = ({
@@ -37,6 +38,7 @@ export const SelectProject: React.FC<Props> = ({
   defaultValue,
   style,
   minimal,
+  onCreate,
 }) => {
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
@@ -120,7 +122,7 @@ export const SelectProject: React.FC<Props> = ({
         <Select
           style={{ marginRight: "15px", flex: 1 }}
           showSearch={true}
-          placeholder={"Select a project..."}
+          placeholder={"Select project..."}
           optionFilterProp={"children"}
           value={value}
           defaultValue={defaultValue}
@@ -138,6 +140,11 @@ export const SelectProject: React.FC<Props> = ({
               {v.title}
             </Select.Option>
           ))}
+          {onCreate && (
+            <Select.Option key={"new"} value={"new"}>
+              <Icon name="plus-circle-o" /> Create Project
+            </Select.Option>
+          )}
         </Select>
         {!minimal && (
           <div style={{ margin: "auto" }}>
