@@ -33,6 +33,7 @@ export function describeQuotaFromInfo(
         member: info.custom_member,
         user: info.user,
         boost: info.boost,
+        run_limit: info.run_limit,
       });
 
     case "vm":
@@ -73,7 +74,7 @@ function fixUptime(quota) {
 }
 
 export function describe_quota(
-  quota: SiteLicenseQuota & { uptime?: Uptime },
+  quota: SiteLicenseQuota & { uptime?: Uptime; run_limit?: number },
   short?: boolean,
 ): string {
   //console.log(`describe_quota (short=${short})`, quota);
@@ -165,13 +166,21 @@ export function describe_quota(
   if (!hideNetwork && !isBoost) {
     v.push("network"); // always provided, because we trust customers.
   }
+  if (quota.run_limit) {
+    v.push(
+      `up to ${quota.run_limit} simultaneous running ${plural(
+        quota.run_limit,
+        "project",
+      )}`,
+    );
+  }
   return `${intro} ${v.join(", ")}`;
 }
 
 // similar to the above, but very short for the info bar on those store purchase pages.
 // instead of overloading the above with even more special cases, this brings it quickly to the point
 export function describeQuotaOnLine(
-  quota: SiteLicenseQuota & { uptime?: Uptime },
+  quota: SiteLicenseQuota & { uptime?: Uptime; run_limit?: number },
 ): string {
   fixUptime(quota);
 
@@ -230,6 +239,10 @@ export function describeQuotaOnLine(
     const isBoost = quota.boost === true;
     const booster = isBoost ? " booster" : "";
     v.push(`${capitalize(quota.user)}${booster}`);
+  }
+
+  if (quota.run_limit) {
+    v.push(`up to ${quota.run_limit} ${plural(quota.run_limit, "project")}`);
   }
 
   return `${v.join(", ")}`;

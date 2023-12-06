@@ -30,9 +30,8 @@
     "clean": "rm -rf node_modules dist",
     "build": "npx tsc --build",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput ",
-    "TEST_DOC": "Below we divide the tests into the purchases directory and everything else.  Otherwise all kinds of weird crashes happen.",
-    "test": "pnpm exec jest --forceExit --runInBand dist",
-    "prepublishOnly": "pnpm test"
+    "test": "TZ=UTC jest --forceExit --runInBand",
+    "prepublishOnly": "test"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",

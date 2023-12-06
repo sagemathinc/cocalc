@@ -25,8 +25,10 @@ export default async function makePayment(
   const url = await getTokenUrl(token);
   const session = await createStripeCheckoutSession({
     account_id,
-    amount,
-    description: `Add ${currency(amount)} to ${user}'s account.`,
+    line_items: [{
+      amount,
+      description: `Add ${currency(amount)} to ${user}'s account.`,
+    }],
     success_url: url,
     cancel_url: url,
     force: true,

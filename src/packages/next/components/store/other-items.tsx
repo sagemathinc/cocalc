@@ -95,7 +95,7 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
   const [updating, setUpdating] = useState<boolean>(false);
   const get = useAPI(
     "/shopping/cart/get",
-    tab == "buy-it-again" ? { purchased: true } : { removed: true }
+    tab == "buy-it-again" ? { purchased: true } : { removed: true },
   );
   const items = useMemo(() => {
     if (!get.result) return undefined;

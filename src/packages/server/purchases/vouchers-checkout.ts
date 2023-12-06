@@ -66,8 +66,10 @@ export default async function vouchersCheckout({
     account_id,
     success_url,
     cancel_url,
-    amount: params.chargeAmount,
-    description: "Credit Account to Complete Voucher Purchase",
+    line_items: [{
+      amount: params.chargeAmount,
+      description: "Credit Account to Complete Voucher Purchase",
+    }],
   });
   // make a stripe checkout session from the chargeAmount.
   // When it gets paid, user gets their purchases.

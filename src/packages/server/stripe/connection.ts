@@ -27,7 +27,7 @@ interface StripeWithPublishableKey extends Stripe {
 let stripe: StripeWithPublishableKey | undefined = undefined;
 let key: string = "";
 let last: number = 0;
-export default async function getConn(): Promise<StripeWithPublishableKey> {
+export async function getConn(): Promise<StripeWithPublishableKey> {
   if (stripe != null && new Date().valueOf() - last <= 1000 * 60) {
     return stripe;
   }
@@ -53,3 +53,5 @@ export default async function getConn(): Promise<StripeWithPublishableKey> {
   }
   return stripe;
 }
+
+export default getConn;
