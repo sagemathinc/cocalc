@@ -1,5 +1,5 @@
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ComputeServers } from "@cocalc/frontend/compute";
 import Inline from "@cocalc/frontend/compute/inline";
 import { Button, Divider, Layout } from "antd";
@@ -8,34 +8,47 @@ import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { AppLogo } from "@cocalc/frontend/app/logo";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import CreateProject from "./create-project";
-import Server from "./server";
+import Explorer from "./explorer";
 import OpenFiles from "./open-files";
+import CurrentFile from "./current-file";
+import { Icon } from "@cocalc/frontend/components";
+import LocationHeader from "./location-header";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export function Page({}) {
-  const [project_id, setProjectId] = useState<string | undefined>(undefined);
-  const [compute_server_id, setComputeServerId] = useState<number>(0);
-  const [currentFile, setCurrentFile] = useState<string>("");
+  const [project_id, setProjectId0] = useState<string | undefined>(
+    localStorage.computeProjectId,
+  );
+  const computeServerAssociations = useMemo(() => {
+    return webapp_client.project_client.computeServers(project_id);
+  }, [project_id]);
+  const [compute_server_id, setComputeServerId0] = useState<number>(
+    localStorage.computeServerId ?? 0,
+  );
+  const [currentFile, setCurrentFile0] = useState<string>(
+    localStorage.computeCurrentFile ?? "",
+  );
+
+  // todo -- just for prototype purposes -- better to use url routing.
+  const setProjectId = (project_id) => {
+    localStorage.computeProjectId = project_id;
+    setProjectId0(project_id);
+  };
+  const setComputeServerId = (compute_server_id) => {
+    localStorage.computeServerId = compute_server_id;
+    setComputeServerId0(compute_server_id);
+  };
+  const setCurrentFile = (currentFile) => {
+    localStorage.computeCurrentFile = currentFile;
+    setCurrentFile0(currentFile);
+  };
+
   const projectMap = useTypedRedux("projects", "project_map");
   const account_id = useTypedRedux("account", "account_id");
 
   useEffect(() => {
     if (project_id != null || projectMap == null) return;
-    let p: any = undefined;
-    for (const [_, project] of projectMap) {
-      if (project.get("deleted")) {
-        continue;
-      }
-      if (project.getIn(["users", account_id, "hide"])) {
-        continue;
-      }
-      if (p == null) {
-        p = project;
-        continue;
-      }
-      if (project.get("last_active") >= p.get("last_active")) {
-        p = project;
-      }
-    }
+    const p = getDefaultProject(projectMap, account_id);
     if (p != null) {
       setProjectId(p.get("project_id"));
     }
@@ -48,7 +61,14 @@ export function Page({}) {
           <div style={{ marginTop: "9px" }}>
             <AppLogo size={48} />
           </div>
-          <div style={{ flex: 1 }}></div>
+          <div style={{ flex: 1 }}>
+            <LocationHeader
+              style={{ color: "white", textAlign: "center" }}
+              project_id={project_id}
+              compute_server_id={compute_server_id}
+              currentFile={currentFile}
+            />
+          </div>
           <div style={{ marginTop: "4.5px" }}>
             <Avatar size={44} account_id={account_id} no_tooltip no_loading />
           </div>
@@ -64,7 +84,7 @@ export function Page({}) {
                 marginBottom: "5px",
               }}
             >
-              Project
+              Projects
             </div>
             <SelectProject
               value={project_id == "new" ? undefined : project_id}
@@ -92,10 +112,27 @@ export function Page({}) {
               project_id != "new" && (
                 <div>
                   <Divider />
+                  <div style={{ textAlign: "center" }}>
+                    <Button
+                      type="text"
+                      style={{ marginBottom: "5px" }}
+                      onClick={() => setCurrentFile("")}
+                    >
+                      <Icon name="files" /> Files...
+                    </Button>
+                  </div>{" "}
                   <OpenFiles
                     project_id={project_id}
                     currentFile={currentFile}
-                    setCurrentFile={setCurrentFile}
+                    setCurrentFile={(path) => {
+                      setCurrentFile(path);
+                      if (path && path.endsWith(".ipynb")) {
+                        computeServerAssociations.connectComputeServerToPath({
+                          id: compute_server_id,
+                          path,
+                        });
+                      }
+                    }}
                   />
                 </div>
               )}
@@ -109,6 +146,7 @@ export function Page({}) {
                 project_id={project_id}
                 hideHelp
                 onOpen={(compute_server_id) => {
+                  setCurrentFile("");
                   setComputeServerId(compute_server_id);
                 }}
               />
@@ -117,10 +155,19 @@ export function Page({}) {
           {project_id != null &&
             project_id != "new" &&
             compute_server_id > 0 && (
-              <Server
-                project_id={project_id}
-                compute_server_id={compute_server_id}
-              />
+              <div className="smc-vfill">
+                {currentFile ? (
+                  <CurrentFile
+                    project_id={project_id}
+                    currentFile={currentFile}
+                  />
+                ) : (
+                  <Explorer
+                    project_id={project_id}
+                    compute_server_id={compute_server_id}
+                  />
+                )}
+              </div>
             )}
         </Content>
       </Layout>
@@ -131,4 +178,26 @@ export function Page({}) {
       </Footer>
     </Layout>
   );
+}
+
+function getDefaultProject(projectMap, account_id) {
+  let p: any = undefined;
+  for (const [_, project] of projectMap) {
+    if (project.get("deleted")) {
+      continue;
+    }
+    if (project.getIn(["users", account_id, "hide"])) {
+      continue;
+    }
+    if (p == null) {
+      p = project;
+      continue;
+    }
+    if (project.get("last_active") >= p.get("last_active")) {
+      p = project;
+    }
+  }
+  if (p != null) {
+    return p.get("project_id");
+  }
 }

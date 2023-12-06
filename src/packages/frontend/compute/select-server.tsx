@@ -66,7 +66,6 @@ export default function SelectComputeServer({
   const [open, setOpen0] = useState<boolean>(false);
   const setOpen = (open) => {
     const now = Date.now();
-    console.log(now - lastOpenRef.current);
     if (now - lastOpenRef.current < 500) {
       return;
     }
