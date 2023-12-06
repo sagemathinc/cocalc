@@ -350,7 +350,9 @@ export class API {
 
   async computeServerSyncRequest(compute_server_id: number) {
     if (!(typeof compute_server_id == "number" && compute_server_id > 0)) {
-      throw Error("compute_server_id must be a positive integer");
+      throw Error(
+        `compute_server_id must be a positive integer but it is ${compute_server_id}`,
+      );
     }
     await this.call(
       {

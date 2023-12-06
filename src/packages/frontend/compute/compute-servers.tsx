@@ -252,7 +252,7 @@ function ComputeServerTable({
           {...data}
           setShowDeleted={setShowDeleted}
           setSearch={setSearch}
-          onOpen={onOpen != null ? () => onOpen(id) : undefined}
+          onOpen={onOpen != null ? () => onOpen(parseInt(id)) : undefined}
         />
       </div>
     );

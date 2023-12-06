@@ -36,12 +36,12 @@ export default function SyncButton({
 
   return (
     <Tooltip
-      mouseEnterDelay={0.9}
+      mouseEnterDelay={2}
       title={
         <>
           Synchronize files in /user/home of the compute server with /user/home
-          of the project, except fast data directories. You usually must
-          explicitly sync files.
+          of the project, except fast data directories. Syncing files saves them
+          longterm and makes them available to other compute servers.
         </>
       }
     >
@@ -68,7 +68,7 @@ export default function SyncButton({
             <Spin delay={1000} size="small" style={{ marginLeft: "5px" }} />
           )}
         </Button>
-        <ShowError error={error} setError={setError} />
+        <ShowError error={error} setError={setError} style={{ zIndex: 100 }} />
       </>
     </Tooltip>
   );

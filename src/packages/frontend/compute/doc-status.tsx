@@ -25,11 +25,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 
-export default function ComputeServerTransition({
-  project_id,
-  id,
-  requestedId,
-}) {
+export default function DocStatus({ project_id, id, requestedId }) {
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -130,10 +126,6 @@ export default function ComputeServerTransition({
     </div>
   );
 
-  if (id == requestedId && !showDetails) {
-    return topBar(100);
-  }
-
   const server: ComputeServerUserInfo | undefined = computeServers
     ?.get(`${requestedId}`)
     ?.toJS();
@@ -143,6 +135,11 @@ export default function ComputeServerTransition({
     id,
     requestedId,
   );
+  
+  if (progress == 100 && id == requestedId && !showDetails) {
+    return topBar(100);
+  }
+
   if (showDetails != null && !showDetails) {
     return topBar(progress);
   }
@@ -224,13 +221,6 @@ function getProgress(
       status: "active",
     };
   }
-  if (id == requestedId) {
-    return {
-      progress: 100,
-      message: "Compute server is connected!",
-      status: "success",
-    };
-  }
   if (server == null) {
     return {
       progress: 0,
@@ -273,7 +263,7 @@ function getProgress(
 
   if (server.state == "off") {
     return {
-      progress: 10,
+      progress: 0,
       message:
         "Please start the compute server by clicking the Start button below.",
       status: "exception",
@@ -297,6 +287,14 @@ function getProgress(
   }
 
   // below it is running
+  if (id == requestedId) {
+    return {
+      progress: 100,
+      message: "Compute server is connected!",
+      status: "success",
+    };
+  }
+
   if (server.detailed_state?.compute?.state == "ready") {
     if (isRecent(server.detailed_state?.compute?.time)) {
       return {

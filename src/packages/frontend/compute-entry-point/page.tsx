@@ -8,6 +8,7 @@ import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { AppLogo } from "@cocalc/frontend/app/logo";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import CreateProject from "./create-project";
+import Server from "./server";
 
 export function Page({}) {
   const [project_id, setProjectId] = useState<string | undefined>(undefined);
@@ -86,7 +87,7 @@ export function Page({}) {
             )}
           </div>
         </Sider>
-        <Content style={{ overflow: "auto" }}>
+        <Content style={{ overflow: "auto" }} className="smc-vfill">
           {project_id != null &&
             compute_server_id == 0 &&
             project_id != "new" && (
@@ -99,9 +100,17 @@ export function Page({}) {
               />
             )}
           {project_id == "new" && <CreateProject onCreate={setProjectId} />}
+          {project_id != null &&
+            project_id != "new" &&
+            compute_server_id > 0 && (
+              <Server
+                project_id={project_id}
+                compute_server_id={compute_server_id}
+              />
+            )}
         </Content>
       </Layout>
-      <Footer>
+      <Footer style={{ borderTop: "1px solid #ccc" }}>
         <div style={{ textAlign: "center" }}>
           CoCalc – About – Products and Pricing – Status
         </div>

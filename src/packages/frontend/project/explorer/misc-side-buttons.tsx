@@ -28,6 +28,7 @@ interface Props {
   project_id: string;
   show_hidden?: boolean;
   show_masked?: boolean;
+  minimal?: boolean;
 }
 
 export const MiscSideButtons: React.FC<Props> = (props) => {
@@ -39,6 +40,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     project_id,
     show_hidden,
     show_masked,
+    minimal,
   } = props;
 
   const student_project_functionality =
@@ -180,17 +182,17 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       className="pull-right"
     >
       <ButtonGroup>
-        <TourButton project_id={project_id} />
-        {render_library_button()}
+        {!minimal && <TourButton project_id={project_id} />}
+        {!minimal && render_library_button()}
         {render_upload_button()}
-        {render_jupyterlab_button()}
-        {render_vscode_button()}
+        {!minimal && render_jupyterlab_button()}
+        {!minimal && render_vscode_button()}
       </ButtonGroup>
       <div className="pull-right">
         <ButtonGroup>
           {render_hidden_toggle()}
-          {render_masked_toggle()}
-          {render_backup()}
+          {!minimal && render_masked_toggle()}
+          {!minimal && render_backup()}
         </ButtonGroup>
       </div>
     </ButtonToolbar>

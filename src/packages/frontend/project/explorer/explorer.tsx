@@ -75,6 +75,7 @@ interface ReactProps {
   project_id: string;
   actions: ProjectActions;
   name: string;
+  minimal?: boolean;
 }
 
 interface ReduxProps {
@@ -129,13 +130,14 @@ interface State {
   shift_is_down: boolean;
 }
 
-export function Explorer() {
+export function Explorer({ minimal }: { minimal?: boolean }) {
   const { project_id } = useProjectContext();
   return (
     <Explorer0
       name={project_redux_name(project_id)}
       project_id={project_id}
       actions={redux.getProjectActions(project_id)}
+      minimal={minimal}
     />
   );
 }
@@ -631,13 +633,14 @@ const Explorer0 = rclass(
       );
     }
 
-    render_project_files_buttons(): JSX.Element {
+    render_project_files_buttons() {
       return (
         <div
           ref={this.miscButtonsRef}
           style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
         >
           <MiscSideButtons
+            minimal={this.props.minimal}
             project_id={this.props.project_id}
             current_path={this.props.current_path}
             show_hidden={
@@ -679,6 +682,8 @@ const Explorer0 = rclass(
     }
 
     render() {
+      const minimal = this.props.minimal;
+
       let project_is_running: boolean,
         project_state: ProjectStatus | undefined,
         visible_listing: ListingItem[] | undefined;
@@ -760,11 +765,13 @@ const Explorer0 = rclass(
               {this.render_project_files_buttons()}
             </div>
 
-            {project_is_running
+            {!minimal && project_is_running
               ? this.render_custom_software_reset()
               : undefined}
 
-            {this.props.show_library ? this.render_library() : undefined}
+            {!minimal && this.props.show_library
+              ? this.render_library()
+              : undefined}
 
             {this.props.checked_files.size > 0 &&
             this.props.file_action != undefined ? (
