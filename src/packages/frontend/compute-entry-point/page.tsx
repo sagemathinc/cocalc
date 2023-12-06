@@ -35,6 +35,7 @@ export function Page({}) {
     setProjectId0(project_id);
   };
   const setComputeServerId = (compute_server_id) => {
+    compute_server_id = parseInt(compute_server_id);
     localStorage.computeServerId = compute_server_id;
     setComputeServerId0(compute_server_id);
   };
@@ -67,6 +68,8 @@ export function Page({}) {
               project_id={project_id}
               compute_server_id={compute_server_id}
               currentFile={currentFile}
+              setCurrentFile={setCurrentFile}
+              setComputeServerId={setComputeServerId}
             />
           </div>
           <div style={{ marginTop: "4.5px" }}>
@@ -115,7 +118,7 @@ export function Page({}) {
                   <div style={{ textAlign: "center" }}>
                     <Button
                       type="text"
-                      style={{ marginBottom: "5px" }}
+                      style={{ marginBottom: "5px", color: "#666" }}
                       onClick={() => setCurrentFile("")}
                     >
                       <Icon name="files" /> Files...

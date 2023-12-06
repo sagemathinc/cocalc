@@ -12,6 +12,7 @@ const { Row, Col } = require("react-bootstrap");
 interface Props {
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   sort_by: (heading: string) => void;
+  minimal?: boolean;
 }
 
 const row_style: React.CSSProperties = {
@@ -29,7 +30,7 @@ const inner_icon_style = { marginRight: "10px" };
 export const ListingHeader: React.FC<Props> = (props: Props) => {
   const { active_file_sort, sort_by } = props;
 
-  function render_sort_link(column_name: string, display_name: string) {
+  function render_sort_link(column_name: string, display_name) {
     return (
       <a
         href=""
@@ -60,9 +61,16 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
         {render_sort_link("type", "Type")}
       </Col>
       <Col sm={4} smPush={5} xs={6}>
-        {render_sort_link("time", "Date Modified")}
-        <span className="pull-right">
-          {render_sort_link("size", "Size/Download/View")}
+        {render_sort_link("time", props.minimal ? "Modified" : "Date Modified")}
+        <span style={{ float: "right" }}>
+          {render_sort_link(
+            "size",
+            props.minimal ? (
+              <span style={{ marginRight: "50px" }}>Size</span>
+            ) : (
+              "Size/Download/View"
+            ),
+          )}
         </span>
       </Col>
       <Col sm={5} smPull={4} xs={12}>

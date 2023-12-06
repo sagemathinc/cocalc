@@ -52,6 +52,7 @@ interface Props {
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
+  minimal?: boolean;
 }
 
 export function watchFiles({ actions, current_path }): void {
@@ -83,6 +84,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     configuration_main,
     file_search = "",
     isRunning,
+    minimal,
   } = props;
 
   const prev_current_path = usePrevious(current_path);
@@ -259,6 +261,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         {render_terminal_mode()}
         {listing.length > 0 && (
           <ListingHeader
+            minimal={minimal}
             active_file_sort={active_file_sort}
             sort_by={sort_by}
           />

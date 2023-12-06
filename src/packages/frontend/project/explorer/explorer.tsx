@@ -385,6 +385,7 @@ const Explorer0 = rclass(
           available_features={this.props.available_features}
           show_custom_software_reset={this.props.show_custom_software_reset}
           project_is_running={project_is_running}
+          minimal={this.props.minimal}
         />
       );
     }
@@ -504,6 +505,7 @@ const Explorer0 = rclass(
               redux={redux}
               last_scroll_top={this.props.file_listing_scroll_top}
               configuration_main={this.props.configuration?.get("main")}
+              minimal={this.props.minimal}
             />
           </FileUploadWrapper>
         );
@@ -615,19 +617,21 @@ const Explorer0 = rclass(
             >
               <UsersViewing project_id={this.props.project_id} />
             </div>
-            <VisibleMDLG>
-              <div
-                ref={this.miniterminalRef}
-                style={{ flex: "1 0 auto", marginBottom: "15px" }}
-              >
-                <MiniTerminal
-                  current_path={this.props.current_path}
-                  project_id={this.props.project_id}
-                  actions={this.props.actions}
-                  show_close_x={true}
-                />
-              </div>
-            </VisibleMDLG>
+            {!this.props.minimal && (
+              <VisibleMDLG>
+                <div
+                  ref={this.miniterminalRef}
+                  style={{ flex: "1 0 auto", marginBottom: "15px" }}
+                >
+                  <MiniTerminal
+                    current_path={this.props.current_path}
+                    project_id={this.props.project_id}
+                    actions={this.props.actions}
+                    show_close_x={true}
+                  />
+                </div>
+              </VisibleMDLG>
+            )}
           </>
         </div>
       );

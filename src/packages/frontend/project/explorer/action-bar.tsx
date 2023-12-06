@@ -39,6 +39,7 @@ interface Props {
   available_features?;
   show_custom_software_reset?: boolean;
   project_is_running?: boolean;
+  minimal?: boolean;
 }
 
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -48,7 +49,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     "hidden" | "check" | "clear"
   >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
-    props.actions.project_id
+    props.actions.project_id,
   );
   if (student_project_functionality.disableActions) {
     return <div></div>;
@@ -82,12 +83,12 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     if (props.checked_files.size === 0) {
       const files_on_page = props.listing.slice(
         props.page_size * props.page_number,
-        props.page_size * (props.page_number + 1)
+        props.page_size * (props.page_number + 1),
       );
       props.actions.set_file_list_checked(
         files_on_page.map((file) =>
-          misc.path_to_file(props.current_path ?? "", file.name)
-        )
+          misc.path_to_file(props.current_path ?? "", file.name),
+        ),
       );
       if (props.listing.length > props.page_size) {
         // if there are more items than one page, show a button to select everything
@@ -104,6 +105,10 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       return;
     }
     if (props.checked_files.size === 0) {
+      if (props.minimal) {
+        // do not need "check all", but do need uncheck all.
+        return;
+      }
       button_icon = "square-o";
       button_text = "Check All";
     } else {
@@ -130,8 +135,8 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   function do_select_entire_directory(): void {
     props.actions.set_file_list_checked(
       props.listing.map((file) =>
-        misc.path_to_file(props.current_path ?? "", file.name)
-      )
+        misc.path_to_file(props.current_path ?? "", file.name),
+      ),
     );
   }
 
@@ -161,6 +166,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     const style = ROW_INFO_STYLE;
 
     if (checked === 0) {
+      if (props.minimal) return;
       return (
         <div style={style}>
           <span>{`${total} ${misc.plural(total, "item")}`}</span>
@@ -175,7 +181,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
         <div style={style}>
           <span>{`${checked} of ${total} ${misc.plural(
             total,
-            "item"
+            "item",
           )} selected`}</span>
           <Gap />
           {render_select_entire_directory()}
