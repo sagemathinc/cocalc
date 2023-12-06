@@ -22,8 +22,16 @@ export function Page({}) {
   const computeServerAssociations = useMemo(() => {
     return webapp_client.project_client.computeServers(project_id);
   }, [project_id]);
-  const [compute_server_id, setComputeServerId0] = useState<number>(
-    localStorage.computeServerId ?? 0,
+  const [compute_server_id, setComputeServerId0] = useState<number | null>(
+    () => {
+      if (
+        !localStorage.computeServerId ||
+        localStorage.computeServerId == "null"
+      ) {
+        return null;
+      }
+      return parseInt(localStorage.computeServerId);
+    },
   );
   const [currentFile, setCurrentFile0] = useState<string>(
     localStorage.computeCurrentFile ?? "",
@@ -35,7 +43,9 @@ export function Page({}) {
     setProjectId0(project_id);
   };
   const setComputeServerId = (compute_server_id) => {
-    compute_server_id = parseInt(compute_server_id);
+    if (compute_server_id != null) {
+      compute_server_id = parseInt(compute_server_id);
+    }
     localStorage.computeServerId = compute_server_id;
     setComputeServerId0(compute_server_id);
   };
@@ -93,24 +103,30 @@ export function Page({}) {
               value={project_id == "new" ? undefined : project_id}
               onChange={(project_id) => {
                 setProjectId(project_id);
-                setComputeServerId(0);
+                setComputeServerId(project_id == "new" ? null : 0);
               }}
               minimal
               onCreate={() => {}}
             />
-            {compute_server_id > 0 && (
+            {compute_server_id != null && (
               <div style={{ textAlign: "center" }}>
                 <Divider />
-                <Inline id={compute_server_id} />
+                <div>
+                  {compute_server_id > 0 ? (
+                    <Inline id={compute_server_id} />
+                  ) : (
+                    "Shared Server"
+                  )}
+                </div>
                 <Button
                   style={{ marginTop: "5px" }}
-                  onClick={() => setComputeServerId(0)}
+                  onClick={() => setComputeServerId(null)}
                 >
                   Close
                 </Button>
               </div>
             )}
-            {compute_server_id > 0 &&
+            {compute_server_id != null &&
               project_id != null &&
               project_id != "new" && (
                 <div>
@@ -143,12 +159,12 @@ export function Page({}) {
         </Sider>
         <Content style={{ overflow: "auto" }} className="smc-vfill">
           {project_id != null &&
-            compute_server_id == 0 &&
-            project_id != "new" && (
+            project_id != "new" &&
+            compute_server_id == null && (
               <ComputeServers
                 project_id={project_id}
                 hideHelp
-                onOpen={(compute_server_id) => {
+                onSelect={(compute_server_id) => {
                   setCurrentFile("");
                   setComputeServerId(compute_server_id);
                 }}
@@ -157,7 +173,7 @@ export function Page({}) {
           {project_id == "new" && <CreateProject onCreate={setProjectId} />}
           {project_id != null &&
             project_id != "new" &&
-            compute_server_id > 0 && (
+            compute_server_id != null && (
               <div className="smc-vfill">
                 {currentFile ? (
                   <CurrentFile

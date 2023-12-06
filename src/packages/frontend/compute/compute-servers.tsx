@@ -4,7 +4,7 @@ import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
-import { Input, Checkbox, Radio, Typography } from "antd";
+import { Button, Card, Checkbox, Input, Radio, Typography } from "antd";
 import { useEffect, useState } from "react";
 const { Search } = Input;
 import { search_match, search_split } from "@cocalc/util/misc";
@@ -27,11 +27,11 @@ export function Docs({ style }: { style? }) {
 export default function ComputeServers({
   project_id,
   hideHelp,
-  onOpen,
+  onSelect,
 }: {
   project_id: string;
   hideHelp?: boolean;
-  onOpen?: (id: number) => void;
+  onSelect?: (id: number) => void;
 }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -46,7 +46,7 @@ export default function ComputeServers({
           computeServers={computeServers}
           project_id={project_id}
           account_id={account_id}
-          onOpen={onOpen}
+          onSelect={onSelect}
         />
       )}
     </div>
@@ -104,11 +104,9 @@ function Help() {
           , any Docker container, etc.)
         </li>
         <li>
-          {" "}
           <Icon name="dns" /> Public ip address and (optional) domain name
         </li>
         <li>
-          {" "}
           <Icon name="sync" /> Files sync'd with this project when you click the
           "Sync files" button.
         </li>
@@ -161,7 +159,7 @@ function ComputeServerTable({
   computeServers: computeServers0,
   project_id,
   account_id,
-  onOpen,
+  onSelect,
 }) {
   const [computeServers, setComputeServers] = useState<any>(computeServers0);
   useEffect(() => {
@@ -252,7 +250,7 @@ function ComputeServerTable({
           {...data}
           setShowDeleted={setShowDeleted}
           setSearch={setSearch}
-          onOpen={onOpen != null ? () => onOpen(parseInt(id)) : undefined}
+          onSelect={onSelect != null ? () => onSelect(parseInt(id)) : undefined}
         />
       </div>
     );
@@ -315,12 +313,34 @@ function ComputeServerTable({
           onCreate={() => setSearch("")}
         />
       </div>
+      {onSelect != null && (
+        <Card
+          title={
+            <div style={{ textAlign: "center", color: " #666" }}>
+              <Icon name="users" /> Shared Server
+            </div>
+          }
+          style={{ margin: "5px 0px 15px 30px" }}
+          actions={[
+            <Button
+              type="primary"
+              onClick={() => {
+                onSelect(0);
+              }}
+            >
+              <Icon name="folder-open" /> Open
+            </Button>,
+          ]}
+        >
+          Limited shared resources without root access for managing files and
+          doing basic development. Create a compute servers for much more power.
+        </Card>
+      )}
       <SortableList
         disabled={sortBy != "custom"}
         items={ids}
         Item={({ id }) => renderItem(id)}
         onDragStop={(oldIndex, newIndex) => {
-          console.log({ oldIndex, newIndex });
           let position;
           if (newIndex == ids.length - 1) {
             const last = computeServers.get(ids[ids.length - 1]);

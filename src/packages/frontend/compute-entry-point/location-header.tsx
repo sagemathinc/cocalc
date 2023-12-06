@@ -10,17 +10,17 @@ export default function LocationHeader({
   setCurrentFile,
   setComputeServerId,
 }) {
-  if (!project_id) {
+  if (!project_id || project_id == "new") {
     return null;
   }
   const v: JSX.Element[] = [];
   v.push(
-    <span onClick={() => setComputeServerId(0)}>
+    <span onClick={() => setComputeServerId(null)}>
       <ProjectTitle style={{ color: "white" }} project_id={project_id} />
     </span>,
   );
 
-  if (compute_server_id) {
+  if (compute_server_id != null) {
     v.push(
       <span onClick={() => setCurrentFile("")} style={{ cursor: "pointer" }}>
         <Inline titleOnly id={compute_server_id} />
