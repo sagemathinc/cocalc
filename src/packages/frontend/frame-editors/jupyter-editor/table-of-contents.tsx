@@ -23,7 +23,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
       "contents",
     ]);
 
-    async function jump_to_cell(id: string, extra): Promise<void> {
+    async function jump_to_cell(id: string, extra = "top"): Promise<void> {
       actions.jump_to_cell(id, extra);
       // stupid hack due to rendering/windowing delays...
       await delay(100);
@@ -37,5 +37,5 @@ export const TableOfContents: React.FC<Props> = React.memo(
         scrollTo={({ id, extra }) => jump_to_cell(id, extra)}
       />
     );
-  }
+  },
 );
