@@ -9,10 +9,12 @@ import { AppLogo } from "@cocalc/frontend/app/logo";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import CreateProject from "./create-project";
 import Server from "./server";
+import OpenFiles from "./open-files";
 
 export function Page({}) {
   const [project_id, setProjectId] = useState<string | undefined>(undefined);
   const [compute_server_id, setComputeServerId] = useState<number>(0);
+  const [currentFile, setCurrentFile] = useState<string>("");
   const projectMap = useTypedRedux("projects", "project_map");
   const account_id = useTypedRedux("account", "account_id");
 
@@ -85,6 +87,18 @@ export function Page({}) {
                 </Button>
               </div>
             )}
+            {compute_server_id > 0 &&
+              project_id != null &&
+              project_id != "new" && (
+                <div>
+                  <Divider />
+                  <OpenFiles
+                    project_id={project_id}
+                    currentFile={currentFile}
+                    setCurrentFile={setCurrentFile}
+                  />
+                </div>
+              )}
           </div>
         </Sider>
         <Content style={{ overflow: "auto" }} className="smc-vfill">
