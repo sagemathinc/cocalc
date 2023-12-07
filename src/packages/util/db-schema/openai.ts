@@ -51,6 +51,10 @@ export type LanguageService =
   | "google-chat-bison-001"
   | "google-embedding-gecko-001";
 
+// used e.g. for checking "account-id={string}" and other things like that
+export const LANGUAGE_MODEL_PREFIXES = ["chatgpt", "openai-", "google-"] as const;
+
+
 export function model2service(model: LanguageModel): LanguageService {
   if (
     model === "text-bison-001" ||

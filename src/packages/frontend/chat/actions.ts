@@ -21,6 +21,7 @@ import {
   model2service,
   model2vendor,
   type LanguageModel,
+  LANGUAGE_MODEL_PREFIXES,
 } from "@cocalc/util/db-schema/openai";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { getSortedDates } from "./chat-log";
@@ -762,10 +763,10 @@ function stripMentions(value: string): string {
 
 function mentionsLanguageModel(input?: string): boolean {
   const x = input?.toLowerCase() ?? "";
-  return !!(
-    x.includes("account-id=chatgpt") ||
-    x.includes("account-id=openai-") ||
-    x.includes("account-id=google-")
+
+  // if any of these prefixes are in the input as "account-id=[prefix]", then return true
+  return LANGUAGE_MODEL_PREFIXES.some((prefix) =>
+    x.includes(`account-id=${prefix}`),
   );
 }
 
