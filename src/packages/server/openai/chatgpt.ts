@@ -186,6 +186,16 @@ export async function evaluate({
   return output;
 }
 
+interface EvalVertexAIProps {
+  client: VertexAIClient;
+  system?: string;
+  history?: History;
+  input: string;
+  // maxTokens?: number;
+  // model: LanguageModel;
+  stream?: (output?: string) => void;
+}
+
 async function evaluateVertexAI({
   client,
   system,
@@ -194,15 +204,7 @@ async function evaluateVertexAI({
   // model,  // not used, this only supports chat-bison-001 for now
   // maxTokens, // not used
   stream,
-}: {
-  client: VertexAIClient;
-  system?: string;
-  history?: History;
-  input: string;
-  // maxTokens?: number;
-  // model: LanguageModel;
-  stream?: (output?: string) => void;
-}): Promise<{
+}: EvalVertexAIProps): Promise<{
   output;
   total_tokens;
   prompt_tokens;
@@ -212,13 +214,13 @@ async function evaluateVertexAI({
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const messages: { content: string }[] = (history ?? []).map(
-        ({ content }) => {
+      const messages: { content: string }[] = (history ?? [])
+        .filter(({ content }) => !!content)
+        .map(({ content }) => {
           return {
             content,
           };
-        },
-      );
+        });
 
       messages.push({ content: input });
 
