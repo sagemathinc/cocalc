@@ -121,7 +121,7 @@ export class VertexAIClient {
       maxOutputTokens: maxTokens ?? 1024,
     });
 
-    log.debug("got response from vertex ai", resp);
+    log.debug("query/ vertex ai", resp);
   }
 
   // https://developers.generativeai.google/tutorials/chat_node_quickstart
@@ -149,7 +149,7 @@ export class VertexAIClient {
       },
     });
 
-    log.debug("got response from vertex ai", result);
+    log.debug("chat/got response from vertex ai", result);
 
     return result[0].candidates?.[0]?.content;
   }

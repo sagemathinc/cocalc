@@ -1,5 +1,5 @@
 /*
-Backend server side part of ChatGPT integration with CoCalc.
+Backend server side part of AI language model integrations with CoCalc.
 */
 
 import { delay } from "awaiting";
@@ -89,8 +89,8 @@ export async function evaluate({
           history,
           input,
           client,
-          model,
-          maxTokens,
+          // maxTokens,
+          // model,
           stream,
         })
       : await evaluateOpenAI({
@@ -187,20 +187,20 @@ export async function evaluate({
 }
 
 async function evaluateVertexAI({
+  client,
   system,
   history,
   input,
-  client,
-  model,
-  maxTokens,
+  // model,  // not used, this only supports chat-bison-001 for now
+  // maxTokens, // not used
   stream,
 }: {
   client: VertexAIClient;
   system?: string;
   history?: History;
   input: string;
-  model: LanguageModel;
-  maxTokens?: number;
+  // maxTokens?: number;
+  // model: LanguageModel;
   stream?: (output?: string) => void;
 }): Promise<{
   output;
@@ -208,16 +208,6 @@ async function evaluateVertexAI({
   prompt_tokens;
   completion_tokens;
 }> {
-  log.debug("evaluateVertexAI", {
-    system,
-    history,
-    input,
-    client,
-    model,
-    maxTokens,
-    stream,
-  });
-
   const maxAttempts = 3;
 
   for (let i = 0; i < maxAttempts; i++) {
@@ -232,29 +222,39 @@ async function evaluateVertexAI({
 
       messages.push({ content: input });
 
-      // const doStream = stream != null;
-      //const gather = doStream ? new GatherOutput(messages, stream) : undefined;
-
       const output = await client.chat({
         messages,
         context: system,
         model: "chat-bison-001",
       });
 
+      // stream the output – there is no streaming right now, though
+      if (stream != null) {
+        stream(output ?? "");
+        stream();
+      }
+
+      // token estimation
+      const system_tokens = numTokens(system ?? "");
+      const input_all = (messages ?? [])
+        .map(({ content }) => content)
+        .join("\n");
+      const prompt_tokens = system_tokens + numTokens(input_all);
+      const completion_tokens = numTokens(output ?? "");
+
+      // in all cases, return the result
       return {
         output,
-        total_tokens: 0,
-        prompt_tokens: 0,
-        completion_tokens: 0,
+        total_tokens: prompt_tokens + completion_tokens,
+        prompt_tokens,
+        completion_tokens,
       };
     } catch (err) {
       const retry = i < maxAttempts - 1;
       log.debug(
         "vertex ai api call failed",
         err,
-        " will ",
-        retry ? "" : "NOT",
-        "retry",
+        ` will ${retry ? "" : "NOT"} retry`,
       );
       if (!retry) {
         throw err;
@@ -341,7 +341,7 @@ async function saveResponse({
       ],
     );
   } catch (err) {
-    log.warn("Failed to save ChatGPT log entry to database:", err);
+    log.warn("Failed to save language model log entry to database:", err);
   }
 }
 
