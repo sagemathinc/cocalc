@@ -125,7 +125,7 @@ export default function Message(props: Props) {
   const verb = show_history ? "Hide" : "Show";
 
   const isChatGPTThread = useMemo(
-    () => props.actions?.isChatGPTThread(props.message.get("date")),
+    () => props.actions?.isLanguageModelThread(props.message.get("date")),
     [props.message]
   );
 
@@ -309,7 +309,7 @@ export default function Message(props: Props) {
             <Button
               style={{ color: "#666" }}
               onClick={() => {
-                props.actions?.chatgptStopGenerating(new Date(date));
+                props.actions?.languageModelStopGenerating(new Date(date));
               }}
             >
               <Icon name="square" /> Stop Generating
@@ -630,7 +630,7 @@ export default function Message(props: Props) {
               <Button
                 style={{ color: "#666", marginLeft: "15px" }}
                 onClick={() => {
-                  props.actions?.chatgptRegenerate(new Date(date));
+                  props.actions?.languageModelRegenerate(new Date(date));
                 }}
               >
                 <Icon name="refresh" /> Regenerate response

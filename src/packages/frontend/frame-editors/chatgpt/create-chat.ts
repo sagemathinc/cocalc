@@ -4,7 +4,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { modelToMention, type LanguageModel } from "./model-switch";
 
-interface Options {
+export interface Options {
   codegen?: boolean;
   command: string;
   allowEmpty?: boolean;

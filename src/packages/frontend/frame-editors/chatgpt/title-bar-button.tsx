@@ -22,6 +22,7 @@ import Context from "./context";
 import ModelSwitch, { LanguageModel, modelToName } from "./model-switch";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
+import { Options } from "./create-chat";
 
 interface Preset {
   command: string;
@@ -32,7 +33,7 @@ interface Preset {
   description: string;
 }
 
-const PRESETS: Preset[] = [
+const PRESETS: Readonly<Readonly<Preset>[]> = [
   {
     command: "Fix all errors in",
     codegen: true,
@@ -85,7 +86,7 @@ const PRESETS: Preset[] = [
     label: "Summarize",
     description: "Write a summary of this.",
   },
-];
+] as const;
 
 const CUSTOM_DESCRIPTIONS = {
   terminal:
@@ -99,7 +100,7 @@ const CUSTOM_DESCRIPTIONS = {
       to solve an equation, etc.
     </div>
   ),
-};
+} as const;
 
 function getCustomDescription(frameType) {
   return CUSTOM_DESCRIPTIONS[frameType] ?? CUSTOM_DESCRIPTIONS["generic"];
@@ -197,7 +198,7 @@ export default function LanguageModelTitleBarButtonDialog({
     showOptions ? "" : getCustomDescription(frameType),
   );
 
-  const queryLLM = async (options) => {
+  const queryLLM = async (options: Options) => {
     setError("");
     try {
       setQuerying(true);
@@ -223,7 +224,7 @@ export default function LanguageModelTitleBarButtonDialog({
     }
     for (const preset of PRESETS) {
       if (preset.tag == tag) {
-        queryLLM(preset);
+        queryLLM({ ...preset, model });
         break;
       }
     }

@@ -65,7 +65,7 @@ import {
   len,
   uuid,
 } from "@cocalc/util/misc";
-import languageModelCreatechat from "../chatgpt/create-chat";
+import languageModelCreateChat, { Options } from "../chatgpt/create-chat";
 import type { Scope as LanguageModelScope } from "../chatgpt/types";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
@@ -2955,8 +2955,8 @@ export class Actions<
     return new Set(["selection"]);
   }
 
-  async languageModel(frameId: string, options, input: string) {
-    await languageModelCreatechat({
+  async languageModel(frameId: string, options: Options, input: string) {
+    await languageModelCreateChat({
       actions: this as Actions<CodeEditorState>,
       frameId,
       options,

@@ -2,6 +2,7 @@
 // Mentally, just ignore "openai" and instead focus on "gpt-*" or "codey" or whatever they are called.
 // TODO: refactor this, the names of the tables, etc. to be more generic.
 
+import { unreachable } from "../misc";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
@@ -106,6 +107,17 @@ export function isFreeModel(model: Model) {
     model == "chat-bison-001" ||
     model == "embedding-gecko-001"
   );
+}
+
+export function getVendorStatusCheck(vendor: Vendor) {
+  switch (vendor) {
+    case "openai":
+      return `OpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+    case "google":
+      return `Google [status](https://status.cloud.google.com) and [downdetector](https://downdetector.com/status/google-cloud).`;
+    default:
+      unreachable(vendor);
+  }
 }
 
 interface Cost {

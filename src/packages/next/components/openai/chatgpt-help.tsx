@@ -75,6 +75,17 @@ export default function ChatGPTHelp({
     }
   };
 
+  function renderAlertErrorDescription() {
+    return (
+      <>
+        {error}
+        <hr />
+        OpenAI <A href="https://status.openai.com/">status</A> and{" "}
+        <A href="https://downdetector.com/status/openai/">downdetector</A>.
+      </>
+    );
+  }
+
   return (
     <FileContext.Provider value={{ jupyterApiEnabled }}>
       <Row style={{ margin: "5px 0", ...style }}>
@@ -154,19 +165,7 @@ export default function ChatGPTHelp({
               closable
               banner
               onClose={() => setError("")}
-              description={
-                <>
-                  {error}
-                  <hr />
-                  OpenAI <A href="https://status.openai.com/">
-                    status
-                  </A> and{" "}
-                  <A href="https://downdetector.com/status/openai/">
-                    downdetector
-                  </A>
-                  .
-                </>
-              }
+              description={renderAlertErrorDescription()}
             />
           )}
           {state == "wait" && (
