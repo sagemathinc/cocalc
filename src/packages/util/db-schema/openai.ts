@@ -30,10 +30,14 @@ export type LanguageModel = (typeof LANGUAGE_MODELS)[number];
 
 export function getValidLanguageModelName(
   model: string | undefined,
+  filter: { google: boolean; openai: boolean } = { google: true, openai: true },
 ): LanguageModel {
-  if (model == null) return DEFAULT_MODEL;
+  const dftl = filter.openai === true ? DEFAULT_MODEL : "chat-bison-001";
+  if (model == null) {
+    return dftl;
+  }
   if (!LANGUAGE_MODELS.includes(model as LanguageModel)) {
-    return DEFAULT_MODEL;
+    return dftl;
   }
   return model as LanguageModel;
 }
@@ -59,6 +63,7 @@ export function model2service(model: LanguageModel): LanguageService {
   }
 }
 
+// Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
 export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 
 export type Vendor = "openai" | "google";

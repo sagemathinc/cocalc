@@ -35,6 +35,7 @@ import {
   USER_SELECTABLE_LANGUAGE_MODELS,
   getValidLanguageModelName,
   isFreeModel,
+  model2vendor,
 } from "@cocalc/util/db-schema/openai";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 import ChatGPTAvatar from "../components/openai-avatar";
@@ -376,13 +377,30 @@ export class OtherSettings extends Component<Props> {
   }
 
   render_language_model(): Rendered {
+    const projectsStore = redux.getStore("projects");
+    const haveOpenAI = projectsStore.hasLanguageModelEnabled(
+      undefined,
+      undefined,
+      "openai",
+    );
+    const haveGoogle = projectsStore.hasLanguageModelEnabled(
+      undefined,
+      undefined,
+      "google",
+    );
+
     const defaultModel = getValidLanguageModelName(
       this.props.other_settings.get(SETTINGS_LANGUAGE_MODEL_KEY),
+      { openai: haveOpenAI, google: haveGoogle },
     );
 
     const options: { value: string; display: JSX.Element }[] = [];
 
     for (const key of USER_SELECTABLE_LANGUAGE_MODELS) {
+      const vendor = model2vendor(key);
+      if (vendor === "google" && !haveGoogle) continue;
+      if (vendor === "openai" && !haveOpenAI) continue;
+
       const txt = isFreeModel(key) ? " (free)" : "";
       const display = (
         <>

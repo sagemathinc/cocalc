@@ -65,8 +65,6 @@ export default async function getClient(
   }
 }
 
-const VERTEX_AI_LOCATION = process.env.COCALC_VERTEX_AI_LOCATION || "us-east1";
-
 interface AuthMethods {
   apiKey?: string;
   serviceAccountJSON?: string;
@@ -74,7 +72,6 @@ interface AuthMethods {
 
 export class VertexAIClient {
   gcp_project_id?: string;
-  location = VERTEX_AI_LOCATION;
   clientText: TextServiceClient;
   clientDiscuss: DiscussServiceClient;
 
