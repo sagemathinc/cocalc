@@ -13,6 +13,7 @@ import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
 import shortenError from "./shorten-error";
@@ -52,7 +53,10 @@ export default function HelpMeFix({
   const [model, setModel] = useLanguageModelSetting();
   if (
     redux == null ||
-    !redux.getStore("projects").hasOpenAI(project_id, "help-me-fix")
+    !(redux.getStore("projects") as ProjectsStore).hasLanguageModelEnabled(
+      project_id,
+      "help-me-fix",
+    )
   ) {
     return null;
   }

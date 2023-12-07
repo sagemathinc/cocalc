@@ -13,19 +13,20 @@ import { join } from "path";
 
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { init as initChat } from "@cocalc/frontend/chat/register";
+import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import track from "@cocalc/frontend/user-tracking";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
+import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { callback } from "awaiting";
 import { default_filename } from "./account";
 import { alert_message } from "./alerts";
 import { Actions, project_redux_name, redux } from "./app-framework";
-import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { IconName } from "./components";
 import { local_storage } from "./editor-local-storage";
 import { get_editor } from "./editors/react-wrapper";
@@ -47,6 +48,7 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "./project/page/flyouts/state";
+import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
 import {
   ensure_project_running,
   is_running_or_starting,
@@ -70,8 +72,6 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
-import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
-import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 
 const { defaults, required } = misc;
 
@@ -539,8 +539,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
         // Reopen the file if relationship has changed
         const is_public =
-          (redux.getStore("projects") as any).get_my_group(this.project_id) ===
-          "public";
+          redux.getProjectsStore().get_my_group(this.project_id) === "public";
 
         const info = store.get("open_files").getIn([path, "component"]) as any;
         if (info == null) {

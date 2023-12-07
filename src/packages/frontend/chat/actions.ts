@@ -5,7 +5,7 @@
 
 import { fromJS, Map as immutableMap } from "immutable";
 
-import { Actions } from "@cocalc/frontend/app-framework";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
 import type {
   HashtagState,
   SelectedHashtags,
@@ -17,17 +17,16 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import {
-  model2service,
-  type LanguageModel,
-  model2vendor,
   getVendorStatusCheck,
+  model2service,
+  model2vendor,
+  type LanguageModel,
 } from "@cocalc/util/db-schema/openai";
-import { cmp, parse_hashtags } from "@cocalc/util/misc";
+import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
 import { getSelectedHashtagsSearch } from "./utils";
-import { isValidUUID, uuid } from "@cocalc/util/misc";
 
 const MAX_CHATSTREAM = 10;
 
@@ -504,7 +503,9 @@ export class ChatActions extends Actions<ChatState> {
     if (
       !tag &&
       !reply_to &&
-      !this.redux.getStore("projects").hasOpenAI(this.store?.get("project_id"))
+      !redux
+        .getProjectsStore()
+        .hasLanguageModelEnabled(this.store?.get("project_id"))
     ) {
       // No need to check whether chatgpt is enabled at all.
       // We only do this check if tag is not set, e.g., directly typing @chatgpt

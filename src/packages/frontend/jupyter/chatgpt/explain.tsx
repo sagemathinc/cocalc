@@ -17,6 +17,7 @@ import ModelSwitch, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { ProjectsStore } from "@cocalc/frontend/projects/store";
 import type { JupyterActions } from "../browser-actions";
 
 interface Props {
@@ -33,7 +34,9 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
 
   if (
     actions == null ||
-    !actions.redux.getStore("projects").hasOpenAI(project_id, "explain")
+    !(
+      actions.redux.getStore("projects") as ProjectsStore
+    ).hasLanguageModelEnabled(project_id, "explain")
   ) {
     return null;
   }

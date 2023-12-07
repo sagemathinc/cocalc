@@ -102,6 +102,10 @@ export class AppRedux extends AppReduxBase {
     return super.getStore(name);
   }
 
+  getProjectsStore(): types.ProjectsStore {
+    return this.getStore("projects");
+  }
+
   createTable<T extends Table>(
     name: string,
     table_class: TableConstructor<T>,
