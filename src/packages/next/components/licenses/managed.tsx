@@ -251,46 +251,6 @@ function columns(onChange) {
       render: (_, license) => <LastUsed {...license} />,
       sorter: { compare: (a, b) => cmp(a.last_used, b.last_used) },
     },
-    /*   {
-      responsive: ["sm"],
-      title: (
-        <Popover
-          placement="top"
-          title="When License Becomes Activate"
-          content={
-            <div style={{ maxWidth: "75ex" }}>
-              This is when the license becomes active. In can be in the future,
-              in which case the license will be valid and useful in the future,
-              but not right now.
-            </div>
-          }
-        >
-          Activates{" "}
-        </Popover>
-      ),
-      render: (_, license) => <Activates {...license} />,
-      sorter: { compare: (a, b) => cmp(a.activates, b.activates) },
-    },
-    {
-      responsive: ["sm"],
-      title: (
-        <Popover
-          placement="top"
-          title="When License Expires"
-          content={
-            <div style={{ maxWidth: "75ex" }}>
-              This is when the license expires. Unless there is a subscription
-              that renews it, after this point in time the license will stop
-              upgrading projects.
-            </div>
-          }
-        >
-          Expires{" "}
-        </Popover>
-      ),
-      render: (_, license) => <Expires {...license} />,
-      sorter: { compare: (a, b) => cmp(a.expires, b.expires) },
-    },*/
     {
       responsive: ["sm"],
       title: (
@@ -395,9 +355,9 @@ function doSearch(data: object[], search: string): object[] {
   const w: object[] = [];
   for (const x of data) {
     if (x["search"] == null) {
-      x["search"] = `${x["title"] ?? ""} ${x["description"] ?? ""} ${x["id"]} ${
-        x["info"]?.purchased?.subscription
-      }`.toLowerCase();
+      x["search"] = `${x["title"] ?? ""} ${x["description"] ?? ""} ${
+        x["id"]
+      } ${x["info"]?.purchased?.subscription}`.toLowerCase();
     }
     if (search_match(x["search"], v)) {
       w.push(x);
@@ -486,7 +446,7 @@ function AddManagers({ license_id, managers, onChange }: AddManagersProps) {
             autoFocus
             onChange={setAccountIds}
             exclude={managers.concat(
-              account?.account_id ? [account.account_id] : []
+              account?.account_id ? [account.account_id] : [],
             )}
           />
         </div>
