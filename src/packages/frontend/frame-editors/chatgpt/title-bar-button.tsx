@@ -14,15 +14,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { LanguageModelVendorAvatar } from "../../components/language-model-icon";
 import { Actions } from "../code-editor/actions";
 import Context from "./context";
+import { Options } from "./create-chat";
 import ModelSwitch, { LanguageModel, modelToName } from "./model-switch";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
-import { Options } from "./create-chat";
 
 interface Preset {
   command: string;
@@ -237,7 +238,7 @@ export default function LanguageModelTitleBarButtonDialog({
     <Popover
       title={
         <div style={{ fontSize: "18px" }}>
-          <OpenAIAvatar size={24} style={{ marginRight: "5px" }} />
+          <LanguageModelVendorAvatar model={model} />{" "}
           <ModelSwitch size="small" model={model} setModel={setModel} /> What
           would you like to do using {modelToName(model)}?
           <Button
@@ -398,9 +399,14 @@ export default function LanguageModelTitleBarButtonDialog({
       >
         <span ref={buttonRef}>
           <Tooltip title="Get assistance from a language model">
-            <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
+            <AIAvatar
+              size={20}
+              iconColor="white"
+              style={{ marginTop: "-5px" }}
+              innerStyle={{}}
+            />{" "}
           </Tooltip>
-          <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
+          <VisibleMDLG>{labels ? "Assist..." : undefined}</VisibleMDLG>
         </span>
       </Button>
     </Popover>

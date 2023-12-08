@@ -9,7 +9,8 @@ import { CSSProperties, useState } from "react";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { Icon } from "@cocalc/frontend/components/icon";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -63,7 +64,7 @@ export default function HelpMeFix({
   return (
     <div>
       <PopconfirmKeyboard
-        icon={<OpenAIAvatar size={20} />}
+        icon={<LanguageModelVendorAvatar model={model} size={20} />}
         title={
           <>
             Get Help from{" "}
@@ -130,7 +131,7 @@ export default function HelpMeFix({
         }}
       >
         <Button size={size} style={style} disabled={gettingHelp}>
-          <OpenAIAvatar
+          <AIAvatar
             size={16}
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}

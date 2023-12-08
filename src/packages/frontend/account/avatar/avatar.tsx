@@ -5,6 +5,8 @@
 
 import { Tooltip } from "antd";
 import { CSSProperties, useState } from "react";
+
+import { getChatBotVendor, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
   React,
   redux,
@@ -12,13 +14,18 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap } from "@cocalc/frontend/components";
+import GooglePalmLogo from "@cocalc/frontend/components/google-palm-avatar";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { DEFAULT_COLOR } from "@cocalc/frontend/users/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
+import {
+  ensure_bound,
+  startswith,
+  trunc_middle,
+  unreachable,
+} from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { isChatBot } from "@cocalc/frontend/account/chatbot";
 
 const CIRCLE_OUTER_STYLE: CSSProperties = {
   textAlign: "center",
@@ -51,7 +58,16 @@ interface Props {
 
 export function Avatar(props) {
   if (isChatBot(props.account_id)) {
-    return <OpenAIAvatar size={props.size} style={props.style} />;
+    const vendor = getChatBotVendor(props.account_id);
+    switch (vendor) {
+      case "google":
+        return <GooglePalmLogo size={props.size} style={props.style} />;
+      case "openai":
+        return <OpenAIAvatar size={props.size} style={props.style} />;
+      default:
+        unreachable(vendor);
+        return <OpenAIAvatar size={props.size} style={props.style} />;
+    }
   } else {
     return <Avatar0 {...props} />;
   }

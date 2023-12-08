@@ -28,6 +28,10 @@ export const USER_SELECTABLE_LANGUAGE_MODELS: Readonly<LanguageModel[]> = [
 
 export type LanguageModel = (typeof LANGUAGE_MODELS)[number];
 
+export function isLanguageModel(model?: string): model is LanguageModel {
+  return LANGUAGE_MODELS.includes(model as LanguageModel);
+}
+
 export function getValidLanguageModelName(
   model: string | undefined,
   filter: { google: boolean; openai: boolean } = { google: true, openai: true },
@@ -52,8 +56,11 @@ export type LanguageService =
   | "google-embedding-gecko-001";
 
 // used e.g. for checking "account-id={string}" and other things like that
-export const LANGUAGE_MODEL_PREFIXES = ["chatgpt", "openai-", "google-"] as const;
-
+export const LANGUAGE_MODEL_PREFIXES = [
+  "chatgpt",
+  "openai-",
+  "google-",
+] as const;
 
 export function model2service(model: LanguageModel): LanguageService {
   if (

@@ -7,6 +7,11 @@ TODO:
 - input description box could be Markdown wysiwyg editor
 */
 
+import { Alert, Button, Input, Modal } from "antd";
+import { delay } from "awaiting";
+import { throttle } from "lodash";
+import { CSSProperties, useEffect, useState } from "react";
+
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   redux,
@@ -23,7 +28,7 @@ import {
   Paragraph,
   Title,
 } from "@cocalc/frontend/components";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -40,10 +45,6 @@ import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Alert, Button, Input, Modal } from "antd";
-import { delay } from "awaiting";
-import { throttle } from "lodash";
-import { CSSProperties, useEffect, useState } from "react";
 import { Block } from "./block";
 
 const TAG = "generate-jupyter";
@@ -363,7 +364,7 @@ export default function ChatGPTGenerateJupyterNotebook({
   return (
     <Block style={{ padding: "0 15px" }}>
       <Title level={4}>
-        <OpenAIAvatar size={30} /> Create Notebook Using{" "}
+        <LanguageModelVendorAvatar model={model} /> Create Notebook Using{" "}
         <ModelSwitch
           model={model}
           setModel={setModel}

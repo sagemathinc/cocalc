@@ -7,8 +7,9 @@ import { CSSProperties, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ModelSwitch, {
@@ -43,7 +44,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   return (
     <div style={style}>
       <PopconfirmKeyboard
-        icon={<OpenAIAvatar size={20} />}
+        icon={<LanguageModelVendorAvatar model={model} size={20} />}
         title={
           <b>
             Get explanation of this code from{" "}
@@ -101,7 +102,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
           type="text"
           disabled={gettingExplanation}
         >
-          <OpenAIAvatar
+          <AIAvatar
             size={12}
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}

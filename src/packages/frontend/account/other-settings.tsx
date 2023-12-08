@@ -17,11 +17,19 @@ import {
   Paragraph,
   SelectorInput,
 } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import {
+  LLM_USERNAMES,
+  USER_SELECTABLE_LANGUAGE_MODELS,
+  getValidLanguageModelName,
+  isFreeModel,
+  model2vendor,
+} from "@cocalc/util/db-schema/openai";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
@@ -30,15 +38,7 @@ import {
 } from "../project/page/vbar";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
-import {
-  LLM_USERNAMES,
-  USER_SELECTABLE_LANGUAGE_MODELS,
-  getValidLanguageModelName,
-  isFreeModel,
-  model2vendor,
-} from "@cocalc/util/db-schema/openai";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
-import ChatGPTAvatar from "../components/openai-avatar";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -414,7 +414,7 @@ export class OtherSettings extends Component<Props> {
       <LabeledRow
         label={
           <>
-            <ChatGPTAvatar size={16} /> Language model
+            <AIAvatar size={22} /> Language model
           </>
         }
       >

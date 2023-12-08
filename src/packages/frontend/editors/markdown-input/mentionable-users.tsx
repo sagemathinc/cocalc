@@ -5,6 +5,7 @@
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { redux } from "@cocalc/frontend/app-framework";
+import GooglePalmLogo from "@cocalc/frontend/components/google-palm-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { LLM_USERNAMES } from "@cocalc/util/db-schema/openai";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
@@ -96,7 +97,7 @@ export function mentionableUsers(
         value: "openai-chat-bison-001",
         label: (
           <span>
-            <OpenAIAvatar size={24} /> {LLM_USERNAMES["chat-bison-001"]}
+            <GooglePalmLogo size={24} /> {LLM_USERNAMES["chat-bison-001"]}
           </span>
         ),
         search: "palm",

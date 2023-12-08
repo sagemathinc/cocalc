@@ -6,7 +6,7 @@ import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageMod
 import { alert_message } from "@cocalc/frontend/alerts";
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ModelSwitch, {
   modelToName,
@@ -17,7 +17,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { insertCell } from "./util";
 const { Paragraph } = Typography;
 
-export default function ChatGPT({
+export default function AIGenerateCodeCell({
   setShowChatGPT,
   showChatGPT,
   children,
@@ -47,7 +47,7 @@ export default function ChatGPT({
       placement="bottom"
       title={() => (
         <div style={{ fontSize: "18px" }}>
-          <OpenAIAvatar size={24} /> Generate code cell using{" "}
+          <LanguageModelVendorAvatar model={model} size={24} /> Generate code cell using{" "}
           <ModelSwitch size="small" model={model} setModel={setModel} />
           <Button
             onClick={() => {
