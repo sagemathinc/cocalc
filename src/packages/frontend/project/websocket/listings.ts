@@ -10,7 +10,13 @@ import { SyncTable } from "@cocalc/sync/table";
 import { once } from "@cocalc/util/async-utils";
 import { WATCH_TIMEOUT_MS } from "@cocalc/util/db-schema/listings";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
-import { close, merge, path_split } from "@cocalc/util/misc";
+import {
+  close,
+  merge,
+  meta_file,
+  original_path,
+  path_split,
+} from "@cocalc/util/misc";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
@@ -147,6 +153,17 @@ export class Listings extends EventEmitter {
   }
 
   public async undelete(path: string): Promise<void> {
+    await this.doUndelete(path);
+
+    // for jupyter undelete both the ipynb and the aux syncdb file:
+    if (path.endsWith(".ipynb")) {
+      await this.doUndelete(meta_file(path, "jupyter2"));
+    } else if (path.endsWith("jupyter2")) {
+      await this.doUndelete(original_path(path));
+    }
+  }
+
+  private async doUndelete(path: string): Promise<void> {
     if (path == "") return;
     if (this.state == ("closed" as State)) return;
     if (this.state != ("ready" as State)) {
