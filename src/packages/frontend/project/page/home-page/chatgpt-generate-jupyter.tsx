@@ -46,6 +46,10 @@ import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
+import {
+  getVendorStatusCheckMD,
+  model2vendor,
+} from "@cocalc/util/db-schema/openai";
 
 const TAG = "generate-jupyter";
 
@@ -149,7 +153,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     try {
       setQuerying(true);
 
-      const gptStream = webapp_client.openai_client.languageModelStream({
+      const llmStream = webapp_client.openai_client.languageModelStream({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
@@ -157,11 +161,9 @@ export default function ChatGPTGenerateJupyterNotebook({
         model,
       });
 
-      await updateNotebook(gptStream);
+      await updateNotebook(llmStream);
     } catch (err) {
-      setError(
-        `${err}\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`,
-      );
+      setError(`${err}\n\n${getVendorStatusCheckMD(model2vendor(model))}.`);
       setQuerying(false);
     }
   }
@@ -211,7 +213,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     return null;
   }
 
-  async function updateNotebook(gptStream: ChatStream): Promise<void> {
+  async function updateNotebook(llmStream: ChatStream): Promise<void> {
     // local state, modified when more data comes in
     let init = false;
     let ja: JupyterActions | undefined = undefined;
@@ -300,7 +302,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     );
 
     let answer = "";
-    gptStream.on("token", (token) => {
+    llmStream.on("token", (token) => {
       if (token != null) {
         answer += token;
         const filenameGPT = getFilename(answer, prompt);
@@ -319,10 +321,12 @@ export default function ChatGPTGenerateJupyterNotebook({
       }
     });
 
-    gptStream.on("error", (err) => {
+    llmStream.on("error", (err) => {
       setError(`${err}`);
       setQuerying(false);
-      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+        model2vendor(model),
+      )}.`;
       if (ja == null) {
         // have to make error message without markdown since error isn't markdown.
         // This case happens if we turn on the chatgpt UI, but do not put an openai key in.
@@ -336,7 +340,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     });
 
     // after setting up listeners, we start the stream
-    gptStream.emit("start");
+    llmStream.emit("start");
   }
 
   if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {

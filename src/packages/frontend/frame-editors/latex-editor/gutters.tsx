@@ -39,8 +39,8 @@ export function update_gutters(opts: {
           item.content,
           opts.actions,
           group,
-          item.line
-        )
+          item.line,
+        ),
       );
     }
   }
@@ -52,7 +52,7 @@ function component(
   content: string | undefined,
   actions: Actions,
   group: string,
-  line: number
+  line: number,
 ) {
   const spec: SpecItem = SPEC[level];
   if (content === undefined) {
@@ -85,7 +85,7 @@ function component(
                   return v + `% this is line number ${line + 1}`;
                 }}
                 language={"latex"}
-                extraFileInfo={actions.languageModelExtraFileInfo()}
+                extraFileInfo={actions.languageModelExtraFileInfo(false)}
                 tag={"latex-error-popover"}
                 prioritizeLastInput
               />

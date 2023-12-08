@@ -15,6 +15,10 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
 import { insertCell } from "./util";
+import {
+  getVendorStatusCheckMD,
+  model2vendor,
+} from "@cocalc/util/db-schema/openai";
 const { Paragraph } = Typography;
 
 export default function AIGenerateCodeCell({
@@ -47,7 +51,8 @@ export default function AIGenerateCodeCell({
       placement="bottom"
       title={() => (
         <div style={{ fontSize: "18px" }}>
-          <LanguageModelVendorAvatar model={model} size={24} /> Generate code cell using{" "}
+          <LanguageModelVendorAvatar model={model} size={24} /> Generate code
+          cell using{" "}
           <ModelSwitch size="small" model={model} setModel={setModel} />
           <Button
             onClick={() => {
@@ -77,7 +82,7 @@ export default function AIGenerateCodeCell({
                 placeholder="Describe the new cell..."
                 onPressEnter={(e) => {
                   if (!e.shiftKey) return;
-                  queryChatGPT({
+                  queryLanguageModel({
                     frameActions,
                     actions,
                     id,
@@ -110,7 +115,7 @@ export default function AIGenerateCodeCell({
                 <Button
                   type="primary"
                   onClick={() => {
-                    queryChatGPT({
+                    queryLanguageModel({
                       frameActions,
                       actions,
                       id,
@@ -177,7 +182,7 @@ function extractCode(raw: string): {
   }
 }
 
-async function queryChatGPT({
+async function queryLanguageModel({
   frameActions,
   actions,
   setQuerying,
@@ -240,7 +245,7 @@ async function queryChatGPT({
       input,
       project_id,
       path,
-      system: `Return a single code block in the language "${lang}".`,
+      system: `Return a single code block in the language "${lang}". All text explanations must be code comments.`,
       tag,
       model,
     });
@@ -267,7 +272,9 @@ async function queryChatGPT({
     reply.on("error", (err) => {
       fa.set_cell_input(
         gptCellId,
-        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`,
+        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+          model2vendor(model),
+        )}.`,
       );
       actions.set_cell_type(gptCellId, "markdown");
       fa.set_mode("escape");

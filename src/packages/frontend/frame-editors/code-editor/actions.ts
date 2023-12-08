@@ -2939,8 +2939,16 @@ export class Actions<
   }
 
   // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
-  languageModelExtraFileInfo(): string {
-    return `${filenameMode(this.path)} code`;
+  languageModelExtraFileInfo(codegen: boolean = true): string {
+    const ext = filename_extension(this.path).toLowerCase();
+    // md is yaml frontmatter, which is confusing
+    if (ext === "md") {
+      return "Markdown document";
+    } else if (ext === "tex") {
+      return "LaTeX document";
+    } else {
+      return `${filenameMode(this.path)} ${codegen ? "code" : "text"}`;
+    }
   }
 
   // This is something like "python" or "py", "r", etc., i.e., what typically

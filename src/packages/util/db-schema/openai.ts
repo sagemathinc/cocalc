@@ -125,7 +125,7 @@ export function isFreeModel(model: Model) {
   );
 }
 
-export function getVendorStatusCheck(vendor: Vendor) {
+export function getVendorStatusCheckMD(vendor: Vendor): string {
   switch (vendor) {
     case "openai":
       return `OpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
@@ -134,7 +134,9 @@ export function getVendorStatusCheck(vendor: Vendor) {
     default:
       unreachable(vendor);
   }
+  return ""
 }
+
 
 interface Cost {
   prompt_tokens: number;

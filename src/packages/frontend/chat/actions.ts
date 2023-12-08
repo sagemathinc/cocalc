@@ -17,7 +17,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import {
-  getVendorStatusCheck,
+  getVendorStatusCheckMD,
   model2service,
   model2vendor,
   type LanguageModel,
@@ -657,7 +657,7 @@ export class ChatActions extends Actions<ChatState> {
       }
 
       const vendor = model2vendor(model);
-      const statusCheck = getVendorStatusCheck(vendor);
+      const statusCheck = getVendorStatusCheckMD(vendor);
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
       this.syncdb.set({
         date,

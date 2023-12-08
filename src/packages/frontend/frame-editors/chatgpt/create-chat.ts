@@ -58,7 +58,7 @@ export default async function createChat({
   if (frameType != "terminal") {
     message += `I am writing in the file ${
       actions.path
-    } ${actions.languageModelExtraFileInfo()}.`;
+    } ${actions.languageModelExtraFileInfo(codegen)}.`;
     if (input.trim()) {
       message += ` The file includes the following ${
         codegen ? "code" : "content"
