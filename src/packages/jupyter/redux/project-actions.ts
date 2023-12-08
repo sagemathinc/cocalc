@@ -33,6 +33,7 @@ import {
 import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
 import { callback } from "awaiting";
 import { get_blob_store } from "@cocalc/jupyter/blobs";
+import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -1357,10 +1358,22 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public close_project_only() {
+    const dbg = this.dbg("close_project_only");
+    dbg();
     if (this.run_all_loop) {
       this.run_all_loop.close();
       delete this.run_all_loop;
     }
+    // this stops the kernel and cleans everything up
+    // so no resources are wasted and next time starting
+    // is clean
+    (async () => {
+      try {
+        await removeJupyterRedux(this.store.get("path"), this.project_id);
+      } catch (err) {
+        dbg("WARNING -- issue removing jupyter redux", err);
+      }
+    })();
   }
 
   // not actually async...

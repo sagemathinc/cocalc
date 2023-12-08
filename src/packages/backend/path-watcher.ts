@@ -31,8 +31,9 @@ import { EventEmitter } from "events";
 import { debounce } from "lodash";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { close, path_split } from "@cocalc/util/misc";
-import { getLogger } from "@cocalc/project/logger";
-const L = getLogger("fs-watcher");
+import { getLogger } from "./logger";
+
+const logger = getLogger("backend:path-watcher");
 
 const COCALC_FS_WATCHER = process.env.COCALC_FS_WATCHER ?? "inotify";
 if (!["inotify", "poll"].includes(COCALC_FS_WATCHER)) {
@@ -74,7 +75,7 @@ export class Watcher extends EventEmitter {
 
   constructor(path: string, debounce_ms: number) {
     super();
-    this.log = L.extend(path).debug;
+    this.log = logger.extend(path).debug;
     this.log(`initializing: poll=${POLLING}`);
     if (process.env.HOME == null) {
       throw Error("bug -- HOME must be defined");
