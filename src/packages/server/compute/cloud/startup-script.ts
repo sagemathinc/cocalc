@@ -92,9 +92,11 @@ fi
 
 ${rootSsh()}
 
+${userSsh()}
+
 docker
 if [ $? -ne 0 ]; then
-setState install install-docker '' 120 20
+   setState install install-docker '' 120 20
 ${installDocker()}
 fi
 
@@ -147,6 +149,28 @@ function rootSsh() {
 # Install ssh keys for root access to VM
 mkdir -p /root/.ssh
 cat /cocalc/conf/authorized_keys > /root/.ssh/authorized_keys
+`;
+}
+
+// Make it so doing 'ssh user@host' ends up in the *compute* docker container, rather than
+// on the host machine.  This fully works for tcp port forwarding, rsync, etc, in addition to
+// normal logins, beause of the complicated conditional force command below.
+// This is important, since otherwise 'ssh user@host' would put the user in an
+// environment without the software install they are expecting.
+// This approach is more robust to configure than running ssh directly on the compute docker
+// container on a different port, but slightly more limited, e.g., X11 port forwarding doesn't
+// seem to work, but is also something that we wouldn't want to do this way anyways.
+function userSsh() {
+  return `
+# Make it so doing 'ssh user@host' ends up in the *compute* docker container.
+# To get into the true root of the VM, the user has to do 'ssh root@host'.
+if ! grep -q "Match User user" /etc/ssh/sshd_config; then
+   {
+      echo "Match User user"
+      echo '   ForceCommand [[ -z "\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \${SSH_ORIGINAL_COMMAND}'
+   } >> /etc/ssh/sshd_config
+   service ssh restart
+fi
 `;
 }
 

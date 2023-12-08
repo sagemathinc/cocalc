@@ -7,6 +7,7 @@ import { CopyToClipBoard } from "@cocalc/frontend/components";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Tooltip } from "antd";
 
 interface Props {
   cloud?;
@@ -52,13 +53,33 @@ export default function Description({
   );
 }
 
+// TODO: "Stop then start the compute server for changes to ssh keys to take effect." is only
+// because I haven't implemented something better through an api, similar to how sync works.
+// It would not be hard.
 function RuntimeInfo({ configuration, data }) {
   return (
     <div style={{ display: "flex", textAlign: "center" }}>
       {data?.externalIp && (
-        <div style={{ flex: 1, display: "flex" }}>
-          <CopyToClipBoard value={data?.externalIp} size="small" />
-        </div>
+        <Tooltip
+          title={
+            <>
+              Setup{" "}
+              <A href="https://doc.cocalc.com/account/ssh.html">
+                ssh keys in your account or project
+              </A>
+              , then <code>ssh user@{data?.externalIp}</code> to connect to the
+              remote compute server Docker container, and{" "}
+              <code>ssh root@{data?.externalIp}</code> to connect to the host
+              VM. Stop then start the compute server for changes to ssh keys to
+              take effect.
+            </>
+          }
+          placement="left"
+        >
+          <div style={{ flex: 1, display: "flex" }}>
+            <CopyToClipBoard value={data?.externalIp} size="small" />
+          </div>
+        </Tooltip>
       )}
       <div style={{ flex: 1, display: "flex" }}>
         {data?.externalIp && configuration.dns ? (
@@ -81,7 +102,7 @@ function RuntimeInfo({ configuration, data }) {
 
 function DnsLink({ dns, authToken }) {
   const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
-  if (!compute_servers_dns) {
+  if (!compute_servers_dns || !dns) {
     return null;
   }
   const auth = getQuery(authToken);
@@ -93,6 +114,9 @@ function DnsLink({ dns, authToken }) {
 }
 
 function ExternalIpLink({ externalIp, authToken }) {
+  if (!externalIp) {
+    return null;
+  }
   const auth = getQuery(authToken);
   return (
     <A href={`https://${externalIp}${auth}`}>
