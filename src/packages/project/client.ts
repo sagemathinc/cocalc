@@ -616,19 +616,11 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return await callback2(this.call, { message: mesg });
   }
 
-  public is_deleted(filename: string, _project_id: string): boolean {
-    // project_id is ignored, of course
-    // WE cannot depend on the listing table entirely because it only
-    // keeps information about the last n directories that were visited.
-    // If somebody is browsing around a lot, suddenly a file goes from
-    // known to be deleted to "we know nothing".
-    const x = getListingsTable()?.isDeleted(filename);
-    if (x != null) {
-      return x;
-    }
-    // We have to use existsSync because is_deleted is
-    // not an async function (TODO?).
-    return !fs.existsSync(join(HOME, filename));
+  // Return true if the file was explicitly deleted.
+  // Returns unknown if don't know
+  // Returns false if definitely not.
+  public is_deleted(filename: string, _project_id: string) {
+    return getListingsTable()?.isDeleted(filename);
   }
 
   public async set_deleted(
