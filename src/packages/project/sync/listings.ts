@@ -37,5 +37,6 @@ export function registerListingsTable(table, project_id): void {
     getListing,
     createWatcher,
     existsSync,
+    getLogger,
   });
 }

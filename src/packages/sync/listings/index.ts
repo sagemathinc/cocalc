@@ -20,11 +20,8 @@ import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
 } from "@cocalc/util/db-schema/listings";
-import debug from "debug";
 import type { EventEmitter } from "events";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-
-const log = debug("cocalc:sync:listings");
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
@@ -64,6 +61,7 @@ interface Options {
   createWatcher;
   onDeletePath;
   existsSync;
+  getLogger;
 }
 
 class ListingsTable {
@@ -78,9 +76,11 @@ class ListingsTable {
   private createWatcher: (path: string, debounceMs: number) => Watcher;
   private onDeletePath: (path: string) => Promise<void>;
   private existsSync: (path: string) => boolean;
+  private log: (...args) => void;
 
   constructor(opts: Options) {
-    log("constructor");
+    this.log = opts.getLogger("sync:listings").debug;
+    this.log("constructor");
     this.project_id = opts.project_id;
     this.compute_server_id = opts.compute_server_id;
     this.table = opts.table;
@@ -92,7 +92,7 @@ class ListingsTable {
   }
 
   close = () => {
-    log("close");
+    this.log("close");
     for (const path in this.watchers) {
       this.stopWatching(path);
     }
@@ -118,7 +118,7 @@ class ListingsTable {
         this.startWatching(path);
       }
     });
-    this.table.on("change", this.handleChangeEvent.bind(this));
+    this.table.on("change", this.handleChangeEvent);
 
     this.removeStaleWatchers();
   };
@@ -146,7 +146,7 @@ class ListingsTable {
     try {
       await this.trimOldPaths();
     } catch (err) {
-      log("WARNING, error trimming old paths -- ", err);
+      this.log("WARNING, error trimming old paths -- ", err);
     }
 
     if (this.table == null) return; // closed
@@ -195,20 +195,20 @@ class ListingsTable {
   };
 
   private handleChangeEvent = (keys: string[]) => {
-    log("handleChangeEvent", JSON.stringify(keys));
+    this.log("handleChangeEvent", JSON.stringify(keys));
     for (const key of keys) {
       this.handleChange(JSON.parse(key)[1]);
     }
   };
 
   private handleChange = (path: string): void => {
-    log("handleChange", path);
+    this.log("handleChange", path);
     const cur = this.get(path);
     if (cur == null) return;
     let interest: undefined | Date = cur.get("interest");
     if (interest == null) return;
     if (interest >= seconds_ago(INTEREST_THRESH_SECONDS)) {
-      // Ensure any possible client clock skew "issue" has no nontrivial impact.
+      // Ensure any possible client clock skew "issue" has no trivial bad impact.
       const time = new Date();
       if (interest > time) {
         interest = time;
@@ -221,8 +221,13 @@ class ListingsTable {
 
   private ensureWatching = async (path: string): Promise<void> => {
     if (this.watchers[path] != null) {
-      // We are already watching this path, so nothing more to do.
-      return;
+      // We are already watching this path
+      if (this.get(path)?.get("error")) {
+        this.log("ensureWatching -- removing old watcher due to error", path);
+        this.stopWatching(path);
+      } else {
+        return;
+      }
     }
 
     // Fire off computing of directory listing for this path,
@@ -230,7 +235,7 @@ class ListingsTable {
     try {
       await this.computeListing(path);
     } catch (err) {
-      log(
+      this.log(
         "ensureWatching -- failed to compute listing so not starting watching",
         err,
       );
@@ -239,7 +244,7 @@ class ListingsTable {
     try {
       this.startWatching(path);
     } catch (err) {
-      log("failed to start watching", err);
+      this.log("failed to start watching", err);
     }
   };
 
@@ -311,7 +316,7 @@ class ListingsTable {
         if (!this.isReady()) return;
         await this.computeListing(path);
       } catch (err) {
-        log(`computeListing("${path}") error: "${err}"`);
+        this.log(`computeListing("${path}") error: "${err}"`);
       }
     });
   };
@@ -324,11 +329,11 @@ class ListingsTable {
   };
 
   private trimOldPaths = async (): Promise<void> => {
-    log("trimOldPaths");
+    this.log("trimOldPaths");
     if (!this.isReady()) return;
     const table = this.getTable();
     let num_to_remove = table.size() - MAX_PATHS;
-    log("trimOldPaths", num_to_remove);
+    this.log("trimOldPaths", num_to_remove);
     if (num_to_remove <= 0) {
       // definitely nothing to do
       return;
@@ -348,21 +353,21 @@ class ListingsTable {
       const interest = val.get("interest", new Date(0));
       paths.push({ path, interest });
     });
-    log("trimOldPaths", JSON.stringify(paths));
-    log("trimOldPaths", num_to_remove);
+    this.log("trimOldPaths", JSON.stringify(paths));
+    this.log("trimOldPaths", num_to_remove);
 
     if (num_to_remove <= 0) return;
     paths.sort(field_cmp("interest"));
     // Now remove the first num_to_remove paths.
     for (let i = 0; i < num_to_remove; i++) {
-      log("trimOldPaths -- removing", paths[i].path);
+      this.log("trimOldPaths -- removing", paths[i].path);
       await this.removePath(paths[i].path);
     }
   };
 
   private removePath = async (path: string): Promise<void> => {
     if (!this.isReady()) return;
-    log("removePath", path);
+    this.log("removePath", path);
     await this.getTable().delete({ project_id: this.project_id, path });
   };
 
@@ -370,11 +375,11 @@ class ListingsTable {
   // for the containing path in the database.  (TODO: we may change this
   // to create the record if it doesn't exist.)
   setDeleted = async (filename: string): Promise<void> => {
-    log("setDeleted:", filename);
+    this.log("setDeleted:", filename);
     if (!this.isReady()) {
       // setDeleted is a convenience, so dropping it in case of a project
       // with no network is OK.
-      log(`setDeleted: skipping since not ready`);
+      this.log(`setDeleted: skipping since not ready`);
       return;
     }
     if (filename[0] == "/") {
@@ -397,7 +402,7 @@ class ListingsTable {
         deleted = deleted.toJS();
         deleted.push(tail);
       }
-      log(`setDeleted: recording "${deleted}" in "${head}"`);
+      this.log(`setDeleted: recording "${deleted}" in "${head}"`);
       await this.set({ path: head, deleted });
       if (!this.isReady()) return;
     }
@@ -453,7 +458,6 @@ class ListingsTable {
 
 let listingsTable: ListingsTable | undefined = undefined;
 export function registerListingsTable(opts: Options): void {
-  log("registerListingsTable");
   if (listingsTable != null) {
     // There was one sitting around wasting space so clean it up
     // before making a new one.

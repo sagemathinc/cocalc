@@ -22,6 +22,11 @@ The code below deals with two very different cases:
 NOTE: if you are running on a filesystem like NFS, inotify won't work well or not at all.
 In that case, set the env variable COCALC_FS_WATCHER=poll to use polling instead.
 You can configure the poll interval by setting COCALC_FS_WATCHER_POLL_INTERVAL_MS.
+
+UPDATE: We are using polling in ALL cases.  We have subtle bugs
+with adding and removing directories otherwise, and also
+we are only ever watching a relatively small number of directories
+with a long interval, so polling is not so bad.
 */
 
 import { watch, WatchOptions } from "chokidar";
@@ -35,16 +40,18 @@ import { getLogger } from "./logger";
 
 const logger = getLogger("backend:path-watcher");
 
-const COCALC_FS_WATCHER = process.env.COCALC_FS_WATCHER ?? "inotify";
-if (!["inotify", "poll"].includes(COCALC_FS_WATCHER)) {
-  throw new Error(
-    `$COCALC_FS_WATCHER=${COCALC_FS_WATCHER} -- must be "inotify" or "poll"`,
-  );
-}
-const POLLING = COCALC_FS_WATCHER === "poll";
+// const COCALC_FS_WATCHER = process.env.COCALC_FS_WATCHER ?? "inotify";
+// if (!["inotify", "poll"].includes(COCALC_FS_WATCHER)) {
+//   throw new Error(
+//     `$COCALC_FS_WATCHER=${COCALC_FS_WATCHER} -- must be "inotify" or "poll"`,
+//   );
+// }
+// const POLLING = COCALC_FS_WATCHER === "poll";
+
+const POLLING = true;
 
 const DEFAULT_POLL_MS = parseInt(
-  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "2000",
+  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "1500",
 );
 
 const ChokidarOpts: WatchOptions = {
