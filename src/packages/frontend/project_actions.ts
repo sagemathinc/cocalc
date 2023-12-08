@@ -649,8 +649,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id: required, // client must specify this, e.g., id=misc.uuid()
       status: undefined, // status update message during the activity -- description of progress
       stop: undefined, // activity is done  -- can pass a final status message in.
-      error: undefined,
-    }); // describe an error that happened
+      error: undefined, // describe an error that happened
+    });
     const store = this.get_store();
     if (store == undefined) {
       return;
@@ -1301,10 +1301,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  // Update the directory listing cache for the given path
-  // Uses current path if path not provided
-  fetch_directory_listing(opts_args?): void {
-    fetchDirectoryListing(this, opts_args);
+  // Update the directory listing cache for the given path.
+  // Uses current path if path not provided.
+  async fetch_directory_listing(opts?): Promise<void> {
+    await fetchDirectoryListing(this, opts);
   }
 
   public async fetch_directory_listing_directly(
