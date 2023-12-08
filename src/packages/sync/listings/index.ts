@@ -63,6 +63,7 @@ interface Options {
   getListing;
   createWatcher;
   onDeletePath;
+  existsSync;
 }
 
 class ListingsTable {
@@ -76,6 +77,7 @@ class ListingsTable {
   ) => Promise<DirectoryListingEntry[]>;
   private createWatcher: (path: string, debounceMs: number) => Watcher;
   private onDeletePath: (path: string) => Promise<void>;
+  private existsSync: (path: string) => boolean;
 
   constructor(opts: Options) {
     log("constructor");
@@ -85,6 +87,7 @@ class ListingsTable {
     this.getListing = opts.getListing;
     this.createWatcher = opts.createWatcher;
     this.onDeletePath = opts.onDeletePath;
+    this.existsSync = opts.existsSync;
     this.setupWatchers();
   }
 
@@ -427,7 +430,24 @@ class ListingsTable {
       return null;
     }
     // table is available and has deleted info for the directory -- let's see:
-    return deleted.indexOf(tail) != -1;
+    if (deleted.indexOf(tail) != -1) {
+      // it was explicitly deleted at some point.
+      // It *might* still be deleted.  Check on disk now
+      // via a synchronous check.
+      if (this.existsSync(filename)) {
+        // it now exists -- return false but also update the table since
+        // path is no longer deleted
+        this.set({
+          path: head,
+          deleted: deleted.toJS().filter((x) => x != tail),
+        });
+        return false;
+      } else {
+        // definitely explicitly deleted and not back on disk for some reason,
+        return true;
+      }
+    }
+    return false;
   };
 }
 

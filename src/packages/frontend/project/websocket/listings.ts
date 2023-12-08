@@ -11,7 +11,7 @@ import { once } from "@cocalc/util/async-utils";
 import { WATCH_TIMEOUT_MS, Listing } from "@cocalc/util/db-schema/listings";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
 import type { DirectoryListingEntry } from "@cocalc/util/types";
-import { close, meta_file, original_path, path_split } from "@cocalc/util/misc";
+import { close, path_split } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { fromJS, List } from "immutable";
@@ -139,25 +139,13 @@ export class Listings extends EventEmitter {
   };
 
   undelete = async (path: string): Promise<void> => {
-    await this.doUndelete(path);
-
-    // for jupyter undelete both the ipynb and the aux syncdb file:
-    if (path.endsWith(".ipynb")) {
-      await this.doUndelete(meta_file(path, "jupyter2"));
-    } else if (path.endsWith("jupyter2")) {
-      await this.doUndelete(original_path(path));
-    }
-  };
-
-  private doUndelete = async (path: string): Promise<void> => {
     if (path == "") return;
     if (this.state == ("closed" as State)) return;
     if (this.state != ("ready" as State)) {
       await once(this, "state");
       if (this.state != ("ready" as State)) return;
     }
-
-    // Check is_deleted, so we can assume that path definitely
+    // Check isDeleted, so we can assume that path definitely
     // is deleted according to our rules.
     if (!this.isDeleted(path)) {
       return;
@@ -187,8 +175,8 @@ export class Listings extends EventEmitter {
       return;
     }
     const remove = new Set([tail].concat(deleted_file_variations(tail)));
-    deleted = deleted.filter((x) => !remove.has(x));
-    await this.set({ path: head, deleted: deleted.toJS() });
+    const newDeleted = deleted.toJS().filter((x) => !remove.has(x));
+    await this.set({ path: head, deleted: newDeleted });
   };
 
   // true or false if known deleted or not; undefined if don't know yet.
@@ -442,11 +430,15 @@ export class Listings extends EventEmitter {
       await this.reInit();
       table = this.getTable();
     }
-    table.set({
+    const x = {
       project_id: this.project_id,
       compute_server_id: this.compute_server_id,
       ...obj,
-    });
+    };
+    // do NOT do the default deep merge,
+    // since things like the deleted list
+    // merge in a weird way.
+    table.set(x, "shallow");
     await table.save();
   };
 

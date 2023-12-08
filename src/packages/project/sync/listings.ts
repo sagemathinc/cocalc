@@ -11,6 +11,7 @@ import getListing from "@cocalc/backend/get-listing";
 import { Watcher } from "@cocalc/backend/path-watcher";
 import { close_all_syncdocs_in_tree } from "./sync-doc";
 import { getLogger } from "@cocalc/backend/logger";
+import { existsSync } from "fs";
 
 const logger = getLogger("project:sync:listings");
 const log = logger.debug;
@@ -35,5 +36,6 @@ export function registerListingsTable(table, project_id): void {
     onDeletePath,
     getListing,
     createWatcher,
+    existsSync,
   });
 }
