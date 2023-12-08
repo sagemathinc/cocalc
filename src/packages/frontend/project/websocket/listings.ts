@@ -11,13 +11,7 @@ import { once } from "@cocalc/util/async-utils";
 import { WATCH_TIMEOUT_MS, Listing } from "@cocalc/util/db-schema/listings";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
 import type { DirectoryListingEntry } from "@cocalc/util/types";
-import {
-  close,
-  merge,
-  meta_file,
-  original_path,
-  path_split,
-} from "@cocalc/util/misc";
+import { close, meta_file, original_path, path_split } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { fromJS, List } from "immutable";
@@ -448,16 +442,11 @@ export class Listings extends EventEmitter {
       await this.reInit();
       table = this.getTable();
     }
-    table.set(
-      merge(
-        {
-          project_id: this.project_id,
-          compute_server_id: this.compute_server_id,
-        },
-        obj,
-      ),
-      "shallow",
-    );
+    table.set({
+      project_id: this.project_id,
+      compute_server_id: this.compute_server_id,
+      ...obj,
+    });
     await table.save();
   };
 

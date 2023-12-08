@@ -123,7 +123,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     }
   };
 
-  private filesystemClient = new FileSystemClient(this.dbg);
+  private filesystemClient = new FileSystemClient();
   write_file = this.filesystemClient.write_file;
   path_read = this.filesystemClient.path_read;
   path_stat = this.filesystemClient.path_stat;

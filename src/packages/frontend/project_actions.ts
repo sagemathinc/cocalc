@@ -16,7 +16,7 @@ import { init as initChat } from "@cocalc/frontend/chat/register";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import track from "@cocalc/frontend/user-tracking";
-import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
 import { MARKERS } from "@cocalc/util/sagews";
@@ -2904,7 +2904,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (item == null || err) {
           // Fetch again if error or nothing found
           try {
-            await callback2(this.fetch_directory_listing, {
+            await this.fetch_directory_listing({
               path: parent_path,
             });
             const store = this.get_store();

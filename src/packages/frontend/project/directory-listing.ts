@@ -8,6 +8,7 @@ import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { webapp_client } from "../webapp-client";
 import { redux } from "../app-framework";
 import * as prom_client from "../prom-client";
+import { dirname } from "path";
 
 let prom_get_dir_listing_h;
 if (prom_client.enabled) {
@@ -140,10 +141,14 @@ export async function get_directory_listing(opts: ListingOpts) {
 import { Listings } from "./websocket/listings";
 
 export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
+  const start = Date.now();
   const store = redux.getProjectStore(opts.project_id);
   const listings: Listings = await store.get_listings();
   listings.watch(opts.path);
-  while (true) {
+  if (opts.path) {
+    listings.watch(dirname(opts.path));
+  }
+  while (Date.now() - start < opts.max_time_s * 1000) {
     if (listings.getMissing(opts.path)) {
       if (store.getIn(["directory_listings", opts.path]) != null) {
         // just update an already loaded listing:
@@ -168,11 +173,15 @@ export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
           );
       }
     }
-    // return what we have now:
+    // return what we have now, if anything.
     const files = await listings.get(opts.path, opts.trigger_start_project);
     if (files != null) {
       return { files };
     }
-    await once(listings, "change");
+    await once(
+      listings,
+      "change",
+      opts.max_time_s * 1000 - (Date.now() - start),
+    );
   }
 }
