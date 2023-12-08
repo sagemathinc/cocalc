@@ -229,9 +229,8 @@ export default function SelectComputeServer({
                 {value ? (
                   <div>
                     <div>
-                      <Icon name="edit" /> Run in this Project?
+                      <Icon name="users" /> Default shared server
                     </div>
-                    <div style={{ marginLeft: "15px" }}>(the default)</div>
                   </div>
                 ) : (
                   <div>

@@ -28,6 +28,7 @@ interface Props {
   style?: CSS;
   minimal?: boolean;
   onCreate?: () => void;
+  allowClear?: boolean;
 }
 
 export const SelectProject: React.FC<Props> = ({
@@ -39,6 +40,7 @@ export const SelectProject: React.FC<Props> = ({
   style,
   minimal,
   onCreate,
+  allowClear,
 }) => {
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
@@ -120,6 +122,7 @@ export const SelectProject: React.FC<Props> = ({
     <div style={style}>
       <div style={{ display: "flex", flexDirection: "row" }}>
         <Select
+          allowClear={allowClear}
           style={{ marginRight: "15px", flex: 1 }}
           showSearch={true}
           placeholder={"Select project..."}

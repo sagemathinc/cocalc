@@ -178,6 +178,7 @@ function ComputeServerTable({
           project_id={project_id}
           onCreate={() => setSearch("")}
         />
+        <SharedServer onSelect={onSelect} />
       </div>
     );
   }
@@ -313,29 +314,7 @@ function ComputeServerTable({
           onCreate={() => setSearch("")}
         />
       </div>
-      {onSelect != null && (
-        <Card
-          title={
-            <div style={{ textAlign: "center", color: " #666" }}>
-              <Icon name="users" /> Shared Server
-            </div>
-          }
-          style={{ margin: "5px 0px 15px 30px" }}
-          actions={[
-            <Button
-              type="primary"
-              onClick={() => {
-                onSelect(0);
-              }}
-            >
-              <Icon name="folder-open" /> Open
-            </Button>,
-          ]}
-        >
-          Limited shared resources without root access for managing files and
-          doing basic development. Create a compute servers for much more power.
-        </Card>
-      )}
+      <SharedServer onSelect={onSelect} />
       <SortableList
         disabled={sortBy != "custom"}
         items={ids}
@@ -396,5 +375,34 @@ function ComputeServerTable({
         {v}
       </SortableList>
     </div>
+  );
+}
+
+function SharedServer({ onSelect }) {
+  if (onSelect == null) {
+    return null;
+  }
+  return (
+    <Card
+      title={
+        <div style={{ textAlign: "center", color: " #666" }}>
+          <Icon name="users" /> Shared Server
+        </div>
+      }
+      style={{ margin: "5px 0px 15px 30px" }}
+      actions={[
+        <Button
+          type="primary"
+          onClick={() => {
+            onSelect(0);
+          }}
+        >
+          <Icon name="folder-open" /> Open
+        </Button>,
+      ]}
+    >
+      Limited shared resources without root access for managing files and doing
+      basic development. Create a compute servers for much more power.
+    </Card>
   );
 }
