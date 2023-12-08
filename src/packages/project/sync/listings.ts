@@ -17,7 +17,7 @@ import {
   seconds_ago,
 } from "@cocalc/util/misc";
 import type { Listing } from "@cocalc/util/db-schema/listings";
-import { get_listing } from "@cocalc/project/directory-listing";
+import getListing from "@cocalc/backend/get-listing";
 import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
@@ -231,7 +231,7 @@ class ListingsTable {
     const time = new Date();
     let listing;
     try {
-      listing = await get_listing(path, true);
+      listing = await getListing(path, true);
       if (!this.isReady()) return;
     } catch (err) {
       if (!this.isReady()) return;
