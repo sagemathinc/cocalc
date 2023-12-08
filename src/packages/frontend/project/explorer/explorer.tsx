@@ -452,7 +452,10 @@ const Explorer0 = rclass(
             <br />
             <Button
               onClick={() =>
-                this.props.actions.fetch_directory_listing({ force: true })
+                this.props.actions.fetch_directory_listing({
+                  force: true,
+                  path: this.props.current_path,
+                })
               }
             >
               <Icon name="refresh" /> Try again to get directory listing
