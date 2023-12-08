@@ -8,6 +8,7 @@ import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { unreachable } from "@cocalc/util/misc";
 import ModelSwitch, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
@@ -42,9 +43,10 @@ export default function AIGenerateCodeCell({
       actions,
       id,
       position,
+      model,
     });
     return input;
-  }, [showChatGPT, prompt]);
+  }, [showChatGPT, prompt, model]);
 
   return (
     <Popover
@@ -194,12 +196,13 @@ async function queryLanguageModel({
   prompt,
 }) {
   if (!prompt.trim()) return;
-  const { input, lang } = getInput({
+  const { input, system } = getInput({
     frameActions,
     prompt,
     actions,
     id,
     position,
+    model,
   });
   if (!input) {
     return;
@@ -245,7 +248,7 @@ async function queryLanguageModel({
       input,
       project_id,
       path,
-      system: `Return a single code block in the language "${lang}". All text explanations must be code comments.`,
+      system,
       tag,
       model,
     });
@@ -291,33 +294,51 @@ async function queryLanguageModel({
   }
 }
 
-function getInput({ frameActions, prompt, actions, id, position }): {
+function getInput({ frameActions, prompt, actions, id, position, model }): {
   input: string;
-  lang: string;
+  system: string;
 } {
   if (!prompt?.trim()) {
-    return { input: "", lang: "" };
+    return { input: "", system: "" };
   }
   if (frameActions.current == null) {
     console.warn(
       "Unable to create cell due to frameActions not being defined.",
     );
-    return { input: "", lang: "" };
+    return { input: "", system: "" };
   }
   const kernel_info = actions.store.get("kernel_info");
   const lang = kernel_info?.get("language") ?? "python";
   const kernel_name = kernel_info?.get("display_name") ?? "Python 3";
-  const prevCodeContents = getPreviousNonemptyCodeCellContents(
-    frameActions.current,
-    id,
-    position,
-  );
-  const prevCode = prevCodeContents
-    ? `The previous code cell is\n\n\`\`\`${lang}\n${prevCodeContents}\n\`\`\``
-    : "";
+  const vendor = model2vendor(model);
+  switch (vendor) {
+    case "openai":
+      const prevCodeContents = getPreviousNonemptyCodeCellContents(
+        frameActions.current,
+        id,
+        position,
+      );
+      const prevCode = prevCodeContents
+        ? `The previous code cell is\n\n\`\`\`${lang}\n${prevCodeContents}\n\`\`\``
+        : "";
 
-  const input = `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nReturn the entire code cell in a single block. Enclosed this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`;
-  return { input, lang };
+      return {
+        input: `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nReturn the entire code cell in a single block. Enclose this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`,
+        system: `Return a single code block in the language "${lang}". All text explanations must be code comments.`,
+      };
+
+    case "google":
+      // 2023-12-08: when implementing this for PaLM2, the prompt above does not return anything. It fails with "content blocked" with reason "other".
+      // My suspicion: 1. this is a bug triggered by the prompt/system and 2. it might not be always able to deal with newlines. I'm simplifying the input prompt to be on a single line and do not include the previous cell.
+      return {
+        input: `Write code for ${kernel_name} (${lang}). The code should do the following: ${prompt}`,
+        system: `Any text must be code comments.`,
+      };
+
+    default:
+      unreachable(vendor);
+      throw new Error("bug");
+  }
 }
 
 function getPreviousNonemptyCodeCellContents(actions, id, position): string {

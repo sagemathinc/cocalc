@@ -75,6 +75,7 @@ export async function evaluate({
     stream: stream != null,
     maxTokens,
   });
+
   if (!isValidModel(model)) {
     throw Error(`unsupported model "${model}"`);
   }
@@ -224,15 +225,20 @@ async function evaluateVertexAI({
 
       messages.push({ content: input });
 
-      const output = await client.chat({
-        messages,
-        context: system,
-        model: "chat-bison-001",
-      });
+      // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
+      // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
+      // I think this is just a bug. If there is no reply, there is now a simple user-visible message instead of nothing.
+      const output =
+        (await client.chat({
+          messages,
+          context: system,
+          model: "chat-bison-001",
+        })) ||
+        "Error: There was a problem processing the prompt. Try a different prompt or another language model.";
 
       // stream the output – there is no streaming right now, though
       if (stream != null) {
-        stream(output ?? "");
+        stream(output);
         stream();
       }
 
