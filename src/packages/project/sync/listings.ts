@@ -16,8 +16,8 @@ import {
   field_cmp,
   seconds_ago,
 } from "@cocalc/util/misc";
-import { DirectoryListingEntry } from "@cocalc/util/types";
-import { get_listing } from "../directory-listing";
+import type { Listing } from "@cocalc/util/db-schema/listings";
+import { get_listing } from "@cocalc/project/directory-listing";
 import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
@@ -28,6 +28,8 @@ import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("project:sync:listings");
+
+const log = logger.debug;
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
@@ -53,41 +55,37 @@ const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
 // so there may be some issues with this working.
 import { MAX_PATHS } from "@cocalc/util/db-schema/listings";
 
-interface Listing {
-  path: string;
-  project_id?: string;
-  listing?: DirectoryListingEntry[];
-  time?: Date;
-  interest?: Date;
-  missing?: number;
-  error?: string;
-  deleted?: string[];
-}
 export type ImmutableListing = TypedMap<Listing>;
 
 class ListingsTable {
   private readonly table?: SyncTable; // might be removed by close()
   private project_id: string;
+  private compute_server_id: number;
   private watchers: { [path: string]: Watcher } = {};
 
-  constructor(table: SyncTable, project_id: string) {
+  constructor(
+    table: SyncTable,
+    project_id: string,
+    compute_server_id: number = 0,
+  ) {
+    log("constructor");
     this.project_id = project_id;
-    this.log("constructor");
+    this.compute_server_id = compute_server_id;
     this.table = table;
-    this.setup_watchers();
+    this.setupWatchers();
   }
 
-  public close(): void {
-    this.log("close");
+  close = () => {
+    log("close");
     for (const path in this.watchers) {
-      this.stop_watching(path);
+      this.stopWatching(path);
     }
     close(this);
-  }
+  };
 
   // Start watching any paths that have recent interest (so this is not
   // in response to a *change* after starting).
-  private async setup_watchers(): Promise<void> {
+  private setupWatchers = async () => {
     if (this.table == null) return; // closed
     if (this.table.get_state() == ("init" as SyncTableState)) {
       await once(this.table, "state");
@@ -101,15 +99,15 @@ class ListingsTable {
       if (this.watchers[path] == null) return; // already watching -- shouldn't happen
       const interest = val.get("interest");
       if (interest != null && interest > seconds_ago(INTEREST_THRESH_SECONDS)) {
-        this.start_watching(path);
+        this.startWatching(path);
       }
     });
-    this.table.on("change", this.handle_change_event.bind(this));
+    this.table.on("change", this.handleChangeEvent.bind(this));
 
-    this.remove_stale_watchers();
-  }
+    this.removeStaleWatchers();
+  };
 
-  private async remove_stale_watchers(): Promise<void> {
+  private removeStaleWatchers = async () => {
     if (this.table == null) return; // closed
     if (this.table.get_state() == ("connected" as SyncTableState)) {
       this.table.get()?.forEach((val) => {
@@ -121,7 +119,7 @@ class ListingsTable {
           interest == null ||
           interest <= seconds_ago(INTEREST_THRESH_SECONDS)
         ) {
-          this.stop_watching(path);
+          this.stopWatching(path);
         }
       });
     }
@@ -130,9 +128,9 @@ class ListingsTable {
     // to reduce wasted database space, memory, and bandwidth for
     // client browsers that are using this project.
     try {
-      await this.trim_old_paths();
+      await this.trimOldPaths();
     } catch (err) {
-      this.log("WARNING, error trimming old paths -- ", err);
+      log("WARNING, error trimming old paths -- ", err);
     }
 
     if (this.table == null) return; // closed
@@ -140,51 +138,55 @@ class ListingsTable {
       await delay(1000 * INTEREST_THRESH_SECONDS);
       if (this.table == null) return; // closed
       if (this.table.get_state() != ("connected" as SyncTableState)) return;
-      this.remove_stale_watchers();
+      this.removeStaleWatchers();
     }
-  }
+  };
 
-  private log(...args): void {
-    logger.debug("ListingsTable", ...args);
-  }
-
-  private is_ready(): boolean {
+  private isReady = (): boolean => {
     return !!this.table?.is_ready();
-  }
+  };
 
-  private get_table(): SyncTable {
-    if (!this.is_ready() || this.table == null) {
+  private getTable = (): SyncTable => {
+    if (!this.isReady() || this.table == null) {
       throw Error("table not ready");
     }
     return this.table;
-  }
+  };
 
-  async set(obj: Listing): Promise<void> {
-    this.get_table().set(
-      merge({ project_id: this.project_id }, obj),
+  set = async (obj: Listing) => {
+    this.getTable().set(
+      merge(
+        {
+          project_id: this.project_id,
+          compute_server_id: this.compute_server_id,
+        },
+        obj,
+      ),
       "shallow",
     );
-    await this.get_table().save();
-  }
+    await this.getTable().save();
+  };
 
-  public get(path: string): ImmutableListing | undefined {
-    const x = this.get_table().get(JSON.stringify([this.project_id, path]));
+  get = (path: string): ImmutableListing | undefined => {
+    const x = this.getTable().get(
+      JSON.stringify([this.project_id, path, this.compute_server_id]),
+    );
     if (x == null) return x;
     return x as unknown as ImmutableListing;
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
-  }
+  };
 
-  private handle_change_event(keys: string[]): void {
-    this.log("handle_change_event", JSON.stringify(keys));
+  private handleChangeEvent = (keys: string[]) => {
+    log("handleChangeEvent", JSON.stringify(keys));
     for (const key of keys) {
-      this.handle_change(JSON.parse(key)[1]);
+      this.handleChange(JSON.parse(key)[1]);
     }
-  }
+  };
 
-  private handle_change(path: string): void {
-    this.log("handle_change", path);
+  private handleChange = (path: string): void => {
+    log("handleChange", path);
     const cur = this.get(path);
     if (cur == null) return;
     let interest: undefined | Date = cur.get("interest");
@@ -197,11 +199,11 @@ class ListingsTable {
         this.set({ path, interest });
       }
       // Make sure we watch this path for updates, since there is genuine current interest.
-      this.ensure_watching(path);
+      this.ensureWatching(path);
     }
-  }
+  };
 
-  private async ensure_watching(path: string): Promise<void> {
+  private ensureWatching = async (path: string): Promise<void> => {
     if (this.watchers[path] != null) {
       // We are already watching this path, so nothing more to do.
       return;
@@ -210,29 +212,29 @@ class ListingsTable {
     // Fire off computing of directory listing for this path,
     // and start watching for changes.
     try {
-      await this.compute_listing(path);
+      await this.computeListing(path);
     } catch (err) {
-      this.log(
-        "ensure_watching -- failed to compute listing so not starting watching",
+      log(
+        "ensureWatching -- failed to compute listing so not starting watching",
         err,
       );
       return;
     }
     try {
-      this.start_watching(path);
+      this.startWatching(path);
     } catch (err) {
-      this.log("failed to start watching", err);
+      log("failed to start watching", err);
     }
-  }
+  };
 
-  private async compute_listing(path: string): Promise<void> {
+  private computeListing = async (path: string): Promise<void> => {
     const time = new Date();
     let listing;
     try {
       listing = await get_listing(path, true);
-      if (!this.is_ready()) return;
+      if (!this.isReady()) return;
     } catch (err) {
-      if (!this.is_ready()) return;
+      if (!this.isReady()) return;
       this.set({ path, time, error: `${err}` });
       throw err;
     }
@@ -279,9 +281,9 @@ class ListingsTable {
     const error = y?.get("error") != null ? "" : undefined;
 
     this.set({ path, listing, time, missing, deleted, error });
-  }
+  };
 
-  private start_watching(path: string): void {
+  private startWatching = (path: string): void => {
     if (this.watchers[path] != null) return;
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
@@ -290,27 +292,27 @@ class ListingsTable {
     this.watchers[path].on("change", async () => {
       try {
         await delay(DELAY_ON_CHANGE_MS);
-        if (!this.is_ready()) return;
-        await this.compute_listing(path);
+        if (!this.isReady()) return;
+        await this.computeListing(path);
       } catch (err) {
-        this.log(`compute_listing("${path}") error: "${err}"`);
+        log(`computeListing("${path}") error: "${err}"`);
       }
     });
-  }
+  };
 
-  private stop_watching(path: string): void {
+  private stopWatching = (path: string): void => {
     const w = this.watchers[path];
     if (w == null) return;
     delete this.watchers[path];
     w.close();
-  }
+  };
 
-  private async trim_old_paths(): Promise<void> {
-    this.log("trim_old_paths");
-    if (!this.is_ready()) return;
-    const table = this.get_table();
+  private trimOldPaths = async (): Promise<void> => {
+    log("trimOldPaths");
+    if (!this.isReady()) return;
+    const table = this.getTable();
     let num_to_remove = table.size() - MAX_PATHS;
-    this.log("trim_old_paths", num_to_remove);
+    log("trimOldPaths", num_to_remove);
     if (num_to_remove <= 0) {
       // definitely nothing to do
       return;
@@ -330,33 +332,33 @@ class ListingsTable {
       const interest = val.get("interest", new Date(0));
       paths.push({ path, interest });
     });
-    this.log("trim_old_paths", JSON.stringify(paths));
-    this.log("trim_old_paths", num_to_remove);
+    log("trimOldPaths", JSON.stringify(paths));
+    log("trimOldPaths", num_to_remove);
 
     if (num_to_remove <= 0) return;
     paths.sort(field_cmp("interest"));
     // Now remove the first num_to_remove paths.
     for (let i = 0; i < num_to_remove; i++) {
-      this.log("trim_old_paths -- removing", paths[i].path);
-      await this.remove_path(paths[i].path);
+      log("trimOldPaths -- removing", paths[i].path);
+      await this.removePath(paths[i].path);
     }
-  }
+  };
 
-  private async remove_path(path: string): Promise<void> {
-    if (!this.is_ready()) return;
-    this.log("remove_path", path);
-    await this.get_table().delete({ project_id: this.project_id, path });
-  }
+  private removePath = async (path: string): Promise<void> => {
+    if (!this.isReady()) return;
+    log("removePath", path);
+    await this.getTable().delete({ project_id: this.project_id, path });
+  };
 
   // Given a "filename", add it to deleted if there is already a record
   // for the containing path in the database.  (TODO: we may change this
   // to create the record if it doesn't exist.)
-  public async set_deleted(filename: string): Promise<void> {
-    this.log("set_deleted:", filename);
-    if (!this.is_ready()) {
-      // set_deleted is a convenience, so dropping it in case of a project
+  setDeleted = async (filename: string): Promise<void> => {
+    log("setDeleted:", filename);
+    if (!this.isReady()) {
+      // setDeleted is a convenience, so dropping it in case of a project
       // with no network is OK.
-      this.log(`set_deleted: skipping since not ready`);
+      log(`setDeleted: skipping since not ready`);
       return;
     }
     if (filename[0] == "/") {
@@ -379,34 +381,34 @@ class ListingsTable {
         deleted = deleted.toJS();
         deleted.push(tail);
       }
-      this.log(`set_deleted: recording "${deleted}" in "${head}"`);
+      log(`setDeleted: recording "${deleted}" in "${head}"`);
       await this.set({ path: head, deleted });
-      if (!this.is_ready()) return;
+      if (!this.isReady()) return;
     }
 
     // Also we need to close *all* syncdocs that are going to be deleted,
     // and wait until closing is done before we return.
     await close_all_syncdocs_in_tree(filename);
-    if (!this.is_ready()) return;
+    if (!this.isReady()) return;
 
     // If it is a Jupyter kernel, close that too
     if (endswith(filename, ".ipynb")) {
-      this.log("set_deleted: handling jupyter kernel for", filename);
+      log("setDeleted: handling jupyter kernel for", filename);
       await removeJupyterRedux(filename, this.project_id);
-      if (!this.is_ready()) return;
+      if (!this.isReady()) return;
     }
-  }
+  };
 
   // Returns true if definitely known to be deleted.
   // Returns false if definitely known to not be deleted
   // Returns null if we don't know for sure, e.g., not in listing table or listings not ready.
-  public is_deleted(filename: string): boolean | null {
-    if (!this.is_ready()) {
+  isDeleted = (filename: string): boolean | null => {
+    if (!this.isReady()) {
       // in case that listings are not available, return null -- we don't know.
       return null;
     }
     const { head, tail } = path_split(filename);
-    if (head != "" && this.is_deleted(head)) {
+    if (head != "" && this.isDeleted(head)) {
       // recursively check if filename is contained in a
       // directory tree that go deleted.
       return true;
@@ -423,25 +425,25 @@ class ListingsTable {
     }
     // table is available and has deleted info for the directory -- let's see:
     return deleted.indexOf(tail) != -1;
-  }
+  };
 }
 
-let listings_table: ListingsTable | undefined = undefined;
+let listingsTable: ListingsTable | undefined = undefined;
 
-export function register_listings_table(
+export function registerListingsTable(
   table: SyncTable,
   project_id: string,
 ): void {
-  logger.debug("register_listings_table");
-  if (listings_table != null) {
+  logger.debug("register_listingsTable");
+  if (listingsTable != null) {
     // There was one sitting around wasting space so clean it up
     // before making a new one.
-    listings_table.close();
+    listingsTable.close();
   }
-  listings_table = new ListingsTable(table, project_id);
+  listingsTable = new ListingsTable(table, project_id);
   return;
 }
 
-export function get_listings_table(): ListingsTable | undefined {
-  return listings_table;
+export function getListingsTable(): ListingsTable | undefined {
+  return listingsTable;
 }

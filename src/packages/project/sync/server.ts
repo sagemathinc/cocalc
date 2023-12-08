@@ -62,7 +62,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { close, deep_copy, len } from "@cocalc/util/misc";
-import { register_listings_table } from "./listings";
+import { registerListingsTable } from "./listings";
 import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
@@ -552,7 +552,7 @@ async function synctable_channel0(
     });
     await synctable_channels[name].init();
     if (query?.listings != null) {
-      register_listings_table(
+      registerListingsTable(
         synctable_channels[name].get_synctable(),
         client.client_id(),
       );

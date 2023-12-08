@@ -144,11 +144,11 @@ export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
   const listings: Listings = await store.get_listings();
   listings.watch(opts.path);
   while (true) {
-    if (listings.get_missing(opts.path)) {
+    if (listings.getMissing(opts.path)) {
       if (store.getIn(["directory_listings", opts.path]) != null) {
         // just update an already loaded listing:
         try {
-          const files = await listings.get_listing_directly(
+          const files = await listings.getListingDirectly(
             opts.path,
             opts.trigger_start_project,
           );

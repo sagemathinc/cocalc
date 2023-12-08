@@ -45,7 +45,7 @@ import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import * as sage_session from "./sage_session";
-import { get_listings_table } from "./sync/listings";
+import { getListingsTable } from "@cocalc/project/sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 
@@ -622,7 +622,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     // keeps information about the last n directories that were visited.
     // If somebody is browsing around a lot, suddenly a file goes from
     // known to be deleted to "we know nothing".
-    const x = get_listings_table()?.is_deleted(filename);
+    const x = getListingsTable()?.isDeleted(filename);
     if (x != null) {
       return x;
     }
@@ -636,7 +636,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     _project_id: string,
   ): Promise<void> {
     // project_id is ignored
-    const listings = get_listings_table();
-    return await listings?.set_deleted(filename);
+    const listings = getListingsTable();
+    return await listings?.setDeleted(filename);
   }
 }

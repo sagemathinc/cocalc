@@ -37,7 +37,7 @@ export class FileClient {
     return !!redux
       .getProjectStore(project_id)
       ?.get_listings()
-      ?.is_deleted(filename);
+      ?.isDeleted(filename);
   }
 
   public undelete(filename: string, project_id: string): void {

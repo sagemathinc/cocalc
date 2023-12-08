@@ -1470,7 +1470,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == null) return;
     const listings = store.get_listings();
     try {
-      const files = await listings.get_listing_directly(
+      const files = await listings.getListingDirectly(
         path,
         trigger_start_project,
       );
