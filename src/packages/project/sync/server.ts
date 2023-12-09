@@ -377,13 +377,13 @@ class SyncTableChannel {
   }
 
   private send_synctable_to_browser(spark: Spark): void {
-    if (this.closed || this.closing) return;
+    if (this.closed || this.closing || this.synctable == null) return;
     this.log("send_synctable_to_browser");
     spark.write({ init: this.synctable.initial_version_for_browser_client() });
   }
 
   private broadcast_synctable_to_browsers(): void {
-    if (this.closed || this.closing) return;
+    if (this.closed || this.closing || this.synctable == null) return;
     this.log("broadcast_synctable_to_browsers");
     const x = { init: this.synctable.initial_version_for_browser_client() };
     this.channel.write(x);
