@@ -32,8 +32,9 @@ const getListing = reuseInFlight(
   async (
     path: string, // assumed in home directory!
     hidden: boolean = false,
+    home = HOME,
   ): Promise<DirectoryListingEntry[]> => {
-    const dir = HOME + "/" + path;
+    const dir = home + "/" + path;
     logger.debug(dir);
     const files: DirectoryListingEntry[] = [];
     let file: Dirent;

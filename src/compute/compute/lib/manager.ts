@@ -18,6 +18,7 @@ import debug from "debug";
 import { project } from "@cocalc/api-client";
 import { jupyter } from "./jupyter";
 import { terminal } from "./terminal";
+import { initListings } from "./listings";
 import { once } from "@cocalc/util/async-utils";
 import { dirname, join } from "path";
 import { userInfo } from "os";
@@ -155,6 +156,7 @@ class Manager {
         }
       }
     });
+    await this.initListings();
     await this.initSyncDB();
     this.state = "ready";
     this.reportComponentState({
@@ -163,6 +165,15 @@ class Manager {
       timeout: Math.ceil(STATUS_INTERVAL_MS / 1000 + 3),
     });
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
+  };
+
+  private initListings = async () => {
+    await initListings({
+      client: this.client,
+      project_id: this.project_id,
+      compute_server_id: this.compute_server_id,
+      home: this.home,
+    });
   };
 
   private initSyncDB = async () => {
