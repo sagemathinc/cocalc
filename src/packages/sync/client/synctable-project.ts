@@ -221,7 +221,11 @@ class SyncTableChannel extends EventEmitter {
     }
     if (mesg.error != null) {
       const { alert_message } = this.client;
-      const message = `Error opening file -- ${mesg.error} -- wait, restart your project or refresh your browser`;
+      const message = `Error opening file -- ${
+        mesg.error
+      } -- wait, restart your project or refresh your browser. Query=${JSON.stringify(
+        this.query,
+      )}`;
       if (alert_message != null) {
         alert_message({ type: "info", message, timeout: 10 });
       } else {

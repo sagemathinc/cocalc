@@ -65,7 +65,7 @@ interface Options {
 }
 
 class ListingsTable {
-  private readonly table?: SyncTable; // might be removed by close()
+  private readonly table?: SyncTable; // will be removed by close()
   private project_id: string;
   private compute_server_id: number;
   private watchers: { [path: string]: Watcher } = {};
@@ -82,7 +82,7 @@ class ListingsTable {
     this.log = opts.getLogger("sync:listings").debug;
     this.log("constructor");
     this.project_id = opts.project_id;
-    this.compute_server_id = opts.compute_server_id;
+    this.compute_server_id = opts.compute_server_id ?? 0;
     this.table = opts.table;
     this.getListing = opts.getListing;
     this.createWatcher = opts.createWatcher;
@@ -456,16 +456,19 @@ class ListingsTable {
   };
 }
 
-let listingsTable: ListingsTable | undefined = undefined;
+let listingsTable: { [compute_server_id: number]: ListingsTable } = {};
 export function registerListingsTable(opts: Options): void {
-  if (listingsTable != null) {
+  const { compute_server_id = 0 } = opts;
+  if (listingsTable[compute_server_id] != null) {
     // There was one sitting around wasting space so clean it up
     // before making a new one.
-    listingsTable.close();
+    listingsTable[compute_server_id].close();
   }
-  listingsTable = new ListingsTable(opts);
+  listingsTable[compute_server_id] = new ListingsTable(opts);
 }
 
-export function getListingsTable(): ListingsTable | undefined {
-  return listingsTable;
+export function getListingsTable(
+  compute_server_id: number = 0,
+): ListingsTable | undefined {
+  return listingsTable[compute_server_id];
 }
