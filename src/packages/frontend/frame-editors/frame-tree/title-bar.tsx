@@ -1085,10 +1085,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <div ref={getTourRef("tour")}>
+      <div ref={getTourRef("tour")} key={"tour"}>
         <AntdButton
           type="primary"
-          key={"tour"}
           title={"Take the tour!"}
           size={button_size()}
           onClick={() => {

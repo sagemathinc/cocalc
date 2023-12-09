@@ -291,6 +291,7 @@ export class JupyterActions extends JupyterActions0 {
       this.usage_info.off(key, this.usage_info_handler);
     }
     // don't forget the close() in the parent
+    // @ts-ignore -- on some platforms this incorrectly (?) fails
     await super.close?.();
   };
 
