@@ -1,36 +1,49 @@
-import { Button, Input, Popover, Space, Typography } from "antd";
+import { Button, Input, Popover, Space } from "antd";
 import { throttle } from "lodash";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { useFrameContext } from "@cocalc/frontend/app-framework";
+import { Paragraph } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { unreachable } from "@cocalc/util/misc";
 import ModelSwitch, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
-import { insertCell } from "./util";
 import {
+  LanguageModel,
   getVendorStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/openai";
-const { Paragraph } = Typography;
+import { unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { JupyterActions } from "../browser-actions";
+import { insertCell } from "./util";
+
+interface AIGenerateCodeCellProps {
+  actions: JupyterActions;
+  children: React.ReactNode;
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  id: string;
+  position: "above" | "below";
+  setShowChatGPT: (show: boolean) => void;
+  showChatGPT: boolean;
+}
 
 export default function AIGenerateCodeCell({
-  setShowChatGPT,
-  showChatGPT,
-  children,
   actions,
+  children,
   frameActions,
   id,
   position,
-}) {
+  setShowChatGPT,
+  showChatGPT,
+}: AIGenerateCodeCellProps) {
   const [model, setModel] = useLanguageModelSetting();
   const [querying, setQuerying] = useState<boolean>(false);
   const { project_id, path } = useFrameContext();
@@ -184,25 +197,37 @@ function extractCode(raw: string): {
   }
 }
 
+interface QueryLanguageModelProps {
+  actions: JupyterActions;
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  id: string;
+  model: LanguageModel;
+  path: string;
+  position: "above" | "below";
+  project_id: string;
+  prompt: string;
+  setQuerying: (querying: boolean) => void;
+}
+
 async function queryLanguageModel({
-  frameActions,
   actions,
-  setQuerying,
+  frameActions,
   id,
-  position,
   model,
-  project_id,
   path,
+  position,
+  project_id,
   prompt,
-}) {
+  setQuerying,
+}: QueryLanguageModelProps) {
   if (!prompt.trim()) return;
   const { input, system } = getInput({
-    frameActions,
-    prompt,
     actions,
+    frameActions,
     id,
-    position,
     model,
+    position,
+    prompt,
   });
   if (!input) {
     return;
@@ -294,7 +319,23 @@ async function queryLanguageModel({
   }
 }
 
-function getInput({ frameActions, prompt, actions, id, position, model }): {
+interface GetInputProps {
+  actions: JupyterActions;
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  id: string;
+  model: LanguageModel;
+  position: "above" | "below";
+  prompt: string;
+}
+
+function getInput({
+  actions,
+  frameActions,
+  id,
+  model,
+  position,
+  prompt,
+}: GetInputProps): {
   input: string;
   system: string;
 } {
