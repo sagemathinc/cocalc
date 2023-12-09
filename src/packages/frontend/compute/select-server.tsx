@@ -15,14 +15,6 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 export const PROJECT_COLOR = "#f6ffed";
 
-interface Props {
-  project_id: string;
-  value: number | undefined;
-  setValue: (number) => void;
-  disabled?: boolean;
-  style?: CSSProperties;
-}
-
 interface Option {
   position?: number;
   value: string;
@@ -32,11 +24,21 @@ interface Option {
   account_id?: string;
 }
 
+interface Props {
+  project_id: string;
+  value: number | undefined;
+  setValue: (number) => void;
+  disabled?: boolean;
+  size?;
+  style?: CSSProperties;
+}
+
 export default function SelectServer({
   project_id,
   value,
   setValue,
   disabled,
+  size,
   style,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
@@ -231,6 +233,7 @@ export default function SelectServer({
     <Select
       disabled={disabled}
       allowClear
+      size={size}
       bordered={false}
       placeholder={
         <span style={{ color: "#666" }}>
@@ -249,11 +252,19 @@ export default function SelectServer({
       value={value != null ? `${value}` : undefined}
       onDropdownVisibleChange={setOpen}
       style={{
-        width: open ? "300px" : value ? "175px" : "120px",
+        width: getWidth(open, value, size),
         background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         ...style,
       }}
       options={options}
     />
   );
+}
+
+function getWidth(open, value, size) {
+  if (size == "small") {
+    return open ? "250px" : value ? "130px" : "115px";
+  } else {
+    return open ? "300px" : value ? "175px" : "115px";
+  }
 }

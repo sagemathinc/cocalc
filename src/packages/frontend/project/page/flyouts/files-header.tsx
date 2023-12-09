@@ -28,6 +28,7 @@ import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 import { ActiveFileSort } from "./files";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -354,6 +355,11 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
             gap: FLYOUT_PADDING,
           }}
         >
+          <SelectComputeServerForFileExplorer
+            size="small"
+            project_id={project_id}
+            key="compute-server"
+          />
           <Input
             ref={refInput}
             placeholder="Filter..."

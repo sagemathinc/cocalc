@@ -17,6 +17,7 @@ interface Props {
   frame_id: string;
   style?: CSSProperties;
   actions?;
+  size?;
   type: "terminal" | "jupyter_cell_notebook";
 }
 
@@ -25,6 +26,7 @@ export default function SelectComputeServerForFile({
   path,
   frame_id,
   actions,
+  size,
   style,
   type,
 }: Props) {
@@ -109,6 +111,7 @@ export default function SelectComputeServerForFile({
     <>
       <SelectServer
         disabled={loading}
+        size={size}
         project_id={project_id}
         style={style}
         value={value}

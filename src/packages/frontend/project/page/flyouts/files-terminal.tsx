@@ -161,7 +161,6 @@ export function TerminalFlyout({
       undefined,
       "", // cwd=home directory, we'll send cd commands later
     );
-    console.log("getTerminal", `$HOME/${currentPathRef.current}`);
     newTerminal.connect();
     return newTerminal;
   }
