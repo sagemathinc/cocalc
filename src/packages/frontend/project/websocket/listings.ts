@@ -492,6 +492,9 @@ export class Listings extends EventEmitter {
   };
 }
 
-export function listings(project_id: string): Listings {
-  return new Listings(project_id);
+export function listings(
+  project_id: string,
+  compute_server_id: number = 0,
+): Listings {
+  return new Listings(project_id, compute_server_id);
 }

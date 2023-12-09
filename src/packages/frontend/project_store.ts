@@ -163,7 +163,7 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
-  private listings: Listings | undefined;
+  private listings: { [compute_server_id: number]: Listings } = {};
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -202,8 +202,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
     }
-    if (this.listings != null) {
-      this.listings.close();
+    for (const id in this.listings) {
+      this.listings[id].close();
+      delete this.listings[id];
     }
   };
 
@@ -573,43 +574,41 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
   }
 
-  private async close_deleted_files(paths: string[]): Promise<void> {
-    for (const path of paths) {
-      if (this.listings == null) return; // won't happen
-      const deleted = await this.listings.getDeleted(path);
-      if (deleted != null) {
-        for (let filename of deleted) {
-          if (path != "") {
-            filename = path + "/" + filename;
+  public get_listings(compute_server_id: number = 0): Listings {
+    if (this.listings[compute_server_id] == null) {
+      const listingsTable = listings(this.project_id, compute_server_id);
+      this.listings[compute_server_id] = listingsTable;
+      listingsTable.on("deleted", async (paths) => {
+        for (const path of paths) {
+          if (this.listings[0] == null) return; // shouldn't happen
+          const deleted = await listingsTable.getDeleted(path);
+          if (deleted != null) {
+            for (let filename of deleted) {
+              if (path != "") {
+                filename = path + "/" + filename;
+              }
+              this.close_deleted_file(filename);
+            }
           }
-          this.close_deleted_file(filename);
         }
-      }
-    }
-  }
-
-  public get_listings(): Listings {
-    if (this.listings == null) {
-      this.listings = listings(this.project_id);
-      this.listings.on("deleted", this.close_deleted_files.bind(this));
-      this.listings.on("change", async (paths) => {
+      });
+      listingsTable.on("change", async (paths) => {
         let directory_listings = this.get("directory_listings");
         for (const path of paths) {
-          if (this.listings == null) return; // won't happen
           let files;
-          if (this.listings.getMissing(path)) {
+          if (listingsTable.getMissing(path)) {
             try {
               files = immutable.fromJS(
-                await this.listings.getListingDirectly(path),
+                await listingsTable.getListingDirectly(path),
               );
             } catch (err) {
               console.warn(
                 `WARNING: problem getting directory listing ${err}; falling back`,
               );
-              files = await this.listings.getForStore(path);
+              files = await listingsTable.getForStore(path);
             }
           } else {
-            files = await this.listings.getForStore(path);
+            files = await listingsTable.getForStore(path);
           }
           directory_listings = directory_listings.set(path, files);
         }
@@ -617,10 +616,10 @@ export class ProjectStore extends Store<ProjectStoreState> {
         actions.setState({ directory_listings });
       });
     }
-    if (this.listings == null) {
+    if (this.listings[compute_server_id] == null) {
       throw Error("bug");
     }
-    return this.listings;
+    return this.listings[compute_server_id];
   }
 }
 
