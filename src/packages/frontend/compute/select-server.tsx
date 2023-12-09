@@ -3,19 +3,25 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 */
 
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Select, Tooltip } from "antd";
+import { useMemo, useRef, useState } from "react";
+import { Select, Tooltip } from "antd";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { cmp } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
-import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-const PROJECT_COLOR = "#f6ffed";
+export const PROJECT_COLOR = "#f6ffed";
+
+interface Props {
+  project_id: string;
+  value: number | undefined;
+  setValue: (number) => void;
+  disabled?: boolean;
+  style?: CSSProperties;
+}
 
 interface Option {
   position?: number;
@@ -26,33 +32,14 @@ interface Option {
   account_id?: string;
 }
 
-interface Props {
-  project_id: string;
-  path: string;
-  frame_id: string;
-  style?: CSSProperties;
-  actions?;
-  type: "terminal" | "jupyter_cell_notebook";
-}
-
-export default function SelectComputeServer({
+export default function SelectServer({
   project_id,
-  path,
-  frame_id,
-  actions,
+  value,
+  setValue,
+  disabled,
   style,
-  type,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
-  const getPath = (path) => {
-    if (actions != null && type == "terminal") {
-      return actions.terminals.get(frame_id)?.term_path;
-    }
-    return path;
-  };
-  const [confirmSwitch, setConfirmSwitch] = useState<boolean>(false);
-  const [idNum, setIdNum] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(false);
 
   // see https://github.com/sagemathinc/cocalc/issues/7083 and https://github.com/sagemathinc/cocalc/pull/7086
   // The component doesn't mount/remount, and the problem is
@@ -66,7 +53,6 @@ export default function SelectComputeServer({
   const [open, setOpen0] = useState<boolean>(false);
   const setOpen = (open) => {
     const now = Date.now();
-    console.log(now - lastOpenRef.current);
     if (now - lastOpenRef.current < 500) {
       return;
     }
@@ -76,70 +62,6 @@ export default function SelectComputeServer({
 
   const computeServers =
     useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
-  const computeServerAssociations = useMemo(() => {
-    return webapp_client.project_client.computeServers(project_id);
-  }, [project_id]);
-  const [value, setValue] = useState<string | null>(null);
-
-  const okButtonRef = useRef();
-  useEffect(() => {
-    if (confirmSwitch && okButtonRef.current) {
-      // @ts-ignore
-      setTimeout(() => okButtonRef.current.focus(), 1);
-    }
-  }, [confirmSwitch]);
-
-  useEffect(() => {
-    const handleChange = async () => {
-      try {
-        let p = getPath(path);
-        if (p == null) {
-          // have to wait for terminal state to be initialized, which
-          // happens in next render loop:
-          await delay(1);
-          p = getPath(path);
-          if (p == null) {
-            // still nothing -- that's weird
-            return;
-          }
-        }
-        const id = await computeServerAssociations.getServerIdForPath(p);
-        if (type == "jupyter_cell_notebook" && actions != null) {
-          actions.jupyter_actions.setState({ requestedComputeServerId: id });
-          if (
-            actions.jupyter_actions.store?.get("kernel_error") &&
-            id != actions.jupyter_actions.getComputeServerId()
-          ) {
-            // show a warning about the kernel being killed isn't useful and
-            // is just redundant when actively switching.
-            actions.jupyter_actions.setState({ kernel_error: "" });
-          }
-        } else if (type == "terminal") {
-          const terminalRequestedComputeServerIds =
-            actions.store.get("terminalRequestedComputeServerIds")?.toJS() ??
-            {};
-          terminalRequestedComputeServerIds[p] = id;
-          actions.setState({ terminalRequestedComputeServerIds });
-        }
-        setValue(id == null ? null : `${id}`);
-      } catch (err) {
-        console.warn(err);
-      }
-    };
-    computeServerAssociations.on("change", handleChange);
-    (async () => {
-      try {
-        setLoading(true);
-        await handleChange();
-      } finally {
-        setLoading(false);
-      }
-    })();
-
-    return () => {
-      computeServerAssociations.removeListener("change", handleChange);
-    };
-  }, [project_id, path, type]);
 
   const options = useMemo(() => {
     const options: Option[] = [];
@@ -173,7 +95,7 @@ export default function SelectComputeServer({
             <div style={{ flex: 1, minWidth: "5px" }} />
             <div>Id: {id}</div>
           </div>
-          {value != `${id}` && (
+          {value != Number(id) && (
             <div style={{ marginLeft: "20px" }}>
               <DisplayImage configuration={configuration} />
             </div>
@@ -209,11 +131,7 @@ export default function SelectComputeServer({
     }
     const v: { label: JSX.Element; options: Option[] }[] = [
       {
-        label: (
-          <div style={{ fontSize: "12pt" }}>
-            Where to run this {type == "terminal" ? "Terminal" : "Notebook"}
-          </div>
-        ),
+        label: <div style={{ fontSize: "12pt" }}>The Project</div>,
         options: [
           {
             value: "0",
@@ -227,16 +145,18 @@ export default function SelectComputeServer({
                   borderRadius: "3px",
                 }}
               >
-                {value ? (
+                {value != 0 ? (
                   <div>
                     <div>
-                      <Icon name="edit" /> Run in this Project?
+                      <Icon name="edit" /> Project
                     </div>
-                    <div style={{ marginLeft: "15px" }}>(the default)</div>
+                    <div style={{ marginLeft: "15px" }}>
+                      <Icon name="users" /> Default shared resources
+                    </div>
                   </div>
                 ) : (
                   <div>
-                    <Icon name="edit" /> Currently Running in this Project
+                    <Icon name="edit" /> Project
                   </div>
                 )}
               </div>
@@ -287,9 +207,13 @@ export default function SelectComputeServer({
             label: (
               <div
                 onClick={() => {
-                  redux
-                    .getProjectActions(project_id)
-                    ?.set_active_tab("servers");
+                  const actions = redux.getProjectActions(project_id);
+                  if (actions != null) {
+                    actions.setState({ create_compute_server: true });
+                    actions.set_active_tab("servers", {
+                      change_history: true,
+                    });
+                  }
                 }}
               >
                 <Icon name="plus-circle" /> New Compute Server...
@@ -304,94 +228,32 @@ export default function SelectComputeServer({
   }, [computeServers]);
 
   return (
-    <>
-      <Select
-        allowClear
-        bordered={false}
-        disabled={loading}
-        placeholder={
-          <span style={{ color: "#666" }}>
-            <Icon
-              style={{ marginRight: "5px", color: "#666" }}
-              name="servers"
-            />{" "}
-            Server...
-          </span>
-        }
-        open={open}
-        onSelect={(id) => {
-          if (id == "create") return;
-          setIdNum(Number(id ?? "0"));
-          setConfirmSwitch(true);
-        }}
-        onClear={() => {
-          setIdNum(0);
-          setConfirmSwitch(true);
-        }}
-        value={value == "0" ? undefined : value}
-        onDropdownVisibleChange={setOpen}
-        style={{
-          ...style,
-          width: open ? "300px" : value && value != "0" ? "175px" : "120px",
-          background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
-        }}
-        options={options}
-      />
-      <Modal
-        keyboard
-        title={
-          idNum == 0 ? (
-            <>Run in this Project?</>
-          ) : (
-            <>Run on the compute server "{computeServers[idNum]?.title}"?</>
-          )
-        }
-        open={confirmSwitch}
-        onCancel={() => setConfirmSwitch(false)}
-        okText={
-          idNum == 0
-            ? "Run in Project"
-            : `Run on ${computeServers[idNum]?.title}`
-        }
-        okButtonProps={{
-          // @ts-ignore
-          ref: okButtonRef,
-          style: {
-            background: computeServers[idNum]?.color ?? PROJECT_COLOR,
-            color: avatar_fontcolor(
-              computeServers[idNum]?.color ?? PROJECT_COLOR,
-            ),
-          },
-        }}
-        onOk={() => {
-          setConfirmSwitch(false);
-          if (idNum) {
-            setValue(`${idNum}`);
-            computeServerAssociations.connectComputeServerToPath({
-              id: idNum,
-              path: getPath(path),
-            });
-          } else {
-            setValue(null);
-            computeServerAssociations.disconnectComputeServer({
-              path: getPath(path),
-            });
-          }
-        }}
-      >
-        {idNum == 0 ? (
-          <div>
-            Do you want to run this in the project? Variables and other state
-            will be lost.
-          </div>
-        ) : (
-          <div>
-            Do you want to run this on the compute server "
-            {computeServers[idNum]?.title}"? Variables and other state will be
-            lost.
-          </div>
-        )}
-      </Modal>
-    </>
+    <Select
+      disabled={disabled}
+      allowClear
+      bordered={false}
+      placeholder={
+        <span style={{ color: "#666" }}>
+          <Icon style={{ marginRight: "5px", color: "#666" }} name="servers" />{" "}
+          Server...
+        </span>
+      }
+      open={open}
+      onSelect={(id) => {
+        if (id == "create") return;
+        setValue(Number(id ?? "0"));
+      }}
+      onClear={() => {
+        setValue(undefined);
+      }}
+      value={value != null ? `${value}` : undefined}
+      onDropdownVisibleChange={setOpen}
+      style={{
+        width: open ? "300px" : value ? "175px" : "120px",
+        background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
+        ...style,
+      }}
+      options={options}
+    />
   );
 }

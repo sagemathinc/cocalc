@@ -56,7 +56,7 @@ import ChatGPT from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import SelectComputeServer from "@cocalc/frontend/compute/select-server";
+import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 
 // Certain special frame editors (e.g., for latex) have extra
@@ -1933,7 +1933,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return null;
     }
     return (
-      <SelectComputeServer
+      <SelectComputeServerForFile
         actions={props.actions}
         frame_id={props.id}
         type={type}

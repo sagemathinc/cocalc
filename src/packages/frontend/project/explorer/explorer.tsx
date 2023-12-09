@@ -54,6 +54,7 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -562,6 +563,10 @@ const Explorer0 = rclass(
             alignItems: "stretch",
           }}
         >
+          <SelectComputeServerForFileExplorer
+            project_id={this.props.project_id}
+            key="compute-server"
+          />
           {!IS_MOBILE && (
             <div
               ref={this.searchBarRef}
