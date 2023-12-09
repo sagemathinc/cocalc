@@ -165,7 +165,7 @@ export function InsertCell({
                   style={{ marginRight: "5px" }}
                   innerStyle={{ color: "default", top: "-2.5px" }}
                 />{" "}
-                ChatGPT...
+                Generate...
               </TinyButton>
             )}
           </Space>

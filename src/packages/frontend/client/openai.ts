@@ -43,14 +43,14 @@ export class LLMClient {
   }
 
   public async chatgpt(opts): Promise<string> {
-    return await this.implementLanguageModel(opts);
+    return await this.queryLanguageModel(opts);
   }
 
   public languageModelStream(opts, startExplicitly = false): ChatStream {
     const chatStream = new ChatStream();
     (async () => {
       try {
-        await this.implementLanguageModel({ ...opts, chatStream });
+        await this.queryLanguageModel({ ...opts, chatStream });
         if (!startExplicitly) {
           chatStream.emit("start");
         }
@@ -61,7 +61,7 @@ export class LLMClient {
     return chatStream;
   }
 
-  private async implementLanguageModel({
+  private async queryLanguageModel({
     input,
     model,
     system = DEFAULT_SYSTEM_PROMPT,
