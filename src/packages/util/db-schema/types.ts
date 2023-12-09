@@ -97,7 +97,7 @@ export function Table<F extends Fields>({
     }
     if (rules.primary_key == null) {
       throw Error(
-        "db-schema error; primary_key must be set for non-virtual tables"
+        "db-schema error; primary_key must be set for non-virtual tables",
       );
     }
   }
@@ -172,14 +172,14 @@ export interface UserOrProjectQuery<F extends Fields> {
         multi: boolean;
         options: any[];
       },
-      cb: (err?: string | Error, result?: any) => void
+      cb: (err?: string | Error, result?: any) => void,
     ) => void;
     check_hook?: (
       database,
       query,
       account_id: string,
       project_id: string,
-      cb: (err?: string | Error) => void
+      cb: (err?: string | Error) => void,
     ) => void;
   };
   set?: {
@@ -209,7 +209,7 @@ export interface UserOrProjectQuery<F extends Fields> {
       query,
       account_id: string,
       project_id: string,
-      cb: (err?: string | Error) => void
+      cb: (err?: string | Error) => void,
     ) => void;
 
     /**
@@ -224,7 +224,7 @@ export interface UserOrProjectQuery<F extends Fields> {
       old_val,
       query,
       account_id: string,
-      cb: (err?: string | Error) => void
+      cb: (err?: string | Error) => void,
     ) => void;
 
     // hook to note that project is being used (CRITICAL: do not pass path
@@ -243,7 +243,7 @@ export interface UserOrProjectQuery<F extends Fields> {
       old_val,
       query,
       account_id: string,
-      cb: (err?: string | Error, result?: any) => void
+      cb: (err?: string | Error, result?: any) => void,
     ) => void;
 
     /**
@@ -256,7 +256,7 @@ export interface UserOrProjectQuery<F extends Fields> {
       old_val,
       query,
       account_id: string,
-      cb: (err?: string | Error) => void
+      cb: (err?: string | Error) => void,
     ) => void;
 
     /* 4. instead_of_query */
@@ -266,7 +266,7 @@ export interface UserOrProjectQuery<F extends Fields> {
         query: any;
         options: any[];
       },
-      cb: (err?: string | Error) => void
+      cb: (err?: string | Error) => void,
     ) => void;
   };
 }
@@ -274,7 +274,13 @@ export interface UserOrProjectQuery<F extends Fields> {
 export interface TableSchema<F extends Fields> {
   name: string;
   desc?: string;
-  primary_key?: keyof F | (keyof F)[]; // One of the fields or array of fields; NOTE: should be required if virtual is not set.
+
+  // One of the fields or array of fields; NOTE: should be required if virtual is not set.
+  primary_key?: keyof F | (keyof F)[];
+
+  // this is only used when migrating when we *add* a new primary key as primary key for the schema for a table (e.g., for listings)
+  default_primary_key_value?: { [key: string]: any };
+
   fields?: F; // the fields -- required if virtual is not set.
   db_standby?: "unsafe" | "safer";
   pg_nestloop?: boolean; // default is whatever the database has set (usually "on")

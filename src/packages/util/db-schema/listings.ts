@@ -84,6 +84,8 @@ Table({
   rules: {
     desc: "Directory listings in projects",
     primary_key: ["project_id", "path", "compute_server_id"],
+    // this is necessary only for schema migration from befor we had compute_server_id as a column.
+    default_primary_key_value: { compute_server_id: 0 },
     user_query: {
       get: {
         pg_where: ["projects"],
