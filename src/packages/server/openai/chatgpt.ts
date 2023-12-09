@@ -211,7 +211,8 @@ async function evaluateVertexAI({
   prompt_tokens;
   completion_tokens;
 }> {
-  const maxAttempts = 3;
+  // TODO: for OpenAI, this is at 3. Unless we really know there are similar issues, we keep this at 1.
+  const maxAttempts = 1;
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -228,13 +229,17 @@ async function evaluateVertexAI({
       // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
       // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
       // I think this is just a bug. If there is no reply, there is now a simple user-visible message instead of nothing.
-      const output =
-        (await client.chat({
-          messages,
-          context: system,
-          model: "chat-bison-001",
-        })) ||
-        "Error: There was a problem processing the prompt. Try a different prompt or another language model.";
+      const output = await client.chat({
+        messages,
+        context: system,
+        model: "chat-bison-001",
+      });
+
+      if (!output) {
+        throw new Error(
+          "There was a problem processing the prompt. Try a different prompt or another language model.",
+        );
+      }
 
       // stream the output – there is no streaming right now, though
       if (stream != null) {
