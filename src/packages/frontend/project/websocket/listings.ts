@@ -277,7 +277,7 @@ export class Listings extends EventEmitter {
       return;
     }
     const missing = this.getTable()
-      .get(JSON.stringify([this.project_id, path]))
+      .get(JSON.stringify([this.project_id, path, this.compute_server_id]))
       ?.get("missing");
     return missing;
   };
