@@ -1319,10 +1319,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         path,
         trigger_start_project,
       );
-      const directory_listings = store
-        .get("directory_listings")
-        .set(path, fromJS(files));
-      this.setState({ directory_listings });
+
+      const directory_listings = store.get("directory_listings");
+      let listing = directory_listings.get(compute_server_id) ?? Map();
+      listing = listing.set(path, files);
+      this.setState({
+        directory_listings: directory_listings.set(compute_server_id, listing),
+      });
     } catch (err) {
       console.warn(`Unable to fetch all files -- "${err}"`);
     }

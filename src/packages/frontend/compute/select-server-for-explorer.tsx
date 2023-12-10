@@ -3,8 +3,8 @@ Dropdown for selecting compute server for the file explorer
 */
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
 import SelectServer from "./select-server";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   project_id: string;
@@ -15,17 +15,19 @@ interface Props {
 export default function SelectComputeServerForFileExplorer({
   project_id,
   style,
-  size
+  size,
 }: Props) {
-  const [value, setValue] = useState<number | undefined>(undefined);
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   return (
     <SelectServer
       size={size}
       project_id={project_id}
       style={style}
-      value={value}
-      setValue={setValue}
+      value={compute_server_id}
+      setValue={(compute_server_id) => {
+        redux.getProjectActions(project_id).setState({ compute_server_id });
+      }}
     />
   );
 }

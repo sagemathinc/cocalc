@@ -2,7 +2,7 @@ import { is_running_or_starting } from "./project-start-warning";
 import type { ProjectActions } from "@cocalc/frontend/project_actions";
 import { trunc_middle, uuid } from "@cocalc/util/misc";
 import { get_directory_listing2 as get_directory_listing } from "./directory-listing";
-import { fromJS } from "immutable";
+import { fromJS, Map } from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
 
 //const log = (...args) => console.log("fetchDirectoryListing", ...args);
@@ -27,6 +27,9 @@ const fetchDirectoryListing = reuseInFlight(
     actions: ProjectActions,
     { path, force }: FetchDirectoryListingOpts = {},
   ): Promise<void> => {
+    // TODO: implement this for any compute server.
+
+    const compute_server_id = 0;
     let status;
     let store = actions.get_store();
     if (store == null) {
@@ -88,8 +91,12 @@ const fetchDirectoryListing = reuseInFlight(
       if (store == null) {
         return;
       }
-      const map = store.get("directory_listings").set(path, value);
-      actions.setState({ directory_listings: map });
+      const directory_listings = store.get("directory_listings");
+      let listing = directory_listings.get(compute_server_id) ?? Map();
+      listing = listing.set(path, value);
+      actions.setState({
+        directory_listings: directory_listings.set(compute_server_id, listing),
+      });
     }
   },
   {

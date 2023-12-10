@@ -69,7 +69,9 @@ export interface ProjectStoreState {
   open_files_order: immutable.List<string>;
   just_closed_files: immutable.List<string>;
   public_paths?: immutable.Map<string, immutable.Map<string, any>>;
-  directory_listings: immutable.Map<string, any>;
+
+  // directory_listings is a map from compute_server_id to {path:[listing for that path on the compute server]}
+  directory_listings: immutable.Map<number, any>;
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
@@ -158,6 +160,10 @@ export interface ProjectStoreState {
 
   compute_servers?;
   create_compute_server?: boolean;
+
+  // Default compute server id to use when browsing and
+  // working with files.
+  compute_server_id: number;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
@@ -292,6 +298,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
 
       other_settings: undefined,
+
+      compute_server_id: 0,
     };
   };
 
@@ -328,12 +336,15 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "other_settings",
         "show_hidden",
         "show_masked",
+        "compute_server_id",
       ] as const,
       fn: () => {
         const search_escape_char = "/";
-        const listingStored = this.get("directory_listings").get(
+        const listingStored = this.getIn([
+          "directory_listings",
+          this.get("compute_server_id"),
           this.get("current_path"),
-        );
+        ]);
         if (typeof listingStored === "string") {
           if (
             listingStored.indexOf("ECONNREFUSED") !== -1 ||
@@ -593,7 +604,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
       });
       listingsTable.on("change", async (paths) => {
-        let directory_listings = this.get("directory_listings");
+        const directory_listings = this.get("directory_listings");
+        let directory_listings_for_server =
+          directory_listings.get(compute_server_id) ?? immutable.Map();
         for (const path of paths) {
           let files;
           if (listingsTable.getMissing(path)) {
@@ -610,10 +623,18 @@ export class ProjectStore extends Store<ProjectStoreState> {
           } else {
             files = await listingsTable.getForStore(path);
           }
-          directory_listings = directory_listings.set(path, files);
+          directory_listings_for_server = directory_listings_for_server.set(
+            path,
+            files,
+          );
         }
         const actions = redux.getProjectActions(this.project_id);
-        actions.setState({ directory_listings });
+        actions.setState({
+          directory_listings: directory_listings.set(
+            compute_server_id,
+            directory_listings_for_server,
+          ),
+        });
       });
     }
     if (this.listings[compute_server_id] == null) {

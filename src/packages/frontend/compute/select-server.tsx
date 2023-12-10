@@ -253,7 +253,6 @@ export default function SelectServer({
       onDropdownVisibleChange={setOpen}
       style={{
         width: getWidth(open, value, size),
-        background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         ...style,
       }}
       options={options}

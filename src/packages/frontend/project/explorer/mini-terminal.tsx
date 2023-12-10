@@ -185,13 +185,13 @@ class MiniTerminal0 extends React.Component<Props, State> {
     switch (this.state.state) {
       case "edit":
         return (
-          <Button onClick={this.execute_command}>
+          <Button style={{ height: "33px" }} onClick={this.execute_command}>
             <Icon name="play" />
           </Button>
         );
       case "run":
         return (
-          <Button onClick={this.execute_command}>
+          <Button style={{ height: "33px" }} onClick={this.execute_command}>
             <Icon name="cocalc-ring" spin />
           </Button>
         );
@@ -285,7 +285,7 @@ class MiniTerminal0 extends React.Component<Props, State> {
 
 export const MiniTerminal: React.FC<Props> = (props) => {
   const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id
+    props.project_id,
   );
   if (student_project_functionality.disableTerminals) {
     return <></>;

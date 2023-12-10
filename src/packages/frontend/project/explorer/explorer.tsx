@@ -566,11 +566,16 @@ const Explorer0 = rclass(
           <SelectComputeServerForFileExplorer
             project_id={this.props.project_id}
             key="compute-server"
+            style={{ marginLeft: "-11px" }}
           />
           {!IS_MOBILE && (
             <div
               ref={this.searchBarRef}
-              style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
+              style={{
+                flex: "1 0 20%",
+                marginRight: "10px",
+                minWidth: "20em",
+              }}
             >
               <SearchBar
                 project_id={this.props.project_id}

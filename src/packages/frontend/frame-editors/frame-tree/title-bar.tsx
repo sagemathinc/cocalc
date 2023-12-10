@@ -1940,6 +1940,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         style={{
           marginRight: "3px",
           marginTop: "1px",
+          marginLeft: "-12px",
           height: button_height(),
         }}
         project_id={props.project_id}

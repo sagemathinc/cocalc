@@ -107,7 +107,11 @@ export function FilesFlyout({
   );
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
-  const directoryListings = useTypedRedux({ project_id }, "directory_listings");
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const directoryListings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  )?.get(compute_server_id);
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
