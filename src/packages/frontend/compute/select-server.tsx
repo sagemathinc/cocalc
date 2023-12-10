@@ -262,8 +262,8 @@ export default function SelectServer({
 
 function getWidth(open, value, size) {
   if (size == "small") {
-    return open ? "250px" : value ? "130px" : "115px";
+    return open ? "250px" : value ? "130px" : "120px";
   } else {
-    return open ? "300px" : value ? "175px" : "115px";
+    return open ? "300px" : value ? "175px" : "120px";
   }
 }

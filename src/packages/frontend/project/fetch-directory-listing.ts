@@ -12,33 +12,44 @@ interface FetchDirectoryListingOpts {
   path?: string;
   // WARNING: THINK VERY HARD BEFORE YOU USE force=true, due to efficiency!
   force?: boolean;
+  // can be explicit here; otherwise will fall back to store.get('compute_server_id')
+  compute_server_id?: number;
 }
 
 function getPath(
   actions,
   opts?: FetchDirectoryListingOpts,
 ): string | undefined {
-  let store = actions.get_store();
-  return opts?.path ?? store?.get("current_path");
+  return opts?.path ?? actions.get_store()?.get("current_path");
+}
+
+function getComputeServerId(actions, opts): number {
+  return (
+    opts?.compute_server_id ??
+    actions.get_store()?.get("compute_server_id") ??
+    0
+  );
 }
 
 const fetchDirectoryListing = reuseInFlight(
   async (
     actions: ProjectActions,
-    { path, force }: FetchDirectoryListingOpts = {},
+    opts: FetchDirectoryListingOpts = {},
   ): Promise<void> => {
     let status;
     let store = actions.get_store();
     if (store == null) {
       return;
     }
-    path = getPath(actions, { path });
+    const { force } = opts;
+    const path = getPath(actions, opts);
+    const compute_server_id = getComputeServerId(actions, opts);
 
     if (force && path != null) {
       // update our interest.
       store.get_listings().watch(path, true);
     }
-    log({ force, path });
+    log({ force, path, compute_server_id });
 
     if (path == null) {
       // nothing to do if path isn't defined -- there is no current path --
@@ -54,7 +65,6 @@ const fetchDirectoryListing = reuseInFlight(
     }
 
     let value;
-    const compute_server_id = store.get("compute_server_id");
     try {
       // only show actions indicator, if the project is running or starting
       // if it is stopped, we get a stale listing from the database, which is fine.
@@ -102,8 +112,9 @@ const fetchDirectoryListing = reuseInFlight(
     createKey: (args) => {
       const actions = args[0];
       // reuse in flight on the project id, compute server id and path
-      return `${actions.project_id}-${actions.store?.get(
-        "compute_server_id",
+      return `${actions.project_id}-${getComputeServerId(
+        actions,
+        args[1],
       )}-${getPath(actions, args[1])}`;
     },
   },

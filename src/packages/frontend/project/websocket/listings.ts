@@ -116,6 +116,7 @@ export class Listings extends EventEmitter {
         query: {
           listings: {
             project_id: this.project_id,
+            compute_server_id: this.compute_server_id,
             path,
             deleted: null,
           },
@@ -245,6 +246,7 @@ export class Listings extends EventEmitter {
       query: {
         listings: {
           project_id: this.project_id,
+          compute_server_id: this.compute_server_id,
           path,
           listing: null,
           error: null,
@@ -264,6 +266,7 @@ export class Listings extends EventEmitter {
       query: {
         listings: {
           project_id: this.project_id,
+          compute_server_id: this.compute_server_id,
           path,
           missing: null,
         },

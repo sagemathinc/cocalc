@@ -1291,6 +1291,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.fetch_directory_listing();
   }
 
+  setComputeServerId = (compute_server_id: number) => {
+    this.setState({ compute_server_id });
+    this.fetch_directory_listing({ compute_server_id });
+  };
+
   set_file_search(search): void {
     this.setState({
       file_search: search,
@@ -1310,10 +1315,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public async fetch_directory_listing_directly(
     path: string,
     trigger_start_project?: boolean,
+    compute_server_id?: number,
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
-    const listings = store.get_listings();
+    const listings = store.get_listings(compute_server_id);
     try {
       const files = await listings.getListingDirectly(
         path,

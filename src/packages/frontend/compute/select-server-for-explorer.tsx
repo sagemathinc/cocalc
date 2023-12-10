@@ -26,7 +26,8 @@ export default function SelectComputeServerForFileExplorer({
       style={style}
       value={compute_server_id}
       setValue={(compute_server_id) => {
-        redux.getProjectActions(project_id).setState({ compute_server_id });
+        const actions = redux.getProjectActions(project_id);
+        actions.setComputeServerId(compute_server_id);
       }}
     />
   );
