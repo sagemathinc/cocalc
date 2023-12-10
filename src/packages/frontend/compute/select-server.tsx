@@ -3,7 +3,7 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 */
 
 import type { CSSProperties, ReactNode } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Tooltip } from "antd";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
@@ -13,7 +13,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-export const PROJECT_COLOR = "#f6ffed";
+export const PROJECT_COLOR = "#4474c0";
 
 interface Option {
   position?: number;
@@ -35,13 +35,25 @@ interface Props {
 
 export default function SelectServer({
   project_id,
-  value,
-  setValue,
+  value: value0,
+  setValue: setValue0,
   disabled,
   size,
   style,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
+  const [value, setValue1] = useState<number | null | undefined>(
+    value0 == 0 ? null : value0,
+  );
+  const setValue = (value) => {
+    setValue0(value ?? 0);
+    setValue1(value);
+  };
+  useEffect(() => {
+    if (value0 != null) {
+      setValue1(value0);
+    }
+  }, [value0]);
 
   // see https://github.com/sagemathinc/cocalc/issues/7083 and https://github.com/sagemathinc/cocalc/pull/7086
   // The component doesn't mount/remount, and the problem is
@@ -143,6 +155,7 @@ export default function SelectServer({
               <div
                 style={{
                   background: PROJECT_COLOR,
+                  color: avatar_fontcolor(PROJECT_COLOR),
                   padding: "0 5px",
                   borderRadius: "3px",
                 }}

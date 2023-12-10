@@ -51,6 +51,7 @@ import {
   FLYOUT_ACTIVE_DEFAULT_MODE,
   FLYOUT_LOG_DEFAULT_MODE,
 } from "./project/page/flyouts/utils";
+import { get_local_storage } from "@cocalc/frontend/misc";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -170,6 +171,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
   private listings: { [compute_server_id: number]: Listings } = {};
+  public readonly computeServerIdLocalStorageKey: string;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -183,6 +185,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     super(a, b);
     this._projects_store_change = this._projects_store_change.bind(this);
     this.setup_selectors();
+    this.computeServerIdLocalStorageKey = `project-compute-server-id-${this.project_id}`;
   }
 
   _init = (): void => {
@@ -245,6 +248,14 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
   getInitialState = (): ProjectStoreState => {
     const other_settings = redux.getStore("account")?.get("other_settings");
+    let compute_server_id;
+    try {
+      compute_server_id = parseInt(
+        (get_local_storage(this.computeServerIdLocalStorageKey) as any) ?? "0",
+      );
+    } catch (_) {
+      compute_server_id = 0;
+    }
     return {
       // Shared
       current_path: "",
@@ -299,7 +310,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       other_settings: undefined,
 
-      compute_server_id: 0,
+      compute_server_id,
     };
   };
 
@@ -586,8 +597,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   public get_listings(compute_server_id: number | null = null): Listings {
-    const computeServerId =
-      compute_server_id ?? this.get("compute_server_id") ?? 0;
+    const computeServerId = compute_server_id ?? this.get("compute_server_id");
     if (this.listings[computeServerId] == null) {
       const listingsTable = listings(this.project_id, computeServerId);
       this.listings[computeServerId] = listingsTable;

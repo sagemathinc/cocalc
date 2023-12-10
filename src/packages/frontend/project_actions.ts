@@ -28,6 +28,7 @@ import { Actions, project_redux_name, redux } from "./app-framework";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { IconName } from "./components";
 import { local_storage } from "./editor-local-storage";
+import { set_local_storage } from "@cocalc/frontend/misc";
 import { get_editor } from "./editors/react-wrapper";
 import { query as client_query, exec } from "./frame-editors/generic/client";
 import { set_url } from "./history";
@@ -1292,8 +1293,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   setComputeServerId = (compute_server_id: number) => {
+    if (compute_server_id == null) {
+      throw Error("bug");
+    }
+    const store = this.get_store();
+    if (store == null) return;
     this.setState({ compute_server_id });
     this.fetch_directory_listing({ compute_server_id });
+    set_local_storage(
+      store.computeServerIdLocalStorageKey,
+      `${compute_server_id}`,
+    );
   };
 
   set_file_search(search): void {
