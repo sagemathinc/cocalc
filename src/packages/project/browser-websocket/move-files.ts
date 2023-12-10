@@ -8,7 +8,7 @@ import { stat } from "node:fs/promises";
 
 import { move_file_variations } from "@cocalc/util/delete-files";
 import { path_split } from "@cocalc/util/misc";
-import { get_listings_table } from "../sync/listings";
+import { getListingsTable } from "@cocalc/project/sync/listings";
 
 function home(): string {
   const { HOME } = process.env;
@@ -19,7 +19,7 @@ function home(): string {
 export async function move_files(
   paths: string[],
   dest: string, // assumed to be a directory
-  logger: any
+  logger: any,
 ): Promise<void> {
   const HOME = home();
   logger.debug(`move_files ${JSON.stringify(paths)} --> ${dest}`);
@@ -30,12 +30,12 @@ export async function move_files(
   }
   dest += "/";
   const to_move: { src: string; dest: string }[] = [];
-  const listings = get_listings_table();
+  const listings = getListingsTable();
   for (let path of paths) {
     path = HOME + "/" + path;
     const target = dest + path_split(path).tail;
     logger.debug(`move_file ${path} --> ${target}`);
-    await listings?.set_deleted(path);
+    await listings?.setDeleted(path);
     to_move.push({ src: path, dest: target });
 
     // and the aux files:
@@ -44,7 +44,7 @@ export async function move_files(
       if (!s.isDirectory()) {
         for (const variation of move_file_variations(path, target)) {
           if (await pathExists(variation.src)) {
-            await listings?.set_deleted(variation.src);
+            await listings?.setDeleted(variation.src);
             to_move.push(variation);
           }
         }
@@ -60,15 +60,15 @@ export async function move_files(
 export async function rename_file(
   src: string,
   dest: string,
-  logger: any
+  logger: any,
 ): Promise<void> {
   if (src == dest) return; // no-op
   const HOME = home();
   src = HOME + "/" + src;
   dest = HOME + "/" + dest;
   logger.debug(`rename_file ${src} --> ${dest}`);
-  const listings = get_listings_table();
-  await listings?.set_deleted(src); // todo: later may have a set_moved...
+  const listings = getListingsTable();
+  await listings?.setDeleted(src); // todo: later may have a set_moved...
   const to_move: { src: string; dest: string }[] = [{ src, dest }];
 
   try {
@@ -76,7 +76,7 @@ export async function rename_file(
     if (!s.isDirectory()) {
       for (const variation of move_file_variations(src, dest)) {
         if (await pathExists(variation.src)) {
-          await listings?.set_deleted(variation.src);
+          await listings?.setDeleted(variation.src);
           to_move.push(variation);
         }
       }

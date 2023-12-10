@@ -74,9 +74,15 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
+      chokidar:
+        specifier: ^3.5.3
+        version: 3.5.3
       debug:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@9.3.1)
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       lru-cache:
         specifier: ^7.14.1
         version: 7.14.1
@@ -1233,9 +1239,6 @@ importers:
       body-parser:
         specifier: ^1.19.0
         version: 1.20.1
-      chokidar:
-        specifier: ^3.5.3
-        version: 3.5.3
       commander:
         specifier: ^7.2.0
         version: 7.2.0
@@ -1794,6 +1797,9 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
+      debug:
+        specifier: ^4.3.4
+        version: 4.3.4(supports-color@8.1.1)
       events:
         specifier: 3.3.0
         version: 3.3.0

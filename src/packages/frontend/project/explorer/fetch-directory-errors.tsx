@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ErrorDisplay } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
 import { AccessErrors } from "./access-errors";
 
 interface Props {
@@ -23,28 +23,26 @@ export function FetchDirectoryErrors({
 }: Props): JSX.Element {
   switch (error) {
     case "not_public":
-      return (
-        <AccessErrors is_logged_in={is_logged_in} />
-      );
+      return <AccessErrors is_logged_in={is_logged_in} />;
     case "no_dir":
       return (
-        <ErrorDisplay
-          title="No such directory"
+        <ShowError
+          message="No such directory"
           error={`The path ${path} does not exist.`}
         />
       );
     case "not_a_dir":
       return (
-        <ErrorDisplay
-          title="Not a directory"
+        <ShowError
+          message="Not a directory"
           error={`${path} is not a directory.`}
         />
       );
     case "not_running":
       // This shouldn't happen, but due to maybe a slight race condition in the backend it can.
       return (
-        <ErrorDisplay
-          title="Project still not running"
+        <ShowError
+          message="Project still not running"
           error={
             "The project was not running when this directory listing was requested.  Please try again in a moment."
           }
@@ -57,8 +55,8 @@ export function FetchDirectoryErrors({
       ) {
         // the second part of the or is to blame it on the free servers...
         return (
-          <ErrorDisplay
-            title="Project unavailable"
+          <ShowError
+            message="Project unavailable"
             error={`This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n${
               !(quotas != undefined ? quotas.member_host : undefined)
                 ? error
@@ -67,7 +65,7 @@ export function FetchDirectoryErrors({
           />
         );
       } else {
-        return <ErrorDisplay title="Directory listing error" error={error} />;
+        return <ShowError message="Directory Listing Error" error={error} />;
       }
   }
 }

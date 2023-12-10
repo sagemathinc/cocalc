@@ -51,7 +51,7 @@ export class NBGraderActions {
   private get_metadata(id: string): ImmutableMetadata {
     return this.jupyter_actions.store.getIn(
       ["cells", id, "metadata", "nbgrader"],
-      immutable.Map()
+      immutable.Map(),
     );
   }
 
@@ -59,7 +59,7 @@ export class NBGraderActions {
   public set_metadata(
     id: string,
     metadata: Metadata | undefined = undefined, // if undefined, deletes the nbgrader metadata entirely
-    save: boolean = true
+    save: boolean = true,
   ): void {
     let nbgrader: Metadata | undefined = undefined;
     if (metadata != null) {
@@ -139,7 +139,7 @@ export class NBGraderActions {
     const target = head + tail;
     let minimal_stubs = this.jupyter_actions.store.getIn(
       ["metadata", "nbgrader", "cocalc_minimal_stubs"],
-      false
+      false,
     );
     const MINIMAL_STUBS = "Generate with minimal stubs";
     const choice = await this.jupyter_actions.confirm_dialog({
@@ -168,12 +168,18 @@ export class NBGraderActions {
 
   public async assign(
     filename: string,
-    minimal_stubs: boolean = false
+    minimal_stubs: boolean = false,
   ): Promise<void> {
     // Create a copy of the current notebook at the location specified by
     // filename, and modify by applying the assign transformations.
     const project_id = this.jupyter_actions.store.get("project_id");
     const project_actions = this.redux.getProjectActions(project_id);
+    // Be sure to explicitly undelete the student file, just in case it
+    // was manually deleted.  This is the right thing to do since generating
+    // the student version is explicitly, and doesn't require any confirmation.
+    const store = this.redux.getProjectStore(project_id);
+    const listings = store.get_listings();
+    await listings.undelete(filename);
     await project_actions.open_file({ path: filename, foreground: true });
     let actions = this.redux.getEditorActions(project_id, filename);
     while (actions == null) {
@@ -182,7 +188,7 @@ export class NBGraderActions {
     }
     await actions.jupyter_actions.wait_until_ready();
     actions.jupyter_actions.syncdb.from_str(
-      this.jupyter_actions.syncdb.to_str()
+      this.jupyter_actions.syncdb.to_str(),
     );
     // Important: we also have to fire a changes event with all
     // records, since otherwise the Jupyter store doesn't get
@@ -192,7 +198,7 @@ export class NBGraderActions {
     actions.jupyter_actions.syncdb.emit("change", "all");
     await actions.jupyter_actions.save();
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations(
-      minimal_stubs
+      minimal_stubs,
     );
     await actions.jupyter_actions.save();
   }
@@ -266,7 +272,7 @@ export class NBGraderActions {
         this.jupyter_actions.set_cell_input(
           cell.get("id"),
           cell2.get("input"),
-          false
+          false,
         );
       }
     });
@@ -283,7 +289,7 @@ export class NBGraderActions {
         this.jupyter_actions.set_cell_input(
           cell.get("id"),
           cell2.get("input"),
-          false
+          false,
         );
       }
     });
@@ -307,7 +313,7 @@ export class NBGraderActions {
         this.jupyter_actions.set_cell_input(
           cell.get("id"),
           cell2.get("input"),
-          false
+          false,
         );
       }
     });

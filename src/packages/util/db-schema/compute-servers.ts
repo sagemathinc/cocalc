@@ -132,7 +132,7 @@ export const IMAGES0 = {
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
     description:
       "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications.  The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.   It enables dramatic increases in computing performance by harnessing the power of NVIDIA graphics processing units (GPUs) for a wide range of computing tasks.",
-    versions: [{ label: "12.3.0", tag: "12.3.0-devel-ubuntu22.04" }],
+    versions: [{ label: "12.3.0", tag: "12.3.0p1" }],
     jupyterKernels: false,
   },
   pytorch: {

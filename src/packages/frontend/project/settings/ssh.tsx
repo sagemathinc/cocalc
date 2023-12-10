@@ -68,8 +68,8 @@ export function SSHPanel({ project, mode = "project" }: Props) {
         </Paragraph>
         {render_fingerprint()}
         <Paragraph>
-          <A href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key">
-            <Icon name="life-ring" /> How to create SSH keys
+          <A href="https://doc.cocalc.com/account/ssh.html">
+            <Icon name="life-ring" /> Docs...
           </A>
         </Paragraph>
       </>

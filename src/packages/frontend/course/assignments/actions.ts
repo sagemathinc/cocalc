@@ -1351,7 +1351,7 @@ ${details}
       files = await redux
         .getProjectStore(project_id)
         .get_listings()
-        .get_listing_directly(path);
+        .getListingDirectly(path);
     } catch (err) {
       // This happens, e.g., if the instructor moves the directory
       // that contains their version of the ipynb file.

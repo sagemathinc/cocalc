@@ -7,6 +7,8 @@ import { createTable } from "./table";
 import getLogger from "@cocalc/backend/logger";
 import { SCHEMA } from "@cocalc/util/schema";
 import { dropDeprecatedTables } from "./drop-deprecated-tables";
+import { primaryKeys } from "./table";
+import { isEqual } from "lodash";
 
 const log = getLogger("db:schema:sync");
 
@@ -19,6 +21,7 @@ async function syncTableSchema(db: Client, schema: TableSchema): Promise<void> {
   }
   await syncTableSchemaColumns(db, schema);
   await syncTableSchemaIndexes(db, schema);
+  await syncTableSchemaPrimaryKeys(db, schema);
 }
 
 async function getColumnTypeInfo(
@@ -272,7 +275,57 @@ export async function syncSchema(
     }
   } catch (err) {
     dbg("FAILED to sync schema ", { role }, err);
+    throw err;
   } finally {
     db.end();
   }
+}
+
+async function syncTableSchemaPrimaryKeys(
+  db: Client,
+  schema: TableSchema,
+): Promise<void> {
+  log.debug("syncTableSchemaPrimaryKeys", "table = ", schema.name);
+  const actualPrimaryKeys = (await getPrimaryKeys(db, schema.name)).sort();
+  const goalPrimaryKeys = primaryKeys(schema.name).sort();
+  if (isEqual(actualPrimaryKeys, goalPrimaryKeys)) {
+    return;
+  }
+  log.debug("syncTableSchemaPrimaryKeys", "table = ", schema.name, {
+    actualPrimaryKeys,
+    goalPrimaryKeys,
+  });
+  for (const key of goalPrimaryKeys) {
+    if (!actualPrimaryKeys.includes(key)) {
+      const defaultValue = schema.default_primary_key_value?.[key];
+      if (defaultValue == null) {
+        throw Error(
+          `must specify default_primary_key_value for '${schema.name}' and key='${key}'`,
+        );
+      } else {
+        await db.query(`update "${schema.name}" set "${key}"=$1`, [
+          defaultValue,
+        ]);
+      }
+    }
+  }
+  await db.query(`
+ALTER TABLE "${schema.name}" DROP CONSTRAINT ${schema.name}_pkey;
+`);
+  await db.query(`
+  ALTER TABLE "${schema.name}" ADD PRIMARY KEY (${goalPrimaryKeys
+    .map((name) => `"${name}"`)
+    .join(",")})
+`);
+}
+
+async function getPrimaryKeys(db: Client, table: string): Promise<string[]> {
+  const { rows } = await db.query(`
+SELECT a.attname as name
+FROM   pg_index i
+JOIN   pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+WHERE  i.indrelid = '${table}'::regclass
+AND    i.indisprimary
+`);
+  return rows.map((row) => row.name);
 }

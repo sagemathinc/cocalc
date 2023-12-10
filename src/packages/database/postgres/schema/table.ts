@@ -16,7 +16,7 @@ export function primaryKey(table: string | TableSchema): string {
   const v = primaryKeys(table);
   if (v.length != 1) {
     throw Error(
-      `compound primary key tables not yet supported - table=${table}`
+      `compound primary key tables not yet supported - table=${table}`,
     );
   }
   return v[0];
@@ -24,7 +24,7 @@ export function primaryKey(table: string | TableSchema): string {
 
 export async function createTable(
   db: Client,
-  schema: TableSchema
+  schema: TableSchema,
 ): Promise<void> {
   log.debug("createTable", schema.name, " creating SQL query");
   if (schema.virtual) {
@@ -45,7 +45,7 @@ export async function createTable(
     columns.push(s);
   }
   const query = `CREATE TABLE ${schema.name} (${columns.join(
-    ", "
+    ", ",
   )}, PRIMARY KEY(${primary_keys.join(", ")}))`;
   log.debug("createTable", schema.name, " running query...", query);
   await db.query(query);

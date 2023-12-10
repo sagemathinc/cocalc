@@ -133,7 +133,10 @@ import { CB } from "./types/database";
    Returns array of args emitted by that event.
    If timeout_ms is 0 (the default) this can wait an unbounded
    amount of time.  That's intentional and does make sense
-   in our applications. */
+   in our applications.
+   If timeout_ms is nonzero and event doesn't happen an
+   exception is thrown.
+   */
 export async function once(
   obj: EventEmitter,
   event: string,

@@ -576,7 +576,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   private async close_deleted_files(paths: string[]): Promise<void> {
     for (const path of paths) {
       if (this.listings == null) return; // won't happen
-      const deleted = await this.listings.get_deleted(path);
+      const deleted = await this.listings.getDeleted(path);
       if (deleted != null) {
         for (let filename of deleted) {
           if (path != "") {
@@ -597,19 +597,19 @@ export class ProjectStore extends Store<ProjectStoreState> {
         for (const path of paths) {
           if (this.listings == null) return; // won't happen
           let files;
-          if (this.listings.get_missing(path)) {
+          if (this.listings.getMissing(path)) {
             try {
               files = immutable.fromJS(
-                await this.listings.get_listing_directly(path),
+                await this.listings.getListingDirectly(path),
               );
             } catch (err) {
               console.warn(
                 `WARNING: problem getting directory listing ${err}; falling back`,
               );
-              files = await this.listings.get_for_store(path);
+              files = await this.listings.getForStore(path);
             }
           } else {
-            files = await this.listings.get_for_store(path);
+            files = await this.listings.getForStore(path);
           }
           directory_listings = directory_listings.set(path, files);
         }

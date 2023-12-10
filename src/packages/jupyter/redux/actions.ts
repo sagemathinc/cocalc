@@ -148,6 +148,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("change", this._syncdb_change);
 
+    this.syncdb.on("close", this.close);
+
     if (!this.is_project) {
       this.fetch_jupyter_kernels();
     }
@@ -287,7 +289,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this._state === "closed" || this._state === undefined;
   }
 
-  public async close({ noSave }: { noSave?: boolean } = {}): Promise<void> {
+  public close = async ({
+    noSave,
+  }: { noSave?: boolean } = {}): Promise<void> => {
     if (this.is_closed()) {
       return;
     }
@@ -317,7 +321,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.store.destroy();
     close(this);
     this._state = "closed";
-  }
+  };
 
   public close_project_only() {
     // real version is in derived class that project runs.

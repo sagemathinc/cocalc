@@ -90,20 +90,23 @@ export interface ProjectClient extends EventEmitter {
     query: any,
     options: any,
     throttle_changes?: number,
-    id?: string
+    id?: string,
   ) => Promise<SyncTable>;
 
   // account_id or project_id
   client_id: () => string;
 
-  is_deleted: (filename: string, project_id?: string) => boolean;
+  is_deleted: (
+    filename: string,
+    project_id?: string,
+  ) => boolean | undefined | null;
   set_deleted: (filename: string, project_id?: string) => void;
 
   ipywidgetsGetBuffer?: (
     project_id: string, // id of the project
     path: string, // path = name of ipynb file
     model_id: string, // id of the ipywidgets model
-    buffer_path: string // JSON.stringify(['binary','buffer','path'])
+    buffer_path: string, // JSON.stringify(['binary','buffer','path'])
   ) => ArrayBuffer;
 }
 
@@ -125,7 +128,7 @@ export interface Client extends ProjectClient {
   synctable_database: (
     query: any,
     options: any,
-    throttle_changes?: number
+    throttle_changes?: number,
   ) => Promise<SyncTable>;
 
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
