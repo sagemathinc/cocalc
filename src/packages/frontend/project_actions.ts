@@ -1321,6 +1321,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       );
 
       const directory_listings = store.get("directory_listings");
+      const compute_server_id = store.get("compute_server_id") ?? 0;
       let listing = directory_listings.get(compute_server_id) ?? Map();
       listing = listing.set(path, files);
       this.setState({
@@ -1513,10 +1514,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // anything about files (highly unlikely).  Unfortunately (for this), our
     // directory listings are stored as (immutable) lists, so we have to make
     // a map out of them.
-    const listing =
-      store.get("directory_listings") != null
-        ? store.get("directory_listings").get(store.get("current_path"))
-        : undefined;
+    const compute_server_id = store.get("compute_server_id");
+    const listing = store.getIn([
+      "directory_listings",
+      compute_server_id,
+      store.get("current_path"),
+    ]);
+
     if (typeof listing === "string") {
       // must be an error
       return undefined; // simple fallback

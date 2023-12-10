@@ -300,6 +300,7 @@ export class Listings extends EventEmitter {
       max_time_s: 15 * 60,
       group,
       trigger_start_project,
+      compute_server_id: this.compute_server_id,
     });
     if (x.error != null) {
       throw Error(x.error);

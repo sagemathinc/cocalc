@@ -63,7 +63,11 @@ export default function DirectorySelector({
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
   if (project_id == null) project_id = frameContext.project_id;
-  const directoryListings = useTypedRedux({ project_id }, "directory_listings");
+  const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
+  const directoryListings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  )?.get(computeServerId);
   const isMountedRef = useIsMountedRef();
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     const expandedPaths: string[] = [""];

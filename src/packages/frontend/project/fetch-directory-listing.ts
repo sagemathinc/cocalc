@@ -27,9 +27,6 @@ const fetchDirectoryListing = reuseInFlight(
     actions: ProjectActions,
     { path, force }: FetchDirectoryListingOpts = {},
   ): Promise<void> => {
-    // TODO: implement this for any compute server.
-
-    const compute_server_id = 0;
     let status;
     let store = actions.get_store();
     if (store == null) {
@@ -57,6 +54,7 @@ const fetchDirectoryListing = reuseInFlight(
     }
 
     let value;
+    const compute_server_id = store.get("compute_server_id");
     try {
       // only show actions indicator, if the project is running or starting
       // if it is stopped, we get a stale listing from the database, which is fine.
@@ -78,6 +76,7 @@ const fetchDirectoryListing = reuseInFlight(
         max_time_s: 10,
         trigger_start_project: false,
         group: "collaborator", // nothing else is implemented
+        compute_server_id,
       });
       log("got ", listing.files);
       value = fromJS(listing.files);
@@ -102,7 +101,10 @@ const fetchDirectoryListing = reuseInFlight(
   {
     createKey: (args) => {
       const actions = args[0];
-      return `${actions.project_id}${getPath(actions, args[1])}`;
+      // reuse in flight on the project id, compute server id and path
+      return `${actions.project_id}-${actions.store?.get(
+        "compute_server_id",
+      )}-${getPath(actions, args[1])}`;
     },
   },
 );

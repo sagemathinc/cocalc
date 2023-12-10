@@ -353,7 +353,7 @@ export function FilesFlyout({
     })();
   }
 
-  if (directoryListings.get(current_path) == null) {
+  if (directoryListings?.get(current_path) == null) {
     (async () => {
       // Must happen in a different render loop, hence the delay, because
       // fetch can actually update the store in the same render loop.
@@ -632,7 +632,7 @@ export function FilesFlyout({
   }
 
   function renderListing(): JSX.Element {
-    const files = directoryListings.get(current_path);
+    const files = directoryListings?.get(current_path);
     if (files == null) {
       return renderLoadingOrStartProject();
     }
