@@ -272,6 +272,7 @@ export class ProjectClient {
   public async directory_listing(opts: {
     project_id: string;
     path: string;
+    compute_server_id: number;
     timeout?: number;
     hidden?: boolean;
   }): Promise<{ files: DirectoryListingEntry[] }> {
@@ -281,6 +282,7 @@ export class ProjectClient {
       opts.path,
       opts.hidden,
       opts.timeout * 1000,
+      opts.compute_server_id,
     );
     return { files: listing };
   }

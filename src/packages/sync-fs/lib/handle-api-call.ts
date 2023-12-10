@@ -284,6 +284,42 @@ export async function handleSyncFsRequestCall({ compute_server_id }) {
   }
 }
 
+function callComputeServerApi(
+  compute_server_id,
+  mesg,
+  timeoutMs = 30000,
+): Promise<any> {
+  const spark = sparks[compute_server_id];
+  if (spark == null) {
+    log("callComputeServerApi: no connection");
+    throw Error(
+      `no connection to compute server ${compute_server_id} -- please start it`,
+    );
+  }
+  return new Promise((resolve, reject) => {
+    const id = Math.random();
+    spark.write({ ...mesg, id });
+
+    const handler = (data) => {
+      if (data?.id == id) {
+        spark.removeListener("data", handler);
+        clearTimeout(timeout);
+        if (data.error) {
+          reject(Error(data.error));
+        } else {
+          resolve(data.resp);
+        }
+      }
+    };
+    spark.addListener("data", handler);
+
+    const timeout = setTimeout(() => {
+      spark.removeListener("data", handler);
+      reject(Error(`timeout -- ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+}
+
 export async function handleCopy(opts: {
   event: string;
   compute_server_id: number;
@@ -291,26 +327,20 @@ export async function handleCopy(opts: {
   timeout?: number;
 }) {
   log("handleCopy: ", opts);
-  const spark = sparks[opts.compute_server_id];
-  if (spark == null) {
-    log("handleCopy: no connection");
-    throw Error(`no connection to compute server ${opts.compute_server_id}`);
-  }
-  const id = Math.random();
-  spark.write({ ...opts, id });
-  // wait for a response with this id
-  const handler = (data) => {
-    if (data?.id == id) {
-      spark.removeListener("data", handler);
-      clearTimeout(timeout);
-      return data;
-    }
-  };
-  spark.addListener("data", handler);
-  const timeout = setTimeout(() => {
-    spark.removeListener("data", handler);
-    throw Error(
-      `timeout - failed to copy files within ${opts.timeout ?? 30000}ms`,
-    );
-  }, opts.timeout ?? 30000);
+  const mesg = { event: opts.event, paths: opts.paths };
+  return await callComputeServerApi(
+    opts.compute_server_id,
+    mesg,
+    opts.timeout ?? 30000,
+  );
+}
+
+export async function handleSyncFsGetListing({
+  path,
+  hidden,
+  compute_server_id,
+}) {
+  log("handleSyncFsGetListing: ", { path, hidden, compute_server_id });
+  const mesg = { event: "listing", path, hidden };
+  return await callComputeServerApi(compute_server_id, mesg, 15000);
 }

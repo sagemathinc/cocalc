@@ -585,10 +585,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
   }
 
-  public get_listings(compute_server_id: number = 0): Listings {
-    if (this.listings[compute_server_id] == null) {
-      const listingsTable = listings(this.project_id, compute_server_id);
-      this.listings[compute_server_id] = listingsTable;
+  public get_listings(compute_server_id: number | null = null): Listings {
+    const computeServerId =
+      compute_server_id ?? this.get("compute_server_id") ?? 0;
+    if (this.listings[computeServerId] == null) {
+      const listingsTable = listings(this.project_id, computeServerId);
+      this.listings[computeServerId] = listingsTable;
+      listingsTable.watch(this.get("current_path") ?? "", true);
       listingsTable.on("deleted", async (paths) => {
         for (const path of paths) {
           if (this.listings[0] == null) return; // shouldn't happen
@@ -606,7 +609,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       listingsTable.on("change", async (paths) => {
         const directory_listings = this.get("directory_listings");
         let directory_listings_for_server =
-          directory_listings.get(compute_server_id) ?? immutable.Map();
+          directory_listings.get(computeServerId) ?? immutable.Map();
         for (const path of paths) {
           let files;
           if (listingsTable.getMissing(path)) {
@@ -631,16 +634,16 @@ export class ProjectStore extends Store<ProjectStoreState> {
         const actions = redux.getProjectActions(this.project_id);
         actions.setState({
           directory_listings: directory_listings.set(
-            compute_server_id,
+            computeServerId,
             directory_listings_for_server,
           ),
         });
       });
     }
-    if (this.listings[compute_server_id] == null) {
+    if (this.listings[computeServerId] == null) {
       throw Error("bug");
     }
-    return this.listings[compute_server_id];
+    return this.listings[computeServerId];
   }
 }
 

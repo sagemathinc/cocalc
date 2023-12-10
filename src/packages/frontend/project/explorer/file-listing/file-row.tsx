@@ -356,6 +356,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           <ComputeServerTag
             style={{ maxWidth: "100%" }}
             id={props.computeServerId}
+            title={`This file is on compute server ${props.computeServerId}`}
           />
         )}
       </Col>

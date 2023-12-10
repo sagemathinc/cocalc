@@ -23,6 +23,7 @@ import { apiCall } from "@cocalc/api-client";
 import mkdirp from "mkdirp";
 import { throttle } from "lodash";
 import { trunc_middle } from "@cocalc/util/misc";
+import getListing from "@cocalc/backend/get-listing";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -259,18 +260,44 @@ class SyncFS {
             await this.tar.send({ createArgs, extractArgs, HOME: this.mount });
           }
           if (data.id) {
-            this.websocket?.write({ id: data.id, event: "success" });
+            this.websocket?.write({ id: data.id });
           }
           log("handleSyncRequest: copy SUCCESS");
         } catch (err) {
           if (data.id) {
             this.websocket?.write({
               id: data.id,
-              event: "error",
               error: err.message,
             });
           }
           log("handleSyncRequest: copy FAILED", err);
+        }
+        return;
+      }
+
+      case "listing": {
+        log("handle listing api request");
+        const { path, hidden } = data;
+        try {
+          this.websocket?.write({
+            id: data.id,
+            resp: await getListing(path, hidden, this.mount),
+          });
+        } catch (err) {
+          this.websocket?.write({
+            id: data.id,
+            error: err.message,
+          });
+        }
+        return;
+      }
+
+      default: {
+        if (data?.id) {
+          this.websocket?.write({
+            id: data.id,
+            error: `unknown event '${data?.event}'`,
+          });
         }
         return;
       }

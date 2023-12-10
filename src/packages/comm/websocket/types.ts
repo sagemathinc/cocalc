@@ -59,6 +59,7 @@ interface MesgListing {
   cmd: "listing";
   path: string;
   hidden: boolean;
+  compute_server_id: number;
 }
 
 interface MesgMoveFiles {

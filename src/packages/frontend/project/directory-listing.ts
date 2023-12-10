@@ -77,6 +77,7 @@ export async function get_directory_listing(opts: ListingOpts) {
         project_id: opts.project_id,
         path: opts.path,
         hidden: opts.hidden,
+        compute_server_id: opts.compute_server_id,
         timeout,
       });
     } catch (err) {

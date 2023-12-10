@@ -86,8 +86,12 @@ export class API {
     path: string,
     hidden: boolean = false,
     timeout: number = 15000,
+    compute_server_id: number = 0,
   ): Promise<DirectoryListingEntry[]> {
-    return await this.call({ cmd: "listing", path, hidden }, timeout);
+    return await this.call(
+      { cmd: "listing", path, hidden, compute_server_id },
+      timeout,
+    );
   }
 
   /* Normalize the given paths relative to the HOME directory.

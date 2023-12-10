@@ -39,6 +39,7 @@ import handleSyncFsApiCall, {
   handleSyncFsRequestCall,
   handleComputeServerSyncRegister,
   handleCopy,
+  handleSyncFsGetListing,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
 
@@ -91,7 +92,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "version":
       return version;
     case "listing":
-      return await listing(data.path, data.hidden);
+      return await listing(data.path, data.hidden, data.compute_server_id);
     case "delete_files":
       return await delete_files(data.paths);
     case "move_files":
@@ -174,9 +175,14 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import getListing from "@cocalc/backend/get-listing";
 async function listing(
   path: string,
-  hidden?: boolean,
+  hidden: boolean,
+  compute_server_id: number,
 ): Promise<DirectoryListingEntry[]> {
-  return await getListing(path, hidden);
+  if (!compute_server_id) {
+    return await getListing(path, hidden);
+  } else {
+    return await handleSyncFsGetListing({ path, hidden, compute_server_id });
+  }
 }
 
 import { handleApiRequest as jupyter } from "@cocalc/jupyter/kernel/websocket-api";

@@ -121,7 +121,9 @@ export default function DirectorySelector({
     (async () => {
       while (state.loop && isMountedRef.current) {
         // Component is mounted, so call watch on all expanded paths.
-        const listings = redux.getProjectStore(project_id).get_listings();
+        const listings = redux
+          .getProjectStore(project_id)
+          .get_listings(computeServerId);
         for (const path of expandedPaths) {
           listings.watch(path);
         }
