@@ -90,7 +90,7 @@ export const shoppingCartCheckout = async ({
   }
 
   const params = await getShoppingCartCheckoutParams(account_id);
-  const surplusCredit = Math.max(paymentAmountValue - params.chargeAmount, 0);
+  const surplusCredit = ignoreBalance ? 0 : Math.max(paymentAmountValue - params.chargeAmount, 0);
 
   // Validate paymentAmount is sufficient when not debiting from user's balance
   //
@@ -128,7 +128,7 @@ export const shoppingCartCheckout = async ({
 
   // Track available balance for line item accounting when using existing balance
   //
-  let availableBalance = params.balance - params.minBalance;
+  let availableBalance = ignoreBalance ? 0 : params.balance - params.minBalance;
 
   const sortedCartItems = params.cart.sort((a, b) => {
     const itemA = Math.max(a.cost?.discounted_cost ?? 0, 0);
@@ -230,7 +230,7 @@ export const shoppingCartCheckout = async ({
     (total, item) => (total += item.amount),
     0,
   );
-  if (Math.abs(checkoutTotal - (params.chargeAmount + surplusCredit)) > 0.1) {
+  if (!ignoreBalance && Math.abs(checkoutTotal - (params.chargeAmount + surplusCredit)) > 0.1) {
     throw Error(
       `Computed cart total ${currency(
         checkoutTotal,
