@@ -22,7 +22,6 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import { path_split } from "@cocalc/util/misc";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { callback2 } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
@@ -107,7 +106,7 @@ export default function DirectorySelector({
       }
       setSelectedPaths(new Set(x));
     },
-    [selectedPaths, multi]
+    [selectedPaths, multi],
   );
 
   useEffect(() => {
@@ -228,7 +227,7 @@ function SelectablePath({
         alert_message({ type: "error", message: err.toString() });
       }
     },
-    [project_id, path]
+    [project_id, path],
   );
 
   let content;
@@ -421,7 +420,7 @@ function Subdirs(props) {
         project_id={project_id}
         path={path}
         directoryListings={directoryListings}
-      />
+      />,
     );
     return (
       <div key={path} style={style}>
@@ -475,13 +474,13 @@ function CreateDirectory({ project_id, path, directoryListings }) {
 async function pathExists(
   project_id: string,
   path: string,
-  directoryListings
+  directoryListings,
 ): Promise<boolean> {
   const { head, tail } = path_split(path);
   let known = directoryListings?.get(head);
   if (known == null) {
     const actions = redux.getProjectActions(project_id);
-    await callback2(actions.fetch_directory_listing.bind(actions), {
+    await actions.fetch_directory_listing({
       path: head,
     });
   }

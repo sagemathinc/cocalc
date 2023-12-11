@@ -8,16 +8,10 @@ import { exec, query } from "@cocalc/frontend/frame-editors/generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncTable } from "@cocalc/sync/table";
 import { once } from "@cocalc/util/async-utils";
-import { WATCH_TIMEOUT_MS } from "@cocalc/util/db-schema/listings";
+import { WATCH_TIMEOUT_MS, Listing } from "@cocalc/util/db-schema/listings";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
-import {
-  close,
-  merge,
-  meta_file,
-  original_path,
-  path_split,
-} from "@cocalc/util/misc";
-import { DirectoryListingEntry } from "@cocalc/util/types";
+import type { DirectoryListingEntry } from "@cocalc/util/types";
+import { close, path_split } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { fromJS, List } from "immutable";
@@ -29,29 +23,21 @@ type ImmutablePathEntry = TypedMap<DirectoryListingEntry>;
 
 type State = "init" | "ready" | "closed";
 
-interface Listing {
-  path: string;
-  project_id?: string;
-  listing?: List<ImmutablePathEntry>;
-  time?: Date;
-  interest?: Date;
-  missing?: number;
-  error?: string;
-  deleted?: string[];
-}
 export type ImmutableListing = TypedMap<Listing>;
 
 export class Listings extends EventEmitter {
   private table?: SyncTable;
   private project_id: string;
+  private compute_server_id: number;
   private last_version: { [path: string]: any } = {}; // last version emitted via change event.
   private last_deleted: { [path: string]: any } = {};
   private state: State = "init";
   private throttled_watch: { [path: string]: Function } = {};
 
-  constructor(project_id: string) {
+  constructor(project_id: string, compute_server_id: number = 0) {
     super();
     this.project_id = project_id;
+    this.compute_server_id = compute_server_id;
     this.init();
   }
 
@@ -61,7 +47,7 @@ export class Listings extends EventEmitter {
   // that at least one client is interested in this path.
   // Don't worry about calling this function **too much**, since
   // it throttles calls.
-  public async watch(path: string, force: boolean = false): Promise<void> {
+  watch = async (path: string, force: boolean = false): Promise<void> => {
     if (force) {
       await this._watch(path);
       return;
@@ -78,24 +64,24 @@ export class Listings extends EventEmitter {
     }
     if (this.throttled_watch[path] == null) throw Error("bug");
     this.throttled_watch[path]();
-  }
+  };
 
-  private async _watch(path: string): Promise<void> {
-    if (await this.wait_until_ready(false)) return;
+  private _watch = async (path: string): Promise<void> => {
+    if (await this.waitUntilReady(false)) return;
     if (this.state == "closed") return;
     this.set({
       path,
       interest: webapp_client.server_time(),
     });
-  }
+  };
 
-  public async get(
+  get = async (
     path: string,
     trigger_start_project?: boolean,
-  ): Promise<DirectoryListingEntry[] | undefined> {
+  ): Promise<DirectoryListingEntry[] | undefined> => {
     if (this.state != "ready") {
       try {
-        const listing = await this.get_using_database(path);
+        const listing = await this.getUsingDatabase(path);
         if (listing != null) {
           return listing;
         }
@@ -109,7 +95,7 @@ export class Listings extends EventEmitter {
       // for old projects that haven't been restarted since we released the new
       // sync code, but could possibly be a useful fallback in case of other
       // problems).
-      const listing = await this.get_listing_directly(
+      const listing = await this.getListingDirectly(
         path,
         trigger_start_project,
       );
@@ -118,12 +104,12 @@ export class Listings extends EventEmitter {
       }
     }
 
-    const x = this.get_record(path);
+    const x = this.getRecord(path);
     if (x == null || x.get("error")) return;
     return x.get("listing")?.toJS() as any;
-  }
+  };
 
-  public async get_deleted(path: string): Promise<List<string> | undefined> {
+  getDeleted = async (path: string): Promise<List<string> | undefined> => {
     if (this.state == "closed") return;
     if (this.state != "ready") {
       const q = await query({
@@ -149,31 +135,19 @@ export class Listings extends EventEmitter {
       await once(this, "state");
       if (this.state != ("ready" as State)) return;
     }
-    return this.get_record(path)?.get("deleted");
-  }
+    return this.getRecord(path)?.get("deleted");
+  };
 
-  public async undelete(path: string): Promise<void> {
-    await this.doUndelete(path);
-
-    // for jupyter undelete both the ipynb and the aux syncdb file:
-    if (path.endsWith(".ipynb")) {
-      await this.doUndelete(meta_file(path, "jupyter2"));
-    } else if (path.endsWith("jupyter2")) {
-      await this.doUndelete(original_path(path));
-    }
-  }
-
-  private async doUndelete(path: string): Promise<void> {
+  undelete = async (path: string): Promise<void> => {
     if (path == "") return;
     if (this.state == ("closed" as State)) return;
     if (this.state != ("ready" as State)) {
       await once(this, "state");
       if (this.state != ("ready" as State)) return;
     }
-
-    // Check is_deleted, so we can assume that path definitely
+    // Check isDeleted, so we can assume that path definitely
     // is deleted according to our rules.
-    if (!this.is_deleted(path)) {
+    if (!this.isDeleted(path)) {
       return;
     }
 
@@ -186,7 +160,7 @@ export class Listings extends EventEmitter {
         args: ["-p", head],
       });
     }
-    const cur = this.get_record(head);
+    const cur = this.getRecord(head);
     if (cur == null) {
       // undeleting a file that was maybe deleted as part of a directory tree.
       // NOTE: If you undelete *one* file from directory tree, then
@@ -201,24 +175,24 @@ export class Listings extends EventEmitter {
       return;
     }
     const remove = new Set([tail].concat(deleted_file_variations(tail)));
-    deleted = deleted.filter((x) => !remove.has(x));
-    await this.set({ path: head, deleted: deleted.toJS() });
-  }
+    const newDeleted = deleted.toJS().filter((x) => !remove.has(x));
+    await this.set({ path: head, deleted: newDeleted });
+  };
 
   // true or false if known deleted or not; undefined if don't know yet.
   // TODO: technically we should check the all the
   // deleted_file_variations... but that is really an edge case
   // that probably doesn't matter much.
-  public is_deleted(filename: string): boolean | undefined {
+  public isDeleted = (filename: string): boolean | undefined => {
     const { head, tail } = path_split(filename);
-    if (head != "" && this.is_deleted(head)) {
+    if (head != "" && this.isDeleted(head)) {
       // recursively check if filename is contained in a
       // directory tree that got deleted.
       return true;
     }
     let x;
     try {
-      x = this.get_record(head);
+      x = this.getRecord(head);
     } catch (err) {
       return undefined;
     }
@@ -226,40 +200,12 @@ export class Listings extends EventEmitter {
     const deleted = x.get("deleted");
     if (deleted == null) return false;
     return deleted.indexOf(tail) != -1;
-  }
-
-  // Returns true if the path exists **according to the table**.
-  // This is orthogonal to whether or not the file was deleted,
-  // and also can be out of sync with the filesystem for a moment,
-  // or longer if not watching.  Returns undefined if things not
-  // initialized for containing path.    Make sure you understand
-  // what this does and doesn't do.
-  // I'm not using this code anywhere as far as I know, but I wrote
-  // it so leaving it here commented out.
-  /*
-  public existsSync(path: string): boolean | undefined {
-    const { head, tail } = path_split(path);
-    let x;
-    try {
-      x = this.get_record(head);
-    } catch (err) {
-      return undefined;
-    }
-    const listing = x?.get("listing");
-    if (listing == null) return false;
-    for (const entry of listing) {
-      if (entry?.get("name") == tail) {
-        return true;
-      }
-    }
-    return false;
-  }
-  */
+  };
 
   // Does a call to the project to directly determine whether or
   // not the given path exists.  This doesn't depend on the table.
   // Can throw an exception if it can't contact the project.
-  public async exists(path: string): Promise<boolean> {
+  exists = async (path: string): Promise<boolean> => {
     return (
       (
         await webapp_client.exec({
@@ -270,31 +216,31 @@ export class Listings extends EventEmitter {
         })
       ).exit_code == 0
     );
-  }
+  };
 
   // Returns:
   //  - List<ImmutablePathEntry> in case of a proper directory listing
   //  - string in case of an error
   //  - undefined if directory listing not known (and error not known either).
-  public async get_for_store(
+  getForStore = async (
     path: string,
-  ): Promise<List<ImmutablePathEntry> | undefined | string> {
+  ): Promise<List<ImmutablePathEntry> | undefined | string> => {
     if (this.state != "ready") {
-      const x = await this.get_using_database(path);
+      const x = await this.getUsingDatabase(path);
       if (x == null) return x;
       return fromJS(x) as any;
     }
-    const x = this.get_record(path);
+    const x = this.getRecord(path);
     if (x == null) return x;
     if (x.get("error")) {
       return x.get("error");
     }
     return x.get("listing");
-  }
+  };
 
-  public async get_using_database(
+  getUsingDatabase = async (
     path: string,
-  ): Promise<DirectoryListingEntry[] | undefined> {
+  ): Promise<DirectoryListingEntry[] | undefined> => {
     const q = await query({
       query: {
         listings: {
@@ -309,11 +255,11 @@ export class Listings extends EventEmitter {
       throw Error(q.query.listings?.error);
     }
     return q.query.listings?.listing;
-  }
+  };
 
-  public async getMissingUsingDatabase(
+  getMissingUsingDatabase = async (
     path: string,
-  ): Promise<number | undefined> {
+  ): Promise<number | undefined> => {
     const q = await query({
       query: {
         listings: {
@@ -324,22 +270,22 @@ export class Listings extends EventEmitter {
       },
     });
     return q.query.listings?.missing;
-  }
+  };
 
-  public get_missing(path: string): number | undefined {
+  getMissing = (path: string): number | undefined => {
     if (this.state != "ready") {
       return;
     }
-    const missing = this.get_table()
-      .get(JSON.stringify([this.project_id, path]))
+    const missing = this.getTable()
+      .get(JSON.stringify([this.project_id, path, this.compute_server_id]))
       ?.get("missing");
     return missing;
-  }
+  };
 
-  public async get_listing_directly(
+  getListingDirectly = async (
     path: string,
     trigger_start_project?: boolean,
-  ): Promise<DirectoryListingEntry[]> {
+  ): Promise<DirectoryListingEntry[]> => {
     const store = redux.getStore("projects");
     // make sure that our relationship to this project is known.
     if (store == null) throw Error("bug");
@@ -360,26 +306,26 @@ export class Listings extends EventEmitter {
     } else {
       return x.files;
     }
-  }
+  };
 
-  public close(): void {
-    this.set_state("closed");
+  close = (): void => {
+    this.setState("closed");
     if (this.table != null) {
       this.table.close();
     }
     this.removeAllListeners();
     close(this);
-    this.set_state("closed");
-  }
+    this.setState("closed");
+  };
 
   // This is used to possibly work around a rare bug.
   // https://github.com/sagemathinc/cocalc/issues/4790
-  private async re_init(): Promise<void> {
+  private reInit = async (): Promise<void> => {
     this.state = "init";
     await this.init();
-  }
+  };
 
-  private async init(): Promise<void> {
+  private init = async (): Promise<void> => {
     if (this.state != "init") {
       throw Error("must be in init state");
     }
@@ -402,6 +348,7 @@ export class Listings extends EventEmitter {
         listings: [
           {
             project_id: this.project_id,
+            compute_server_id: this.compute_server_id,
             path: null,
             listing: null,
             time: null,
@@ -431,13 +378,13 @@ export class Listings extends EventEmitter {
         // Be careful to only emit a change event if the actual
         // listing itself changes.  Table emits more frequently,
         // e.g., due to updating watch, time of listing changing, etc.
-        const this_version = await this.get_for_store(path);
+        const this_version = await this.getForStore(path);
         if (this_version != this.last_version[path]) {
           this.last_version[path] = this_version;
           paths.push(path);
         }
 
-        const this_deleted = this.get_record(path)?.get("deleted");
+        const this_deleted = this.getRecord(path)?.get("deleted");
         if (this_deleted != this.last_deleted[path]) {
           if (
             this_deleted != null &&
@@ -457,10 +404,10 @@ export class Listings extends EventEmitter {
         this.emit("deleted", deleted_paths);
       }
     });
-    this.set_state("ready");
-  }
+    this.setState("ready");
+  };
 
-  private get_table(): SyncTable {
+  private getTable = (): SyncTable => {
     if (this.state != "ready") {
       throw Error("table not initialized ");
     }
@@ -471,36 +418,46 @@ export class Listings extends EventEmitter {
       throw Error("table is closed");
     }
     return this.table;
-  }
+  };
 
-  private async set(obj: Listing): Promise<void> {
+  private set = async (obj: Listing): Promise<void> => {
     let table;
     try {
-      table = this.get_table();
+      table = this.getTable();
     } catch (err) {
       // See https://github.com/sagemathinc/cocalc/issues/4790
       console.warn("Error getting table -- ", err);
-      await this.re_init();
-      table = this.get_table();
+      await this.reInit();
+      table = this.getTable();
     }
-    table.set(merge({ project_id: this.project_id }, obj), "shallow");
+    const x = {
+      project_id: this.project_id,
+      compute_server_id: this.compute_server_id,
+      ...obj,
+    };
+    // do NOT do the default deep merge,
+    // since things like the deleted list
+    // merge in a weird way.
+    table.set(x, "shallow");
     await table.save();
-  }
+  };
 
-  public is_ready(): boolean {
+  isReady = (): boolean => {
     return this.state == ("ready" as State);
-  }
+  };
 
-  private get_record(path: string): ImmutableListing | undefined {
-    const x = this.get_table().get(JSON.stringify([this.project_id, path]));
+  private getRecord = (path: string): ImmutableListing | undefined => {
+    const x = this.getTable().get(
+      JSON.stringify([this.project_id, path, this.compute_server_id]),
+    );
     if (x == null) return x;
     return x as unknown as ImmutableListing; // coercing to fight typescript.
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
-  }
+  };
 
-  private set_state(state: State): void {
+  private setState = (state: State): void => {
     if (this.state == state) return;
     if (this.state == "closed") {
       throw Error("cannot switch away from closed");
@@ -510,10 +467,12 @@ export class Listings extends EventEmitter {
     }
     this.state = state;
     this.emit("state", state);
-  }
+  };
 
   // Returns true if never will be ready
-  private async wait_until_ready(exception: boolean = true): Promise<boolean> {
+  private waitUntilReady = async (
+    exception: boolean = true,
+  ): Promise<boolean> => {
     try {
       if (this.state == "closed") {
         throw Error("Listings object must not be closed");
@@ -530,7 +489,7 @@ export class Listings extends EventEmitter {
       if (exception) throw err;
       return true;
     }
-  }
+  };
 }
 
 export function listings(project_id: string): Listings {
