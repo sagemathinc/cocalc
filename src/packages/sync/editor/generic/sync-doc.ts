@@ -51,6 +51,7 @@ import {
   COMPUTE_THRESH_MS,
   COMPUTER_SERVER_CURSOR_TYPE,
   decodeUUIDtoNum,
+  SYNCDB_PARAMS as COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
 } from "@cocalc/util/compute/manager";
 
 type XPatch = any;
@@ -231,6 +232,8 @@ export class SyncDoc extends EventEmitter {
   private sync_is_disabled: boolean = false;
   private delay_sync_timer: any;
 
+  private computeServerManagerDoc?: SyncDoc;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -291,6 +294,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     this.setMaxListeners(100);
+
     this.init();
   }
 
@@ -343,11 +347,57 @@ export class SyncDoc extends EventEmitter {
   // that whatever algorithm determines this, is
   // a function of state that is eventually consistent.
   private isFileServer = () => {
-    return this.client.is_project();
+    if (this.client.is_browser()) {
+      // browser is never the file server (yet)
+      return false;
+    }
+    const computeServerManagerDoc = this.getComputeServerManagerDoc();
+    if (
+      computeServerManagerDoc == null ||
+      computeServerManagerDoc.get_state() != "ready"
+    ) {
+      return this.client.is_project();
+    }
+
+    // id of who the user *wants* to be the file server.
+    const fileServerId =
+      computeServerManagerDoc.get({ path: this.path })?.get("id") ?? 0;
+    if (this.client.is_project()) {
+      return fileServerId == 0;
+    }
+    // at this point we have to be a compute server
+    const computeServerId = decodeUUIDtoNum(this.client.client_id());
+    // this is usually true -- but might not be if we are switching
+    // directly from one compute server to another.
+    return fileServerId == computeServerId;
   };
 
-  // Return id of ACTIVE remote compute server, if one is connected, or 0
-  // if none is connected.  We always take the smallest id of the remote
+  private getComputeServerManagerDoc = () => {
+    if (this.path == COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path) {
+      // don't want to destroy the universe!
+      return null;
+    }
+    if (this.computeServerManagerDoc == null) {
+      if (this.client.is_project()) {
+        // @ts-ignore: TODO!
+        this.computeServerManagerDoc = this.client.syncdoc(
+          COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path,
+        );
+      } else {
+        // @ts-ignore: TODO!
+        this.computeServerManagerDoc = this.client.sync_client.sync_db({
+          project_id: this.project_id,
+          ...COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
+        });
+      }
+    }
+    return this.computeServerManagerDoc;
+  };
+
+  // Return id of ACTIVE remote compute server, if one is connected and pinging, or 0
+  // if none is connected.  This is used by Jupyter to determine who
+  // should evaluate code.
+  // We always take the smallest id of the remote
   // compute servers, in case there is more than one, so exactly one of them
   // takes control.  Always returns 0 if cursors are not enabled for this
   // document, since the cursors table is used to coordinate the compute

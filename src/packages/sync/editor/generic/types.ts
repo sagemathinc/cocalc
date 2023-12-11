@@ -95,7 +95,7 @@ export interface ProjectClient extends EventEmitter {
     id?: string,
   ) => Promise<SyncTable>;
 
-  // account_id or project_id
+  // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
 
   is_deleted: (

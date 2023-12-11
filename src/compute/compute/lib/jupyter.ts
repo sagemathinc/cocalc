@@ -15,8 +15,8 @@ import { reuseInFlight } from "async-await-utils/hof";
 
 const log = debug("cocalc:compute:jupyter");
 
-export function jupyter({ client, path }) {
-  return new RemoteJupyter({ client, path });
+export function jupyter({ client, path, computeServerManagerDoc }) {
+  return new RemoteJupyter({ client, path, computeServerManagerDoc });
 }
 
 class RemoteJupyter {
