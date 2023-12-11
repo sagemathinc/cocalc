@@ -330,6 +330,16 @@ export class SyncDoc extends EventEmitter {
     this.emit_change(); // from nothing to something.
   }
 
+  // True if this client is responsible for managing
+  // the statement of this document with respect to
+  // the filesystem.  By default, this is the project,
+  // but it could be something else.  It's important
+  // that whatever algorithm determines this, is
+  // a function of state that is eventually consistent.
+  private isFilesystemOwner = () => {
+    return this.client.is_project();
+  };
+
   /* Set this user's cursors to the given locs. */
   setCursorLocsNoThrottle = async (
     // locs is 'any' and not any[] because of a codemirror syntax highlighting bug!
@@ -376,7 +386,7 @@ export class SyncDoc extends EventEmitter {
       this.file_use_interval = 60 * 1000;
     }
 
-    if (!this.file_use_interval || this.client.is_project()) {
+    if (!this.file_use_interval || !this.client.is_browser()) {
       // file_use_interval has to be nonzero, and we only do
       // this for browser user.
       return;
@@ -686,14 +696,14 @@ export class SyncDoc extends EventEmitter {
 
   /* Make it so the local hub project will automatically save
      the file to disk periodically. */
-  private init_project_autosave(): void {
+  private init_file_autosave(): void {
     // Do not autosave sagews until we resolve
     //   https://github.com/sagemathinc/cocalc/issues/974
     // Similarly, do not autosave ipynb because of
     //   https://github.com/sagemathinc/cocalc/issues/5216
     if (
       !LOCAL_HUB_AUTOSAVE_S ||
-      !this.client.is_project() ||
+      !this.isFilesystemOwner() ||
       this.project_autosave_timer ||
       endswith(this.path, ".sagews") ||
       endswith(this.path, ".ipynb.sage-jupyter2")
@@ -827,7 +837,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    if (!this.client.is_project() && this.state == "ready") {
+    if (this.client.is_browser() && this.state == "ready") {
       try {
         await this.save_to_disk();
       } catch (err) {
@@ -876,7 +886,7 @@ export class SyncDoc extends EventEmitter {
     // do this *before* all the await's below, since
     // this syncdoc can't do anything in response to a
     // a file change in its current state.
-    if (this.client.is_project()) {
+    if (this.isFilesystemOwner()) {
       this.update_watch_path(); // no input = closes it
     }
 
@@ -963,7 +973,8 @@ export class SyncDoc extends EventEmitter {
       await once(this.client, "connected");
     }
 
-    if (!this.client.is_project() && !this.client.is_signed_in()) {
+    if (this.client.is_browser() && !this.client.is_signed_in()) {
+      // the browser has to sign in, unlike the project (and compute servers)
       await once(this.client, "signed_in");
     }
 
@@ -1122,7 +1133,7 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-    if (this.client.is_project()) {
+    if (this.isFilesystemOwner()) {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
       // We keep trying this load from disk until sync-doc is closed
@@ -1144,9 +1155,9 @@ export class SyncDoc extends EventEmitter {
 
     this.assert_not_closed("init_all -- after waiting until fully ready");
 
-    if (this.client.is_project()) {
-      log("init autosave");
-      this.init_project_autosave();
+    if (this.isFilesystemOwner()) {
+      log("init file autosave");
+      this.init_file_autosave();
     }
     this.update_has_unsaved_changes();
     log("done");
@@ -1171,7 +1182,7 @@ export class SyncDoc extends EventEmitter {
     dbg();
     this.assert_not_closed("wait_until_fully_ready");
 
-    if (!this.client.is_project() && this.init_error()) {
+    if (this.client.is_browser() && this.init_error()) {
       // init is set and is in error state.  Give the backend a few seconds
       // to try to fix this error before giving up.  The browser client
       // can close and open the file to retry this (as instructed).
@@ -2170,7 +2181,7 @@ export class SyncDoc extends EventEmitter {
     );
     if (
       this.state === "ready" &&
-      this.client.is_project() &&
+      this.isFilesystemOwner() &&
       this.syncstring_save_state !== "requested" &&
       state === "requested"
     ) {
@@ -2316,7 +2327,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async init_watch(): Promise<void> {
-    if (!this.client.is_project()) {
+    if (!this.isFilesystemOwner()) {
       return;
     }
 
@@ -2330,7 +2341,7 @@ export class SyncDoc extends EventEmitter {
 
   private async pending_save_to_disk(): Promise<void> {
     this.assert_table_is_ready("syncstring");
-    if (!this.client.is_project()) {
+    if (!this.isFilesystemOwner()) {
       return;
     }
 
@@ -2634,7 +2645,7 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    if (!this.client.is_project()) {
+    if (!this.isFilesystemOwner()) {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
@@ -2646,12 +2657,12 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       const error = `save to disk failed -- ${err}`;
       dbg(error);
-      if (this.client.is_project()) {
+      if (this.isFilesystemOwner()) {
         this.set_save({ error, state: "done" });
       }
     }
 
-    if (!this.client.is_project()) {
+    if (!this.isFilesystemOwner()) {
       dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
@@ -2763,20 +2774,20 @@ export class SyncDoc extends EventEmitter {
   private async save_to_disk_aux(): Promise<void> {
     this.assert_is_ready("save_to_disk_aux");
 
-    if (!this.client.is_project()) {
-      return await this.save_to_disk_user();
+    if (!this.isFilesystemOwner()) {
+      return await this.save_to_disk_non_filesystem_owner();
     }
 
     try {
-      return await this.save_to_disk_project();
+      return await this.save_to_disk_filesystem_owner();
     } catch (err) {
-      this.emit("save_to_disk_project", err);
+      this.emit("save_to_disk_filesystem_owner", err);
       throw err;
     }
   }
 
-  private async save_to_disk_user(): Promise<void> {
-    this.assert_is_ready("save_to_disk_user");
+  private async save_to_disk_non_filesystem_owner(): Promise<void> {
+    this.assert_is_ready("save_to_disk_non_filesystem_owner");
 
     if (!this.has_unsaved_changes()) {
       /* Browser client has no unsaved changes,
@@ -2798,9 +2809,9 @@ export class SyncDoc extends EventEmitter {
     await this.set_save({ state: "requested", error: "", expected_hash });
   }
 
-  private async save_to_disk_project(): Promise<void> {
-    this.assert_is_ready("save_to_disk_project");
-    const dbg = this.dbg("save_to_disk_project");
+  private async save_to_disk_filesystem_owner(): Promise<void> {
+    this.assert_is_ready("save_to_disk_filesystem_owner");
+    const dbg = this.dbg("save_to_disk_filesystem_owner");
 
     // check if on-disk version is same as in memory, in
     // which case no save is needed.
@@ -2839,9 +2850,9 @@ export class SyncDoc extends EventEmitter {
     this.save_to_disk_end_ctime = undefined;
     try {
       await callback2(this.client.write_file, { path, data });
-      this.assert_is_ready("save_to_disk_project -- after write_file");
+      this.assert_is_ready("save_to_disk_filesystem_owner -- after write_file");
       const stat = await callback2(this.client.path_stat, { path });
-      this.assert_is_ready("save_to_disk_project -- after path_state");
+      this.assert_is_ready("save_to_disk_filesystem_owner -- after path_state");
       this.save_to_disk_end_ctime = stat.ctime.valueOf() + 1500;
       this.set_save({
         state: "done",

@@ -18,7 +18,7 @@ interface Props {
   style?: CSSProperties;
   actions?;
   size?;
-  type: "terminal" | "jupyter_cell_notebook";
+  type: string;
 }
 
 export default function SelectComputeServerForFile({
@@ -124,17 +124,23 @@ export default function SelectComputeServerForFile({
         keyboard
         title={
           idNum == 0 ? (
-            <>Run in this Project?</>
+            <>Open in this Project?</>
           ) : (
-            <>Run on the compute server "{computeServers[idNum]?.title}"?</>
+            <>
+              Open on the compute server <b>{computeServers[idNum]?.title}</b>?
+            </>
           )
         }
         open={confirmSwitch}
         onCancel={() => setConfirmSwitch(false)}
         okText={
-          idNum == 0
-            ? "Run in Project"
-            : `Run on ${computeServers[idNum]?.title}`
+          idNum == 0 ? (
+            "Open in Project"
+          ) : (
+            <>
+              Open on compute server <b>{computeServers[idNum]?.title}</b>
+            </>
+          )
         }
         okButtonProps={{
           // @ts-ignore

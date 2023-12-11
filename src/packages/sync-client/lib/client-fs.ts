@@ -1,5 +1,5 @@
 import type { ClientFs as ClientFsType } from "@cocalc/sync/client/types";
-import Client from "./index";
+import Client, { Role } from "./index";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { join } from "node:path";
 import { readFile, writeFile, stat as statFileAsync } from "node:fs/promises";
@@ -25,12 +25,14 @@ export class ClientFs extends Client implements ClientFsType {
     project_id,
     client_id,
     home,
+    role,
   }: {
     project_id: string;
     client_id?: string;
     home?: string;
+    role: Role;
   }) {
-    super({ project_id, client_id });
+    super({ project_id, client_id, role });
     this.filesystemClient.setHome(home ?? process.env.HOME ?? "/home/user");
   }
 }

@@ -54,6 +54,7 @@ interface Options {
   tar: { send; get };
   compression?: "lz4"; // default 'lz4'
   data?: string; // absolute path to data directory (default: /data)
+  role;
 }
 
 const UNIONFS = ".unionfs-fuse";
@@ -106,6 +107,7 @@ class SyncFS {
     tar,
     compression = "lz4",
     data = "/data",
+    role,
   }: Options) {
     this.lower = lower;
     this.upper = upper;
@@ -126,6 +128,7 @@ class SyncFS {
     this.client = new SyncClient({
       project_id: this.project_id,
       client_id: encodeIntToUUID(this.compute_server_id),
+      role,
     });
     this.state = "ready";
     this.error_txt = join(this.scratch, "error.txt");

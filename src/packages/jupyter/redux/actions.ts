@@ -126,7 +126,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       });
     }
 
-    this.is_compute_server = !!client.is_compute_server;
+    this.is_compute_server = client.is_compute_server();
 
     let directory: any;
     const split_path = misc.path_split(path);

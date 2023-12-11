@@ -29,9 +29,12 @@ import { bind_methods, isValidUUID, uuid } from "@cocalc/util/misc";
 import { project } from "@cocalc/api-client";
 import { reuseInFlight } from "async-await-utils/hof";
 
+export type Role = "project" | "browser" | "compute_server";
+
 interface Options {
   project_id: string;
   client_id?: string;
+  role: Role;
 }
 
 export default class Client extends EventEmitter implements AppClient {
@@ -40,11 +43,13 @@ export default class Client extends EventEmitter implements AppClient {
   synctable_project: Function;
   project_id: string;
   _client_id: string;
+  private role: Role;
 
-  constructor({ project_id, client_id = uuid() }: Options) {
+  constructor({ project_id, client_id = uuid(), role }: Options) {
     super();
     this._client_id = client_id;
     this.project_id = project_id;
+    this.role = role;
 
     if (!isValidUUID(project_id)) {
       throw Error("project_id must be a valid uuid");
@@ -71,7 +76,15 @@ export default class Client extends EventEmitter implements AppClient {
   };
 
   is_project = () => {
-    return false;
+    return this.role == "project";
+  };
+
+  is_browser = () => {
+    return this.role == "browser";
+  };
+
+  is_compute_server = () => {
+    return this.role == "compute_server";
   };
 
   dbg = (str: string) => {

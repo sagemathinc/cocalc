@@ -132,6 +132,7 @@ class Manager {
       project_id: this.project_id,
       client_id,
       home: this.home,
+      role: "compute_server",
     });
     this.reportComponentState({
       state: "connecting",

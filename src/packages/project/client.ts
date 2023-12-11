@@ -201,6 +201,14 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return true;
   }
 
+  public is_browser(): boolean {
+    return false;
+  }
+
+  public is_compute_server(): boolean {
+    return false;
+  }
+
   // false since this client is not a user
   public is_user(): boolean {
     return false;

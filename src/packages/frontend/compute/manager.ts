@@ -91,8 +91,10 @@ export class ComputeServersManager extends EventEmitter {
 }
 
 function assertSupportedPath(path: string) {
-  if (!path.endsWith(".ipynb") && !path.endsWith(".term")) {
-    throw Error("only ipynb and term paths are supported");
+  if (path.endsWith(".sagews")) {
+    throw Error(
+      "Sage Worksheets cannot be run on a compute server -- use a Jupyter notebook instaed.",
+    );
   }
   return true;
 }
