@@ -43,13 +43,14 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
+import {
+  getVendorStatusCheckMD,
+  llmSupportsStreaming,
+  model2vendor,
+} from "@cocalc/util/db-schema/openai";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
-import {
-  getVendorStatusCheckMD,
-  model2vendor,
-} from "@cocalc/util/db-schema/openai";
 
 const TAG = "generate-jupyter";
 
@@ -77,7 +78,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-export default function ChatGPTGenerateJupyterNotebook({
+export default function AIGenerateJupyterNotebook({
   onSuccess,
   project_id,
 }: Props) {
@@ -238,7 +239,7 @@ export default function ChatGPTGenerateJupyterNotebook({
       }
       jfa = jfaTmp;
 
-      // // first cell
+      // first cell
       const fistCell = jfa.insert_cell(1);
 
       const promptIndented =
@@ -267,7 +268,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     }
 
     const updateCells = throttle(
-      // every update interval, we extract all the answer text,
+      // every update interval, we extract all the answer text into cells
       function (answer) {
         const allCells = splitCells(answer);
         if (jfa == null) {
@@ -301,23 +302,47 @@ export default function ChatGPTGenerateJupyterNotebook({
       { leading: true, trailing: true },
     );
 
+    // NOTE: as of writing this, PaLM returns everything at once. Hence this must be robust for
+    // the case of one token callback with everything and then "null" to indicate it is done
     let answer = "";
-    llmStream.on("token", (token) => {
-      if (token != null) {
-        answer += token;
-        const filenameGPT = getFilename(answer, prompt);
-        if (!init && filenameGPT != null) {
-          init = true;
-          initNotebook(filenameGPT);
-        }
-        // those are != null if we have a notebook open
-        if (ja != null && jfa != null) {
-          updateCells(answer);
+    llmStream.on("token", async (token) => {
+      if (llmSupportsStreaming(model)) {
+        if (token != null) {
+          answer += token;
+          const filenameGPT = getFilename(answer, prompt);
+          if (!init && filenameGPT != null) {
+            init = true;
+            initNotebook(filenameGPT);
+          }
+          // those are != null if we have a notebook open
+          if (ja != null && jfa != null) {
+            updateCells(answer);
+          }
+        } else {
+          // we're done
+          ja?.delete_all_blank_code_cells();
+          ja?.run_all_cells();
         }
       } else {
-        // we're done
-        ja?.delete_all_blank_code_cells();
-        ja?.run_all_cells();
+        // Google'S PaLM2 (as of writing this) only returns everything once and then null. We ignore the 2nd call.
+        // We need to be more careful with updating the notebook properly!
+        if (token != null) {
+          answer += token;
+          const filenameGPT: string =
+            getFilename(answer, prompt) ??
+            sanitizeFilename(prompt.split("\n").join("_"));
+          await initNotebook(filenameGPT);
+          // we're done – now wait until ja and jfa are set and populate it with the answer
+          while (true) {
+            if (ja != null && jfa != null) break;
+            await delay(50);
+          }
+          // wait until notebook loaded (is there a way to await it!?)
+          await delay(5000);
+          updateCells(answer);
+          ja.delete_all_blank_code_cells();
+          ja.run_all_cells();
+        }
       }
     });
 
@@ -560,7 +585,7 @@ export function ChatGPTGenerateNotebookButton({
         onCancel={handleCancel}
         footer={null}
       >
-        <ChatGPTGenerateJupyterNotebook
+        <AIGenerateJupyterNotebook
           project_id={project_id}
           onSuccess={() => setShow(false)}
         />
@@ -594,9 +619,9 @@ function getTimestamp(): string {
   return to_iso_path(new Date());
 }
 
-function getFilename(text: string, prompt: string): string | null {
+function getFilename(text: string | null, prompt: string): string | null {
   // we give up if there are more than 5 lines
-  if (text.split("\n").length > 3) {
+  if (text == null || text.split("\n").length > 3) {
     return sanitizeFilename(prompt.split("\n").join("_"));
   }
   // use regex to search for '"filename: [filename]"'

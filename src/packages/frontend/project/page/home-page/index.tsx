@@ -9,7 +9,7 @@ import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { Icon, Title } from "@cocalc/frontend/components";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { useProjectContext } from "../../context";
-import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
+import AIGenerateJupyterNotebook from "./ai-generate-jupyter";
 import { HomeRecentFiles } from "./recent-files";
 import {
   computeServersEnabled,
@@ -31,7 +31,7 @@ export default function HomePage() {
 
     return (
       <Col {...SPAN}>
-        <ChatGPTGenerateJupyterNotebook project_id={project_id} />
+        <AIGenerateJupyterNotebook project_id={project_id} />
       </Col>
     );
   }

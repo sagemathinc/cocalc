@@ -134,9 +134,12 @@ export function getVendorStatusCheckMD(vendor: Vendor): string {
     default:
       unreachable(vendor);
   }
-  return ""
+  return "";
 }
 
+export function llmSupportsStreaming(model: LanguageModel): boolean {
+  return model2vendor(model) === "openai";
+}
 
 interface Cost {
   prompt_tokens: number;
