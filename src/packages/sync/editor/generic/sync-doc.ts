@@ -36,8 +36,8 @@ const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
    getting collected and not missing the last few changes.  It turns
    out this is what people expect.
    Set to 0 to disable. (But don't do that.) */
-const LOCAL_HUB_AUTOSAVE_S = 45;
-// const LOCAL_HUB_AUTOSAVE_S = 5;
+const FILE_SERVER_AUTOSAVE_S = 45;
+// const FILE_SERVER_AUTOSAVE_S = 5;
 
 // How big of files we allow users to open using syncstrings.
 const MAX_FILE_SIZE_MB = 8;
@@ -157,7 +157,7 @@ export class SyncDoc extends EventEmitter {
 
   // This is what's actually output by setInterval -- it's
   // not an amount of time.
-  private project_autosave_timer: number = 0;
+  private fileserver_autosave_timer: number = 0;
 
   // throttling of change events -- e.g., is useful for course
   // editor where we have hundreds of changes and the UI gets
@@ -752,9 +752,9 @@ export class SyncDoc extends EventEmitter {
     // Similarly, do not autosave ipynb because of
     //   https://github.com/sagemathinc/cocalc/issues/5216
     if (
-      !LOCAL_HUB_AUTOSAVE_S ||
+      !FILE_SERVER_AUTOSAVE_S ||
       !this.isFileServer() ||
-      this.project_autosave_timer ||
+      this.fileserver_autosave_timer ||
       endswith(this.path, ".sagews") ||
       endswith(this.path, ".ipynb.sage-jupyter2")
     ) {
@@ -762,10 +762,10 @@ export class SyncDoc extends EventEmitter {
     }
 
     // Explicit cast due to node vs browser typings.
-    this.project_autosave_timer = <any>(
+    this.fileserver_autosave_timer = <any>(
       setInterval(
         this.save_to_disk_autosave.bind(this),
-        LOCAL_HUB_AUTOSAVE_S * 1000,
+        FILE_SERVER_AUTOSAVE_S * 1000,
       )
     );
   }
@@ -925,9 +925,9 @@ export class SyncDoc extends EventEmitter {
       cancel_scheduled(this.emit_change);
     }
 
-    if (this.project_autosave_timer) {
-      clearInterval(this.project_autosave_timer as any);
-      this.project_autosave_timer = 0;
+    if (this.fileserver_autosave_timer) {
+      clearInterval(this.fileserver_autosave_timer as any);
+      this.fileserver_autosave_timer = 0;
     }
 
     this.patch_update_queue = [];
