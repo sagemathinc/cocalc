@@ -47,6 +47,12 @@ const MAX_FILE_SIZE_MB = 8;
 // cursors less responsive.
 const CURSOR_THROTTLE_MS = 750;
 
+import {
+  COMPUTE_THRESH_MS,
+  COMPUTER_SERVER_CURSOR_TYPE,
+  decodeUUIDtoNum,
+} from "@cocalc/util/compute/manager";
+
 type XPatch = any;
 
 import { reuseInFlight } from "async-await-utils/hof";
@@ -336,8 +342,52 @@ export class SyncDoc extends EventEmitter {
   // but it could be something else.  It's important
   // that whatever algorithm determines this, is
   // a function of state that is eventually consistent.
-  private isFilesystemOwner = () => {
+  private isFileServer = () => {
     return this.client.is_project();
+  };
+
+  // Return id of ACTIVE remote compute server, if one is connected, or 0
+  // if none is connected.  We always take the smallest id of the remote
+  // compute servers, in case there is more than one, so exactly one of them
+  // takes control.  Always returns 0 if cursors are not enabled for this
+  // document, since the cursors table is used to coordinate the compute
+  // server.
+  getComputeServerId = (): number => {
+    if (!this.cursors) {
+      return 0;
+    }
+    // This info is in the "cursors" table instead of the document itself
+    // to avoid wasting space in the database longterm.  Basically a remote
+    // Jupyter client that can provide compute announces this by reporting it's
+    // cursor to look a certain way.
+    const cursors = this.get_cursors({
+      maxAge: COMPUTE_THRESH_MS,
+      // don't exclude self since getComputeServerId called from the compute
+      // server also to know if it is the chosen one.
+      excludeSelf: false,
+    });
+    const dbg = this.dbg("getComputeServerId");
+    dbg("num cursors = ", cursors.size);
+    let minId = Infinity;
+    // NOTE: similar code is in frontend/jupyter/cursor-manager.ts
+    for (const [client_id, cursor] of cursors) {
+      if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
+        try {
+          minId = Math.min(minId, decodeUUIDtoNum(client_id));
+        } catch (err) {
+          // this should never happen unless a client were being malicious.
+          dbg(
+            "WARNING -- client_id should encode server id, but is",
+            client_id,
+          );
+        }
+      }
+    }
+    return isFinite(minId) ? minId : 0;
+  };
+
+  registerAsComputeServer = () => {
+    this.setCursorLocsNoThrottle([{ type: COMPUTER_SERVER_CURSOR_TYPE }]);
   };
 
   /* Set this user's cursors to the given locs. */
@@ -703,7 +753,7 @@ export class SyncDoc extends EventEmitter {
     //   https://github.com/sagemathinc/cocalc/issues/5216
     if (
       !LOCAL_HUB_AUTOSAVE_S ||
-      !this.isFilesystemOwner() ||
+      !this.isFileServer() ||
       this.project_autosave_timer ||
       endswith(this.path, ".sagews") ||
       endswith(this.path, ".ipynb.sage-jupyter2")
@@ -886,7 +936,7 @@ export class SyncDoc extends EventEmitter {
     // do this *before* all the await's below, since
     // this syncdoc can't do anything in response to a
     // a file change in its current state.
-    if (this.isFilesystemOwner()) {
+    if (this.isFileServer()) {
       this.update_watch_path(); // no input = closes it
     }
 
@@ -1133,7 +1183,7 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-    if (this.isFilesystemOwner()) {
+    if (this.isFileServer()) {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
       // We keep trying this load from disk until sync-doc is closed
@@ -1155,7 +1205,7 @@ export class SyncDoc extends EventEmitter {
 
     this.assert_not_closed("init_all -- after waiting until fully ready");
 
-    if (this.isFilesystemOwner()) {
+    if (this.isFileServer()) {
       log("init file autosave");
       this.init_file_autosave();
     }
@@ -2181,7 +2231,7 @@ export class SyncDoc extends EventEmitter {
     );
     if (
       this.state === "ready" &&
-      this.isFilesystemOwner() &&
+      this.isFileServer() &&
       this.syncstring_save_state !== "requested" &&
       state === "requested"
     ) {
@@ -2327,7 +2377,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async init_watch(): Promise<void> {
-    if (!this.isFilesystemOwner()) {
+    if (!this.isFileServer()) {
       return;
     }
 
@@ -2341,7 +2391,7 @@ export class SyncDoc extends EventEmitter {
 
   private async pending_save_to_disk(): Promise<void> {
     this.assert_table_is_ready("syncstring");
-    if (!this.isFilesystemOwner()) {
+    if (!this.isFileServer()) {
       return;
     }
 
@@ -2645,7 +2695,7 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    if (!this.isFilesystemOwner()) {
+    if (!this.isFileServer()) {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
@@ -2657,12 +2707,12 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       const error = `save to disk failed -- ${err}`;
       dbg(error);
-      if (this.isFilesystemOwner()) {
+      if (this.isFileServer()) {
         this.set_save({ error, state: "done" });
       }
     }
 
-    if (!this.isFilesystemOwner()) {
+    if (!this.isFileServer()) {
       dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
@@ -2774,7 +2824,7 @@ export class SyncDoc extends EventEmitter {
   private async save_to_disk_aux(): Promise<void> {
     this.assert_is_ready("save_to_disk_aux");
 
-    if (!this.isFilesystemOwner()) {
+    if (!this.isFileServer()) {
       return await this.save_to_disk_non_filesystem_owner();
     }
 

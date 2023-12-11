@@ -9,6 +9,13 @@ export const SYNCDB_PARAMS = {
 
 export const COMPUTER_SERVER_CURSOR_TYPE = "compute-server";
 
+// This is relevant for compute servers. It's how long until we give up
+// on the compute server if it doesn't actively update its cursor state.
+// Note that in most cases the compute server will explicitly delete its
+// cursor on termination so switching is instant. This is a "just in case",
+// so things aren't broken forever, e.g., in case of a crash.
+export const COMPUTE_THRESH_MS = 15 * 1000;
+
 /*
 For sync, we make the id of each compute server a uuid that is a simple
 function of the id, so the client_id is stable and easy to identify.
