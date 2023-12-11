@@ -10,13 +10,17 @@ When new models are added, e.g., Claude soon (!), they will go here.
 import {
   LANGUAGE_MODEL_PREFIXES,
   LLM_USERNAMES,
+  MODELS,
   Vendor,
   model2vendor,
 } from "@cocalc/util/db-schema/openai";
 
+// we either check if the prefix is one of the known ones (used in some circumstances)
+// or if the account id is exactly one of the language models (more precise)
 export function isChatBot(account_id?: string) {
-  return LANGUAGE_MODEL_PREFIXES.some((prefix) =>
-    account_id?.startsWith(prefix),
+  return (
+    LANGUAGE_MODEL_PREFIXES.some((prefix) => account_id?.startsWith(prefix)) ||
+    MODELS.some((model) => account_id === model)
   );
 }
 
