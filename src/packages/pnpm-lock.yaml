@@ -1366,6 +1366,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@google-ai/generativelanguage':
+        specifier: ^1.1.0
+        version: 1.1.0(encoding@0.1.13)
       '@google-cloud/compute':
         specifier: ^4.0.1
         version: 4.0.1(encoding@0.1.13)
@@ -1462,6 +1465,9 @@ importers:
       express-session:
         specifier: ^1.17.3
         version: 1.17.3
+      google-auth-library:
+        specifier: ^9.4.1
+        version: 9.4.1(encoding@0.1.13)
       gpt3-tokenizer:
         specifier: ^1.1.5
         version: 1.1.5
@@ -4692,6 +4698,16 @@ packages:
   /@fastify/busboy@2.1.0:
     resolution: {integrity: sha512-+KpH+QxZU7O4675t3mnkQKcZZg56u+K/Ct2K+N2AZYNVK8kyeo/bI18tI8aPm3tvNNRyTWfj6s5tnGNlcbQRsA==}
     engines: {node: '>=14'}
+    dev: false
+
+  /@google-ai/generativelanguage@1.1.0(encoding@0.1.13):
+    resolution: {integrity: sha512-GQG67TUM9CD//R/HrOSrPSFygiBBqGo38IdaGZ4XejxLdw3wryetPkUMvuioCvgx7ZlV2ONNrQUh8m6m1Lp5ng==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
+      google-gax: 4.0.4(encoding@0.1.13)
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
     dev: false
 
   /@google-cloud/compute@4.0.1(encoding@0.1.13):
@@ -11239,8 +11255,8 @@ packages:
       - supports-color
     dev: false
 
-  /gcp-metadata@6.0.0(encoding@0.1.13):
-    resolution: {integrity: sha512-Ozxyi23/1Ar51wjUT2RDklK+3HxqDr8TLBNK8rBBFQ7T85iIGnXnVusauj06QyqCXRFZig8LZC+TUddWbndlpQ==}
+  /gcp-metadata@6.1.0(encoding@0.1.13):
+    resolution: {integrity: sha512-Jh/AIwwgaxan+7ZUUmRLCjtchyDiqh4KjBJ5tW3plBZb5iL/BPcso8A5DlzeD9qlw0duCamnNdpFjxwaT0KyKg==}
     engines: {node: '>=14'}
     dependencies:
       gaxios: 6.1.1(encoding@0.1.13)
@@ -11568,17 +11584,16 @@ packages:
     resolution: {integrity: sha512-l+8esYHTKOx2G/Aao4lEQ0bnHWg4fWtJbVoZZT9Knxi01pB8C80BR85nONLFwkkQoFRCmXY+BUcGZN3yZ2QsRA==}
     dev: false
 
-  /google-auth-library@9.1.0(encoding@0.1.13):
-    resolution: {integrity: sha512-1M9HdOcQNPV5BwSXqwwT238MTKodJFBxZ/V2JP397ieOLv4FjQdfYb9SooR7Mb+oUT2IJ92mLJQf804dyx0MJA==}
+  /google-auth-library@9.4.1(encoding@0.1.13):
+    resolution: {integrity: sha512-Chs7cuzDuav8W/BXOoRgSXw4u0zxYtuqAHETDR5Q6dG1RwNwz7NUKjsDDHAsBV3KkiiJBtJqjbzy1XU1L41w1g==}
     engines: {node: '>=14'}
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
       gaxios: 6.1.1(encoding@0.1.13)
-      gcp-metadata: 6.0.0(encoding@0.1.13)
+      gcp-metadata: 6.1.0(encoding@0.1.13)
       gtoken: 7.0.1(encoding@0.1.13)
       jws: 4.0.0
-      lru-cache: 6.0.0
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -11593,7 +11608,7 @@ packages:
       '@types/long': 4.0.2
       abort-controller: 3.0.0
       duplexify: 4.1.2
-      google-auth-library: 9.1.0(encoding@0.1.13)
+      google-auth-library: 9.4.1(encoding@0.1.13)
       node-fetch: 2.6.7(encoding@0.1.13)
       object-hash: 3.0.0
       proto3-json-serializer: 2.0.0

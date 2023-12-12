@@ -1,7 +1,7 @@
 import { evaluate } from "@cocalc/server/openai/chatgpt";
+import { analytics_cookie_name } from "@cocalc/util/misc";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
-import { analytics_cookie_name } from "@cocalc/util/misc";
 
 export default async function handle(req, res) {
   try {

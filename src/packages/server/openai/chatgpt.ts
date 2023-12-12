@@ -1,21 +1,34 @@
 /*
-Backend server side part of ChatGPT integration with CoCalc.
+Backend server side part of AI language model integrations with CoCalc.
 */
 
-import getPool from "@cocalc/database/pool";
-import getLogger from "@cocalc/backend/logger";
-import { checkForAbuse } from "./abuse";
-import { GPTModel, getCost, isValidModel } from "@cocalc/util/db-schema/openai";
 import { delay } from "awaiting";
-import getClient from "./client";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
-import GPT3Tokenizer from "gpt3-tokenizer";
 import { EventEmitter } from "events";
-import { once } from "@cocalc/util/async-utils";
+import GPT3Tokenizer from "gpt3-tokenizer";
+
+import getLogger from "@cocalc/backend/logger";
+import getPool from "@cocalc/database/pool";
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
+import { once } from "@cocalc/util/async-utils";
+import {
+  DEFAULT_MODEL,
+  LanguageModel,
+  getCost,
+  isFreeModel,
+  isValidModel,
+  model2service,
+} from "@cocalc/util/db-schema/openai";
+import { checkForAbuse } from "./abuse";
+import getClient, { VertexAIClient } from "./client";
 
 const log = getLogger("chatgpt");
+
+type History = {
+  role: "assistant" | "user" | "system";
+  content: string;
+}[];
 
 interface ChatOptions {
   input: string; // new input that user types
@@ -24,8 +37,8 @@ interface ChatOptions {
   project_id?: string;
   path?: string;
   analytics_cookie?: string;
-  history?: { role: "assistant" | "user" | "system"; content: string }[];
-  model?: GPTModel; // default is gpt-3.5-turbo
+  history?: History;
+  model?: LanguageModel; // default is gpt-3.5-turbo
   tag?: string;
   // If stream is set, then everything works as normal with two exceptions:
   // - The stream function is called with bits of the output as they are produced,
@@ -44,7 +57,7 @@ export async function evaluate({
   path,
   analytics_cookie,
   history,
-  model = "gpt-3.5-turbo",
+  model = DEFAULT_MODEL,
   tag,
   stream,
   maxTokens,
@@ -62,38 +75,40 @@ export async function evaluate({
     stream: stream != null,
     maxTokens,
   });
-  if (!isValidModel(model) || !model.startsWith("gpt")) {
+
+  if (!isValidModel(model)) {
     throw Error(`unsupported model "${model}"`);
   }
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
-  const openai = await getClient();
+  const client = await getClient(model);
 
-  const messages: { role: "system" | "user" | "assistant"; content: string }[] =
-    [];
-  if (system) {
-    messages.push({ role: "system", content: system });
-  }
-  if (history) {
-    for (const message of history) {
-      messages.push(message);
-    }
-  }
-  messages.push({ role: "user", content: input });
   const { output, total_tokens, prompt_tokens, completion_tokens } =
-    await callOpenaiAPI({
-      openai,
-      model,
-      messages,
-      maxAttempts: 3,
-      maxTokens,
-      stream,
-    });
+    client instanceof VertexAIClient
+      ? await evaluateVertexAI({
+          system,
+          history,
+          input,
+          client,
+          // maxTokens,
+          // model,
+          stream,
+        })
+      : await evaluateOpenAI({
+          system,
+          history,
+          input,
+          client,
+          model,
+          maxTokens,
+          stream,
+        });
+
   log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
 
   if (account_id) {
-    if (model == "gpt-3.5-turbo") {
+    if (isFreeModel(model)) {
       // no charge for now...
     } else {
       // charge for ALL other models.
@@ -109,9 +124,9 @@ export async function evaluate({
           account_id,
           project_id,
           cost,
-          service: `openai-${model}`,
+          service: model2service(model),
           description: {
-            type: `openai-${model}`,
+            type: model2service(model),
             prompt_tokens,
             completion_tokens,
           },
@@ -121,7 +136,7 @@ export async function evaluate({
       } catch (err) {
         // we maybe just lost some money?!
         log.error(
-          `FAILED to CREATE a purchase for something the user just got: cost=${cost}, account_id=${account_id}`
+          `FAILED to CREATE a purchase for something the user just got: cost=${cost}, account_id=${account_id}`,
         );
         // we might send an email or something...?
       }
@@ -172,6 +187,132 @@ export async function evaluate({
   return output;
 }
 
+interface EvalVertexAIProps {
+  client: VertexAIClient;
+  system?: string;
+  history?: History;
+  input: string;
+  // maxTokens?: number;
+  // model: LanguageModel;
+  stream?: (output?: string) => void;
+}
+
+async function evaluateVertexAI({
+  client,
+  system,
+  history,
+  input,
+  // model,  // not used, this only supports chat-bison-001 for now
+  // maxTokens, // not used
+  stream,
+}: EvalVertexAIProps): Promise<{
+  output;
+  total_tokens;
+  prompt_tokens;
+  completion_tokens;
+}> {
+  // TODO: for OpenAI, this is at 3. Unless we really know there are similar issues, we keep this at 1.
+  const maxAttempts = 1;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const messages: { content: string }[] = (history ?? [])
+        .filter(({ content }) => !!content)
+        .map(({ content }) => {
+          return {
+            content,
+          };
+        });
+
+      messages.push({ content: input });
+
+      // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
+      // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
+      // I think this is just a bug. If there is no reply, there is now a simple user-visible message instead of nothing.
+      const output = await client.chat({
+        messages,
+        context: system,
+        model: "chat-bison-001",
+      });
+
+      if (!output) {
+        throw new Error(
+          "There was a problem processing the prompt. Try a different prompt or another language model.",
+        );
+      }
+
+      // stream the output – there is no streaming right now, though
+      if (stream != null) {
+        stream(output);
+        stream();
+      }
+
+      // token estimation
+      const system_tokens = numTokens(system ?? "");
+      const input_all = (messages ?? [])
+        .map(({ content }) => content)
+        .join("\n");
+      const prompt_tokens = system_tokens + numTokens(input_all);
+      const completion_tokens = numTokens(output ?? "");
+
+      // in all cases, return the result
+      return {
+        output,
+        total_tokens: prompt_tokens + completion_tokens,
+        prompt_tokens,
+        completion_tokens,
+      };
+    } catch (err) {
+      const retry = i < maxAttempts - 1;
+      log.debug(
+        "vertex ai api call failed",
+        err,
+        ` will ${retry ? "" : "NOT"} retry`,
+      );
+      if (!retry) {
+        throw err;
+      }
+      await delay(1000);
+    }
+  }
+  throw Error("vertex ai api called failed"); // this should never get reached.
+}
+
+async function evaluateOpenAI({
+  system,
+  history,
+  input,
+  client,
+  model,
+  maxTokens,
+  stream,
+}): Promise<{
+  output;
+  total_tokens;
+  prompt_tokens;
+  completion_tokens;
+}> {
+  const messages: { role: "system" | "user" | "assistant"; content: string }[] =
+    [];
+  if (system) {
+    messages.push({ role: "system", content: system });
+  }
+  if (history) {
+    for (const message of history) {
+      messages.push(message);
+    }
+  }
+  messages.push({ role: "user", content: input });
+  return await callChatGPTAPI({
+    openai: client,
+    model,
+    messages,
+    maxAttempts: 3,
+    maxTokens,
+    stream,
+  });
+}
+
 // Save mainly for analytics, metering, and to generally see how (or if)
 // people use chatgpt in cocalc.
 // Also, we could dedup identical inputs (?).
@@ -210,10 +351,10 @@ async function saveResponse({
         expire,
         model,
         tag,
-      ]
+      ],
     );
   } catch (err) {
-    log.warn("Failed to save ChatGPT log entry to database:", err);
+    log.warn("Failed to save language model log entry to database:", err);
   }
 }
 
@@ -273,7 +414,7 @@ class GatherOutput extends EventEmitter {
   }
 }
 
-async function callOpenaiAPI({
+async function callChatGPTAPI({
   openai,
   model,
   messages,
@@ -298,7 +439,7 @@ async function callOpenaiAPI({
           messages,
           stream: doStream,
         },
-        axiosOptions
+        axiosOptions,
       );
       if (!doStream) {
         const output = (
@@ -324,7 +465,7 @@ async function callOpenaiAPI({
         err,
         " will ",
         retry ? "" : "NOT",
-        "retry"
+        "retry",
       );
       if (!retry) {
         throw err;

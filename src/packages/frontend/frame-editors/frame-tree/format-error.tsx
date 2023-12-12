@@ -14,7 +14,7 @@ interface Props {
 
 export default function FormatError({ formatError, formatInput }: Props) {
   const { actions } = useFrameContext();
-  const language = useMemo(() => actions?.chatgptGetLanguage(), [actions]);
+  const language = useMemo(() => actions?.languageModelGetLanguage(), [actions]);
   const mode = useMemo(
     () => file_associations[language]?.opts?.mode ?? language,
     [language]
@@ -48,7 +48,7 @@ export default function FormatError({ formatError, formatInput }: Props) {
               error={formatError}
               input={formatInput}
               language={language}
-              extraFileInfo={actions.chatgptExtraFileInfo()}
+              extraFileInfo={actions.languageModelExtraFileInfo()}
               tag={"format"}
             />
             <div style={{ height: "15px" }} />

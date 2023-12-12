@@ -447,7 +447,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     }
   }
 
-  chatgptGetText(
+  languageModelGetText(
     frameId: string,
     scope: "selection" | "cell" | "all" = "all",
   ): string {
@@ -503,14 +503,14 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return "";
   }
 
-  chatgptGetLanguage(): string {
+  languageModelGetLanguage(): string {
     return (
       this.jupyter_actions.store.getIn(["kernel_info", "language"]) ?? "py"
     );
   }
 
   // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
-  chatgptExtraFileInfo(): string {
+  languageModelExtraFileInfo(): string {
     const kernel =
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
     return `Jupyter notebook using the ${kernel} kernel`;
@@ -526,7 +526,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return `Jupyter notebook using the ${kernel} kernel`;
   }
 
-  chatgptGetScopes() {
+  languageModelGetScopes() {
     return new Set<"selection" | "cell">(["selection", "cell"]);
   }
 

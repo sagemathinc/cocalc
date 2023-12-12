@@ -57,6 +57,18 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: "#00238b",
     noSet: true,
   },
+  "google-text-bison-001": {
+    display: "Google Palm 2 (Text)",
+    color: "#4285f4",
+  },
+  "google-chat-bison-001": {
+    display: "Google Palm 2 (Chat)",
+    color: "#4285f4",
+  },
+  "google-embedding-gecko-001": {
+    display: "Google Gecko (Embedding)",
+    color: "#4285f4",
+  },
 };
 
 // For pay-as-you-go project quota upgrades

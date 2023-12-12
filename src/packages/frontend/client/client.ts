@@ -14,7 +14,7 @@ import { TimeClient } from "./time";
 import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
-import { OpenAIClient } from "./openai";
+import { LLMClient } from "./openai";
 import { PurchasesClient } from "./purchases";
 import { JupyterClient } from "./jupyter";
 import { SyncClient } from "@cocalc/sync/client/sync-client";
@@ -54,7 +54,7 @@ export interface WebappClient extends EventEmitter {
   account_client: AccountClient;
   project_client: ProjectClient;
   admin_client: AdminClient;
-  openai_client: OpenAIClient;
+  openai_client: LLMClient;
   purchases_client: PurchasesClient;
   jupyter_client: JupyterClient;
   sync_client: SyncClient;
@@ -133,7 +133,7 @@ class Client extends EventEmitter implements WebappClient {
   account_client: AccountClient;
   project_client: ProjectClient;
   admin_client: AdminClient;
-  openai_client: OpenAIClient;
+  openai_client: LLMClient;
   purchases_client: PurchasesClient;
   jupyter_client: JupyterClient;
   sync_client: SyncClient;
@@ -218,7 +218,7 @@ class Client extends EventEmitter implements WebappClient {
     this.admin_client = bind_methods(
       new AdminClient(this.async_call.bind(this)),
     );
-    this.openai_client = bind_methods(new OpenAIClient(this));
+    this.openai_client = bind_methods(new LLMClient(this));
     //this.purchases_client = bind_methods(new PurchasesClient(this));
     this.purchases_client = bind_methods(new PurchasesClient());
     this.jupyter_client = bind_methods(

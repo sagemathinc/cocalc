@@ -1,15 +1,91 @@
-import { Table } from "./types";
+// NOTE: this is not just OpenAI, but also includes other models that we use
+// Mentally, just ignore "openai" and instead focus on "gpt-*" or "codey" or whatever they are called.
+// TODO: refactor this, the names of the tables, etc. to be more generic.
+
+import { unreachable } from "../misc";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
+import { Table } from "./types";
 
-export const GPT_MODELS = [
+export const LANGUAGE_MODELS = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
   "gpt-4",
   "gpt-4-32k",
+  // google's are taken from here – we use the generative AI client lib
+  // https://developers.generativeai.google/models/language
+  "text-bison-001",
+  "chat-bison-001",
+  "embedding-gecko-001",
 ] as const;
 
-export type GPTModel = typeof GPT_MODELS[number];
+export const USER_SELECTABLE_LANGUAGE_MODELS: Readonly<LanguageModel[]> = [
+  "gpt-3.5-turbo",
+  "gpt-3.5-turbo-16k",
+  "gpt-4",
+  "chat-bison-001",
+] as const;
+
+export type LanguageModel = (typeof LANGUAGE_MODELS)[number];
+
+export function isLanguageModel(model?: string): model is LanguageModel {
+  return LANGUAGE_MODELS.includes(model as LanguageModel);
+}
+
+export function getValidLanguageModelName(
+  model: string | undefined,
+  filter: { google: boolean; openai: boolean } = { google: true, openai: true },
+): LanguageModel {
+  const dftl = filter.openai === true ? DEFAULT_MODEL : "chat-bison-001";
+  if (model == null) {
+    return dftl;
+  }
+  if (!LANGUAGE_MODELS.includes(model as LanguageModel)) {
+    return dftl;
+  }
+  return model as LanguageModel;
+}
+
+export type LanguageService =
+  | "openai-gpt-3.5-turbo"
+  | "openai-gpt-3.5-turbo-16k"
+  | "openai-gpt-4"
+  | "openai-gpt-4-32k"
+  | "google-text-bison-001"
+  | "google-chat-bison-001"
+  | "google-embedding-gecko-001";
+
+// used e.g. for checking "account-id={string}" and other things like that
+export const LANGUAGE_MODEL_PREFIXES = [
+  "chatgpt",
+  "openai-",
+  "google-",
+] as const;
+
+export function model2service(model: LanguageModel): LanguageService {
+  if (
+    model === "text-bison-001" ||
+    model === "chat-bison-001" ||
+    model === "embedding-gecko-001"
+  ) {
+    return `google-${model}`;
+  } else {
+    return `openai-${model}`;
+  }
+}
+
+// Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
+export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
+
+export type Vendor = "openai" | "google";
+
+export function model2vendor(model: LanguageModel): Vendor {
+  if (model.startsWith("gpt-")) {
+    return "openai";
+  } else {
+    return "google";
+  }
+}
 
 export const MODELS = [
   "gpt-3.5-turbo",
@@ -17,13 +93,17 @@ export const MODELS = [
   "gpt-4",
   "gpt-4-32k",
   "text-embedding-ada-002",
+  "text-bison-001",
+  "chat-bison-001",
+  "embedding-gecko-001",
 ] as const;
 
-export type Model = typeof MODELS[number];
+export type Model = (typeof MODELS)[number];
 
 // Map from psuedo account_id to what should be displayed to user.
 // This is used in various places in the frontend.
-export const OPENAI_USERNAMES = {
+// Google PaLM: https://cloud.google.com/vertex-ai/docs/generative-ai/pricing
+export const LLM_USERNAMES = {
   chatgpt: "GPT-3.5",
   chatgpt3: "GPT-3.5",
   chatgpt4: "GPT-4",
@@ -31,14 +111,48 @@ export const OPENAI_USERNAMES = {
   "gpt-4-32k": "GPT-4-32k",
   "gpt-3.5-turbo": "GPT-3.5",
   "gpt-3.5-turbo-16k": "GPT-3.5-16k",
+  "text-bison-001": "PaLM 2",
+  "chat-bison-001": "PaLM 2",
+  "embedding-gecko-001": "PaLM 2",
 } as const;
+
+export function isFreeModel(model: Model) {
+  return (
+    model == "gpt-3.5-turbo" ||
+    model == "text-bison-001" ||
+    model == "chat-bison-001" ||
+    model == "embedding-gecko-001"
+  );
+}
+
+export function getVendorStatusCheckMD(vendor: Vendor): string {
+  switch (vendor) {
+    case "openai":
+      return `OpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+    case "google":
+      return `Google [status](https://status.cloud.google.com) and [downdetector](https://downdetector.com/status/google-cloud).`;
+    default:
+      unreachable(vendor);
+  }
+  return "";
+}
+
+export function llmSupportsStreaming(model: LanguageModel): boolean {
+  return model2vendor(model) === "openai";
+}
+
+interface Cost {
+  prompt_tokens: number;
+  completion_tokens: number;
+  max_tokens: number;
+}
 
 // This is the official published cost that openai charges.
 // It changes over time, so this will sometimes need to be updated.
 // Our cost is a configurable multiple of this.
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
-export const OPENAI_COST = {
+export const OPENAI_COST: { [name in string]: Cost } = {
   "gpt-4": {
     prompt_tokens: 0.03 / 1000,
     completion_tokens: 0.06 / 1000,
@@ -64,6 +178,24 @@ export const OPENAI_COST = {
     completion_tokens: 0.0001 / 1000, // NOTE: this isn't a thing with embeddings
     max_tokens: 8191,
   },
+  // https://developers.generativeai.google/models/language
+  "text-bison-001": {
+    // we assume 5 characters is 1 token on average
+    prompt_tokens: (5 * 0.0005) / 1000,
+    completion_tokens: (5 * 0.0005) / 1000,
+    max_tokens: 8196,
+  },
+  "chat-bison-001": {
+    // we assume 5 characters is 1 token on average
+    prompt_tokens: (5 * 0.0005) / 1000,
+    completion_tokens: (5 * 0.0005) / 1000,
+    max_tokens: 8196,
+  },
+  "embedding-gecko-001": {
+    prompt_tokens: (5 * 0.0001) / 1000,
+    completion_tokens: 0,
+    max_tokens: 8196, // ???
+  },
 } as const;
 
 export function isValidModel(model?: Model) {
@@ -81,7 +213,7 @@ export interface OpenaiCost {
 
 export function getCost(
   model: Model,
-  markup_percentage: number // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
+  markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
 ): OpenaiCost {
   const x = OPENAI_COST[model];
   if (x == null) {
@@ -104,7 +236,7 @@ export function getCost(
 export function getMaxCost(model: Model, markup_percentage: number): number {
   const { prompt_tokens, completion_tokens } = getCost(
     model,
-    markup_percentage
+    markup_percentage,
   );
   const { max_tokens } = OPENAI_COST[model];
   return Math.max(prompt_tokens, completion_tokens) * max_tokens;

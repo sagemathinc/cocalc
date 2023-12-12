@@ -33,7 +33,7 @@ import { NewFileDropdown } from "./new-file-dropdown";
 import { COLORS } from "@cocalc/util/theme";
 import { Button, Input, Modal, Space } from "antd";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
-import { ChatGPTGenerateNotebookButton } from "../page/home-page/chatgpt-generate-jupyter";
+import { ChatGPTGenerateNotebookButton } from "../page/home-page/ai-generate-jupyter";
 
 interface Props {
   project_id: string;

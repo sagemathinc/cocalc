@@ -3,17 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux } from "../../app-framework";
-import { Item } from "./complete";
-import { trunc_middle, timestamp_cmp, cmp } from "@cocalc/util/misc";
-import { Avatar } from "../../account/avatar/avatar";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { redux } from "@cocalc/frontend/app-framework";
+import GooglePalmLogo from "@cocalc/frontend/components/google-palm-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { OPENAI_USERNAMES } from "@cocalc/util/db-schema/openai";
+import { LLM_USERNAMES } from "@cocalc/util/db-schema/openai";
+import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
+import { Item } from "./complete";
 
 export function mentionableUsers(
   project_id: string,
-  search?: string,
-  chatGPT?: boolean
+  search: string | undefined,
+  chatGPT: boolean | undefined,
+  vertexAI: boolean | undefined,
 ): Item[] {
   const users = redux
     .getStore("projects")
@@ -49,13 +51,14 @@ export function mentionableUsers(
 
   const users_store = redux.getStore("users");
   const v: Item[] = [];
+
   if (chatGPT) {
     if (!search || "chatgpt3".includes(search)) {
       v.push({
         value: "openai-gpt-3.5-turbo",
         label: (
           <span>
-            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["gpt-3.5-turbo"]}
+            <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-3.5-turbo"]}
           </span>
         ),
         search: "chatgpt3",
@@ -80,13 +83,28 @@ export function mentionableUsers(
         value: "openai-gpt-4",
         label: (
           <span>
-            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["gpt-4"]}
+            <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-4"]}
           </span>
         ),
         search: "chatgpt4",
       });
     }
   }
+
+  if (vertexAI) {
+    if (!search || "palm".includes(search)) {
+      v.push({
+        value: "openai-chat-bison-001",
+        label: (
+          <span>
+            <GooglePalmLogo size={24} /> {LLM_USERNAMES["chat-bison-001"]}
+          </span>
+        ),
+        search: "palm",
+      });
+    }
+  }
+
   for (const { account_id } of project_users) {
     const fullname = users_store.get_name(account_id) ?? "";
     const s = fullname.toLowerCase();

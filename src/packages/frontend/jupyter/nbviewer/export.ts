@@ -35,11 +35,11 @@ export default function exportToHTML({
         is_visible: true,
         disableMarkdownCodebar: true,
         disableExtraButtons: true,
-        hasOpenAI: false,
+        hasLanguageModel: false,
         jupyterApiEnabled: false,
       },
     },
-    [notebook]
+    [notebook],
   );
   const body = renderToString(element);
 

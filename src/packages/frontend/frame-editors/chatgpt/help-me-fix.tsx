@@ -3,18 +3,21 @@ A generic button for helping a user fix problems using chatgpt.
 If chatgpt is disabled or not available it renders as null.
 */
 
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Alert, Button } from "antd";
-import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { CSSProperties, useState } from "react";
-import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
-import shortenError from "./shorten-error";
-import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
-import type { Model } from "./model-switch";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
+
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { Icon } from "@cocalc/frontend/components/icon";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
+import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { ProjectsStore } from "@cocalc/frontend/projects/store";
+import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
+import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
+import shortenError from "./shorten-error";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -48,21 +51,29 @@ export default function HelpMeFix({
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  const [model, setModel] = useState<Model>("gpt-3.5-turbo");
+  const [model, setModel] = useLanguageModelSetting();
   if (
     redux == null ||
-    !redux.getStore("projects").hasOpenAI(project_id, "help-me-fix")
+    !(redux.getStore("projects") as ProjectsStore).hasLanguageModelEnabled(
+      project_id,
+      "help-me-fix",
+    )
   ) {
     return null;
   }
   return (
     <div>
       <PopconfirmKeyboard
-        icon={<OpenAIAvatar size={20} />}
+        icon={<LanguageModelVendorAvatar model={model} size={20} />}
         title={
           <>
             Get Help from{" "}
-            <ModelSwitch size="small" model={model} setModel={setModel} />
+            <ModelSwitch
+              size="small"
+              model={model}
+              setModel={setModel}
+              project_id={project_id}
+            />
           </>
         }
         description={() => (
@@ -125,7 +136,7 @@ export default function HelpMeFix({
         }}
       >
         <Button size={size} style={style} disabled={gettingHelp}>
-          <OpenAIAvatar
+          <AIAvatar
             size={16}
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}

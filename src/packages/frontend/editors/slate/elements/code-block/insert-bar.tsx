@@ -25,7 +25,7 @@ function InsertButton({ children, onClick }) {
 }
 
 export default function InsertBar({ editor, element, info, above }) {
-  //const { hasOpenAI } = useFileContext();
+  //const { hasLanguageModel } = useFileContext();
 
   const insert = (node: Node, offset = 0) => {
     let path = findElement(editor, element);
@@ -71,7 +71,7 @@ export default function InsertBar({ editor, element, info, above }) {
                   type: "paragraph",
                   children: [{ text: "Text" }],
                 },
-                "Text".length
+                "Text".length,
               );
             }}
           >
@@ -84,7 +84,7 @@ export default function InsertBar({ editor, element, info, above }) {
           >
             <Icon name="superscript" /> Math
           </InsertButton>
-          {/* {hasOpenAI ? (
+          {/* {hasLanguageModel ? (
             <InsertButton
               onClick={() => {
                 console.log("TODO!");
