@@ -218,7 +218,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     }
   }
 
-  protected chatgptGetText(frameId: string, scope): string {
+  protected languageModelGetText(frameId: string, scope): string {
     if (this._get_frame_type(frameId) == "tasks") {
       const node = this._get_frame_node(frameId);
       return (
@@ -228,14 +228,14 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
         ) ?? ""
       );
     }
-    return super.chatgptGetText(frameId, scope);
+    return super.languageModelGetText(frameId, scope);
   }
 
-  chatgptGetScopes() {
+  languageModelGetScopes() {
     return new Set<"cell">(["cell"]);
   }
 
-  chatgptGetLanguage() {
+  languageModelGetLanguage() {
     return "md";
   }
 

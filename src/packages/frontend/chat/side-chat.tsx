@@ -89,7 +89,7 @@ export default function SideChat({ project_id, path, style }: Props) {
             sendChat={(value) => {
               const actions = redux.getEditorActions(
                 project_id,
-                path
+                path,
               ) as ChatActions;
               actions.send_chat({ input: value });
             }}
@@ -184,7 +184,7 @@ function AddChatCollab({ addCollab, project_id }) {
   return (
     <div>
       You can{" "}
-      {redux.getStore("projects").hasOpenAI(project_id) && (
+      {redux.getProjectsStore().hasLanguageModelEnabled(project_id) && (
         <>put @chatgpt in any message to get a response from ChatGPT, </>
       )}
       <A href="https://github.com/sagemathinc/cocalc/discussions">
@@ -200,9 +200,17 @@ function AddChatCollab({ addCollab, project_id }) {
 }
 
 function CollabList({ project, addCollab, actions }) {
-  const hasOpenAI = redux
-    .getStore("projects")
-    .hasOpenAI(project.get("project_id"));
+  const projectsStore = redux.getProjectsStore();
+  const hasOpenAI = projectsStore.hasLanguageModelEnabled(
+    project.get("project_id"),
+    undefined,
+    "openai",
+  );
+  const hasGoogleLLM = projectsStore.hasLanguageModelEnabled(
+    project.get("project_id"),
+    undefined,
+    "google",
+  );
   return (
     <div
       style={
@@ -223,6 +231,7 @@ function CollabList({ project, addCollab, actions }) {
       </div>
       <span style={{ color: "#777", fontSize: "10pt" }}>
         {hasOpenAI && <>@ChatGPT, </>}
+        {hasGoogleLLM && <>@PaLM, </>}
         <ProjectUsers
           project={project}
           none={<span>{hasOpenAI ? "add" : "Add"} people to work with...</span>}

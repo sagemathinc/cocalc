@@ -13,18 +13,18 @@ which is confusing.
 */
 
 import { Button, Space, Tooltip } from "antd";
-import { useState, ReactNode } from "react";
+import { ReactNode, useState } from "react";
 
 import { redux, useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import AIAvatar from "../../components/ai-avatar";
 import { JupyterActions } from "../browser-actions";
+import ChatGPTPopover from "./ai-cell-generator";
 import { insertCell, pasteCell } from "./util";
-import ChatGPTPopover from "./chatgpt";
 
 type TinyButtonType = "code" | "markdown" | "paste" | "chatgpt";
 
@@ -50,7 +50,9 @@ export function InsertCell({
   const { project_id } = useFrameContext();
   const haveChatGTP =
     chatgpt &&
-    redux.getStore("projects").hasOpenAI(project_id, "generate-cell");
+    redux
+      .getStore("projects")
+      .hasLanguageModelEnabled(project_id, "generate-cell");
   const frameActions = useNotebookFrameActions();
   const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
 
@@ -157,13 +159,13 @@ export function InsertCell({
                 title="Create code based on your description (alt+click line)"
                 handleButtonClick={handleButtonClick}
               >
-                <OpenAIAvatar
+                <AIAvatar
                   backgroundColor={"transparent"}
                   size={12}
                   style={{ marginRight: "5px" }}
                   innerStyle={{ color: "default", top: "-2.5px" }}
                 />{" "}
-                ChatGPT...
+                Generate...
               </TinyButton>
             )}
           </Space>

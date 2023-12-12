@@ -12,12 +12,12 @@ and storage with cost.  Why? Because I wrote all the code and tests that way, an
 too late to change t use amount internally.  That's the only reason.
 */
 
-import { Table } from "./types";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { CourseInfo } from "./projects";
-import * as computeServers from "./compute-servers";
+import { Table } from "./types";
 
 export type Reason =
   | "duplicate"
@@ -38,6 +38,9 @@ export type Service =
   | "openai-gpt-3.5-turbo"
   | "openai-gpt-3.5-turbo-16k"
   | "openai-text-embedding-ada-002"
+  | "google-text-bison-001"
+  | "google-chat-bison-001"
+  | "google-embedding-gecko-001"
   | "project-upgrade"
   | "compute-server"
   | "compute-server-network-usage"
@@ -59,6 +62,24 @@ export interface OpenaiGPT4_32k {
 
 export interface OpenaiGPT35 {
   type: "openai-gpt-3.5-turbo";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface GoogleTextBison {
+  type: "google-text-bison-001";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface GoogleChatBison {
+  type: "google-chat-bison-001";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface GoogleEmbeddingGecko {
+  type: "google-embedding-gecko-001";
   prompt_tokens: number;
   completion_tokens: number;
 }
@@ -151,6 +172,9 @@ export type Description =
   | OpenaiGPT35
   | OpenaiGPT35_16k
   | OpenaiTextEmbeddingsAda002
+  | GoogleTextBison
+  | GoogleChatBison
+  | GoogleEmbeddingGecko
   | ProjectUpgrade
   | ComputeServer
   | ComputeServerNetworkUsage

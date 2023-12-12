@@ -11,7 +11,7 @@ export interface AppRedux {
 
   createActions<T, C extends Actions<T>>(
     name: string,
-    actions_class?: new (a, b) => C
+    actions_class?: new (a, b) => C,
   ): C;
   getActions(name);
   removeActions(name: string): void;
@@ -28,7 +28,7 @@ export interface AppRedux {
   hasStore(name: string): boolean;
   getStore(name: string);
   getStore<State extends Record<string, any>, C extends Store<State>>(
-    name: string
+    name: string,
   ): C | undefined;
   removeStore(name: string): void;
 }

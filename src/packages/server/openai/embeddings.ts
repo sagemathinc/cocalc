@@ -3,6 +3,7 @@ import getClient from "./client";
 import * as qdrant from "@cocalc/database/qdrant";
 import { getClient as getDB } from "@cocalc/database/pool";
 import checkForAbuse from "./embeddings-abuse";
+import { VertexAIClient } from "./client";
 
 // the vectors we compute using openai's embeddings api get cached for this long
 // in our database since they were last accessed.  Also, this is how long we
@@ -22,7 +23,7 @@ export async function remove(data: Data[]): Promise<string[]> {
 
 export async function save(
   data: Data[],
-  account_id: string // who is requesting this, so can log it in case we call openai
+  account_id: string, // who is requesting this, so can log it in case we call openai
 ): Promise<string[]> {
   // Define the Qdrant points that we will be inserting corresponding
   // to the given data.
@@ -61,7 +62,7 @@ export async function save(
     await db.connect();
     const { rows } = await db.query(
       "SELECT input_sha1,vector FROM openai_embedding_cache WHERE input_sha1 = ANY ($1)",
-      [input_sha1s]
+      [input_sha1s],
     );
     const sha1_to_vector: { [sha1: string]: number[] } = {};
     for (const { input_sha1, vector } of rows) {
@@ -69,13 +70,13 @@ export async function save(
     }
     await db.query(
       `UPDATE openai_embedding_cache SET expire=${EXPIRE} WHERE input_sha1 = ANY ($1)`,
-      [rows.map(({ input_sha1 }) => input_sha1)]
+      [rows.map(({ input_sha1 }) => input_sha1)],
     );
 
     if (rows.length < data.length) {
       // compute some embeddings
       const unknown_sha1s = input_sha1s.filter(
-        (x) => sha1_to_vector[x] == null
+        (x) => sha1_to_vector[x] == null,
       );
       const inputs = unknown_sha1s.map((x) => sha1_to_input[x]);
       const vectors = await createEmbeddings(db, inputs, account_id);
@@ -154,12 +155,12 @@ export async function search({
             field: "text",
           },
         ],
-        account_id
+        account_id,
       );
     }
     if (typeof offset == "string") {
       throw Error(
-        "when doing a search by text or id, offset must be a number (or not given)"
+        "when doing a search by text or id, offset must be a number (or not given)",
       );
     }
     return await qdrant.search({
@@ -192,11 +193,14 @@ export async function search({
 async function createEmbeddings(
   db,
   input: string[],
-  account_id: string
+  account_id: string,
 ): Promise<number[][]> {
   await checkForAbuse(account_id);
   // compute embeddings of everythig
   const openai = await getClient();
+  if (openai instanceof VertexAIClient) {
+    throw Error("VertexAI not supported");
+  }
   const response = await openai.createEmbedding({
     model: "text-embedding-ada-002",
     input,
@@ -205,7 +209,7 @@ async function createEmbeddings(
   // log this
   await db.query(
     `INSERT INTO openai_embedding_log (time,account_id,tokens) VALUES(NOW(),$1,$2)`,
-    [account_id, response.data.usage.total_tokens]
+    [account_id, response.data.usage.total_tokens],
   );
   return vectors;
 }
@@ -213,7 +217,7 @@ async function createEmbeddings(
 async function saveEmbeddingsInPostgres(
   db,
   input_sha1s: string[],
-  vectors: number[][]
+  vectors: number[][],
 ) {
   if (input_sha1s.length == 0) return;
   // We don't have to worry about sql injection because all the inputs

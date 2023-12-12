@@ -296,13 +296,13 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     open_new_tab("https://doc.cocalc.com/markdown.html");
   }
 
-  chatgptGetText(
+  languageModelGetText(
     frameId: string,
     scope: "selection" | "cell" | "all" = "all"
   ): string {
     const node = this._get_frame_node(frameId);
     if (node?.get("type") == "cm") {
-      return super.chatgptGetText(frameId, scope);
+      return super.languageModelGetText(frameId, scope);
     } else if (node?.get("type") == "slate") {
       if (scope == "selection") {
         const ed = this.getSlateEditor(frameId);

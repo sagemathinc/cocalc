@@ -3,20 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as message from "@cocalc/util/message";
-import { redux } from "../app-framework";
 import { delay } from "awaiting";
-import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
-import type { EmbeddingData, Model } from "@cocalc/util/db-schema/openai";
-import {
-  MAX_SEARCH_LIMIT,
-  MAX_SAVE_LIMIT,
-  MAX_REMOVE_LIMIT,
-  MAX_EMBEDDINGS_TOKENS,
-} from "@cocalc/util/db-schema/openai";
 import { EventEmitter } from "events";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
+import type {
+  EmbeddingData,
+  LanguageModel,
+} from "@cocalc/util/db-schema/openai";
+import {
+  MAX_EMBEDDINGS_TOKENS,
+  MAX_REMOVE_LIMIT,
+  MAX_SAVE_LIMIT,
+  MAX_SEARCH_LIMIT,
+  isFreeModel,
+  model2service,
+} from "@cocalc/util/db-schema/openai";
+import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
-import type { Service } from "@cocalc/util/db-schema/purchases";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.  BE BRIEF.";
@@ -30,7 +35,7 @@ interface EmbeddingsQuery {
   offset?: number | string;
 }
 
-export class OpenAIClient {
+export class LLMClient {
   private client: WebappClient;
 
   constructor(client: WebappClient) {
@@ -38,14 +43,14 @@ export class OpenAIClient {
   }
 
   public async chatgpt(opts): Promise<string> {
-    return await this.implementChatgpt(opts);
+    return await this.queryLanguageModel(opts);
   }
 
-  public chatgptStream(opts, startExplicitly = false): ChatStream {
+  public languageModelStream(opts, startExplicitly = false): ChatStream {
     const chatStream = new ChatStream();
     (async () => {
       try {
-        await this.implementChatgpt({ ...opts, chatStream });
+        await this.queryLanguageModel({ ...opts, chatStream });
         if (!startExplicitly) {
           chatStream.emit("start");
         }
@@ -56,7 +61,7 @@ export class OpenAIClient {
     return chatStream;
   }
 
-  private async implementChatgpt({
+  private async queryLanguageModel({
     input,
     model,
     system = DEFAULT_SYSTEM_PROMPT,
@@ -67,7 +72,7 @@ export class OpenAIClient {
     tag = "",
   }: {
     input: string;
-    model: Model;
+    model: LanguageModel;
     system?: string;
     history?: History;
     project_id?: string;
@@ -76,8 +81,8 @@ export class OpenAIClient {
     tag?: string;
     startStreamExplicitly?: boolean;
   }): Promise<string> {
-    if (!redux.getStore("projects").hasOpenAI(project_id, tag)) {
-      return `OpenAI support is not currently enabled ${
+    if (!redux.getStore("projects").hasLanguageModelEnabled(project_id, tag)) {
+      return `Language model support is not currently enabled ${
         project_id ? "in this project" : "on this server"
       }.`;
     }
@@ -92,8 +97,8 @@ export class OpenAIClient {
       }
     }
 
-    if (model != "gpt-3.5-turbo") {
-      const service = `openai-${model}` as any as Service;
+    if (!isFreeModel(model)) {
+      const service = model2service(model);
       // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
       const { allowed, reason } =
         await this.client.purchases_client.isPurchaseAllowed(service);
@@ -138,6 +143,7 @@ export class OpenAIClient {
       tag: `app:${tag}`,
       stream: chatStream != null,
     });
+
     if (chatStream == null) {
       return (await this.client.async_call({ message: mesg })).text;
     }
@@ -161,7 +167,7 @@ export class OpenAIClient {
   }
 
   public async embeddings_search(
-    query: EmbeddingsQuery
+    query: EmbeddingsQuery,
   ): Promise<{ id: string; payload: object }[]> {
     let limit = Math.min(MAX_SEARCH_LIMIT, query.limit);
     const result = await this.embeddings_search_call({ ...query, limit });

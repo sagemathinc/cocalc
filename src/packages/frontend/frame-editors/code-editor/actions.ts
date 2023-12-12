@@ -65,8 +65,8 @@ import {
   len,
   uuid,
 } from "@cocalc/util/misc";
-import chatgptCreatechat from "../chatgpt/create-chat";
-import type { Scope as ChatGPTScope } from "../chatgpt/types";
+import languageModelCreateChat, { Options } from "../chatgpt/create-chat";
+import type { Scope as LanguageModelScope } from "../chatgpt/types";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
@@ -2911,9 +2911,9 @@ export class Actions<
 
   // Overload this in a derived class to support editors other than cm.
   // This is used by the chatgpt function.
-  protected chatgptGetText(
+  protected languageModelGetText(
     frameId: string,
-    scope: ChatGPTScope = "all",
+    scope: LanguageModelScope = "all",
   ): string {
     switch (scope) {
       case "selection":
@@ -2923,41 +2923,57 @@ export class Actions<
     }
   }
 
-  public chatgptGetContext(frameId: string, scope?): string {
+  public languageModelGetContext(frameId: string, scope?): string {
     if (scope) {
-      return this.chatgptGetText(frameId, scope);
+      return this.languageModelGetText(frameId, scope);
     }
-    let input = this.chatgptGetText(frameId, "selection");
+    let input = this.languageModelGetText(frameId, "selection");
     if (input) return input;
-    input = this.chatgptGetText(frameId, "cell");
+    input = this.languageModelGetText(frameId, "cell");
     if (input) return input;
-    input = this.chatgptGetText(frameId, "section");
+    input = this.languageModelGetText(frameId, "section");
     if (input) return input;
-    input = this.chatgptGetText(frameId, "page");
+    input = this.languageModelGetText(frameId, "page");
     if (input) return input;
-    return this.chatgptGetText(frameId, "all");
+    return this.languageModelGetText(frameId, "all");
   }
 
   // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
-  chatgptExtraFileInfo(): string {
-    return `${filenameMode(this.path)} code`;
+  languageModelExtraFileInfo(codegen: boolean = true): string {
+    const ext = filename_extension(this.path).toLowerCase();
+    // md is yaml frontmatter, which is confusing
+    if (ext === "md") {
+      return "Markdown document";
+    } else if (ext === "tex") {
+      return "LaTeX document";
+    } else {
+      return `${filenameMode(this.path)} ${codegen ? "code" : "text"}`;
+    }
   }
 
   // This is something like "python" or "py", "r", etc., i.e., what typically
   // goes as an info string in markdown fenced code blocks.
-  chatgptGetLanguage(): string {
+  languageModelGetLanguage(): string {
     return filename_extension(this.path);
   }
 
   // return the suppoted scopes for this document type.
   // do not have to include "none" and "all", since they are always supported.
-  chatgptGetScopes(): Set<ChatGPTScope> {
+  languageModelGetScopes(): Set<LanguageModelScope> {
     return new Set(["selection"]);
   }
 
-  async chatgpt(frameId: string, options, input: string) {
-    await chatgptCreatechat({ actions: this, frameId, options, input });
+  async languageModel(frameId: string, options: Options, input: string) {
+    await languageModelCreateChat({
+      actions: this as Actions<CodeEditorState>,
+      frameId,
+      options,
+      input,
+    });
   }
+
+  // TODO: get rid of this. it's used somehow in the title-bar.tsx, without typing
+  chatgpt = this.languageModel;
 
   tour(_id: string, _refs: any): TourProps["steps"] {
     return [];
