@@ -17,6 +17,7 @@ import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
 import debug from "debug";
 import { project } from "@cocalc/api-client";
 import { jupyter } from "./jupyter";
+import { fileServer } from "./file-server";
 import { terminal } from "./terminal";
 import { initListings } from "./listings";
 import { once } from "@cocalc/util/async-utils";
@@ -259,6 +260,12 @@ class Manager {
         this.connections[path] = term;
       } else if (path.endsWith(".ipynb")) {
         this.connections[path] = jupyter({
+          client: this.client,
+          path,
+        });
+      } else if (path.endsWith(".md") || path.endsWith(".txt")) {
+        // temporary proof of concept
+        this.connections[path] = fileServer({
           client: this.client,
           path,
         });

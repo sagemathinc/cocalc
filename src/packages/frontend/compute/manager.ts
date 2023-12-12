@@ -81,10 +81,7 @@ export class ComputeServersManager extends EventEmitter {
     if (sync_db.get_state() != "ready") {
       throw Error("syncdb not ready");
     }
-    for (const x of sync_db.get({ path })) {
-      return x.get("id") ?? 0;
-    }
-    return 0;
+    return sync_db.get_one({ path })?.get("id") ?? 0;
   };
 }
 

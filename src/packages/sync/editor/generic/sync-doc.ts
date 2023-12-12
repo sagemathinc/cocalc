@@ -346,29 +346,51 @@ export class SyncDoc extends EventEmitter {
   // but it could be something else.  It's important
   // that whatever algorithm determines this, is
   // a function of state that is eventually consistent.
-  private isFileServer = () => {
+  private isFileServer = async (): Promise<boolean> => {
+    const log = this.dbg("isFileServer");
     if (this.client.is_browser()) {
       // browser is never the file server (yet)
+      log("no because is browser");
       return false;
     }
     const computeServerManagerDoc = this.getComputeServerManagerDoc();
-    if (
-      computeServerManagerDoc == null ||
-      computeServerManagerDoc.get_state() != "ready"
-    ) {
+    if (computeServerManagerDoc == null) {
+      log("not using compute server manager");
       return this.client.is_project();
+    }
+
+    const state = computeServerManagerDoc.get_state();
+    if (state == "closed") {
+      log("compute server manager is closed");
+      // something really messed up
+      return this.client.is_project();
+    }
+    if (state != "ready") {
+      try {
+        log("waiting for compute server manager doc to be ready");
+        await once(computeServerManagerDoc, "ready", 15000);
+        log("compute server manager is ready");
+      } catch (err) {
+        log("WARNING -- failed to initialize computeServerManagerDoc", err);
+        return this.client.is_project();
+      }
     }
 
     // id of who the user *wants* to be the file server.
     const fileServerId =
-      computeServerManagerDoc.get({ path: this.path })?.get("id") ?? 0;
+      computeServerManagerDoc.get_one({ path: this.path })?.get("id") ?? 0;
     if (this.client.is_project()) {
+      log(
+        "we are project, so we are fileserver if fileServerId=0 and it is ",
+        fileServerId,
+      );
       return fileServerId == 0;
     }
     // at this point we have to be a compute server
     const computeServerId = decodeUUIDtoNum(this.client.client_id());
     // this is usually true -- but might not be if we are switching
     // directly from one compute server to another.
+    log("we are compute server and ", { fileServerId, computeServerId });
     return fileServerId == computeServerId;
   };
 
@@ -796,14 +818,14 @@ export class SyncDoc extends EventEmitter {
 
   /* Make it so the local hub project will automatically save
      the file to disk periodically. */
-  private init_file_autosave(): void {
+  private async init_file_autosave() {
     // Do not autosave sagews until we resolve
     //   https://github.com/sagemathinc/cocalc/issues/974
     // Similarly, do not autosave ipynb because of
     //   https://github.com/sagemathinc/cocalc/issues/5216
     if (
       !FILE_SERVER_AUTOSAVE_S ||
-      !this.isFileServer() ||
+      !(await this.isFileServer()) ||
       this.fileserver_autosave_timer ||
       endswith(this.path, ".sagews") ||
       endswith(this.path, ".ipynb.sage-jupyter2")
@@ -922,7 +944,7 @@ export class SyncDoc extends EventEmitter {
 
   private init_table_close_handlers(): void {
     for (const x of ["syncstring", "patches", "cursors"]) {
-      const t = this[`${x}_table`];
+      const t = this[x + "_table"];
       if (t != null) {
         t.on("close", () => this.close());
       }
@@ -986,7 +1008,7 @@ export class SyncDoc extends EventEmitter {
     // do this *before* all the await's below, since
     // this syncdoc can't do anything in response to a
     // a file change in its current state.
-    if (this.isFileServer()) {
+    if (await this.isFileServer()) {
       this.update_watch_path(); // no input = closes it
     }
 
@@ -1233,7 +1255,7 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-    if (this.isFileServer()) {
+    if (await this.isFileServer()) {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
       // We keep trying this load from disk until sync-doc is closed
@@ -1255,7 +1277,7 @@ export class SyncDoc extends EventEmitter {
 
     this.assert_not_closed("init_all -- after waiting until fully ready");
 
-    if (this.isFileServer()) {
+    if (await this.isFileServer()) {
       log("init file autosave");
       this.init_file_autosave();
     }
@@ -2281,7 +2303,7 @@ export class SyncDoc extends EventEmitter {
     );
     if (
       this.state === "ready" &&
-      this.isFileServer() &&
+      (await this.isFileServer()) &&
       this.syncstring_save_state !== "requested" &&
       state === "requested"
     ) {
@@ -2427,7 +2449,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async init_watch(): Promise<void> {
-    if (!this.isFileServer()) {
+    if (!(await this.isFileServer())) {
       return;
     }
 
@@ -2441,7 +2463,7 @@ export class SyncDoc extends EventEmitter {
 
   private async pending_save_to_disk(): Promise<void> {
     this.assert_table_is_ready("syncstring");
-    if (!this.isFileServer()) {
+    if (!(await this.isFileServer())) {
       return;
     }
 
@@ -2745,7 +2767,7 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    if (!this.isFileServer()) {
+    if (!(await this.isFileServer())) {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
@@ -2757,12 +2779,12 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       const error = `save to disk failed -- ${err}`;
       dbg(error);
-      if (this.isFileServer()) {
+      if (await this.isFileServer()) {
         this.set_save({ error, state: "done" });
       }
     }
 
-    if (!this.isFileServer()) {
+    if (!(await this.isFileServer())) {
       dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
@@ -2874,7 +2896,7 @@ export class SyncDoc extends EventEmitter {
   private async save_to_disk_aux(): Promise<void> {
     this.assert_is_ready("save_to_disk_aux");
 
-    if (!this.isFileServer()) {
+    if (!(await this.isFileServer())) {
       return await this.save_to_disk_non_filesystem_owner();
     }
 
