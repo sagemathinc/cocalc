@@ -346,7 +346,7 @@ export class SyncDoc extends EventEmitter {
   // but it could be something else.  It's important
   // that whatever algorithm determines this, is
   // a function of state that is eventually consistent.
-  private isFileServer = async (): Promise<boolean> => {
+  private isFileServer = reuseInFlight(async (): Promise<boolean> => {
     const log = this.dbg("isFileServer");
     if (this.client.is_browser()) {
       // browser is never the file server (yet)
@@ -392,7 +392,7 @@ export class SyncDoc extends EventEmitter {
     // directly from one compute server to another.
     log("we are compute server and ", { fileServerId, computeServerId });
     return fileServerId == computeServerId;
-  };
+  });
 
   private getComputeServerManagerDoc = () => {
     if (this.path == COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path) {
@@ -402,9 +402,9 @@ export class SyncDoc extends EventEmitter {
     if (this.computeServerManagerDoc == null) {
       if (this.client.is_project()) {
         // @ts-ignore: TODO!
-        this.computeServerManagerDoc = this.client.syncdoc(
-          COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path,
-        );
+        this.computeServerManagerDoc = this.client.syncdoc({
+          path: COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path,
+        });
       } else {
         // @ts-ignore: TODO!
         this.computeServerManagerDoc = this.client.sync_client.sync_db({
@@ -1463,6 +1463,7 @@ export class SyncDoc extends EventEmitter {
       // no error -- it is NOT read only
       return false;
     } catch (err) {
+      this.dbg("file_is_read_only")(err);
       // error -- it is read only.
       return true;
     }

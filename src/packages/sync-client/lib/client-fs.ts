@@ -4,6 +4,7 @@ import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-contain
 import { join } from "node:path";
 import { readFile, writeFile, stat as statFileAsync } from "node:fs/promises";
 import { exists, stat } from "fs";
+import fs from "node:fs";
 import type { CB } from "@cocalc/util/types/callback";
 import { Watcher } from "@cocalc/backend/watcher";
 import getLogger from "@cocalc/backend/logger";
@@ -20,6 +21,7 @@ export class ClientFs extends Client implements ClientFsType {
   file_size_async = this.filesystemClient.file_size_async;
   file_stat_async = this.filesystemClient.file_stat_async;
   watch_file = this.filesystemClient.watch_file;
+  path_access = this.filesystemClient.path_access;
 
   constructor({
     project_id,
@@ -224,5 +226,16 @@ export class FileSystemClient {
   is_deleted = (_path: string, _project_id: string) => {
     // not implemented yet in general
     return undefined;
+  };
+
+  path_access = (opts: { path: string; mode: string; cb: CB }) => {
+    // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
+    // cb(err); err = if any access fails; err=undefined if all access is OK
+    const path = join(this.home, opts.path);
+    let access = 0;
+    for (let s of opts.mode) {
+      access |= fs[s.toUpperCase() + "_OK"];
+    }
+    fs.access(path, access, opts.cb);
   };
 }
