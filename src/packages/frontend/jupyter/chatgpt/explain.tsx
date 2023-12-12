@@ -48,7 +48,12 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
         title={
           <b>
             Get explanation of this code from{" "}
-            <ModelSwitch size="small" model={model} setModel={setModel} />
+            <ModelSwitch
+              size="small"
+              model={model}
+              setModel={setModel}
+              project_id={project_id}
+            />
           </b>
         }
         description={() => {

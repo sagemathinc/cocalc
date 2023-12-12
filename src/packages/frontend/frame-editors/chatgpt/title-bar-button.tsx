@@ -116,6 +116,7 @@ interface Props {
   visible?: boolean;
   path: string;
   buttonRef;
+  project_id: string;
 }
 
 export default function LanguageModelTitleBarButtonDialog({
@@ -127,6 +128,7 @@ export default function LanguageModelTitleBarButtonDialog({
   visible,
   path,
   buttonRef,
+  project_id,
 }: Props) {
   const [showDialog, setShowDialog] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -239,8 +241,13 @@ export default function LanguageModelTitleBarButtonDialog({
       title={
         <div style={{ fontSize: "18px" }}>
           <LanguageModelVendorAvatar model={model} />{" "}
-          <ModelSwitch size="small" model={model} setModel={setModel} /> What
-          would you like to do using {modelToName(model)}?
+          <ModelSwitch
+            project_id={project_id}
+            size="small"
+            model={model}
+            setModel={setModel}
+          />{" "}
+          What would you like to do using {modelToName(model)}?
           <Button
             onClick={() => {
               setShowDialog(false);

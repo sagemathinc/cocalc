@@ -7,7 +7,6 @@ import {
   LanguageModel,
   model2service,
 } from "@cocalc/util/db-schema/openai";
-import { useProjectContext } from "../../project/context";
 
 export { DEFAULT_MODEL };
 export type { LanguageModel };
@@ -17,14 +16,22 @@ interface Props {
   setModel: (model: LanguageModel) => void;
   size?;
   style?: CSS;
+  project_id: string;
 }
 
 // The tooltips below are adopted from chat.openai.com
 
 const GOOGLE_GENAI: LanguageModel = "chat-bison-001";
 
-export default function ModelSwitch({ style, model, setModel, size }: Props) {
-  const { project_id } = useProjectContext();
+export default function ModelSwitch({
+  style,
+  model,
+  setModel,
+  size,
+  project_id,
+}: Props) {
+  // ATTN: you cannot use useProjectContext because this component is used outside a project context
+  // when it is opened via an error in the gutter of a latex document. (I don't know why, maybe fixable)
   const projectsStore = redux.getStore("projects");
   const showOpenAI = projectsStore.hasLanguageModelEnabled(
     project_id,

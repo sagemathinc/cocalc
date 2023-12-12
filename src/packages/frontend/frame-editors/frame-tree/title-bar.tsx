@@ -1062,6 +1062,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     return (
       <LanguageModel
+        project_id={props.project_id}
         buttonRef={getTourRef("chatgpt")}
         key={"chatgpt"}
         id={props.id}

@@ -68,7 +68,12 @@ export default function AIGenerateCodeCell({
         <div style={{ fontSize: "18px" }}>
           <LanguageModelVendorAvatar model={model} size={24} /> Generate code
           cell using{" "}
-          <ModelSwitch size="small" model={model} setModel={setModel} />
+          <ModelSwitch
+            project_id={project_id}
+            size="small"
+            model={model}
+            setModel={setModel}
+          />
           <Button
             onClick={() => {
               setShowChatGPT(false);

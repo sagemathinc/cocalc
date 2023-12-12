@@ -421,6 +421,7 @@ export default function AIGenerateJupyterNotebook({
       <Title level={4}>
         <LanguageModelVendorAvatar model={model} /> Create Notebook Using{" "}
         <ModelSwitch
+          project_id={project_id}
           model={model}
           setModel={setModel}
           style={{ marginTop: "-7.5px" }}

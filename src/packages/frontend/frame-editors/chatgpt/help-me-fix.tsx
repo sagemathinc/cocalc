@@ -68,7 +68,12 @@ export default function HelpMeFix({
         title={
           <>
             Get Help from{" "}
-            <ModelSwitch size="small" model={model} setModel={setModel} />
+            <ModelSwitch
+              size="small"
+              model={model}
+              setModel={setModel}
+              project_id={project_id}
+            />
           </>
         }
         description={() => (
