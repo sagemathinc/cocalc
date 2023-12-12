@@ -169,7 +169,7 @@ export const EXTRAS: SettingsExtras = {
     show: openai_enabled,
   },
   google_vertexai_key: {
-    name: "Google Generative AI Key",
+    name: "Google GenerativeAI Key",
     desc: "Create a [Generative AI Key](https://makersuite.google.com/app/apikey) in the MakerSuite and paste the content.",
     default: "",
     password: true,

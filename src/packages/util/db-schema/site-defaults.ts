@@ -589,7 +589,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
   },
   google_vertexai_enabled: {
-    name: "Google's VertexAI UI",
+    name: "Google GenerativeAI UI",
     desc: "Controls visibility of UI elements related to Google's **Generative AI** integration.  You must **also set your Google Generative AI key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
