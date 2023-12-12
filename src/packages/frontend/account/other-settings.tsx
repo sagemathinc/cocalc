@@ -470,7 +470,7 @@ export class OtherSettings extends Component<Props> {
                 redux.getStore("projects").clearOpenAICache();
               }}
             >
-              <strong>Disable all language model integrations</strong>, e.g.,
+              <strong>Disable all AI integrations</strong>, e.g.,
               code generation or explanation buttons in Jupyter, @chatgpt
               mentions, etc.
             </Checkbox>
