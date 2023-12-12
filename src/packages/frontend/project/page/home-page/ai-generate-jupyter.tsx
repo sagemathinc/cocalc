@@ -43,9 +43,9 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
+import { once } from "@cocalc/util/async-utils";
 import {
   getVendorStatusCheckMD,
-  llmSupportsStreaming,
   model2vendor,
 } from "@cocalc/util/db-schema/openai";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
@@ -217,6 +217,7 @@ export default function AIGenerateJupyterNotebook({
   async function updateNotebook(llmStream: ChatStream): Promise<void> {
     // local state, modified when more data comes in
     let init = false;
+    let answer = "";
     let ja: JupyterActions | undefined = undefined;
     let jfa: NotebookFrameActions | undefined = undefined;
     let curCell: string = "";
@@ -267,82 +268,107 @@ export default function AIGenerateJupyterNotebook({
       onSuccess?.();
     }
 
-    const updateCells = throttle(
-      // every update interval, we extract all the answer text into cells
-      function (answer) {
-        const allCells = splitCells(answer);
-        if (jfa == null) {
-          console.warn(
-            "unable to update cells since jupyter frame actions are not defined",
-          );
-          return;
+    // every update interval, we extract all the answer text into cells
+    // ATTN: do not call this concurrently, see throttle below
+    function updateCells(answer) {
+      const allCells = splitCells(answer);
+      if (jfa == null) {
+        console.warn(
+          "unable to update cells since jupyter frame actions are not defined",
+        );
+        return;
+      }
+      if (ja == null) {
+        console.warn(
+          "unable to update cells since jupyter actions are not defined",
+        );
+        return;
+      }
+
+      // we always have to update the last cell, even if there are more cells ahead
+      jfa.set_cell_input(curCell, allCells[numCells - 1].source.join(""));
+      ja.set_cell_type(curCell, allCells[numCells - 1].cell_type);
+
+      if (allCells.length > numCells) {
+        // for all new cells, insert them and update lastCell and numCells
+        for (let i = numCells; i < allCells.length; i++) {
+          curCell = jfa.insert_cell(1); // insert cell below the current one
+          jfa.set_cell_input(curCell, allCells[i].source.join(""));
+          ja.set_cell_type(curCell, allCells[i].cell_type);
+          numCells += 1;
         }
-        if (ja == null) {
-          console.warn(
-            "unable to update cells since jupyter actions are not defined",
-          );
-          return;
+      }
+    }
+
+    // NOTE: as of writing this, PaLM returns everything at once. Hence this must be robust for
+    // the case of one token callback with everything and then "null" to indicate it is done.
+    // OTOH, ChatGPT will stream a lot of tokens at a high frequency.
+    const processTokens = throttle(
+      async function (answer: string, finalize: boolean) {
+        const fn = getFilename(answer, prompt);
+        if (!init && fn != null) {
+          init = true;
+          // this kicks off creating the notebook and opening it
+          initNotebook(fn);
         }
 
-        // we always have to update the last cell, even if there are more cells ahead
-        jfa.set_cell_input(curCell, allCells[numCells - 1].source.join(""));
-        ja.set_cell_type(curCell, allCells[numCells - 1].cell_type);
+        // This finalize step is important for PaLM (which isn't streamining), because
+        // only here the entire text of the notbeook is processed once at the very end.
+        if (finalize) {
+          if (!init) {
+            // we never got a filename, so we create one based on the prompt and create the notebook
+            const fn: string = sanitizeFilename(prompt.split("\n").join("_"));
+            await initNotebook(fn);
+          }
 
-        if (allCells.length > numCells) {
-          // for all new cells, insert them and update lastCell and numCells
-          for (let i = numCells; i < allCells.length; i++) {
-            curCell = jfa.insert_cell(1); // insert cell below the current one
-            jfa.set_cell_input(curCell, allCells[i].source.join(""));
-            ja.set_cell_type(curCell, allCells[i].cell_type);
-            numCells += 1;
+          // we wait for up to 1 minute to create the notebook
+          let t0 = Date.now();
+          while (true) {
+            if (ja != null && jfa != null) break;
+            await delay(100);
+            if (Date.now() - t0 > 60 * 1000) {
+              throw new Error(
+                "Unable to create Jupyter Notebook.  Please try again.",
+              );
+            }
+          }
+
+          // we check if the notebook is ready – and await its ready state
+          if (ja.syncdb.get_state() !== "ready") {
+            await once(ja.syncdb, "ready");
+          }
+
+          // now, we're sure the notebook is ready → final push to update the entire notebook
+          updateCells(answer);
+
+          // and after we're done, cleanup and run all cells
+          ja.delete_all_blank_code_cells();
+          ja.run_all_cells();
+        } else {
+          // we have a partial answer. update the notebook in real-time, if it exists
+          // if those are != null, initNotebook started to crate it, and we check if it is ready for us to update
+          if (ja != null && jfa != null) {
+            if (ja.syncdb.get_state() === "ready") {
+              updateCells(answer);
+            }
           }
         }
       },
       1000,
-      { leading: true, trailing: true },
+      {
+        leading: false,
+        trailing: true,
+      },
     );
 
-    // NOTE: as of writing this, PaLM returns everything at once. Hence this must be robust for
-    // the case of one token callback with everything and then "null" to indicate it is done
-    let answer = "";
-    llmStream.on("token", async (token) => {
-      if (llmSupportsStreaming(model)) {
-        if (token != null) {
-          answer += token;
-          const filenameGPT = getFilename(answer, prompt);
-          if (!init && filenameGPT != null) {
-            init = true;
-            initNotebook(filenameGPT);
-          }
-          // those are != null if we have a notebook open
-          if (ja != null && jfa != null) {
-            updateCells(answer);
-          }
-        } else {
-          // we're done
-          ja?.delete_all_blank_code_cells();
-          ja?.run_all_cells();
-        }
+    llmStream.on("token", async (token: string | null) => {
+      // important: processTokens must not be called in parallel and also once at the very end
+      if (token != null) {
+        answer += token;
+        processTokens(answer, false);
       } else {
-        // Google'S PaLM2 (as of writing this) only returns everything once and then null. We ignore the 2nd call.
-        // We need to be more careful with updating the notebook properly!
-        if (token != null) {
-          answer += token;
-          const filenameGPT: string =
-            getFilename(answer, prompt) ??
-            sanitizeFilename(prompt.split("\n").join("_"));
-          await initNotebook(filenameGPT);
-          // we're done – now wait until ja and jfa are set and populate it with the answer
-          while (true) {
-            if (ja != null && jfa != null) break;
-            await delay(50);
-          }
-          // wait until notebook loaded (is there a way to await it!?)
-          await delay(5000);
-          updateCells(answer);
-          ja.delete_all_blank_code_cells();
-          ja.run_all_cells();
-        }
+        // token == null signals the end of the stream
+        processTokens(answer, true);
       }
     });
 
