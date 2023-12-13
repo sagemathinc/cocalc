@@ -65,7 +65,7 @@ export function NewFlyout({
   const availableFeatures = useAvailableFeatures(project_id);
   const file_creation_error = useTypedRedux(
     { project_id },
-    "file_creation_error"
+    "file_creation_error",
   );
 
   const [filename, setFilename] = useState<string>("");
@@ -98,7 +98,7 @@ export function NewFlyout({
 
   const isFile = useMemo(
     () => !(filename && filename.endsWith("/")),
-    [filename]
+    [filename],
   );
 
   // if name is entered manual and contains an extension, set the ext to it
@@ -132,7 +132,13 @@ export function NewFlyout({
         return filename;
       } else {
         if (ext === "") {
-          return filename;
+          if (manualExt && filename.endsWith(" ")) {
+            // if we trigger the "no extension" with a space, trim the name
+            // otherwise, use the no extension creation button
+            return filename.trim();
+          } else {
+            return filename;
+          }
         } else {
           return `${filename}.${ext}`;
         }
@@ -214,19 +220,21 @@ export function NewFlyout({
     }
   }
 
-  function renderError() {
-    let message;
+  function getRenderErrorMessage() {
     const error = file_creation_error;
     if (error === "not running") {
-      message = "The project is not running. Please try again in a moment";
+      return "The project is not running. Please try again in a moment";
     } else {
-      message = error;
+      return error;
     }
+  }
+
+  function renderError() {
     return (
       <ErrorDisplay
         style={{ margin: 0, flex: "1 0 auto" }}
         banner={true}
-        error={message}
+        error={getRenderErrorMessage()}
         onClose={(): void => {
           actions?.setState({ file_creation_error: "" });
         }}

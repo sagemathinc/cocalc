@@ -6,20 +6,23 @@
 import { Col, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import React from "react";
+
+import { Available } from "@cocalc/comm/project-configuration";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 
 interface Props {
   create_file: (name?: string) => void;
   create_folder?: (name?: string) => void;
-  projectActions?;
-  availableFeatures;
+  projectActions: ProjectActions | undefined;
+  availableFeatures: Readonly<Available>;
   disabledFeatures?;
-  chatgptNotebook?;
+  chatgptNotebook?: React.ReactNode;
   children?: React.ReactNode;
   mode?: "flyout" | "full";
   selectedExt?: string;
@@ -61,7 +64,99 @@ export function FileTypeSelector({
     return ext === selectedExt;
   }
 
-  // console.log("FileTypeSelector: available", available)
+  function renderJupyterNotebookButtons() {
+    if (!availableFeatures.jupyter_notebook) return;
+
+    return (
+      <Col sm={sm} md={md}>
+        <Tip
+          delayShow={delayShow}
+          icon={NEW_FILETYPE_ICONS["ipynb"]}
+          title="Jupyter Notebook"
+          tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
+        >
+          <NewFileButton
+            name="Jupyter Notebook"
+            on_click={create_file}
+            ext={"ipynb"}
+            size={btnSize}
+            active={btnActive("ipynb")}
+          />
+        </Tip>
+        {chatgptNotebook}
+      </Col>
+    );
+  }
+
+  function renderSageWS() {
+    if (!availableFeatures.sage) return;
+
+    return (
+      <Col sm={sm} md={md}>
+        <Tip
+          delayShow={delayShow}
+          icon={NEW_FILETYPE_ICONS.sagews}
+          title="SageMath Worksheet"
+          tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
+        >
+          <NewFileButton
+            name="SageMath Worksheet"
+            on_click={create_file}
+            ext="sagews"
+            size={btnSize}
+            active={btnActive("sagews")}
+          />
+        </Tip>{" "}
+      </Col>
+    );
+  }
+
+  function renderRMD() {
+    if (!availableFeatures.rmd) return;
+
+    return (
+      <Col sm={sm} md={md}>
+        <Tip
+          delayShow={delayShow}
+          title="RMarkdown File"
+          icon={NEW_FILETYPE_ICONS.rmd}
+          tip="RMarkdown document with real-time preview."
+        >
+          <NewFileButton
+            name="RMarkdown"
+            on_click={create_file}
+            ext="rmd"
+            size={btnSize}
+            active={btnActive("rmd")}
+          />
+        </Tip>
+      </Col>
+    );
+  }
+
+  function renderLaTeX() {
+    if (!availableFeatures.latex) return;
+
+    return (
+      <Col sm={sm} md={md}>
+        <Tip
+          delayShow={delayShow}
+          title="LaTeX Document"
+          icon={NEW_FILETYPE_ICONS.tex}
+          tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
+        >
+          <NewFileButton
+            name="LaTeX Document"
+            on_click={create_file}
+            ext="tex"
+            size={btnSize}
+            active={btnActive("tex")}
+          />
+        </Tip>
+      </Col>
+    );
+  }
+
   return (
     <div>
       {(availableFeatures.jupyter_notebook ||
@@ -73,82 +168,10 @@ export function FileTypeSelector({
             Data Science
           </Section>
           <Row gutter={gutter} style={newRowStyle}>
-            {availableFeatures.jupyter_notebook && (
-              <Col sm={sm} md={md}>
-                <Tip
-                  delayShow={delayShow}
-                  icon={NEW_FILETYPE_ICONS["ipynb"]}
-                  title="Jupyter Notebook"
-                  tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
-                >
-                  <NewFileButton
-                    name="Jupyter Notebook"
-                    on_click={create_file}
-                    ext={"ipynb"}
-                    size={btnSize}
-                    active={btnActive("ipynb")}
-                  />
-                </Tip>
-                {chatgptNotebook}
-              </Col>
-            )}
-
-            {availableFeatures.sage && (
-              <Col sm={sm} md={md}>
-                <Tip
-                  delayShow={delayShow}
-                  icon={NEW_FILETYPE_ICONS.sagews}
-                  title="SageMath Worksheet"
-                  tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
-                >
-                  <NewFileButton
-                    name="SageMath Worksheet"
-                    on_click={create_file}
-                    ext="sagews"
-                    size={btnSize}
-                    active={btnActive("sagews")}
-                  />
-                </Tip>{" "}
-              </Col>
-            )}
-
-            {availableFeatures.latex && (
-              <Col sm={sm} md={md}>
-                <Tip
-                  delayShow={delayShow}
-                  title="LaTeX Document"
-                  icon={NEW_FILETYPE_ICONS.tex}
-                  tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
-                >
-                  <NewFileButton
-                    name="LaTeX Document"
-                    on_click={create_file}
-                    ext="tex"
-                    size={btnSize}
-                    active={btnActive("tex")}
-                  />
-                </Tip>
-              </Col>
-            )}
-
-            {availableFeatures.rmd && (
-              <Col sm={sm} md={md}>
-                <Tip
-                  delayShow={delayShow}
-                  title="RMarkdown File"
-                  icon={NEW_FILETYPE_ICONS.rmd}
-                  tip="RMarkdown document with real-time preview."
-                >
-                  <NewFileButton
-                    name="RMarkdown"
-                    on_click={create_file}
-                    ext="rmd"
-                    size={btnSize}
-                    active={btnActive("rmd")}
-                  />
-                </Tip>
-              </Col>
-            )}
+            {renderJupyterNotebookButtons()}
+            {renderLaTeX()}
+            {renderRMD()}
+            {renderSageWS()}
           </Row>
         </>
       )}
