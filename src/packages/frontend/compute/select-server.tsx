@@ -4,7 +4,7 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Select, Tooltip } from "antd";
+import { Select, Spin, Tooltip } from "antd";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
@@ -74,10 +74,13 @@ export default function SelectServer({
     setOpen0(open);
   };
 
-  const computeServers =
-    useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
+  const computeServers = useTypedRedux(
+    { project_id },
+    "compute_servers",
+  )?.toJS();
 
   const options = useMemo(() => {
+    if (computeServers == null) return [];
     const options: Option[] = [];
     for (const id in computeServers) {
       const server = computeServers[id];
@@ -241,6 +244,10 @@ export default function SelectServer({
 
     return v;
   }, [computeServers]);
+
+  if (computeServers == null) {
+    return <Spin delay={1000} />;
+  }
 
   return (
     <Select
