@@ -25,7 +25,7 @@ import getClient, { VertexAIClient } from "./client";
 
 const log = getLogger("chatgpt");
 
-type History = {
+export type History = {
   role: "assistant" | "user" | "system";
   content: string;
 }[];
@@ -216,21 +216,12 @@ async function evaluateVertexAI({
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const messages: { content: string }[] = (history ?? [])
-        .filter(({ content }) => !!content)
-        .map(({ content }) => {
-          return {
-            content,
-          };
-        });
-
-      messages.push({ content: input });
-
       // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
       // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
       // I think this is just a bug. If there is no reply, there is now a simple user-visible message instead of nothing.
       const output = await client.chat({
-        messages,
+        history: history ?? [],
+        input,
         context: system,
         model: "chat-bison-001",
       });
@@ -249,7 +240,7 @@ async function evaluateVertexAI({
 
       // token estimation
       const system_tokens = numTokens(system ?? "");
-      const input_all = (messages ?? [])
+      const input_all = (history ?? [])
         .map(({ content }) => content)
         .join("\n");
       const prompt_tokens = system_tokens + numTokens(input_all);
