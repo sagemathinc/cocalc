@@ -90,7 +90,7 @@ export const shoppingCartCheckout = async ({
   }
 
   const params = await getShoppingCartCheckoutParams(account_id);
-  const surplusCredit = Math.max(paymentAmountValue - params.chargeAmount, 0);
+  const surplusCredit = ignoreBalance ? 0 : Math.max(paymentAmountValue - params.chargeAmount, 0);
 
   // Validate paymentAmount is sufficient when not debiting from user's balance
   //
@@ -128,7 +128,7 @@ export const shoppingCartCheckout = async ({
 
   // Track available balance for line item accounting when using existing balance
   //
-  let availableBalance = params.balance - params.minBalance;
+  let availableBalance = ignoreBalance ? 0 : params.balance - params.minBalance;
 
   const sortedCartItems = params.cart.sort((a, b) => {
     const itemA = Math.max(a.cost?.discounted_cost ?? 0, 0);
@@ -193,10 +193,9 @@ export const shoppingCartCheckout = async ({
   // If balance has gone below minimum account balance (e.g., if the user's minimum account balance is changed by
   // an admin), then we add a line item to correct that here.
   //
-  const balanceDeficit = params.balance - params.minBalance;
-  if (balanceDeficit < 0) {
+  if (params.cureAmount > 0) {
     stripeCheckoutList.push({
-      amount: -balanceDeficit,
+      amount: params.cureAmount,
       description: "Adjust for existing balance deficit",
     });
   }
@@ -216,10 +215,9 @@ export const shoppingCartCheckout = async ({
   //
   // (see src/packages/util/purchases/charge-amount.ts)
   //
-  const minimumPaymentCharge = params.chargeAmount - params.amountDue;
-  if (minimumPaymentCharge > 0) {
+  if (params.minimumPaymentCharge > 0) {
     stripeCheckoutList.push({
-      amount: minimumPaymentCharge,
+      amount: params.minimumPaymentCharge,
       description: "Pay-as-you-go minimum payment charge",
     });
   }
@@ -232,7 +230,7 @@ export const shoppingCartCheckout = async ({
     (total, item) => (total += item.amount),
     0,
   );
-  if (Math.abs(checkoutTotal - (params.chargeAmount + surplusCredit)) > 0.1) {
+  if (!ignoreBalance && Math.abs(checkoutTotal - (params.chargeAmount + surplusCredit)) > 0.1) {
     throw Error(
       `Computed cart total ${currency(
         checkoutTotal,
@@ -288,12 +286,12 @@ export const getCheckoutCart = async (
 
 export const getShoppingCartCheckoutParams = async (
   account_id: string,
-): Promise<CheckoutParams> => {
+): Promise<CheckoutParams & { minimumPaymentCharge: number, cureAmount: number }> => {
   const { total, cart } = await getCheckoutCart(account_id);
   const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
-  const { amountDue, chargeAmount } = getChargeAmount({
+  const { amountDue, chargeAmount, minimumPaymentCharge, cureAmount } = getChargeAmount({
     cost: total,
     balance,
     minBalance,
@@ -308,6 +306,8 @@ export const getShoppingCartCheckoutParams = async (
     chargeAmount,
     total,
     cart,
+    minimumPaymentCharge,
+    cureAmount,
   };
 };
 

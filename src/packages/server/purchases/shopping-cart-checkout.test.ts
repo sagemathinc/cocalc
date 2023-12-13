@@ -121,6 +121,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 1.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -145,6 +147,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.5,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -158,6 +162,34 @@ describe("shopping-cart-checkout", () => {
         .toThrow("Computed cart total $0.00 does not match expected charge amount $0.50.");
     });
 
+    it("does not throw an error when computed cart total does not match chargeAmount when ignoring balance", async () => {
+      // Arrange
+      //
+      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
+        balance: NaN,
+        minPayment: NaN,
+        amountDue: 0.5,
+        chargeAmount: 0.5,
+        total: NaN,
+        minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
+        cart: [],
+      }));
+
+      // Act
+      //
+      const checkoutResult = await sut.shoppingCartCheckout({
+        ...testCheckout,
+        paymentAmount: 0.5,
+        ignoreBalance: true,
+      });
+
+      // Assert
+      //
+      expect(checkoutResult.done).toEqual(false);
+    });
+
     it("uses account balance when available", async () => {
       // Arrange
       //
@@ -168,6 +200,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -196,6 +230,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: [{
           foo: "bar",
         }]
@@ -232,6 +268,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.5, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: 0.5,
+        cureAmount: NaN,
         cart: []
       }));
 
@@ -279,6 +317,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 1.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart,
       }));
 
@@ -307,6 +347,40 @@ describe("shopping-cart-checkout", () => {
       });
     });
 
+    it("does not add extra account credit when ignoring existing balance", async () => {
+      // Arrange
+      //
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
+      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
+        balance: 10.0,
+        minPayment: NaN,
+        amountDue: 1.0,
+        chargeAmount: 1.0,
+        total: NaN,
+        minBalance: NaN,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
+        cart: [],
+      }));
+
+      // Act
+      //
+      const checkoutResult = await sut.shoppingCartCheckout({
+        ...testCheckout,
+        paymentAmount: 2.0,
+        ignoreBalance: true,
+      });
+      const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
+
+      // Assert
+      //
+      expect(checkoutResult.done).toEqual(false);
+      expect(checkoutSessionArgs).toEqual({
+        ...testCheckout,
+        line_items: [],
+      });
+    });
+
     it("adds line item to settle account credit", async () => {
       // Arrange
       //
@@ -324,12 +398,14 @@ describe("shopping-cart-checkout", () => {
 
       jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
-        balance: -0.1,
+        balance: -0.1234,
         minPayment: NaN,
-        amountDue: 1.1,
-        chargeAmount: 1.1,
+        amountDue: 1.0,
+        chargeAmount: 1.1234,
         total: NaN,
         minBalance: 0.0,
+        minimumPaymentCharge: NaN,
+        cureAmount: 0.1234,
         cart: testCart,
       }));
 
@@ -337,7 +413,7 @@ describe("shopping-cart-checkout", () => {
       //
       const checkoutResult = await sut.shoppingCartCheckout({
         ...testCheckout,
-        paymentAmount: 1.1,
+        paymentAmount: 1.1234,
       });
       const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
 
@@ -351,7 +427,7 @@ describe("shopping-cart-checkout", () => {
             description: "test",
           }),
           {
-            "amount": 0.1,
+            "amount": 0.1234,
             "description": expect.stringContaining("existing balance deficit"),
           },
         ],
@@ -376,11 +452,13 @@ describe("shopping-cart-checkout", () => {
       jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
       jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
         balance: NaN,
-        minPayment: NaN,
+        minPayment: 5.0,
         amountDue: 4.5,
-        chargeAmount: 5.0, // Charge an extra $0.50 over amountDue to emulate pay-as-you-go charge
+        chargeAmount: 5.0,
         total: NaN,
         minBalance: NaN,
+        minimumPaymentCharge: 0.5,
+        cureAmount: NaN,
         cart: testCart,
       }));
 
@@ -429,6 +507,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 0.5,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 
@@ -485,6 +565,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 2.5,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 
@@ -508,6 +590,55 @@ describe("shopping-cart-checkout", () => {
           {
             "amount": 2.5,
             "description": expect.stringContaining("$0.50 deducted"),
+          },
+        ],
+      });
+    });
+
+    it("does not use balance when balance is to be ignored", async () => {
+      // Arrange
+      //
+      const testCart = [{
+        cost: {
+          discounted_cost: 1.5
+        },
+        description: {
+          type: "disk",
+          description: "foo",
+        },
+      }];
+
+      jest.spyOn(sut, "toFriendlyDescription").mockReturnValue("test");
+      jest.spyOn(sut, "getShoppingCartCheckoutParams").mockReturnValue(Promise.resolve({
+        balance: 0.3,
+        minPayment: NaN,
+        amountDue: 0.5,
+        chargeAmount: 0.5,  // Emulates partial account balance
+        total: NaN,
+        minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
+        cart: testCart as CheckoutCartItem[],
+      }));
+
+      // Act
+      //
+      const checkoutResult = await sut.shoppingCartCheckout({
+        ...testCheckout,
+        paymentAmount: 0.5,
+        ignoreBalance: true,
+      });
+      const checkoutSessionArgs = mockCreateStripeCheckoutSession.mock.calls.pop()?.pop();
+
+      // Assert
+      //
+      expect(checkoutResult.done).toEqual(false);
+      expect(checkoutSessionArgs).toEqual({
+        ...testCheckout,
+        line_items: [
+          {
+            "amount": 1.5,
+            "description": expect.not.stringContaining("deducted from"),
           },
         ],
       });
@@ -554,6 +685,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: 4.0,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 
@@ -631,6 +764,8 @@ describe("shopping-cart-checkout", () => {
         chargeAmount: cartTotal,
         total: NaN,
         minBalance: -0.7,
+        minimumPaymentCharge: NaN,
+        cureAmount: NaN,
         cart: testCart as CheckoutCartItem[],
       }));
 
