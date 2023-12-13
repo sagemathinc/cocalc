@@ -346,16 +346,21 @@ export class SyncDoc extends EventEmitter {
   // but it could be something else.  It's important
   // that whatever algorithm determines this, is
   // a function of state that is eventually consistent.
-  private isFileServer = reuseInFlight(async (): Promise<boolean> => {
+  // IMPORTANT: whether or not this is the file server can
+  // change over time, so if you call isFileServer and
+  // set something up (e.g., autosave or a watcher), based
+  // on the result, you need to clear it when the state
+  // changes. See the function handleComputeServerManagerChange.
+  private isFileServer = reuseInFlight(async () => {
     const log = this.dbg("isFileServer");
     if (this.client.is_browser()) {
-      // browser is never the file server (yet)
-      log("no because is browser");
+      // browser is never the file server (yet), and doesn't need to do
+      // anything related to watching for changes in state
       return false;
     }
     const computeServerManagerDoc = this.getComputeServerManagerDoc();
     if (computeServerManagerDoc == null) {
-      log("not using compute server manager");
+      log("not using compute server manager for this doc");
       return this.client.is_project();
     }
 
@@ -412,8 +417,62 @@ export class SyncDoc extends EventEmitter {
           ...COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
         });
       }
+      if (this.computeServerManagerDoc != null && !this.client.is_browser()) {
+        // start watching for state changes
+        this.computeServerManagerDoc.on(
+          "change",
+          this.handleComputeServerManagerChange,
+        );
+      }
     }
     return this.computeServerManagerDoc;
+  };
+
+  private handleComputeServerManagerChange = async (keys) => {
+    if (this.computeServerManagerDoc == null) {
+      return;
+    }
+    let relevant = false;
+    for (const key of keys ?? []) {
+      if (key.get("path") == this.path) {
+        relevant = true;
+        break;
+      }
+    }
+    if (!relevant) {
+      return;
+    }
+    const fileServerId =
+      this.computeServerManagerDoc.get_one({ path: this.path })?.get("id") ?? 0;
+    const ourId = this.client.is_project()
+      ? 0
+      : decodeUUIDtoNum(this.client.client_id());
+    // we are considering ourself the file server already if we have
+    // either a watcher or autosave on.
+    const thinkWeAreFileServer =
+      this.file_watcher != null || this.fileserver_autosave_timer;
+    const weAreFileServer = fileServerId == ourId;
+    if (thinkWeAreFileServer != weAreFileServer) {
+      // life has changed!  Let's adapt.
+      if (thinkWeAreFileServer) {
+        // we were acting as the file server, but now we are not.
+        await this.save_to_disk_filesystem_owner();
+        // Stop doing things we are no longer supposed to do.
+        clearInterval(this.fileserver_autosave_timer as any);
+        this.fileserver_autosave_timer = 0;
+        // stop watching filesystem
+        await this.update_watch_path();
+      } else {
+        // load our state from the disk
+        await this.load_from_disk();
+        // we were not acting as the file server, but now we need. Let's
+        // step up to the plate.
+        // start watching filesystem
+        await this.update_watch_path(this.path);
+        // enable autosave
+        await this.init_file_autosave();
+      }
+    }
   };
 
   // Return id of ACTIVE remote compute server, if one is connected and pinging, or 0
@@ -968,6 +1027,10 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
+    this.computeServerManagerDoc?.removeListener(
+      "change",
+      this.handleComputeServerManagerChange,
+    );
     //
     // SYNC STUFF
     //
@@ -1008,9 +1071,7 @@ export class SyncDoc extends EventEmitter {
     // do this *before* all the await's below, since
     // this syncdoc can't do anything in response to a
     // a file change in its current state.
-    if (await this.isFileServer()) {
-      this.update_watch_path(); // no input = closes it
-    }
+    this.update_watch_path(); // no input = closes it, if open
 
     if (this.patch_list != null) {
       // not async -- just a data structure in memory
@@ -2451,6 +2512,8 @@ export class SyncDoc extends EventEmitter {
 
   private async init_watch(): Promise<void> {
     if (!(await this.isFileServer())) {
+      // ensures we are NOT watching anything
+      await this.update_watch_path();
       return;
     }
 
