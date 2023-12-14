@@ -6,7 +6,11 @@ import {
   DiscussServiceClient,
   TextServiceClient,
 } from "@google-ai/generativelanguage";
-import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
+import {
+  GenerativeModel,
+  GoogleGenerativeAI,
+  InputContent,
+} from "@google/generative-ai";
 import { Configuration, OpenAIApi } from "openai";
 const { GoogleAuth } = require("google-auth-library");
 
@@ -14,7 +18,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/openai";
 import { unreachable } from "@cocalc/util/misc";
-import { History } from "./chatgpt";
+import { ChatOutput, History, numTokens } from "./chatgpt";
 
 const log = getLogger("openai:client");
 
@@ -135,38 +139,60 @@ export class VertexAIClient {
   }
 
   // https://developers.generativeai.google/tutorials/chat_node_quickstart
+  // https://ai.google.dev/tutorials/node_quickstart#multi-turn-conversations-chat
   async chat({
     model,
     context,
     history,
     input,
+    maxTokens,
+    stream,
   }: {
     model: "chat-bison-001" | "gemini-pro";
     context?: string;
     history: History;
     input: string;
-  }): Promise<string | null | undefined> {
+    maxTokens?: number;
+    stream?: (output?: string) => void;
+  }): Promise<ChatOutput> {
     switch (model) {
       case "chat-bison-001":
-        return this.chatPalm2({ context, history, input });
+        return this.chatPalm2({ context, history, input, stream });
 
       case "gemini-pro":
-        return this.chatGeminiPro({ context, history, input });
+        return this.chatGeminiPro({
+          context,
+          history,
+          input,
+          maxTokens,
+          stream,
+        });
 
       default:
         throw new Error(`model ${model} not supported`);
     }
   }
 
-  private async chatGeminiPro({ context, history, input }) {
-    const geminiHistory = history.map(({ role, content }) => ({
+  private async chatGeminiPro({
+    context,
+    history,
+    input,
+    maxTokens,
+    stream,
+  }: {
+    context?: string;
+    history: History;
+    input: string;
+    maxTokens?: number;
+    stream?: (output?: string) => void;
+  }) {
+    const geminiHistory: InputContent[] = history.map(({ role, content }) => ({
       // Note: there is no "system", this is supposed to be in the context
       role: role === "user" ? "user" : "model",
       parts: content,
     }));
-    1;
     // TODO there is no context? hence enter it as the first user message
-    const geminiContext = context
+    const geminiContext: InputContent[] = context
       ? [
           {
             role: "user",
@@ -175,27 +201,56 @@ export class VertexAIClient {
         ]
       : [];
 
-    // we create a new model each time (it stores the chat history!)
+    // we create a new model each time (model instances store the chat history!)
     const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
       model: "gemini-pro",
     });
     const chat = geminiPro.startChat({
       history: [...geminiContext, ...geminiHistory],
-      generationConfig: { maxOutputTokens: 2048 },
+      generationConfig: { maxOutputTokens: maxTokens ?? 2048 },
     });
 
-    const result = await chat.sendMessage(input);
-    const response = await result.response;
-    const text = response.text();
+    const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
+      input,
+      context ?? "",
+      ...history.map(({ content }) => content),
+    ]);
+
+    let text = "";
+    if (stream != null) {
+      // https://ai.google.dev/tutorials/node_quickstart#streaming
+      const result = await chat.sendMessageStream(input);
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        text += chunkText;
+        stream(chunkText);
+      }
+      // we block on the for loop above, hence now we are complete and send an empty reply to signal the end
+      stream();
+    } else {
+      const result = await chat.sendMessage(input);
+      const response = await result.response;
+      text = response.text();
+    }
     log.debug("chat/got response from gemini pro:", text);
-    return text;
+
+    const { totalTokens: completion_tokens } = await geminiPro.countTokens(
+      text,
+    );
+    return {
+      output: text,
+      total_tokens: prompt_tokens + completion_tokens,
+      completion_tokens,
+      prompt_tokens,
+    };
   }
 
   private async chatPalm2({
     context,
     history,
     input,
-  }): Promise<string | undefined | null> {
+    stream,
+  }): Promise<ChatOutput> {
     const messages: { content: string }[] = (history ?? [])
       .filter(({ content }) => !!content)
       .map(({ content }) => {
@@ -219,64 +274,31 @@ export class VertexAIClient {
 
     log.debug("chat/got response from vertex ai", result);
 
-    return result[0].candidates?.[0]?.content;
+    const output = result[0].candidates?.[0]?.content;
+
+    if (!output) {
+      throw new Error(
+        "There was a problem processing the prompt. Try a different prompt or another language model.",
+      );
+    }
+
+    // PaLM2: there is no streaming
+    if (stream != null) {
+      stream(output);
+      stream();
+    }
+
+    // token estimation
+    const system_tokens = numTokens(context ?? "");
+    const input_all = (history ?? []).map(({ content }) => content).join("\n");
+    const prompt_tokens = system_tokens + numTokens(input_all);
+    const completion_tokens = numTokens(output ?? "");
+
+    return {
+      output,
+      total_tokens: prompt_tokens + completion_tokens,
+      completion_tokens,
+      prompt_tokens,
+    };
   }
 }
-
-/*
-
-const {
-  GoogleGenerativeAI,
-  HarmCategory,
-  HarmBlockThreshold,
-} = require("@google/generative-ai-node");
-
-const MODEL_NAME = "gemini-pro";
-const API_KEY = "YOUR_API_KEY";
-
-async function runChat() {
-  const genAI = new GoogleGenerativeAI(API_KEY);
-  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-
-  const generationConfig = {
-    temperature: 0.9,
-    topK: 1,
-    topP: 1,
-    maxOutputTokens: 2048,
-  };
-
-  const safetySettings = [
-    {
-      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    },
-  ];
-
-  const chat = model.startChat({
-    generationConfig,
-    safetySettings,
-    history: [
-
-    ],
-  });
-
-  const result = await chat.sendMessage("YOUR_USER_INPUT");
-  const response = result.response;
-  console.log(response.text());
-}
-
-runChat();
-
-  */

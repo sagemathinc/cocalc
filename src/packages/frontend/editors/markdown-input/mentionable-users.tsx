@@ -5,9 +5,10 @@
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { redux } from "@cocalc/frontend/app-framework";
+import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import GooglePalmLogo from "@cocalc/frontend/components/google-palm-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { LLM_USERNAMES } from "@cocalc/util/db-schema/openai";
+import { LLM_USERNAMES, model2service } from "@cocalc/util/db-schema/openai";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { Item } from "./complete";
 
@@ -94,13 +95,25 @@ export function mentionableUsers(
   if (vertexAI) {
     if (!search || "palm".includes(search)) {
       v.push({
-        value: "openai-chat-bison-001",
+        value: model2service("chat-bison-001"),
         label: (
           <span>
             <GooglePalmLogo size={24} /> {LLM_USERNAMES["chat-bison-001"]}
           </span>
         ),
         search: "palm",
+      });
+    }
+
+    if (!search || "gemini".includes(search)) {
+      v.push({
+        value: model2service("gemini-pro"),
+        label: (
+          <span>
+            <GoogleGeminiLogo size={24} /> {LLM_USERNAMES["gemini-pro"]}
+          </span>
+        ),
+        search: "gemini",
       });
     }
   }

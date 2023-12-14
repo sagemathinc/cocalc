@@ -19,6 +19,7 @@ import {
   isFreeModel,
   isValidModel,
   model2service,
+  model2vendor,
 } from "@cocalc/util/db-schema/openai";
 import { checkForAbuse } from "./abuse";
 import getClient, { VertexAIClient } from "./client";
@@ -29,6 +30,13 @@ export type History = {
   role: "assistant" | "user" | "system";
   content: string;
 }[];
+
+export interface ChatOutput {
+  output: string;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
 
 interface ChatOptions {
   input: string; // new input that user types
@@ -90,8 +98,8 @@ export async function evaluate({
           history,
           input,
           client,
-          // maxTokens,
-          // model,
+          maxTokens,
+          model,
           stream,
         })
       : await evaluateOpenAI({
@@ -130,7 +138,7 @@ export async function evaluate({
             prompt_tokens,
             completion_tokens,
           },
-          tag: `openai:${tag ?? ""}`,
+          tag: `${model2vendor(model)}:${tag ?? ""}`,
           client: null,
         });
       } catch (err) {
@@ -193,8 +201,9 @@ interface EvalVertexAIProps {
   history?: History;
   input: string;
   // maxTokens?: number;
-  // model: LanguageModel;
+  model: LanguageModel; // only "chat-bison-001" | "gemini-pro";
   stream?: (output?: string) => void;
+  maxTokens?: number; // only gemini-pro
 }
 
 async function evaluateVertexAI({
@@ -202,15 +211,14 @@ async function evaluateVertexAI({
   system,
   history,
   input,
-  // model,  // not used, this only supports chat-bison-001 for now
-  // maxTokens, // not used
+  model,
+  maxTokens,
   stream,
-}: EvalVertexAIProps): Promise<{
-  output;
-  total_tokens;
-  prompt_tokens;
-  completion_tokens;
-}> {
+}: EvalVertexAIProps): Promise<ChatOutput> {
+  if (model !== "chat-bison-001" && model !== "gemini-pro") {
+    throw new Error(`model ${model} not supported`);
+  }
+
   // TODO: for OpenAI, this is at 3. Unless we really know there are similar issues, we keep this at 1.
   const maxAttempts = 1;
 
@@ -219,40 +227,17 @@ async function evaluateVertexAI({
       // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
       // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
       // I think this is just a bug. If there is no reply, there is now a simple user-visible message instead of nothing.
-      const output = await client.chat({
+      const ret = await client.chat({
         history: history ?? [],
         input,
         context: system,
-        model: "chat-bison-001",
+        model,
+        maxTokens,
+        stream,
       });
 
-      if (!output) {
-        throw new Error(
-          "There was a problem processing the prompt. Try a different prompt or another language model.",
-        );
-      }
-
-      // stream the output – there is no streaming right now, though
-      if (stream != null) {
-        stream(output);
-        stream();
-      }
-
-      // token estimation
-      const system_tokens = numTokens(system ?? "");
-      const input_all = (history ?? [])
-        .map(({ content }) => content)
-        .join("\n");
-      const prompt_tokens = system_tokens + numTokens(input_all);
-      const completion_tokens = numTokens(output ?? "");
-
       // in all cases, return the result
-      return {
-        output,
-        total_tokens: prompt_tokens + completion_tokens,
-        prompt_tokens,
-        completion_tokens,
-      };
+      return ret;
     } catch (err) {
       const retry = i < maxAttempts - 1;
       log.debug(
@@ -412,12 +397,7 @@ async function callChatGPTAPI({
   maxAttempts,
   stream,
   maxTokens,
-}): Promise<{
-  output: string;
-  total_tokens: number;
-  prompt_tokens: number;
-  completion_tokens: number;
-}> {
+}): Promise<ChatOutput> {
   const doStream = stream != null;
   const gather = doStream ? new GatherOutput(messages, stream) : undefined;
   const axiosOptions = doStream ? { responseType: "stream" } : {};
@@ -471,7 +451,7 @@ async function callChatGPTAPI({
 // packages/frontend/misc/openai.ts
 const APPROX_CHARACTERS_PER_TOKEN = 8;
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
-function numTokens(content: string): number {
+export function numTokens(content: string): number {
   // slice to avoid extreme slowdown "attack".
   return tokenizer.encode(content.slice(0, 32000 * APPROX_CHARACTERS_PER_TOKEN))
     .text.length;
