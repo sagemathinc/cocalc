@@ -296,6 +296,9 @@ export class VertexAIClient {
 
     const output = result[0].candidates?.[0]?.content;
 
+    // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
+    // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
+    // I think this is just a bug. If there is no reply, there is now a simple user-visible error message instead of nothing.
     if (!output) {
       throw new Error(
         "There was a problem processing the prompt. Try a different prompt or another language model.",

@@ -3,8 +3,8 @@ import { Icon } from "./icon";
 
 // I copied this straight from the openai website html, and modified it for react.
 interface Props {
-  size?: number;
-  backgroundColor?;
+  size: number;
+  backgroundColor?: string;
   style?: CSSProperties;
   innerStyle?: CSSProperties;
 }
@@ -21,24 +21,20 @@ export default function GoogleGeminiLogo({
         width: size,
         height: size,
         display: "inline-block",
-        position: "relative",
-        marginRight: "5px",
+        marginRight: "1px",
         ...style,
       }}
     >
-      <div
+      <Icon
+        unicode={0x264a}
         style={{
-          position: "absolute",
+          fontSize: size - 4,
+          verticalAlign: "inherit",
+          fontWeight: "normal",
           backgroundColor,
-          color: "white",
-          height: size,
-          width: size,
-          top: "5px",
           ...innerStyle,
         }}
-      >
-        <Icon unicode={0x264a} style={{ fontSize: size }} />
-      </div>
+      />
     </div>
   );
 }

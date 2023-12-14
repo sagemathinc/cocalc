@@ -224,10 +224,7 @@ async function evaluateVertexAI({
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
-      // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
-      // I think this is just a bug. If there is no reply, there is now a simple user-visible message instead of nothing.
-      const ret = await client.chat({
+      return await client.chat({
         history: history ?? [],
         input,
         context: system,
@@ -235,9 +232,6 @@ async function evaluateVertexAI({
         maxTokens,
         stream,
       });
-
-      // in all cases, return the result
-      return ret;
     } catch (err) {
       const retry = i < maxAttempts - 1;
       log.debug(
