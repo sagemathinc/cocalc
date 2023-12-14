@@ -14,7 +14,7 @@ export function LanguageModelVendorAvatar(
     style?: CSS;
   }>,
 ) {
-  const { model, size } = props;
+  const { model, size = 24 } = props;
 
   const style: CSS = {
     marginRight: "5px",

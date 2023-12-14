@@ -24,7 +24,7 @@ export const USER_SELECTABLE_LANGUAGE_MODELS: Readonly<LanguageModel[]> = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
   "gpt-4",
-  // "chat-bison-001",
+  // "chat-bison-001", // PaLM2 is not good, replies with no response too often
   "gemini-pro",
 ] as const;
 

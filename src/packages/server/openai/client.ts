@@ -186,29 +186,49 @@ export class VertexAIClient {
     maxTokens?: number;
     stream?: (output?: string) => void;
   }) {
-    const geminiHistory: InputContent[] = history.map(({ role, content }) => ({
-      // Note: there is no "system", this is supposed to be in the context
-      role: role === "user" ? "user" : "model",
-      parts: content,
-    }));
-    // TODO there is no context? hence enter it as the first user message
+    // TODO there is no context? hence enter it as the first model message
     const geminiContext: InputContent[] = context
       ? [
           {
             role: "user",
             parts: context,
           },
+          {
+            role: "model",
+            parts: "OK",
+          },
         ]
       : [];
+
+    // reconstruct the history, which always starts with user and we alternate
+    const geminiHistory: InputContent[] = [];
+    let nextRole: "model" | "user" = "user";
+    for (const { content } of history) {
+      geminiHistory.push({ role: nextRole, parts: content });
+      nextRole = nextRole === "user" ? "model" : "user";
+    }
+
+    // we make sure we end with role=model, to be ready for the user input
+    if (
+      geminiHistory.length > 0 &&
+      geminiHistory[geminiHistory.length - 1].role === "user"
+    ) {
+      geminiHistory.push({ role: "model", parts: "" });
+    }
 
     // we create a new model each time (model instances store the chat history!)
     const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
       model: "gemini-pro",
     });
-    const chat = geminiPro.startChat({
+
+    const params = {
       history: [...geminiContext, ...geminiHistory],
       generationConfig: { maxOutputTokens: maxTokens ?? 2048 },
-    });
+    };
+
+    log.debug("chat/gemini pro request", params);
+
+    const chat = geminiPro.startChat(params);
 
     const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
       input,
