@@ -501,6 +501,7 @@ export default function MultiMarkdownInput(props: Props) {
             placeholder={placeholder ?? "Type text..."}
             submitMentionsRef={submitMentionsRef}
             chatGPT={chatGPT}
+            vertexAI={vertexAI}
             editBar2={editBar2}
             dirtyRef={dirtyRef}
           />
