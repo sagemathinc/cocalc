@@ -20,6 +20,9 @@ export const LANGUAGE_MODELS = [
   "gemini-pro",
 ] as const;
 
+// This hardcodes which models can be selected by users.
+// Make sure to update this when adding new models.
+// This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
 export const USER_SELECTABLE_LANGUAGE_MODELS: Readonly<LanguageModel[]> = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
