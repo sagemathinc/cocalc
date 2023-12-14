@@ -37,6 +37,7 @@ import ModelSwitch, {
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
@@ -271,7 +272,9 @@ export default function AIGenerateJupyterNotebook({
     // every update interval, we extract all the answer text into cells
     // ATTN: do not call this concurrently, see throttle below
     function updateCells(answer) {
-      const allCells = splitCells(answer);
+      const allCells = splitCells(answer, (line) =>
+        line.startsWith("filename:"),
+      );
       if (jfa == null) {
         console.warn(
           "unable to update cells since jupyter frame actions are not defined",
@@ -537,52 +540,6 @@ export default function AIGenerateJupyterNotebook({
       )}
     </Block>
   );
-}
-
-/**
- * The text string contains markdown text with code blocks. This split this into cells of type markdown and code.
- */
-function splitCells(
-  text: string,
-): { cell_type: "markdown" | "code"; source: string[] }[] {
-  const ret: { cell_type: "markdown" | "code"; source: string[] }[] = [];
-
-  let lines = text.split("\n");
-  let cell_type: "markdown" | "code" = "markdown";
-  let source: string[] = [];
-  for (const line of lines) {
-    if (line.startsWith("filename:")) continue;
-    if (line.startsWith("```")) {
-      stripTrailingWhitespace(source);
-      if (source.length > 0) {
-        ret.push({ cell_type, source });
-        source = [];
-      }
-      cell_type = cell_type == "markdown" ? "code" : "markdown";
-    } else {
-      source.push(`${line}\n`);
-    }
-  }
-
-  stripTrailingWhitespace(source);
-  if (source.length > 0) {
-    ret.push({ cell_type, source });
-  }
-
-  return ret;
-}
-
-function stripTrailingWhitespace(source: string[]) {
-  // remove trailing blank lines.
-  let i = source.length - 1;
-  while (i >= 0 && !source[i].trim()) {
-    i -= 1;
-    source.splice(-1); // deletes the last entry in place!
-  }
-  // also remove only trailing whitespace from last line
-  if (source.length > 0) {
-    source[source.length - 1] = source[source.length - 1].trimRight();
-  }
 }
 
 export function ChatGPTGenerateNotebookButton({

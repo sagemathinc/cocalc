@@ -24,6 +24,7 @@ import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { insertCell } from "./util";
+import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -164,44 +165,6 @@ export default function AIGenerateCodeCell({
   );
 }
 
-/**
- * extract the code between the first and second occurance of lines starting with backticks
- * TODO: cocalc has a markdown parser and is very good at parsing markdown (e.g., slate uses that),
- * and we should obviously using that instead of an adhoc parsing that will break on some inputs,
- * e.g., triple backticks is not ALWAYS the code delimiter (it can be spaces, it can be more than 3
- * backticks).
- */
-function extractCode(raw: string): {
-  content: string;
-  type: "code" | "markdown";
-} {
-  const ret: string[] = [];
-  let inside = false;
-  let haveCode = false;
-  for (const line of raw.split("\n")) {
-    if (line.startsWith("```")) {
-      inside = true;
-      continue;
-    }
-    if (inside) {
-      // ignore the remaining lines
-      if (line.startsWith("```")) break;
-      ret.push(line);
-      haveCode = true;
-    }
-  }
-
-  // if there is nothing in "ret", it probably returned a comment explaining it does not know what to do
-  if (ret.length > 0) {
-    return {
-      content: ret.join("\n"),
-      type: haveCode ? "code" : "markdown",
-    };
-  } else {
-    return { content: raw, type: "markdown" };
-  }
-}
-
 interface QueryLanguageModelProps {
   actions: JupyterActions;
   frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
@@ -263,7 +226,8 @@ async function queryLanguageModel({
     if (fa == null) {
       throw Error("frame actions must be defined");
     }
-    const gptCellId = insertCell({
+    // this is the first cell
+    const firstCellId = insertCell({
       frameActions,
       actions,
       type: "markdown",
@@ -272,7 +236,11 @@ async function queryLanguageModel({
       position: "below",
     });
     fa.set_mode("escape"); // while tokens come in ...
-    if (gptCellId == null) return; // to make TS happy
+    if (firstCellId == null) return; // to make TS happy
+
+    let curCellId = firstCellId;
+    let curCellPos = 0;
+    let numCells = 1;
 
     const reply = await webapp_client.openai_client.languageModelStream({
       input,
@@ -283,11 +251,32 @@ async function queryLanguageModel({
       model,
     });
 
-    const updateCell = throttle(
+    const updateCells = throttle(
       function (answer) {
-        const { content, type } = extractCode(answer);
-        fa.set_cell_input(gptCellId, content);
-        actions.set_cell_type(gptCellId, type);
+        const cells = splitCells(answer);
+        if (cells.length === 0) return;
+
+        // we always have to update the last cell, even if there are more cells ahead
+        fa.set_cell_input(curCellId, cells[curCellPos].source.join(""));
+        actions.set_cell_type(curCellId, cells[curCellPos].cell_type);
+
+        if (cells.length > numCells) {
+          for (let i = numCells; i < cells.length; i++) {
+            const nextCellId = insertCell({
+              frameActions,
+              actions,
+              id: curCellId,
+              position: "below",
+              type: cells[i].cell_type,
+              content: cells[i].source.join(""),
+            });
+            // this shouldn't happen
+            if (nextCellId == null) continue;
+            curCellId = nextCellId;
+            curCellPos = i; // for the next update, above before the if/for loop
+            numCells += 1;
+          }
+        }
       },
       750,
       { leading: true, trailing: true },
@@ -297,19 +286,19 @@ async function queryLanguageModel({
     reply.on("token", (token) => {
       if (token != null) {
         answer += token;
-        updateCell(answer);
+        updateCells(answer);
       } else {
-        fa.switch_code_cell_to_edit(gptCellId);
+        fa.switch_code_cell_to_edit(firstCellId);
       }
     });
     reply.on("error", (err) => {
       fa.set_cell_input(
-        gptCellId,
+        firstCellId,
         `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
           model2vendor(model),
         )}.`,
       );
-      actions.set_cell_type(gptCellId, "markdown");
+      actions.set_cell_type(firstCellId, "markdown");
       fa.set_mode("escape");
       return;
     });
