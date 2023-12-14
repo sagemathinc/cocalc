@@ -5,6 +5,7 @@ import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
+  USER_SELECTABLE_LANGUAGE_MODELS,
   model2service,
 } from "@cocalc/util/db-schema/openai";
 
@@ -21,7 +22,8 @@ interface Props {
 
 // The tooltips below are adopted from chat.openai.com
 
-const GOOGLE_GENAI: LanguageModel = "chat-bison-001";
+const GOOGLE_PALM: LanguageModel = "chat-bison-001";
+const GOOGLE_GEMINI: LanguageModel = "gemini-pro";
 
 export default function ModelSwitch({
   style,
@@ -48,48 +50,68 @@ export default function ModelSwitch({
     if (!showOpenAI) return null;
     return (
       <>
-        <Tooltip
-          title={
-            "FREE: OpenAI's fastest model, great for most everyday tasks (4k token context)"
-          }
-        >
-          <Radio.Button value="gpt-3.5-turbo">
-            {modelToName("gpt-3.5-turbo")}
-          </Radio.Button>
-        </Tooltip>
-        <Tooltip
-          title={`NOT FREE: Same as ${modelToName(
-            "gpt-3.5-turbo",
-          )} but with much larger context size (16k token context)`}
-        >
-          <Radio.Button value="gpt-3.5-turbo-16k">
-            {modelToName("gpt-3.5-turbo-16k")}
-          </Radio.Button>
-        </Tooltip>{" "}
-        <Tooltip
-          title={
-            "NOT FREE: OpenAI's most capable model, great for tasks that require creativity and advanced reasoning (8k token context)"
-          }
-        >
-          <Radio.Button value="gpt-4">
-            {modelToName("gpt-4")}
-            {model === "gpt-4" ? " (not free)" : ""}
-          </Radio.Button>
-        </Tooltip>
+        {USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-3.5-turbo") && (
+          <Tooltip
+            title={
+              "FREE: OpenAI's fastest model, great for most everyday tasks (4k token context)"
+            }
+          >
+            <Radio.Button value="gpt-3.5-turbo">
+              {modelToName("gpt-3.5-turbo")}
+            </Radio.Button>
+          </Tooltip>
+        )}
+        {USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-3.5-turbo-16k") && (
+          <Tooltip
+            title={`NOT FREE: Same as ${modelToName(
+              "gpt-3.5-turbo",
+            )} but with much larger context size (16k token context)`}
+          >
+            <Radio.Button value="gpt-3.5-turbo-16k">
+              {modelToName("gpt-3.5-turbo-16k")}
+            </Radio.Button>
+          </Tooltip>
+        )}
+        {USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4") && (
+          <Tooltip
+            title={
+              "NOT FREE: OpenAI's most capable model, great for tasks that require creativity and advanced reasoning (8k token context)"
+            }
+          >
+            <Radio.Button value="gpt-4">
+              {modelToName("gpt-4")}
+              {model === "gpt-4" ? " (not free)" : ""}
+            </Radio.Button>
+          </Tooltip>
+        )}
       </>
     );
   }
 
   function renderGoogle() {
     if (!showGoogle) return null;
+
     return (
-      <Tooltip
-        title={`Google's PaLM 2 Generative AI model ('${GOOGLE_GENAI}', 8k token context)`}
-      >
-        <Radio.Button value={GOOGLE_GENAI}>
-          {modelToName(GOOGLE_GENAI)}
-        </Radio.Button>
-      </Tooltip>
+      <>
+        {USER_SELECTABLE_LANGUAGE_MODELS.includes(GOOGLE_PALM) && (
+          <Tooltip
+            title={`Google's PaLM 2 Generative AI model ('${GOOGLE_PALM}', 8k token context)`}
+          >
+            <Radio.Button value={GOOGLE_PALM}>
+              {modelToName(GOOGLE_PALM)}
+            </Radio.Button>
+          </Tooltip>
+        )}
+        {USER_SELECTABLE_LANGUAGE_MODELS.includes(GOOGLE_GEMINI) && (
+          <Tooltip
+            title={`Google's Gemini Pro Generative AI model ('${GOOGLE_GEMINI}', 30k token context)`}
+          >
+            <Radio.Button value={GOOGLE_GEMINI}>
+              {modelToName(GOOGLE_GEMINI)}
+            </Radio.Button>
+          </Tooltip>
+        )}
+      </>
     );
   }
 

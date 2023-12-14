@@ -13,6 +13,7 @@ import ModelSwitch, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -20,11 +21,9 @@ import {
   getVendorStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/openai";
-import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { insertCell } from "./util";
-import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -326,7 +325,6 @@ function getInput({
   actions,
   frameActions,
   id,
-  model,
   position,
   prompt,
 }: GetInputProps): {
@@ -345,35 +343,19 @@ function getInput({
   const kernel_info = actions.store.get("kernel_info");
   const lang = kernel_info?.get("language") ?? "python";
   const kernel_name = kernel_info?.get("display_name") ?? "Python 3";
-  const vendor = model2vendor(model);
-  switch (vendor) {
-    case "openai":
-      const prevCodeContents = getPreviousNonemptyCodeCellContents(
-        frameActions.current,
-        id,
-        position,
-      );
-      const prevCode = prevCodeContents
-        ? `The previous code cell is\n\n\`\`\`${lang}\n${prevCodeContents}\n\`\`\``
-        : "";
+  const prevCodeContents = getPreviousNonemptyCodeCellContents(
+    frameActions.current,
+    id,
+    position,
+  );
+  const prevCode = prevCodeContents
+    ? `The previous code cell is\n\n\`\`\`${lang}\n${prevCodeContents}\n\`\`\``
+    : "";
 
-      return {
-        input: `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nReturn the entire code cell in a single block. Enclose this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`,
-        system: `Return a single code block in the language "${lang}". All text explanations must be code comments.`,
-      };
-
-    case "google":
-      // 2023-12-08: when implementing this for PaLM2, the prompt above does not return anything. It fails with "content blocked" with reason "other".
-      // My suspicion: 1. this is a bug triggered by the prompt/system and 2. it might not be always able to deal with newlines. I'm simplifying the input prompt to be on a single line and do not include the previous cell.
-      return {
-        input: `Write code for ${kernel_name} (${lang}). The code should do the following: ${prompt}`,
-        system: `Any text must be code comments.`,
-      };
-
-    default:
-      unreachable(vendor);
-      throw new Error("bug");
-  }
+  return {
+    input: `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\The entire code cell must be in a single code block. Enclose this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`,
+    system: `Return a single code block in the language "${lang}".`,
+  };
 }
 
 function getPreviousNonemptyCodeCellContents(actions, id, position): string {

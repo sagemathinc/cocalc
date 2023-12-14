@@ -2,15 +2,23 @@
 Get openai client.
 */
 
+import {
+  DiscussServiceClient,
+  TextServiceClient,
+} from "@google-ai/generativelanguage";
+import {
+  GenerativeModel,
+  GoogleGenerativeAI,
+  InputContent,
+} from "@google/generative-ai";
 import { Configuration, OpenAIApi } from "openai";
-import { TextServiceClient } from "@google-ai/generativelanguage";
-import { DiscussServiceClient } from "@google-ai/generativelanguage";
 const { GoogleAuth } = require("google-auth-library");
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/openai";
 import { unreachable } from "@cocalc/util/misc";
+import { ChatOutput, History, numTokens } from "./chatgpt";
 
 const log = getLogger("openai:client");
 
@@ -74,6 +82,7 @@ export class VertexAIClient {
   gcp_project_id?: string;
   clientText: TextServiceClient;
   clientDiscuss: DiscussServiceClient;
+  genAI: GoogleGenerativeAI;
 
   constructor(auth: AuthMethods, model: LanguageModel) {
     const authClient = this.getAuthClient(auth);
@@ -81,6 +90,11 @@ export class VertexAIClient {
       this.clientText = new TextServiceClient({ authClient });
     } else if (model === "chat-bison-001") {
       this.clientDiscuss = new DiscussServiceClient({ authClient });
+    } else if (model === "gemini-pro") {
+      if (auth.apiKey == null) {
+        throw new Error("you must provide and API key for gemini pro");
+      }
+      this.genAI = new GoogleGenerativeAI(auth.apiKey);
     } else {
       throw new Error(`unknown model: ${model}`);
     }
@@ -125,21 +139,150 @@ export class VertexAIClient {
   }
 
   // https://developers.generativeai.google/tutorials/chat_node_quickstart
+  // https://ai.google.dev/tutorials/node_quickstart#multi-turn-conversations-chat
   async chat({
     model,
     context,
-    messages,
+    history,
+    input,
+    maxTokens,
+    stream,
   }: {
-    model: "chat-bison-001";
+    model: "chat-bison-001" | "gemini-pro";
     context?: string;
-    messages: { content: string }[];
-  }): Promise<string | null | undefined> {
-    // note: model must be chat-bison-001
-    if (model !== "chat-bison-001") {
-      throw new Error("model must be chat-bison-001");
+    history: History;
+    input: string;
+    maxTokens?: number;
+    stream?: (output?: string) => void;
+  }): Promise<ChatOutput> {
+    switch (model) {
+      case "chat-bison-001":
+        return this.chatPalm2({ context, history, input, stream });
+
+      case "gemini-pro":
+        return this.chatGeminiPro({
+          context,
+          history,
+          input,
+          maxTokens,
+          stream,
+        });
+
+      default:
+        throw new Error(`model ${model} not supported`);
     }
+  }
+
+  private async chatGeminiPro({
+    context,
+    history,
+    input,
+    maxTokens,
+    stream,
+  }: {
+    context?: string;
+    history: History;
+    input: string;
+    maxTokens?: number;
+    stream?: (output?: string) => void;
+  }) {
+    // TODO there is no context? hence enter it as the first model message
+    const geminiContext: InputContent[] = context
+      ? [
+          {
+            role: "user",
+            parts: context,
+          },
+          {
+            role: "model",
+            parts: "OK",
+          },
+        ]
+      : [];
+
+    // reconstruct the history, which always starts with user and we alternate
+    const geminiHistory: InputContent[] = [];
+    let nextRole: "model" | "user" = "user";
+    for (const { content } of history) {
+      geminiHistory.push({ role: nextRole, parts: content });
+      nextRole = nextRole === "user" ? "model" : "user";
+    }
+
+    // we make sure we end with role=model, to be ready for the user input
+    if (
+      geminiHistory.length > 0 &&
+      geminiHistory[geminiHistory.length - 1].role === "user"
+    ) {
+      geminiHistory.push({ role: "model", parts: "" });
+    }
+
+    // we create a new model each time (model instances store the chat history!)
+    const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
+      model: "gemini-pro",
+    });
+
+    const params = {
+      history: [...geminiContext, ...geminiHistory],
+      generationConfig: { maxOutputTokens: maxTokens ?? 2048 },
+    };
+
+    log.debug("chat/gemini pro request", params);
+
+    const chat = geminiPro.startChat(params);
+
+    const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
+      input,
+      context ?? "",
+      ...history.map(({ content }) => content),
+    ]);
+
+    let text = "";
+    if (stream != null) {
+      // https://ai.google.dev/tutorials/node_quickstart#streaming
+      const result = await chat.sendMessageStream(input);
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        text += chunkText;
+        stream(chunkText);
+      }
+      // we block on the for loop above, hence now we are complete and send an empty reply to signal the end
+      stream();
+    } else {
+      const result = await chat.sendMessage(input);
+      const response = await result.response;
+      text = response.text();
+    }
+    log.debug("chat/got response from gemini pro:", text);
+
+    const { totalTokens: completion_tokens } = await geminiPro.countTokens(
+      text,
+    );
+    return {
+      output: text,
+      total_tokens: prompt_tokens + completion_tokens,
+      completion_tokens,
+      prompt_tokens,
+    };
+  }
+
+  private async chatPalm2({
+    context,
+    history,
+    input,
+    stream,
+  }): Promise<ChatOutput> {
+    const messages: { content: string }[] = (history ?? [])
+      .filter(({ content }) => !!content)
+      .map(({ content }) => {
+        return {
+          content,
+        };
+      });
+
+    messages.push({ content: input });
+
     const result = await this.clientDiscuss.generateMessage({
-      model: `models/${model}`,
+      model: `models/chat-bison-001`,
       candidateCount: 1, // Optional. The number of candidate results to generate.
       prompt: {
         // optional, preamble context to prime responses
@@ -151,6 +294,34 @@ export class VertexAIClient {
 
     log.debug("chat/got response from vertex ai", result);
 
-    return result[0].candidates?.[0]?.content;
+    const output = result[0].candidates?.[0]?.content;
+
+    // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
+    // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
+    // I think this is just a bug. If there is no reply, there is now a simple user-visible error message instead of nothing.
+    if (!output) {
+      throw new Error(
+        "There was a problem processing the prompt. Try a different prompt or another language model.",
+      );
+    }
+
+    // PaLM2: there is no streaming
+    if (stream != null) {
+      stream(output);
+      stream();
+    }
+
+    // token estimation
+    const system_tokens = numTokens(context ?? "");
+    const input_all = (history ?? []).map(({ content }) => content).join("\n");
+    const prompt_tokens = system_tokens + numTokens(input_all);
+    const completion_tokens = numTokens(output ?? "");
+
+    return {
+      output,
+      total_tokens: prompt_tokens + completion_tokens,
+      completion_tokens,
+      prompt_tokens,
+    };
   }
 }
