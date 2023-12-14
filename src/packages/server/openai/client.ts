@@ -94,7 +94,15 @@ export class VertexAIClient {
       if (auth.apiKey == null) {
         throw new Error("you must provide and API key for gemini pro");
       }
-      this.genAI = new GoogleGenerativeAI(auth.apiKey);
+      try {
+        this.genAI = new GoogleGenerativeAI(auth.apiKey);
+      } catch (err) {
+        // We have to catch, because the error includes the API key in the GET request
+        log.error("chat/gemini pro error", err);
+        throw new Error(
+          "There was a problem instantiating Gemini Pro. Please try another language model.",
+        );
+      }
     } else {
       throw new Error(`unknown model: ${model}`);
     }
@@ -160,13 +168,21 @@ export class VertexAIClient {
         return this.chatPalm2({ context, history, input, stream });
 
       case "gemini-pro":
-        return this.chatGeminiPro({
-          context,
-          history,
-          input,
-          maxTokens,
-          stream,
-        });
+        try {
+          return this.chatGeminiPro({
+            context,
+            history,
+            input,
+            maxTokens,
+            stream,
+          });
+        } catch (err) {
+          // We're on the safe side, catch this error, and do not show it to the user,
+          // because it might include the GET request, which includes the API key.
+          // (it certainly includes the API key when instantiating the client)
+          log.error("chat/gemini pro error", err);
+          throw new Error("There was a problem processing the prompt.");
+        }
 
       default:
         throw new Error(`model ${model} not supported`);
