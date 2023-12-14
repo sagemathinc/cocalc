@@ -246,39 +246,53 @@ export class VertexAIClient {
 
     const chat = geminiPro.startChat(params);
 
-    const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
-      input,
-      context ?? "",
-      ...history.map(({ content }) => content),
-    ]);
+    try {
+      const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
+        input,
+        context ?? "",
+        ...history.map(({ content }) => content),
+      ]);
 
-    let text = "";
-    if (stream != null) {
-      // https://ai.google.dev/tutorials/node_quickstart#streaming
-      const result = await chat.sendMessageStream(input);
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        text += chunkText;
-        stream(chunkText);
+      let text = "";
+      if (stream != null) {
+        // https://ai.google.dev/tutorials/node_quickstart#streaming
+        try {
+          const result = await chat.sendMessageStream(input);
+
+          for await (const chunk of result.stream) {
+            const chunkText = chunk.text();
+            text += chunkText;
+            stream(chunkText);
+          }
+          // we block on the for loop above, hence now we are complete and send an empty reply to signal the end
+          stream();
+        } catch (err) {
+          log.error("chat/gemini pro error", err);
+          throw new Error("There was a problem processing the prompt.");
+        }
+      } else {
+        const result = await chat.sendMessage(input);
+        const response = await result.response;
+        text = response.text();
       }
-      // we block on the for loop above, hence now we are complete and send an empty reply to signal the end
-      stream();
-    } else {
-      const result = await chat.sendMessage(input);
-      const response = await result.response;
-      text = response.text();
-    }
-    log.debug("chat/got response from gemini pro:", text);
+      log.debug("chat/got response from gemini pro:", text);
 
-    const { totalTokens: completion_tokens } = await geminiPro.countTokens(
-      text,
-    );
-    return {
-      output: text,
-      total_tokens: prompt_tokens + completion_tokens,
-      completion_tokens,
-      prompt_tokens,
-    };
+      const { totalTokens: completion_tokens } = await geminiPro.countTokens(
+        text,
+      );
+      return {
+        output: text,
+        total_tokens: prompt_tokens + completion_tokens,
+        completion_tokens,
+        prompt_tokens,
+      };
+    } catch (err) {
+      // We have to catch, because the error includes the API key in the GET request
+      log.error("chat/gemini pro error", err);
+      throw new Error(
+        "There was a problem counting tokens. Please try another language model.",
+      );
+    }
   }
 
   private async chatPalm2({
