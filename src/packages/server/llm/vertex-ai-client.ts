@@ -6,6 +6,7 @@
 
 import getLogger from "@cocalc/backend/logger";
 import { LanguageModel } from "@cocalc/util/db-schema/openai";
+import { ChatOutput, History } from "@cocalc/util/types/llm";
 import {
   DiscussServiceClient,
   TextServiceClient,
@@ -17,7 +18,6 @@ import {
 } from "@google/generative-ai";
 import { GoogleAuth } from "google-auth-library";
 import { numTokens } from "./chatgpt-numtokens";
-import { ChatOutput, History } from "./types";
 
 const log = getLogger("llm:vertex-ai");
 

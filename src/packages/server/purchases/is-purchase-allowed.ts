@@ -1,13 +1,17 @@
 import type { PoolClient } from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
-import { getPurchaseQuotas } from "./purchase-quotas";
+import {
+  getMaxCost,
+  isLanguageModelService,
+  service2model,
+} from "@cocalc/util/db-schema/openai";
+import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import { currency, round2up } from "@cocalc/util/misc";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
-import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { getMaxCost, Model } from "@cocalc/util/db-schema/openai";
-import { currency, round2up } from "@cocalc/util/misc";
-import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import { getPurchaseQuotas } from "./purchase-quotas";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -169,10 +173,10 @@ export async function assertPurchaseAllowed(opts: Options) {
 }
 
 async function getCostEstimate(service: Service): Promise<number | undefined> {
-  if (service?.startsWith("openai-")) {
+  if (isLanguageModelService(service)) {
     const { pay_as_you_go_openai_markup_percentage } =
       await getServerSettings();
-    const model = service.slice(7) as Model;
+    const model = service2model(service);
     return getMaxCost(model, pay_as_you_go_openai_markup_percentage);
   }
 

@@ -19,18 +19,18 @@ import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
-  getCost,
+  getLLMCost,
   isFreeModel,
   isValidModel,
   model2service,
   model2vendor,
 } from "@cocalc/util/db-schema/openai";
+import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { callChatGPTAPI } from "./call-chatgpt";
 import getClient from "./client";
 import { saveResponse } from "./save-response";
 import { VertexAIClient } from "./vertex-ai-client";
-import { ChatOptions, ChatOutput, History } from "./types";
 
 const log = getLogger("llm");
 
@@ -117,7 +117,7 @@ async function evaluateImpl({
       // charge for ALL other models.
       const { pay_as_you_go_openai_markup_percentage } =
         await getServerSettings();
-      const c = getCost(model, pay_as_you_go_openai_markup_percentage);
+      const c = getLLMCost(model, pay_as_you_go_openai_markup_percentage);
       const cost =
         c.prompt_tokens * prompt_tokens +
         c.completion_tokens * completion_tokens;

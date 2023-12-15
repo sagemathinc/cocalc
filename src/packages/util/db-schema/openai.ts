@@ -2,6 +2,9 @@
 // Mentally, just ignore "openai" and instead focus on "gpt-*" or "codey" or whatever they are called.
 // TODO: refactor this, the names of the tables, etc. to be more generic.
 
+import type { LLMService, Service } from "@cocalc/util/db-schema/purchases";
+
+import { History } from "@cocalc/util/types/llm";
 import { unreachable } from "../misc";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
@@ -63,11 +66,13 @@ export type LanguageService =
   | "google-embedding-gecko-001"
   | "google-gemini-pro";
 
+const LANGUAGE_MODEL_VENDORS = ["openai", "google"] as const;
+export type Vendor = (typeof LANGUAGE_MODEL_VENDORS)[number];
+
 // used e.g. for checking "account-id={string}" and other things like that
 export const LANGUAGE_MODEL_PREFIXES = [
   "chatgpt",
-  "openai-",
-  "google-",
+  ...LANGUAGE_MODEL_VENDORS.map((v) => `${v}-`),
 ] as const;
 
 export function model2service(model: LanguageModel): LanguageService {
@@ -107,8 +112,6 @@ export function service2model(
 
 // Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
 export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
-
-export type Vendor = "openai" | "google";
 
 export function model2vendor(model: LanguageModel): Vendor {
   if (model.startsWith("gpt-")) {
@@ -159,6 +162,19 @@ export function isFreeModel(model: Model) {
   );
 }
 
+// this is used in purchases/get-service-cost
+// we only need to check for the vendor prefixes, no special cases!
+export function isLanguageModelService(
+  service: Service,
+): service is LLMService {
+  for (const v of LANGUAGE_MODEL_VENDORS) {
+    if (service.startsWith(`${v}-`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function getVendorStatusCheckMD(vendor: Vendor): string {
   switch (vendor) {
     case "openai":
@@ -186,7 +202,7 @@ interface Cost {
 // Our cost is a configurable multiple of this.
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
-export const OPENAI_COST: { [name in LanguageModel]: Cost } = {
+const LLM_COST: { [name in LanguageModel]: Cost } = {
   "gpt-4": {
     prompt_tokens: 0.03 / 1000,
     completion_tokens: 0.06 / 1000,
@@ -239,23 +255,23 @@ export const OPENAI_COST: { [name in LanguageModel]: Cost } = {
 } as const;
 
 export function isValidModel(model?: Model) {
-  return model != null && OPENAI_COST[model ?? ""] != null;
+  return model != null && LLM_COST[model ?? ""] != null;
 }
 
 export function getMaxTokens(model?: Model): number {
-  return OPENAI_COST[model ?? ""]?.max_tokens ?? 4096;
+  return LLM_COST[model ?? ""]?.max_tokens ?? 4096;
 }
 
-export interface OpenaiCost {
+export interface LLMCost {
   prompt_tokens: number;
   completion_tokens: number;
 }
 
-export function getCost(
+export function getLLMCost(
   model: Model,
   markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
-): OpenaiCost {
-  const x = OPENAI_COST[model];
+): LLMCost {
+  const x = LLM_COST[model];
   if (x == null) {
     throw Error(`unknown model "${model}"`);
   }
@@ -274,29 +290,31 @@ export function getCost(
 // We can't know the cost until after it happens, so this bound is useful for
 // ensuring user can afford to make a call.
 export function getMaxCost(model: Model, markup_percentage: number): number {
-  const { prompt_tokens, completion_tokens } = getCost(
+  const { prompt_tokens, completion_tokens } = getLLMCost(
     model,
     markup_percentage,
   );
-  const { max_tokens } = OPENAI_COST[model];
+  const { max_tokens } = LLM_COST[model];
   return Math.max(prompt_tokens, completion_tokens) * max_tokens;
 }
 
 export interface ChatGPTLogEntry {
   id: number;
-  time: Date;
-  input: string;
-  output: string;
-  total_tokens: number;
-  prompt_tokens: number;
-  total_time_s: number; // how long the request took in s
-  analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
   account_id?: string;
-  project_id?: string;
-  path?: string;
-  model?: Model;
-  tag?: string; // useful for keeping track of where queries come frome when doing analytics later
+  analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
   expire?: Date;
+  history?: History;
+  input: string;
+  model?: LanguageModel;
+  output: string;
+  path?: string;
+  project_id?: string;
+  prompt_tokens: number;
+  system?: string;
+  tag?: string; // useful for keeping track of where queries come frome when doing analytics later
+  time: Date;
+  total_time_s: number; // how long the request took in s
+  total_tokens: number;
 }
 
 Table({
@@ -375,7 +393,7 @@ Table({
     },
   },
   rules: {
-    desc: "OpenAI ChatGPT Log",
+    desc: "Language Model Log",
     primary_key: "id",
     pg_indexes: ["account_id", "analytics_cookie", "time"],
     user_query: {

@@ -3,8 +3,8 @@ import { EventEmitter } from "events";
 
 import getLogger from "@cocalc/backend/logger";
 import { once } from "@cocalc/util/async-utils";
+import { ChatOutput } from "@cocalc/util/types/llm";
 import { totalNumTokens } from "./chatgpt-numtokens";
-import { ChatOutput } from "./types";
 
 const log = getLogger("llm:call-chatgpt");
 
