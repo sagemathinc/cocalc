@@ -4,19 +4,25 @@ in a modal on demand when you try to use a specific service and don't
 have sufficient quota.
 */
 
-import { useEffect, useState } from "react";
-import { Alert, Button, Card, InputNumber, Space, Spin } from "antd";
+import { SettingBox } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
-  serviceToDisplay,
+  QUOTA_SPEC,
   Service,
+  serviceToDisplay,
 } from "@cocalc/util/db-schema/purchase-quotas";
-import ServiceTag from "./service";
-import Quotas, { PRESETS, Preset, STEP } from "./all-quotas-config";
+import getChargeAmount from "@cocalc/util/purchases/charge-amount";
+import { Alert, Button, Card, InputNumber, Space, Spin } from "antd";
+import { useEffect, useState } from "react";
+import Quotas, {
+  PRESETS,
+  Preset,
+  QUOTA_LIMIT_ICON_NAME,
+  STEP,
+} from "./all-quotas-config";
 import Balance from "./balance";
 import MinBalance from "./min-balance";
-import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import getChargeAmount from "@cocalc/util/purchases/charge-amount";
+import ServiceTag from "./service";
 
 interface Props {
   service: Service;
@@ -146,9 +152,13 @@ export default function QuotaConfig({
           </div>
         )}
         {showAll && (
-          <div style={{ marginTop: "30px" }}>
+          <SettingBox
+            icon={QUOTA_LIMIT_ICON_NAME}
+            title="Quota limits"
+            style={{ marginTop: "30px" }}
+          >
             <Quotas />
-          </div>
+          </SettingBox>
         )}
       </div>
     </div>

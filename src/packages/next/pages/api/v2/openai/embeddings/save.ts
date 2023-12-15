@@ -1,4 +1,4 @@
-import { save } from "@cocalc/server/openai/embeddings-api";
+import { save } from "@cocalc/server/llm/embeddings-api";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
