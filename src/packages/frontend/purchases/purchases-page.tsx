@@ -5,11 +5,13 @@ import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
 import AccountStatus from "./account-status";
-import Quotas from "./all-quotas-config";
+import Quotas, { QUOTA_LIMIT_ICON_NAME } from "./all-quotas-config";
 import Config from "./config";
 import CostBarChart from "./cost-bar-chart";
 import Purchases, { PurchasesTable } from "./purchases";
 import { Footer } from "../customize";
+
+
 
 type Key = string[] | string | number[] | number;
 
@@ -35,7 +37,7 @@ export default function PurchasesPage() {
       key: "limits",
       label: (
         <>
-          <Icon name="ColumnHeightOutlined" style={{ marginRight: "8px" }} />{" "}
+          <Icon name={QUOTA_LIMIT_ICON_NAME} style={{ marginRight: "8px" }} />{" "}
           Spending Limits
         </>
       ),
