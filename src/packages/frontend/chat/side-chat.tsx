@@ -231,7 +231,7 @@ function CollabList({ project, addCollab, actions }) {
       </div>
       <span style={{ color: "#777", fontSize: "10pt" }}>
         {hasOpenAI && <>@ChatGPT, </>}
-        {hasGoogleLLM && <>@PaLM, </>}
+        {hasGoogleLLM && <>@Gemini, </>}
         <ProjectUsers
           project={project}
           none={<span>{hasOpenAI ? "add" : "Add"} people to work with...</span>}

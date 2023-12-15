@@ -17,13 +17,18 @@ export const LANGUAGE_MODELS = [
   "text-bison-001",
   "chat-bison-001",
   "embedding-gecko-001",
+  "gemini-pro",
 ] as const;
 
+// This hardcodes which models can be selected by users.
+// Make sure to update this when adding new models.
+// This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
 export const USER_SELECTABLE_LANGUAGE_MODELS: Readonly<LanguageModel[]> = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
   "gpt-4",
-  "chat-bison-001",
+  // "chat-bison-001", // PaLM2 is not good, replies with no response too often
+  "gemini-pro",
 ] as const;
 
 export type LanguageModel = (typeof LANGUAGE_MODELS)[number];
@@ -53,7 +58,8 @@ export type LanguageService =
   | "openai-gpt-4-32k"
   | "google-text-bison-001"
   | "google-chat-bison-001"
-  | "google-embedding-gecko-001";
+  | "google-embedding-gecko-001"
+  | "google-gemini-pro";
 
 // used e.g. for checking "account-id={string}" and other things like that
 export const LANGUAGE_MODEL_PREFIXES = [
@@ -66,12 +72,34 @@ export function model2service(model: LanguageModel): LanguageService {
   if (
     model === "text-bison-001" ||
     model === "chat-bison-001" ||
-    model === "embedding-gecko-001"
+    model === "embedding-gecko-001" ||
+    model === "gemini-pro"
   ) {
     return `google-${model}`;
   } else {
     return `openai-${model}`;
   }
+}
+
+// inverse of model2service, but robust for chat avatars, which might not have a prefix
+// TODO: fix the mess
+export function service2model(
+  service: LanguageService | "chatgpt",
+): LanguageModel {
+  if (service === "chatgpt") {
+    return "gpt-3.5-turbo";
+  }
+  // split off the first part of service, e.g., "openai-" or "google-"
+  const s = service.split("-")[0];
+  const hasPrefix = s === "openai" || s === "google";
+  const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
+  if (!LANGUAGE_MODELS.includes(m as LanguageModel)) {
+    // We don't throw an error, since the frontend would crash
+    // throw new Error(`unknown service: ${service}`);
+    console.warn(`service2model: unknown service: ${service}`);
+    return "gpt-3.5-turbo";
+  }
+  return m as LanguageModel;
 }
 
 // Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
@@ -96,6 +124,7 @@ export const MODELS = [
   "text-bison-001",
   "chat-bison-001",
   "embedding-gecko-001",
+  "gemini-pro",
 ] as const;
 
 export type Model = (typeof MODELS)[number];
@@ -114,6 +143,7 @@ export const LLM_USERNAMES = {
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "embedding-gecko-001": "PaLM 2",
+  "gemini-pro": "Gemini Pro",
 } as const;
 
 export function isFreeModel(model: Model) {
@@ -121,7 +151,8 @@ export function isFreeModel(model: Model) {
     model == "gpt-3.5-turbo" ||
     model == "text-bison-001" ||
     model == "chat-bison-001" ||
-    model == "embedding-gecko-001"
+    model == "embedding-gecko-001" ||
+    model == "gemini-pro"
   );
 }
 
@@ -138,7 +169,7 @@ export function getVendorStatusCheckMD(vendor: Vendor): string {
 }
 
 export function llmSupportsStreaming(model: LanguageModel): boolean {
-  return model2vendor(model) === "openai";
+  return model2vendor(model) === "openai" || model === "gemini-pro";
 }
 
 interface Cost {
@@ -195,6 +226,12 @@ export const OPENAI_COST: { [name in string]: Cost } = {
     prompt_tokens: (5 * 0.0001) / 1000,
     completion_tokens: 0,
     max_tokens: 8196, // ???
+  },
+  "gemini-pro": {
+    // https://ai.google.dev/models/gemini
+    prompt_tokens: (5 * 0.0001) / 1000,
+    completion_tokens: 0,
+    max_tokens: 30720,
   },
 } as const;
 

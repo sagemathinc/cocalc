@@ -41,6 +41,7 @@ export type Service =
   | "google-text-bison-001"
   | "google-chat-bison-001"
   | "google-embedding-gecko-001"
+  | "google-gemini-pro"
   | "project-upgrade"
   | "compute-server"
   | "compute-server-network-usage"
@@ -80,6 +81,12 @@ export interface GoogleChatBison {
 
 export interface GoogleEmbeddingGecko {
   type: "google-embedding-gecko-001";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface GoogleGeminiPro {
+  type: "google-gemini-pro";
   prompt_tokens: number;
   completion_tokens: number;
 }
@@ -175,6 +182,7 @@ export type Description =
   | GoogleTextBison
   | GoogleChatBison
   | GoogleEmbeddingGecko
+  | GoogleGeminiPro
   | ProjectUpgrade
   | ComputeServer
   | ComputeServerNetworkUsage

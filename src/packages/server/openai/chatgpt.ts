@@ -14,21 +14,30 @@ import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { once } from "@cocalc/util/async-utils";
 import {
   DEFAULT_MODEL,
+  LLM_USERNAMES,
   LanguageModel,
   getCost,
   isFreeModel,
   isValidModel,
   model2service,
+  model2vendor,
 } from "@cocalc/util/db-schema/openai";
 import { checkForAbuse } from "./abuse";
 import getClient, { VertexAIClient } from "./client";
 
 const log = getLogger("chatgpt");
 
-type History = {
+export type History = {
   role: "assistant" | "user" | "system";
   content: string;
 }[];
+
+export interface ChatOutput {
+  output: string;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
 
 interface ChatOptions {
   input: string; // new input that user types
@@ -81,110 +90,121 @@ export async function evaluate({
   }
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
-  const client = await getClient(model);
 
-  const { output, total_tokens, prompt_tokens, completion_tokens } =
-    client instanceof VertexAIClient
-      ? await evaluateVertexAI({
-          system,
-          history,
-          input,
-          client,
-          // maxTokens,
-          // model,
-          stream,
-        })
-      : await evaluateOpenAI({
-          system,
-          history,
-          input,
-          client,
-          model,
-          maxTokens,
-          stream,
-        });
+  try {
+    const client = await getClient(model);
 
-  log.debug("response: ", { output, total_tokens, prompt_tokens });
-  const total_time_s = (Date.now() - start) / 1000;
+    const { output, total_tokens, prompt_tokens, completion_tokens } =
+      client instanceof VertexAIClient
+        ? await evaluateVertexAI({
+            system,
+            history,
+            input,
+            client,
+            maxTokens,
+            model,
+            stream,
+          })
+        : await evaluateOpenAI({
+            system,
+            history,
+            input,
+            client,
+            model,
+            maxTokens,
+            stream,
+          });
 
-  if (account_id) {
-    if (isFreeModel(model)) {
-      // no charge for now...
-    } else {
-      // charge for ALL other models.
-      const { pay_as_you_go_openai_markup_percentage } =
-        await getServerSettings();
-      const c = getCost(model, pay_as_you_go_openai_markup_percentage);
-      const cost =
-        c.prompt_tokens * prompt_tokens +
-        c.completion_tokens * completion_tokens;
+    log.debug("response: ", { output, total_tokens, prompt_tokens });
+    const total_time_s = (Date.now() - start) / 1000;
 
-      try {
-        await createPurchase({
-          account_id,
-          project_id,
-          cost,
-          service: model2service(model),
-          description: {
-            type: model2service(model),
-            prompt_tokens,
-            completion_tokens,
-          },
-          tag: `openai:${tag ?? ""}`,
-          client: null,
-        });
-      } catch (err) {
-        // we maybe just lost some money?!
-        log.error(
-          `FAILED to CREATE a purchase for something the user just got: cost=${cost}, account_id=${account_id}`,
-        );
-        // we might send an email or something...?
+    if (account_id) {
+      if (isFreeModel(model)) {
+        // no charge for now...
+      } else {
+        // charge for ALL other models.
+        const { pay_as_you_go_openai_markup_percentage } =
+          await getServerSettings();
+        const c = getCost(model, pay_as_you_go_openai_markup_percentage);
+        const cost =
+          c.prompt_tokens * prompt_tokens +
+          c.completion_tokens * completion_tokens;
+
+        try {
+          await createPurchase({
+            account_id,
+            project_id,
+            cost,
+            service: model2service(model),
+            description: {
+              type: model2service(model),
+              prompt_tokens,
+              completion_tokens,
+            },
+            tag: `${model2vendor(model)}:${tag ?? ""}`,
+            client: null,
+          });
+        } catch (err) {
+          // we maybe just lost some money?!
+          log.error(
+            `FAILED to CREATE a purchase for something the user just got: cost=${cost}, account_id=${account_id}`,
+          );
+          // we might send an email or something...?
+        }
       }
     }
+
+    let expire;
+    if (account_id == null) {
+      // this never happens right now since it's disabled; we may
+      // bring this back with captcha
+      const { pii_retention } = await getServerSettings();
+      expire = pii_retention_to_future(pii_retention);
+    } else {
+      expire = undefined;
+    }
+
+    saveResponse({
+      input,
+      system,
+      output,
+      history,
+      account_id,
+      analytics_cookie,
+      project_id,
+      path,
+      total_tokens,
+      prompt_tokens,
+      total_time_s,
+      model,
+      tag,
+      expire,
+    });
+
+    // NOTE about expire: If the admin setting for "PII Retention" is set *and*
+    // the usage is only identified by their analytics_cookie, then
+    // we automatically delete the log of chatgpt usage at the expiration time.
+    // If the account_id *is* set, users can do the following:
+    // 1. Ability to delete any of their past chatgpt usage
+    // 2. If a user deletes their account, also delete their past chatgpt usage log.
+    // 3. Make it easy to search and see their past usage.
+    // See https://github.com/sagemathinc/cocalc/issues/6577
+    // There's no reason to automatically delete "PII" attached
+    // to an actual user that has access to that data (and can delete it); otherwise,
+    // we would have to delete every single thing anybody types anywhere in cocalc,
+    // e.g., when editing a Jupyter notebook or really anything else at all, and
+    // that makes no sense at all.
+
+    return output;
+  } catch (err) {
+    // We want to avoid leaking any information about the error to the client
+    log.debug("error calling AI language model", err);
+    throw new Error(
+      `There is a problem calling ${
+        LLM_USERNAMES[model] ?? model
+      }. Please try another model, a different prompt, or at a later point in time.`,
+    );
   }
-
-  let expire;
-  if (account_id == null) {
-    // this never happens right now since it's disabled; we may
-    // bring this back with captcha
-    const { pii_retention } = await getServerSettings();
-    expire = pii_retention_to_future(pii_retention);
-  } else {
-    expire = undefined;
-  }
-
-  saveResponse({
-    input,
-    system,
-    output,
-    history,
-    account_id,
-    analytics_cookie,
-    project_id,
-    path,
-    total_tokens,
-    prompt_tokens,
-    total_time_s,
-    model,
-    tag,
-    expire,
-  });
-
-  // NOTE about expire: If the admin setting for "PII Retention" is set *and*
-  // the usage is only identified by their analytics_cookie, then
-  // we automatically delete the log of chatgpt usage at the expiration time.
-  // If the account_id *is* set, users can do the following:
-  // 1. Ability to delete any of their past chatgpt usage
-  // 2. If a user deletes their account, also delete their past chatgpt usage log.
-  // 3. Make it easy to search and see their past usage.
-  // See https://github.com/sagemathinc/cocalc/issues/6577
-  // There's no reason to automatically delete "PII" attached
-  // to an actual user that has access to that data (and can delete it); otherwise,
-  // we would have to delete every single thing anybody types anywhere in cocalc,
-  // e.g., when editing a Jupyter notebook or really anything else at all, and
-  // that makes no sense at all.
-
-  return output;
 }
 
 interface EvalVertexAIProps {
@@ -193,8 +213,9 @@ interface EvalVertexAIProps {
   history?: History;
   input: string;
   // maxTokens?: number;
-  // model: LanguageModel;
+  model: LanguageModel; // only "chat-bison-001" | "gemini-pro";
   stream?: (output?: string) => void;
+  maxTokens?: number; // only gemini-pro
 }
 
 async function evaluateVertexAI({
@@ -202,66 +223,27 @@ async function evaluateVertexAI({
   system,
   history,
   input,
-  // model,  // not used, this only supports chat-bison-001 for now
-  // maxTokens, // not used
+  model,
+  maxTokens,
   stream,
-}: EvalVertexAIProps): Promise<{
-  output;
-  total_tokens;
-  prompt_tokens;
-  completion_tokens;
-}> {
+}: EvalVertexAIProps): Promise<ChatOutput> {
+  if (model !== "chat-bison-001" && model !== "gemini-pro") {
+    throw new Error(`model ${model} not supported`);
+  }
+
   // TODO: for OpenAI, this is at 3. Unless we really know there are similar issues, we keep this at 1.
   const maxAttempts = 1;
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const messages: { content: string }[] = (history ?? [])
-        .filter(({ content }) => !!content)
-        .map(({ content }) => {
-          return {
-            content,
-          };
-        });
-
-      messages.push({ content: input });
-
-      // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
-      // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
-      // I think this is just a bug. If there is no reply, there is now a simple user-visible message instead of nothing.
-      const output = await client.chat({
-        messages,
+      return await client.chat({
+        history: history ?? [],
+        input,
         context: system,
-        model: "chat-bison-001",
+        model,
+        maxTokens,
+        stream,
       });
-
-      if (!output) {
-        throw new Error(
-          "There was a problem processing the prompt. Try a different prompt or another language model.",
-        );
-      }
-
-      // stream the output – there is no streaming right now, though
-      if (stream != null) {
-        stream(output);
-        stream();
-      }
-
-      // token estimation
-      const system_tokens = numTokens(system ?? "");
-      const input_all = (messages ?? [])
-        .map(({ content }) => content)
-        .join("\n");
-      const prompt_tokens = system_tokens + numTokens(input_all);
-      const completion_tokens = numTokens(output ?? "");
-
-      // in all cases, return the result
-      return {
-        output,
-        total_tokens: prompt_tokens + completion_tokens,
-        prompt_tokens,
-        completion_tokens,
-      };
     } catch (err) {
       const retry = i < maxAttempts - 1;
       log.debug(
@@ -421,12 +403,7 @@ async function callChatGPTAPI({
   maxAttempts,
   stream,
   maxTokens,
-}): Promise<{
-  output: string;
-  total_tokens: number;
-  prompt_tokens: number;
-  completion_tokens: number;
-}> {
+}): Promise<ChatOutput> {
   const doStream = stream != null;
   const gather = doStream ? new GatherOutput(messages, stream) : undefined;
   const axiosOptions = doStream ? { responseType: "stream" } : {};
@@ -480,7 +457,7 @@ async function callChatGPTAPI({
 // packages/frontend/misc/openai.ts
 const APPROX_CHARACTERS_PER_TOKEN = 8;
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
-function numTokens(content: string): number {
+export function numTokens(content: string): number {
   // slice to avoid extreme slowdown "attack".
   return tokenizer.encode(content.slice(0, 32000 * APPROX_CHARACTERS_PER_TOKEN))
     .text.length;

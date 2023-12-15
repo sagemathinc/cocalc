@@ -39,7 +39,7 @@ export function chatBotName(account_id?: string): string {
     return LLM_USERNAMES[account_id.slice("openai-".length)] ?? "ChatGPT";
   }
   if (account_id?.startsWith("google-")) {
-    return LLM_USERNAMES[account_id.slice("google-".length)] ?? "PaLM 2";
+    return LLM_USERNAMES[account_id.slice("google-".length)] ?? "Gemini";
   }
   return "ChatBot";
 }

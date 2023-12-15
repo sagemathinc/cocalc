@@ -69,6 +69,10 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "Google Gecko (Embedding)",
     color: "#4285f4",
   },
+  "google-gemini-pro": {
+    display: "Google Gemini Pro",
+    color: "#4285f4",
+  },
 };
 
 // For pay-as-you-go project quota upgrades
