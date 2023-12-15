@@ -1,7 +1,11 @@
-/*
-Get openai client.
-*/
+/**
+ * This is a wrapper client for Google's Vertex AI
+ *
+ * Right now, this is for Gemini Pro, based on https://ai.google.dev/tutorials/node_quickstart
+ */
 
+import getLogger from "@cocalc/backend/logger";
+import { LanguageModel } from "@cocalc/util/db-schema/openai";
 import {
   DiscussServiceClient,
   TextServiceClient,
@@ -11,67 +15,11 @@ import {
   GoogleGenerativeAI,
   InputContent,
 } from "@google/generative-ai";
-import { Configuration, OpenAIApi } from "openai";
-const { GoogleAuth } = require("google-auth-library");
+import { GoogleAuth } from "google-auth-library";
+import { numTokens } from "./chatgpt-numtokens";
+import { ChatOutput, History } from "./types";
 
-import getLogger from "@cocalc/backend/logger";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/openai";
-import { unreachable } from "@cocalc/util/misc";
-import { ChatOutput, History, numTokens } from "./chatgpt";
-
-const log = getLogger("openai:client");
-
-declare var fetch;
-
-const clientCache: { [key: string]: OpenAIApi | VertexAIClient } = {};
-
-export default async function getClient(
-  model?: LanguageModel,
-): Promise<OpenAIApi | VertexAIClient> {
-  const vendor = model == null ? "openai" : model2vendor(model);
-
-  switch (vendor) {
-    case "openai":
-      const { openai_api_key: apiKey } = await getServerSettings();
-      if (clientCache[apiKey]) {
-        return clientCache[apiKey];
-      }
-      if (!apiKey) {
-        log.warn("requested openai api key, but it's not configured");
-        throw Error("openai not configured");
-      }
-
-      log.debug("creating openai client...");
-      const configuration = new Configuration({ apiKey });
-      const client = new OpenAIApi(configuration);
-      clientCache[apiKey] = client;
-      return client;
-
-    case "google":
-      const { google_vertexai_key } = await getServerSettings();
-      const key = `google:${google_vertexai_key}-${model}`;
-      if (clientCache[key]) {
-        return clientCache[key];
-      }
-      if (!google_vertexai_key) {
-        log.warn("requested google vertexai key, but it's not configured");
-        throw Error("google vertexai not configured");
-      }
-
-      if (!model) {
-        throw Error("this should never happen");
-      }
-
-      const vai = new VertexAIClient({ apiKey: google_vertexai_key }, model);
-      clientCache[key] = vai;
-      return vai;
-
-    default:
-      unreachable(vendor);
-      throw new Error(`unknown vendor: ${vendor}`);
-  }
-}
+const log = getLogger("llm:vertex-ai");
 
 interface AuthMethods {
   apiKey?: string;
@@ -94,15 +42,7 @@ export class VertexAIClient {
       if (auth.apiKey == null) {
         throw new Error("you must provide and API key for gemini pro");
       }
-      try {
-        this.genAI = new GoogleGenerativeAI(auth.apiKey);
-      } catch (err) {
-        // We have to catch, because the error includes the API key in the GET request
-        log.error("chat/gemini pro error", err);
-        throw new Error(
-          "There was a problem instantiating Gemini Pro. Please try another language model.",
-        );
-      }
+      this.genAI = new GoogleGenerativeAI(auth.apiKey);
     } else {
       throw new Error(`unknown model: ${model}`);
     }
@@ -168,21 +108,13 @@ export class VertexAIClient {
         return this.chatPalm2({ context, history, input, stream });
 
       case "gemini-pro":
-        try {
-          return this.chatGeminiPro({
-            context,
-            history,
-            input,
-            maxTokens,
-            stream,
-          });
-        } catch (err) {
-          // We're on the safe side, catch this error, and do not show it to the user,
-          // because it might include the GET request, which includes the API key.
-          // (it certainly includes the API key when instantiating the client)
-          log.error("chat/gemini pro error", err);
-          throw new Error("There was a problem processing the prompt.");
-        }
+        return this.chatGeminiPro({
+          context,
+          history,
+          input,
+          maxTokens,
+          stream,
+        });
 
       default:
         throw new Error(`model ${model} not supported`);
@@ -205,14 +137,8 @@ export class VertexAIClient {
     // TODO there is no context? hence enter it as the first model message
     const geminiContext: InputContent[] = context
       ? [
-          {
-            role: "user",
-            parts: context,
-          },
-          {
-            role: "model",
-            parts: "OK",
-          },
+          { role: "user", parts: `SYSTEM CONTEXT:\n${context}` },
+          { role: "model", parts: "OK" },
         ]
       : [];
 
@@ -246,55 +172,43 @@ export class VertexAIClient {
 
     const chat = geminiPro.startChat(params);
 
-    try {
-      const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
-        input,
-        context ?? "",
-        ...history.map(({ content }) => content),
-      ]);
+    const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
+      input,
+      context ?? "",
+      ...history.map(({ content }) => content),
+    ]);
 
-      let text = "";
-      if (stream != null) {
-        // https://ai.google.dev/tutorials/node_quickstart#streaming
-        try {
-          const result = await chat.sendMessageStream(input);
+    let text = "";
+    if (stream != null) {
+      // https://ai.google.dev/tutorials/node_quickstart#streaming
+      const result = await chat.sendMessageStream(input);
 
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            text += chunkText;
-            stream(chunkText);
-          }
-          // we block on the for loop above, hence now we are complete and send an empty reply to signal the end
-          stream();
-        } catch (err) {
-          log.error("chat/gemini pro error", err);
-          throw new Error("There was a problem processing the prompt.");
-        }
-      } else {
-        const result = await chat.sendMessage(input);
-        const response = await result.response;
-        text = response.text();
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        text += chunkText;
+        stream(chunkText);
       }
-      log.debug("chat/got response from gemini pro:", text);
-
-      const { totalTokens: completion_tokens } = await geminiPro.countTokens(
-        text,
-      );
-      return {
-        output: text,
-        total_tokens: prompt_tokens + completion_tokens,
-        completion_tokens,
-        prompt_tokens,
-      };
-    } catch (err) {
-      // We have to catch, because the error includes the API key in the GET request
-      log.error("chat/gemini pro error", err);
-      throw new Error(
-        "There was a problem counting tokens. Please try another language model.",
-      );
+      // we block on the for loop above, hence now we are complete and send an empty reply to signal the end
+      stream();
+    } else {
+      const result = await chat.sendMessage(input);
+      const response = await result.response;
+      text = response.text();
     }
+    log.debug("chat/got response from gemini pro:", text);
+
+    const { totalTokens: completion_tokens } = await geminiPro.countTokens(
+      text,
+    );
+    return {
+      output: text,
+      total_tokens: prompt_tokens + completion_tokens,
+      completion_tokens,
+      prompt_tokens,
+    };
   }
 
+  // ATTN: PaLM2 is deprecated and this is basically dead code
   private async chatPalm2({
     context,
     history,

@@ -17,6 +17,7 @@ export const LANGUAGE_MODELS = [
   "text-bison-001",
   "chat-bison-001",
   "embedding-gecko-001",
+  "text-embedding-ada-002",
   "gemini-pro",
 ] as const;
 
@@ -56,6 +57,7 @@ export type LanguageService =
   | "openai-gpt-3.5-turbo-16k"
   | "openai-gpt-4"
   | "openai-gpt-4-32k"
+  | "openai-text-embedding-ada-002"
   | "google-text-bison-001"
   | "google-chat-bison-001"
   | "google-embedding-gecko-001"
@@ -69,6 +71,7 @@ export const LANGUAGE_MODEL_PREFIXES = [
 ] as const;
 
 export function model2service(model: LanguageModel): LanguageService {
+  if (model === "text-embedding-ada-002") return `openai-${model}`;
   if (
     model === "text-bison-001" ||
     model === "chat-bison-001" ||
@@ -183,7 +186,7 @@ interface Cost {
 // Our cost is a configurable multiple of this.
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
-export const OPENAI_COST: { [name in string]: Cost } = {
+export const OPENAI_COST: { [name in LanguageModel]: Cost } = {
   "gpt-4": {
     prompt_tokens: 0.03 / 1000,
     completion_tokens: 0.06 / 1000,
@@ -236,7 +239,7 @@ export const OPENAI_COST: { [name in string]: Cost } = {
 } as const;
 
 export function isValidModel(model?: Model) {
-  return OPENAI_COST[model ?? ""] != null;
+  return model != null && OPENAI_COST[model ?? ""] != null;
 }
 
 export function getMaxTokens(model?: Model): number {
