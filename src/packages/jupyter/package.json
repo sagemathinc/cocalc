@@ -52,6 +52,7 @@
     "enchannel-zmq-backend": "^9.1.23",
     "execa": "^8.0.1",
     "expect": "^26.6.2",
+    "he": "^1.2.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "jsonfile": "^6.1.0",

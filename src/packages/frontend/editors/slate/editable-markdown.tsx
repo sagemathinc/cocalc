@@ -78,10 +78,10 @@ export type { SlateEditor };
 const USE_WINDOWING = true;
 // const USE_WINDOWING = false;
 
-const STYLE = {
+const STYLE: CSS = {
   width: "100%",
   overflow: "auto",
-} as CSS;
+} as const;
 
 interface Props {
   value?: string;
