@@ -24,21 +24,20 @@ import {
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { delayShow } from "@cocalc/frontend/project//new/file-type-selector";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import {
   NEW_FILETYPE_ICONS,
   isNewFiletypeIconName,
 } from "@cocalc/frontend/project/new/consts";
+import { NewFileButton } from "@cocalc/frontend/project/new/new-file-button";
 import { NewFileDropdown } from "@cocalc/frontend/project/new/new-file-dropdown";
 import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { delayShow } from "../../new/file-type-selector";
-import { NewFileButton } from "../../new/new-file-button";
-import { ChatGPTGenerateNotebookButton } from "../home-page/ai-generate-jupyter";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 
 function getFileExtension(filename: string): string | null {
@@ -326,12 +325,6 @@ export function NewFlyout({
           projectActions={actions}
           create_file={selectType}
           availableFeatures={availableFeatures}
-          chatgptNotebook={
-            <ChatGPTGenerateNotebookButton
-              project_id={project_id}
-              style={{ width: "100%" }}
-            />
-          }
         />
         <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
         <Tip

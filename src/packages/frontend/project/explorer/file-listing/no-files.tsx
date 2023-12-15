@@ -11,8 +11,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import { ChatGPTGenerateNotebookButton } from "../../page/home-page/ai-generate-jupyter";
-import { useAvailableFeatures } from "../../use-available-features";
+import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
 
@@ -101,12 +100,6 @@ export default function NoFiles({
             create_folder={create_folder}
             projectActions={actions}
             availableFeatures={availableFeatures}
-            chatgptNotebook={
-              <ChatGPTGenerateNotebookButton
-                project_id={project_id}
-                style={{ width: "100%" }}
-              />
-            }
           />
         </div>
       )}

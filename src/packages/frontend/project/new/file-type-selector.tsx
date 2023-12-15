@@ -12,17 +12,27 @@ import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { useProjectContext } from "@cocalc/frontend/project//context";
+import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
+
+interface DisabledFeatures {
+  linux?: boolean;
+  servers?: boolean;
+  course?: boolean;
+  chat?: boolean;
+  md?: boolean;
+  timers?: boolean;
+}
 
 interface Props {
   create_file: (name?: string) => void;
   create_folder?: (name?: string) => void;
   projectActions: ProjectActions | undefined;
   availableFeatures: Readonly<Available>;
-  disabledFeatures?;
-  chatgptNotebook?: React.ReactNode;
+  disabledFeatures?: Readonly<DisabledFeatures>;
   children?: React.ReactNode;
   mode?: "flyout" | "full";
   selectedExt?: string;
@@ -38,7 +48,6 @@ export function FileTypeSelector({
   projectActions,
   availableFeatures,
   disabledFeatures,
-  chatgptNotebook,
   mode = "full",
   selectedExt,
   children,
@@ -62,30 +71,6 @@ export function FileTypeSelector({
   function btnActive(ext: string): boolean {
     if (!isFlyout) return false;
     return ext === selectedExt;
-  }
-
-  function renderJupyterNotebookButtons() {
-    if (!availableFeatures.jupyter_notebook) return;
-
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={delayShow}
-          icon={NEW_FILETYPE_ICONS["ipynb"]}
-          title="Jupyter Notebook"
-          tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
-        >
-          <NewFileButton
-            name="Jupyter Notebook"
-            on_click={create_file}
-            ext={"ipynb"}
-            size={btnSize}
-            active={btnActive("ipynb")}
-          />
-        </Tip>
-        {chatgptNotebook}
-      </Col>
-    );
   }
 
   function renderSageWS() {
@@ -168,7 +153,13 @@ export function FileTypeSelector({
             Data Science
           </Section>
           <Row gutter={gutter} style={newRowStyle}>
-            {renderJupyterNotebookButtons()}
+            <JupyterNotebookButtons
+              availableFeatures={availableFeatures}
+              create_file={create_file}
+              btnSize={btnSize}
+              btnActive={btnActive}
+              grid={[sm, md]}
+            />
             {renderLaTeX()}
             {renderRMD()}
             {renderSageWS()}
@@ -489,5 +480,58 @@ function Section({
         {children}
       </Tag>
     </div>
+  );
+}
+
+function JupyterNotebookButtons({
+  availableFeatures,
+  create_file,
+  btnSize,
+  btnActive,
+  grid,
+}) {
+  const { project_id } = useProjectContext();
+
+  if (!availableFeatures.jupyter_notebook) return null;
+  const [sm, md] = grid;
+
+  function renderSpecificNotebooks() {
+    return (
+      <Col sm={sm} md={md}>
+        <NewFileButton
+          name="Python Notebook"
+          on_click={create_file}
+          ext={"ipynb"}
+          size={btnSize}
+          active={btnActive("ipynb-python")}
+        />
+      </Col>
+    );
+  }
+
+  return (
+    <>
+      <Col sm={sm} md={md}>
+        <Tip
+          delayShow={delayShow}
+          icon={NEW_FILETYPE_ICONS["ipynb"]}
+          title="Jupyter Notebook"
+          tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
+        >
+          <NewFileButton
+            name="Jupyter Notebook"
+            on_click={create_file}
+            ext={"ipynb"}
+            size={btnSize}
+            active={btnActive("ipynb")}
+          />
+        </Tip>
+        <AIGenerateNotebookButton
+          project_id={project_id}
+          style={{ width: "100%" }}
+        />
+      </Col>
+      {renderSpecificNotebooks()}
+    </>
   );
 }

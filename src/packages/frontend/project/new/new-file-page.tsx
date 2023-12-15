@@ -30,7 +30,6 @@ import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PathNavigator } from "../explorer/path-navigator";
-import { ChatGPTGenerateNotebookButton } from "../page/home-page/ai-generate-jupyter";
 import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
@@ -355,12 +354,6 @@ export default function NewFilePage(props: Props) {
             create_folder={createFolder}
             projectActions={actions}
             availableFeatures={availableFeatures}
-            chatgptNotebook={
-              <ChatGPTGenerateNotebookButton
-                project_id={project_id}
-                style={{ width: "100%" }}
-              />
-            }
           >
             <Tip
               title={"Download files from the Internet"}

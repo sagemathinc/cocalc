@@ -542,7 +542,7 @@ export default function AIGenerateJupyterNotebook({
   );
 }
 
-export function ChatGPTGenerateNotebookButton({
+export function AIGenerateNotebookButton({
   project_id,
   style,
 }: {
