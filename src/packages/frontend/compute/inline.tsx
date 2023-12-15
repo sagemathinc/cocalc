@@ -71,6 +71,7 @@ export default function ComputeServer({
           backgroundColor: server?.color,
           height: "3px",
           textAlign: "center",
+          color: server?.color ? avatar_fontcolor(server?.color) : undefined,
           ...style,
         }}
       >
