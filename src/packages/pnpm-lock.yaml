@@ -1003,6 +1003,9 @@ importers:
       expect:
         specifier: ^26.6.2
         version: 26.6.2
+      he:
+        specifier: ^1.2.0
+        version: 1.2.0
       immutable:
         specifier: ^4.3.0
         version: 4.3.0
@@ -11910,7 +11913,6 @@ packages:
   /he@1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
-    dev: true
 
   /highlight-words-core@1.2.2:
     resolution: {integrity: sha512-BXUKIkUuh6cmmxzi5OIbUJxrG8OAk2MqoL1DtO3Wo9D2faJg2ph5ntyuQeLqaHJmzER6H5tllCDA9ZnNe9BVGg==}
