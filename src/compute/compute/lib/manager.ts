@@ -263,7 +263,11 @@ class Manager {
           client: this.client,
           path,
         });
-      } else if (path.endsWith(".md") || path.endsWith(".txt")) {
+      } else if (
+        path.endsWith(".md") ||
+        path.endsWith(".txt") ||
+        path.endsWith(".py")
+      ) {
         // temporary proof of concept
         this.connections[path] = fileServer({
           client: this.client,

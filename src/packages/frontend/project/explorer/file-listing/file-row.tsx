@@ -203,6 +203,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       props.actions.open_file({
         path,
         foreground,
+        explicit:true,
       });
       if (foreground) {
         props.actions.set_file_search("");

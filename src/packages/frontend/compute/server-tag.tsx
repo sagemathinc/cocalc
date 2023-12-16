@@ -19,7 +19,7 @@ export default function ComputeServerTag({ id, style, title }: Props) {
     })();
   }, []);
   if (desc == null) {
-    return <Spin delay={1000} />;
+    return <Spin delay={3000} />;
   }
   return (
     <Tooltip title={title ?? <>Compute server "{desc.title}"</>}>

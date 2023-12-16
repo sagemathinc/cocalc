@@ -55,6 +55,10 @@ export class ComputeServersManager extends EventEmitter {
   // Call this if you want the compute server with given id to
   // connect and handle being the server for the given path.
   connectComputeServerToPath = ({ id, path }: { id: number; path: string }) => {
+    if (id == 0) {
+      this.disconnectComputeServer({ path });
+      return;
+    }
     assertSupportedPath(path);
     this.sync_db.set({ id, path, open: true });
     this.sync_db.commit();

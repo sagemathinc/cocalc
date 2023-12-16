@@ -40,10 +40,12 @@ export async function open_file(
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
     change_history?: boolean;
-  }
+    // opened via an explicit click
+    explicit?: boolean;
+  },
 ): Promise<void> {
   // console.log(opts);
-  
+
   if (opts.path.endsWith("/")) {
     actions.open_directory(opts.path);
     return;
@@ -61,6 +63,7 @@ export async function open_file(
     ignore_kiosk: false,
     new_browser_window: false,
     change_history: true,
+    explicit: false,
   });
   opts.path = normalize(opts.path);
 
@@ -131,7 +134,7 @@ export async function open_file(
   if (
     !(await ensure_project_running(
       actions.project_id,
-      `open the file '${opts.path}'`
+      `open the file '${opts.path}'`,
     ))
   ) {
     if (!actions.open_files) return; // closed
@@ -267,6 +270,10 @@ export async function open_file(
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
 
+  if (opts.explicit) {
+    await setComputeServer(actions, opts.path);
+  }
+
   if (opts.foreground) {
     actions.foreground_project(opts.change_history);
     const tab = path_to_tab(opts.path);
@@ -324,7 +331,7 @@ async function open_sagenb_worksheet(opts: {
   try {
     const path: string = await convert_sagenb_worksheet(
       opts.project_id,
-      opts.path
+      opts.path,
     );
     await open_file(actions, {
       path,
@@ -342,7 +349,7 @@ async function open_sagenb_worksheet(opts: {
 
 async function convert_sagenb_worksheet(
   project_id: string,
-  filename: string
+  filename: string,
 ): Promise<string> {
   const ext = filename_extension(filename);
   if (ext != "sws") {
@@ -423,7 +430,7 @@ function get_side_chat_state(
     path: string;
     chat?: boolean;
     chat_width?: number;
-  }
+  },
 ): void {
   // grab chat state from local storage
   if (local_storage != null) {
@@ -437,5 +444,29 @@ function get_side_chat_state(
 
   if (filename_extension(opts.path) === "sage-chat") {
     opts.chat = false;
+  }
+}
+
+async function setComputeServer(actions, path: string) {
+  if (
+    !path.endsWith(".txt") &&
+    !path.endsWith(".py") &&
+    !path.endsWith(".md")
+  ) {
+    // that's all we have implemented so far.
+    return;
+  }
+  const computeServerAssociations = webapp_client.project_client.computeServers(
+    actions.project_id,
+  );
+  const id = await computeServerAssociations.getServerIdForPath(path);
+  const store = actions.get_store();
+  if (store == null) return;
+  const selectedComputeServerId = store.get("compute_server_id");
+  if (id != selectedComputeServerId) {
+    computeServerAssociations.connectComputeServerToPath({
+      id: selectedComputeServerId,
+      path,
+    });
   }
 }
