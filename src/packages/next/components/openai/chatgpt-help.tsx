@@ -57,7 +57,7 @@ export default function ChatGPTHelp({
       setState("wait");
       let output;
       try {
-        ({ output } = await apiPost("/openai/chatgpt", {
+        ({ output } = await apiPost("/llm/evaluate", {
           input: value,
           system,
           tag: `next:${tag}`,

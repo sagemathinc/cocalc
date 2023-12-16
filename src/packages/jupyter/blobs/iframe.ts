@@ -6,10 +6,12 @@
 /*
 Efficient backend processing of iframe srcdoc and general text/html messages.
 
-MOTIVATION: Sage jmol.
+MOTIVATION: Sage 3d graphics.
 */
 
-import { replace_all } from "@cocalc/util/misc";
+import { decode } from "he";
+//import { getLogger } from "@cocalc/backend/logger";
+//const logger = getLogger("jupyter:blobs:iframe");
 
 export function is_likely_iframe(content: string): boolean {
   if (!content) {
@@ -18,10 +20,10 @@ export function is_likely_iframe(content: string): boolean {
   content = content.slice(0, 100).trim().toLowerCase();
   return (
     content.startsWith("<iframe") ||
-    content.indexOf("<!doctype html>") >= 0 ||
-    (content.indexOf("<html>") >= 0 && content.indexOf("<head>") >= 0) ||
+    content.includes("<!doctype html>") ||
+    (content.includes("<html>") && content.includes("<head>")) ||
     // special case "altair" inline html -- https://github.com/sagemathinc/cocalc/issues/4468
-    content.indexOf('id="altair-viz-') >= 0
+    content.includes('id="altair-viz-')
   );
 }
 
@@ -29,36 +31,19 @@ export function process(
   content: string,
   saveToBlobStore: (data: string, type: string, ipynb?: string) => string,
 ): string {
-  const content_lower = content.toLowerCase();
-  const i = content_lower.indexOf("<html>");
-  const j = content_lower.lastIndexOf("</html>");
+  const decodedContent = decode(content);
+  const contentLower = decodedContent.toLowerCase();
+  const i = contentLower.indexOf("<html>");
+  const j = contentLower.lastIndexOf("</html>");
   // trim content to the part inside the html tags – keep it otherwise
   // this is necessary for wrapping inline html code like for
   // https://github.com/sagemathinc/cocalc/issues/4468
   let src = "";
   if (i != -1 && j != -1) {
-    src = content.slice(i, j + "</html>".length);
+    src = decodedContent.slice(i, j + "</html>".length);
   } else {
-    src = `<html>${content}</html>`;
+    src = `<html>${decodedContent}</html>`;
   }
-  return saveToBlobStore(unescape(src), "text/html", content);
+  // logger.debug("process", { content, src });
+  return saveToBlobStore(src, "text/html", content);
 }
-
-const entity_map = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;",
-  "/": "&#x2F;",
-  "`": "&#x60;",
-  "=": "&#x3D;",
-};
-
-var unescape = function (s: string) {
-  for (const k in entity_map) {
-    const v = entity_map[k];
-    s = replace_all(s, v, k);
-  }
-  return s;
-};

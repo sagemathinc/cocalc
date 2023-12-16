@@ -797,7 +797,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         content.data[type] = saveToBlobStore(content.data[type], type);
       } else if (type === "text/html" && is_likely_iframe(content.data[type])) {
         // Likely iframe, so we treat it as such.  This is very important, e.g.,
-        // because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
+        // because of Sage's iframe 3d graphics.  We parse
         // and remove these and serve them from the backend.
         //  {iframe: sha1 of srcdoc}
         content.data["iframe"] = iframe_process(
