@@ -30,9 +30,7 @@ export type Reason =
 // monthly quota on each one in purchase-quotas.
 // The service names for openai are of the form "openai-[model name]"
 
-export type Service =
-  | "credit"
-  | "refund"
+export type LLMService =
   | "openai-gpt-4"
   | "openai-gpt-4-32k"
   | "openai-gpt-3.5-turbo"
@@ -41,13 +39,19 @@ export type Service =
   | "google-text-bison-001"
   | "google-chat-bison-001"
   | "google-embedding-gecko-001"
-  | "google-gemini-pro"
+  | "google-gemini-pro";
+
+export type ComputeService =
+  | "credit"
+  | "refund"
   | "project-upgrade"
   | "compute-server"
   | "compute-server-network-usage"
   | "license"
   | "voucher"
   | "edit-license";
+
+export type Service = LLMService | ComputeService;
 
 export interface OpenaiGPT4 {
   type: "openai-gpt-4";
