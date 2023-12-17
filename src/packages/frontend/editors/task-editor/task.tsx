@@ -64,7 +64,7 @@ export default function Task({
   } else if (is_current) {
     style.border = `2px solid ${FOCUSED_COLOR}`;
   } else {
-    style.border = "2px solid transparent";
+    style.border = "2px solid #ddd";
     style.borderTop = "2px solid #eeejj";
   }
   if (task.get("deleted")) {

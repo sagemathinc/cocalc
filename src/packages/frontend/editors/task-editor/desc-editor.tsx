@@ -15,6 +15,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { TaskActions } from "./actions";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
+import { MAX_HEIGHT } from "./constants";
 
 interface Props {
   actions: TaskActions;
@@ -70,8 +71,10 @@ export default function DescriptionEditor({
         onFocus={actions.disable_key_handler}
         enableUpload={true}
         enableMentions={true}
-        height={"auto"}
-        placeholder={"Enter a description.  Use markdown with LaTeX.  Evaluate code blocks."}
+        height={MAX_HEIGHT}
+        placeholder={
+          "Enter a description.  Use markdown with LaTeX.  Evaluate code blocks."
+        }
         autoFocus
         onSave={() => {
           actions.save();
@@ -86,7 +89,7 @@ export default function DescriptionEditor({
         editBarStyle={{ marginBottom: "10px" }}
       />
       <ColorPicker
-        toggle={<Button style={{ float: "right" }}>Background...</Button>}
+        toggle={<Button style={{ float: "right" }}>Color...</Button>}
         color={color}
         onChange={(color) => {
           actions.set_color(task_id, color);
