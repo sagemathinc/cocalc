@@ -442,7 +442,9 @@ export default function MultiMarkdownInput(props: Props) {
             value={value}
             is_current={true}
             hidePath
-            disableWindowing
+            disableWindowing={
+              true /* I tried making this false when height != 'auto', but then *clicking to set selection* doesn't work at least for task list.*/
+            }
             style={
               minimal
                 ? { background: undefined, backgroundColor: undefined }
@@ -453,6 +455,7 @@ export default function MultiMarkdownInput(props: Props) {
                 ? { background: undefined, padding: 0 }
                 : { padding: "5px 15px" }
             }
+            minimal={minimal}
             height={height}
             editBarStyle={
               {

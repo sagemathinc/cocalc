@@ -50,7 +50,7 @@ import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 export const SELECTOR_WIDTH = "350px";
 
-const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu;
+const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu2;
 
 //     {
 //   acceleratorType: "nvidia-l4",

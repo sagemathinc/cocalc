@@ -46,19 +46,28 @@ const Text = (props: {
         text={text}
         parent={parent}
         renderLeaf={renderLeaf}
-      />
+      />,
     );
   }
 
   // Update element-related weak maps with the DOM element ref.
   useIsomorphicLayoutEffect(() => {
-    if (ref.current) {
-      KEY_TO_ELEMENT.set(key, ref.current);
-      NODE_TO_ELEMENT.set(text, ref.current);
-      ELEMENT_TO_NODE.set(ref.current, text);
-    } else {
-      KEY_TO_ELEMENT.delete(key);
-      NODE_TO_ELEMENT.delete(text);
+    try {
+      // I've seen "TypeError: Invalid value used as weak map key"
+      // happen sometimes in a way I can't reproduce in the line
+      // 'NODE_TO_ELEMENT.set(text, ref.current);' below. Better
+      // to show a warning than crash the browser.
+      // TODO: i don't know what the implications of this are, if any.
+      if (ref.current) {
+        KEY_TO_ELEMENT.set(key, ref.current);
+        NODE_TO_ELEMENT.set(text, ref.current);
+        ELEMENT_TO_NODE.set(ref.current, text);
+      } else {
+        KEY_TO_ELEMENT.delete(key);
+        NODE_TO_ELEMENT.delete(text);
+      }
+    } catch (err) {
+      console.warn(err);
     }
 
     // It's also CRITICAL to update the selection after changing the text,
