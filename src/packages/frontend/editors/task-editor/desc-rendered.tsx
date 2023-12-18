@@ -11,6 +11,7 @@ import { React } from "../../app-framework";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { header_part } from "./desc-rendering";
 import { TaskActions } from "./actions";
+import { MAX_HEIGHT } from "./constants";
 
 interface Props {
   actions?: TaskActions;
@@ -66,7 +67,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
                 ? (tag) =>
                     actions.set_hashtag_state(
                       tag,
-                      selectedHashtags.has(tag) ? undefined : 1
+                      selectedHashtags.has(tag) ? undefined : 1,
                     )
                 : undefined
             }
@@ -88,7 +89,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
         actions?.toggle_desc_checkbox(
           task_id,
           parseInt(data.index),
-          data.checkbox === "true"
+          data.checkbox === "true",
         );
       } else if (data.hashtag != null) {
         let new_state;
@@ -106,12 +107,12 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
 
     return (
       <div
-        style={{ paddingTop: "5px" }}
+        style={{ paddingTop: "5px", maxHeight: MAX_HEIGHT, overflow: "auto" }}
         onClick={!read_only && actions != null ? on_click : undefined}
         className="cocalc-task-description"
       >
         {render_content()}
       </div>
     );
-  }
+  },
 );

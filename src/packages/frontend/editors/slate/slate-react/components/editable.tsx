@@ -131,7 +131,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         name: string;
         notReadOnly?: boolean;
         editableTarget?: boolean;
-      } // @ts-ignore
+      }, // @ts-ignore
     ) =>
       !event.nativeEvent?.slateIgnore &&
       (notReadOnly == null || notReadOnly == !readOnly) &&
@@ -139,7 +139,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         ? hasEditableTarget(editor, event.target)
         : hasTarget(editor, event.target)) &&
       !isEventHandled(event, attributes[name]),
-    [editor, attributes, readOnly]
+    [editor, attributes, readOnly],
   );
 
   // Update internal state on each render.
@@ -158,7 +158,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
       shiftKey: false,
       ignoreSelection: false,
     }),
-    []
+    [],
   );
 
   // start ignoring the selection sync
@@ -172,7 +172,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
   // state whose change causes an update
   const [hiddenChildren, setHiddenChildren] = useState<Set<number>>(
-    new Set([])
+    new Set([]),
   );
 
   editor.updateHiddenChildren = useCallback(() => {
@@ -273,7 +273,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         getTargetRanges(): DOMStaticRange[];
         inputType: string;
         isComposing: boolean;
-      }
+      },
     ) => {
       if (
         !readOnly &&
@@ -309,7 +309,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               console.warn(
                 "WARNING: onDOMBeforeInput -- unable to find SlateRange",
                 targetRange,
-                err
+                err,
               );
               return;
             }
@@ -416,7 +416,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               // I've seen this crash several times in a way I can't reproduce, maybe
               // when focusing (not sure).  Better make it a warning with useful info.
               console.warn(
-                `SLATE -- issue with DOM insertText/insertData operation ${err}, ${data}`
+                `SLATE -- issue with DOM insertText/insertData operation ${err}, ${data}`,
               );
             }
 
@@ -425,7 +425,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         }
       }
     },
-    [readOnly, propsOnDOMBeforeInput]
+    [readOnly, propsOnDOMBeforeInput],
   );
 
   // Attach a native DOM event handler for `beforeinput` events, because React's
@@ -525,7 +525,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               Editor.insertText(editor, text);
             }
           },
-          [readOnly]
+          [readOnly],
         )}
         onBlur={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
@@ -577,7 +577,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
             IS_FOCUSED.delete(editor);
           },
-          [readOnly, attributes.onBlur]
+          [readOnly, attributes.onBlur],
         )}
         onClick={useCallback(
           (event: React.MouseEvent<HTMLDivElement>) => {
@@ -604,7 +604,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                 console.warn(
                   "WARNING: onClick -- unable to find path to node",
                   node,
-                  err
+                  err,
                 );
                 return;
               }
@@ -628,7 +628,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }
             }
           },
-          [readOnly, attributes.onClick]
+          [readOnly, attributes.onClick],
         )}
         onCompositionEnd={useCallback(
           (event: React.CompositionEvent<HTMLDivElement>) => {
@@ -651,7 +651,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }
             }
           },
-          [attributes.onCompositionEnd]
+          [attributes.onCompositionEnd],
         )}
         onCompositionStart={useCallback(
           (event: React.CompositionEvent<HTMLDivElement>) => {
@@ -666,7 +666,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               // console.log("onCompositionStart");
             }
           },
-          [attributes.onCompositionStart]
+          [attributes.onCompositionStart],
         )}
         onCopy={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
@@ -675,7 +675,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               ReactEditor.setFragmentData(editor, event.clipboardData);
             }
           },
-          [attributes.onCopy]
+          [attributes.onCopy],
         )}
         onCut={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
@@ -696,7 +696,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }
             }
           },
-          [readOnly, attributes.onCut]
+          [readOnly, attributes.onCut],
         )}
         onDragOver={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
@@ -718,7 +718,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }
             }
           },
-          [attributes.onDragOver]
+          [attributes.onDragOver],
         )}
         onDragStart={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
@@ -738,7 +738,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                 console.warn(
                   "WARNING: onDragStart -- unable to find path to node",
                   node,
-                  err
+                  err,
                 );
                 return;
               }
@@ -754,7 +754,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               ReactEditor.setFragmentData(editor, event.dataTransfer);
             }
           },
-          [attributes.onDragStart]
+          [attributes.onDragStart],
         )}
         onDrop={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
@@ -788,7 +788,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }
             }
           },
-          [readOnly, attributes.onDrop]
+          [readOnly, attributes.onDrop],
         )}
         onFocus={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
@@ -800,7 +800,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               IS_FOCUSED.set(editor, true);
             }
           },
-          [readOnly, attributes.onFocus]
+          [readOnly, attributes.onFocus],
         )}
         onKeyUp={useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
           state.shiftKey = event.shiftKey;
@@ -1031,7 +1031,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               return;
             }
           },
-          [readOnly, attributes.onKeyDown]
+          [readOnly, attributes.onKeyDown],
         )}
         onPaste={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
@@ -1049,7 +1049,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               ReactEditor.insertData(editor, event.clipboardData);
             }
           },
-          [readOnly, attributes.onPaste]
+          [readOnly, attributes.onPaste],
         )}
       >
         <DecorateContext.Provider value={decorate}>
@@ -1087,10 +1087,10 @@ const defaultDecorate: (entry: NodeEntry) => Range[] = () => [];
  */
 
 const isEventHandled = <
-  EventType extends React.SyntheticEvent<unknown, unknown>
+  EventType extends React.SyntheticEvent<unknown, unknown>,
 >(
   event: EventType,
-  handler?: (event: EventType) => void
+  handler?: (event: EventType) => void,
 ) => {
   if (!handler) {
     return false;

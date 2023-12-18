@@ -123,6 +123,7 @@ interface Props {
   editBar2?: MutableRefObject<JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
   vertexAI?: boolean;
+  minimal?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
@@ -162,6 +163,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     dirtyRef,
     chatGPT,
     vertexAI,
+    minimal,
   } = props;
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -925,7 +927,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
             ? {
                 rowStyle: {
                   // WARNING: do *not* use margin in rowStyle.
-                  padding: "0 70px",
+                  padding: minimal ? 0 : "0 70px",
                   overflow: "hidden", // CRITICAL: this makes it so the div height accounts for margin of contents (e.g., p element has margin), so virtuoso can measure it correctly.  Otherwise, things jump around like crazy.
                   minHeight: "1px", // virtuoso can't deal with 0-height items
                 },
