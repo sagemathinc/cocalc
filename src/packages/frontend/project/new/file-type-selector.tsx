@@ -15,8 +15,10 @@ import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import { useProjectContext } from "@cocalc/frontend/project//context";
 import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { useJupyterKernelsInfo } from "../../components/run-button/kernel-info";
 import { NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
+import { capitalize } from "@cocalc/util/misc";
 
 interface DisabledFeatures {
   linux?: boolean;
@@ -160,6 +162,8 @@ export function FileTypeSelector({
               btnActive={btnActive}
               grid={[sm, md]}
             />
+          </Row>
+          <Row gutter={gutter} style={newRowStyle}>
             {renderLaTeX()}
             {renderRMD()}
             {renderSageWS()}
@@ -483,6 +487,23 @@ function Section({
   );
 }
 
+function lang2info(lang: string): { display: string; ext: string } {
+  switch (lang) {
+    case "python":
+      return { display: "Python", ext: "py" };
+    case "ir":
+      return { display: "R", ext: "r" };
+    case "octave":
+      return { display: "Octave", ext: "m" };
+    case "sage":
+      return { display: "SageMath", ext: "sage" };
+    case "julia":
+      return { display: "Julia", ext: "jl" };
+    default:
+      return { display: capitalize(lang), ext: "file" };
+  }
+}
+
 function JupyterNotebookButtons({
   availableFeatures,
   create_file,
@@ -492,21 +513,41 @@ function JupyterNotebookButtons({
 }) {
   const { project_id } = useProjectContext();
 
+  const { error, kernel_selection, kernels_by_name } = useJupyterKernelsInfo();
+
   if (!availableFeatures.jupyter_notebook) return null;
   const [sm, md] = grid;
 
   function renderSpecificNotebooks() {
-    return (
-      <Col sm={sm} md={md}>
-        <NewFileButton
-          name="Python Notebook"
-          on_click={create_file}
-          ext={"ipynb"}
-          size={btnSize}
-          active={btnActive("ipynb-python")}
-        />
-      </Col>
-    );
+    if (error) return null;
+    if (kernel_selection == null || kernels_by_name == null) return null;
+
+    const btns: JSX.Element[] = [];
+    for (const [lang, kernelName] of kernel_selection.entries()) {
+      // console.log([lang, kernelName, kernels_by_name.get(kernelName)?.toJS()]);
+      const { display, ext } = lang2info(lang);
+      btns.push(
+        <Col key={lang} sm={sm} md={md}>
+          <Tip
+            delayShow={delayShow}
+            icon={NEW_FILETYPE_ICONS[ext]}
+            title={`${display} Jupyter Notebook`}
+            tip={`Create an interactive Jupyter Notebook for using ${display}.`}
+          >
+            <NewFileButton
+              name={`${display} Notebook`}
+              on_click={() => {
+                window.alert(`create notebook for ${kernelName}`);
+              }}
+              ext={ext}
+              size={btnSize}
+              active={btnActive(`ipynb-python-${lang}`)}
+            />
+          </Tip>
+        </Col>,
+      );
+    }
+    return btns;
   }
 
   return (
