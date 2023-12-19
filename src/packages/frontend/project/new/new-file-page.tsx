@@ -354,6 +354,7 @@ export default function NewFilePage(props: Props) {
             create_folder={createFolder}
             projectActions={actions}
             availableFeatures={availableFeatures}
+            filename={filename}
           >
             <Tip
               title={"Download files from the Internet"}

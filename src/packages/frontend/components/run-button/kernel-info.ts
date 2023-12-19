@@ -42,10 +42,17 @@ export function getKernelInfoCacheOnly(project_id: string | undefined) {
 
 export async function getKernelInfo(
   project_id: string | undefined,
+  startProject: boolean = true,
 ): Promise<KernelSpec[]> {
   const key = kernelInfoCacheKey(project_id);
   let specs = kernelInfoCache.get(key);
   if (specs != null) return specs;
+
+  // abort here, if we don't want to trigger a project start
+  if (!startProject) {
+    throw new Error("No information, because project is not running");
+  }
+
   const { kernels } = await api(
     "kernels",
     project_id ? { project_id } : undefined,
@@ -105,7 +112,7 @@ export function useJupyterKernelsInfo() {
 
   useAsyncEffect(async () => {
     try {
-      const kernelInfo = await getKernelInfo(project_id);
+      const kernelInfo = await getKernelInfo(project_id, isRunning);
       setKernelSpecs(fromJS(kernelInfo) as Kernels);
     } catch (err) {
       setError(`${err}`);

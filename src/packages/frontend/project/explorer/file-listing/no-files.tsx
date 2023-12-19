@@ -100,6 +100,7 @@ export default function NoFiles({
             create_folder={create_folder}
             projectActions={actions}
             availableFeatures={availableFeatures}
+            filename={actualNewFilename}
           />
         </div>
       )}

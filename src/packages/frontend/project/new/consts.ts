@@ -20,9 +20,11 @@ export const NEW_FILETYPE_ICONS: { [ext: string]: IconName } = {
   py: "python",
   jl: "julia",
   m: "octave",
-  ir: "r",
+  r: "r",
 } as const;
 
 export function isNewFiletypeIconName(ext?: string) {
   return ext != null && ext in NEW_FILETYPE_ICONS;
 }
+
+export const DELAY_SHOW_MS = 1500;

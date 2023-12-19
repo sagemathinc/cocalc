@@ -167,6 +167,7 @@ export function get_kernels_by_name_or_language(
 export function get_kernel_selection(
   kernels: Kernels,
 ): immutable.Map<string, string> {
+  // for each language, we pick the top priority kernel
   const data: any = {};
   kernels
     .filter((entry) => entry.get("language") != null)

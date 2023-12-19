@@ -2301,7 +2301,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
   // that extension.  Throws an Error if the path name is invalid.
-  private _absolute_path(name, current_path, ext?) {
+  public construct_absolute_path(
+    name: string,
+    current_path?: string,
+    ext?: string,
+  ) {
     if (name.length === 0) {
       throw Error("Cannot use empty filename");
     }
@@ -2342,7 +2346,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       name = name.slice(0, -1);
     }
     try {
-      p = this._absolute_path(name, current_path);
+      p = this.construct_absolute_path(name, current_path);
     } catch (e) {
       this.setState({ file_creation_error: e.message });
       return;
@@ -2401,7 +2405,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     }
     try {
-      p = this._absolute_path(name, opts.current_path, opts.ext);
+      p = this.construct_absolute_path(name, opts.current_path, opts.ext);
     } catch (e) {
       console.warn("Absolute path creation error");
       this.setState({ file_creation_error: e.message });

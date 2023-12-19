@@ -10,10 +10,11 @@ TODO:
 import { Alert, Button, Input, Modal } from "antd";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
-import { CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
+  CSS,
   redux,
   useActions,
   useTypedRedux,
@@ -51,6 +52,7 @@ import {
 } from "@cocalc/util/db-schema/openai";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { ensure_project_running } from "../../project-start-warning";
 import { Block } from "./block";
 
 const TAG = "generate-jupyter";
@@ -182,6 +184,15 @@ export default function AIGenerateJupyterNotebook({
     };
 
     track("chatgpt", { project_id, path, tag: TAG, type: "generate" });
+
+    if (
+      !(await ensure_project_running(
+        project_id,
+        `create the jupyter notebook '${path}'`,
+      ))
+    ) {
+      throw new Error(`Unable to create Jupyter Notebook for ${path}`);
+    }
 
     // we don't check if the file exists, because the prompt+timestamp should be unique enough
     await webapp_client.project_client.write_text_file({
@@ -547,26 +558,32 @@ export function AIGenerateNotebookButton({
   style,
 }: {
   project_id: string;
-  style?: CSSProperties;
+  style?: CSS;
 }) {
   const [show, setShow] = useState<boolean>(false);
+
   if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
     return null;
   }
-  const handleCancel = () => {
-    setShow(false);
+
+  const btnStyle: CSS = {
+    width: "100%",
+    overflowX: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    ...style,
   };
 
   return (
     <>
-      <Button onClick={() => setShow(true)} style={style}>
-        AI Generated Notebook...
+      <Button onClick={() => setShow(true)} style={btnStyle}>
+        AI Generated Notebook…
       </Button>
       <Modal
         title="Create Jupyter Notebook using ChatGPT"
         width={600}
         open={show}
-        onCancel={handleCancel}
+        onCancel={() => setShow(false)}
         footer={null}
       >
         <AIGenerateJupyterNotebook

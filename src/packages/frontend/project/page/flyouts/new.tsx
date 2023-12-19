@@ -24,7 +24,7 @@ import {
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { delayShow } from "@cocalc/frontend/project//new/file-type-selector";
+import { DELAY_SHOW_MS } from "@cocalc/frontend/project//new/consts";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import {
@@ -325,10 +325,11 @@ export function NewFlyout({
           projectActions={actions}
           create_file={selectType}
           availableFeatures={availableFeatures}
+          filename={filename}
         />
         <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
         <Tip
-          delayShow={delayShow}
+          delayShow={DELAY_SHOW_MS}
           title="Directory"
           icon={"folder"}
           tip="Create a subdirectory in the current directory. You can also type in a '/' character at the end of the filename to create a directory."
@@ -342,7 +343,7 @@ export function NewFlyout({
           />
         </Tip>
         <Tip
-          delayShow={delayShow}
+          delayShow={DELAY_SHOW_MS}
           title="No file extension"
           icon={"file"}
           tip="Create the file without a file extension, for example a 'Makefile'. You can also type in a space character at the end of the filename to create a file without an extension."

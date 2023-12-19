@@ -12,13 +12,10 @@ import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import { useProjectContext } from "@cocalc/frontend/project//context";
-import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { useJupyterKernelsInfo } from "../../components/run-button/kernel-info";
-import { NEW_FILETYPE_ICONS } from "./consts";
+import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
+import { JupyterNotebookButtons } from "./jupyter-buttons";
 import { NewFileButton } from "./new-file-button";
-import { capitalize } from "@cocalc/util/misc";
 
 interface DisabledFeatures {
   linux?: boolean;
@@ -38,9 +35,8 @@ interface Props {
   children?: React.ReactNode;
   mode?: "flyout" | "full";
   selectedExt?: string;
+  filename: string;
 }
-
-export const delayShow = 1500;
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
@@ -53,6 +49,7 @@ export function FileTypeSelector({
   mode = "full",
   selectedExt,
   children,
+  filename,
 }: Props) {
   if (!create_file) {
     return null;
@@ -81,7 +78,7 @@ export function FileTypeSelector({
     return (
       <Col sm={sm} md={md}>
         <Tip
-          delayShow={delayShow}
+          delayShow={DELAY_SHOW_MS}
           icon={NEW_FILETYPE_ICONS.sagews}
           title="SageMath Worksheet"
           tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
@@ -104,7 +101,7 @@ export function FileTypeSelector({
     return (
       <Col sm={sm} md={md}>
         <Tip
-          delayShow={delayShow}
+          delayShow={DELAY_SHOW_MS}
           title="RMarkdown File"
           icon={NEW_FILETYPE_ICONS.rmd}
           tip="RMarkdown document with real-time preview."
@@ -127,7 +124,7 @@ export function FileTypeSelector({
     return (
       <Col sm={sm} md={md}>
         <Tip
-          delayShow={delayShow}
+          delayShow={DELAY_SHOW_MS}
           title="LaTeX Document"
           icon={NEW_FILETYPE_ICONS.tex}
           tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
@@ -152,7 +149,7 @@ export function FileTypeSelector({
         availableFeatures.rmd) && (
         <>
           <Section color="geekblue" icon="jupyter" isFlyout={isFlyout}>
-            Data Science
+            Jupyter Notebook
           </Section>
           <Row gutter={gutter} style={newRowStyle}>
             <JupyterNotebookButtons
@@ -161,8 +158,13 @@ export function FileTypeSelector({
               btnSize={btnSize}
               btnActive={btnActive}
               grid={[sm, md]}
+              filename={filename}
+              selectedExt={selectedExt}
             />
           </Row>
+          <Section color={"cyan"} icon="experiment" isFlyout={isFlyout}>
+            Math and Science
+          </Section>
           <Row gutter={gutter} style={newRowStyle}>
             {renderLaTeX()}
             {renderRMD()}
@@ -180,7 +182,7 @@ export function FileTypeSelector({
           <Row gutter={gutter} style={newRowStyle}>
             <Col sm={sm} md={md}>
               <Tip
-                delayShow={delayShow}
+                delayShow={DELAY_SHOW_MS}
                 title="Linux Terminal"
                 icon={NEW_FILETYPE_ICONS.term}
                 tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
@@ -197,7 +199,7 @@ export function FileTypeSelector({
             {availableFeatures.x11 && (
               <Col sm={sm} md={md}>
                 <Tip
-                  delayShow={delayShow}
+                  delayShow={DELAY_SHOW_MS}
                   title="Graphical X11 Desktop"
                   icon={NEW_FILETYPE_ICONS.x11}
                   tip="Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser."
@@ -215,7 +217,7 @@ export function FileTypeSelector({
             {create_folder != null && (
               <Col sm={sm} md={md}>
                 <Tip
-                  delayShow={delayShow}
+                  delayShow={DELAY_SHOW_MS}
                   title={"Create New Folder"}
                   placement="left"
                   icon={NEW_FILETYPE_ICONS["/"]}
@@ -250,7 +252,7 @@ export function FileTypeSelector({
             {computeServersEnabled() && (
               <Col sm={doubleSm} md={doubleMd}>
                 <Tip
-                  delayShow={delayShow}
+                  delayShow={DELAY_SHOW_MS}
                   title={"Create a Compute Server"}
                   placement="left"
                   icon={"servers"}
@@ -302,7 +304,7 @@ export function FileTypeSelector({
             {!disabledFeatures?.course && (
               <Col sm={doubleSm} md={doubleMd}>
                 <Tip
-                  delayShow={delayShow}
+                  delayShow={DELAY_SHOW_MS}
                   title="Manage a Course"
                   placement="bottom"
                   icon={NEW_FILETYPE_ICONS.course}
@@ -333,7 +335,7 @@ export function FileTypeSelector({
             {!disabledFeatures?.chat && (
               <Col sm={doubleSm} md={doubleMd}>
                 <Tip
-                  delayShow={delayShow}
+                  delayShow={DELAY_SHOW_MS}
                   title="Create a Chatroom"
                   placement="bottom"
                   icon={NEW_FILETYPE_ICONS["sage-chat"]}
@@ -386,7 +388,7 @@ export function FileTypeSelector({
           <Row gutter={gutter} style={newRowStyle}>
             <Col sm={sm} md={md}>
               <Tip
-                delayShow={delayShow}
+                delayShow={DELAY_SHOW_MS}
                 title="Computational Markdown Document"
                 icon={NEW_FILETYPE_ICONS.md}
                 tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
@@ -418,7 +420,7 @@ export function FileTypeSelector({
 
             <Col sm={sm} md={md}>
               <Tip
-                delayShow={delayShow}
+                delayShow={DELAY_SHOW_MS}
                 icon={NEW_FILETYPE_ICONS.slides}
                 title="Slides"
                 tip="Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells."
@@ -435,7 +437,7 @@ export function FileTypeSelector({
 
             <Col sm={sm} md={md}>
               <Tip
-                delayShow={delayShow}
+                delayShow={DELAY_SHOW_MS}
                 title="Task List"
                 icon={NEW_FILETYPE_ICONS.tasks}
                 tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
@@ -484,95 +486,5 @@ function Section({
         {children}
       </Tag>
     </div>
-  );
-}
-
-function lang2info(lang: string): { display: string; ext: string } {
-  switch (lang) {
-    case "python":
-      return { display: "Python", ext: "py" };
-    case "ir":
-      return { display: "R", ext: "r" };
-    case "octave":
-      return { display: "Octave", ext: "m" };
-    case "sage":
-      return { display: "SageMath", ext: "sage" };
-    case "julia":
-      return { display: "Julia", ext: "jl" };
-    default:
-      return { display: capitalize(lang), ext: "file" };
-  }
-}
-
-function JupyterNotebookButtons({
-  availableFeatures,
-  create_file,
-  btnSize,
-  btnActive,
-  grid,
-}) {
-  const { project_id } = useProjectContext();
-
-  const { error, kernel_selection, kernels_by_name } = useJupyterKernelsInfo();
-
-  if (!availableFeatures.jupyter_notebook) return null;
-  const [sm, md] = grid;
-
-  function renderSpecificNotebooks() {
-    if (error) return null;
-    if (kernel_selection == null || kernels_by_name == null) return null;
-
-    const btns: JSX.Element[] = [];
-    for (const [lang, kernelName] of kernel_selection.entries()) {
-      // console.log([lang, kernelName, kernels_by_name.get(kernelName)?.toJS()]);
-      const { display, ext } = lang2info(lang);
-      btns.push(
-        <Col key={lang} sm={sm} md={md}>
-          <Tip
-            delayShow={delayShow}
-            icon={NEW_FILETYPE_ICONS[ext]}
-            title={`${display} Jupyter Notebook`}
-            tip={`Create an interactive Jupyter Notebook for using ${display}.`}
-          >
-            <NewFileButton
-              name={`${display} Notebook`}
-              on_click={() => {
-                window.alert(`create notebook for ${kernelName}`);
-              }}
-              ext={ext}
-              size={btnSize}
-              active={btnActive(`ipynb-python-${lang}`)}
-            />
-          </Tip>
-        </Col>,
-      );
-    }
-    return btns;
-  }
-
-  return (
-    <>
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={delayShow}
-          icon={NEW_FILETYPE_ICONS["ipynb"]}
-          title="Jupyter Notebook"
-          tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
-        >
-          <NewFileButton
-            name="Jupyter Notebook"
-            on_click={create_file}
-            ext={"ipynb"}
-            size={btnSize}
-            active={btnActive("ipynb")}
-          />
-        </Tip>
-        <AIGenerateNotebookButton
-          project_id={project_id}
-          style={{ width: "100%" }}
-        />
-      </Col>
-      {renderSpecificNotebooks()}
-    </>
   );
 }
