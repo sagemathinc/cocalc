@@ -41,6 +41,12 @@ export default function ComputeServerTransition({
   }, [id, requestedId]);
 
   const requestedServer = computeServers?.get(`${requestedId}`);
+  const syncExclude = requestedServer?.getIn([
+    "configuration",
+    "excludeFromSync",
+  ]);
+  const excludeFromSync =
+    syncExclude.includes("~") || syncExclude.includes(".");
   const syncState = requestedServer?.getIn([
     "detailed_state",
     "filesystem-sync",
@@ -75,6 +81,7 @@ export default function ComputeServerTransition({
     >
       {progress == 100 && (
         <SyncButton
+          disabled={excludeFromSync}
           style={{ marginTop: "-1px", marginLeft: "1px", marginRight: "5px" }}
           size="small"
           compute_server_id={id}

@@ -14,11 +14,13 @@ interface Props {
   style?;
   type?;
   children?;
+  disabled?;
 }
 
 const MAX_SYNC_TIME_MS = 20000;
 
 export default function SyncButton({
+  disabled,
   project_id,
   compute_server_id,
   size,
@@ -48,7 +50,7 @@ export default function SyncButton({
       <>
         <Button
           type={type}
-          disabled={isSyncing}
+          disabled={disabled || isSyncing}
           size={size}
           style={style}
           onClick={async () => {
