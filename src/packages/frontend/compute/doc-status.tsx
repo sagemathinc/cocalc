@@ -46,7 +46,7 @@ export default function ComputeServerTransition({
     "excludeFromSync",
   ]);
   const excludeFromSync =
-    syncExclude.includes("~") || syncExclude.includes(".");
+    syncExclude?.includes("~") || syncExclude?.includes(".");
   const syncState = requestedServer?.getIn([
     "detailed_state",
     "filesystem-sync",
