@@ -390,6 +390,7 @@ export function FilesFlyout({
         actions?.open_file({
           path: fullPath,
           foreground,
+          explicit: true,
         });
       }
     }
