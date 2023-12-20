@@ -53,7 +53,10 @@ export default function ExcludeFromSync({
         <b>very slow</b>. List top level subdirectories of HOME that you do not
         want to <b>be mounted over the network</b>. Files in these directories
         are stored in <code>/data</code> on the compute server's disk only,
-        which is <b>very fast</b>.
+        which is <b>very fast</b>. Also, if you include <code>~</code> or{" "}
+        <code>.</code>{" "}
+        in the list below, then the sync process is temporarily disabled, though
+        your HOME directory is still mounted over the network.
       </Tooltip>
       <Select
         value={value}

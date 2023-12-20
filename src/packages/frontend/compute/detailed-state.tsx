@@ -123,8 +123,18 @@ function State({
   const expired = expire && expire < Date.now();
   let label;
   if (name == "filesystem-sync") {
+    let disabled = false;
+    if (configuration?.excludeFromSync != null) {
+      if (
+        configuration.excludeFromSync.includes("~") ||
+        configuration.excludeFromSync.includes(".")
+      ) {
+        disabled = true;
+      }
+    }
     label = (
       <SyncButton
+        disabled={disabled}
         size="small"
         compute_server_id={id}
         project_id={project_id}

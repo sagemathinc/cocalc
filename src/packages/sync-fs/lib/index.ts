@@ -239,7 +239,9 @@ class SyncFS {
             // already in progress
             return;
           }
-          await this.sync();
+          if (!this.syncIsDisabled()) {
+            await this.sync();
+          }
           log("handleSyncRequest: sync worked");
         } catch (err) {
           log("handleSyncRequest: sync failed", err);
@@ -373,9 +375,16 @@ class SyncFS {
     }
   };
 
-  private syncLoop = async () => {
+  private syncIsDisabled = () => {
     if (this.exclude.includes("~") || this.exclude.includes(".")) {
       log("syncLoop: '~' or '.' is included in excludes, so we never sync");
+      return true;
+    }
+    return false;
+  };
+
+  private syncLoop = async () => {
+    if (this.syncIsDisabled()) {
       const wait = 1000 * 60;
       log(`syncLoop -- sleeping ${wait / 1000} seconds...`);
       this.timeout = setTimeout(this.syncLoop, wait);
