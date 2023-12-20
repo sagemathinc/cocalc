@@ -17,7 +17,7 @@ import { useJupyterKernelsInfo } from "@cocalc/frontend/jupyter/use-kernels-info
 import { useProjectContext } from "@cocalc/frontend/project//context";
 import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { cmp } from "@cocalc/util/misc";
+import { capitalize, cmp } from "@cocalc/util/misc";
 import { ensure_project_running } from "../project-start-warning";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
@@ -137,28 +137,42 @@ export function JupyterNotebookButtons(
     return kbn.getIn([name, "metadata", "cocalc", "priority"], 0) as number;
   }
 
+  function getDisplayName(name: string): string {
+    const kbn = kernels_by_name;
+    if (kbn == null) return name;
+    return kbn.getIn([name, "display_name"], capitalize(name)) as string;
+  }
+
   function topKernels(
     kernel_selection: Immutable.Map<string, string>,
   ): Immutable.Map<string, string> {
     if (kernels_by_name == null || kernel_selection == null)
       return Immutable.Map({});
 
-    let havePriority = false;
-    const sorted = kernel_selection
-      .filter((_, lang) => lang2info(lang) != null)
-      .sort((a, b) => {
-        const pa = getPrio(a);
-        const pb = getPrio(b);
-        havePriority ||= pa > 0 || pb > 0;
-        return -cmp(pa, pb);
-      });
-    // in cocalc.com case, we pick those >= 10 – otherwise just all of them
+    const filtered = kernel_selection.filter(
+      (_, lang) => lang2info(lang) != null,
+    );
+
+    const havePriority = filtered.some((_, lang) => getPrio(lang) > 0);
+
+    // e.g. in cocalc.com case, we have priorities and we pick those >= 10 – otherwise just all kernels
     if (havePriority) {
-      return sorted.filter((name, _) => {
-        return getPrio(name) >= 10;
-      });
+      return filtered
+        .filter((name, _) => {
+          return getPrio(name) >= 10;
+        })
+        .sort((a, b) => {
+          const pa = getPrio(a);
+          const pb = getPrio(b);
+          return -cmp(pa, pb);
+        });
     } else {
-      return sorted;
+      return filtered.sort((a, b) => {
+        // sort by displayed name, or just name
+        const nameA = getDisplayName(a);
+        const nameB = getDisplayName(b);
+        return nameA.localeCompare(nameB);
+      });
     }
   }
 
