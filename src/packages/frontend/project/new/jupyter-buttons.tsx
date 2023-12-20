@@ -12,8 +12,8 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { useJupyterKernelsInfo } from "@cocalc/frontend/components/run-button/kernel-info";
 import { Tip } from "@cocalc/frontend/components/tip";
+import { useJupyterKernelsInfo } from "@cocalc/frontend/jupyter/use-kernels-info";
 import { useProjectContext } from "@cocalc/frontend/project//context";
 import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
