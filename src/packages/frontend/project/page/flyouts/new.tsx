@@ -326,6 +326,7 @@ export function NewFlyout({
           create_file={selectType}
           availableFeatures={availableFeatures}
           filename={filename}
+          makeNewFilename={makeNewFilename}
         />
         <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
         <Tip

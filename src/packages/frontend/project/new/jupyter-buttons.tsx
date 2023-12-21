@@ -53,6 +53,7 @@ interface JupyterNotebookButtonsProps {
   grid: [number, number];
   filename: string;
   mode: "full" | "flyout";
+  makeNewFilename?: () => void;
 }
 
 /**
@@ -71,6 +72,7 @@ export function JupyterNotebookButtons({
   grid,
   filename,
   mode,
+  makeNewFilename,
 }: JupyterNotebookButtonsProps) {
   const isFlyout = mode === "flyout";
   const [sm, md] = grid;
@@ -87,8 +89,10 @@ export function JupyterNotebookButtons({
       actions == null ||
       kernel_selection == null ||
       kernels_by_name == null
-    )
+    ) {
       return;
+    }
+
     // this ensures the file will have the extension ".ipynb"
     const path = actions.construct_absolute_path(
       filename,
@@ -113,6 +117,9 @@ export function JupyterNotebookButtons({
     });
 
     await actions?.open_file({ path });
+
+    // for flyout, create a new filename
+    makeNewFilename?.();
   }
 
   function getPriority(name: string): number {
@@ -130,8 +137,9 @@ export function JupyterNotebookButtons({
   function topKernels(
     kernel_selection: Immutable.Map<string, string>,
   ): Immutable.Map<string, string> {
-    if (kernels_by_name == null || kernel_selection == null){
-      return Immutable.Map({});}
+    if (kernels_by_name == null || kernel_selection == null) {
+      return Immutable.Map({});
+    }
 
     // pick those, where we have defined a mapping to such an info object
     const filtered = kernel_selection.filter(

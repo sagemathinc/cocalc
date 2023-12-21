@@ -36,6 +36,7 @@ interface Props {
   mode?: "flyout" | "full";
   selectedExt?: string;
   filename: string;
+  makeNewFilename?: () => void;
 }
 
 // Use Rows and Cols to append more buttons to this class.
@@ -50,6 +51,7 @@ export function FileTypeSelector({
   selectedExt,
   children,
   filename,
+  makeNewFilename,
 }: Props) {
   if (!create_file) {
     return null;
@@ -239,6 +241,7 @@ export function FileTypeSelector({
               btnActive={btnActive}
               grid={[sm, md]}
               filename={filename}
+              makeNewFilename={makeNewFilename}
             />
           </Row>
           <Section color={"cyan"} icon="experiment" isFlyout={isFlyout}>
