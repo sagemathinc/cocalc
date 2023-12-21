@@ -194,7 +194,7 @@ export default function NewFilePage(props: Props) {
         </Row>
         <Row>
           <Col sm={24}>
-            <div style={{ color: "#666", fontSize: "12pt" }}>
+            <div style={{ color: COLORS.GRAY_M, fontSize: "12pt" }}>
               You can drop one or more files here or on the Explorer file
               listing. See{" "}
               <A href="https://doc.cocalc.com/howto/upload.html">the docs</A>{" "}

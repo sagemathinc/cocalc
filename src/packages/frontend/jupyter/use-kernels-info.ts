@@ -33,6 +33,7 @@ export function useJupyterKernelsInfo() {
     try {
       const kernelInfo = await getKernelInfo(project_id, isRunning);
       setKernelSpecs(fromJS(kernelInfo) as Kernels);
+      setError("");
     } catch (err) {
       setError(`${err}`);
     }

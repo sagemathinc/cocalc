@@ -29,6 +29,7 @@ import {
   Paragraph,
   Title,
 } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
@@ -570,17 +571,17 @@ export function AIGenerateNotebookButton({
     width: "100%",
     overflowX: "hidden",
     whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
     ...style,
-  };
+  } as const;
 
   return (
     <>
       <Button onClick={() => setShow(true)} style={btnStyle}>
-        AI Generated Notebook…
+        <AIAvatar size={14} style={{ position: "unset", marginRight: "5px" }} />{" "}
+        Generated…
       </Button>
       <Modal
-        title="Create Jupyter Notebook using ChatGPT"
+        title="Create Jupyter Notebook using AI"
         width={600}
         open={show}
         onCancel={() => setShow(false)}

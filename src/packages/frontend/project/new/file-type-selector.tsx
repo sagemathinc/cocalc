@@ -141,6 +141,85 @@ export function FileTypeSelector({
     );
   }
 
+  function renderMarkdown() {
+    if (disabledFeatures?.md) return;
+
+    return (
+      <>
+        <Section color="green" icon="markdown" isFlyout={isFlyout}>
+          Markdown
+        </Section>
+        <Row gutter={gutter} style={newRowStyle}>
+          <Col sm={sm} md={md}>
+            <Tip
+              delayShow={DELAY_SHOW_MS}
+              title="Computational Markdown Document"
+              icon={NEW_FILETYPE_ICONS.md}
+              tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
+            >
+              <NewFileButton
+                name="Markdown"
+                on_click={create_file}
+                ext="md"
+                size={btnSize}
+                active={btnActive("md")}
+              />
+            </Tip>
+          </Col>
+          <Col sm={sm} md={md}>
+            <Tip
+              icon={NEW_FILETYPE_ICONS.board}
+              title="Computational Whiteboard"
+              tip="Create a computational whiteboard with mathematical formulas, lists, headings, images and Jupyter code cells."
+            >
+              <NewFileButton
+                name="Whiteboard"
+                on_click={create_file}
+                ext="board"
+                size={btnSize}
+                active={btnActive("board")}
+              />
+            </Tip>
+          </Col>
+
+          <Col sm={sm} md={md}>
+            <Tip
+              delayShow={DELAY_SHOW_MS}
+              icon={NEW_FILETYPE_ICONS.slides}
+              title="Slides"
+              tip="Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells."
+            >
+              <NewFileButton
+                name="Slides"
+                on_click={create_file}
+                ext="slides"
+                size={btnSize}
+                active={btnActive("slides")}
+              />
+            </Tip>
+          </Col>
+
+          <Col sm={sm} md={md}>
+            <Tip
+              delayShow={DELAY_SHOW_MS}
+              title="Task List"
+              icon={NEW_FILETYPE_ICONS.tasks}
+              tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
+            >
+              <NewFileButton
+                name="Task List"
+                on_click={create_file}
+                ext="tasks"
+                size={btnSize}
+                active={btnActive("tasks")}
+              />
+            </Tip>
+          </Col>
+        </Row>
+      </>
+    );
+  }
+
   return (
     <div>
       {(availableFeatures.jupyter_notebook ||
@@ -153,13 +232,13 @@ export function FileTypeSelector({
           </Section>
           <Row gutter={gutter} style={newRowStyle}>
             <JupyterNotebookButtons
+              mode={mode}
               availableFeatures={availableFeatures}
               create_file={create_file}
               btnSize={btnSize}
               btnActive={btnActive}
               grid={[sm, md]}
               filename={filename}
-              selectedExt={selectedExt}
             />
           </Row>
           <Section color={"cyan"} icon="experiment" isFlyout={isFlyout}>
@@ -380,80 +459,7 @@ export function FileTypeSelector({
         </>
       )}
 
-      {!disabledFeatures?.md && (
-        <>
-          <Section color="green" icon="markdown" isFlyout={isFlyout}>
-            Markdown
-          </Section>
-          <Row gutter={gutter} style={newRowStyle}>
-            <Col sm={sm} md={md}>
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                title="Computational Markdown Document"
-                icon={NEW_FILETYPE_ICONS.md}
-                tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
-              >
-                <NewFileButton
-                  name="Markdown"
-                  on_click={create_file}
-                  ext="md"
-                  size={btnSize}
-                  active={btnActive("md")}
-                />
-              </Tip>
-            </Col>
-            <Col sm={sm} md={md}>
-              <Tip
-                icon={NEW_FILETYPE_ICONS.board}
-                title="Computational Whiteboard"
-                tip="Create a computational whiteboard with mathematical formulas, lists, headings, images and Jupyter code cells."
-              >
-                <NewFileButton
-                  name="Whiteboard"
-                  on_click={create_file}
-                  ext="board"
-                  size={btnSize}
-                  active={btnActive("board")}
-                />
-              </Tip>
-            </Col>
-
-            <Col sm={sm} md={md}>
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                icon={NEW_FILETYPE_ICONS.slides}
-                title="Slides"
-                tip="Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells."
-              >
-                <NewFileButton
-                  name="Slides"
-                  on_click={create_file}
-                  ext="slides"
-                  size={btnSize}
-                  active={btnActive("slides")}
-                />
-              </Tip>
-            </Col>
-
-            <Col sm={sm} md={md}>
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                title="Task List"
-                icon={NEW_FILETYPE_ICONS.tasks}
-                tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
-              >
-                <NewFileButton
-                  name="Task List"
-                  on_click={create_file}
-                  ext="tasks"
-                  size={btnSize}
-                  active={btnActive("tasks")}
-                />
-              </Tip>
-            </Col>
-          </Row>
-        </>
-      )}
+      {renderMarkdown()}
     </div>
   );
 }

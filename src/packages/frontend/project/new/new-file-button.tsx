@@ -4,15 +4,15 @@
  */
 
 import { Button } from "antd";
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import { unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 
 const STYLE = {
   marginRight: "5px",
   marginBottom: "5px",
-  width: "100%",
   height: "auto",
   whiteSpace: "normal",
   padding: "10px",
@@ -28,7 +28,7 @@ const ICON_STYLE_LARGE = {
 };
 
 interface Props {
-  name: string;
+  name: string | JSX.Element;
   href?: string;
   on_click?: (ext?: string) => void;
   ext?: string;
@@ -37,6 +37,7 @@ interface Props {
   loading?: boolean;
   active?: boolean;
   size?: "large" | "small";
+  mode?: "primary" | "secondary";
   icon?: IconName;
 }
 
@@ -51,6 +52,7 @@ export function NewFileButton({
   loading,
   active = false,
   size = "large",
+  mode = "primary",
 }: Props) {
   const iconStyle = size === "large" ? ICON_STYLE_LARGE : ICON_STYLE;
   const icon: IconName =
@@ -71,6 +73,8 @@ export function NewFileButton({
           backgroundColor: COLORS.ANTD_BG_BLUE_L,
         }
       : {}),
+    ...(mode === "secondary" ? { padding: "5px" } : { width: "100%" }),
+    ...(active && mode === "secondary" ? {} : {}),
   };
 
   function renderBody() {

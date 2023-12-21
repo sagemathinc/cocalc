@@ -3,21 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col } from "antd";
+import { Col, Flex } from "antd";
 import Immutable from "immutable";
 
 import { Available } from "@cocalc/comm/project-configuration";
-import {
-  useEffect,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { useJupyterKernelsInfo } from "@cocalc/frontend/jupyter/use-kernels-info";
 import { useProjectContext } from "@cocalc/frontend/project//context";
 import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { capitalize, cmp } from "@cocalc/util/misc";
+import { capitalize, cmp, unreachable } from "@cocalc/util/misc";
 import { ensure_project_running } from "../project-start-warning";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
@@ -56,7 +52,7 @@ interface JupyterNotebookButtonsProps {
   btnActive: (name: string) => boolean;
   grid: [number, number];
   filename: string;
-  selectedExt?: string;
+  mode: "full" | "flyout";
 }
 
 /**
@@ -67,30 +63,21 @@ interface JupyterNotebookButtonsProps {
  * When selected, the notebook will be created with the appropriate kernel – everything else is the same, i.e.
  * if someone still wants to change their mind about the language, they can do so in the notebook as usual.
  */
-export function JupyterNotebookButtons(
-  props: Readonly<JupyterNotebookButtonsProps>,
-) {
-  const {
-    availableFeatures,
-    create_file,
-    btnSize,
-    btnActive,
-    grid,
-    filename,
-    selectedExt,
-  } = props;
+export function JupyterNotebookButtons({
+  availableFeatures,
+  create_file,
+  btnSize,
+  btnActive,
+  grid,
+  filename,
+  mode,
+}: JupyterNotebookButtonsProps) {
+  const isFlyout = mode === "flyout";
   const [sm, md] = grid;
 
   const { project_id, actions } = useProjectContext();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const { error, kernel_selection, kernels_by_name } = useJupyterKernelsInfo();
-  const [selectedLang, setSelectedLang] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (selectedExt !== "ipynb") {
-      setSelectedLang(null);
-    }
-  }, [selectedExt]);
 
   if (!availableFeatures.jupyter_notebook) return null;
 
@@ -119,19 +106,16 @@ export function JupyterNotebookButtons(
 
     const nb = { cells: [], metadata: { kernelspec } };
 
-    console.log({ path, nb });
-    return;
-
     await webapp_client.project_client.write_text_file({
       project_id,
       path,
       content: JSON.stringify(nb, null, 2),
     });
 
-    await actions?.open_file(path);
+    await actions?.open_file({ path });
   }
 
-  function getPrio(name: string): number {
+  function getPriority(name: string): number {
     const kbn = kernels_by_name;
     if (kbn == null) return 0;
     return kbn.getIn([name, "metadata", "cocalc", "priority"], 0) as number;
@@ -153,17 +137,17 @@ export function JupyterNotebookButtons(
       (_, lang) => lang2info(lang) != null,
     );
 
-    const havePriority = filtered.some((_, lang) => getPrio(lang) > 0);
+    const havePriority = filtered.some((_, lang) => getPriority(lang) > 0);
 
     // e.g. in cocalc.com case, we have priorities and we pick those >= 10 – otherwise just all kernels
     if (havePriority) {
       return filtered
         .filter((name, _) => {
-          return getPrio(name) >= 10;
+          return getPriority(name) >= 10;
         })
         .sort((a, b) => {
-          const pa = getPrio(a);
-          const pb = getPrio(b);
+          const pa = getPriority(a);
+          const pb = getPriority(b);
           return -cmp(pa, pb);
         });
     } else {
@@ -176,19 +160,24 @@ export function JupyterNotebookButtons(
     }
   }
 
-  function handleClick(lang: string, kernelName: string) {
-    const active = btnActive("ipynb");
-    if (!active) {
-      create_file("ipynb");
-    }
-    if (selectedLang !== lang) {
-      setSelectedLang(lang);
-    } else if (active) {
+  function handleClick(kernelName: string) {
+    if (mode === "flyout") {
+      // clicking on the notebook buttons changes the type and signals a stateful selection change
+      const active = btnActive("ipynb");
+      if (!active) {
+        create_file("ipynb");
+      } else {
+        createNotebook(kernelName);
+      }
+    } else if (mode === "full") {
+      // full modes create the file instantly
       createNotebook(kernelName);
+    } else {
+      unreachable(mode);
     }
   }
 
-  function renderSpecificNotebooks() {
+  function renderLanguageSpecificButtons() {
     if (kernel_selection == null || kernels_by_name == null) return null;
 
     const btns: JSX.Element[] = [];
@@ -196,30 +185,60 @@ export function JupyterNotebookButtons(
       const info = lang2info(lang);
       if (info == null) continue;
       const { display, ext } = info;
+      const name = isFlyout ? (
+        display
+      ) : (
+        // force linebreak, to make buttons look more uniform
+        <>
+          {display}
+          <br />
+          Notebook
+        </>
+      );
       btns.push(
-        <Col key={lang} sm={sm} md={md}>
-          <Tip
-            delayShow={DELAY_SHOW_MS}
-            icon={NEW_FILETYPE_ICONS[ext]}
-            title={`${display} Jupyter Notebook`}
-            tip={`Create an interactive Jupyter Notebook for using ${display}.`}
-          >
-            <NewFileButton
-              name={`${display} Notebook`}
-              on_click={() => handleClick(lang, kernelName)}
-              ext={ext}
-              size={btnSize}
-              active={btnActive("ipynb") && selectedLang === lang}
-            />
-          </Tip>
-        </Col>,
+        <Tip
+          key={lang}
+          delayShow={DELAY_SHOW_MS}
+          icon={NEW_FILETYPE_ICONS[ext]}
+          title={`${display} Jupyter Notebook`}
+          tip={`Create an interactive Jupyter Notebook for using ${display}.`}
+        >
+          <NewFileButton
+            name={name}
+            on_click={() => handleClick(kernelName)}
+            ext={ext}
+            size={btnSize}
+            active={btnActive("ipynb")}
+            mode={isFlyout ? "secondary" : undefined}
+          />
+        </Tip>,
       );
     }
-    return btns;
+
+    if (isFlyout) {
+      return (
+        <>
+          <Col sm={sm} md={md}>
+            <Flex justify="space-between" wrap={"wrap"}>
+              {btns}
+            </Flex>
+          </Col>
+          <Col sm={sm} md={md}>
+            <AIGenerateNotebookButton project_id={project_id} />
+          </Col>
+        </>
+      );
+    } else {
+      return btns.map((btn, i) => (
+        <Col key={i} sm={sm} md={md}>
+          {btn}
+        </Col>
+      ));
+    }
   }
 
-  return (
-    <>
+  function renderMainJupyterButton() {
+    return (
       <Col sm={sm} md={md}>
         <Tip
           delayShow={DELAY_SHOW_MS}
@@ -235,9 +254,18 @@ export function JupyterNotebookButtons(
             active={btnActive("ipynb")}
           />
         </Tip>
-        <AIGenerateNotebookButton project_id={project_id} />
+
+        {!isFlyout ? (
+          <AIGenerateNotebookButton project_id={project_id} />
+        ) : undefined}
       </Col>
-      {renderSpecificNotebooks()}
+    );
+  }
+
+  return (
+    <>
+      {renderMainJupyterButton()}
+      {renderLanguageSpecificButtons()}
     </>
   );
 }
