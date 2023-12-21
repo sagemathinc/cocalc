@@ -130,14 +130,16 @@ export function JupyterNotebookButtons({
   function topKernels(
     kernel_selection: Immutable.Map<string, string>,
   ): Immutable.Map<string, string> {
-    if (kernels_by_name == null || kernel_selection == null)
-      return Immutable.Map({});
+    if (kernels_by_name == null || kernel_selection == null){
+      return Immutable.Map({});}
 
+    // pick those, where we have defined a mapping to such an info object
     const filtered = kernel_selection.filter(
       (_, lang) => lang2info(lang) != null,
     );
 
-    const havePriority = filtered.some((_, lang) => getPriority(lang) > 0);
+    // decide, if we pick and sort by priority, or just show all of them by name
+    const havePriority = filtered.some((name, _) => getPriority(name) > 0);
 
     // e.g. in cocalc.com case, we have priorities and we pick those >= 10 – otherwise just all kernels
     if (havePriority) {
