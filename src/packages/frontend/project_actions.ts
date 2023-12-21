@@ -40,7 +40,12 @@ import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
 } from "./project/history/types";
-import { log_file_open, log_opened_time, open_file } from "./project/open-file";
+import {
+  OpenFileOpts,
+  log_file_open,
+  log_opened_time,
+  open_file,
+} from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
 import {
@@ -857,7 +862,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open the given file in this project.
-  public async open_file(opts): Promise<void> {
+  public async open_file(opts: OpenFileOpts): Promise<void> {
     await open_file(this, opts);
   }
 
