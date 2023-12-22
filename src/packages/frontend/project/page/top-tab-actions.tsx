@@ -146,7 +146,6 @@ function TopTabBarActions(
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const isMounted = useIsMountedRef();
   const [loading, setLoading] = useState(true);
-  const [loadingShow, setLoadingShow] = useState(false);
   const [actions, setActions] = useState<EditorActions | null>(null);
   const [topBarActions, setTopBarActions] = useState<TopBarActions | null>(
     null,
@@ -190,6 +189,7 @@ function TopTabBarActions(
     // we start with a reset
     setActions(null);
     setTopBarActions(null);
+    setLoading(false);
 
     // now we try to get the actions and the store
     for (const path of open_files_order) {
@@ -202,10 +202,6 @@ function TopTabBarActions(
       if (actionsNext != null) {
         setActions(actionsNext);
         setTopBarActions(actionsNext.getTopBarActions?.());
-        setActions(actionsNext);
-
-        setLoading(false);
-        setLoadingShow(false);
 
         return;
       }
@@ -250,16 +246,16 @@ function TopTabBarActions(
   // why is this necessary? the very first time the component renders with new values,
   // none of the hooks above has fired yet → $loading is still false, although the names differ.
   // TODO: feels like a hack, but it works
-  if (loading || name !== prevName || actions == null) {
-    // at least, render a placeholder to avoid flickering
+  if (loading || name !== prevName) {
+    // while loading, render a placeholder to avoid flickering
     return (
       <div style={{ width: `${placeholderWidth}px` }}>
-        {loadingShow ? (
-          <Loading style={{ color: COLORS.GRAY_M, padding: "8px 10px" }} />
-        ) : null}
+        <Loading style={{ color: COLORS.GRAY_M, padding: "8px 10px" }} />
       </div>
     );
   } else {
+    // below, we do not render such buttons, which need actions + store.
+    // the ones unrelated to the file's content are fine!
     return (
       <>
         <Space.Compact>
@@ -273,13 +269,17 @@ function TopTabBarActions(
             project_id={project_id}
             compact={compact}
           />
-          <ExtraButtons
-            topBarActions={topBarActions}
-            name={name}
-            compact={compact}
-          />
+          {actions != null ? (
+            <ExtraButtons
+              topBarActions={topBarActions}
+              name={name}
+              compact={compact}
+            />
+          ) : undefined}
         </Space.Compact>
-        <TopBarSaveButton name={name} actions={actions} compact={compact} />
+        {actions != null ? (
+          <TopBarSaveButton name={name} actions={actions} compact={compact} />
+        ) : undefined}
         <CloseEditor activeTab={activeTab} project_id={project_id} />
       </>
     );
@@ -358,7 +358,7 @@ function ExtraButtons(props: Readonly<ExtraButtonsProps>): JSX.Element | null {
 
 interface TopBarSaveButtonProps {
   name: string;
-  actions: EditorActions | null;
+  actions: EditorActions;
   compact?: boolean;
 }
 
@@ -379,8 +379,6 @@ function TopBarSaveButton({
   ]);
   const is_saving: boolean = useRedux([name, "is_saving"]);
   const is_public: boolean = useRedux([name, "is_public"]);
-
-  if (actions == null) return null;
 
   // test, if actions has the method set_show_uncommitted_changes
   // an "actions instanceof CodeEditorActions" does not work. TODO figure out why...
