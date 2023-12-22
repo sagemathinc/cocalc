@@ -148,7 +148,7 @@ export function UsersViewing(props: Readonly<Props>) {
     return r;
   }
 
-  if (file_use == null || users == null) {
+  if (file_use == null) {
     return <Loading />;
   }
 
