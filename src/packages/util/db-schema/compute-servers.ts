@@ -28,6 +28,7 @@ interface ImageBase {
   source: string;
   versions: VERSIONS;
   authToken?: boolean; // if true, image has web interface that supports configurable auth token
+  jupyterKernels?: false | true | string[]; // if false, no jupyter kernels included. If true or a list of names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
 }
 
 interface NonGPUImage extends ImageBase {
@@ -118,21 +119,6 @@ export const IMAGES0 = {
   //       "Minimal Anaconda environment nicely setup and ready for you to install packages into.",
   //     versions: [{ label: "2023-11-26", tag: "2023-11-26" }],
   //   },
-  cuda: {
-    label: "CUDA Development Toolkit",
-    docker: `${DOCKER_USER}/cuda`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 13 + 10 + 10,
-    dockerSizeGb: 8,
-    icon: "nvidia",
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
-    description:
-      "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications.  The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.   It enables dramatic increases in computing performance by harnessing the power of NVIDIA graphics processing units (GPUs) for a wide range of computing tasks.",
-    versions: [{ label: "12.3.0", tag: "12.3.0-devel-ubuntu22.04" }],
-  },
   pytorch: {
     label: "PyTorch",
     docker: `${DOCKER_USER}/pytorch`,
@@ -143,7 +129,7 @@ export const IMAGES0 = {
     icon: "pytorch",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch",
-    versions: [{ label: "2.1.0a0+32f93b1", tag: "23.10-py3" }],
+    versions: [{ label: "2.2.0", tag: "23.11-py3" }],
     description:
       "[PyTorch](https://pytorch.org/) is an open-source machine learning library, known for its flexibility and ease of use, particularly in deep learning applications. It provides a dynamic computation graph and a rich ecosystem of tools and libraries, making it a preferred choice for researchers and developers in AI.",
   },
@@ -157,7 +143,7 @@ export const IMAGES0 = {
     icon: "tensorflow",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow",
-    versions: [{ label: "2.13.0", tag: "23.10-tf2-py3" }],
+    versions: [{ label: "2.14.0", tag: "23.11-tf2-py3" }],
     description:
       "[TensorFlow](https://www.tensorflow.org/) is an open-source machine learning framework developed by Google, widely used for building and training neural networks. Its flexible architecture allows for easy deployment of computation across various platforms, from servers to edge devices, making it suitable for a broad range of AI applications.",
   },
@@ -193,7 +179,24 @@ export const IMAGES0 = {
     description:
       "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
     authToken: true,
-    versions: [{ label: "0.1.12", tag: "0.1.12.p2" }],
+    versions: [{ label: "0.1.15", tag: "0.1.15" }],
+    jupyterKernels: false,
+  },
+  cuda: {
+    label: "CUDA Development Toolkit",
+    docker: `${DOCKER_USER}/cuda`,
+    gpu: true,
+    // have to add 10 for CUDA base drivers
+    minDiskSizeGb: 13 + 10 + 10,
+    dockerSizeGb: 8,
+    icon: "nvidia",
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
+    description:
+      "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications.  The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.   It enables dramatic increases in computing performance by harnessing the power of NVIDIA graphics processing units (GPUs) for a wide range of computing tasks.",
+    versions: [{ label: "12.3.1", tag: "12.3.1" }],
+    jupyterKernels: false,
   },
 
   //   "cocalc-docker": {
@@ -470,6 +473,21 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   },
 } as const;
 
+export const ON_PREM_DEFAULTS = {
+  cpu: {
+    image: "python",
+    gpu: false,
+    cloud: "onprem",
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+  },
+  gpu: {
+    image: "pytorch",
+    gpu: true,
+    cloud: "onprem",
+    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+  },
+};
+
 // The ones that are at all potentially worth exposing to users.
 const CLOUDS: {
   [short: string]: {
@@ -484,7 +502,7 @@ const CLOUDS: {
     label: "Google Cloud Platform",
     image:
       "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
-    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.cpu,
+    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.gpu2,
   },
   lambda: {
     name: "lambda-cloud",

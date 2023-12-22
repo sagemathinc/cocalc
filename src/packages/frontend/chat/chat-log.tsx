@@ -66,7 +66,13 @@ export function ChatLog({
 
   useEffect(() => {
     if (scrollToBottom == null) return;
-    scrollToBottomRef?.current?.(true);
+    if (scrollToBottom == -1) {
+      scrollToBottomRef?.current?.(true);
+    } else {
+      console.log({ scrollToBottom }, " -- not implemented");
+      virtuosoRef.current?.scrollToIndex({ index: scrollToBottom });
+    }
+    actions.setState({ scrollToBottom: undefined });
   }, [scrollToBottom]);
 
   const user_map = useTypedRedux("users", "user_map");
@@ -103,7 +109,7 @@ export function ChatLog({
       setTimeout(
         () =>
           virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 }),
-        0
+        0,
       );
     };
   }, [scrollToBottomRef != null]);
@@ -146,6 +152,7 @@ export function ChatLog({
             <div style={{ overflow: "hidden" }}>
               <Message
                 key={date}
+                index={index}
                 account_id={account_id}
                 user_map={user_map}
                 message={message}
@@ -157,12 +164,12 @@ export function ChatLog({
                 is_prev_sender={isPrevMessageSender(
                   index,
                   sortedDates,
-                  messages
+                  messages,
                 )}
                 is_next_sender={isNextMessageSender(
                   index,
                   sortedDates,
-                  messages
+                  messages,
                 )}
                 show_avatar={
                   show_heads &&
@@ -201,7 +208,7 @@ export function ChatLog({
 function isNextMessageSender(
   index: number,
   dates: string[],
-  messages: Map<string, MessageMap>
+  messages: Map<string, MessageMap>,
 ): boolean {
   if (index + 1 === dates.length) {
     return false;
@@ -218,7 +225,7 @@ function isNextMessageSender(
 function isPrevMessageSender(
   index: number,
   dates: string[],
-  messages: Map<string, MessageMap>
+  messages: Map<string, MessageMap>,
 ): boolean {
   if (index === 0) {
     return false;

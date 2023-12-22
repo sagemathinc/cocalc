@@ -52,6 +52,13 @@ export async function metadataFile({
   const { stdout } = await execa(
     "find",
     topPaths.concat([
+      // This '-not -readable -prune -o ' excludes directories that we can read, since there is no possible
+      // way to sync them, and a user (not root) might not be able to fix this.  See
+      // https://stackoverflow.com/questions/762348/how-can-i-exclude-all-permission-denied-messages-from-find/25234419#25234419
+      "-not",
+      "-readable",
+      "-prune",
+      "-o",
       ...findExclude(exclude),
       "-printf",
       "%p\\0%.10T@ %.10A@ %b %s %M\\0\\0",
@@ -88,13 +95,18 @@ export async function mtimeDirTree({
     const topPaths = (await readdir(path)).filter(
       (p) => !p.startsWith(".") && !exclude.includes(p),
     );
-    const { stdout } = await execa(
-      "find",
-      topPaths.concat([...findExclude(exclude), "-printf", "%p\\0%T@\\0\\0"]),
-      {
-        cwd: path,
-      },
-    );
+    const args = topPaths.concat([
+      "-not", // '-not -readable -prune -o' - see comment in metadataFile
+      "-readable",
+      "-prune",
+      "-o",
+      ...findExclude(exclude),
+      "-printf",
+      "%p\\0%T@\\0\\0",
+    ]);
+    const { stdout } = await execa("find", [...args], {
+      cwd: path,
+    });
     metadataFile = stdout;
   }
   const c: { [path: string]: number } = {};

@@ -4,6 +4,7 @@
  */
 
 import { path_split } from "./misc";
+import { meta_file, original_path } from "@cocalc/util/misc";
 
 // NOTE: there are also .term files in subframes with history that doesn't get
 // deleted.  That's an edge case.
@@ -15,15 +16,19 @@ export function deleted_file_variations(path: string): string[] {
     head = head + "/";
   }
   const variations: string[] = [path];
-  for (const ext of [
-    "sage-chat",
-    "sage-jupyter",
-    "sage-jupyter2",
-    "time-travel",
-    "sage-history",
-    "syncdb",
-  ]) {
-    variations.push(head + "." + tail + "." + ext);
+  if (tail.startsWith(".")) {
+    variations.push(head + original_path(tail));
+  } else {
+    for (const ext of [
+      "sage-chat",
+      "sage-jupyter",
+      "sage-jupyter2",
+      "time-travel",
+      "sage-history",
+      "syncdb",
+    ]) {
+      variations.push(head + meta_file(tail, ext));
+    }
   }
   return variations;
 }
@@ -31,7 +36,7 @@ export function deleted_file_variations(path: string): string[] {
 // This does NOT include {src,dest}.
 export function move_file_variations(
   src: string,
-  dest: string
+  dest: string,
 ): { src: string; dest: string }[] {
   let { head, tail } = path_split(src);
   if (head != "") {

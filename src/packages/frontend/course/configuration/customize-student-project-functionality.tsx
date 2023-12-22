@@ -108,15 +108,15 @@ const OPTIONS: Option[] = [
   },
   {
     name: "disableChatGPT",
-    title: "all ChatGPT integration",
+    title: "all AI (ChatGPT & co.) integration",
     description:
-      "Remove *all* ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+      "Remove *all* AI (ChatGPT & co.) integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
   },
   {
     name: "disableSomeChatGPT",
-    title: "some ChatGPT integration",
+    title: "some AI (ChatGPT & co.) integration",
     description:
-      "Disable ChatGPT integration except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to  use ChatGPT to get unstuck.",
+      "Disable AI (ChatGPT & co.) integration except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to use AI assistance to get unstuck.",
   },
   {
     name: "disableSharing",
@@ -220,7 +220,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
         </div>
       </Card>
     );
-  }
+  },
 );
 
 // NOTE: we allow project_id to be undefined for convenience since some clients
@@ -231,13 +231,13 @@ export const useStudentProjectFunctionality: Hook = (project_id?: string) => {
   const [state, setState] = useState<StudentProjectFunctionality>(
     project_map
       ?.getIn([project_id ?? "", "course", "student_project_functionality"])
-      ?.toJS() ?? {}
+      ?.toJS() ?? {},
   );
   useEffect(() => {
     setState(
       project_map
         ?.getIn([project_id ?? "", "course", "student_project_functionality"])
-        ?.toJS() ?? {}
+        ?.toJS() ?? {},
     );
     return;
   }, [
@@ -255,7 +255,7 @@ export const useStudentProjectFunctionality: Hook = (project_id?: string) => {
 // Similar to the above hook, but just a point in time snapshot.  Use this
 // for old components that haven't been converted to react hooks yet.
 export function getStudentProjectFunctionality(
-  project_id?: string
+  project_id?: string,
 ): StudentProjectFunctionality {
   return (
     redux

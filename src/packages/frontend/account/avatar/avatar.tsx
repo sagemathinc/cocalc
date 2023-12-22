@@ -5,6 +5,8 @@
 
 import { Tooltip } from "antd";
 import { CSSProperties, useState } from "react";
+
+import { isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
   React,
   redux,
@@ -12,13 +14,13 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap } from "@cocalc/frontend/components";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { DEFAULT_COLOR } from "@cocalc/frontend/users/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { service2model } from "@cocalc/util/db-schema/openai";
 import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { isChatBot } from "@cocalc/frontend/account/chatbot";
 
 const CIRCLE_OUTER_STYLE: CSSProperties = {
   textAlign: "center",
@@ -51,7 +53,13 @@ interface Props {
 
 export function Avatar(props) {
   if (isChatBot(props.account_id)) {
-    return <OpenAIAvatar size={props.size} style={props.style} />;
+    return (
+      <LanguageModelVendorAvatar
+        model={service2model(props.account_id)}
+        size={props.size}
+        style={props.style}
+      />
+    );
   } else {
     return <Avatar0 {...props} />;
   }

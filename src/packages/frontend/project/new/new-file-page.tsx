@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Input, Modal, Space } from "antd";
 import { useState } from "react";
-import { useAvailableFeatures } from "../use-available-features";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -22,18 +23,18 @@ import {
   SettingBox,
   Tip,
 } from "@cocalc/frontend/components";
+import FakeProgress from "@cocalc/frontend/components/fake-progress";
 import { FileUpload } from "@cocalc/frontend/file-upload";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { PathNavigator } from "../explorer/path-navigator";
+import { ChatGPTGenerateNotebookButton } from "../page/home-page/ai-generate-jupyter";
+import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
-import { COLORS } from "@cocalc/util/theme";
-import { Button, Input, Modal, Space } from "antd";
-import FakeProgress from "@cocalc/frontend/components/fake-progress";
-import { ChatGPTGenerateNotebookButton } from "../page/home-page/chatgpt-generate-jupyter";
 
 interface Props {
   project_id: string;
@@ -47,11 +48,11 @@ export default function NewFilePage(props: Props) {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const filename0 = useTypedRedux({ project_id }, "default_filename");
   const [filename, setFilename] = useState<string>(
-    filename0 ? filename0 : default_filename(undefined, project_id)
+    filename0 ? filename0 : default_filename(undefined, project_id),
   );
   const file_creation_error = useTypedRedux(
     { project_id },
-    "file_creation_error"
+    "file_creation_error",
   );
   const downloading_file = useTypedRedux({ project_id }, "downloading_file");
   const project_map: ProjectMap | undefined = useRedux([
@@ -263,7 +264,7 @@ export default function NewFilePage(props: Props) {
     <SettingBox
       show_header
       icon={"plus-circle"}
-      title={"Create or upload new file or directory"}
+      title={"Create or Upload New File or Directory"}
       subtitle={
         <PathNavigator
           project_id={project_id}

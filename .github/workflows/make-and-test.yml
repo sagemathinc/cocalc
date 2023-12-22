@@ -26,6 +26,22 @@ env:
   PGHOST: localhost
 
 jobs:
+  doclinks:
+    runs-on: ubuntu-latest
+
+    # install python3, package requests, and run the script ./src/scripts/check_doc_links.py
+    steps:
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        with:
+          detached: true
+      - uses: actions/checkout@v3
+      - name: Install python3 requests
+        run: sudo apt-get install python3-requests
+      - name: Check doc links
+        run: cd src/scripts && python3 check_doc_urls.py
+
   build:
     runs-on: ubuntu-latest
 

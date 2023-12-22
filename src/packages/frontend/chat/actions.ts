@@ -5,25 +5,30 @@
 
 import { fromJS, Map as immutableMap } from "immutable";
 
-import { Actions } from "@cocalc/frontend/app-framework";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
 import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { History as ChatGPTHistory } from "@cocalc/frontend/misc/openai";
+import { History as LanguageModelHistory } from "@cocalc/frontend/misc/openai";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
-import type { Model } from "@cocalc/util/db-schema/openai";
-import { cmp, parse_hashtags } from "@cocalc/util/misc";
+import {
+  LANGUAGE_MODEL_PREFIXES,
+  getVendorStatusCheckMD,
+  model2service,
+  model2vendor,
+  type LanguageModel,
+} from "@cocalc/util/db-schema/openai";
+import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { TopBarActions } from "../project/page/types";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
 import { getSelectedHashtagsSearch } from "./utils";
-import { isValidUUID, uuid } from "@cocalc/util/misc";
 
 const MAX_CHATSTREAM = 10;
 
@@ -222,8 +227,8 @@ export class ChatActions extends Actions<ChatState> {
       let action;
       if (
         noNotification ||
-        mentionsChatGPT(input) ||
-        this.isChatGPTThread(reply_to)
+        mentionsLanguageModel(input) ||
+        this.isLanguageModelThread(reply_to)
       ) {
         // Note: don't mark it is a chat if it is with chatgpt,
         // since no point in notifying all collabs of this.
@@ -241,7 +246,7 @@ export class ChatActions extends Actions<ChatState> {
     }
     this.save_to_disk();
     (async () => {
-      await this.processChatGPT(fromJS(message), reply_to, tag);
+      await this.processLanguageModel(fromJS(message), reply_to, tag);
     })();
     return time_stamp;
   }
@@ -282,7 +287,7 @@ export class ChatActions extends Actions<ChatState> {
 
     this.syncdb.set({
       history: [{ author_id, content, date }].concat(
-        message.get("history").toJS()
+        message.get("history").toJS(),
       ),
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
@@ -308,7 +313,7 @@ export class ChatActions extends Actions<ChatState> {
     // full tree structure, which is powerful but too confusing.
     const reply_to = getReplyToRoot(
       message,
-      this.store?.get("messages") ?? fromJS({})
+      this.store?.get("messages") ?? fromJS({}),
     );
     const time = reply_to?.valueOf() ?? 0;
     this.delete_draft(-time);
@@ -324,7 +329,7 @@ export class ChatActions extends Actions<ChatState> {
   public delete_draft(
     date: number,
     commit: boolean = true,
-    sender_id: string | undefined = undefined
+    sender_id: string | undefined = undefined,
   ) {
     if (!this.syncdb) return;
     this.syncdb.delete({
@@ -368,12 +373,14 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ saved_position: position, height, offset });
   }
 
-  public scrollToBottom() {
-    // whenever this counter gets incremented, the UI should scroll chat
-    // to the bottom:
-    this.setState({
-      scrollToBottom: (this.store?.get("scrollToBottom") ?? 0) + 1,
-    });
+  // scroll to the bottom of the chat log
+  // if date is given, scrolls to the bottom of the chat *thread*
+  // that starts with that date.
+  // safe to call after closing actions.
+  public scrollToBottom(index: number = -1) {
+    if (this.syncdb == null) return;
+    // this triggers scroll behavior in the chat-log component.
+    this.setState({ scrollToBottom: index });
   }
 
   public set_uploading(is_uploading: boolean): void {
@@ -473,7 +480,7 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb?.redo();
   }
 
-  isChatGPTThread(date?: Date): false | Model {
+  isLanguageModelThread(date?: Date): false | LanguageModel {
     if (date == null) {
       return false;
     }
@@ -484,11 +491,8 @@ export class ChatActions extends Actions<ChatState> {
     while (message != null && i < 1000) {
       i += 1; // just in case some weird corrupted file has a time loop in it.
       const input = message.getIn(["history", 0, "content"])?.toLowerCase();
-      if (
-        input?.includes("account-id=openai-") ||
-        input?.includes("account-id=chatgpt")
-      ) {
-        return getChatGPTModel(input);
+      if (mentionsLanguageModel(input)) {
+        return getLanguageModel(input);
       }
       const reply_to = message.get("reply_to");
       if (reply_to == null) return false;
@@ -497,11 +501,13 @@ export class ChatActions extends Actions<ChatState> {
     return false; // never reached
   }
 
-  private async processChatGPT(message, reply_to?: Date, tag?: string) {
+  private async processLanguageModel(message, reply_to?: Date, tag?: string) {
     if (
       !tag &&
       !reply_to &&
-      !this.redux.getStore("projects").hasOpenAI(this.store?.get("project_id"))
+      !redux
+        .getProjectsStore()
+        .hasLanguageModelEnabled(this.store?.get("project_id"))
     ) {
       // No need to check whether chatgpt is enabled at all.
       // We only do this check if tag is not set, e.g., directly typing @chatgpt
@@ -523,28 +529,32 @@ export class ChatActions extends Actions<ChatState> {
     const store = this.store;
     if (!store) return;
 
-    let model: Model | false;
-    if (!mentionsChatGPT(input)) {
+    let model: LanguageModel | false;
+    if (!mentionsLanguageModel(input)) {
       // doesn't mention chatgpt explicitly, but might be a reply
       // to something that does:
       if (reply_to == null) {
         return;
       }
-      model = this.isChatGPTThread(reply_to);
+      model = this.isLanguageModelThread(reply_to);
       if (!model) {
-        // definitely not a chatgpt situation
+        // definitely not a language model chat situation
         return;
       }
     } else {
-      // it mentions chatgpt -- which model?
-      model = getChatGPTModel(input);
+      // it mentions chatgpt or palm2 -- which model?
+      model = getLanguageModel(input);
+    }
+
+    if (model === false) {
+      return;
     }
 
     // without any mentions, of course:
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
-    const sender_id = `openai-${model}`;
+    const sender_id = model2service(model);
     let date: string = this.send_reply({
       message,
       reply: ":robot: Thinking...",
@@ -554,7 +564,7 @@ export class ChatActions extends Actions<ChatState> {
 
     if (this.chatStreams.size > MAX_CHATSTREAM) {
       console.trace(
-        `processChatGPT called when ${MAX_CHATSTREAM} streams active`
+        `processChatGPT called when ${MAX_CHATSTREAM} streams active`,
       );
       if (this.syncdb != null) {
         // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
@@ -597,7 +607,7 @@ export class ChatActions extends Actions<ChatState> {
     setTimeout(() => {
       this.chatStreams.delete(id);
     }, 3 * 60 * 1000);
-    const chatStream = webapp_client.openai_client.chatgptStream({
+    const chatStream = webapp_client.openai_client.languageModelStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
       project_id,
@@ -640,7 +650,16 @@ export class ChatActions extends Actions<ChatState> {
     chatStream.on("error", (err) => {
       this.chatStreams.delete(id);
       if (this.syncdb == null || halted) return;
-      content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+
+      if (model === false) {
+        throw new Error(
+          `bug: model is false but we're in language model error handler`,
+        );
+      }
+
+      const vendor = model2vendor(model);
+      const statusCheck = getVendorStatusCheckMD(vendor);
+      content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
       this.syncdb.set({
         date,
         history: [{ author_id: sender_id, content, date }],
@@ -654,21 +673,22 @@ export class ChatActions extends Actions<ChatState> {
   // the input and output for the thread ending in the
   // given message, formatted for chatgpt, and heuristically
   // truncated to not exceed a limit in size.
-  private getChatGPTHistory(reply_to: Date): ChatGPTHistory {
+  private getChatGPTHistory(reply_to: Date): LanguageModelHistory {
     const messages = this.store?.get("messages");
-    const history: ChatGPTHistory = [];
+    const history: LanguageModelHistory = [];
     if (!messages) return history;
     // Next get all of the messages with this reply_to or that are the root of this reply chain:
     const d = reply_to.toISOString();
     for (const message of messages // @ts-ignore -- immutablejs typings are wrong (?)
       .filter(
         (message) =>
-          message.get("reply_to") == d || message.get("date").toISOString() == d
+          message.get("reply_to") == d ||
+          message.get("date").toISOString() == d,
       )
       .valueSeq()
       .sort((a, b) => cmp(a.get("date"), b.get("date")))) {
       const content = stripMentions(
-        message.get("history").last().get("content")
+        message.get("history").last().get("content"),
       );
       history.push({
         content,
@@ -681,7 +701,7 @@ export class ChatActions extends Actions<ChatState> {
     return history;
   }
 
-  chatgptStopGenerating(date: Date) {
+  languageModelStopGenerating(date: Date) {
     if (this.syncdb == null) return;
     this.syncdb.set({
       event: "chat",
@@ -691,7 +711,7 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.commit();
   }
 
-  chatgptRegenerate(date0: Date) {
+  languageModelRegenerate(date0: Date) {
     if (this.syncdb == null) return;
     const date = date0.toISOString();
     const cur = this.syncdb.get_one({ event: "chat", date });
@@ -704,7 +724,7 @@ export class ChatActions extends Actions<ChatState> {
       event: "chat",
       date,
     });
-    this.processChatGPT(message, undefined, "regenerate");
+    this.processLanguageModel(message, undefined, "regenerate");
   }
 
   public getTopBarActions(): TopBarActions {
@@ -722,7 +742,7 @@ function getReplyToRoot(message, messages): Date | undefined {
 
 function stripMentions(value: string): string {
   // We strip out any cased version of the string @chatgpt and also all mentions.
-  for (const name of ["@chatgpt4", "@chatgpt"]) {
+  for (const name of ["@chatgpt4", "@chatgpt", "@palm"]) {
     while (true) {
       const i = value.toLowerCase().indexOf(name);
       if (i == -1) break;
@@ -746,14 +766,16 @@ function stripMentions(value: string): string {
 //   return value.replace(/<details>/g, "").replace(/<\/details>/g, "");
 // }
 
-function mentionsChatGPT(input?: string): boolean {
-  return !!(
-    input?.toLowerCase().includes("account-id=chatgpt") ||
-    input?.toLowerCase().includes("account-id=openai-")
+function mentionsLanguageModel(input?: string): boolean {
+  const x = input?.toLowerCase() ?? "";
+
+  // if any of these prefixes are in the input as "account-id=[prefix]", then return true
+  return LANGUAGE_MODEL_PREFIXES.some((prefix) =>
+    x.includes(`account-id=${prefix}`),
   );
 }
 
-function getChatGPTModel(input?: string): false | Model {
+function getLanguageModel(input?: string): false | LanguageModel {
   if (!input) return false;
   const x = input.toLowerCase();
   if (x.includes("account-id=chatgpt4")) {
@@ -762,10 +784,13 @@ function getChatGPTModel(input?: string): false | Model {
   if (x.includes("account-id=chatgpt")) {
     return "gpt-3.5-turbo";
   }
-  const i = x.indexOf("account-id=openai-");
-  if (i != -1) {
-    const j = x.indexOf(">", i);
-    return x.slice(i + "account-id=openai-".length, j).trim() as any;
+  // these prefexes should come from util/db-schema/openai::model2service
+  for (const prefix of ["account-id=openai-", "account-id=google-"]) {
+    const i = x.indexOf(prefix);
+    if (i != -1) {
+      const j = x.indexOf(">", i);
+      return x.slice(i + prefix.length, j).trim() as any;
+    }
   }
   return false;
 }

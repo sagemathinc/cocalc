@@ -28,6 +28,7 @@ import createTokenAction, {
   getTokenUrl,
 } from "@cocalc/server/token-actions/create";
 import dayjs from "dayjs";
+import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -51,7 +52,7 @@ export default async function studentPay({
     // Get current value of course field of this project
     const { rows } = await client.query(
       "SELECT course, title, description FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     if (rows.length == 0) {
       throw Error("no such project");
@@ -62,7 +63,18 @@ export default async function studentPay({
     }
     // ensure account_id matches the student; this also ensures that currentCourse is not null.
     if (!allowOther && currentCourse?.account_id != account_id) {
-      throw Error(`only ${account_id} can pay the course fee`);
+      // Also allow possibility that only the email address matches.  This can happen if the course config
+      // doesn't have the user's account_id yet.
+      const email_address = await getEmailAddress(account_id);
+      if (email_address != currentCourse?.email_address) {
+        if (currentCourse?.email_address) {
+          throw Error("student pay is not properly configured");
+        } else {
+          throw Error(
+            `only the user with email address ${currentCourse?.email_address} can pay the course fee`,
+          );
+        }
+      }
     }
     if (currentCourse.paid) {
       throw Error("course fee already paid");
@@ -141,7 +153,7 @@ export default async function studentPay({
 }
 
 export function getCost(
-  purchaseInfo: PurchaseInfo = DEFAULT_PURCHASE_INFO
+  purchaseInfo: PurchaseInfo = DEFAULT_PURCHASE_INFO,
 ): number {
   const cost = purchaseInfo?.cost;
   if (cost == null) {
@@ -161,7 +173,7 @@ export async function studentPayLink({
   return await getTokenUrl(
     await createTokenAction(
       { type: "student-pay", account_id, project_id } as StudentPay,
-      dayjs().add(1, "week").toDate()
-    )
+      dayjs().add(1, "week").toDate(),
+    ),
   );
 }

@@ -116,8 +116,8 @@ export default function PayNow({
               </div>
             )}
             {!allowed && (
-              <Button onClick={() => update(true)} type="primary">
-                Add to Balance...
+              <Button size="large" onClick={() => update(true)} type="primary">
+                <Icon name="credit-card" /> Add Credit to Your Account...
               </Button>
             )}
           </div>

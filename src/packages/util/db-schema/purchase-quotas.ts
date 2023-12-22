@@ -2,6 +2,7 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import type { Service } from "./purchases";
+import { isFreeModel } from "./openai";
 
 export type { Service };
 
@@ -56,6 +57,26 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "Voucher",
     color: "#00238b",
     noSet: true,
+  },
+  "google-text-bison-001": {
+    display: "Google Palm 2 (Text)",
+    color: "#4285f4",
+    noSet: true, // deprecated, will be removed
+  },
+  "google-chat-bison-001": {
+    display: "Google Palm 2 (Chat)",
+    color: "#4285f4",
+    noSet: true, // deprecated, will be removed
+  },
+  "google-embedding-gecko-001": {
+    display: "Google Gecko (Embedding)",
+    color: "#4285f4",
+    noSet: true, // deprecated, will be removed
+  },
+  "google-gemini-pro": {
+    display: "Google Gemini Pro",
+    color: "#4285f4",
+    noSet: isFreeModel("gemini-pro"),
   },
 };
 

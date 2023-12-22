@@ -22,7 +22,7 @@ interface Props {
 export default function Payment({ balance, update, cost }: Props) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number>(
-    Math.max(DEFAULT_AMOUNT, balance != null && balance < 0 ? -balance : 0)
+    Math.max(DEFAULT_AMOUNT, balance != null && balance < 0 ? -balance : 0),
   );
   const [session, setSession] = useState<
     { id: string; url: string } | null | "loading"
@@ -108,8 +108,8 @@ export default function Payment({ balance, update, cost }: Props) {
         ? Math.max(minPayment ?? 0, cost)
         : Math.max(
             minPayment ?? 0,
-            balance != null && balance < 0 ? -balance : 0
-          )
+            balance != null && balance < 0 ? -balance : 0,
+          ),
     );
     setIsModalVisible(true);
     if (typeof session == "object" && session?.url) {
@@ -200,6 +200,7 @@ export default function Payment({ balance, update, cost }: Props) {
     <div>
       <Button.Group>
         <Button
+          size="large"
           disabled={balance == null || cancelling}
           onClick={showModal}
           type={
@@ -213,11 +214,11 @@ export default function Payment({ balance, update, cost }: Props) {
           {typeof session == "object" && session?.id
             ? "Finish Payment..."
             : cost
-            ? `Add at least ${currency(cost)}`
+            ? `Add at least ${currency(cost)} to your account`
             : "Add Money..."}
         </Button>
         {typeof session == "object" && session?.id && (
-          <Button disabled={cancelling} onClick={cancelPayment}>
+          <Button size="large" disabled={cancelling} onClick={cancelPayment}>
             Cancel
             {cancelling && (
               <>

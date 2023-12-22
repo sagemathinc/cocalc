@@ -11,7 +11,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import { ChatGPTGenerateNotebookButton } from "../../page/home-page/chatgpt-generate-jupyter";
+import { ChatGPTGenerateNotebookButton } from "../../page/home-page/ai-generate-jupyter";
 import { useAvailableFeatures } from "../../use-available-features";
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";

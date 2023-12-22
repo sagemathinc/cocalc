@@ -284,15 +284,16 @@ export class JupyterActions extends JupyterActions0 {
     this.setState({ kernel_usage: usage });
   }
 
-  // don't forget the close() in the parent
-  public async close(): Promise<void> {
+  public close = async (): Promise<void> => {
     if (this.is_closed()) return;
     if (this.usage_info != null) {
       const key = this.usage_info.event_key(this.path);
       this.usage_info.off(key, this.usage_info_handler);
     }
-    await super.close();
-  }
+    // don't forget the close() in the parent
+    // @ts-ignore -- on some platforms this incorrectly (?) fails
+    await super.close?.();
+  };
 
   private activity(): void {
     if (this._state === "closed") return;

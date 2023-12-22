@@ -2,20 +2,24 @@
 Use ChatGPT to explain what the code in a cell does.
 */
 
-import { CSSProperties, useState } from "react";
 import { Alert, Button } from "antd";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import type { JupyterActions } from "../browser-actions";
+import { CSSProperties, useState } from "react";
+
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
+import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ModelSwitch, {
+  LanguageModel,
   modelToMention,
   modelToName,
-  Model,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { ProjectsStore } from "@cocalc/frontend/projects/store";
+import type { JupyterActions } from "../browser-actions";
 
 interface Props {
   actions?;
@@ -27,22 +31,29 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   const { project_id, path } = useFrameContext();
   const [gettingExplanation, setGettingExplanation] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [model, setModel] = useState<Model>("gpt-3.5-turbo");
+  const [model, setModel] = useLanguageModelSetting();
 
   if (
     actions == null ||
-    !actions.redux.getStore("projects").hasOpenAI(project_id, "explain")
+    !(
+      actions.redux.getStore("projects") as ProjectsStore
+    ).hasLanguageModelEnabled(project_id, "explain")
   ) {
     return null;
   }
   return (
     <div style={style}>
       <PopconfirmKeyboard
-        icon={<OpenAIAvatar size={20} />}
+        icon={<LanguageModelVendorAvatar model={model} size={20} />}
         title={
           <b>
             Get explanation of this code from{" "}
-            <ModelSwitch size="small" model={model} setModel={setModel} />
+            <ModelSwitch
+              size="small"
+              model={model}
+              setModel={setModel}
+              project_id={project_id}
+            />
           </b>
         }
         description={() => {
@@ -96,7 +107,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
           type="text"
           disabled={gettingExplanation}
         >
-          <OpenAIAvatar
+          <AIAvatar
             size={12}
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}
@@ -129,7 +140,7 @@ async function getExplanation({
   actions: JupyterActions;
   project_id: string;
   path: string;
-  model: Model;
+  model: LanguageModel;
 }) {
   const message = createMessage({ id, actions, model, open: false });
   if (!message) {
@@ -154,12 +165,10 @@ function createMessage({ id, actions, model, open }): string {
   const kernel_info = actions.store.get("kernel_info");
   const language = kernel_info.get("language");
   const message = `${modelToMention(
-    model
+    model,
   )} Explain the following ${kernel_info.get(
-    "display_name"
-  )} code that is in a Jupyter notebook:\n\n<details${
-    open ? " open" : ""
-  }>\n\n
+    "display_name",
+  )} code that is in a Jupyter notebook:\n\n<details${open ? " open" : ""}>\n\n
 \`\`\`${language}
 ${cell.get("input")}
 \`\`\`

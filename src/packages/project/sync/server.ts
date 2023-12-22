@@ -62,7 +62,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { close, deep_copy, len } from "@cocalc/util/misc";
-import { register_listings_table } from "./listings";
+import { registerListingsTable } from "./listings";
 import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
@@ -92,7 +92,6 @@ interface Channel {
   forEach: (fn: Function) => void;
   destroy: Function;
 }
-
 
 interface Primus {
   channel: (str: string) => Channel;
@@ -242,7 +241,7 @@ class SyncTableChannel {
     }
     if (this.synctable.table === "syncstrings") {
       this.log("init_synctable -- syncstrings: also initialize syncdoc...");
-      init_syncdoc(this.client, this.synctable, this.logger);
+      init_syncdoc(this.client, this.synctable);
     }
 
     this.synctable.on(
@@ -378,13 +377,13 @@ class SyncTableChannel {
   }
 
   private send_synctable_to_browser(spark: Spark): void {
-    if (this.closed || this.closing) return;
+    if (this.closed || this.closing || this.synctable == null) return;
     this.log("send_synctable_to_browser");
     spark.write({ init: this.synctable.initial_version_for_browser_client() });
   }
 
   private broadcast_synctable_to_browsers(): void {
-    if (this.closed || this.closing) return;
+    if (this.closed || this.closing || this.synctable == null) return;
     this.log("broadcast_synctable_to_browsers");
     const x = { init: this.synctable.initial_version_for_browser_client() };
     this.channel.write(x);
@@ -553,9 +552,8 @@ async function synctable_channel0(
     });
     await synctable_channels[name].init();
     if (query?.listings != null) {
-      register_listings_table(
+      registerListingsTable(
         synctable_channels[name].get_synctable(),
-        logger,
         client.client_id(),
       );
     } else if (query?.project_info != null) {

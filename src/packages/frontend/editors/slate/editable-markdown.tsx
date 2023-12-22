@@ -78,10 +78,10 @@ export type { SlateEditor };
 const USE_WINDOWING = true;
 // const USE_WINDOWING = false;
 
-const STYLE = {
+const STYLE: CSS = {
   width: "100%",
   overflow: "auto",
-} as CSS;
+} as const;
 
 interface Props {
   value?: string;
@@ -122,6 +122,8 @@ interface Props {
   chatGPT?: boolean;
   editBar2?: MutableRefObject<JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
+  vertexAI?: boolean;
+  minimal?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
@@ -160,6 +162,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     editBar2,
     dirtyRef,
     chatGPT,
+    vertexAI,
+    minimal,
   } = props;
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -172,9 +176,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     const ed = withNonfatalRange(
       withInsertBreakHack(
         withNormalize(
-          withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
-        )
-      )
+          withAutoFormat(withIsInline(withIsVoid(withReact(createEditor())))),
+        ),
+      ),
     ) as SlateEditor;
     actions.registerSlateEditor?.(id, ed);
 
@@ -325,7 +329,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [isFocused]);
 
   const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
-    markdown_to_slate(value ?? "", false, editor.syncCache)
+    markdown_to_slate(value ?? "", false, editor.syncCache),
   );
 
   const rowSizeEstimator = useCallback((node) => {
@@ -344,7 +348,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         submit_mentions(project_id, path, [{ account_id, description: "" }]);
       }
     },
-    matchingUsers: (search) => mentionableUsers(project_id, search, chatGPT),
+    matchingUsers: (search) =>
+      mentionableUsers(project_id, search, chatGPT, vertexAI),
   });
 
   const emojis = useEmojis({
@@ -362,7 +367,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       submitMentionsRef.current = (fragmentId?: FragmentId) => {
         if (project_id == null || path == null) {
           throw Error(
-            "project_id and path must be set in order to use mentions."
+            "project_id and path must be set in order to use mentions.",
           );
         }
         const fragment_id = Fragment.encode(fragmentId);
@@ -516,9 +521,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
           () =>
             debounce(
               () => editor.saveValue(),
-              saveDebounceMs ?? SAVE_DEBOUNCE_MS
+              saveDebounceMs ?? SAVE_DEBOUNCE_MS,
             ),
-          []
+          [],
         );
 
   function onKeyDown(e) {
@@ -651,7 +656,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       // TODO!
       console.warn(
         "slate - invalid selection after upstream patch. Resetting selection.",
-        err
+        err,
       );
       // set to beginning of document -- better than crashing.
       resetSelection(editor);
@@ -676,7 +681,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         // that space is not really part of the markdown document, and it goes
         // away when you move your cursor out of that space.
         console.warn(
-          "**WARNING:  slateDiff might not have properly transformed editor, though this may be fine. See window.diffBug **"
+          "**WARNING:  slateDiff might not have properly transformed editor, though this may be fine. See window.diffBug **",
         );
         (window as any).diffBug = {
           previousEditorValue,
@@ -735,8 +740,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
               `${
                 n + 1
               }/${iterations}: inserted '${inserted}'; focus="${JSON.stringify(
-                editor.selection?.focus
-              )}"`
+                editor.selection?.focus,
+              )}"`,
             );
             if (offset != (lastOffset ?? 0) + 1) {
               console.error("SYNC FAIL!!", { offset, lastOffset });
@@ -755,7 +760,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }
 
   editor.inverseSearch = async function inverseSearch(
-    force?: boolean
+    force?: boolean,
   ): Promise<void> {
     if (
       !force &&
@@ -788,7 +793,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       true,
       false, // it is REALLY annoying to switch focus to be honest, e.g., because double click to select a word is common in WYSIWYG editing.  If change this to true, make sure to put an extra always 50ms delay above due to focus even order.
       undefined,
-      pos.ch
+      pos.ch,
     );
   };
 
@@ -922,7 +927,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
             ? {
                 rowStyle: {
                   // WARNING: do *not* use margin in rowStyle.
-                  padding: "0 70px",
+                  padding: minimal ? 0 : "0 70px",
                   overflow: "hidden", // CRITICAL: this makes it so the div height accounts for margin of contents (e.g., p element has margin), so virtuoso can measure it correctly.  Otherwise, things jump around like crazy.
                   minHeight: "1px", // virtuoso can't deal with 0-height items
                 },

@@ -40,7 +40,8 @@ local all all trust
         socket_dir = PGHOST
     else:
         socket_dir = os.path.join(PG_DATA, 'socket')
-    s += "unix_socket_directories = '%s'\nlisten_addresses=''\n" % socket_dir
+    # Increase max connections since in dev mode nextjs is constantly restarting causing lots of hanging connections (TODO)
+    s += "unix_socket_directories = '%s'\nlisten_addresses=''\nmax_connections=1000\n" % socket_dir
     if not os.path.exists(socket_dir):
         os.makedirs(socket_dir)
     util.cmd("chmod og-rwx '%s'" % PG_DATA)  # just in case -- be paranoid...

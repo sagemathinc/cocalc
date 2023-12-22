@@ -1,14 +1,15 @@
-import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { capitalize } from "@cocalc/util/misc";
-import { modelToMention, Model } from "./model-switch";
+import { Actions, CodeEditorState } from "../code-editor/actions";
+import { modelToMention, type LanguageModel } from "./model-switch";
 
-interface Options {
+export interface Options {
   codegen?: boolean;
   command: string;
   allowEmpty?: boolean;
   tag?: string;
-  model: Model;
+  model: LanguageModel;
 }
 
 export default async function createChat({
@@ -17,7 +18,7 @@ export default async function createChat({
   options,
   input,
 }: {
-  actions;
+  actions: Actions<CodeEditorState>;
   frameId: string;
   options: Options;
   input?: string;
@@ -30,7 +31,7 @@ export default async function createChat({
     codegen = false;
   } else {
     if (input == null) {
-      input = actions.chatgptGetContext();
+      input = actions.languageModelGetContext(frameId);
     }
     if (!input && !allowEmpty) {
       throw Error("Please write or select something.");
@@ -49,7 +50,7 @@ export default async function createChat({
   const chatActions = await getChatActions(
     actions.redux,
     actions.project_id,
-    actions.path
+    actions.path,
   );
   const delim = backtickSequence(input);
   const head = `${modelToMention(model)} ${capitalize(command)}:\n`;
@@ -57,13 +58,13 @@ export default async function createChat({
   if (frameType != "terminal") {
     message += `I am writing in the file ${
       actions.path
-    } ${actions.chatgptExtraFileInfo()}.`;
+    } ${actions.languageModelExtraFileInfo(codegen)}.`;
     if (input.trim()) {
       message += ` The file includes the following ${
         codegen ? "code" : "content"
       }:`;
       message += `
-${delim}${actions.chatgptGetLanguage()}
+${delim}${actions.languageModelGetLanguage()}
 ${input.trim()}
 ${delim}
 ${codegen && input.trim() ? "Show the new version." : ""}`;
@@ -71,8 +72,6 @@ ${codegen && input.trim() ? "Show the new version." : ""}`;
   } else {
     message += ". I am using the bash Ubuntu Linux terminal in CoCalc.";
   }
-  // scroll to bottom *after* the message gets sent.
-  setTimeout(() => chatActions.scrollToBottom(), 100);
   if (message.includes("<details")) {
     message = `${head}\n\n${message}`;
   } else {
@@ -83,4 +82,7 @@ ${codegen && input.trim() ? "Show the new version." : ""}`;
     tag: `code-editor-${tag ?? command}`,
     noNotification: true,
   });
+  chatActions.scrollToBottom();
+  // scroll to bottom again *after* the message starts getting responded to.
+  setTimeout(() => chatActions.scrollToBottom(), 1000);
 }

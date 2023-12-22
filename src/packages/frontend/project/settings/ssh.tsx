@@ -68,8 +68,8 @@ export function SSHPanel({ project, mode = "project" }: Props) {
         </Paragraph>
         {render_fingerprint()}
         <Paragraph>
-          <A href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key">
-            <Icon name="life-ring" /> How to create SSH keys
+          <A href="https://doc.cocalc.com/account/ssh.html">
+            <Icon name="life-ring" /> Docs...
           </A>
         </Paragraph>
       </>
@@ -106,7 +106,7 @@ export function SSHPanel({ project, mode = "project" }: Props) {
         extra={
           <p>
             If you want to use the same SSH key for all your projects, add it
-            using the "SSH keys" tab under Account Settings. If you have done
+            using the "SSH Keys" tab under Account Settings. If you have done
             that, there is no need to also configure an SSH key here.
           </p>
         }

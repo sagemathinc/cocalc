@@ -38,7 +38,7 @@ import { separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { delayShow } from "../../new/file-type-selector";
 import { NewFileButton } from "../../new/new-file-button";
-import { ChatGPTGenerateNotebookButton } from "../home-page/chatgpt-generate-jupyter";
+import { ChatGPTGenerateNotebookButton } from "../home-page/ai-generate-jupyter";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 
 function getFileExtension(filename: string): string | null {

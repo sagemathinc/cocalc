@@ -7,7 +7,6 @@
 Quarto Editor Actions
 */
 
-import { callback2 } from "@cocalc/util/async-utils";
 import { path_split } from "@cocalc/util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
 import { Set } from "immutable";
@@ -56,7 +55,7 @@ export class Actions extends MarkdownActions {
     this.run_qmd_converter = debounce(
       async (hash?) => await this._run_qmd_converter(hash),
       5 * 1000,
-      { leading: true, trailing: false }
+      { leading: true, trailing: false },
     );
 
     const do_build = reuseInFlight(async () => {
@@ -100,7 +99,7 @@ export class Actions extends MarkdownActions {
       return;
     }
     const path = path_split(this.path).head;
-    await callback2(project_actions.fetch_directory_listing, { path });
+    await project_actions.fetch_directory_listing({ path });
 
     const project_store = project_actions.get_store();
     if (project_store == undefined) {
@@ -174,7 +173,7 @@ export class Actions extends MarkdownActions {
       this.set_log(output);
       if (output == null || output.exit_code != 0) {
         this.set_error(
-          "Error compiling file using Quarto. Please check the Build Log!"
+          "Error compiling file using Quarto. Please check the Build Log!",
         );
       } else {
         this.reload();
@@ -217,7 +216,7 @@ export class Actions extends MarkdownActions {
     // the html editor, which also has an iframe, calls somehow super.reload
     hash = hash || Date.now();
     ["iframe", "pdfjs_canvas", "markdown"].forEach((viewer) =>
-      this.set_reload(viewer, hash)
+      this.set_reload(viewer, hash),
     );
   }
 

@@ -27,9 +27,9 @@ export default async function lowBalance({ server }) {
 }
 
 async function checkAllowed(service, server) {
-  let allowed,
-    reason,
-    alsoDelete = false;
+  let allowed = false;
+  let reason: string | undefined = undefined;
+  let alsoDelete = false;
   ({ allowed, reason } = await isPurchaseAllowed({
     account_id: server.account_id,
     service,

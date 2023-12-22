@@ -46,7 +46,7 @@ const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 // markdown uses codemirror
 // editor uses slate.  TODO: this should be "text", not "editor".  Oops.
 const Modes = ["markdown", "editor"] as const;
-export type Mode = typeof Modes[number];
+export type Mode = (typeof Modes)[number];
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
 
@@ -80,6 +80,7 @@ interface Props {
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
   chatGPT?: boolean; // if true, add @chatgpt as an option for @mentions.
+  vertexAI?: boolean; // if true, add @palm as an option for @mentions.
   enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
@@ -152,6 +153,7 @@ export default function MultiMarkdownInput(props: Props) {
     autoFocus,
     enableMentions,
     chatGPT,
+    vertexAI,
     enableUpload = true,
     onUploadStart,
     onUploadEnd,
@@ -202,7 +204,7 @@ export default function MultiMarkdownInput(props: Props) {
       getCache()?.mode ??
       defaultMode ??
       getLocalStorageMode() ??
-      (IS_MOBILE ? "markdown" : "editor")
+      (IS_MOBILE ? "markdown" : "editor"),
   );
 
   const [editBarPopover, setEditBarPopover] = useState<boolean>(false);
@@ -390,6 +392,7 @@ export default function MultiMarkdownInput(props: Props) {
           onUploadEnd={onUploadEnd}
           enableMentions={enableMentions}
           chatGPT={chatGPT}
+          vertexAI={vertexAI}
           onShiftEnter={onShiftEnter}
           placeholder={placeholder ?? "Type markdown..."}
           fontSize={fontSize}
@@ -439,7 +442,9 @@ export default function MultiMarkdownInput(props: Props) {
             value={value}
             is_current={true}
             hidePath
-            disableWindowing
+            disableWindowing={
+              true /* I tried making this false when height != 'auto', but then *clicking to set selection* doesn't work at least for task list.*/
+            }
             style={
               minimal
                 ? { background: undefined, backgroundColor: undefined }
@@ -450,6 +455,7 @@ export default function MultiMarkdownInput(props: Props) {
                 ? { background: undefined, padding: 0 }
                 : { padding: "5px 15px" }
             }
+            minimal={minimal}
             height={height}
             editBarStyle={
               {
@@ -498,6 +504,7 @@ export default function MultiMarkdownInput(props: Props) {
             placeholder={placeholder ?? "Type text..."}
             submitMentionsRef={submitMentionsRef}
             chatGPT={chatGPT}
+            vertexAI={vertexAI}
             editBar2={editBar2}
             dirtyRef={dirtyRef}
           />

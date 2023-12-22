@@ -5,6 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./table": "./dist/table/index.js",
+    "./listings": "./dist/listings/index.js",
     "./editor/db": "./dist/editor/db/index.js"
   },
   "scripts": {
@@ -14,17 +15,9 @@
     "test": "npx jest ./dist",
     "prepublishOnly": "pnpm test"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/sync": "workspace:*",
@@ -34,6 +27,7 @@
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
+    "debug": "^4.3.4",
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",

@@ -276,7 +276,9 @@ export async function handleSyncFsRequestCall({ compute_server_id }) {
   } else {
     log("handleSyncFsRequestCall: fail");
     throw Error(
-      `no connection to compute server: ${JSON.stringify(Object.keys(sparks))}`,
+      `no connection to compute server ${compute_server_id} -- only know about these: ${JSON.stringify(
+        Object.keys(sparks),
+      )}`,
     );
     //throw Error("no connection to compute server");
   }

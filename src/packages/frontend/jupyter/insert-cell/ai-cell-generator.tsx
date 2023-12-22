@@ -1,32 +1,50 @@
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { Button, Input, Popover, Space, Typography } from "antd";
-const { Paragraph } = Typography;
+import { Button, Input, Popover, Space } from "antd";
+import { throttle } from "lodash";
+import React, { useMemo, useState } from "react";
+
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { useFrameContext } from "@cocalc/frontend/app-framework";
+import { Paragraph } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ModelSwitch, {
   modelToName,
-  Model,
-  DEFAULT_MODEL,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { useMemo, useState } from "react";
-import { COLORS } from "@cocalc/util/theme";
-import { insertCell } from "./util";
-import { useFrameContext } from "@cocalc/frontend/app-framework";
-import { throttle } from "lodash";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { alert_message } from "@cocalc/frontend/alerts";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 import track from "@cocalc/frontend/user-tracking";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import {
+  LanguageModel,
+  getVendorStatusCheckMD,
+  model2vendor,
+} from "@cocalc/util/db-schema/openai";
+import { COLORS } from "@cocalc/util/theme";
+import { JupyterActions } from "../browser-actions";
+import { insertCell } from "./util";
 
-export default function ChatGPT({
-  setShowChatGPT,
-  showChatGPT,
-  children,
+interface AIGenerateCodeCellProps {
+  actions: JupyterActions;
+  children: React.ReactNode;
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  id: string;
+  position: "above" | "below";
+  setShowChatGPT: (show: boolean) => void;
+  showChatGPT: boolean;
+}
+
+export default function AIGenerateCodeCell({
   actions,
+  children,
   frameActions,
   id,
   position,
-}) {
-  const [model, setModel] = useState<Model>(DEFAULT_MODEL);
+  setShowChatGPT,
+  showChatGPT,
+}: AIGenerateCodeCellProps) {
+  const [model, setModel] = useLanguageModelSetting();
   const [querying, setQuerying] = useState<boolean>(false);
   const { project_id, path } = useFrameContext();
   const [prompt, setPrompt] = useState<string>("");
@@ -38,17 +56,24 @@ export default function ChatGPT({
       actions,
       id,
       position,
+      model,
     });
     return input;
-  }, [showChatGPT, prompt]);
+  }, [showChatGPT, prompt, model]);
 
   return (
     <Popover
       placement="bottom"
       title={() => (
         <div style={{ fontSize: "18px" }}>
-          <OpenAIAvatar size={24} /> Generate code cell using{" "}
-          <ModelSwitch size="small" model={model} setModel={setModel} />
+          <LanguageModelVendorAvatar model={model} size={24} /> Generate code
+          cell using{" "}
+          <ModelSwitch
+            project_id={project_id}
+            size="small"
+            model={model}
+            setModel={setModel}
+          />
           <Button
             onClick={() => {
               setShowChatGPT(false);
@@ -77,7 +102,7 @@ export default function ChatGPT({
                 placeholder="Describe the new cell..."
                 onPressEnter={(e) => {
                   if (!e.shiftKey) return;
-                  queryChatGPT({
+                  queryLanguageModel({
                     frameActions,
                     actions,
                     id,
@@ -110,7 +135,7 @@ export default function ChatGPT({
                 <Button
                   type="primary"
                   onClick={() => {
-                    queryChatGPT({
+                    queryLanguageModel({
                       frameActions,
                       actions,
                       id,
@@ -139,62 +164,37 @@ export default function ChatGPT({
   );
 }
 
-/**
- * extract the code between the first and second occurance of lines starting with backticks
- * TODO: cocalc has a markdown parser and is very good at parsing markdown (e.g., slate uses that),
- * and we should obviously using that instead of an adhoc parsing that will break on some inputs,
- * e.g., triple backticks is not ALWAYS the code delimiter (it can be spaces, it can be more than 3
- * backticks).
- */
-function extractCode(raw: string): {
-  content: string;
-  type: "code" | "markdown";
-} {
-  const ret: string[] = [];
-  let inside = false;
-  let haveCode = false;
-  for (const line of raw.split("\n")) {
-    if (line.startsWith("```")) {
-      inside = true;
-      continue;
-    }
-    if (inside) {
-      // ignore the remaining lines
-      if (line.startsWith("```")) break;
-      ret.push(line);
-      haveCode = true;
-    }
-  }
-
-  // if there is nothing in "ret", it probably returned a comment explaining it does not know what to do
-  if (ret.length > 0) {
-    return {
-      content: ret.join("\n"),
-      type: haveCode ? "code" : "markdown",
-    };
-  } else {
-    return { content: raw, type: "markdown" };
-  }
+interface QueryLanguageModelProps {
+  actions: JupyterActions;
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  id: string;
+  model: LanguageModel;
+  path: string;
+  position: "above" | "below";
+  project_id: string;
+  prompt: string;
+  setQuerying: (querying: boolean) => void;
 }
 
-async function queryChatGPT({
-  frameActions,
+async function queryLanguageModel({
   actions,
-  setQuerying,
+  frameActions,
   id,
-  position,
   model,
-  project_id,
   path,
+  position,
+  project_id,
   prompt,
-}) {
+  setQuerying,
+}: QueryLanguageModelProps) {
   if (!prompt.trim()) return;
-  const { input, lang } = getInput({
-    frameActions,
-    prompt,
+  const { input, system } = getInput({
     actions,
+    frameActions,
     id,
+    model,
     position,
+    prompt,
   });
   if (!input) {
     return;
@@ -215,7 +215,7 @@ async function queryChatGPT({
       position,
       type: "markdown",
       content: `The following cell was generated by ${modelToName(
-        model
+        model,
       )} using this user prompt:\n\n> ${prompt}\n\n `,
     });
     if (!noteCellId) {
@@ -225,7 +225,8 @@ async function queryChatGPT({
     if (fa == null) {
       throw Error("frame actions must be defined");
     }
-    const gptCellId = insertCell({
+    // this is the first cell
+    const firstCellId = insertCell({
       frameActions,
       actions,
       type: "markdown",
@@ -234,42 +235,69 @@ async function queryChatGPT({
       position: "below",
     });
     fa.set_mode("escape"); // while tokens come in ...
-    if (gptCellId == null) return; // to make TS happy
+    if (firstCellId == null) return; // to make TS happy
 
-    const reply = await webapp_client.openai_client.chatgptStream({
+    let curCellId = firstCellId;
+    let curCellPos = 0;
+    let numCells = 1;
+
+    const reply = await webapp_client.openai_client.languageModelStream({
       input,
       project_id,
       path,
-      system: `Return a single code block in the language "${lang}".`,
+      system,
       tag,
       model,
     });
 
-    const updateCell = throttle(
+    const updateCells = throttle(
       function (answer) {
-        const { content, type } = extractCode(answer);
-        fa.set_cell_input(gptCellId, content);
-        actions.set_cell_type(gptCellId, type);
+        const cells = splitCells(answer);
+        if (cells.length === 0) return;
+
+        // we always have to update the last cell, even if there are more cells ahead
+        fa.set_cell_input(curCellId, cells[curCellPos].source.join(""));
+        actions.set_cell_type(curCellId, cells[curCellPos].cell_type);
+
+        if (cells.length > numCells) {
+          for (let i = numCells; i < cells.length; i++) {
+            const nextCellId = insertCell({
+              frameActions,
+              actions,
+              id: curCellId,
+              position: "below",
+              type: cells[i].cell_type,
+              content: cells[i].source.join(""),
+            });
+            // this shouldn't happen
+            if (nextCellId == null) continue;
+            curCellId = nextCellId;
+            curCellPos = i; // for the next update, above before the if/for loop
+            numCells += 1;
+          }
+        }
       },
       750,
-      { leading: true, trailing: true }
+      { leading: true, trailing: true },
     );
 
     let answer = "";
     reply.on("token", (token) => {
       if (token != null) {
         answer += token;
-        updateCell(answer);
+        updateCells(answer);
       } else {
-        fa.switch_code_cell_to_edit(gptCellId);
+        fa.switch_code_cell_to_edit(firstCellId);
       }
     });
     reply.on("error", (err) => {
       fa.set_cell_input(
-        gptCellId,
-        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
+        firstCellId,
+        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+          model2vendor(model),
+        )}.`,
       );
-      actions.set_cell_type(gptCellId, "markdown");
+      actions.set_cell_type(firstCellId, "markdown");
       fa.set_mode("escape");
       return;
     });
@@ -284,18 +312,33 @@ async function queryChatGPT({
   }
 }
 
-function getInput({ frameActions, prompt, actions, id, position }): {
+interface GetInputProps {
+  actions: JupyterActions;
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  id: string;
+  model: LanguageModel;
+  position: "above" | "below";
+  prompt: string;
+}
+
+function getInput({
+  actions,
+  frameActions,
+  id,
+  position,
+  prompt,
+}: GetInputProps): {
   input: string;
-  lang: string;
+  system: string;
 } {
   if (!prompt?.trim()) {
-    return { input: "", lang: "" };
+    return { input: "", system: "" };
   }
   if (frameActions.current == null) {
     console.warn(
-      "Unable to create cell due to frameActions not being defined."
+      "Unable to create cell due to frameActions not being defined.",
     );
-    return { input: "", lang: "" };
+    return { input: "", system: "" };
   }
   const kernel_info = actions.store.get("kernel_info");
   const lang = kernel_info?.get("language") ?? "python";
@@ -303,14 +346,16 @@ function getInput({ frameActions, prompt, actions, id, position }): {
   const prevCodeContents = getPreviousNonemptyCodeCellContents(
     frameActions.current,
     id,
-    position
+    position,
   );
   const prevCode = prevCodeContents
     ? `The previous code cell is\n\n\`\`\`${lang}\n${prevCodeContents}\n\`\`\``
     : "";
 
-  const input = `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nReturn the entire code cell in a single block. Enclosed this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`;
-  return { input, lang };
+  return {
+    input: `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\The entire code cell must be in a single code block. Enclose this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`,
+    system: `Return a single code block in the language "${lang}".`,
+  };
 }
 
 function getPreviousNonemptyCodeCellContents(actions, id, position): string {

@@ -9,7 +9,7 @@ import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { Icon, Title } from "@cocalc/frontend/components";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { useProjectContext } from "../../context";
-import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
+import AIGenerateJupyterNotebook from "./ai-generate-jupyter";
 import { HomeRecentFiles } from "./recent-files";
 import {
   computeServersEnabled,
@@ -27,11 +27,11 @@ export default function HomePage() {
   function renderGPTGenerator() {
     // if not available, the entire block should be gone
     // making room for the toher blocks to move into its place
-    if (!redux.getStore("projects").hasOpenAI(project_id)) return null;
+    if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) return null;
 
     return (
       <Col {...SPAN}>
-        <ChatGPTGenerateJupyterNotebook project_id={project_id} />
+        <AIGenerateJupyterNotebook project_id={project_id} />
       </Col>
     );
   }

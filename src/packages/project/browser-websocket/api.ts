@@ -142,7 +142,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
         data.options,
       );
     case "syncdoc_call":
-      return await syncdoc_call(data.path, log, data.mesg);
+      return await syncdoc_call(data.path, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, log, data.name);
     case "realpath":
@@ -171,12 +171,12 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
 /* implementation of the api calls */
 
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { get_listing } from "../directory-listing";
+import getListing from "@cocalc/backend/get-listing";
 async function listing(
   path: string,
   hidden?: boolean,
 ): Promise<DirectoryListingEntry[]> {
-  return await get_listing(path, hidden);
+  return await getListing(path, hidden);
 }
 
 import { handleApiRequest as jupyter } from "@cocalc/jupyter/kernel/websocket-api";

@@ -81,7 +81,7 @@ export default function SelectImage({
   );
 }
 
-export function ImageLinks({ image }) {
+export function ImageLinks({ image, style }: { image; style? }) {
   const data = IMAGES[image];
   if (data == null) {
     return null;
@@ -93,6 +93,7 @@ export function ImageLinks({ image }) {
         flexDirection: "column",
         marginTop: "10px",
         height: "90px", // so not squished vertically
+        ...style,
       }}
     >
       <A style={{ flex: 1 }} href={data.url}>

@@ -7,25 +7,27 @@
 declare let window, document, $;
 
 import * as async from "async";
+import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
 
 import type { ChatState } from "@cocalc/frontend/project/page/chat-button";
 import { init as initChat } from "@cocalc/frontend/chat/register";
+import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
 import track from "@cocalc/frontend/user-tracking";
-import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
+import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
-import { callback } from "awaiting";
 import { default_filename } from "./account";
 import { alert_message } from "./alerts";
 import { Actions, project_redux_name, redux } from "./app-framework";
-import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { IconName } from "./components";
 import { local_storage } from "./editor-local-storage";
 import { get_editor } from "./editors/react-wrapper";
@@ -34,7 +36,6 @@ import { set_url } from "./history";
 import { download_file, open_new_tab, open_popup_window } from "./misc";
 import * as project_file from "./project-file";
 import { delete_files } from "./project/delete-files";
-import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
 import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
@@ -47,10 +48,8 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "./project/page/flyouts/state";
-import {
-  ensure_project_running,
-  is_running_or_starting,
-} from "./project/project-start-warning";
+import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
+import { ensure_project_running } from "./project/project-start-warning";
 import { transform_get_url } from "./project/transform-get-url";
 import {
   NewFilenames,
@@ -70,8 +69,6 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
-import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
-import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 
 const { defaults, required } = misc;
 
@@ -122,12 +119,6 @@ export const QUERIES = {
     },
   },
 };
-
-interface FetchDirectoryListingOpts {
-  path?: string;
-  force?: boolean;
-  cb?: () => void;
-}
 
 // src: where the library files are
 // start: open this file after copying the directory
@@ -213,7 +204,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _last_history_state: string;
   private last_close_timer: number;
   private _activity_indicator_timers: { [key: string]: number };
-  private _set_directory_files_lock: { [key: string]: Function[] };
   private _init_done = false;
   private new_filename_generator;
   public open_files?: OpenFiles;
@@ -432,6 +422,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       update_file_listing?: boolean;
       change_history?: boolean;
       new_ext?: string;
+      noFocus?: boolean;
     } = {
       update_file_listing: true,
       change_history: true,
@@ -538,8 +529,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
         // Reopen the file if relationship has changed
         const is_public =
-          (redux.getStore("projects") as any).get_my_group(this.project_id) ===
-          "public";
+          redux.getProjectsStore().get_my_group(this.project_id) === "public";
 
         const info = store.get("open_files").getIn([path, "component"]) as any;
         if (info == null) {
@@ -580,10 +570,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // of the component that displays this editor.  Otherwise, the user
             // would just see a spinner until they tab away and tab back.
             this.open_files.set(path, "component", { ...info });
-            // just like in the case where it is already loaded, we have to "show" it
+            // just like in the case where it is already loaded, we have to "show" it.
             // this is important, because e.g. the store has a "visible" field, which stays undefined
             // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
-            this.show_file(path);
+            if (!opts.noFocus) {
+              this.show_file(path);
+            }
             // If a fragment identifier is set, we also jump there.
             const fragmentId = store
               .get("open_files")
@@ -596,7 +588,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
           })();
         } else {
-          this.show_file(path);
+          if (!opts.noFocus) {
+            this.show_file(path);
+          }
         }
     }
     this.setState(change);
@@ -654,8 +648,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id: required, // client must specify this, e.g., id=misc.uuid()
       status: undefined, // status update message during the activity -- description of progress
       stop: undefined, // activity is done  -- can pass a final status message in.
-      error: undefined,
-    }); // describe an error that happened
+      error: undefined, // describe an error that happened
+    });
     const store = this.get_store();
     if (store == undefined) {
       return;
@@ -1306,155 +1300,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  // Update the directory listing cache for the given path
-  // Uses current path if path not provided
-  fetch_directory_listing(opts_args?: FetchDirectoryListingOpts): void {
-    let status;
-    let store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const opts: FetchDirectoryListingOpts = defaults(opts_args, {
-      path: store.get("current_path"),
-      force: false, // WARNING: THINK VERY HARD BEFORE YOU USE force
-      cb: undefined,
-    });
-
-    if (opts.force && opts.path != null) {
-      // always update our interest.
-      store.get_listings().watch(opts.path, true);
-    }
-
-    // In the vast majority of cases, you just want to look at the data.
-    // Very rarely should you need something to execute exactly after this
-    let { path } = opts;
-    //if DEBUG then console.log('ProjectStore::fetch_directory_listing, opts:', opts, opts.cb)
-    if (path == null) {
-      // nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
-      return;
-    }
-
-    if (this._set_directory_files_lock == null) {
-      this._set_directory_files_lock = {};
-    }
-    const _key = `${path}`;
-    // this makes sure cb is being called, even when there are concurrent requests
-    if (this._set_directory_files_lock[_key] != null) {
-      // currently doing it already
-      if (opts.cb != null) {
-        this._set_directory_files_lock[_key].push(opts.cb);
-      }
-      //if DEBUG then console.log('ProjectStore::fetch_directory_listing aborting:', _key, opts)
-      return;
-    }
-    this._set_directory_files_lock[_key] = [];
-    // Wait until user is logged in, project store is loaded enough
-    // that we know our relation to this project, namely so that
-    // get_my_group is defined.
-    const id = misc.uuid();
-    if (path) {
-      status = `Loading file list - ${misc.trunc_middle(path, 30)}`;
-    } else {
-      status = "Loading file list";
-    }
-
-    // only show this indicator, if the project is running or starting
-    // if it is stopped, we might get a stale listing from the database!
-    if (is_running_or_starting(this.project_id)) {
-      this.set_activity({ id, status });
-    }
-
-    let my_group: any;
-    let the_listing: any;
-    async.series(
-      [
-        (cb) => {
-          // make sure the user type is known;
-          // otherwise, our relationship to project
-          // below can't be determined properly.
-          this.redux.getStore("account").wait({
-            until: (s) =>
-              (s.get("is_logged_in") && s.get("account_id")) ||
-              !s.get("is_logged_in"),
-            cb: cb,
-          });
-        },
-
-        (cb) => {
-          const projects_store = this.redux.getStore("projects");
-          // make sure that our relationship to this project is known.
-          if (projects_store == null) {
-            cb("projects_store not yet initialized");
-            return;
-          }
-          projects_store.wait({
-            until: (s) => (s as any).get_my_group(this.project_id),
-            timeout: 30,
-            cb: (err, group) => {
-              my_group = group;
-              cb(err);
-            },
-          });
-        },
-
-        async (cb) => {
-          store = this.get_store();
-          if (store == null) {
-            cb("store no longer defined");
-            return;
-          }
-          if (path == null) {
-            path = store.get("current_path");
-          }
-          try {
-            the_listing = await get_directory_listing({
-              project_id: this.project_id,
-              path,
-              hidden: true,
-              max_time_s: 15 * 60, // keep trying for up to 15 minutes
-              group: my_group,
-              trigger_start_project: false,
-            });
-          } catch (err) {
-            cb(err.message);
-            return;
-          }
-          cb();
-        },
-      ],
-
-      (err) => {
-        this.set_activity({ id, stop: "" });
-        // Update the path component of the immutable directory listings map:
-        store = this.get_store();
-        if (store == undefined) {
-          return;
-        }
-        if (err && !misc.is_string(err)) {
-          err = misc.to_json(err);
-        }
-        if (path == null) throw Error("bug"); // make typescript happy
-        if (the_listing != null) {
-          const map = store
-            .get("directory_listings")
-            .set(path, err ? err : fromJS(the_listing.files));
-          this.setState({ directory_listings: map });
-        }
-        // done! releasing lock, then executing callback(s)
-        const cbs = this._set_directory_files_lock[_key];
-        delete this._set_directory_files_lock[_key];
-        for (const cb of cbs != null ? cbs : []) {
-          //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb from lock', cb)
-          if (typeof cb === "function") {
-            cb();
-          }
-        }
-        //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.cb)
-        if (typeof opts.cb === "function") {
-          opts.cb();
-        }
-      },
-    );
+  // Update the directory listing cache for the given path.
+  // Uses current path if path not provided.
+  async fetch_directory_listing(opts?): Promise<void> {
+    await fetchDirectoryListing(this, opts);
   }
 
   public async fetch_directory_listing_directly(
@@ -1465,7 +1314,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == null) return;
     const listings = store.get_listings();
     try {
-      const files = await listings.get_listing_directly(
+      const files = await listings.getListingDirectly(
         path,
         trigger_start_project,
       );
@@ -3054,7 +2903,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (item == null || err) {
           // Fetch again if error or nothing found
           try {
-            await callback2(this.fetch_directory_listing, {
+            await this.fetch_directory_listing({
               path: parent_path,
             });
             const store = this.get_store();

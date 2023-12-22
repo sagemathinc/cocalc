@@ -11,6 +11,8 @@ import { Alert, Button, Input, Modal } from "antd";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { CSSProperties, useEffect, useState } from "react";
+
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   redux,
   useActions,
@@ -26,26 +28,30 @@ import {
   Paragraph,
   Title,
 } from "@cocalc/frontend/components";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import ModelSwitch, {
+  modelToName,
+} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
+import { once } from "@cocalc/util/async-utils";
+import {
+  getVendorStatusCheckMD,
+  model2vendor,
+} from "@cocalc/util/db-schema/openai";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
-import ModelSwitch, {
-  modelToName,
-  Model,
-  DEFAULT_MODEL,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const TAG = "generate-jupyter";
 
@@ -73,11 +79,11 @@ interface Props {
   onSuccess?: () => void;
 }
 
-export default function ChatGPTGenerateJupyterNotebook({
+export default function AIGenerateJupyterNotebook({
   onSuccess,
   project_id,
 }: Props) {
-  const [model, setModel] = useState<Model>(DEFAULT_MODEL);
+  const [model, setModel] = useLanguageModelSetting();
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null,
   );
@@ -149,7 +155,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     try {
       setQuerying(true);
 
-      const gptStream = webapp_client.openai_client.chatgptStream({
+      const llmStream = webapp_client.openai_client.languageModelStream({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
@@ -157,11 +163,9 @@ export default function ChatGPTGenerateJupyterNotebook({
         model,
       });
 
-      await updateNotebook(gptStream);
+      await updateNotebook(llmStream);
     } catch (err) {
-      setError(
-        `${err}\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`,
-      );
+      setError(`${err}\n\n${getVendorStatusCheckMD(model2vendor(model))}.`);
       setQuerying(false);
     }
   }
@@ -211,9 +215,10 @@ export default function ChatGPTGenerateJupyterNotebook({
     return null;
   }
 
-  async function updateNotebook(gptStream: ChatStream): Promise<void> {
+  async function updateNotebook(llmStream: ChatStream): Promise<void> {
     // local state, modified when more data comes in
     let init = false;
+    let answer = "";
     let ja: JupyterActions | undefined = undefined;
     let jfa: NotebookFrameActions | undefined = undefined;
     let curCell: string = "";
@@ -223,8 +228,9 @@ export default function ChatGPTGenerateJupyterNotebook({
       let path = await createNotebook(filenameGPT);
       // Start it running, so user doesn't have to wait... but actions
       // might not be immediately available...
-      const jea: JupyterEditorActions | null =
-        await getJupyterFrameActions(path);
+      const jea: JupyterEditorActions | null = await getJupyterFrameActions(
+        path,
+      );
       if (jea == null) {
         throw new Error(`Unable to create Jupyter Notebook for ${path}`);
       }
@@ -235,7 +241,7 @@ export default function ChatGPTGenerateJupyterNotebook({
       }
       jfa = jfaTmp;
 
-      // // first cell
+      // first cell
       const fistCell = jfa.insert_cell(1);
 
       const promptIndented =
@@ -263,65 +269,118 @@ export default function ChatGPTGenerateJupyterNotebook({
       onSuccess?.();
     }
 
-    const updateCells = throttle(
-      // every update interval, we extract all the answer text,
-      function (answer) {
-        const allCells = splitCells(answer);
-        if (jfa == null) {
-          console.warn(
-            "unable to update cells since jupyter frame actions are not defined",
-          );
-          return;
+    // every update interval, we extract all the answer text into cells
+    // ATTN: do not call this concurrently, see throttle below
+    function updateCells(answer) {
+      const allCells = splitCells(answer, (line) =>
+        line.startsWith("filename:"),
+      );
+      if (jfa == null) {
+        console.warn(
+          "unable to update cells since jupyter frame actions are not defined",
+        );
+        return;
+      }
+      if (ja == null) {
+        console.warn(
+          "unable to update cells since jupyter actions are not defined",
+        );
+        return;
+      }
+
+      // we always have to update the last cell, even if there are more cells ahead
+      jfa.set_cell_input(curCell, allCells[numCells - 1].source.join(""));
+      ja.set_cell_type(curCell, allCells[numCells - 1].cell_type);
+
+      if (allCells.length > numCells) {
+        // for all new cells, insert them and update lastCell and numCells
+        for (let i = numCells; i < allCells.length; i++) {
+          curCell = jfa.insert_cell(1); // insert cell below the current one
+          jfa.set_cell_input(curCell, allCells[i].source.join(""));
+          ja.set_cell_type(curCell, allCells[i].cell_type);
+          numCells += 1;
         }
-        if (ja == null) {
-          console.warn(
-            "unable to update cells since jupyter actions are not defined",
-          );
-          return;
+      }
+    }
+
+    // NOTE: as of writing this, PaLM returns everything at once. Hence this must be robust for
+    // the case of one token callback with everything and then "null" to indicate it is done.
+    // OTOH, ChatGPT will stream a lot of tokens at a high frequency.
+    const processTokens = throttle(
+      async function (answer: string, finalize: boolean) {
+        const fn = getFilename(answer, prompt);
+        if (!init && fn != null) {
+          init = true;
+          // this kicks off creating the notebook and opening it
+          initNotebook(fn);
         }
 
-        // we always have to update the last cell, even if there are more cells ahead
-        jfa.set_cell_input(curCell, allCells[numCells - 1].source.join(""));
-        ja.set_cell_type(curCell, allCells[numCells - 1].cell_type);
+        // This finalize step is important for PaLM (which isn't streamining), because
+        // only here the entire text of the notbeook is processed once at the very end.
+        if (finalize) {
+          if (!init) {
+            // we never got a filename, so we create one based on the prompt and create the notebook
+            const fn: string = sanitizeFilename(prompt.split("\n").join("_"));
+            await initNotebook(fn);
+          }
 
-        if (allCells.length > numCells) {
-          // for all new cells, insert them and update lastCell and numCells
-          for (let i = numCells; i < allCells.length; i++) {
-            curCell = jfa.insert_cell(1); // insert cell below the current one
-            jfa.set_cell_input(curCell, allCells[i].source.join(""));
-            ja.set_cell_type(curCell, allCells[i].cell_type);
-            numCells += 1;
+          // we wait for up to 1 minute to create the notebook
+          let t0 = Date.now();
+          while (true) {
+            if (ja != null && jfa != null) break;
+            await delay(100);
+            if (Date.now() - t0 > 60 * 1000) {
+              throw new Error(
+                "Unable to create Jupyter Notebook.  Please try again.",
+              );
+            }
+          }
+
+          // we check if the notebook is ready – and await its ready state
+          if (ja.syncdb.get_state() !== "ready") {
+            await once(ja.syncdb, "ready");
+          }
+
+          // now, we're sure the notebook is ready → final push to update the entire notebook
+          updateCells(answer);
+
+          // and after we're done, cleanup and run all cells
+          ja.delete_all_blank_code_cells();
+          ja.run_all_cells();
+        } else {
+          // we have a partial answer. update the notebook in real-time, if it exists
+          // if those are != null, initNotebook started to crate it, and we check if it is ready for us to update
+          if (ja != null && jfa != null) {
+            if (ja.syncdb.get_state() === "ready") {
+              updateCells(answer);
+            }
           }
         }
       },
       1000,
-      { leading: true, trailing: true },
+      {
+        leading: false,
+        trailing: true,
+      },
     );
 
-    let answer = "";
-    gptStream.on("token", (token) => {
+    llmStream.on("token", async (token: string | null) => {
+      // important: processTokens must not be called in parallel and also once at the very end
       if (token != null) {
         answer += token;
-        const filenameGPT = getFilename(answer, prompt);
-        if (!init && filenameGPT != null) {
-          init = true;
-          initNotebook(filenameGPT);
-        }
-        // those are != null if we have a notebook open
-        if (ja != null && jfa != null) {
-          updateCells(answer);
-        }
+        processTokens(answer, false);
       } else {
-        // we're done
-        ja?.delete_all_blank_code_cells();
-        ja?.run_all_cells();
+        // token == null signals the end of the stream
+        processTokens(answer, true);
       }
     });
 
-    gptStream.on("error", (err) => {
+    llmStream.on("error", (err) => {
       setError(`${err}`);
       setQuerying(false);
-      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+        model2vendor(model),
+      )}.`;
       if (ja == null) {
         // have to make error message without markdown since error isn't markdown.
         // This case happens if we turn on the chatgpt UI, but do not put an openai key in.
@@ -335,10 +394,10 @@ export default function ChatGPTGenerateJupyterNotebook({
     });
 
     // after setting up listeners, we start the stream
-    gptStream.emit("start");
+    llmStream.emit("start");
   }
 
-  if (!redux.getStore("projects").hasOpenAI(project_id)) {
+  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
     return null;
   }
 
@@ -363,8 +422,9 @@ export default function ChatGPTGenerateJupyterNotebook({
   return (
     <Block style={{ padding: "0 15px" }}>
       <Title level={4}>
-        <OpenAIAvatar size={30} /> Create Notebook Using{" "}
+        <LanguageModelVendorAvatar model={model} /> Create Notebook Using{" "}
         <ModelSwitch
+          project_id={project_id}
           model={model}
           setModel={setModel}
           style={{ marginTop: "-7.5px" }}
@@ -482,52 +542,6 @@ export default function ChatGPTGenerateJupyterNotebook({
   );
 }
 
-/**
- * The text string contains markdown text with code blocks. This split this into cells of type markdown and code.
- */
-function splitCells(
-  text: string,
-): { cell_type: "markdown" | "code"; source: string[] }[] {
-  const ret: { cell_type: "markdown" | "code"; source: string[] }[] = [];
-
-  let lines = text.split("\n");
-  let cell_type: "markdown" | "code" = "markdown";
-  let source: string[] = [];
-  for (const line of lines) {
-    if (line.startsWith("filename:")) continue;
-    if (line.startsWith("```")) {
-      stripTrailingWhitespace(source);
-      if (source.length > 0) {
-        ret.push({ cell_type, source });
-        source = [];
-      }
-      cell_type = cell_type == "markdown" ? "code" : "markdown";
-    } else {
-      source.push(`${line}\n`);
-    }
-  }
-
-  stripTrailingWhitespace(source);
-  if (source.length > 0) {
-    ret.push({ cell_type, source });
-  }
-
-  return ret;
-}
-
-function stripTrailingWhitespace(source: string[]) {
-  // remove trailing blank lines.
-  let i = source.length - 1;
-  while (i >= 0 && !source[i].trim()) {
-    i -= 1;
-    source.splice(-1); // deletes the last entry in place!
-  }
-  // also remove only trailing whitespace from last line
-  if (source.length > 0) {
-    source[source.length - 1] = source[source.length - 1].trimRight();
-  }
-}
-
 export function ChatGPTGenerateNotebookButton({
   project_id,
   style,
@@ -536,7 +550,7 @@ export function ChatGPTGenerateNotebookButton({
   style?: CSSProperties;
 }) {
   const [show, setShow] = useState<boolean>(false);
-  if (!redux.getStore("projects").hasOpenAI(project_id)) {
+  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
     return null;
   }
   const handleCancel = () => {
@@ -555,7 +569,7 @@ export function ChatGPTGenerateNotebookButton({
         onCancel={handleCancel}
         footer={null}
       >
-        <ChatGPTGenerateJupyterNotebook
+        <AIGenerateJupyterNotebook
           project_id={project_id}
           onSuccess={() => setShow(false)}
         />
@@ -589,9 +603,9 @@ function getTimestamp(): string {
   return to_iso_path(new Date());
 }
 
-function getFilename(text: string, prompt: string): string | null {
+function getFilename(text: string | null, prompt: string): string | null {
   // we give up if there are more than 5 lines
-  if (text.split("\n").length > 3) {
+  if (text == null || text.split("\n").length > 3) {
     return sanitizeFilename(prompt.split("\n").join("_"));
   }
   // use regex to search for '"filename: [filename]"'

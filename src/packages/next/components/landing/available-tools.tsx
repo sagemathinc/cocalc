@@ -26,7 +26,7 @@ export function AvailableTools(props: Props) {
 
   return (
     <Info
-      title="Available Tools"
+      title="Jupyter, SageMath, LateX, and Linux"
       icon="wrench"
       anchor="available-tools"
       style={{ ...style }}

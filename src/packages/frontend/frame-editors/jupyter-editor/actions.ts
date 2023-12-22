@@ -24,6 +24,7 @@ import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
 import { JupyterActions } from "../../jupyter/browser-actions";
 import { NotebookFrameActions } from "./cell-notebook/actions";
 import { open_new_tab } from "../../misc";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -253,6 +254,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     try {
       this.setState({ is_saving: true });
       await this.jupyter_actions.save();
+      syncAllComputeServers(this.project_id);
     } catch (err) {
       console.warn("save_to_disk", this.path, "ERROR", err);
       if (this._state == "closed") return;
@@ -326,7 +328,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   public async jump_to_cell(
     cell_id: string,
-    align: "center" | "top" = "top",
+    align: "center" | "top" = "center",
   ): Promise<void> {
     // Open or focus a notebook viewer and scroll to the given cell.
     if (this._state === "closed") return;
@@ -445,7 +447,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     }
   }
 
-  chatgptGetText(
+  languageModelGetText(
     frameId: string,
     scope: "selection" | "cell" | "all" = "all",
   ): string {
@@ -501,14 +503,14 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return "";
   }
 
-  chatgptGetLanguage(): string {
+  languageModelGetLanguage(): string {
     return (
       this.jupyter_actions.store.getIn(["kernel_info", "language"]) ?? "py"
     );
   }
 
   // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
-  chatgptExtraFileInfo(): string {
+  languageModelExtraFileInfo(): string {
     const kernel =
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
     return `Jupyter notebook using the ${kernel} kernel`;
@@ -524,7 +526,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return `Jupyter notebook using the ${kernel} kernel`;
   }
 
-  chatgptGetScopes() {
+  languageModelGetScopes() {
     return new Set<"selection" | "cell">(["selection", "cell"]);
   }
 

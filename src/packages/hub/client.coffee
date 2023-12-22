@@ -32,21 +32,21 @@ hub_projects         = require('./projects')
 manageApiKeys        = require("@cocalc/server/api/manage").default
 {legacyManageApiKey} = require("@cocalc/server/api/manage")
 {create_account, delete_account} = require('./client/create-account')
-purchase_license  = require('@cocalc/server/licenses/purchase').default
+purchase_license     = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{ REMEMBER_ME_COOKIE_NAME }=require("@cocalc/backend/auth/cookie-names");
-generateHash =require("@cocalc/server/auth/hash").default;
-passwordHash = require("@cocalc/backend/auth/password-hash").default;
-chatgpt        = require('@cocalc/server/openai/chatgpt');
-embeddings_api   = require('@cocalc/server/openai/embeddings-api');
+{ REMEMBER_ME_COOKIE_NAME } = require("@cocalc/backend/auth/cookie-names");
+generateHash     = require("@cocalc/server/auth/hash").default;
+passwordHash     = require("@cocalc/backend/auth/password-hash").default;
+llm              = require('@cocalc/server/llm/index');
+embeddings_api   = require('@cocalc/server/llm/embeddings-api');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
-create_project = require("@cocalc/server/projects/create").default;
-user_search = require("@cocalc/server/accounts/search").default;
-collab = require('@cocalc/server/projects/collab');
-delete_passport = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
+create_project   = require("@cocalc/server/projects/create").default;
+user_search      = require("@cocalc/server/accounts/search").default;
+collab           = require('@cocalc/server/projects/collab');
+delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
 
 
 {one_result} = require("@cocalc/database")
@@ -2118,13 +2118,13 @@ class exports.Client extends EventEmitter
             try
                 stream = (text) =>
                     @push_to_client(message.chatgpt_response(id:mesg.id, text:text, multi_response:text?))
-                await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag, stream:stream)
+                await llm.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag, stream:stream)
             catch err
                 dbg("failed -- #{err}")
                 @error_to_client(id:mesg.id, error:"#{err}")
         else
             try
-                output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
+                output = await llm.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
                 @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
             catch err
                 dbg("failed -- #{err}")

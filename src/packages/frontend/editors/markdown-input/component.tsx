@@ -82,6 +82,7 @@ interface Props {
   onUploadEnd?: () => void;
   enableMentions?: boolean;
   chatGPT?: boolean;
+  vertexAI?: boolean;
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
@@ -129,6 +130,7 @@ export function MarkdownInput(props: Props) {
     onUploadEnd,
     enableMentions,
     chatGPT,
+    vertexAI,
     submitMentionsRef,
     style,
     onChange,
@@ -330,7 +332,7 @@ export function MarkdownInput(props: Props) {
           cm.current
             .getDoc()
             .listSelections()
-            .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }))
+            .map((c) => ({ x: c.anchor.ch, y: c.anchor.line })),
         );
       });
     }
@@ -384,7 +386,7 @@ export function MarkdownInput(props: Props) {
       submitMentionsRef.current = (fragmentId?: FragmentId) => {
         if (project_id == null || path == null) {
           throw Error(
-            "project_id and path must be set if enableMentions is set."
+            "project_id and path must be set if enableMentions is set.",
           );
         }
         const fragment_id = Fragment.encode(fragmentId);
@@ -416,7 +418,7 @@ export function MarkdownInput(props: Props) {
           }
           const text = `<span class="user-mention" account-id=${account_id} >${cm.current.getRange(
             from,
-            to
+            to,
           )}</span>`;
           const description = trunc(cm.current.getLine(from.line).trim(), 160);
           doc.replaceRange(text, from, to);
@@ -658,7 +660,7 @@ export function MarkdownInput(props: Props) {
         if (file != null) {
           const blob = file.slice(0, -1, item.type);
           dropzone_ref.current?.addFile(
-            new File([blob], `paste-${Math.random()}`, { type: item.type })
+            new File([blob], `paste-${Math.random()}`, { type: item.type }),
           );
         }
         return;
@@ -779,7 +781,7 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(project_id, undefined, chatGPT);
+    const v = mentionableUsers(project_id, undefined, chatGPT, vertexAI);
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;
@@ -878,7 +880,7 @@ export function MarkdownInput(props: Props) {
               atomic: true,
               css: MENTION_CSS,
               attributes: { account_id },
-            } as CodeMirror.TextMarkerOptions /* @types are out of date */
+            } as CodeMirror.TextMarkerOptions /* @types are out of date */,
           );
           close_mentions(); // must be after use of mentions_cursor_ref above.
           cm.current.focus();
@@ -953,7 +955,7 @@ function upload_temp_link(path: string, file: { name: string }): string {
 
 function upload_link(
   path: string,
-  file: { name: string; type: string }
+  file: { name: string; type: string },
 ): string {
   const target = upload_target(path, file);
   if (file.type.indexOf("image") !== -1) {

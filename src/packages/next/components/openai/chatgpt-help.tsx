@@ -1,15 +1,15 @@
-import { Button, Alert, Input, Row, Col } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { CSSProperties, useRef, useState } from "react";
-import apiPost from "lib/api/post";
-import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { useCustomize } from "lib/customize";
-import Loading from "components/share/loading";
-import A from "components/misc/A";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import { Alert, Button, Col, Input, Row } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import { useCustomize } from "lib/customize";
 import { useRouter } from "next/router";
+import { CSSProperties, useRef, useState } from "react";
 
 type State = "input" | "wait";
 
@@ -57,7 +57,7 @@ export default function ChatGPTHelp({
       setState("wait");
       let output;
       try {
-        ({ output } = await apiPost("/openai/chatgpt", {
+        ({ output } = await apiPost("/llm/evaluate", {
           input: value,
           system,
           tag: `next:${tag}`,
@@ -74,6 +74,17 @@ export default function ChatGPTHelp({
       setState("input");
     }
   };
+
+  function renderAlertErrorDescription() {
+    return (
+      <>
+        {error}
+        <hr />
+        OpenAI <A href="https://status.openai.com/">status</A> and{" "}
+        <A href="https://downdetector.com/status/openai/">downdetector</A>.
+      </>
+    );
+  }
 
   return (
     <FileContext.Provider value={{ jupyterApiEnabled }}>
@@ -154,19 +165,7 @@ export default function ChatGPTHelp({
               closable
               banner
               onClose={() => setError("")}
-              description={
-                <>
-                  {error}
-                  <hr />
-                  OpenAI <A href="https://status.openai.com/">
-                    status
-                  </A> and{" "}
-                  <A href="https://downdetector.com/status/openai/">
-                    downdetector
-                  </A>
-                  .
-                </>
-              }
+              description={renderAlertErrorDescription()}
             />
           )}
           {state == "wait" && (

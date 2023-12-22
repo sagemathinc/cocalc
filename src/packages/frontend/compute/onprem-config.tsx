@@ -2,11 +2,11 @@ import type {
   State,
   OnPremCloudConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
-import { Select, Spin, Checkbox } from "antd";
+import { ON_PREM_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
+import { Divider, Select, Spin, Checkbox } from "antd";
 import { setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
-import SelectImage from "./select-image";
+import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
@@ -72,17 +72,26 @@ export default function OnPremCloudConfiguration({
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "15px" }}>
-        You can connect any virtual machine anywhere in the world to this CoCalc
-        project and seamlessly run Jupyter notebooks and terminals on it.
-        <div style={{ margin: "10px 0" }}>
-          <b>Early Preview:</b> This is currently free while in early preview.
-        </div>
+        You can connect any{" "}
+        <u>
+          <b>Ubuntu 22.04 Virtual Machine</b>
+        </u>{" "}
+        that you have a root acount on to this CoCalc project and seamlessly run
+        Jupyter notebooks and terminals using it.{" "}
+        <b>
+          On Prem compute servers are currently completely free, and will work
+          even with projects that have no upgrades or licenses. YOU MUST CREATE
+          A VIRTUAL MACHINE ON YOUR OWN COMPUTER.
+        </b>
+      </div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>Architecture</b>
       </div>
       <Select
         disabled={loading || disabled}
         style={{ width: SELECTOR_WIDTH }}
         options={[
-          { label: "x86_64 (e.g., Linux VM on Intel)", value: "x86_64" },
+          { label: "x86_64 (e.g., Linux VM on Intel or AMD)", value: "x86_64" },
           {
             label: "ARM 64 (e.g., Linux VM on an M1 Mac)",
             value: "arm64",
@@ -105,7 +114,11 @@ export default function OnPremCloudConfiguration({
           style={{ width: SELECTOR_WIDTH }}
           checked={configuration.gpu}
           onChange={() => {
-            setConfig({ gpu: !configuration.gpu });
+            setConfig({
+              gpu: !configuration.gpu,
+              image:
+                ON_PREM_DEFAULTS[!configuration.gpu ? "gpu" : "cpu"]?.image,
+            });
           }}
         >
           NVIDIA GPU with CUDA 12.x installed
@@ -142,16 +155,15 @@ function Image(props) {
         gpu={!!props.configuration.gpu}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>
-        {IMAGES[props.configuration?.image ?? ""]?.description}
+        <ImageDescription configuration={props.configuration} />
+        <ImageLinks
+          image={props.configuration.image}
+          style={{ flexDirection: "row" }}
+        />
       </div>
-      <ExcludeFromSync
-        style={{ width: SELECTOR_WIDTH, marginTop: "10px" }}
-        {...props}
-      />
-      <Ephemeral
-        style={{ width: SELECTOR_WIDTH, marginTop: "10px" }}
-        {...props}
-      />
+      <ExcludeFromSync {...props} />
+      <Divider />
+      <Ephemeral style={{ marginTop: "30px" }} {...props} />
       {!(state == "deprovisioned" || state == "off") && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned or off.

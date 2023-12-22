@@ -1044,8 +1044,12 @@ export function search_match(s: string, v: (string | RegExp)[]): boolean {
     return false;
   }
   s = s.toLowerCase();
+  // we also make a version with no backslashes, since our markdown slate editor does a lot
+  // of escaping, e.g., of dashes, and this is confusing when doing searches, e.g., see
+  //  https://github.com/sagemathinc/cocalc/issues/6915
+  const s1 = s.replace(/\\/g, "");
   for (let x of v) {
-    if (!isMatch(s, x)) return false;
+    if (!isMatch(s, x) && !isMatch(s1, x)) return false;
   }
   // no term doesn't match, so we have a match.
   return true;

@@ -26,7 +26,7 @@ export function synctable_no_database(
   client: Client,
   throttle_changes: undefined | number = undefined,
   initial_get_query: any[] = [],
-  project_id?: string
+  project_id?: string,
 ): SyncTable {
   if (options == null) {
     options = [];
@@ -39,7 +39,7 @@ export function synctable_no_database(
     throttle_changes,
     true,
     true,
-    project_id
+    project_id,
   );
 }
 
@@ -111,4 +111,9 @@ class ClientNoDatabase extends EventEmitter {
       this.client.alert_message(opts);
     }
   }
+
+  is_deleted = (_path: string, _project_id: string) => {
+    // not implemented yet in general
+    return undefined;
+  };
 }

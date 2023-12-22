@@ -22,8 +22,8 @@ export default function ChatGPTError({ style, traceback, input }: Props) {
       error={traceback}
       input={input}
       tag="jupyter-notebook-cell-eval"
-      extraFileInfo={frameActions.chatgptExtraFileInfo()}
-      language={frameActions.chatgptGetLanguage()}
+      extraFileInfo={frameActions.languageModelExtraFileInfo()}
+      language={frameActions.languageModelGetLanguage()}
     />
   );
 }

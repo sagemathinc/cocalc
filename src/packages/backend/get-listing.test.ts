@@ -1,7 +1,7 @@
-import { get_listing } from "./directory-listing";
+import getListing from "./get-listing";
 
 test("it gets a directory listing", async () => {
-  const listing = await get_listing(".");
+  const listing = await getListing(".");
   // we just check that each entry has name, mtime and size properties.
   // it's getting $HOME so there's not much more we can do in general.
   for (const entry of listing) {
@@ -11,8 +11,8 @@ test("it gets a directory listing", async () => {
     expect(entry).toHaveProperty("size");
 
     // check something about types
-    expect(typeof entry.name).toBe('string');
-    expect(typeof entry.mtime).toBe('number');
-    expect(typeof entry.size).toBe('number');
+    expect(typeof entry.name).toBe("string");
+    expect(typeof entry.mtime).toBe("number");
+    expect(typeof entry.size).toBe("number");
   }
 });

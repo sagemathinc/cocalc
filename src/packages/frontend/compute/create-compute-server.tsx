@@ -145,6 +145,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         size="large"
         disabled={creating || editing}
         onClick={() => {
+          resetConfig();
           setEditing(true);
         }}
         style={{
@@ -178,6 +179,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           resetConfig();
         }}
         open={editing}
+        destroyOnClose
         title={"Create Compute Server"}
         footer={
           <div style={{ display: "flex" }}>

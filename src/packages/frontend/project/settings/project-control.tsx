@@ -398,7 +398,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return renderBody();
   } else {
     return (
-      <SettingBox title="Project control" icon="gears">
+      <SettingBox title="Project Control" icon="gears">
         {renderBody()}
       </SettingBox>
     );

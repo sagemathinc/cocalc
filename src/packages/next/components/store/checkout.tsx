@@ -6,7 +6,8 @@
 /*
 Checkout -- finalize purchase and pay.
 */
-import { Alert, Button, Card, Divider, Col, Row, Spin, Table } from "antd";
+import type { RadioChangeEvent } from "antd";
+import { Alert, Button, Card, Divider, Col, Row, Spin, Table, Radio } from "antd";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -23,19 +24,25 @@ import { ChangeEmailAddress } from "components/account/config/account/email";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { currency } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
-import PaymentConfig from "@cocalc/frontend/purchases/payment-config";
 import { ProductColumn } from "./cart";
+
+enum PaymentIntent {
+  PAY_TOTAL,
+  APPLY_BALANCE,
+}
 
 export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(PaymentIntent.PAY_TOTAL);
+  const [totalCost, setTotalCost] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
   const [session, setSession] = useState<{ id: string; url: string } | null>(
-    null
+    null,
   );
   const updateSession = async () => {
     const session = await purchasesApi.getCurrentCheckoutSession();
@@ -48,8 +55,16 @@ export default function Checkout() {
   const updateParams = async () => {
     try {
       const params = await purchasesApi.getShoppingCartCheckoutParams();
+      const cost = discountedCost(params.cart);
+
       setParams(params);
-      setPaymentAmount(params?.chargeAmount ?? 0);
+      setTotalCost(cost);
+
+      if (paymentIntent === PaymentIntent.APPLY_BALANCE) {
+        setPaymentAmount(params?.chargeAmount ?? 0);
+      } else {
+        setPaymentAmount(Math.max(cost, params?.chargeAmount ?? 0));
+      }
     } catch (err) {
       setError(`${err}`);
     }
@@ -83,7 +98,7 @@ export default function Checkout() {
       }
 
       // now do the purchase flow again with money available.
-      completePurchase();
+      completePurchase(false);
     })();
   }, []);
 
@@ -98,7 +113,7 @@ export default function Checkout() {
       />
     );
   }
-  async function completePurchase() {
+  async function completePurchase(ignoreBalance: boolean) {
     try {
       setError("");
       setCompletingPurchase(true);
@@ -119,6 +134,7 @@ export default function Checkout() {
         success_url,
         cancel_url: currentUrl,
         paymentAmount,
+        ignoreBalance,
       });
       if (result.done) {
         // done -- nothing further to do!
@@ -158,6 +174,16 @@ export default function Checkout() {
   }
 
   const columns = getColumns();
+
+  const handlePaymentIntentChange = (e: RadioChangeEvent) => {
+    setPaymentIntent(e.target.value);
+
+    if (e.target.value === PaymentIntent.PAY_TOTAL) {
+      setPaymentAmount(totalCost);
+    } else if (e.target.value === PaymentIntent.APPLY_BALANCE) {
+      setPaymentAmount(params?.chargeAmount || 0);
+    }
+  };
 
   return (
     <>
@@ -235,18 +261,19 @@ export default function Checkout() {
               />
               <Row>
                 <Col sm={12} style={{ textAlign: "center" }}>
-                  {params.chargeAmount > 0 && (
-                    <PaymentConfig
-                      balance={params.balance}
-                      minAmount={params.chargeAmount}
-                      paymentAmount={paymentAmount}
-                      setPaymentAmount={setPaymentAmount}
-                    />
+                  {(params.balance ?? 0) - (params.minBalance ?? 0) > 0 && (
+                    <Radio.Group
+                      value={paymentIntent}
+                      onChange={handlePaymentIntentChange}
+                      style={{ marginTop: 32 }}>
+                      <Radio.Button value={PaymentIntent.PAY_TOTAL}>Pay Total</Radio.Button>
+                      <Radio.Button value={PaymentIntent.APPLY_BALANCE}>Apply Account Balance</Radio.Button>
+                    </Radio.Group>
                   )}
                 </Col>
                 <Col sm={12}>
                   <div style={{ fontSize: "15pt" }}>
-                    <TotalCost items={params.cart} />
+                    <TotalCost totalCost={totalCost} />
                     <br />
                     <Terms />
                   </div>
@@ -264,7 +291,7 @@ export default function Checkout() {
                   style={{ marginTop: "7px", marginBottom: "15px" }}
                   size="large"
                   type="primary"
-                  onClick={completePurchase}
+                  onClick={() => completePurchase(paymentIntent === PaymentIntent.PAY_TOTAL)}
                 >
                   <Icon name="credit-card" />{" "}
                   {completingPurchase ? (
@@ -310,11 +337,11 @@ export function discountedCost(items) {
   return discounted_cost;
 }
 
-function TotalCost({ items }) {
-  const cost = discountedCost(items);
+function TotalCost({ totalCost }) {
   return (
     <>
-      Total: <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
+      Total:{" "}
+      <b style={{ float: "right", color: "darkred" }}>{money(totalCost)}</b>
     </>
   );
 }
@@ -381,7 +408,7 @@ function GetAQuote({ items }) {
     const body = `Hello,\n\nI would like to request a quote.  I filled out the online form with the\ndetails listed below:\n\n\`\`\`\n${JSON.stringify(
       x,
       undefined,
-      2
+      2,
     )}\n\`\`\``;
     router.push({
       pathname: "/support/new",

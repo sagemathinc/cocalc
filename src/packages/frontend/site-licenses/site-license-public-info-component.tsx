@@ -220,7 +220,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_expires(): JSX.Element | undefined {
+  function render_expires() {
     // we check if we definitely know the status, otherwise use the date
     // if there is no information, we assume it is valid
     const expired =
@@ -229,6 +229,11 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
         : info?.expires != null
         ? new Date() >= info.expires
         : false;
+    if (!expired && info?.subscription_id) {
+      // no need to say anything because it is not expired and
+      // a subscription will extend it (unless it is canceled)
+      return null;
+    }
     const word = expired ? "EXPIRED" : "Will expire";
     const when =
       info?.expires != null ? (

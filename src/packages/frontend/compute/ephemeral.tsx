@@ -18,7 +18,7 @@ export default function Ephemeral({ setConfig, configuration, loading }) {
               checked={help}
               onChange={(val) => setHelp(val)}
             />
-            <Icon name="disk-snapshot" /> Ephemeral Data
+            <Icon name="disk-snapshot" /> Ephemeral Disk
           </b>
         </div>
         {help && (
@@ -26,29 +26,28 @@ export default function Ephemeral({ setConfig, configuration, loading }) {
             showIcon
             style={{ margin: "15px 0" }}
             type="info"
-            message={"Ephemeral Compute Server"}
+            message={"Ephemeral Local Disk for the Compute Server"}
             description={
               <div>
                 <p>
-                  Make your compute server "ephemeral" if you are only using the
-                  compute server for <i>temporary compute</i>, and want{" "}
-                  <i>maximum flexibility and minimal cost</i>.
+                  If you will use this server only for{" "}
+                  <i>temporary computations</i> and want{" "}
+                  <i>maximum flexibility and minimal cost</i>, make its local
+                  disk ephemeral. This setting only modifies the user interface:
+                  the default way to "turn off" the server will delete its disk.
                 </p>
                 <p>
-                  Do you plan to store data on this compute server that you
-                  don't want to delete? The HOME directory is sync'd, except
-                  hidden folders and directories to exclude from sync (listed
-                  above). Other files, e.g., in /tmp and systemwide changes,
-                  exist only on the compute server's disk. If you select
-                  "ephemeral" below, the user interface makes it very easy to
-                  delete the compute server's temporary disk when you are done
-                  using it. This setting only modifies the user interface.
+                  Do you plan to use data on this compute server that you want
+                  to preserve? The HOME directory is sync'd, except hidden
+                  folders and directories explicitly excluded above. Other
+                  files, e.g., in /tmp and systemwide changes, exist only on the
+                  compute server's local disk{" "}
+                  <i>without any automatic backups</i>. (Backup functionality
+                  for local data will be implementd in the future.)
                 </p>
                 <p>
-                  <b>WARNING:</b> Files that are only on compute servers are NOT
-                  backed up, except files sync'd to the project HOME directory.
-                  You are responsible for making backups yourself. Backup
-                  functionality will be implementd in the future.
+                  If you don't need to preserve data that are not sync'd,
+                  ephemeral disk is likely to be convenient.
                 </p>
               </div>
             }
@@ -63,7 +62,7 @@ export default function Ephemeral({ setConfig, configuration, loading }) {
             setEphemeral(!ephemeral);
           }}
         >
-          Ephemeral: I do not care about data on this compute server
+          Discard local disk and data by default to avoid paying for storage
         </Checkbox>
       </div>
     </div>

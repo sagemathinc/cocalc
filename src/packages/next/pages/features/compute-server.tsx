@@ -49,7 +49,11 @@ export default function ComputeServer({ customize }) {
             alt={
               "Illustration of Compute servers enhancing your CoCalc project"
             }
-            caption={"Compute servers enhancing your CoCalc project"}
+            caption={
+              <div style={{ marginTop: "10px" }}>
+                Compute servers enhance your CoCalc project
+              </div>
+            }
           />
 
           <Pitch
@@ -88,9 +92,24 @@ export default function ComputeServer({ customize }) {
             }
             col2={
               <>
-                <Title level={2}>Use cases</Title>
+                <Title level={2}>
+                  <A href="https://github.com/sagemathinc/cocalc-howto#readme">
+                    Use cases
+                  </A>
+                </Title>
                 <Paragraph>
                   <ul>
+                    <li>
+                      Use the{" "}
+                      <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/colab.md">
+                        Google Colab Softwar Environment with a GPU
+                      </A>
+                    </li>
+                    <li>
+                      <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/pytorch.md">
+                        Use the official PyTorch image with a GPU
+                      </A>
+                    </li>
                     <li>
                       <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
                         Use the Mathematica Jupyter Kernel
@@ -107,11 +126,27 @@ export default function ComputeServer({ customize }) {
                       intensive computations in parallel using R, SageMath, etc.
                     </li>
                     <li>
+                      Run your own custom{" "}
                       <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/docs/cocalc.com.md">
-                        Run your own custom CoCalc server near you
-                      </A>
+                        CoCalc server
+                      </A>{" "}
+                      or{" "}
+                      <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/SageMathCell.md">
+                        Sage Cell Server
+                      </A>{" "}
+                      anywhere in the world.
                     </li>
                   </ul>
+                  {/* Not an ideal choice of video -- will change later. */}
+                  <iframe
+                    width="560"
+                    height="315"
+                    src="https://www.youtube.com/embed/kcxyShH3wYE?si=1utaPIniNOXgSJ2N"
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  ></iframe>
                 </Paragraph>
               </>
             }

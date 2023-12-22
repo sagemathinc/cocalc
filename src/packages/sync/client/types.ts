@@ -15,6 +15,7 @@ export interface Client extends EventEmitter {
   touch_project: (project_id: string) => void;
   set_connected?: Function;
   is_compute_server?: boolean;
+  is_deleted: (path: string, project_id: string) => true | false | undefined;
 }
 
 export interface ClientFs extends Client {
@@ -97,7 +98,7 @@ export interface ProjectClient {
 
 export interface AppClient extends Client {
   client_id(): string | undefined; // undefined = not signed in so don't know our id.
-  is_deleted(filename: string, project_id: string): boolean;
+  is_deleted(filename: string, project_id: string): boolean | undefined;
   mark_file(opts: any): Promise<void>;
   project_client: ProjectClient;
 }

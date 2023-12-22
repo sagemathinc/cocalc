@@ -5,16 +5,18 @@ This shows an overview of configured quotas for all services,
 and lets you adjust any of them.
 */
 
-import { useEffect, useRef, useState } from "react";
-import { Alert, Button, InputNumber, Progress, Spin, Table, Tag } from "antd";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
-import ServiceTag from "./service";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Alert, Button, InputNumber, Progress, Spin, Table, Tag } from "antd";
+import { cloneDeep, isEqual } from "lodash";
+import { useEffect, useRef, useState } from "react";
 import Cost from "./pay-as-you-go/cost";
+import ServiceTag from "./service";
+
+export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined"
 
 export const PRESETS = [0, 5, 20, 1000];
 export const STEP = 5;
@@ -108,24 +110,6 @@ export default function AllQuotasConfig() {
       render: (service) => <ServiceTag service={service} />,
     },
     {
-      title: "This Month Spend (USD)",
-      dataIndex: "current",
-      align: "center" as "center",
-      render: (current: number, record: ServiceQuota) => {
-        if (record.quota == null) return null;
-        return (
-          <div>
-            {currency(current)}{" "}
-            <Progress
-              percent={Math.round((current / record.quota) * 100)}
-              strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
-            />
-            of {currency(record.quota)}
-          </div>
-        );
-      },
-    },
-    {
       title: "Monthly Limit (USD)",
       dataIndex: "quota",
       align: "center" as "center",
@@ -158,6 +142,24 @@ export default function AllQuotasConfig() {
       ),
     },
     {
+      title: "This Month Spend (USD)",
+      dataIndex: "current",
+      align: "center" as "center",
+      render: (current: number, record: ServiceQuota) => {
+        if (record.quota == null) return null;
+        return (
+          <div>
+            {currency(current)}{" "}
+            <Progress
+              percent={Math.round((current / record.quota) * 100)}
+              strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
+            />
+            of {currency(record.quota)}
+          </div>
+        );
+      },
+    },
+    {
       title: "Cost",
       align: "center" as "center",
       render: (_, { service }: ServiceQuota) => <Cost service={service} />,
@@ -165,22 +167,7 @@ export default function AllQuotasConfig() {
   ];
 
   return (
-    <SettingBox
-      icon="dashboard"
-      title={
-        <span style={{ marginLeft: "5px" }}>
-          <Button
-            onClick={handleRefresh}
-            disabled={saving}
-            style={{ float: "right" }}
-          >
-            <Icon name="refresh" />
-            Refresh
-          </Button>
-          Spending Limits
-        </span>
-      }
-    >
+    <>
       {error && (
         <Alert
           type="error"
@@ -188,9 +175,23 @@ export default function AllQuotasConfig() {
           style={{ marginBottom: "15px" }}
         />
       )}
-      <div style={{ color: "#666", marginBottom: "15px" }}>
-        These are monthly spending caps to prevent overspending.
+
+      <div style={{ marginLeft: "5px", float: "right" }}>
+        <Button
+          onClick={handleRefresh}
+          disabled={saving}
+          style={{ float: "right" }}
+        >
+          <Icon name="refresh" />
+          Refresh
+        </Button>
       </div>
+
+      <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
+        These are your personal monthly spending caps to prevent overspending.
+        You can change them to whatever you want at any time.
+      </div>
+
       <div style={{ marginBottom: "15px" }}>
         <Button.Group style={{ marginRight: "5px" }}>
           {/*<Button onClick={handleCancel} disabled={!changed || saving}>
@@ -208,18 +209,20 @@ export default function AllQuotasConfig() {
         </Button.Group>
       </div>
       {serviceQuotas != null ? (
-        <Table
-          dataSource={serviceQuotas}
-          columns={columns}
-          pagination={false}
-          rowKey="service"
-        />
+        <div style={{ overflow: "auto" }}>
+          <Table
+            dataSource={serviceQuotas}
+            columns={columns}
+            pagination={false}
+            rowKey="service"
+          />
+        </div>
       ) : (
         <div style={{ textAlign: "center" }}>
           <Spin size="large" delay={500} />
         </div>
       )}
-    </SettingBox>
+    </>
   );
 }
 

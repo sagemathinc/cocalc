@@ -22,9 +22,14 @@ where they limit per minute, not per hour (like below):
 */
 
 import getPool from "@cocalc/database/pool";
-import { isValidUUID } from "@cocalc/util/misc";
-import { Model, MODELS } from "@cocalc/util/db-schema/openai";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
+import {
+  isFreeModel,
+  LanguageModel,
+  model2service,
+  MODELS,
+} from "@cocalc/util/db-schema/openai";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {
   noAccount: 0,
@@ -48,7 +53,7 @@ export async function checkForAbuse({
 }: {
   account_id?: string;
   analytics_cookie?: string;
-  model: Model;
+  model: LanguageModel;
 }): Promise<void> {
   if (!account_id) {
     // Due to assholes like gpt4free, which is why "we can't have nice things".
@@ -73,12 +78,12 @@ export async function checkForAbuse({
   if (account_id) {
     if (usage > QUOTAS.account) {
       throw Error(
-        `You may use at most ${QUOTAS.account} tokens per hour. Please try again later.`
+        `You may use at most ${QUOTAS.account} tokens per hour. Please try again later.`,
       );
     }
   } else if (usage > QUOTAS.noAccount) {
     throw Error(
-      `You may use at most ${QUOTAS.noAccount} tokens per hour. Sign in to increase your quota.`
+      `You may use at most ${QUOTAS.noAccount} tokens per hour. Sign in to increase your quota.`,
     );
   }
 
@@ -88,15 +93,15 @@ export async function checkForAbuse({
   // console.log("overallUsage = ", usage);
   if (overallUsage > QUOTAS.global) {
     throw Error(
-      `There is too much usage of ChatGPT right now.  Please try again later.`
+      `There is too much usage of ChatGPT right now.  Please try again later.`,
     );
   }
 
-  if (model != "gpt-3.5-turbo") {
+  if (!isFreeModel(model)) {
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
-      service: `openai-${model}`,
+      service: model2service(model),
     });
   }
 }
@@ -120,7 +125,7 @@ async function recentUsage({
   if (account_id) {
     const { rows } = await pool.query(
       "SELECT COUNT(*) FROM accounts WHERE account_id=$1",
-      [account_id]
+      [account_id],
     );
     if (rows.length == 0) {
       throw Error(`invalid account_id ${account_id}`);

@@ -87,6 +87,15 @@ export async function createStatements({
   // included in its computation!
   const client = await getTransactionClient();
 
+  // Get all accounts that had a statement already with this time and interval
+  // -- the time is UTC midnight of a given day, hence why we just us an
+  // quality test.
+  const { rows } = await client.query(
+    "SELECT account_id FROM statements WHERE interval=$1 AND time=$2",
+    [interval, time],
+  );
+  const alreadyHasStatement = new Set(rows.map((row) => row.account_id));
+
   try {
     /*
     For every purchase where `${interval}_statement_id` is null and purchase_time <= time, compute:
@@ -97,7 +106,9 @@ export async function createStatements({
     const credits = await getData(time, client, interval, "credits");
     const accounts = new Set(Object.keys(charges));
     for (const account_id of Object.keys(credits)) {
-      accounts.add(account_id);
+      if (!alreadyHasStatement.has(account_id)) {
+        accounts.add(account_id);
+      }
     }
     logger.debug(
       "createStatements",
@@ -132,10 +143,11 @@ export async function createStatements({
       logger.debug(
         "createStatements",
         { time, interval },
-        " inserting ",
+        " inserting up to ",
         statements.length,
         " statements into database",
       );
+
       const { query, values } = multiInsert(
         "INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits) ",
         statements.map(

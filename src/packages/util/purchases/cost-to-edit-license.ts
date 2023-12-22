@@ -98,6 +98,7 @@ export default function costToEditLicense(
     // @ts-ignore: TODO!
     modifiedInfo.start = changes.start;
   }
+
   if (changes.end != null) {
     // @ts-ignore: TODO!
     modifiedInfo.end = changes.end;

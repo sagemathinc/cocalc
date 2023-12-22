@@ -18,6 +18,7 @@ interface Props {
   titleOnly?: boolean;
   prompt?: boolean;
   computeServer?; // immutable js object from store, if known
+  colorLabel?; // put in middle of colorOnly
 }
 
 export default function ComputeServer({
@@ -28,6 +29,7 @@ export default function ComputeServer({
   titleOnly,
   prompt,
   computeServer,
+  colorLabel,
 }: Props) {
   const [server, setServer] = useState<null | {
     title: string;
@@ -68,9 +70,12 @@ export default function ComputeServer({
         style={{
           backgroundColor: server?.color,
           height: "3px",
+          textAlign: "center",
           ...style,
         }}
-      />
+      >
+        {colorLabel}
+      </div>
     );
   }
 

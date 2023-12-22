@@ -10,7 +10,6 @@ R Markdown Editor Actions
 import { reuseInFlight } from "async-await-utils/hof";
 import { debounce } from "lodash";
 import { Set } from "immutable";
-import { callback2 } from "@cocalc/util/async-utils";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
@@ -74,7 +73,7 @@ export class Actions extends MarkdownActions {
     this.run_rmd_converter = debounce(
       async (hash?) => await this._run_rmd_converter(hash),
       5 * 1000,
-      { leading: true, trailing: false }
+      { leading: true, trailing: false },
     );
 
     const do_build = reuseInFlight(async () => {
@@ -118,7 +117,7 @@ export class Actions extends MarkdownActions {
       return;
     }
     const path = path_split(this.path).head;
-    await callback2(project_actions.fetch_directory_listing, { path });
+    await project_actions.fetch_directory_listing({ path });
 
     const project_store = project_actions.get_store();
     if (project_store == undefined) {
@@ -187,12 +186,12 @@ export class Actions extends MarkdownActions {
         this.project_id,
         this.path,
         frontmatter,
-        hash || this._last_rmd_hash
+        hash || this._last_rmd_hash,
       );
       this.set_log(output);
       if (output == null || output.exit_code != 0) {
         this.set_error(
-          "Error compiling RMarkdown. Please check the Build Log!"
+          "Error compiling RMarkdown. Please check the Build Log!",
         );
       } else {
         this.reload();
@@ -235,7 +234,7 @@ export class Actions extends MarkdownActions {
     // the html editor, which also has an iframe, calls somehow super.reload
     hash = hash || Date.now();
     ["iframe", "pdfjs_canvas", "markdown"].forEach((viewer) =>
-      this.set_reload(viewer, hash)
+      this.set_reload(viewer, hash),
     );
   }
 

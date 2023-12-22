@@ -22,6 +22,7 @@ afterAll(async () => {
 
 describe("creates an account, then creates statements and corresponding emails and test that everything matches up", () => {
   const account_id = uuid();
+  let firstStatementTime;
   it("creates an account, a purchase adding 10 credit, and a statement", async () => {
     await createTestAccount(account_id);
     // must have at least 1 purchase to make a statement.
@@ -33,7 +34,27 @@ describe("creates an account, then creates statements and corresponding emails a
       cost: -10,
     });
     await delay(100); // so above purchase is on statement.
-    await createStatements({ time: new Date(Date.now() - 1), interval: "day" });
+    firstStatementTime = new Date(Date.now() - 1);
+    await createStatements({ time: firstStatementTime, interval: "day" });
+  });
+
+  it("creates one more transaction, then tries to make a statement with the exact same time and this does NOT get created", async () => {
+    await delay(10);
+    await createPurchase({
+      account_id,
+      service: "credit",
+      description: { type: "credit" },
+      client: null,
+      cost: -0.01,
+    });
+    await delay(100); // so above purchase might be on statement
+    await createStatements({ time: firstStatementTime, interval: "day" });
+    const statements = await getStatements({
+      account_id,
+      limit: 1,
+      interval: "day",
+    });
+    expect(statements.length).toBe(1);
   });
 
   it("gets the one statement that was created above and creates the email", async () => {
@@ -87,6 +108,10 @@ describe("creates an account, then creates statements and corresponding emails a
       "UPDATE accounts SET purchase_closing_day = $1 WHERE account_id = $2",
       [new Date().getDate(), account_id],
     );
+    // delete existing statements so that a new statement will get created.
+    await pool.query("DELETE FROM statements WHERE account_id = $1", [
+      account_id,
+    ]);
 
     await createStatements({
       time: new Date(Date.now() - 1),

@@ -22,34 +22,33 @@ export default function ConfigMenu({ main }) {
   const items: MenuItem[] = [
     { label: <Text strong>Store</Text>, key: "" },
     {
-      label: "License",
+      label: "Licenses",
       key: "site-license",
       icon: <Icon name="key" />,
     },
-    {
-      label: "Booster",
-      key: "boost",
-      icon: <Icon name="rocket" />,
-    },
-    {
-      label: "Dedicated VM or Disk",
-      key: "dedicated",
-      icon: <Icon name="dedicated" />,
-    },
+    //     {
+    //       label: "Booster",
+    //       key: "boost",
+    //       icon: <Icon name="rocket" />,
+    //     },
+    //     {
+    //       label: "Dedicated VM or Disk",
+    //       key: "dedicated",
+    //       icon: <Icon name="dedicated" />,
+    //     },
     { label: "Cart", key: "cart", icon: <Icon name="shopping-cart" /> },
     { label: "Checkout", key: "checkout", icon: <Icon name="list" /> },
+    {
+      label: "Congrats",
+      key: "congrats",
+      icon: <Icon name="check-circle" />,
+    },
     {
       label: "Vouchers",
       key: "vouchers",
       icon: <Icon name="gift" />,
     },
   ];
-
-  items.push({
-    label: "Congrats",
-    key: "congrats",
-    icon: <Icon name="check-circle" />,
-  });
 
   return (
     <Menu

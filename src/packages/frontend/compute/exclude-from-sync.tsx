@@ -34,8 +34,8 @@ export default function ExcludeFromSync({
           <>
             List of subdirectories of HOME to exclude from sync. Files you
             change or create on the compute server in these directories will not
-            be saved back to the project when you click the Sync button. Disk IO
-            in these directories is{" "}
+            be saved back to the project when you click the Sync button or Save
+            a file. Disk IO in these directories is{" "}
             <b>
               <i>VERY fast</i>
             </b>
@@ -44,14 +44,19 @@ export default function ExcludeFromSync({
           </>
         }
       >
-        <b>
-          <Icon name="bolt" /> Fast Data Directories:
-        </b>{" "}
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          <b>
+            <Icon name="bolt" /> Fast Data Directories
+          </b>
+        </div>
         The HOME directory of the project is mounted over the network and can be{" "}
-        <b>very slow</b>. List here top level subdirectories of HOME that you do
-        not want to <b>be mounted over the network</b>. Files in these
-        directories are stored in <code>/data</code> on the compute server's
-        disk only, which is <b>very fast</b>.
+        <b>very slow</b>. List top level subdirectories of HOME that you do not
+        want to <b>be mounted over the network</b>. Files in these directories
+        are stored in <code>/data</code> on the compute server's disk only,
+        which is <b>very fast</b>. Also, if you include <code>~</code> or{" "}
+        <code>.</code>{" "}
+        in the list below, then the sync process is temporarily disabled, though
+        your HOME directory is still mounted over the network.
       </Tooltip>
       <Select
         value={value}

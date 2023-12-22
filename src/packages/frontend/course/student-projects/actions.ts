@@ -530,7 +530,7 @@ export class StudentProjectsActions {
         const student_project_id = student.get("project_id");
         if (student_project_id == null) continue;
         // account_id: might not be known when student first added, or if student
-        // hasn't joined smc yet, so there is no account_id for them.
+        // hasn't joined cocalc yet, so there is no account_id for them.
         const student_account_id = student.get("account_id");
         const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
         await actions.set_project_course_info(

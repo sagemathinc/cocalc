@@ -52,7 +52,7 @@ import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
-import ChatGPT from "../chatgpt/title-bar-button";
+import LanguageModel from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -1055,12 +1055,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_chatgpt(labels): Rendered {
     if (
       !is_visible("chatgpt") ||
-      !redux.getStore("projects").hasOpenAI(props.project_id)
+      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
     ) {
       return;
     }
     return (
-      <ChatGPT
+      <LanguageModel
+        project_id={props.project_id}
         buttonRef={getTourRef("chatgpt")}
         key={"chatgpt"}
         id={props.id}
@@ -1084,30 +1085,31 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <AntdButton
-        type="primary"
-        key={"tour"}
-        title={"Take the tour!"}
-        size={button_size()}
-        onClick={() => {
-          track("tour");
-          userTracking("tour", { name: `frame-${props.type}` });
-          props.actions.set_frame_full(props.id);
-          // we have to wait until the frame renders before
-          // setting the tour; otherwise, the references won't
-          // be defined and it won't work.
-          setTimeout(
-            () => props.actions.set_frame_tree({ id: props.id, tour: true }),
-            1,
-          );
-        }}
-        style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
-      >
-        <div ref={getTourRef("tour")} style={{ display: "inline-block" }}>
-          <Icon name="map" />
-          <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
-        </div>
-      </AntdButton>
+      <div ref={getTourRef("tour")} key={"tour"}>
+        <AntdButton
+          type="primary"
+          title={"Take the tour!"}
+          size={button_size()}
+          onClick={() => {
+            track("tour");
+            userTracking("tour", { name: `frame-${props.type}` });
+            props.actions.set_frame_full(props.id);
+            // we have to wait until the frame renders before
+            // setting the tour; otherwise, the references won't
+            // be defined and it won't work.
+            setTimeout(
+              () => props.actions.set_frame_tree({ id: props.id, tour: true }),
+              1,
+            );
+          }}
+          style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
+        >
+          <div style={{ display: "inline-block" }}>
+            <Icon name="map" />
+            <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
+          </div>
+        </AntdButton>
+      </div>
     );
   }
 
@@ -1237,7 +1239,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_save_timetravel_group(labels): Rendered {
     const v: Rendered[] = [];
     let x: Rendered;
-    if ((x = render_tour(labels))) v.push(x);
     if ((x = render_save(labels))) v.push(x);
     if (!is_public) {
       if ((x = render_timetravel(labels))) v.push(x);
@@ -1758,6 +1759,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
       const v: Rendered[] = [];
       v.push(renderPage());
+      let x;
+      if ((x = render_tour(labels))) {
+        v.push(x);
+      }
       v.push(render_save_timetravel_group(labels));
       v.push(render_actions_dropdown(labels));
       v.push(render_build());

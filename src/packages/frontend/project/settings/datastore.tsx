@@ -495,7 +495,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
             <p>
               More information:{" "}
               <A href={DOC}>
-                Project Settings / Cloud storage & remote file systems
+                Project Settings / Cloud Storage & Remote File Systems
               </A>
             </p>
           </div>

@@ -27,7 +27,7 @@ export function update_visible(
   local_task_state: LocalTaskStateMap,
   local_view_state: LocalViewStateMap,
   counts: Counts,
-  current_task_id?: string
+  current_task_id?: string,
 ) {
   const show_deleted = !!local_view_state.get("show_deleted");
   const show_done = !!local_view_state.get("show_done");

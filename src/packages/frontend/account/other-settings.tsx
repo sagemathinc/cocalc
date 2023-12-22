@@ -17,11 +17,19 @@ import {
   Paragraph,
   SelectorInput,
 } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import {
+  LLM_USERNAMES,
+  USER_SELECTABLE_LANGUAGE_MODELS,
+  getValidLanguageModelName,
+  isFreeModel,
+  model2vendor,
+} from "@cocalc/util/db-schema/openai";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
@@ -30,6 +38,7 @@ import {
 } from "../project/page/vbar";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -367,6 +376,59 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
+  render_language_model(): Rendered {
+    const projectsStore = redux.getStore("projects");
+    const haveOpenAI = projectsStore.hasLanguageModelEnabled(
+      undefined,
+      undefined,
+      "openai",
+    );
+    const haveGoogle = projectsStore.hasLanguageModelEnabled(
+      undefined,
+      undefined,
+      "google",
+    );
+
+    const defaultModel = getValidLanguageModelName(
+      this.props.other_settings.get(SETTINGS_LANGUAGE_MODEL_KEY),
+      { openai: haveOpenAI, google: haveGoogle },
+    );
+
+    const options: { value: string; display: JSX.Element }[] = [];
+
+    for (const key of USER_SELECTABLE_LANGUAGE_MODELS) {
+      const vendor = model2vendor(key);
+      if (vendor === "google" && !haveGoogle) continue;
+      if (vendor === "openai" && !haveOpenAI) continue;
+
+      const txt = isFreeModel(key) ? " (free)" : "";
+      const display = (
+        <>
+          <strong>{LLM_USERNAMES[key]}</strong> {txt}
+        </>
+      );
+      options.push({ value: key, display });
+    }
+
+    return (
+      <LabeledRow
+        label={
+          <>
+            <AIAvatar size={22} /> Language model
+          </>
+        }
+      >
+        <SelectorInput
+          selected={defaultModel}
+          options={options}
+          on_change={(value) => {
+            this.on_change(SETTINGS_LANGUAGE_MODEL_KEY, value);
+          }}
+        />
+      </LabeledRow>
+    );
+  }
+
   render() {
     if (this.props.other_settings == null) {
       return <Loading />;
@@ -408,10 +470,12 @@ export class OtherSettings extends Component<Props> {
                 redux.getStore("projects").clearOpenAICache();
               }}
             >
-              <strong>Disable all OpenAI/ChatGPT integrations</strong>, e.g.,
-              extra buttons in Jupyter, @chatgpt mentions, etc.
+              <strong>Disable all AI integrations</strong>, e.g.,
+              code generation or explanation buttons in Jupyter, @chatgpt
+              mentions, etc.
             </Checkbox>
           )}
+          {this.render_language_model()}
           <Checkbox
             checked={
               !!this.props.other_settings.get("disable_markdown_codebar")

@@ -17,6 +17,8 @@ import {
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
+import { modelToName } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
@@ -29,7 +31,6 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import { modelToName } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 
 // 5 minutes -- how long to show the "regenerate button" for chatgpt.
 // Don't show it forever, since we want to avoid clutter.
@@ -53,6 +54,7 @@ const REPLY_STYLE = {
 } as const;
 
 interface Props {
+  index: number;
   actions?: ChatActions;
 
   get_user_name: (account_id: string) => string;
@@ -78,7 +80,7 @@ interface Props {
 
 export default function Message(props: Props) {
   const [edited_message, set_edited_message] = useState<string>(
-    newest_content(props.message)
+    newest_content(props.message),
   );
   // We have to use a ref because of trickiness involving
   // stale closures when submitting the message.
@@ -88,7 +90,7 @@ export default function Message(props: Props) {
 
   const new_changes = useMemo(
     () => edited_message !== newest_content(props.message),
-    [props.message] /* note -- edited_message is a function of props.message */
+    [props.message] /* note -- edited_message is a function of props.message */,
   );
 
   // date as ms since epoch or 0
@@ -100,17 +102,17 @@ export default function Message(props: Props) {
 
   const history_size = useMemo(
     () => props.message.get("history").size,
-    [props.message]
+    [props.message],
   );
 
   const isEditing = useMemo(
     () => is_editing(props.message, props.account_id),
-    [props.message, props.account_id]
+    [props.message, props.account_id],
   );
 
   const editor_name = useMemo(() => {
     return props.get_user_name(
-      props.message.get("history")?.first()?.get("author_id")
+      props.message.get("history")?.first()?.get("author_id"),
     );
   }, [props.message]);
 
@@ -124,8 +126,8 @@ export default function Message(props: Props) {
   const verb = show_history ? "Hide" : "Show";
 
   const isChatGPTThread = useMemo(
-    () => props.actions?.isChatGPTThread(props.message.get("date")),
-    [props.message]
+    () => props.actions?.isLanguageModelThread(props.message.get("date")),
+    [props.message],
   );
 
   function editing_status(is_editing: boolean) {
@@ -140,7 +142,7 @@ export default function Message(props: Props) {
         text = (
           <>
             {`WARNING: ${props.get_user_name(
-              other_editors.first()
+              other_editors.first(),
             )} is also editing this! `}
             <b>Simultaneous editing of messages is not supported.</b>
           </>
@@ -164,7 +166,7 @@ export default function Message(props: Props) {
       if (other_editors.size === 1) {
         // One person is editing
         text = `${props.get_user_name(
-          other_editors.first()
+          other_editors.first(),
         )} is editing this message`;
       } else if (other_editors.size > 1) {
         // Multiple editors
@@ -260,7 +262,7 @@ export default function Message(props: Props) {
 
     const { background, color, lighten, message_class } = message_colors(
       props.account_id,
-      props.message
+      props.message,
     );
 
     const font_size = `${props.font_size}px`;
@@ -308,7 +310,7 @@ export default function Message(props: Props) {
             <Button
               style={{ color: "#666" }}
               onClick={() => {
-                props.actions?.chatgptStopGenerating(new Date(date));
+                props.actions?.languageModelStopGenerating(new Date(date));
               }}
             >
               <Icon name="square" /> Stop Generating
@@ -336,7 +338,7 @@ export default function Message(props: Props) {
                   ? (tag) =>
                       props.actions?.setHashtagState(
                         tag,
-                        props.selectedHashtags?.has(tag) ? undefined : 1
+                        props.selectedHashtags?.has(tag) ? undefined : 1,
                       )
                   : undefined
               }
@@ -499,6 +501,7 @@ export default function Message(props: Props) {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     props.actions.send_reply({ message: props.message, reply });
+    props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
 
@@ -599,7 +602,7 @@ export default function Message(props: Props) {
               title={
                 isChatGPTThread
                   ? `Reply to ${modelToName(
-                      isChatGPTThread
+                      isChatGPTThread,
                     )}, sending the entire thread as context.`
                   : "Reply in this thread."
               }
@@ -607,13 +610,13 @@ export default function Message(props: Props) {
               <Button
                 type="text"
                 onClick={() => setReplying(true)}
-                style={{ color: "#666" }}
+                style={{ color: COLORS.GRAY_M }}
               >
                 <Icon name="reply" /> Reply
                 {isChatGPTThread ? ` to ${modelToName(isChatGPTThread)}` : ""}
                 {isChatGPTThread && (
                   <Avatar
-                    account_id="chatgpt"
+                    account_id={isChatGPTThread}
                     size={16}
                     style={{ marginLeft: "10px", marginBottom: "2.5px" }}
                   />
@@ -626,9 +629,9 @@ export default function Message(props: Props) {
             props.actions &&
             Date.now() - date <= regenerateCutoff && (
               <Button
-                style={{ color: "#666", marginLeft: "15px" }}
+                style={{ color: COLORS.GRAY_M, marginLeft: "15px" }}
                 onClick={() => {
-                  props.actions?.chatgptRegenerate(new Date(date));
+                  props.actions?.languageModelRegenerate(new Date(date));
                 }}
               >
                 <Icon name="refresh" /> Regenerate response

@@ -25,6 +25,7 @@ export type SiteSettingsKeys =
   | "imprint"
   | "policies"
   | "openai_enabled"
+  | "google_vertexai_enabled"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -204,7 +205,7 @@ const gateway_dns_to_val: ToValFunc<string> = (
   );
 };
 
-export const DATASTORE_TITLE = "Cloud storage & remote file-systems";
+export const DATASTORE_TITLE = "Cloud Storage & Remote Filesystems";
 export const KUCALC_DISABLED = "no";
 export const KUCALC_COCALC_COM = "yes";
 export const KUCALC_ON_PREMISES = "onprem";
@@ -583,6 +584,13 @@ export const site_settings_conf: SiteSettings = {
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
     desc: "Controls visibility of UI elements related to ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  google_vertexai_enabled: {
+    name: "Google GenerativeAI UI",
+    desc: "Controls visibility of UI elements related to Google's **Generative AI** integration.  You must **also set your Google Generative AI key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
