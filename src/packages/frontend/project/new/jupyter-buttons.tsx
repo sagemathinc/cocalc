@@ -191,7 +191,9 @@ export function JupyterNotebookButtons({
     if (kernel_selection == null || kernels_by_name == null) return null;
 
     const btns: JSX.Element[] = [];
-    for (const [lang, kernelName] of topKernels(kernel_selection).entries()) {
+    // just as a precaution, we limit the number of buttons to 10
+    const kernels = topKernels(kernel_selection).slice(0, 10);
+    for (const [lang, kernelName] of kernels.entries()) {
       const info = lang2info(lang);
       if (info == null) continue;
       const { display, ext } = info;
