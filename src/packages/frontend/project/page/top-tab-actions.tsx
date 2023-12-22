@@ -9,8 +9,8 @@ top right hand side in a project.
 
 import type { MenuProps } from "antd";
 import { Button as AntdButton, Dropdown, Space, Tooltip } from "antd";
+import { delay } from "awaiting";
 import { throttle } from "lodash";
-// import { delay } from "awaiting";
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
@@ -144,7 +144,7 @@ function TopTabBarActions(
   const { project_id, active_project_tab: activeTab } = useProjectContext();
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
-  // const isMounted = useIsMountedRef();
+  const isMounted = useIsMountedRef();
   const [loading, setLoading] = useState(true);
   const [loadingShow, setLoadingShow] = useState(false);
   const [actions, setActions] = useState<EditorActions | null>(null);
@@ -168,6 +168,24 @@ function TopTabBarActions(
     }
   }, [loading, width]);
 
+  async function getEditorActions(project_id, path) {
+    const t0 = Date.now();
+    while (true) {
+      if (!isMounted.current) {
+        return;
+      }
+      const actions = redux.getEditorActions(project_id, path);
+      if (actions != null) {
+        return actions;
+      }
+      if (Date.now() - t0 > 30 * 1000) {
+        return null;
+      } else {
+        await delay(50);
+      }
+    }
+  }
+
   useAsyncEffect(async () => {
     // we start with a reset
     setActions(null);
@@ -180,15 +198,17 @@ function TopTabBarActions(
       const tab_name = path_to_tab(path);
       if (activeTab !== tab_name) continue;
 
-      const actionsNext = redux.getEditorActions(project_id, path);
-      setActions(actionsNext);
-      setTopBarActions(actionsNext.getTopBarActions?.());
-      setActions(actionsNext);
+      const actionsNext = await getEditorActions(project_id, path);
+      if (actionsNext != null) {
+        setActions(actionsNext);
+        setTopBarActions(actionsNext.getTopBarActions?.());
+        setActions(actionsNext);
 
-      setLoading(false);
-      setLoadingShow(false);
+        setLoading(false);
+        setLoadingShow(false);
 
-      return;
+        return;
+      }
     }
 
     // if we get here, we have not found any actions
