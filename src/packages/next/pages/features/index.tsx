@@ -49,6 +49,7 @@ import {
   title as compueServerTitle,
   logo as computeServerLogo,
 } from "./compute-server";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 
 const dataSource = [
   {
@@ -101,16 +102,15 @@ const dataSource = [
     ),
   },
   {
-    link: "/features/openai-chatgpt",
-    title: <>OpenAI's ChatGPT</>,
+    link: "/features/ai-llm",
+    title: <>AI Language Models</>,
     logoBackground: "white",
-    logo: <OpenAIAvatar size={64} />,
+    logo: <AIAvatar size={64} />,
     image: ChatGptInChatroom,
     description: (
       <>
-        CoCalc extensively integrates with{" "}
-        <A href="https://openai.com/">OpenAI's ChatGPT</A> in many ways. It
-        participates in a{" "}
+        CoCalc extensively integrates with AI language models like{" "}
+        <A href="https://openai.com/">OpenAI's ChatGPT</A>. It participates in a{" "}
         <A href={"https://doc.cocalc.com/chat.html"}>Chatroom</A> as a bot,
         helps you understand your code, deciphers error messages in{" "}
         <A href={"/features/jupyter-notebook"}>Jupyter notebooks</A> or

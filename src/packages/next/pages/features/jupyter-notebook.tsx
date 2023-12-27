@@ -31,7 +31,7 @@ import JupyterMem from "/public/features/cocalc-jupyter2-memory-cpu.png";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 import JupyterLab from "/public/features/jupyter-lab.png";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
-import { ChatGPTFixError } from "./openai-chatgpt";
+import { ChatGPTFixError } from "./ai-llm";
 
 export default function JupyterNotebook({ customize }) {
   function pitchNoSetup() {
