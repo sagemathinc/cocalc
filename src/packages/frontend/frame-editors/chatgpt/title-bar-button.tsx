@@ -13,7 +13,12 @@ import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
+import {
+  Icon,
+  IconName,
+  Title,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -240,14 +245,6 @@ export default function LanguageModelTitleBarButtonDialog({
     <Popover
       title={
         <div style={{ fontSize: "18px" }}>
-          <LanguageModelVendorAvatar model={model} />{" "}
-          <ModelSwitch
-            project_id={project_id}
-            size="small"
-            model={model}
-            setModel={setModel}
-          />{" "}
-          What would you like to do using {modelToName(model)}?
           <Button
             onClick={() => {
               setShowDialog(false);
@@ -268,6 +265,17 @@ export default function LanguageModelTitleBarButtonDialog({
               submitRef={submitRef}
             />
           </div>
+          <Title level={4}>
+            <LanguageModelVendorAvatar model={model} /> What would you like to
+            do using {modelToName(model)}?
+          </Title>
+          Switch model:{" "}
+          <ModelSwitch
+            project_id={project_id}
+            size="small"
+            model={model}
+            setModel={setModel}
+          />
         </div>
       }
       open={visible && showDialog}
