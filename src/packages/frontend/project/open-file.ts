@@ -26,23 +26,25 @@ import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { local_storage } from "../editor-local-storage";
 import { remove } from "../project-file";
 
+export interface OpenFileOpts {
+  path: string;
+  ext?: string; // if given, use editor for this extension instead of whatever extension path has.
+  line?: number; // mainly backward compat for now
+  fragmentId?: FragmentId; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
+  foreground?: boolean;
+  foreground_project?: boolean;
+  chat?: boolean;
+  chat_width?: number;
+  ignore_kiosk?: boolean;
+  new_browser_window?: boolean;
+  change_history?: boolean;
+  // opened via an explicit click
+  explicit?: boolean;
+}
+
 export async function open_file(
   actions: ProjectActions,
-  opts: {
-    path: string;
-    ext?: string; // if given, use editor for this extension instead of whatever extension path has.
-    line?: number; // mainly backward compat for now
-    fragmentId?: FragmentId; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
-    foreground?: boolean;
-    foreground_project?: boolean;
-    chat?: boolean;
-    chat_width?: number;
-    ignore_kiosk?: boolean;
-    new_browser_window?: boolean;
-    change_history?: boolean;
-    // opened via an explicit click
-    explicit?: boolean;
-  },
+  opts: OpenFileOpts,
 ): Promise<void> {
   // console.log(opts);
 

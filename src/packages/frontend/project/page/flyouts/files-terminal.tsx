@@ -146,7 +146,7 @@ export function TerminalFlyout({
       },
       open_code_editor_frame(path: string) {
         // we just open the file
-        actions?.open_file(path);
+        actions?.open_file({ path });
       },
     };
   }

@@ -1268,7 +1268,7 @@ export const max: (x: any[]) => any = lodash.max;
 export const min: (x: any[]) => any = lodash.min;
 
 // Takes a path string and file name and gives the full path to the file
-export function path_to_file(path: string, file: string): string {
+export function path_to_file(path: string = "", file: string): string {
   if (path === "") {
     return file;
   }
