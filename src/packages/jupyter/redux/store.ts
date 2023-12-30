@@ -10,10 +10,7 @@ This is used by everybody involved in using jupyter -- the project, the browser 
 */
 
 import { List, Map, OrderedMap, Set } from "immutable";
-import { Store } from "@cocalc/util/redux/Store";
-import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import { Syntax } from "@cocalc/util/code-formatter";
-import { cmp, startswith } from "@cocalc/util/misc";
+
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import {
@@ -22,7 +19,15 @@ import {
   KernelInfo,
   NotebookMode,
 } from "@cocalc/jupyter/types";
-import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
+import {
+  Kernel,
+  Kernels,
+  get_kernel_selection,
+} from "@cocalc/jupyter/util/misc";
+import { Syntax } from "@cocalc/util/code-formatter";
+import { startswith } from "@cocalc/util/misc";
+import { Store } from "@cocalc/util/redux/Store";
+import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -365,51 +370,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   };
 
-  /*
-   * select all kernels, which are ranked highest for a specific language.
-   *
-   * kernel metadata looks like that
-   *
-   *  "display_name": ...,
-   *  "argv":, ...
-   *  "language": "sagemath",
-   *  "metadata": {
-   *    "cocalc": {
-   *      "priority": 10,
-   *      "description": "Open-source mathematical software system",
-   *      "url": "https://www.sagemath.org/",
-   *      "disabled": true
-   *    }
-   *  }
-   *
-   * Return dict of language <-> kernel_name
-   */
   get_kernel_selection = (kernels: Kernels): Map<string, string> => {
-    const data: any = {};
-    kernels
-      .filter((entry) => entry.get("language") != null)
-      .groupBy((entry) => entry.get("language"))
-      .forEach((kernels, lang) => {
-        const top: any = kernels
-          .sort((a, b) => {
-            const va = -(a.getIn(
-              ["metadata", "cocalc", "priority"],
-              0,
-            ) as number);
-            const vb = -(b.getIn(
-              ["metadata", "cocalc", "priority"],
-              0,
-            ) as number);
-            return cmp(va, vb);
-          })
-          .first();
-        if (top == null || lang == null) return true;
-        const name = top.get("name");
-        if (name == null) return true;
-        data[lang] = name;
-      });
-
-    return Map<string, string>(data);
+    return get_kernel_selection(kernels);
   };
 
   get_raw_link = (path: any) => {

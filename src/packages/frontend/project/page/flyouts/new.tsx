@@ -24,21 +24,20 @@ import {
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { DELAY_SHOW_MS } from "@cocalc/frontend/project//new/consts";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import {
   NEW_FILETYPE_ICONS,
   isNewFiletypeIconName,
 } from "@cocalc/frontend/project/new/consts";
+import { NewFileButton } from "@cocalc/frontend/project/new/new-file-button";
 import { NewFileDropdown } from "@cocalc/frontend/project/new/new-file-dropdown";
 import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { delayShow } from "../../new/file-type-selector";
-import { NewFileButton } from "../../new/new-file-button";
-import { ChatGPTGenerateNotebookButton } from "../home-page/ai-generate-jupyter";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 
 function getFileExtension(filename: string): string | null {
@@ -65,7 +64,7 @@ export function NewFlyout({
   const availableFeatures = useAvailableFeatures(project_id);
   const file_creation_error = useTypedRedux(
     { project_id },
-    "file_creation_error"
+    "file_creation_error",
   );
 
   const [filename, setFilename] = useState<string>("");
@@ -98,7 +97,7 @@ export function NewFlyout({
 
   const isFile = useMemo(
     () => !(filename && filename.endsWith("/")),
-    [filename]
+    [filename],
   );
 
   // if name is entered manual and contains an extension, set the ext to it
@@ -132,7 +131,13 @@ export function NewFlyout({
         return filename;
       } else {
         if (ext === "") {
-          return filename;
+          if (manualExt && filename.endsWith(" ")) {
+            // if we trigger the "no extension" with a space, trim the name
+            // otherwise, use the no extension creation button
+            return filename.trim();
+          } else {
+            return filename;
+          }
         } else {
           return `${filename}.${ext}`;
         }
@@ -214,19 +219,21 @@ export function NewFlyout({
     }
   }
 
-  function renderError() {
-    let message;
+  function getRenderErrorMessage() {
     const error = file_creation_error;
     if (error === "not running") {
-      message = "The project is not running. Please try again in a moment";
+      return "The project is not running. Please try again in a moment";
     } else {
-      message = error;
+      return error;
     }
+  }
+
+  function renderError() {
     return (
       <ErrorDisplay
         style={{ margin: 0, flex: "1 0 auto" }}
         banner={true}
-        error={message}
+        error={getRenderErrorMessage()}
         onClose={(): void => {
           actions?.setState({ file_creation_error: "" });
         }}
@@ -318,16 +325,12 @@ export function NewFlyout({
           projectActions={actions}
           create_file={selectType}
           availableFeatures={availableFeatures}
-          chatgptNotebook={
-            <ChatGPTGenerateNotebookButton
-              project_id={project_id}
-              style={{ width: "100%" }}
-            />
-          }
+          filename={filename}
+          makeNewFilename={makeNewFilename}
         />
         <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
         <Tip
-          delayShow={delayShow}
+          delayShow={DELAY_SHOW_MS}
           title="Directory"
           icon={"folder"}
           tip="Create a subdirectory in the current directory. You can also type in a '/' character at the end of the filename to create a directory."
@@ -341,7 +344,7 @@ export function NewFlyout({
           />
         </Tip>
         <Tip
-          delayShow={delayShow}
+          delayShow={DELAY_SHOW_MS}
           title="No file extension"
           icon={"file"}
           tip="Create the file without a file extension, for example a 'Makefile'. You can also type in a space character at the end of the filename to create a file without an extension."
