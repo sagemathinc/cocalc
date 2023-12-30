@@ -33,7 +33,7 @@ export function describeQuotaFromInfo(
         member: info.custom_member,
         user: info.user,
         boost: info.boost,
-        run_limit: info.run_limit,
+        run_limit: info.run_limit || info.quantity,
       });
 
     case "vm":
