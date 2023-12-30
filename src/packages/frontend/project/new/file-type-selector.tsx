@@ -116,9 +116,9 @@ export function FileTypeSelector({
           Math and Science
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
+          {renderSageWS()}
           {renderLaTeX()}
           {renderRMD()}
-          {renderSageWS()}
         </Row>
       </>
     );
