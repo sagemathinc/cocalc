@@ -121,24 +121,32 @@ export default async function maintainAutomaticPayments() {
         "UPDATE statements SET automatic_payment=NOW() WHERE id=$1",
         [statement_id],
       );
-      if (balance < 0 && Math.abs(balance) >= pay_as_you_go_min_payment) {
+      if (balance < 0) {
+        let amount = -balance;
         logger.debug(
-          "Since balance ",
-          balance,
-          " is negative and at least the minimum payment thresh, will try to collect automatically",
-          balance,
+          "Since amount ",
+          amount,
+          " is positive, will try to collect automatically",
         );
+
+        if (amount < pay_as_you_go_min_payment) {
+          logger.debug(
+            "amount is below min payment, so we instead charge the min payment amount of ",
+            pay_as_you_go_min_payment,
+          );
+          amount = pay_as_you_go_min_payment;
+        }
 
         // Now make the attempt.  This might work quickly, it might take a day, it might
         // never succeed, it might throw an error.  That's all ok.
         if (mockCollectPayment != null) {
-          await mockCollectPayment({ account_id, amount: -balance });
+          await mockCollectPayment({ account_id, amount });
         } else {
-          await collectPayment({ account_id, amount: -balance });
+          await collectPayment({ account_id, amount });
         }
       }
     } catch (err) {
-      logger.debug("WARNING - error trying to collect payment", err);
+      logger.debug(`WARNING - error trying to collect payment: ${err}`);
     }
   }
 }
