@@ -133,7 +133,14 @@ export const Description: React.FC<Props> = React.memo(
     return (
       <div>
         {render_editor()}
-        <div style={{ position: "absolute", right: 0, background: "white" }}>
+        <div
+          style={{
+            position: "absolute",
+            right: "25px",
+            bottom: 0,
+            background: "white",
+          }}
+        >
           {render_edit_button()}
         </div>
         {render_desc()}
