@@ -14,7 +14,7 @@ export default function SpendRate({ style, spendRate }: Props) {
   return (
     <Card style={{ maxWidth: "300px", ...style }}>
       <Tooltip
-        title={`Pay as you go upgrades and compute servers cost $${currency(
+        title={`Pay as you go upgrades and compute servers cost ${currency(
           spendRate,
           3,
         )}/hour.  Licenses and network data transfer costs are not included above.`}
