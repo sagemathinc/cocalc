@@ -204,7 +204,7 @@ export function JupyterNotebookButtons({
         <>
           {display}
           <br />
-          Notebook
+          Jupyter Notebook
         </>
       );
       btns.push(
