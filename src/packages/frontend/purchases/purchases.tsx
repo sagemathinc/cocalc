@@ -99,7 +99,7 @@ function Purchases0({
         </>
       }
     >
-      <div style={{ float: "right", marginTop: "5px" }}>
+      <div>
         <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
           <Checkbox
             checked={group}
@@ -283,7 +283,25 @@ export function PurchasesTable({
 
   return (
     <div style={style}>
-      <ShowError error={error} setError={setError} />
+      <div>
+        <ShowError error={error} setError={setError} />
+        <div style={{ display: "flex" }}>
+          <Export
+            style={{ marginRight: "8px" }}
+            name={
+              filename ??
+              getFilename({ thisMonth, cutoff, limit, offset, noStatement })
+            }
+            data={purchases}
+          />
+          {showRefresh && (
+            <Refresh
+              handleRefresh={getPurchaseRecords}
+              style={{ marginRight: "8px" }}
+            />
+          )}
+        </div>
+      </div>
       <div
         style={{
           display: "flex",
@@ -313,20 +331,7 @@ export function PurchasesTable({
             Next
           </Button>
         )}
-        <Export
-          style={{ marginRight: "8px" }}
-          name={
-            filename ??
-            getFilename({ thisMonth, cutoff, limit, offset, noStatement })
-          }
-          data={purchases}
-        />
-        {showRefresh && (
-          <Refresh
-            handleRefresh={getPurchaseRecords}
-            style={{ marginRight: "8px" }}
-          />
-        )}
+
         {(day_statement_id != null || month_statement_id != null) && (
           <EmailStatement
             style={{ marginLeft: "8px" }}

@@ -58,7 +58,7 @@ export default function PurchasesPage() {
       <Divider style={{ marginTop: "30px" }}>
         Transactions During the Last Day
       </Divider>
-      <div style={{ float: "right", marginTop:'5px' }}>
+      <div>
         <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
           <Checkbox
             checked={group}
