@@ -33,7 +33,7 @@ import {
   Tag,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
-
+import Refresh from "./refresh";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -430,14 +430,10 @@ export default function Subscriptions() {
       title={
         <>
           <Icon name="calendar" /> Subscriptions
-          <Button
-            onClick={() => {
-              getSubscriptions();
-            }}
+          <Refresh
+            handleRefresh={getSubscriptions}
             style={{ marginLeft: "30px" }}
-          >
-            <Icon name="refresh" /> Refresh
-          </Button>
+          />
           <div style={{ marginLeft: "15px", float: "right", display: "flex" }}>
             <Export
               data={subscriptions}

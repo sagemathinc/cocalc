@@ -6,11 +6,11 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function Config({ style } : Props) {
+export default function Config({ style }: Props) {
   return (
     <div style={{ display: "flex", ...style }}>
       <AutomaticPayments />
-      <div style={{ width: "15px" }} />
+      <div style={{ width: "15px", height: "15px" }} />
       <ClosingDate />
     </div>
   );

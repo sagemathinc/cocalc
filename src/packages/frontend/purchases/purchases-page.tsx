@@ -6,12 +6,9 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
 import AccountStatus from "./account-status";
 import Quotas, { QUOTA_LIMIT_ICON_NAME } from "./all-quotas-config";
-import Config from "./config";
 import CostBarChart from "./cost-bar-chart";
 import Purchases, { PurchasesTable } from "./purchases";
 import { Footer } from "../customize";
-
-
 
 type Key = string[] | string | number[] | number;
 
@@ -57,13 +54,11 @@ export default function PurchasesPage() {
 
   return (
     <div>
-      <Config />
-      <Divider>Account Balance</Divider>
       <AccountStatus />
       <Divider style={{ marginTop: "30px" }}>
         Transactions During the Last Day
       </Divider>
-      <div style={{ float: "right" }}>
+      <div style={{ float: "right", marginTop:'5px' }}>
         <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
           <Checkbox
             checked={group}

@@ -29,7 +29,7 @@ import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { load_target } from "@cocalc/frontend/history";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import Refresh from "@cocalc/frontend/components/refresh";
+import Refresh from "./refresh";
 import ShowError from "@cocalc/frontend/components/error";
 import Export from "./export";
 import EmailStatement from "./email-statement";
@@ -99,7 +99,7 @@ function Purchases0({
         </>
       }
     >
-      <div style={{ float: "right" }}>
+      <div style={{ float: "right", marginTop: "5px" }}>
         <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
           <Checkbox
             checked={group}
@@ -283,7 +283,6 @@ export function PurchasesTable({
 
   return (
     <div style={style}>
-      {showRefresh && <Refresh refresh={getPurchaseRecords} />}
       <ShowError error={error} setError={setError} />
       <div
         style={{
@@ -315,13 +314,19 @@ export function PurchasesTable({
           </Button>
         )}
         <Export
-          style={{ marginLeft: "8px" }}
+          style={{ marginRight: "8px" }}
           name={
             filename ??
             getFilename({ thisMonth, cutoff, limit, offset, noStatement })
           }
           data={purchases}
         />
+        {showRefresh && (
+          <Refresh
+            handleRefresh={getPurchaseRecords}
+            style={{ marginRight: "8px" }}
+          />
+        )}
         {(day_statement_id != null || month_statement_id != null) && (
           <EmailStatement
             style={{ marginLeft: "8px" }}

@@ -34,7 +34,7 @@ export default function ExportPurchases({ name, data, style }: Props) {
                 href={URL.createObjectURL(
                   new Blob([csv], {
                     type: "text/plain",
-                  })
+                  }),
                 )}
                 download={`${name}.csv`}
               >
@@ -45,7 +45,7 @@ export default function ExportPurchases({ name, data, style }: Props) {
                 href={URL.createObjectURL(
                   new Blob([json], {
                     type: "text/plain",
-                  })
+                  }),
                 )}
                 download={`${name}.json`}
               >
@@ -63,7 +63,7 @@ export default function ExportPurchases({ name, data, style }: Props) {
         }
         trigger="click"
       >
-        <Button disabled={data == null}>
+        <Button disabled={data == null} type="link">
           <Icon name="cloud-download" /> Download...
         </Button>
       </Popover>

@@ -4,6 +4,7 @@ import { zIndexTip } from "./zindex";
 import MoneyStatistic from "./money-statistic";
 import { currency } from "@cocalc/util/misc";
 import Payment from "./payment";
+import Next from "@cocalc/frontend/components/next";
 
 interface Props {
   balance?: number | null;
@@ -35,9 +36,7 @@ export default function Balance({
       </div>
     );
   } else {
-    let stat = (
-      <MoneyStatistic title={"Current Balance"} value={balance} />
-    );
+    let stat = <MoneyStatistic title={"Current Balance"} value={balance} />;
     if (balance < 0) {
       stat = (
         <Tooltip
@@ -50,7 +49,7 @@ export default function Balance({
     }
     body = (
       <>
-        <Space style={{ marginBottom: "30px" }}>{stat}</Space>
+        <Space style={{ marginBottom: "5px" }}>{stat}</Space>
         <Payment balance={balance} update={refresh} cost={cost} />
         {pendingBalance != null && pendingBalance < 0 && (
           <Tooltip title="Pending charges are not included in your spending limit.  They need to be paid soon by a credit to your account.">
@@ -63,12 +62,13 @@ export default function Balance({
             </div>
           </Tooltip>
         )}
+        {balance > 0 && (
+          <div style={{ fontSize: "12pt", marginTop: "5px" }}>
+            <Next href={"store/vouchers"}>Transfer</Next>
+          </div>
+        )}
       </>
     );
   }
-  return (
-    <Card title={"Balance"} style={style}>
-      {body}
-    </Card>
-  );
+  return <Card style={style}>{body}</Card>;
 }
