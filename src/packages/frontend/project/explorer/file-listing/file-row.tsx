@@ -21,7 +21,6 @@ import { url_href } from "../../utils";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
-import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 
 export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "md",
@@ -353,13 +352,6 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       </Col>
       <Col sm={1} xs={1} style={{ textAlign: "center" }}>
         {render_public_file_info()}
-        {!!props.computeServerId && (
-          <ComputeServerTag
-            style={{ maxWidth: "100%" }}
-            id={props.computeServerId}
-            title={`This file is on compute server ${props.computeServerId}`}
-          />
-        )}
       </Col>
       <Col sm={1} xs={3} onClick={handle_click}>
         {render_icon()}
