@@ -44,7 +44,11 @@ export const ProjectTitle: React.FC<Props> = ({
   }
 
   if (title == null) {
-    // if we don't know the title...
+    // if we don't know the title.
+    setTimeout(() => {
+      // try to load all projects
+      redux.getActions("projects").load_all_projects();
+    }, 1);
     return <span style={style}>(Private project)</span>;
   }
 

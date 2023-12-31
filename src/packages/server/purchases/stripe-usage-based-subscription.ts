@@ -43,7 +43,7 @@ their account (if necessary) so that their subscriptions will renew.
 
 NOTE: All currencies presented to the user are in US dollars, unfortunately,
 as documented at https://stripe.com/docs/payments/checkout/present-local-currencies where
-it says "Automatic currency conversion doesn’t apply for any Sessions with multi-currency 
+it says "Automatic currency conversion doesn’t apply for any Sessions with multi-currency
 prices, subscriptions".
 */
 
@@ -58,7 +58,6 @@ import {
   setStripeCheckoutSession,
 } from "./create-stripe-checkout-session";
 import type { Stripe } from "stripe";
-import { currency } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { createCreditFromPaidStripePaymentIntent } from "./create-invoice";
 import syncPaidInvoices from "./sync-paid-invoices";
@@ -74,7 +73,7 @@ interface Options {
 }
 
 export async function createStripeUsageBasedSubscription(
-  opts: Options
+  opts: Options,
 ): Promise<Stripe.Checkout.Session> {
   const { account_id, success_url, cancel_url } = opts;
   const log = (...args) => {
@@ -142,7 +141,7 @@ async function getPriceId(): Promise<string> {
         "Usage based pricing product exists but is NOT valid.  This should never happen.  An admin probably has to manually delete the ",
         PRODUCT_ID,
         "product via the stripe console.",
-        product
+        product,
       );
       // This isn't allowed -- have to do something manually in the stripe
       // web interface instead:
@@ -152,7 +151,7 @@ async function getPriceId(): Promise<string> {
     priceIdCache.price_id = product.default_price;
     logger.debug(
       "Usage based pricing product exists with id ",
-      priceIdCache.price_id
+      priceIdCache.price_id,
     );
   } catch (err) {
     // create it:
@@ -196,7 +195,7 @@ export async function getUsageSubscription(account_id: string) {
   const db = getPool();
   const { rows } = await db.query(
     "SELECT stripe_usage_subscription, stripe_customer_id FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error(`no such account ${account_id}`);
@@ -214,7 +213,7 @@ export async function getUsageSubscription(account_id: string) {
     try {
       const card = await stripe.customers.retrieveSource(
         stripe_customer_id,
-        stripe_usage_subscription
+        stripe_usage_subscription,
       );
       return card;
     } catch (err) {
@@ -276,7 +275,7 @@ export async function setUsageSubscription({
   const pool = getPool();
   await pool.query(
     "UPDATE accounts SET stripe_usage_subscription=$1 WHERE account_id=$2",
-    [subscription_id, account_id]
+    [subscription_id, account_id],
   );
 }
 
@@ -288,7 +287,6 @@ export const MINIMUM_PAYMENT = 1;
 // For a credit card it's basically instant.  For other payment methods, I suppose
 // it could take days (?).  There's of course no guarantee, even if it returns
 // successfully without an error, that payment will ever arrive.
-
 // NOTE: do not make this accessible to call via any api exposed to users.
 export async function collectPayment({
   account_id,
@@ -302,7 +300,13 @@ export async function collectPayment({
     throw Error("No active usage subscription -- please create a new one.");
   }
   if (amount < MINIMUM_PAYMENT) {
-    throw Error(`Amount must be at least ${currency(MINIMUM_PAYMENT)}.`);
+    logger.debug(
+      "collectPayment: increasing amount from ",
+      amount,
+      "to the min allowed amount of",
+      MINIMUM_PAYMENT,
+    );
+    amount = MINIMUM_PAYMENT;
   }
   if (sub.object == "card") {
     // legacy fallback for credit cards
@@ -338,12 +342,12 @@ export async function collectPayment({
 }
 
 export async function hasUsageSubscription(
-  account_id: string
+  account_id: string,
 ): Promise<boolean> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT stripe_usage_subscription FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error(`no such account ${account_id}`);
@@ -400,7 +404,7 @@ working/configure/available.
 async function getUsageBasedSubscriptions(
   account_id: string,
   limit?: number,
-  created?: Date // greater than or equal to this date
+  created?: Date, // greater than or equal to this date
 ): Promise<any[]> {
   logger.debug("getUsageBasedSubscriptions: account_id = ", account_id);
   const customer = await getStripeCustomerId({ account_id, create: false });
@@ -422,17 +426,17 @@ async function getUsageBasedSubscriptions(
 }
 
 export async function syncUsageBasedSubscription(
-  account_id: string
+  account_id: string,
 ): Promise<boolean> {
   const subs = await getUsageBasedSubscriptions(
     account_id,
     10,
-    dayjs().subtract(1, "day").toDate()
+    dayjs().subtract(1, "day").toDate(),
   );
   logger.debug(
     "syncUsageBasedSubscriptions: considering ",
     subs.length,
-    "recently created subs"
+    "recently created subs",
   );
   for (const sub of subs) {
     const { account_id: x, service } = sub.metadata ?? {};

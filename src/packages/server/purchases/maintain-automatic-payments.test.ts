@@ -179,7 +179,7 @@ describe("testing automatic payments in several situations", () => {
     expect(collect).toEqual([]);
   });
 
-  it("creates a new user with a statement that has a |balance| less than pay_as_you_go_min_payment, and sees that it dos not get automatically billed because it is so small. Then make a second statement so the new running |balance| is 1+pay_as_you_go_min_payment, and see that user DOES get billed.", async () => {
+  it("creates a new user with a statement that has a |balance| less than pay_as_you_go_min_payment, and sees that it dos get automatically billed, but increased to pay_as_you_go_min_payment.", async () => {
     const { pay_as_you_go_min_payment } = await getServerSettings();
     const account_id = uuid();
     await createTestAccount(account_id);
@@ -199,20 +199,10 @@ describe("testing automatic payments in several situations", () => {
     );
     collect.length = 0;
     await maintainAutomaticPayments();
-    expect(collect).toEqual([]);
-
-    await pool.query(
-      `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
-                      values('month',NOW(),$1,$2,2,1,0,0)
-      `,
-      [account_id, -(pay_as_you_go_min_payment + 1)],
-    );
-    collect.length = 0;
-    await maintainAutomaticPayments();
     expect(collect).toEqual([
       {
         account_id,
-        amount: pay_as_you_go_min_payment + 1,
+        amount: pay_as_you_go_min_payment,
       },
     ]);
   });
