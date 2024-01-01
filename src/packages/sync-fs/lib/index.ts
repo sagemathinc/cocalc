@@ -192,7 +192,7 @@ class SyncFS {
     } catch (err) {
       log("unmountExcludes fail -- ", err);
     }
-    this.websocket?.removeListener("data", this.handleSyncRequest);
+    this.websocket?.removeListener("data", this.handleApiRequest);
     this.websocket?.removeListener("state", this.registerToSync);
   };
 
@@ -204,7 +204,7 @@ class SyncFS {
     this.websocket = await this.client.project_client.websocket(
       this.project_id,
     );
-    this.websocket.on("data", this.handleSyncRequest);
+    this.websocket.on("data", this.handleApiRequest);
     log("initSyncRequestHandler: installed handler");
     this.registerToSync();
     // We use *both* a period interval and websocket state change,
@@ -236,10 +236,30 @@ class SyncFS {
     }
   };
 
-  private handleSyncRequest = async (data) => {
+  private handleApiRequest = async (data) => {
+    try {
+      log("handleApiRequest:", { data });
+      const resp = this.doApiRequest(data);
+      if (data.id && this.websocket != null) {
+        this.websocket.write({
+          id: data.id,
+          resp,
+        });
+      }
+    } catch (err) {
+      log("handleApiRequest: error", { event: data?.event, err });
+      if (data.id && this.websocket != null) {
+        this.websocket.write({
+          id: data.id,
+          error: err.message,
+        });
+      }
+    }
+  };
+  private doApiRequest = async (data) => {
+    log("doApiRequest", { data });
     switch (data?.event) {
-      case "compute_server_sync_request": {
-        log("handleSyncRequest: compute_server_sync_request");
+      case "compute_server_sync_request":
         try {
           if (this.state == "sync") {
             // already in progress
@@ -248,100 +268,42 @@ class SyncFS {
           if (!this.syncIsDisabled()) {
             await this.sync();
           }
-          log("handleSyncRequest: sync worked");
+          log("doApiRequest: sync worked");
         } catch (err) {
-          log("handleSyncRequest: sync failed", err);
+          log("doApiRequest: sync failed", err);
         }
         return;
-      }
 
       case "copy_from_project_to_compute_server":
       case "copy_from_compute_server_to_project": {
-        log("handleSyncRequest: ", data);
         const createArgs = ["-c", ...data.paths];
         const extractArgs = ["-x"];
-        try {
-          if (data.event == "copy_from_project_to_compute_server") {
-            await this.tar.get({ createArgs, extractArgs, HOME: this.mount });
-          } else {
-            await this.tar.send({ createArgs, extractArgs, HOME: this.mount });
-          }
-          if (data.id) {
-            this.websocket?.write({ id: data.id });
-          }
-          log("handleSyncRequest: copy SUCCESS");
-        } catch (err) {
-          if (data.id) {
-            this.websocket?.write({
-              id: data.id,
-              error: err.message,
-            });
-          }
-          log("handleSyncRequest: copy FAILED", err);
+        if (data.event == "copy_from_project_to_compute_server") {
+          return await this.tar.get({
+            createArgs,
+            extractArgs,
+            HOME: this.mount,
+          });
+        } else {
+          return await this.tar.send({
+            createArgs,
+            extractArgs,
+            HOME: this.mount,
+          });
         }
-        return;
       }
 
-      case "listing": {
-        log("handle listing api request");
-        const { path, hidden } = data;
-        try {
-          this.websocket?.write({
-            id: data.id,
-            resp: await getListing(path, hidden, this.mount),
-          });
-        } catch (err) {
-          this.websocket?.write({
-            id: data.id,
-            error: err.message,
-          });
-        }
-        return;
-      }
+      case "listing":
+        return await getListing(data.path, data.hidden, this.mount);
 
-      case "exec": {
-        log("handle request to exec code");
-        const { opts } = data;
-        try {
-          this.websocket?.write({
-            id: data.id,
-            resp: await executeCode({ ...opts, home: this.mount }),
-          });
-        } catch (err) {
-          this.websocket?.write({
-            id: data.id,
-            error: err.message ? err.message : `${err}`,
-          });
-        }
-        return;
-      }
+      case "exec":
+        return await executeCode({ ...data.opts, home: this.mount });
 
-      case "delete_files": {
-        log("handle request to delete files");
-        try {
-          const resp = await delete_files(data.paths, this.mount);
-          this.websocket?.write({
-            id: data.id,
-            resp,
-          });
-        } catch (err) {
-          this.websocket?.write({
-            id: data.id,
-            error: err.message ? err.message : `${err}`,
-          });
-        }
-        return;
-      }
+      case "delete_files":
+        return await delete_files(data.paths, this.mount);
 
-      default: {
-        if (data?.id) {
-          this.websocket?.write({
-            id: data.id,
-            error: `unknown event '${data?.event}'`,
-          });
-        }
-        return;
-      }
+      default:
+        throw Error(`unknown event '${data?.event}'`);
     }
   };
 
