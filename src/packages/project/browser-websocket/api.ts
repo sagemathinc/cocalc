@@ -40,6 +40,7 @@ import handleSyncFsApiCall, {
   handleComputeServerSyncRegister,
   handleCopy,
   handleSyncFsGetListing,
+  handleComputeServerFilesystemExec,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
 
@@ -115,7 +116,19 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
       // to make the release easier
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
-      return await exec(data.opts);
+      if (data.opts?.compute_server_id) {
+        if (data.opts.filesystem) {
+          return await handleComputeServerFilesystemExec(data.opts);
+        } else {
+          throw Error(
+            `exec on compute server without also setting opts.filesystem=true is not implemented ${JSON.stringify(
+              data.opts,
+            )}`,
+          );
+        }
+      } else {
+        return await exec(data.opts);
+      }
     case "query":
       return await query(client, data.opts);
     case "eval_code":

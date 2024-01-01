@@ -39,6 +39,8 @@ import computeServers from "@cocalc/frontend/compute/manager";
 
 export interface ExecOpts {
   project_id: string;
+  compute_server_id?: number; // if true, run on the compute server (if available)
+  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
   path?: string;
   command: string;
   args?: string[];
@@ -209,6 +211,8 @@ export class ProjectClient {
   public async exec(opts: ExecOpts): Promise<ExecOutput> {
     opts = defaults(opts, {
       project_id: required,
+      compute_server_id: undefined,
+      filesystem: undefined,
       path: "",
       command: required,
       args: [],

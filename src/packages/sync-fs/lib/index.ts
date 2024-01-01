@@ -24,6 +24,7 @@ import mkdirp from "mkdirp";
 import { throttle } from "lodash";
 import { trunc_middle } from "@cocalc/util/misc";
 import getListing from "@cocalc/backend/get-listing";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -292,6 +293,23 @@ class SyncFS {
           this.websocket?.write({
             id: data.id,
             error: err.message,
+          });
+        }
+        return;
+      }
+
+      case "exec": {
+        log("handle request to exec code");
+        const { opts } = data;
+        try {
+          this.websocket?.write({
+            id: data.id,
+            resp: await executeCode({ ...opts, home: this.mount }),
+          });
+        } catch (err) {
+          this.websocket?.write({
+            id: data.id,
+            error: err.message ? err.message : `${err}`,
           });
         }
         return;

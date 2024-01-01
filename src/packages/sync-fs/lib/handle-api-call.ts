@@ -344,3 +344,14 @@ export async function handleSyncFsGetListing({
   const mesg = { event: "listing", path, hidden };
   return await callComputeServerApi(compute_server_id, mesg, 15000);
 }
+
+export async function handleComputeServerFilesystemExec(opts) {
+  const { compute_server_id } = opts;
+  log("handleSyncFsGetListing: ", opts);
+  const mesg = { event: "exec", opts };
+  return await callComputeServerApi(
+    compute_server_id,
+    mesg,
+    (opts.timeout ?? 10) * 1000,
+  );
+}
