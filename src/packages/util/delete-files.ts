@@ -4,7 +4,7 @@
  */
 
 import { path_split } from "./misc";
-import { meta_file, original_path } from "@cocalc/util/misc";
+import { hidden_meta_file, original_path } from "@cocalc/util/misc";
 
 // NOTE: there are also .term files in subframes with history that doesn't get
 // deleted.  That's an edge case.
@@ -27,7 +27,7 @@ export function deleted_file_variations(path: string): string[] {
       "sage-history",
       "syncdb",
     ]) {
-      variations.push(head + meta_file(tail, ext));
+      variations.push(head + hidden_meta_file(tail, ext));
     }
   }
   return variations;

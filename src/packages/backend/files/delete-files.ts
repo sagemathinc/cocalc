@@ -3,15 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { exec } from "./api";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
-import { getLogger } from "@cocalc/project/logger";
+import getLogger from "@cocalc/backend/logger";
+import { rimraf } from "rimraf";
+import { join } from "path";
 
 const log = getLogger("delete-files");
 
 // Delete the files/directories in the given project with the given list of paths.
-export async function delete_files(paths: string[]): Promise<void> {
-  log.debug(paths);
+export async function delete_files(
+  paths: string[],
+  home: string,
+): Promise<void> {
+  log.debug({ paths, home });
+  paths = paths.map((x) => (x.startsWith("/") ? x : join(home, x)));
   // Add in all the hidden variants.
   let extra: string[] = [];
   for (const path of paths) {
@@ -28,9 +33,5 @@ export async function delete_files(paths: string[]): Promise<void> {
   //    - we MUST make deletion detection fully work based entirely on what happens
   //      on the filesystem, e.g., due to git checkout and people using the terminal
   log.debug("extra = ", extra);
-  await exec({
-    command: "rm",
-    timeout: 60,
-    args: ["-rf", "--"].concat(paths).concat(extra),
-  });
+  await rimraf(paths.concat(extra), { maxRetries: 2 });
 }

@@ -40,6 +40,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "password-hash": "^1.2.2",
+    "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
     "underscore": "^1.12.1"

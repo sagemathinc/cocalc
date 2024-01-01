@@ -26,7 +26,7 @@ import { syncdoc_call } from "../sync/sync-doc";
 import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
-import { delete_files } from "./delete-files";
+import { delete_files } from "@cocalc/backend/files/delete-files";
 import { eval_code } from "./eval-code";
 import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files, rename_file } from "./move-files";
@@ -95,7 +95,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "listing":
       return await listing(data.path, data.hidden, data.compute_server_id);
     case "delete_files":
-      return await delete_files(data.paths);
+      return await delete_files(data.paths, process.env.HOME ?? "/tmp");
     case "move_files":
       return await move_files(data.paths, data.dest, log);
     case "rename_file":
