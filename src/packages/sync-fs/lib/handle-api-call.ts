@@ -355,3 +355,12 @@ export async function handleComputeServerFilesystemExec(opts) {
     (opts.timeout ?? 10) * 1000,
   );
 }
+
+export async function handleComputeServerDeleteFiles({
+  compute_server_id,
+  paths,
+}) {
+  log("handleComputeServerDeleteFiles: ", { compute_server_id, paths });
+  const mesg = { event: "delete_files", paths };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}

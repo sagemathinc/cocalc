@@ -41,6 +41,7 @@ import handleSyncFsApiCall, {
   handleCopy,
   handleSyncFsGetListing,
   handleComputeServerFilesystemExec,
+  handleComputeServerDeleteFiles,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
 
@@ -95,7 +96,15 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "listing":
       return await listing(data.path, data.hidden, data.compute_server_id);
     case "delete_files":
-      return await delete_files(data.paths, process.env.HOME ?? "/tmp");
+      const { compute_server_id, paths } = data;
+      if (!compute_server_id) {
+        return await delete_files(data.paths, process.env.HOME ?? "/tmp");
+      } else {
+        return await handleComputeServerDeleteFiles({
+          paths,
+          compute_server_id,
+        });
+      }
     case "move_files":
       return await move_files(data.paths, data.dest, log);
     case "rename_file":

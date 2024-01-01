@@ -25,6 +25,7 @@ import { throttle } from "lodash";
 import { trunc_middle } from "@cocalc/util/misc";
 import getListing from "@cocalc/backend/get-listing";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { delete_files } from "@cocalc/backend/files/delete-files";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -305,6 +306,23 @@ class SyncFS {
           this.websocket?.write({
             id: data.id,
             resp: await executeCode({ ...opts, home: this.mount }),
+          });
+        } catch (err) {
+          this.websocket?.write({
+            id: data.id,
+            error: err.message ? err.message : `${err}`,
+          });
+        }
+        return;
+      }
+
+      case "delete_files": {
+        log("handle request to delete files");
+        try {
+          const resp = await delete_files(data.paths, this.mount);
+          this.websocket?.write({
+            id: data.id,
+            resp,
           });
         } catch (err) {
           this.websocket?.write({

@@ -36,6 +36,7 @@ interface MesgExec {
 interface MesgDeleteFiles {
   cmd: "delete_files";
   paths: string[];
+  compute_server_id?: number;
 }
 
 interface MesgFormatterString {

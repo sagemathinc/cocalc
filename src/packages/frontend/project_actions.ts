@@ -2219,9 +2219,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return false;
   }
 
-  public async delete_files(opts: { paths: string[] }): Promise<void> {
+  public async delete_files(opts: {
+    paths: string[];
+    compute_server_id?: number;
+  }): Promise<void> {
     let mesg;
-    opts = defaults(opts, { paths: required });
+    opts = defaults(opts, {
+      paths: required,
+      compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
+    });
     if (opts.paths.length === 0) {
       return;
     }
@@ -2253,7 +2259,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
-      await delete_files(this.project_id, opts.paths);
+      await delete_files(this.project_id, opts.paths, opts.compute_server_id);
       this.log({ event: "file_action", action: "deleted", files: opts.paths });
       this.set_activity({
         id,

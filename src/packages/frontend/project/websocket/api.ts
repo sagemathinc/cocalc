@@ -64,8 +64,14 @@ export class API {
     return this.cachedVersion;
   }
 
-  async delete_files(paths: string[]): Promise<void> {
-    return await this.call({ cmd: "delete_files", paths }, 60000);
+  async delete_files(
+    paths: string[],
+    compute_server_id?: number,
+  ): Promise<void> {
+    return await this.call(
+      { cmd: "delete_files", paths, compute_server_id },
+      60000,
+    );
   }
 
   // Move the given paths to the dest.  The folder dest must exist
