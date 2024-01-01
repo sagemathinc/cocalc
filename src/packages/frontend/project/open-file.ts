@@ -450,12 +450,9 @@ function get_side_chat_state(
 }
 
 async function setComputeServer(actions, path: string) {
-  if (
-    !path.endsWith(".txt") &&
-    !path.endsWith(".py") &&
-    !path.endsWith(".md")
-  ) {
-    // that's all we have implemented so far.
+  if (path.endsWith(".sagews")) {
+    // sagews is not supported
+    // TODO: show an error message?
     return;
   }
   const computeServerAssociations = webapp_client.project_client.computeServers(
