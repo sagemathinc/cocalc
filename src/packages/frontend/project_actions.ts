@@ -2128,7 +2128,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
   }
 
-  public async rename_file(opts: { src: string; dest: string }): Promise<void> {
+  public async rename_file(opts: {
+    src: string;
+    dest: string;
+    compute_server_id?: number;
+  }): Promise<void> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
@@ -2141,12 +2145,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status });
     try {
       const api = await this.api();
-      await api.rename_file(opts.src, opts.dest);
+      const compute_server_id =
+        opts.compute_server_id ??
+        this.get_store()?.get("compute_server_id") ??
+        0;
+      await api.rename_file(opts.src, opts.dest, compute_server_id);
       this.log({
         event: "file_action",
         action: "renamed",
         src: opts.src,
         dest: opts.dest + ((await this.isdir(opts.dest)) ? "/" : ""),
+        compute_server_id,
       });
     } catch (err) {
       error = err;
@@ -2174,6 +2183,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public async move_files(opts: {
     src: string[];
     dest: string;
+    compute_server_id?: number;
   }): Promise<void> {
     if (
       !(await ensure_project_running(
@@ -2192,12 +2202,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let error: any = undefined;
     try {
       const api = await this.api();
-      await api.move_files(opts.src, opts.dest);
+      const compute_server_id =
+        opts.compute_server_id ??
+        this.get_store()?.get("compute_server_id") ??
+        0;
+      await api.move_files(opts.src, opts.dest, compute_server_id);
       this.log({
         event: "file_action",
         action: "moved",
         files: opts.src,
         dest: opts.dest + "/" /* target is assumed to be a directory */,
+        compute_server_id,
       });
     } catch (err) {
       error = err;
@@ -2262,7 +2277,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
       await delete_files(this.project_id, opts.paths, opts.compute_server_id);
-      this.log({ event: "file_action", action: "deleted", files: opts.paths });
+      this.log({
+        event: "file_action",
+        action: "deleted",
+        files: opts.paths,
+        compute_server_id: opts.compute_server_id,
+      });
       this.set_activity({
         id,
         status: `Successfully deleted ${mesg}.`,

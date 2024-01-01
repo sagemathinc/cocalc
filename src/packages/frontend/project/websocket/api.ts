@@ -76,16 +76,30 @@ export class API {
 
   // Move the given paths to the dest.  The folder dest must exist
   // already and be a directory, or this is in an error.
-  async move_files(paths: string[], dest: string): Promise<void> {
-    return await this.call({ cmd: "move_files", paths, dest }, 60000);
+  async move_files(
+    paths: string[],
+    dest: string,
+    compute_server_id?: number,
+  ): Promise<void> {
+    return await this.call(
+      { cmd: "move_files", paths, dest, compute_server_id },
+      60000,
+    );
   }
 
   // Rename the file src to be the file dest.  The dest may be
   // in a different directory or may even exist already (in which)
   // case it is overwritten if it is a file. If dest exists and
   // is a directory, it is an error.
-  async rename_file(src: string, dest: string): Promise<void> {
-    return await this.call({ cmd: "rename_file", src, dest }, 30000);
+  async rename_file(
+    src: string,
+    dest: string,
+    compute_server_id?: number,
+  ): Promise<void> {
+    return await this.call(
+      { cmd: "rename_file", src, dest, compute_server_id },
+      30000,
+    );
   }
 
   async listing(

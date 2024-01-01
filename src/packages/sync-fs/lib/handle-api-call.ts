@@ -364,3 +364,23 @@ export async function handleComputeServerDeleteFiles({
   const mesg = { event: "delete_files", paths };
   return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
 }
+
+export async function handleComputeServerRenameFile({
+  compute_server_id,
+  src,
+  dest,
+}) {
+  log("handleComputeServerRenameFile: ", { compute_server_id, src, dest });
+  const mesg = { event: "rename_file", src, dest };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}
+
+export async function handleComputeServerMoveFiles({
+  compute_server_id,
+  paths,
+  dest,
+}) {
+  log("handleComputeServerMoveFiles: ", { compute_server_id, paths, dest });
+  const mesg = { event: "move_files", paths, dest };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}

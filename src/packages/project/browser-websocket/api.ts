@@ -42,6 +42,8 @@ import handleSyncFsApiCall, {
   handleSyncFsGetListing,
   handleComputeServerFilesystemExec,
   handleComputeServerDeleteFiles,
+  handleComputeServerMoveFiles,
+  handleComputeServerRenameFile,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
 
@@ -106,9 +108,17 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
         });
       }
     case "move_files":
-      return await move_files(data.paths, data.dest, log);
+      if (!data.compute_server_id) {
+        return await move_files(data.paths, data.dest, log);
+      } else {
+        return await handleComputeServerMoveFiles(data);
+      }
     case "rename_file":
-      return await rename_file(data.src, data.dest, log);
+      if (!data.compute_server_id) {
+        return await rename_file(data.src, data.dest, log);
+      } else {
+        return await handleComputeServerRenameFile(data);
+      }
     case "canonical_paths":
       return await canonical_paths(data.paths);
     case "configuration":
