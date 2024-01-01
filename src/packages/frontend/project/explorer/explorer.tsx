@@ -338,6 +338,7 @@ const Explorer0 = rclass(
             new_name={this.props.new_name}
             actions={this.props.actions}
             displayed_listing={this.props.displayed_listing}
+            name={project_redux_name(this.props.project_id)}
           />
         </Col>
       );

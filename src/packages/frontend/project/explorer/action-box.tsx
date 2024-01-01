@@ -13,6 +13,7 @@ import DirectorySelector from "../directory-selector";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
+import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 
 import * as misc from "@cocalc/util/misc";
 
@@ -44,14 +45,16 @@ interface ReactProps {
   actions: ProjectActions;
   displayed_listing?: object;
   new_name?: string;
+  name: string;
 }
 
 interface ReduxProps {
   site_name?: string;
   get_user_type: () => string;
   get_total_project_quotas: (
-    project_id: string
+    project_id: string,
   ) => { network: boolean } | undefined;
+  compute_server_id?: number;
 }
 
 interface State {
@@ -68,7 +71,7 @@ export const ActionBox = rclass<ReactProps>(
   class ActionBox extends React.Component<ReactProps & ReduxProps, State> {
     private pre_styles: React.CSSProperties;
 
-    static reduxProps = () => {
+    static reduxProps = ({ name }) => {
       return {
         projects: {
           // get_total_project_quotas relies on this data
@@ -81,6 +84,9 @@ export const ActionBox = rclass<ReactProps>(
         },
         customize: {
           site_name: rtypes.string,
+        },
+        [name]: {
+          compute_server_id: rtypes.number,
         },
       };
     };
@@ -176,7 +182,7 @@ export const ActionBox = rclass<ReactProps>(
                   type="text"
                   defaultValue={account.default_filename(
                     "zip",
-                    this.props.project_id
+                    this.props.project_id,
                   )}
                   placeholder="Result archive..."
                   onKeyDown={this.action_key}
@@ -235,18 +241,28 @@ export const ActionBox = rclass<ReactProps>(
           </Row>
           <Row style={{ marginBottom: "10px" }}>
             <Col sm={12}>
-              Deleting a file immediately deletes it from disk freeing up space;
-              however, older backups of your files may still be available in the{" "}
-              <a
-                href=""
-                onClick={(e) => {
-                  e.preventDefault();
-                  this.props.actions.open_directory(".snapshots");
-                }}
-              >
-                ~/.snapshots
-              </a>{" "}
-              directory.
+              Deleting a file immediately deletes it from the disk{" "}
+              {this.props.compute_server_id ? (
+                <>on the compute server</>
+              ) : (
+                <></>
+              )}{" "}
+              freeing up space.
+              {!this.props.compute_server_id && (
+                <div>
+                  Older backups of your files may still be available in the{" "}
+                  <a
+                    href=""
+                    onClick={(e) => {
+                      e.preventDefault();
+                      this.props.actions.open_directory(".snapshots");
+                    }}
+                  >
+                    ~/.snapshots
+                  </a>{" "}
+                  directory.
+                </div>
+              )}
             </Col>
           </Row>
           <Row>
@@ -270,7 +286,7 @@ export const ActionBox = rclass<ReactProps>(
 
     rename_or_duplicate_click(): void {
       const rename_dir = misc.path_split(
-        this.props.checked_files?.first() ?? ""
+        this.props.checked_files?.first() ?? "",
       ).head;
       const destination = (ReactDOM.findDOMNode(this.refs.new_name) as any)
         .value;
@@ -314,7 +330,7 @@ export const ActionBox = rclass<ReactProps>(
 
     render_rename_warning(): JSX.Element | undefined {
       const initial_ext = misc.filename_extension(
-        this.props.checked_files.first()
+        this.props.checked_files.first(),
       );
       const new_name = this.state.new_name ?? "";
       const current_ext = misc.filename_extension(new_name);
@@ -739,7 +755,7 @@ export const ActionBox = rclass<ReactProps>(
         return <Loading />;
       }
       const total_quotas = this.props.get_total_project_quotas(
-        this.props.project_id
+        this.props.project_id,
       ) || { network: undefined };
       return (
         <ConfigureShare
@@ -795,7 +811,7 @@ export const ActionBox = rclass<ReactProps>(
 
     render_download_single(single_item: string): JSX.Element {
       const target = (this.props.actions.get_store() as any).get_raw_link(
-        single_item
+        single_item,
       );
       return (
         <div>
@@ -821,7 +837,7 @@ export const ActionBox = rclass<ReactProps>(
               type="text"
               defaultValue={account.default_filename(
                 "zip",
-                this.props.project_id
+                this.props.project_id,
               )}
               placeholder="Result archive..."
               onKeyDown={this.action_key}
@@ -929,6 +945,12 @@ export const ActionBox = rclass<ReactProps>(
                     <Icon name="times" />
                   </AntdButton>
                 </div>
+                {!!this.props.compute_server_id && (
+                  <ComputeServerTag
+                    id={this.props.compute_server_id}
+                    style={{ float: "right", top: "5px" }}
+                  />
+                )}
               </Col>
               <Col sm={12}>{this.render_action_box(action)}</Col>
             </Row>
@@ -936,5 +958,5 @@ export const ActionBox = rclass<ReactProps>(
         );
       }
     }
-  }
+  },
 );
