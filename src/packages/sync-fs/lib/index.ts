@@ -239,7 +239,8 @@ class SyncFS {
   private handleApiRequest = async (data) => {
     try {
       log("handleApiRequest:", { data });
-      const resp = this.doApiRequest(data);
+      const resp = await this.doApiRequest(data);
+      log("handleApiRequest: ", { resp });
       if (data.id && this.websocket != null) {
         this.websocket.write({
           id: data.id,

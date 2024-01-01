@@ -550,7 +550,14 @@ export class ProjectClient {
     return (await this.call(message.api_keys(opts2))).response;
   }
 
-  public computeServers(project_id) {
+  computeServers = (project_id) => {
     return computeServers(project_id);
-  }
+  };
+
+  getServerIdForPath = async ({
+    project_id,
+    path,
+  }): Promise<number | undefined> => {
+    return await computeServers(project_id)?.getServerIdForPath(path);
+  };
 }

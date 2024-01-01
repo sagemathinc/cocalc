@@ -1691,6 +1691,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id),
+      compute_server_id: this.get_store()?.get("compute_server_id"),
+      filesystem: true,
     });
   }
 
