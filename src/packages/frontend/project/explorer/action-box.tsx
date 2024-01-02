@@ -637,7 +637,7 @@ export const ActionBox = rclass<ReactProps>(
       return true;
     }
 
-    render_copy_description(): JSX.Element {
+    render_copy_description() {
       for (const path of this.props.checked_files) {
         if (in_snapshot_path(path)) {
           return (
@@ -650,12 +650,16 @@ export const ActionBox = rclass<ReactProps>(
       }
       return (
         <>
-          <h4>
-            Copy to a folder or{" "}
-            {this.state.show_different_project
-              ? "project"
-              : this.different_project_button()}
-          </h4>
+          {!this.props.compute_server_id ? (
+            <h4>
+              Copy to a folder or{" "}
+              {this.state.show_different_project
+                ? "project"
+                : this.different_project_button()}
+            </h4>
+          ) : (
+            <h4>Copy to folder on the compute server</h4>
+          )}
           {this.render_selected_files_list()}
         </>
       );
@@ -720,7 +724,11 @@ export const ActionBox = rclass<ReactProps>(
                     : this.state.copy_destination_directory}
                 </h4>
                 <DirectorySelector
-                  title="Select Copy Destination Directory"
+                  title={
+                    this.props.compute_server_id
+                      ? "Select Destination on Compute Server"
+                      : "Select Destination Directory"
+                  }
                   onSelect={(value: string) =>
                     this.setState({ copy_destination_directory: value })
                   }

@@ -100,7 +100,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
       return await listing(data.path, data.hidden, data.compute_server_id);
     case "delete_files":
       const { compute_server_id, paths } = data;
-      if (!compute_server_id) {
+      if (compute_server_id) {
         return await handleComputeServerDeleteFiles({
           paths,
           compute_server_id,

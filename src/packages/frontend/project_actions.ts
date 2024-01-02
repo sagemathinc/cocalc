@@ -2006,12 +2006,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ library_is_copying: status });
   }
 
-  copy_paths(opts) {
+  copy_paths(opts: {
+    src: string[];
+    dest: string;
+    id?: string;
+    only_contents?: boolean;
+    compute_server_id?: number;
+  }) {
     opts = defaults(opts, {
       src: required, // Should be an array of source paths
       dest: required,
       id: undefined,
       only_contents: false,
+      compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
     }); // true for duplicating files
 
     const with_slashes = opts.src.map(this._convert_to_displayed_path);
@@ -2067,6 +2074,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: 120, // how long rsync runs on client
       err_on_exit: true,
       path: ".",
+      compute_server_id: opts.compute_server_id,
+      filesystem: true,
       cb: this._finish_exec(id),
     });
   }
