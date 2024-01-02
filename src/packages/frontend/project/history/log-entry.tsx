@@ -5,7 +5,6 @@
 
 import { Tooltip } from "antd";
 import React from "react";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -54,6 +53,7 @@ import type {
 } from "./types";
 import { isUnknownEvent } from "./types";
 import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
+import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 
 const TRUNC = 90;
 
@@ -333,12 +333,19 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_file_action(e: FileActionEvent): JSX.Element {
+      const computeServer = e.compute_server_id ? (
+        <ComputeServerTag
+          id={e.compute_server_id}
+          style={{ float: "right", maxWidth: "125px" }}
+        />
+      ) : undefined;
       switch (e.action) {
         case "deleted":
           return (
             <span>
               deleted {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
+              {computeServer}
             </span>
           );
         case "downloaded":
@@ -346,6 +353,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               downloaded {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
+              {computeServer}
             </span>
           );
         case "moved":
@@ -353,6 +361,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               moved {multi_file_links(e, false)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
+              {computeServer}
             </span>
           );
         case "renamed":
@@ -360,6 +369,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               renamed {file_link(e.src, false, 0)} to{" "}
               {file_link(e.dest, true, 1)}
+              {computeServer}
             </span>
           );
         case "copied":
@@ -367,6 +377,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               copied {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
+              {computeServer}
             </span>
           );
         case "shared":
@@ -374,12 +385,21 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               shared {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
+              {computeServer}
             </span>
           );
         case "uploaded":
-          return <span>uploaded {file_link(e.file, true, 0)}</span>;
+          return (
+            <span>
+              uploaded {file_link(e.file, true, 0)} {computeServer}
+            </span>
+          );
         case "created":
-          return <span>created {multi_file_links(e)}</span>;
+          return (
+            <span>
+              created {multi_file_links(e)} {computeServer}
+            </span>
+          );
       }
     }
 
