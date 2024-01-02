@@ -194,7 +194,7 @@ export class ProjectClient {
   }
 
   /*
-    Execute code in a given project.
+    Execute code in a given project or associated compute server.
 
     Aggregate option -- use like this:
 

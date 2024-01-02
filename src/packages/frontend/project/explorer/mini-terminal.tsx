@@ -21,15 +21,18 @@ import { ProjectActions } from "../../project_actions";
 import { Button, Input, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { redux } from "@cocalc/frontend/app-framework";
 
 // used to run the command -- could change to use an action and the store.
 import { webapp_client } from "../../webapp-client";
+
+const WIDTH = "256px";
 
 export const output_style_searchbox: React.CSSProperties = {
   background: "white",
   position: "absolute",
   zIndex: 2,
-  width: "93%",
+  width: WIDTH,
   boxShadow: "-4px 4px 7px #aaa",
   maxHeight: "450px",
   overflow: "auto",
@@ -44,9 +47,9 @@ export const output_style_miniterm: React.CSSProperties = {
   maxHeight: "450px",
   overflow: "auto",
   right: 0,
-  maxWidth: "80%",
   marginRight: "5px",
   borderRadius: "5px",
+  width: WIDTH,
 } as const;
 
 const BAD_COMMANDS = {
@@ -65,7 +68,7 @@ const EXEC_TIMEOUT = 10; // in seconds
 
 interface Props {
   current_path: string;
-  project_id?: string; // Undefined is = HOME
+  project_id: string;
   actions: ProjectActions;
   show_close_x?: boolean;
 }
@@ -116,6 +119,9 @@ class MiniTerminal0 extends React.Component<Props, State> {
     const id = this._id;
     const start_time = new Date().getTime();
     user_activity("mini_terminal", "exec", input);
+    const compute_server_id = redux
+      .getProjectStore(this.props.project_id)
+      ?.get("compute_server_id");
     webapp_client.exec({
       project_id: this.props.project_id,
       command: input0,
@@ -124,6 +130,8 @@ class MiniTerminal0 extends React.Component<Props, State> {
       bash: true,
       path: this.props.current_path,
       err_on_exit: false,
+      compute_server_id,
+      filesystem: true,
       cb: (err, output) => {
         if (this._id !== id) {
           // computation was canceled -- ignore result.
@@ -145,6 +153,9 @@ class MiniTerminal0 extends React.Component<Props, State> {
             // Find the current path
             // after the command is executed, and strip
             // the output of "pwd" from the output:
+            // NOTE: for compute servers which can in theory use a totally different HOME, this won't work.
+            // However, by default on cocalc.com they use the same HOME, so it should work.
+            // ALSO, note basically this same code is in frontend/project/explorer/search-bar.tsx
             let s = output.stdout.trim();
             let i = s.lastIndexOf("\n");
             if (i === -1) {
@@ -208,11 +219,9 @@ class MiniTerminal0 extends React.Component<Props, State> {
         }}
         href=""
         style={{
-          right: "10px",
-          top: "4px",
+          float: "right",
           color: "#666",
           fontSize: "8pt",
-          position: "absolute",
         }}
       >
         <Icon name="times" />
@@ -251,7 +260,7 @@ class MiniTerminal0 extends React.Component<Props, State> {
             this.execute_command();
           }}
         >
-          <Space.Compact style={{ width: "100%" }}>
+          <Space.Compact style={{ width: WIDTH }}>
             <Input
               allowClear
               type="text"
