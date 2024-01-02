@@ -282,18 +282,24 @@ class SyncFS {
       case "copy_from_compute_server_to_project": {
         const createArgs = ["-c", ...data.paths];
         const extractArgs = ["-x"];
+        if (data.dest) {
+          throw Error(`dest support not implemented yet`);
+        }
         if (data.event == "copy_from_project_to_compute_server") {
           return await this.tar.get({
             createArgs,
             extractArgs,
             HOME: this.mount,
           });
-        } else {
+        } else if (data.event == "copy_from_compute_server_to_project") {
           return await this.tar.send({
             createArgs,
             extractArgs,
             HOME: this.mount,
           });
+        } else {
+          // impossible
+          throw Error(`bug -- invalid event ${data.event}`);
         }
       }
 

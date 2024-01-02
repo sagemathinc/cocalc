@@ -410,7 +410,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     options?: { [key: string]: any }[]; // options to the query, e.g., [{limit:5}] )
     changes?: boolean; // whether or not to create a changefeed
     //standby: boolean; // **IGNORED**
-    timeout: number; // how long to wait for initial result
+    timeout: number; // how long in *seconds* wait for initial result from hub database call
     cb: CB<any, string>;
   }) {
     if (options != null && !misc.is_array(options)) {

@@ -210,12 +210,22 @@ interface MesgComputeServerSyncRequest {
 
 interface MesgCopyFromProjectToComputeServer {
   cmd: "copy_from_project_to_compute_server";
-  opts: { compute_server_id: number; paths: string[]; timeout?: number };
+  opts: {
+    compute_server_id: number;
+    paths: string[];
+    dest?: string;
+    timeout?: number;
+  };
 }
 
 interface MesgCopyFromComputeServerToProject {
   cmd: "copy_from_compute_server_to_project";
-  opts: { compute_server_id: number; paths: string[]; timeout?: number };
+  opts: {
+    compute_server_id: number;
+    paths: string[];
+    dest?: string;
+    timeout?: number;
+  };
 }
 
 export type Mesg =

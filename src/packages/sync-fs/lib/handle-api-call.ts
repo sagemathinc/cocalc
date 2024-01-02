@@ -324,14 +324,15 @@ export async function handleCopy(opts: {
   event: string;
   compute_server_id: number;
   paths: string[];
+  dest?: string;
   timeout?: number;
 }) {
   log("handleCopy: ", opts);
-  const mesg = { event: opts.event, paths: opts.paths };
+  const mesg = { event: opts.event, paths: opts.paths, dest: opts.dest };
   return await callComputeServerApi(
     opts.compute_server_id,
     mesg,
-    opts.timeout ?? 30000,
+    (opts.timeout ?? 30) * 1000,
   );
 }
 

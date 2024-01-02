@@ -2007,7 +2007,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ library_is_copying: status });
   }
 
-  copy_paths(opts: {
+  copy_paths = async (opts: {
     src: string[];
     dest: string;
     id?: string;
@@ -2019,7 +2019,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // NOTE: right now src_compute_server_id and dest_compute_server_id
     // must be the same or one of them must be 0.  We don't implement
     // copying directly from one compute server to another *yet*.
-  }) {
+  }) => {
     opts = defaults(opts, {
       src: required, // Should be an array of source paths
       dest: required,
@@ -2073,18 +2073,36 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // Copying from/to a compute server from/to a project.  This uses
       // an api, which behind the scenes uses lz4 compression and tar
       // proxied via a websocket, but no use of rsync or ssh.
-      // Not implemented between two distinct compute servers yet.
-      if (opts.src_compute_server_id && opts.dest_compute_server_id) {
-        // not project and not equal, so error
-        this._finish_exec(id)(
-          "copying directly between compute servers is not yet implemented",
-        );
-        return;
-      }
 
       // do it.
-
-      this._finish_exec(id)();
+      try {
+        const api = await this.api();
+        if (opts.src_compute_server_id) {
+          // from compute server to project
+          await api.copyFromComputeServerToProject({
+            compute_server_id: opts.src_compute_server_id,
+            paths: opts.src,
+            dest: opts.dest,
+            timeout: 120,
+          });
+        } else if (opts.dest_compute_server_id) {
+          // from project to compute server
+          await api.copyFromProjectToComputeServer({
+            compute_server_id: opts.dest_compute_server_id,
+            paths: opts.src,
+            dest: opts.dest,
+            timeout: 120,
+          });
+        } else {
+          // Not implemented between two distinct compute servers yet.
+          throw Error(
+            "copying directly between compute servers is not yet implemented",
+          );
+        }
+        this._finish_exec(id)();
+      } catch (err) {
+        this._finish_exec(id)(`${err}`);
+      }
 
       return;
     }
@@ -2116,7 +2134,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       filesystem: true,
       cb: this._finish_exec(id),
     });
-  }
+  };
 
   copy_paths_between_projects(opts) {
     opts = defaults(opts, {

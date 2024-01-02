@@ -366,7 +366,7 @@ export class API {
   // very useful when using a project-specific api key.
   async query(opts: any): Promise<any> {
     if (opts.timeout == null) {
-      opts.timeout = 30000;
+      opts.timeout = 30;
     }
     const timeout_ms = opts.timeout * 1000 + 2000;
     return await this.call({ cmd: "query", opts }, timeout_ms);
@@ -388,22 +388,24 @@ export class API {
   async copyFromProjectToComputeServer(opts: {
     compute_server_id: number;
     paths: string[];
+    dest?: string;
     timeout?: number;
   }) {
     await this.call(
       { cmd: "copy_from_project_to_compute_server", opts },
-      opts.timeout ?? 30000,
+      (opts.timeout ?? 60) * 1000,
     );
   }
 
   async copyFromComputeServerToProject(opts: {
     compute_server_id: number;
     paths: string[];
+    dest?: string;
     timeout?: number;
   }) {
     await this.call(
       { cmd: "copy_from_compute_server_to_project", opts },
-      opts.timeout ?? 30000,
+      (opts.timeout ?? 60) * 1000,
     );
   }
 }
