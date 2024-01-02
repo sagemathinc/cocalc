@@ -26,6 +26,8 @@ import { trunc_middle } from "@cocalc/util/misc";
 import getListing from "@cocalc/backend/get-listing";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
+import { move_files } from "@cocalc/backend/files/move-files";
+import { rename_file } from "@cocalc/backend/files/rename-file";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -257,6 +259,7 @@ class SyncFS {
       }
     }
   };
+
   private doApiRequest = async (data) => {
     log("doApiRequest", { data });
     switch (data?.event) {
@@ -302,6 +305,21 @@ class SyncFS {
 
       case "delete_files":
         return await delete_files(data.paths, this.mount);
+
+      case "move_files":
+        return await move_files(
+          data.paths,
+          data.dest,
+          (path) => this.client.set_deleted(path),
+          this.mount,
+        );
+      case "rename_file":
+        return await rename_file(
+          data.src,
+          data.dest,
+          (path) => this.client.set_deleted(path),
+          this.mount,
+        );
 
       default:
         throw Error(`unknown event '${data?.event}'`);

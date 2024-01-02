@@ -60,19 +60,21 @@ interface MesgListing {
   cmd: "listing";
   path: string;
   hidden: boolean;
-  compute_server_id: number;
+  compute_server_id?: number;
 }
 
 interface MesgMoveFiles {
   cmd: "move_files";
   paths: string[];
   dest: string;
+  compute_server_id: number | undefined;
 }
 
 interface MesgRenameFile {
   cmd: "rename_file";
   src: string;
   dest: string;
+  compute_server_id: number | undefined;
 }
 
 interface MesgCanonicalPaths {

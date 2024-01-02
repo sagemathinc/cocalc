@@ -3,20 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { getHome } from "./util";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
-import getLogger from "@cocalc/backend/logger";
 import { rimraf } from "rimraf";
 import { join } from "path";
+import getLogger from "@cocalc/backend/logger";
 
 const log = getLogger("delete-files");
 
 // Delete the files/directories in the given project with the given list of paths.
 export async function delete_files(
   paths: string[],
-  home: string,
+  home?: string,
 ): Promise<void> {
-  log.debug({ paths, home });
-  paths = paths.map((x) => (x.startsWith("/") ? x : join(home, x)));
+  const HOME = getHome(home);
+  log.debug({ paths, HOME });
+  paths = paths.map((x) => (x.startsWith("/") ? x : join(HOME, x)));
   // Add in all the hidden variants.
   let extra: string[] = [];
   for (const path of paths) {

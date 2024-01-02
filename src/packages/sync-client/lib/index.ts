@@ -71,6 +71,10 @@ export default class Client extends EventEmitter implements AppClient {
     return false;
   };
 
+  set_deleted = async (_filename: string, _project_id?: string) => {
+    // TODO -- implement in fs aware clients
+  };
+
   mark_file = async (_opts: any) => {
     // [ ] TODO: should we?
   };

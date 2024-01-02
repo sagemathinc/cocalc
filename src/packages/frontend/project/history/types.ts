@@ -158,7 +158,13 @@ export type ProjectControlEvent = {
 };
 
 export type FileActionEvent =
-  | { event: "file_action"; action: "renamed"; src: string; dest: string }
+  | {
+      event: "file_action";
+      action: "renamed";
+      src: string;
+      dest: string;
+      compute_server_id?: number;
+    }
   | ((
       | { action: "deleted" }
       | { action: "downloaded" }
@@ -173,6 +179,7 @@ export type FileActionEvent =
       count?: number;
       project?: string;
       dest?: string;
+      compute_server_id?: number;
     });
 
 export type PublicPathEvent = {

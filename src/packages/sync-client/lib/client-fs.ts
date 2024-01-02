@@ -228,6 +228,10 @@ export class FileSystemClient {
     return undefined;
   };
 
+  set_deleted = (_path: string, _project_id?: string) => {
+    // TODO: this should edit the listings
+  };
+
   path_access = (opts: { path: string; mode: string; cb: CB }) => {
     // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
     // cb(err); err = if any access fails; err=undefined if all access is OK

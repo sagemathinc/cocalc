@@ -29,7 +29,8 @@ import { canonical_paths } from "./canonical-path";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { eval_code } from "./eval-code";
 import computeFilesystemCache from "./compute-filesystem-cache";
-import { move_files, rename_file } from "./move-files";
+import { move_files } from "@cocalc/backend/files/move-files";
+import { rename_file } from "@cocalc/backend/files/rename-file";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
 import query from "./query";
@@ -46,8 +47,8 @@ import handleSyncFsApiCall, {
   handleComputeServerRenameFile,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
-
 import { getLogger } from "@cocalc/project/logger";
+
 const log = getLogger("websocket-api");
 
 let primus: any = undefined;
@@ -100,24 +101,28 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "delete_files":
       const { compute_server_id, paths } = data;
       if (!compute_server_id) {
-        return await delete_files(data.paths, process.env.HOME ?? "/tmp");
-      } else {
         return await handleComputeServerDeleteFiles({
           paths,
           compute_server_id,
         });
+      } else {
+        return await delete_files(data.paths);
       }
     case "move_files":
-      if (!data.compute_server_id) {
-        return await move_files(data.paths, data.dest, log);
-      } else {
+      if (data.compute_server_id) {
         return await handleComputeServerMoveFiles(data);
+      } else {
+        return await move_files(data.paths, data.dest, (path) =>
+          client.set_deleted(path),
+        );
       }
     case "rename_file":
-      if (!data.compute_server_id) {
-        return await rename_file(data.src, data.dest, log);
-      } else {
+      if (data.compute_server_id) {
         return await handleComputeServerRenameFile(data);
+      } else {
+        return await rename_file(data.src, data.dest, (path) =>
+          client.set_deleted(path),
+        );
       }
     case "canonical_paths":
       return await canonical_paths(data.paths);
@@ -208,7 +213,7 @@ import getListing from "@cocalc/backend/get-listing";
 async function listing(
   path: string,
   hidden: boolean,
-  compute_server_id: number,
+  compute_server_id?: number,
 ): Promise<DirectoryListingEntry[]> {
   if (!compute_server_id) {
     return await getListing(path, hidden);

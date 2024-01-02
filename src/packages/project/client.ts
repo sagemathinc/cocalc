@@ -633,7 +633,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   public async set_deleted(
     filename: string,
-    _project_id: string,
+    _project_id?: string,
   ): Promise<void> {
     // project_id is ignored
     const listings = getListingsTable();
