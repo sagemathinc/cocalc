@@ -169,7 +169,11 @@ export type FileActionEvent =
       | { action: "deleted" }
       | { action: "downloaded" }
       | { action: "moved" }
-      | { action: "copied" }
+      | {
+          action: "copied";
+          src_compute_server_id?: number;
+          dest_compute_server_id?: number;
+        }
       | { action: "shared" }
       | { action: "uploaded"; file: string }
       | { action: "created" }

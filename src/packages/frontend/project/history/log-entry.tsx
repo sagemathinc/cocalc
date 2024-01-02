@@ -378,6 +378,27 @@ export const LogEntry: React.FC<Props> = React.memo(
               copied {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
               {computeServer}
+              {e.src_compute_server_id != null &&
+                e.src_compute_server_id != e.dest_compute_server_id && (
+                  <span style={{ float: "right" }}>
+                    <ComputeServerTag
+                      id={e.src_compute_server_id}
+                      style={{ maxWidth: "125px" }}
+                    />
+                    <Icon
+                      name="arrow-right"
+                      style={{
+                        top: "-5px",
+                        position: "relative",
+                        marginRight: "5px",
+                      }}
+                    />
+                    <ComputeServerTag
+                      id={e.dest_compute_server_id ?? 0}
+                      style={{ maxWidth: "125px" }}
+                    />
+                  </span>
+                )}
             </span>
           );
         case "shared":

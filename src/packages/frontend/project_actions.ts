@@ -1333,7 +1333,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
-    compute_server_id = compute_server_id ?? store.get("compute_server_id") ?? 0
+    compute_server_id =
+      compute_server_id ?? store.get("compute_server_id") ?? 0;
     const listings = store.get_listings(compute_server_id);
     try {
       const files = await listings.getListingDirectly(
@@ -1640,7 +1641,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _finish_exec(id, cb?) {
     // returns a function that takes the err and output and
     // does the right activity logging stuff.
-    return (err, output) => {
+    return (err?, output?) => {
       this.fetch_directory_listing();
       if (err) {
         this.set_activity({ id, error: err });
@@ -2011,14 +2012,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     dest: string;
     id?: string;
     only_contents?: boolean;
-    compute_server_id?: number;
+    // defaults to the currently selected compute server
+    src_compute_server_id?: number;
+    // defaults to the currently selected compute server
+    dest_compute_server_id?: number;
+    // NOTE: right now src_compute_server_id and dest_compute_server_id
+    // must be the same or one of them must be 0.  We don't implement
+    // copying directly from one compute server to another *yet*.
   }) {
     opts = defaults(opts, {
       src: required, // Should be an array of source paths
       dest: required,
       id: undefined,
       only_contents: false,
-      compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
+      src_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
+      dest_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
     }); // true for duplicating files
 
     const with_slashes = opts.src.map(this._convert_to_displayed_path);
@@ -2029,6 +2037,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       files: with_slashes.slice(0, 3),
       count: opts.src.length > 3 ? opts.src.length : undefined,
       dest: opts.dest + (opts.only_contents ? "" : "/"),
+      ...(opts.src_compute_server_id != opts.dest_compute_server_id
+        ? {
+            src_compute_server_id: opts.src_compute_server_id,
+            dest_compute_server_id: opts.dest_compute_server_id,
+          }
+        : opts.src_compute_server_id
+        ? { compute_server_id: opts.src_compute_server_id }
+        : undefined),
     });
 
     if (opts.only_contents) {
@@ -2053,6 +2069,28 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       )} to ${opts.dest}`,
     });
 
+    if (opts.src_compute_server_id != opts.dest_compute_server_id) {
+      // Copying from/to a compute server from/to a project.  This uses
+      // an api, which behind the scenes uses lz4 compression and tar
+      // proxied via a websocket, but no use of rsync or ssh.
+      // Not implemented between two distinct compute servers yet.
+      if (opts.src_compute_server_id && opts.dest_compute_server_id) {
+        // not project and not equal, so error
+        this._finish_exec(id)(
+          "copying directly between compute servers is not yet implemented",
+        );
+        return;
+      }
+
+      // do it.
+
+      this._finish_exec(id)();
+
+      return;
+    }
+
+    // Copying directly on project or on compute server. This just uses local rsync (no network).
+
     let args = ["-rltgoDxH"];
 
     // We ensure the target copy is writable if *any* source path starts is inside of .snapshots.
@@ -2074,7 +2112,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: 120, // how long rsync runs on client
       err_on_exit: true,
       path: ".",
-      compute_server_id: opts.compute_server_id,
+      compute_server_id: opts.src_compute_server_id,
       filesystem: true,
       cb: this._finish_exec(id),
     });

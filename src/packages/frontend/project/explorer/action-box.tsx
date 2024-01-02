@@ -607,6 +607,11 @@ export const ActionBox = rclass<ReactProps>(
         this.props.actions.copy_paths({
           src: paths,
           dest: destination_directory,
+          src_compute_server_id: this.props.compute_server_id,
+          dest_compute_server_id:
+            this.state.copy_from_compute_server_to == "compute-server"
+              ? this.props.compute_server_id
+              : 0,
         });
       }
 
