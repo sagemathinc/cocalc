@@ -1333,6 +1333,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
+    compute_server_id = compute_server_id ?? store.get("compute_server_id") ?? 0
     const listings = store.get_listings(compute_server_id);
     try {
       const files = await listings.getListingDirectly(
@@ -1341,7 +1342,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       );
 
       const directory_listings = store.get("directory_listings");
-      const compute_server_id = store.get("compute_server_id") ?? 0;
       let listing = directory_listings.get(compute_server_id) ?? Map();
       listing = listing.set(path, files);
       this.setState({

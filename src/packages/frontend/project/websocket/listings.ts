@@ -364,6 +364,12 @@ export class Listings extends EventEmitter {
         ],
       },
       [],
+      // space out individual changes by 100ms -- without this we get multiple 'change' events
+      // at the exact same time, which breaks properly updating the directory_listings data
+      // structure by the project store.  This also helps avoid too much updating at once
+      // of the frontend UI.  Symptom without this: refresh browser at HOME, then change to
+      // a subdir such as tmp and see it spin forever.
+      100,
     );
 
     if ((this.state as State) == "closed") return;

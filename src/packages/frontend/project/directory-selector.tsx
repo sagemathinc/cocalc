@@ -38,6 +38,7 @@ interface Props {
   style?: CSSProperties;
   bodyStyle?: CSSProperties;
   project_id?: string;
+  compute_server_id?: number;
   startingPath?: string;
   isExcluded?: (path: string) => boolean; // grey out directories that return true.  Relative to home directory.
   onSelect?: (path: string) => void; // called when user chooses a directory; only when multi is false.
@@ -52,6 +53,7 @@ export default function DirectorySelector({
   style,
   bodyStyle,
   project_id,
+  compute_server_id,
   startingPath,
   isExcluded,
   onSelect,
@@ -63,7 +65,11 @@ export default function DirectorySelector({
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
   if (project_id == null) project_id = frameContext.project_id;
-  const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
+  const fallbackComputeServerId = useTypedRedux(
+    { project_id },
+    "compute_server_id",
+  );
+  const computeServerId = compute_server_id ?? fallbackComputeServerId;
   const directoryListings = useTypedRedux(
     { project_id },
     "directory_listings",
@@ -133,7 +139,7 @@ export default function DirectorySelector({
     return () => {
       state.loop = false;
     };
-  }, [project_id, expandedPaths]);
+  }, [project_id, expandedPaths, computeServerId]);
 
   if (directoryListings == null) {
     (async () => {
@@ -145,6 +151,7 @@ export default function DirectorySelector({
     })();
     return <Loading />;
   }
+
   return (
     <Card
       title={

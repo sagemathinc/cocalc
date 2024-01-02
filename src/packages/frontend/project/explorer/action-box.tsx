@@ -14,10 +14,8 @@ import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
-
 import * as misc from "@cocalc/util/misc";
-
-import { Button as AntdButton } from "antd";
+import { Button as AntdButton, Radio } from "antd";
 
 import {
   Button,
@@ -60,6 +58,7 @@ interface ReduxProps {
 interface State {
   copy_destination_directory: string;
   copy_destination_project_id: string;
+  copy_from_compute_server_to: "compute-server" | "project";
   move_destination: string;
   new_name?: string;
   show_different_project?: boolean;
@@ -99,6 +98,7 @@ export const ActionBox = rclass<ReactProps>(
         move_destination: "",
         new_name: this.props.new_name,
         show_different_project: false,
+        copy_from_compute_server_to: "compute-server",
       };
       this.pre_styles = {
         marginBottom: "15px",
@@ -658,7 +658,25 @@ export const ActionBox = rclass<ReactProps>(
                 : this.different_project_button()}
             </h4>
           ) : (
-            <h4>Copy to folder on the compute server</h4>
+            <h4>
+              <div style={{ display: "inline-block", marginRight: "15px" }}>
+                Copy to{" "}
+              </div>
+              <Radio.Group
+                optionType="button"
+                buttonStyle="solid"
+                value={this.state.copy_from_compute_server_to}
+                onChange={(e) => {
+                  this.setState({
+                    copy_from_compute_server_to: e.target.value,
+                  });
+                }}
+                options={[
+                  { label: "Compute Server", value: "compute-server" },
+                  { label: "Project", value: "project" },
+                ]}
+              />
+            </h4>
           )}
           {this.render_selected_files_list()}
         </>
@@ -726,7 +744,12 @@ export const ActionBox = rclass<ReactProps>(
                 <DirectorySelector
                   title={
                     this.props.compute_server_id
-                      ? "Select Destination on Compute Server"
+                      ? `Select Destination ${
+                          this.state.copy_from_compute_server_to ==
+                          "compute-server"
+                            ? "on the Compute Server"
+                            : "in the Project"
+                        }`
                       : "Select Destination Directory"
                   }
                   onSelect={(value: string) =>
@@ -737,6 +760,14 @@ export const ActionBox = rclass<ReactProps>(
                   project_id={this.state.copy_destination_project_id}
                   style={{ width: "100%" }}
                   bodyStyle={{ maxHeight: "250px" }}
+                  compute_server_id={
+                    this.props.compute_server_id
+                      ? this.state.copy_from_compute_server_to ==
+                        "compute-server"
+                        ? this.props.compute_server_id
+                        : 0
+                      : 0
+                  }
                 />
               </Col>
             </Row>
