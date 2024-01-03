@@ -76,6 +76,7 @@ import {
   email_verified_successfully,
   welcome_email,
 } from "./email";
+// NOTE: we do not install saml2js, outdated package, this is just for future reference and debugging
 //import Saml2js from "saml2js";
 import { WinstonLogger } from "@cocalc/backend/logger";
 import {
