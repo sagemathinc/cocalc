@@ -69,7 +69,7 @@ const dataSource = [
   },
   {
     link: "/features/jupyter-notebook",
-    title: "Jupyter notebooks",
+    title: "Jupyter Notebooks",
     logo: JupyterLogo,
     image: JupyterTF,
     logoBackground: "white",
@@ -109,7 +109,11 @@ const dataSource = [
     description: (
       <>
         CoCalc extensively integrates with AI language models like{" "}
-        <A href="https://openai.com/">OpenAI's ChatGPT</A>. It participates in a{" "}
+        <A href="https://openai.com/">OpenAI's ChatGPT</A> and{" "}
+        <A href="https://deepmind.google/technologies/gemini/">
+          Google's Gemini
+        </A>
+        . It participates in a{" "}
         <A href={"https://doc.cocalc.com/chat.html"}>Chatroom</A> as a bot,
         helps you understand your code, deciphers error messages in{" "}
         <A href={"/features/jupyter-notebook"}>Jupyter notebooks</A> or

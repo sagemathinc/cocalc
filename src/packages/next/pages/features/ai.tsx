@@ -3,58 +3,74 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Layout } from "antd";
+import { Col, Layout, Row } from "antd";
 
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import Image from "components/landing/image";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
-import { Paragraph, Title, Text } from "components/misc";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import AILLMQuery from "/public/features/ai-llm-cprogram-query.png";
+import AILLMCprogramRun from "/public/features/ai-llm-cprogram-run.png";
 import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
-import ChatGptGenerateCode from "/public/features/chatgpt-generate-code.png";
 import ChatGptGenerateCodeRun from "/public/features/chatgpt-generate-code-run.png";
-import Image from "components/landing/image";
-import ChatGPTCPPInterface from "/public/features/chatgpt-cpp-interface.png";
-import ChatGPTCPPRun from "/public/features/chatgpt-cpp-running.png";
+import ChatGptGenerateCode from "/public/features/chatgpt-generate-code.png";
 
-const component = "OpenAI's ChatGPT";
-const title = `OpenAI ChatGPT`;
+const title = `AI Assistance`;
+const component = title;
 
 export default function AI({ customize }) {
+  const { googleVertexaiEnabled, openaiEnabled } = customize;
+
+  const iconTxtStyle = {
+    fontSize: "20px",
+    verticalAlign: "text-bottom",
+  };
+
+  const codePrompt =
+    "Write a short C program, which iterates over all numbers from 0 to 100 and sums up those, which are divisible by 7!";
+
   return (
     <Customize value={customize}>
-      <Head title={title} />
+      <Head title={`${title} | Features | CoCalc`} />
       <Layout>
         <Header page="features" subPage="ai" />
         <Layout.Content>
           <Content
             landing
             startup={component}
-            logo={<OpenAIAvatar size={128} />}
+            logo={<AIAvatar size={128} />}
             title={title}
             subtitleBelow={true}
             subtitle={
               <>
                 <div>
-                  <A href={"https://openai.com/"}>{component}</A> is a large
-                  language model capable of generating human-like responses and
-                  code based on various prompts and queries. CoCalc integrates
-                  ChatGPT as a virtual assistant to provide coding help, error
-                  fixing, and code generation, making it easier for users to
-                  work with various programming languages.
+                  Large language models like{" "}
+                  <A href="https://openai.com/chatgpt">OpenAI's ChatGPT</A> or{" "}
+                  <A href="https://deepmind.google/technologies/gemini/">
+                    Google's Gemini
+                  </A>{" "}
+                  are capable of generating human-like responses and code based
+                  on various prompts and queries. CoCalc integrates them as a
+                  virtual assistants. They help you with coding, understand
+                  error message, generate code, and ultimately making it easier
+                  for you to work with various programming languages.
                 </div>
               </>
             }
-            image={ChatGPTCPPInterface}
-            alt={"ChatGPT in CoCalc"}
-            caption={"ChatGPT in a CoCalc"}
+            image={AILLMQuery}
+            alt={"AI assistance in CoCalc"}
+            caption={"AI assistance in a CoCalc"}
           />
 
           <Pitch
@@ -92,26 +108,53 @@ export default function AI({ customize }) {
           <Info.Heading
             description={
               <>
-                There are various places where ChatGPT appears in CoCalc, as
-                illustrated below and{" "}
-                <A href="https://doc.cocalc.com/chatgpt.html">
-                  explained in the docs
-                </A>
-                .
+                <Paragraph>
+                  There are various places where AI assistants appears in
+                  CoCalc, as illustrated below and{" "}
+                  <A href="https://doc.cocalc.com/chatgpt.html">
+                    explained in the docs
+                  </A>
+                  .
+                </Paragraph>
+                <Paragraph>
+                  CoCalc currently supports the following language models:
+                </Paragraph>
+                <Paragraph>
+                  <Row gutter={[30, 30]}>
+                    {openaiEnabled ? (
+                      <Col md={6} offset={6}>
+                        <OpenAIAvatar size={32} />{" "}
+                        <A
+                          href="https://openai.com/chatgpt"
+                          style={iconTxtStyle}
+                        >
+                          OpenAI's ChatGPT
+                        </A>
+                      </Col>
+                    ) : undefined}
+                    {googleVertexaiEnabled ? (
+                      <Col md={6}>
+                        <GoogleGeminiLogo size={32} />{" "}
+                        <A
+                          href="https://deepmind.google/technologies/gemini/"
+                          style={iconTxtStyle}
+                        >
+                          Google's Gemini
+                        </A>
+                      </Col>
+                    ) : undefined}
+                  </Row>
+                </Paragraph>
               </>
             }
           >
-            Integrations of ChatGPT in CoCalc
+            AI language models in CoCalc
           </Info.Heading>
 
           <ChatGPTFixError />
 
           <Info
-            title={
-              <A href="https://doc.cocalc.com/chatgpt.html#chatgpt-in-chat-rooms-and-side-chat">
-                Mention @chatgpt in any Chatroom in CoCalc
-              </A>
-            }
+            title={"Mention @chatgpt in any Chatroom in CoCalc"}
             icon="comment"
             image={ChatGptGenerateCode}
             anchor="a-chatgpt-generate"
@@ -120,7 +163,9 @@ export default function AI({ customize }) {
             <Paragraph>
               Here, a user learning <A href="https://pytorch.org/">PyTorch</A>{" "}
               asks ChatGPT by{" "}
-              <A href="https://doc.cocalc.com/chat.html#mentions">mentioning</A>{" "}
+              <A href="https://doc.cocalc.com/chatgpt.html#chatgpt-in-chat-rooms-and-side-chat">
+                mentioning
+              </A>{" "}
               <Text code>@chatgpt</Text> in a{" "}
               <A href="https://doc.cocalc.com/chat.html#side-chat">Side Chat</A>
               . The prompt is:
@@ -139,41 +184,40 @@ export default function AI({ customize }) {
                 alt="Running code snippet generated by ChatGPT"
               />
             </Paragraph>
+            {googleVertexaiEnabled ? (
+              <Paragraph>
+                Note: Mention <Text code>@gemini</Text> to talk to Google's
+                Gemini model.
+              </Paragraph>
+            ) : undefined}
           </Info>
 
           <Info
             title={"Generating Code"}
             icon="pen"
-            image={ChatGPTCPPInterface}
+            image={AILLMCprogramRun}
             anchor="a-chatgpt-cpp"
-            alt="ChatGPT generates c++ code in a file"
+            alt="Gemini generates C++ code in a file"
             narrow
           >
             <Paragraph>
-              ChatGPT can also help you with plain text source code files. In
-              the example on the left, an empty <Text code>learning.cpp</Text>{" "}
-              C++ file is shown. The ChatGPT dialog shows the prompt to generate
-              a simple code example:
+              ChatGPT or Gemini can also generate source code for you. In the
+              example on the left, first we first create an empty{" "}
+              <Text code>c-program.cpp</Text> C++ file. Then, we open the AI
+              Assistant dialog and a prompt it to generate some code:
+              <blockquote>{codePrompt}</blockquote>
             </Paragraph>
             <Paragraph>
-              <blockquote>
-                generate a short c++ program, which counts from 0 to 100 and
-                prints each line, which is divisible by 7
-              </blockquote>
+              <Image src={AILLMQuery} alt={codePrompt} />
             </Paragraph>
             <Paragraph>
-              This is all it needs to generate a complete C++ program. Use the{" "}
+              We then copy the code into the file - as seen on the left – and
+              compile using <Text code>clang++</Text> and run it right on the
+              spot. This is done using the{" "}
               <A href="https://doc.cocalc.com/frame-editor.html">
                 Frame Editor's
               </A>{" "}
-              <A href="/features/terminal">Terminal</A> to compile and run it on
-              the spot!
-            </Paragraph>
-            <Paragraph>
-              <Image
-                src={ChatGPTCPPRun}
-                alt="Running code snippet generated by ChatGPT"
-              />
+              <A href="/features/terminal">Terminal</A>.
             </Paragraph>
           </Info>
 
@@ -197,8 +241,8 @@ export function ChatGPTFixError({ embedded = false }: { embedded?: boolean }) {
     if (!embedded) return null;
     return (
       <Paragraph>
-        Use the power of <A href="/features/ai">ChatGPT</A> to help
-        fixing errors or to generate code.
+        Use the power of <A href="/features/ai">ChatGPT</A> to help fixing
+        errors or to generate code.
       </Paragraph>
     );
   }
