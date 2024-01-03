@@ -533,7 +533,7 @@ export const ActionBox = rclass<ReactProps>(
       if (this.state.show_different_project) {
         return (
           <Col sm={4} style={{ color: "#666", marginBottom: "15px" }}>
-            <h4>In the project</h4>
+            <h4>Target Project</h4>
             <SelectProject
               at_top={[this.props.project_id]}
               value={this.state.copy_destination_project_id}
@@ -570,18 +570,6 @@ export const ActionBox = rclass<ReactProps>(
           </div>
         );
       }
-    }
-
-    different_project_button(): JSX.Element {
-      return (
-        <Button
-          bsSize="large"
-          onClick={() => this.setState({ show_different_project: true })}
-          style={{ padding: "0px 5px 5px", fontWeight: 500 }}
-        >
-          A Possibly Different Project...
-        </Button>
-      );
     }
 
     copy_click = (): void => {
@@ -656,12 +644,20 @@ export const ActionBox = rclass<ReactProps>(
       return (
         <>
           {!this.props.compute_server_id ? (
-            <h4>
-              Copy to a folder or{" "}
-              {this.state.show_different_project
-                ? "project"
-                : this.different_project_button()}
-            </h4>
+            <div style={{ display: "flex" }}>
+              <h4>Files </h4>
+              {!this.state.show_different_project && (
+                <div style={{ flex: 1, textAlign: "right" }}>
+                  <AntdButton
+                    onClick={() =>
+                      this.setState({ show_different_project: true })
+                    }
+                  >
+                    Copy to different project...
+                  </AntdButton>
+                </div>
+              )}
+            </div>
           ) : (
             <h4>
               <div style={{ display: "inline-block", marginRight: "15px" }}>
@@ -683,7 +679,7 @@ export const ActionBox = rclass<ReactProps>(
               />
             </h4>
           )}
-          {this.render_selected_files_list()}
+          <div>{this.render_selected_files_list()}</div>
         </>
       );
     }
@@ -743,7 +739,7 @@ export const ActionBox = rclass<ReactProps>(
                 >
                   Destination:{" "}
                   {this.state.copy_destination_directory == ""
-                    ? "Home directory"
+                    ? "Home Directory"
                     : this.state.copy_destination_directory}
                 </h4>
                 <DirectorySelector
