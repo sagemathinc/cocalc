@@ -183,6 +183,7 @@ export default function DirectorySelector({
         path={""}
         tail={""}
         isSelected={selectedPaths.has("")}
+        computeServerId={computeServerId}
         toggleSelection={toggleSelection}
         isExcluded={isExcluded?.("")}
         expand={() => {}}
@@ -198,6 +199,7 @@ export default function DirectorySelector({
         showHidden={showHidden}
         project_id={project_id}
         path={""}
+        computeServerId={computeServerId}
       />
       <Checkbox
         style={{ fontWeight: "400", marginTop: "15px" }}
@@ -217,6 +219,7 @@ function SelectablePath({
   path,
   tail,
   isSelected,
+  computeServerId,
   toggleSelection,
   isExcluded,
   expand,
@@ -234,6 +237,8 @@ function SelectablePath({
           project_id,
           path: path_split(path).head,
           args: [tail, editedTail],
+          compute_server_id: computeServerId,
+          filesystem: true,
         });
         setEditedTail(null);
       } catch (err) {
@@ -340,6 +345,7 @@ function Directory(props) {
     isExcluded,
     expandedPaths,
     setExpandedPaths,
+    computeServerId,
   } = props;
   const isExpanded = expandedPaths.has(path);
   const { tail } = path_split(path);
@@ -355,6 +361,7 @@ function Directory(props) {
       expand={() => {
         setExpandedPaths(new Set(expandedPaths.add(path)));
       }}
+      computeServerId={computeServerId}
     />
   );
 
@@ -396,7 +403,14 @@ function Directory(props) {
 }
 
 function Subdirs(props) {
-  const { directoryListings, path, project_id, showHidden, style } = props;
+  const {
+    computeServerId,
+    directoryListings,
+    path,
+    project_id,
+    showHidden,
+    style,
+  } = props;
   const x = directoryListings?.get(path);
   const v = x?.toJS?.();
   if (v == null) {
@@ -432,6 +446,7 @@ function Subdirs(props) {
         key="\\createdirectory\\"
         project_id={project_id}
         path={path}
+        computeServerId={computeServerId}
         directoryListings={directoryListings}
       />,
     );
@@ -443,17 +458,34 @@ function Subdirs(props) {
   }
 }
 
-function CreateDirectory({ project_id, path, directoryListings }) {
+function CreateDirectory({
+  computeServerId,
+  project_id,
+  path,
+  directoryListings,
+}) {
   return (
     <div
       style={{ cursor: "pointer", color: "#666" }}
       key={"...-create-dir"}
       onClick={async () => {
         let target = path + (path != "" ? "/" : "") + NEW_DIRECTORY;
-        if (await pathExists(project_id, target, directoryListings)) {
+        if (
+          await pathExists(
+            project_id,
+            target,
+            directoryListings,
+            computeServerId,
+          )
+        ) {
           let i: number = 1;
           while (
-            await pathExists(project_id, target + ` (${i})`, directoryListings)
+            await pathExists(
+              project_id,
+              target + ` (${i})`,
+              directoryListings,
+              computeServerId,
+            )
           ) {
             i += 1;
           }
@@ -464,6 +496,8 @@ function CreateDirectory({ project_id, path, directoryListings }) {
             command: "mkdir",
             args: ["-p", target],
             project_id,
+            compute_server_id: computeServerId,
+            filesystem: true,
           });
         } catch (err) {
           alert_message({ type: "error", message: err.toString() });
@@ -488,6 +522,7 @@ async function pathExists(
   project_id: string,
   path: string,
   directoryListings,
+  computeServerId,
 ): Promise<boolean> {
   const { head, tail } = path_split(path);
   let known = directoryListings?.get(head);
@@ -495,6 +530,7 @@ async function pathExists(
     const actions = redux.getProjectActions(project_id);
     await actions.fetch_directory_listing({
       path: head,
+      compute_server_id: computeServerId,
     });
   }
   known = directoryListings?.get(head);

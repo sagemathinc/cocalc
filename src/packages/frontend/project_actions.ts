@@ -1257,17 +1257,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // ONLY updates current path
   // Does not push to URL, browser history, or add to analytics
   // Use internally or for updating current path in background
-  set_current_path(path: string = ""): void {
+  set_current_path = (path: string = ""): void => {
     path = normalize(path);
     if (Number.isNaN(path as any)) {
-      // SMELL: Track from history.coffee
       path = "";
     }
     if (typeof path !== "string") {
-      (window as any).cpath_args = arguments;
-      throw Error(
-        "Current path should be a string. Received arguments are available in window.cpath_args",
-      );
+      throw Error("Current path should be a string");
     }
     // Set the current path for this project. path is either a string or array of segments.
     const store = this.get_store();
@@ -1294,7 +1290,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
 
     this.fetch_directory_listing();
-  }
+  };
 
   setComputeServerId = (compute_server_id: number) => {
     if (compute_server_id == null) {
