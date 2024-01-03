@@ -30,7 +30,7 @@ export default function BannerWithLinks() {
           Yields.io's risk management platform,
         </A>{" "}
         and{" "}
-        <A href="/features/ai-llm">
+        <A href="/features/ai">
           features extensive AI language model integration
         </A>
         . Browse <A href="/share/public_paths/page/1">public files</A>{" "}

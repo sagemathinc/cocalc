@@ -6,5 +6,5 @@
 import Redirect from "components/misc/redirect";
 
 export default function OpenAIChatGPT() {
-  return <Redirect target="/features/ai-llm" />;
+  return <Redirect target="/features/ai" />;
 }

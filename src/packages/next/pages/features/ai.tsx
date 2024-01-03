@@ -197,7 +197,7 @@ export function ChatGPTFixError({ embedded = false }: { embedded?: boolean }) {
     if (!embedded) return null;
     return (
       <Paragraph>
-        Use the power of <A href="/features/ai-llm">ChatGPT</A> to help
+        Use the power of <A href="/features/ai">ChatGPT</A> to help
         fixing errors or to generate code.
       </Paragraph>
     );
