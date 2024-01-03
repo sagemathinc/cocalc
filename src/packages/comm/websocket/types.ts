@@ -213,6 +213,7 @@ interface MesgCopyFromProjectToComputeServer {
   opts: {
     compute_server_id: number;
     paths: string[];
+    home?: string; // alternate home directory -- if relative, then is relative to actual HOME
     dest?: string;
     timeout?: number;
   };
@@ -223,6 +224,7 @@ interface MesgCopyFromComputeServerToProject {
   opts: {
     compute_server_id: number;
     paths: string[];
+    home?: string; // alternate home directory -- if relative, then is relative to actual HOME
     dest?: string;
     timeout?: number;
   };

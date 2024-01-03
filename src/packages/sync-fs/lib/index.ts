@@ -14,7 +14,7 @@ import {
 } from "fs/promises";
 import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
-import { execa, mtimeDirTree, remove } from "./util";
+import { execa, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
@@ -250,12 +250,16 @@ class SyncFS {
         });
       }
     } catch (err) {
-      log("handleApiRequest: error", { event: data?.event, err });
+      // console.trace(err);
+      const error = `${err}`;
       if (data.id && this.websocket != null) {
+        log("handleApiRequest: returning error", { event: data?.event, error });
         this.websocket.write({
           id: data.id,
-          error: err.message,
+          error,
         });
+      } else {
+        log("handleApiRequest: ignoring error", { event: data?.event, error });
       }
     }
   };
@@ -280,27 +284,31 @@ class SyncFS {
 
       case "copy_from_project_to_compute_server":
       case "copy_from_compute_server_to_project": {
-        const createArgs = ["-c", ...data.paths];
         const extractArgs = ["-x"];
-        if (data.dest) {
-          throw Error(`dest support not implemented yet`);
+        extractArgs.push("-C");
+        extractArgs.push(data.dest ? data.dest : ".");
+        const HOME = this.mount;
+        for (const { prefix, paths } of parseCommonPrefixes(data.paths)) {
+          const createArgs = ["-c", "-C", prefix, ...paths];
+          log({ extractArgs, createArgs });
+          if (data.event == "copy_from_project_to_compute_server") {
+            await this.tar.get({
+              createArgs,
+              extractArgs,
+              HOME,
+            });
+          } else if (data.event == "copy_from_compute_server_to_project") {
+            await this.tar.send({
+              createArgs,
+              extractArgs,
+              HOME,
+            });
+          } else {
+            // impossible
+            throw Error(`bug -- invalid event ${data.event}`);
+          }
         }
-        if (data.event == "copy_from_project_to_compute_server") {
-          return await this.tar.get({
-            createArgs,
-            extractArgs,
-            HOME: this.mount,
-          });
-        } else if (data.event == "copy_from_compute_server_to_project") {
-          return await this.tar.send({
-            createArgs,
-            extractArgs,
-            HOME: this.mount,
-          });
-        } else {
-          // impossible
-          throw Error(`bug -- invalid event ${data.event}`);
-        }
+        return;
       }
 
       case "listing":

@@ -2083,7 +2083,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             compute_server_id: opts.src_compute_server_id,
             paths: opts.src,
             dest: opts.dest,
-            timeout: 120,
+            timeout: 60 * 15,
           });
         } else if (opts.dest_compute_server_id) {
           // from project to compute server
@@ -2091,7 +2091,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             compute_server_id: opts.dest_compute_server_id,
             paths: opts.src,
             dest: opts.dest,
-            timeout: 120,
+            timeout: 60 * 15,
           });
         } else {
           // Not implemented between two distinct compute servers yet.

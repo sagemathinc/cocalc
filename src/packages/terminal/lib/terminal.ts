@@ -665,13 +665,15 @@ export class Terminal {
           // already switched back to local
           return;
         }
-        switch (data.cmd) {
-          case "setComputeServerId":
-            this.setComputeServerId(data.id);
-            break;
-          case "exit": {
-            this.handleDataFromTerminal(EXIT_MESSAGE);
-            break;
+        if (typeof data == "object") {
+          switch (data.cmd) {
+            case "setComputeServerId":
+              this.setComputeServerId(data.id);
+              break;
+            case "exit": {
+              this.handleDataFromTerminal(EXIT_MESSAGE);
+              break;
+            }
           }
         }
       }
