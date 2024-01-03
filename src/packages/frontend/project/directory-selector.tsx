@@ -141,6 +141,7 @@ export default function DirectorySelector({
     };
   }, [project_id, expandedPaths, computeServerId]);
 
+  let body;
   if (directoryListings == null) {
     (async () => {
       await delay(0);
@@ -149,7 +150,44 @@ export default function DirectorySelector({
       // directory selector before even opening the project.
       redux.getProjectStore(project_id);
     })();
-    return <Loading />;
+    body = <Loading theme="medium" />;
+  } else {
+    body = (
+      <>
+        <SelectablePath
+          project_id={project_id}
+          path={""}
+          tail={""}
+          isSelected={selectedPaths.has("")}
+          computeServerId={computeServerId}
+          toggleSelection={toggleSelection}
+          isExcluded={isExcluded?.("")}
+          expand={() => {}}
+        />
+        <Subdirs
+          style={{ marginLeft: "2em" }}
+          selectedPaths={selectedPaths}
+          toggleSelection={toggleSelection}
+          isExcluded={isExcluded}
+          expandedPaths={expandedPaths}
+          setExpandedPaths={setExpandedPaths}
+          directoryListings={directoryListings}
+          showHidden={showHidden}
+          project_id={project_id}
+          path={""}
+          computeServerId={computeServerId}
+        />
+        <Checkbox
+          style={{ fontWeight: "400", marginTop: "15px" }}
+          checked={showHidden}
+          onChange={() => {
+            setShowHidden(!showHidden);
+          }}
+        >
+          Show hidden
+        </Checkbox>
+      </>
+    );
   }
 
   return (
@@ -178,38 +216,7 @@ export default function DirectorySelector({
         ...bodyStyle,
       }}
     >
-      <SelectablePath
-        project_id={project_id}
-        path={""}
-        tail={""}
-        isSelected={selectedPaths.has("")}
-        computeServerId={computeServerId}
-        toggleSelection={toggleSelection}
-        isExcluded={isExcluded?.("")}
-        expand={() => {}}
-      />
-      <Subdirs
-        style={{ marginLeft: "2em" }}
-        selectedPaths={selectedPaths}
-        toggleSelection={toggleSelection}
-        isExcluded={isExcluded}
-        expandedPaths={expandedPaths}
-        setExpandedPaths={setExpandedPaths}
-        directoryListings={directoryListings}
-        showHidden={showHidden}
-        project_id={project_id}
-        path={""}
-        computeServerId={computeServerId}
-      />
-      <Checkbox
-        style={{ fontWeight: "400", marginTop: "15px" }}
-        checked={showHidden}
-        onChange={() => {
-          setShowHidden(!showHidden);
-        }}
-      >
-        Show hidden
-      </Checkbox>
+      {body}
     </Card>
   );
 }

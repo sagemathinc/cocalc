@@ -29,7 +29,7 @@ import {
   Checkbox,
 } from "react-bootstrap";
 import * as account from "@cocalc/frontend/account";
-
+import SelectServer from "@cocalc/frontend/compute/select-server";
 import ConfigureShare from "@cocalc/frontend/share/config";
 
 type FileAction = undefined | keyof typeof file_actions;
@@ -64,6 +64,7 @@ interface State {
   show_different_project?: boolean;
   overwrite_newer?: boolean;
   delete_extra_files?: boolean;
+  dest_compute_server_id: number;
 }
 
 export const ActionBox = rclass<ReactProps>(
@@ -99,6 +100,7 @@ export const ActionBox = rclass<ReactProps>(
         new_name: this.props.new_name,
         show_different_project: false,
         copy_from_compute_server_to: "compute-server",
+        dest_compute_server_id: props.compute_server_id ?? 0,
       };
       this.pre_styles = {
         marginBottom: "15px",
@@ -646,17 +648,25 @@ export const ActionBox = rclass<ReactProps>(
           {!this.props.compute_server_id ? (
             <div style={{ display: "flex" }}>
               <h4>Files </h4>
-              {!this.state.show_different_project && (
-                <div style={{ flex: 1, textAlign: "right" }}>
-                  <AntdButton
-                    onClick={() =>
-                      this.setState({ show_different_project: true })
+
+              <div style={{ flex: 1, textAlign: "right" }}>
+                <AntdButton
+                  onClick={() => {
+                    const show_different_project =
+                      !this.state.show_different_project;
+                    this.setState({
+                      show_different_project,
+                    });
+                    if (show_different_project) {
+                      this.setState({ dest_compute_server_id: 0 });
                     }
-                  >
-                    Copy to different project...
-                  </AntdButton>
-                </div>
-              )}
+                  }}
+                >
+                  {this.state.show_different_project
+                    ? "Copy to this project..."
+                    : "Copy to a different project..."}
+                </AntdButton>
+              </div>
             </div>
           ) : (
             <h4>
@@ -733,7 +743,7 @@ export const ActionBox = rclass<ReactProps>(
                 <h4
                   style={
                     !this.state.show_different_project
-                      ? { height: "25px" }
+                      ? { minHeight: "25px" }
                       : undefined
                   }
                 >
@@ -744,14 +754,30 @@ export const ActionBox = rclass<ReactProps>(
                 </h4>
                 <DirectorySelector
                   title={
-                    this.props.compute_server_id
-                      ? `Select Destination ${
-                          this.state.copy_from_compute_server_to ==
-                          "compute-server"
-                            ? "on the Compute Server"
-                            : "in the Project"
-                        }`
-                      : "Select Destination Directory"
+                    this.props.compute_server_id ? (
+                      `Destination ${
+                        this.state.copy_from_compute_server_to ==
+                        "compute-server"
+                          ? "on the Compute Server"
+                          : "in the Project"
+                      }`
+                    ) : (
+                      <div style={{ display: "flex" }}>
+                        Destination{" "}
+                        {this.props.compute_server_id == 0 &&
+                          !this.state.show_different_project && (
+                            <div style={{ flex: 1, textAlign: "right" }}>
+                              <SelectServer
+                                project_id={this.props.project_id}
+                                value={this.state.dest_compute_server_id}
+                                setValue={(dest_compute_server_id) =>
+                                  this.setState({ dest_compute_server_id })
+                                }
+                              />
+                            </div>
+                          )}
+                      </div>
+                    )
                   }
                   onSelect={(value: string) =>
                     this.setState({ copy_destination_directory: value })
@@ -767,7 +793,7 @@ export const ActionBox = rclass<ReactProps>(
                         "compute-server"
                         ? this.props.compute_server_id
                         : 0
-                      : 0
+                      : this.state.dest_compute_server_id
                   }
                 />
               </Col>
