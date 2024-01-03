@@ -32,14 +32,21 @@ export function getKernelInfoCacheOnly(project_id: string | undefined) {
 }
 
 export async function getKernelInfo(
-  project_id: string | undefined
+  project_id: string | undefined,
+  startProject: boolean = true,
 ): Promise<KernelSpec[]> {
   const key = kernelInfoCacheKey(project_id);
   let specs = kernelInfoCache.get(key);
   if (specs != null) return specs;
+
+  // abort here, if we don't want to trigger a project start
+  if (!startProject) {
+    throw new Error("No information, because project is not running");
+  }
+
   const { kernels } = await api(
     "kernels",
-    project_id ? { project_id } : undefined
+    project_id ? { project_id } : undefined,
   );
   if (kernels == null) {
     throw Error("bug");
@@ -50,7 +57,7 @@ export async function getKernelInfo(
 
 export function kernelDisplayName(
   name: string,
-  project_id: string | undefined
+  project_id: string | undefined,
 ): string {
   const kernelInfo = getKernelInfoCacheOnly(project_id);
   if (kernelInfo == null) {
@@ -66,7 +73,7 @@ export function kernelDisplayName(
 
 export function kernelLanguage(
   name: string,
-  project_id: string | undefined
+  project_id: string | undefined,
 ): string {
   const kernelInfo = getKernelInfoCacheOnly(project_id);
   if (kernelInfo == null) {

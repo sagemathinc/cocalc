@@ -69,7 +69,7 @@ export function ChatLog({
     if (scrollToBottom == -1) {
       scrollToBottomRef?.current?.(true);
     } else {
-      console.log({ scrollToBottom }, " -- not implemented");
+      // console.log({ scrollToBottom }, " -- not implemented");
       virtuosoRef.current?.scrollToIndex({ index: scrollToBottom });
     }
     actions.setState({ scrollToBottom: undefined });

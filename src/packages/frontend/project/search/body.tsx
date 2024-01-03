@@ -10,6 +10,9 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
+import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
+import { useEffect, useMemo, useState } from "react";
+
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -26,6 +29,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
+import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import {
   auxFileToOriginal,
   filename_extension,
@@ -36,8 +40,6 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
-import { useEffect, useMemo, useState } from "react";
 
 const RESULTS_WELL_STYLE: React.CSSProperties = {
   backgroundColor: "white",
@@ -538,7 +540,7 @@ interface ProjectSearchResultLineProps {
   filename: string;
   description: string;
   line_number: number;
-  fragment_id: string;
+  fragment_id: FragmentId;
   most_recent_path: string;
   mode?: "project" | "flyout";
 }

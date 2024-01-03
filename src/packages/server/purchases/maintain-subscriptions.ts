@@ -158,7 +158,11 @@ SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time 
     try {
       await cancelOnePendingSubscription(obj);
     } catch (err) {
-      logger.debug("WARNING: cancelOnePendingSubscription failed", obj, err);
+      logger.debug(
+        "WARNING: cancelOnePendingSubscription failed",
+        obj,
+        `${err}`,
+      );
       if (test.failOnError) {
         throw err;
       }

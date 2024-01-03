@@ -10,7 +10,7 @@ More precisely, gets array [{id:number;cost:number;status:'unpaid'|'past_due'|'a
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 
-const logger = getLogger("purchases:get-unpaid-subscriptions");
+const logger = getLogger("purchases:get-live-subscriptions");
 
 export default async function getLiveSubscriptions(
   account_id: string
