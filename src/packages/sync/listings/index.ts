@@ -184,6 +184,7 @@ class ListingsTable {
   };
 
   get = (path: string): ImmutableListing | undefined => {
+    path = canonicalPath(path);
     const x = this.getTable().get(
       JSON.stringify([this.project_id, path, this.compute_server_id]),
     );
@@ -220,6 +221,7 @@ class ListingsTable {
   };
 
   private ensureWatching = async (path: string): Promise<void> => {
+    path = canonicalPath(path);
     if (this.watchers[path] != null) {
       // We are already watching this path
       if (this.get(path)?.get("error")) {
@@ -249,6 +251,7 @@ class ListingsTable {
   };
 
   private computeListing = async (path: string): Promise<void> => {
+    path = canonicalPath(path);
     const time = new Date();
     let listing;
     try {
@@ -305,6 +308,7 @@ class ListingsTable {
   };
 
   private startWatching = (path: string): void => {
+    path = canonicalPath(path);
     if (this.watchers[path] != null) return;
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
@@ -322,6 +326,7 @@ class ListingsTable {
   };
 
   private stopWatching = (path: string): void => {
+    path = canonicalPath(path);
     const w = this.watchers[path];
     if (w == null) return;
     delete this.watchers[path];
@@ -471,4 +476,12 @@ export function getListingsTable(
   compute_server_id: number = 0,
 ): ListingsTable | undefined {
   return listingsTable[compute_server_id];
+}
+
+// this does a tiny amount to make paths more canonical.
+function canonicalPath(path: string): string {
+  if (path == "." || path == "~") {
+    return "";
+  }
+  return path;
 }
