@@ -20,7 +20,6 @@
 
 import Cookies from "cookies";
 import * as _ from "lodash";
-//import Saml2js from "saml2js";
 import { isEmpty } from "lodash";
 
 import base_path from "@cocalc/backend/base-path";

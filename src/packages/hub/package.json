@@ -63,7 +63,6 @@
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
     "safe-json-stringify": "^1.2.0",
-    "saml2js": "^0.1.2",
     "serve-index": "^1.9.1",
     "sql-string-escape": "^1.1.6",
     "temp": "^0.9.4",
