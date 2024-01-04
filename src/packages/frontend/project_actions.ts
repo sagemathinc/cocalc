@@ -1298,7 +1298,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const store = this.get_store();
     if (store == null) return;
-    this.setState({ compute_server_id });
+    if (store.get("compute_server_id") == compute_server_id) {
+      // already set
+      return;
+    }
+    this.setState({
+      compute_server_id,
+      checked_files: store.get("checked_files").clear(), // always clear on compute_server_id change
+    });
     this.fetch_directory_listing({ compute_server_id });
     set_local_storage(
       store.computeServerIdLocalStorageKey,
