@@ -232,6 +232,9 @@ docker start filesystem >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   setState filesystem run '' 45 25
 
+  # Pull correct version of filesystem image.
+  docker pull ${image}
+
   docker run \
    -d \
    --name=filesystem \
