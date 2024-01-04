@@ -594,15 +594,24 @@ export const ActionBox = rclass<ReactProps>(
           delete_missing: delete_extra_files,
         });
       } else {
-        this.props.actions.copy_paths({
-          src: paths,
-          dest: destination_directory,
-          src_compute_server_id: this.props.compute_server_id,
-          dest_compute_server_id:
-            this.state.copy_from_compute_server_to == "compute-server"
-              ? this.props.compute_server_id
-              : 0,
-        });
+        if (this.props.compute_server_id) {
+          this.props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: this.props.compute_server_id,
+            dest_compute_server_id:
+              this.state.copy_from_compute_server_to == "compute-server"
+                ? this.props.compute_server_id
+                : 0,
+          });
+        } else {
+          this.props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: 0,
+            dest_compute_server_id: this.state.dest_compute_server_id,
+          });
+        }
       }
 
       this.props.actions.set_file_action();
@@ -647,7 +656,7 @@ export const ActionBox = rclass<ReactProps>(
         <>
           {!this.props.compute_server_id ? (
             <div style={{ display: "flex" }}>
-              <h4>Files </h4>
+              <h4>Items </h4>
 
               <div style={{ flex: 1, textAlign: "right" }}>
                 <AntdButton
@@ -724,6 +733,7 @@ export const ActionBox = rclass<ReactProps>(
               >
                 {this.render_copy_description()}
                 <ButtonToolbar>
+                  <Button onClick={this.cancel_action}>Cancel</Button>
                   <Button
                     bsStyle="primary"
                     onClick={this.copy_click}
@@ -732,7 +742,6 @@ export const ActionBox = rclass<ReactProps>(
                     <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "Item")}
                   </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
                 </ButtonToolbar>
               </Col>
               {this.render_different_project_dialog()}
