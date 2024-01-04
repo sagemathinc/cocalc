@@ -24,7 +24,6 @@ export async function getServerSideProps(context) {
     });
     return await withCustomize({ context, props });
   } catch (_err) {
-    console.log(_err);
     return { notFound: true };
   }
 }
