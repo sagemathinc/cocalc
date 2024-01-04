@@ -83,6 +83,7 @@ interface Props {
     site_license_id?: string | null;
   }) => void;
   has_network_access?: boolean;
+  compute_server_id?: number;
 }
 
 type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
@@ -90,7 +91,7 @@ type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
 export default function Configure(props: Props) {
   const student = useStudentProjectFunctionality(props.project_id);
   const [description, setDescription] = useState<string>(
-    props.public?.description ?? ""
+    props.public?.description ?? "",
   );
   const [sharingOptionsState, setSharingOptionsState] = useState<States>(() => {
     if (props.is_public && props.public?.unlisted) {
@@ -106,48 +107,27 @@ export default function Configure(props: Props) {
   });
 
   const [licenseId, setLicenseId] = useState<string | null | undefined>(
-    props.public?.site_license_id
+    props.public?.site_license_id,
   );
   const kucalc = useTypedRedux("customize", "kucalc");
   const shareServer = useTypedRedux("customize", "share_server");
 
-  const handleSharingOptionsChange = (e) => {
-    const state: States = e.target.value;
-    setSharingOptionsState(state);
-    switch (state) {
-      case "private":
-        props.set_public_path(SHARE_FLAGS.DISABLED);
-        break;
-      case "public_listed":
-        // props.public is suppose to work in this state
-        props.set_public_path(SHARE_FLAGS.LISTED);
-        break;
-      case "public_unlisted":
-        props.set_public_path(SHARE_FLAGS.UNLISTED);
-        break;
-      case "authenticated":
-        props.set_public_path(SHARE_FLAGS.AUTHENTICATED);
-        break;
-      default:
-        unreachable(state);
-    }
-  };
-
-  const license = props.public?.license ?? "";
-
-  // This path is public because some parent folder is public.
-  const parent_is_public =
-    !!props.is_public &&
-    props.public != null &&
-    props.public.path != props.path;
-
-  const url = publicShareUrl(
-    props.project_id,
-    parent_is_public && props.public != null ? props.public.path : props.path,
-    props.path
-  );
-
-  const server = shareServerUrl();
+  if (props.compute_server_id) {
+    return (
+      <Alert
+        type="warning"
+        style={{ padding: "30px", margin: "30px" }}
+        description={
+          <>
+            <h3>Publicly sharing files on a compute server is not supported</h3>
+            <div style={{ fontSize: "12pt" }}>
+              Copy the files to the project, then share them.
+            </div>
+          </>
+        }
+      />
+    );
+  }
 
   if (!shareServer) {
     return (
@@ -188,6 +168,44 @@ export default function Configure(props: Props) {
       />
     );
   }
+
+  const handleSharingOptionsChange = (e) => {
+    const state: States = e.target.value;
+    setSharingOptionsState(state);
+    switch (state) {
+      case "private":
+        props.set_public_path(SHARE_FLAGS.DISABLED);
+        break;
+      case "public_listed":
+        // props.public is suppose to work in this state
+        props.set_public_path(SHARE_FLAGS.LISTED);
+        break;
+      case "public_unlisted":
+        props.set_public_path(SHARE_FLAGS.UNLISTED);
+        break;
+      case "authenticated":
+        props.set_public_path(SHARE_FLAGS.AUTHENTICATED);
+        break;
+      default:
+        unreachable(state);
+    }
+  };
+
+  const license = props.public?.license ?? "";
+
+  // This path is public because some parent folder is public.
+  const parent_is_public =
+    !!props.is_public &&
+    props.public != null &&
+    props.public.path != props.path;
+
+  const url = publicShareUrl(
+    props.project_id,
+    parent_is_public && props.public != null ? props.public.path : props.path,
+    props.path,
+  );
+
+  const server = shareServerUrl();
 
   return (
     <div>

@@ -836,6 +836,7 @@ export const ActionBox = rclass<ReactProps>(
         <ConfigureShare
           project_id={this.props.project_id}
           path={path}
+          compute_server_id={this.props.compute_server_id}
           isdir={public_data.isdir}
           size={public_data.size}
           mtime={public_data.mtime}
