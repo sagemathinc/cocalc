@@ -11,9 +11,18 @@
     "test": "pnpm exec jest dist --runInBand  --forceExit ",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter", "terminal"],
+  "keywords": [
+    "cocalc",
+    "jupyter",
+    "terminal"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
@@ -34,7 +43,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.176",
+    "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
     "@types/primus": "^7.3.6"
   }
