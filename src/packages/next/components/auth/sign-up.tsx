@@ -24,6 +24,8 @@ import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import Tags from "./tags";
+import { COLORS } from "@cocalc/util/theme";
+import { CONTACT_TAG } from "@cocalc/util/db-schema/accounts";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
@@ -189,7 +191,9 @@ function SignUp0({
     );
   }
 
-  const needsTags = !minimal && tags.size < MIN_TAGS;
+  // number of tags except for the one name "CONTACT_TAG"
+  const tagsSize = tags.size - (tags.has(CONTACT_TAG) ? 1 : 0);
+  const needsTags = !minimal && tagsSize < MIN_TAGS;
 
   return (
     <div style={{ margin: "30px", minHeight: "50vh" }}>
@@ -201,7 +205,7 @@ function SignUp0({
             priority={true}
           />
           <h1>Create a {siteName} Account</h1>
-          <h2 style={{ color: "#666", marginBottom: "35px" }}>
+          <h2 style={{ color: COLORS.GRAY_M, marginBottom: "35px" }}>
             Sign up for free and get started with {siteName} today!
           </h2>
           {accountCreationInstructions && (
@@ -219,7 +223,7 @@ function SignUp0({
               marginTop: "10px",
               marginBottom: terms ? "10px" : undefined,
               fontSize: "12pt",
-              color: "#666",
+              color: COLORS.GRAY_M,
             }}
           />
         }
@@ -228,7 +232,9 @@ function SignUp0({
             setTags={setTags}
             tags={tags}
             minTags={MIN_TAGS}
+            what="role"
             style={{ width: "880px", maxWidth: "100%" }}
+            contact={true}
           />
         )}
         <form>
@@ -348,17 +354,26 @@ function SignUp0({
             size="large"
             disabled={!submittable.current || signingUp}
             type="primary"
-            style={{ width: "100%", marginTop: "15px" }}
+            style={{
+              width: "100%",
+              marginTop: "15px",
+              color:
+                !submittable.current || signingUp
+                  ? COLORS.ANTD_RED_WARN
+                  : undefined,
+            }}
             onClick={signUp}
           >
-            {needsTags && tags.size < 2
-              ? `Select at least ${MIN_TAGS}`
-              : !terms
+            {!terms
               ? "Agree to the terms"
+              : needsTags && tagsSize < MIN_TAGS
+              ? `Select at least ${MIN_TAGS}`
               : requiresToken2 && !registrationToken
               ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"
+              : !isValidEmailAddress(email)
+              ? "Enter a valid email address above"
               : requiredSSO != null
               ? "You must sign up via SSO"
               : !password || password.length < 6
@@ -367,8 +382,6 @@ function SignUp0({
               ? "Enter your first name above"
               : !lastName?.trim()
               ? "Enter your last name above"
-              : !isValidEmailAddress(email)
-              ? "Enter a valid email address above"
               : signingUp
               ? ""
               : "Sign Up!"}

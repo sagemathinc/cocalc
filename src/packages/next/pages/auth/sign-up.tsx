@@ -3,19 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Layout } from "antd";
+import { GetServerSidePropsContext } from "next";
+import { useRouter } from "next/router";
+import { join } from "path";
+
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
 import { gtag_id, sign_up_id } from "@cocalc/util/theme";
-import { Layout } from "antd";
 import SignUp from "components/auth/sign-up";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import apiPost from "lib/api/post";
 import basePath from "lib/base-path";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { useRouter } from "next/router";
-import { join } from "path";
-import apiPost from "lib/api/post";
 
 export default function SignUpPage({ customize, requiresToken }) {
   const { siteName, isCommercial } = customize;
@@ -67,7 +69,7 @@ export default function SignUpPage({ customize, requiresToken }) {
   );
 }
 
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const customize = await withCustomize({ context });
   if (customize.props.customize.account != null) {
     // user is already signed in -- redirect them to top level page for now (todo).

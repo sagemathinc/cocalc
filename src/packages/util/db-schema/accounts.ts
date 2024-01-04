@@ -561,9 +561,11 @@ interface Tag {
   jupyterExtra?: string;
   torun?: string; // how to run this in a terminal (e.g., for a .py file).
   color?: string;
+  description?: string;
 }
 
-export const TAGS: Tag[] = [
+// They were used up until 2024-01-05
+export const TAGS_FEATURES: Tag[] = [
   { label: "Jupyter", tag: "ipynb", color: "magenta" },
   {
     label: "Python",
@@ -662,7 +664,79 @@ int main() {
   { label: "Teaching", tag: "course", color: "green" },
 ];
 
+// Tags specific to user roles or if they want to be contacted
+export const TAGS_USERS: Tag[] = [
+  {
+    label: "Personal",
+    tag: "personal",
+    icon: "user",
+    description:
+      "You are interesting in using CoCalc for personal, non-commercial reasons",
+  },
+  {
+    label: "Commercial",
+    tag: "commercial",
+    icon: "coffee",
+    description:
+      "You're either using CoCalc as an emploee for commercial purposes or you're a self-employed freelancer",
+  },
+  {
+    label: "Collaborator",
+    tag: "collaborator",
+    icon: "users",
+
+    description: "You were invited to CoCalc to collaborate on a project",
+  },
+  {
+    label: "Instructor",
+    tag: "instructor",
+    icon: "graduation-cap",
+    description: "You are teaching a course",
+  },
+  {
+    label: "Student",
+    tag: "student",
+    icon: "smile",
+    description: "You're a student in a course",
+  },
+  {
+    label: "Researcher",
+    tag: "researcher",
+    icon: "rocket",
+    description:
+      "You intend to use CoCalc for a research project at a university",
+  },
+  {
+    label: "Developer",
+    tag: "developer",
+    icon: "microchip",
+    description: "You're a software developer, IT professional, etc.",
+  },
+  {
+    label: "Artist",
+    tag: "artist",
+    icon: "highlighter",
+    description: "You make art using software",
+  },
+  {
+    label: "Government",
+    tag: "government",
+    icon: "bank",
+    description: "You're working for a government",
+  },
+  {
+    label: "Other",
+    tag: "other",
+    icon: "question-circle",
+    description: "We missed something. Please contact us!",
+  },
+];
+
+export const TAGS = TAGS_USERS;
+
 export const TAGS_MAP: { [key: string]: Tag } = {};
 for (const x of TAGS) {
   TAGS_MAP[x.tag] = x;
 }
+
+export const CONTACT_TAG = "contact";

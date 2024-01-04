@@ -1,16 +1,29 @@
-import { Tag } from "antd";
-import { file_associations } from "@cocalc/frontend/file-associations";
+import { Checkbox, Tag, Tooltip } from "antd";
+import { CheckboxChangeEvent } from "antd/es/checkbox";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import { TAGS } from "@cocalc/util/db-schema/accounts";
+import { file_associations } from "@cocalc/frontend/file-associations";
+import { TAGS, CONTACT_TAG } from "@cocalc/util/db-schema/accounts";
+import { getRandomColor, plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   tags: Set<string>;
   setTags: (tags: Set<string>) => void;
   minTags: number;
+  what: string;
   style?;
+  contact?: boolean; // if true, add checkbox to be "contacted" below, which adds a "contact" tag
 }
 
-export default function Tags({ tags, setTags, minTags, style }: Props) {
+export default function Tags({
+  tags,
+  setTags,
+  minTags,
+  style,
+  what,
+  contact = false,
+}: Props) {
   const handleTagChange = (tag: string, checked: boolean) => {
     if (checked) {
       tags.add(tag);
@@ -20,9 +33,69 @@ export default function Tags({ tags, setTags, minTags, style }: Props) {
     setTags(new Set(tags));
   };
 
+  function onContact(e: CheckboxChangeEvent) {
+    handleTagChange(CONTACT_TAG, e.target.checked);
+  }
+
+  function renderContact() {
+    if (!contact) return;
+    return (
+      <Checkbox
+        style={{
+          margin: "20px 0 20px 0",
+          fontSize: "12pt",
+          color: COLORS.GRAY_M,
+        }}
+        checked={tags.has(CONTACT_TAG)}
+        onChange={onContact}
+      >
+        May we contact you after signing up? We will help you getting started or
+        just introduce CoCalc to you!
+      </Checkbox>
+    );
+  }
+
+  function renderTags() {
+    return TAGS.map(({ label, tag, icon, color, description }) => {
+      const tagColor =
+        color ?? getRandomColor(tag, { min: 80, max: 180, diff: 100 });
+      const iconName = icon ?? file_associations[tag]?.icon;
+      const tagElement = (
+        <Tag
+          style={{
+            fontSize: "14px",
+            width: "125px",
+            height: "auto",
+            padding: "4px",
+            margin: "4px",
+            cursor: "pointer",
+            ...(tags.has(tag)
+              ? { color: "white", background: COLORS.ANTD_LINK_BLUE }
+              : undefined),
+          }}
+          key={tag}
+          onClick={() => {
+            handleTagChange(tag, !tags.has(tag));
+          }}
+          color={tags.has(tag) ? undefined : tagColor}
+        >
+          {iconName && <Icon name={iconName} style={{ marginRight: "5px" }} />}
+          {label}
+        </Tag>
+      );
+      return description ? (
+        <Tooltip title={description}>{tagElement}</Tooltip>
+      ) : (
+        tagElement
+      );
+    });
+  }
+
   return (
     <div style={style}>
-      <div style={{ textAlign: "center" }}>Select at least {minTags}</div>
+      <div style={{ textAlign: "center" }}>
+        Select at least {minTags} {plural(minTags, what)}
+      </div>
       <div
         style={{
           marginTop: "5px",
@@ -31,32 +104,9 @@ export default function Tags({ tags, setTags, minTags, style }: Props) {
           padding: "10px",
         }}
       >
-        {TAGS.map(({ label, tag, icon, color }) => {
-          const iconName = icon ?? file_associations[tag]?.icon;
-          return (
-            <Tag
-              style={{
-                fontSize: "14px",
-                width: "105px",
-                cursor: "pointer",
-                ...(tags.has(tag)
-                  ? { color: "white", background: "#1677ff" }
-                  : undefined),
-              }}
-              key={tag}
-              onClick={() => {
-                handleTagChange(tag, !tags.has(tag));
-              }}
-              color={tags.has(tag) ? undefined : color}
-            >
-              {iconName && (
-                <Icon name={iconName} style={{ marginRight: "5px" }} />
-              )}
-              {label}
-            </Tag>
-          );
-        })}
+        {renderTags()}
       </div>
+      {renderContact()}
     </div>
   );
 }
