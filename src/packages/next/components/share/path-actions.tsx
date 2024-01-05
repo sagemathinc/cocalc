@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Icon } from "@cocalc/frontend/components/icon";
 import Link from "next/link";
-import ExternalLink from "./external-link";
-import rawURL from "lib/share/raw-url";
+// import ExternalLink from "./external-link";
+// import rawURL from "lib/share/raw-url";
 import downloadURL from "lib/share/download-url";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import SiteName from "./site-name";
@@ -38,40 +39,6 @@ export default function PathActions({
 }: Props) {
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
-  if (!url && include("hosted")) {
-    v.push(
-      <Link key="hosted" href={`/share/public_paths/${id}`}>
-        Hosted by <SiteName />
-      </Link>
-    );
-  }
-  if (!url && include("embed")) {
-    v.push(
-      <Link
-        key="embed"
-        href={`/share/public_paths/embed/${id}${
-          relativePath ? "/" + relativePath : ""
-        }`}
-      >
-        Embed
-      </Link>
-    );
-  }
-  if (!url && !isDir && include("download")) {
-    v.push(
-      <a key="download" href={downloadURL(id, path, relativePath)}>
-        Download
-      </a>
-    );
-  }
-  if (!url && include("raw")) {
-    v.push(
-      <ExternalLink key="raw" href={rawURL({ id, path, relativePath })}>
-        Raw
-      </ExternalLink>
-    );
-  }
-
   if (include("edit")) {
     if (url && isDir) {
       // TODO!
@@ -88,10 +55,45 @@ export default function PathActions({
           project_id={project_id}
           description={description}
           has_site_license={has_site_license}
-        />
+        />,
       );
     }
   }
+  if (!url && include("hosted")) {
+    v.push(
+      <Link key="hosted" href={`/share/public_paths/${id}`}>
+        Hosted by <SiteName />
+      </Link>,
+    );
+  }
+  if (!url && !isDir && include("download")) {
+    v.push(
+      <a key="download" href={downloadURL(id, path, relativePath)}>
+        <Icon name="cloud-download" /> Download
+      </a>,
+    );
+  }
+  /*
+  if (!url && include("raw")) {
+    v.push(
+      <ExternalLink key="raw" href={rawURL({ id, path, relativePath })}>
+        Raw
+      </ExternalLink>,
+    );
+  }
+  if (!url && include("embed")) {
+    v.push(
+      <Link
+        key="embed"
+        href={`/share/public_paths/embed/${id}${
+          relativePath ? "/" + relativePath : ""
+        }`}
+      >
+        Embed
+      </Link>,
+    );
+  }
+  */
 
   return <div style={{ marginTop: "5px" }}>{r_join(v, " | ")}</div>;
 }
