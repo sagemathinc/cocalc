@@ -97,9 +97,6 @@ export function FileTypeSelector({
 
     return (
       <>
-        <Section color="geekblue" icon="jupyter" isFlyout={isFlyout}>
-          Jupyter Notebook
-        </Section>
         <Row gutter={gutter} style={newRowStyle}>
           <JupyterNotebookButtons
             mode={mode}
@@ -111,11 +108,6 @@ export function FileTypeSelector({
             filename={filename}
             makeNewFilename={makeNewFilename}
           />
-        </Row>
-        <Section color={"cyan"} icon="experiment" isFlyout={isFlyout}>
-          Math and Science
-        </Section>
-        <Row gutter={gutter} style={newRowStyle}>
           {renderSageWS()}
           {renderLaTeX()}
           {renderRMD()}
