@@ -681,13 +681,6 @@ export const TAGS_USERS: Tag[] = [
       "You're either using CoCalc as an emploee for commercial purposes or you're a self-employed freelancer",
   },
   {
-    label: "Collaborator",
-    tag: "collaborator",
-    icon: "users",
-
-    description: "You were invited to CoCalc to collaborate on a project",
-  },
-  {
     label: "Instructor",
     tag: "instructor",
     icon: "graduation-cap",
@@ -705,6 +698,12 @@ export const TAGS_USERS: Tag[] = [
     icon: "rocket",
     description:
       "You intend to use CoCalc for a research project at a university",
+  },
+  {
+    label: "Collaborator",
+    tag: "collaborator",
+    icon: "users",
+    description: "You were invited to CoCalc to collaborate on a project",
   },
   {
     label: "Developer",
