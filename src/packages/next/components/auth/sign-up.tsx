@@ -116,6 +116,8 @@ function SignUp0({
     return <Loading />;
   }
 
+  const requestContact = tags.has(CONTACT_TAG);
+
   submittable.current = !!(
     terms &&
     requiredSSO == null &&
@@ -124,7 +126,8 @@ function SignUp0({
     isValidEmailAddress(email) &&
     password &&
     firstName?.trim() &&
-    lastName?.trim()
+    lastName?.trim() &&
+    (!requestContact || signupReason.trim())
   );
 
   async function signUp() {
@@ -196,7 +199,7 @@ function SignUp0({
   }
 
   // number of tags except for the one name "CONTACT_TAG"
-  const tagsSize = tags.size - (tags.has(CONTACT_TAG) ? 1 : 0);
+  const tagsSize = tags.size - (requestContact ? 1 : 0);
   const needsTags = !minimal && tagsSize < MIN_TAGS;
   const what = "role";
 
@@ -235,6 +238,7 @@ function SignUp0({
         {terms && !minimal && (
           <Tags
             setTags={setTags}
+            signupReason={signupReason}
             setSingupReason={setSingupReason}
             tags={tags}
             minTags={MIN_TAGS}
@@ -376,6 +380,8 @@ function SignUp0({
               ? `Select at least ${smallIntegerToEnglishWord(
                   MIN_TAGS,
                 )} ${plural(MIN_TAGS, what)}`
+              : requestContact && !signupReason.trim()
+              ? "Tell us how you intend to use CoCalc."
               : requiresToken2 && !registrationToken
               ? "Enter the secret registration token"
               : !email
@@ -477,6 +483,7 @@ function EmailOrSSO(props: EmailOrSSOProps) {
       {renderSSO()}
       {emailSignup && (
         <p>
+          <p>Email address</p>
           <Input
             style={{ fontSize: "12pt" }}
             placeholder="Email address"

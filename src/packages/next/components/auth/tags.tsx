@@ -14,6 +14,7 @@ import { COLORS } from "@cocalc/util/theme";
 interface Props {
   tags: Set<string>;
   setTags: (tags: Set<string>) => void;
+  signupReason: string;
   setSingupReason: (reason: string) => void;
   minTags: number;
   what: string;
@@ -24,6 +25,7 @@ interface Props {
 export default function Tags({
   tags,
   setTags,
+  signupReason,
   setSingupReason,
   minTags,
   style,
@@ -57,14 +59,15 @@ export default function Tags({
           checked={checked}
           onChange={onContact}
         >
-          May we contact you after signing up? We will help you getting started
-          or just introduce CoCalc to you!
+          May we reach out to you after signing up? We will help you getting
+          started or just introduce CoCalc to you!
         </Checkbox>
         {checked ? (
           <Input
-            addonBefore="Details"
+            addonBefore="Intended use:"
             placeholder="Tell us how you intend to use CoCalc."
             style={{ width: "100%" }}
+            status={!signupReason.trim() ? "error" : undefined}
             onChange={(e) => {
               setSingupReason(e.target.value);
             }}
