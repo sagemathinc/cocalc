@@ -5,11 +5,10 @@
 
 import { Col, Flex } from "antd";
 import Immutable from "immutable";
-
 import { Available } from "@cocalc/comm/project-configuration";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Tip } from "@cocalc/frontend/components/tip";
-import { useJupyterKernelsInfo } from "@cocalc/frontend/jupyter/use-kernels-info";
+//import { useJupyterKernelsInfo } from "@cocalc/frontend/jupyter/use-kernels-info";
 import { useProjectContext } from "@cocalc/frontend/project//context";
 import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -79,7 +78,11 @@ export function JupyterNotebookButtons({
 
   const { project_id, actions } = useProjectContext();
   const current_path = useTypedRedux({ project_id }, "current_path");
-  const { error, kernel_selection, kernels_by_name } = useJupyterKernelsInfo();
+  // SEE https://github.com/sagemathinc/cocalc/issues/7168
+  //const { error, kernel_selection, kernels_by_name } = useJupyterKernelsInfo();
+  const error = null as any;
+  const kernel_selection = null as any;
+  const kernels_by_name = null as any;
 
   if (!availableFeatures.jupyter_notebook) return null;
 
