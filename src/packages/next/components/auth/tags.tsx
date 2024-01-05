@@ -59,8 +59,8 @@ export default function Tags({
           checked={checked}
           onChange={onContact}
         >
-          May we reach out to you after signing up? We will help you getting
-          started or just introduce CoCalc to you!
+          Do you want us to contact you? We will help you getting started or
+          just introduce CoCalc to you!
         </Checkbox>
         {checked ? (
           <Input

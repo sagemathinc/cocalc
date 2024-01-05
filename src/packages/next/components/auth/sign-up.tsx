@@ -70,6 +70,7 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
+    onCoCalcCom,
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
   const [signupReason, setSingupReason] = useState<string>("");
@@ -200,7 +201,7 @@ function SignUp0({
 
   // number of tags except for the one name "CONTACT_TAG"
   const tagsSize = tags.size - (requestContact ? 1 : 0);
-  const needsTags = !minimal && tagsSize < MIN_TAGS;
+  const needsTags = !minimal && onCoCalcCom && tagsSize < MIN_TAGS;
   const what = "role";
 
   return (
@@ -235,7 +236,7 @@ function SignUp0({
             }}
           />
         }
-        {terms && !minimal && (
+        {terms && !minimal && onCoCalcCom && (
           <Tags
             setTags={setTags}
             signupReason={signupReason}
