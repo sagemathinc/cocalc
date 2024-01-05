@@ -23,7 +23,16 @@ between them.
 const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 import { useState } from "react";
-import { Alert, Button, Row, Col, Input, Popconfirm, Radio } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Row,
+  Col,
+  Input,
+  Popconfirm,
+  Radio,
+} from "antd";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   CopyToClipBoard,
@@ -61,6 +70,8 @@ interface PublicInfo {
   license?: string;
   name?: string;
   site_license_id?: string;
+  redirect?: string;
+  jupyter_api?: boolean;
 }
 
 interface Props {
@@ -81,6 +92,8 @@ interface Props {
     disabled?: boolean;
     authenticated?: boolean;
     site_license_id?: string | null;
+    redirect?: string;
+    jupyter_api?: boolean;
   }) => void;
   has_network_access?: boolean;
 }
@@ -90,7 +103,7 @@ type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
 export default function Configure(props: Props) {
   const student = useStudentProjectFunctionality(props.project_id);
   const [description, setDescription] = useState<string>(
-    props.public?.description ?? ""
+    props.public?.description ?? "",
   );
   const [sharingOptionsState, setSharingOptionsState] = useState<States>(() => {
     if (props.is_public && props.public?.unlisted) {
@@ -106,7 +119,7 @@ export default function Configure(props: Props) {
   });
 
   const [licenseId, setLicenseId] = useState<string | null | undefined>(
-    props.public?.site_license_id
+    props.public?.site_license_id,
   );
   const kucalc = useTypedRedux("customize", "kucalc");
   const shareServer = useTypedRedux("customize", "share_server");
@@ -144,7 +157,7 @@ export default function Configure(props: Props) {
   const url = publicShareUrl(
     props.project_id,
     parent_is_public && props.public != null ? props.public.path : props.path,
-    props.path
+    props.path,
   );
 
   const server = shareServerUrl();
@@ -348,6 +361,12 @@ export default function Configure(props: Props) {
                 </div>
               </>
             )}
+            <ConfigureJupyterApi
+              jupyter_api={props.public?.jupyter_api}
+              saveJupyterApi={(jupyter_api) => {
+                props.set_public_path({ jupyter_api });
+              }}
+            />
           </Col>
           <Col span={12}>
             <>
@@ -365,6 +384,9 @@ export default function Configure(props: Props) {
             <ConfigureName
               project_id={props.project_id}
               path={props.public?.path ?? props.path}
+              saveRedirect={(redirect) => {
+                props.set_public_path({ redirect });
+              }}
             />
           </Col>
         </Row>
@@ -373,6 +395,32 @@ export default function Configure(props: Props) {
         <Button onClick={props.close} type="primary">
           <Icon name="check" /> Finished
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function ConfigureJupyterApi({ jupyter_api, saveJupyterApi }) {
+  return (
+    <div style={{ marginTop: "15px" }}>
+      <h4>
+        <Icon name="jupyter" style={{ marginRight: "5px" }} />
+        Stateless Jupyter Code Evaluation
+      </h4>
+      <Checkbox
+        checked={jupyter_api}
+        onChange={(e) => {
+          saveJupyterApi(e.target.checked);
+        }}
+      >
+        Enable Stateless Jupyter Code Evaluation
+      </Checkbox>
+      <div style={{ color: "#666" }}>
+        Enable stateless Jupyter code evaluation if the documents you are
+        sharing containing code that can be evaluated using a heavily sandboxed
+        Jupyter kernel, with no network access or access to related files. This
+        can be quickly used by people without having to sign in or make a copy
+        of files.
       </div>
     </div>
   );

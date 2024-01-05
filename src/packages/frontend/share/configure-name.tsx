@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Alert, Button, Input } from "antd";
+import { Alert, Button, Input, Space } from "antd";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { client_db } from "@cocalc/util/schema";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -10,13 +10,21 @@ import { Icon } from "@cocalc/frontend/components/icon";
 interface Props {
   project_id: string;
   path: string;
+  saveRedirect: (string) => void;
 }
 
-export default function ConfigureName({ project_id, path }: Props) {
+export default function ConfigureName({
+  project_id,
+  path,
+  saveRedirect,
+}: Props) {
   const public_paths = useTypedRedux({ project_id }, "public_paths");
   const id = client_db.sha1(project_id, path);
 
   const name: string | undefined = public_paths?.getIn([id, "name"]) as any;
+  const [redirect, setRedirect] = useState<string>(
+    (public_paths?.getIn([id, "redirect"]) ?? "") as any,
+  );
   const [choosingName, setChoosingName] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [saved, setSaved] = useState<boolean>(false);
@@ -56,7 +64,7 @@ export default function ConfigureName({ project_id, path }: Props) {
       {!name && !choosingName ? (
         <Button onClick={() => setChoosingName(true)}>Choose a name...</Button>
       ) : (
-        <span>
+        <div>
           <Input
             onPressEnter={save}
             onKeyUp={keyup}
@@ -75,14 +83,43 @@ export default function ConfigureName({ project_id, path }: Props) {
           {error && (
             <Alert style={{ margin: "15px 0" }} type="error" message={error} />
           )}
-          Edit the name of this shared path. The name can be up to 100 letters,
-          digits, dashes and periods, and must be unique in this project. For a
-          nice URL, also set both the project name in Project Settings{" "}
-          <b>and</b> the project owner's name in Account Preferences. (WARNING:
-          If you change the name, existing public shared links using the
-          previous name will break, so change with caution.)
-        </span>
+          <div style={{ color: "#666" }}>
+            Edit the name of this shared path. The name can be up to 100
+            letters, digits, dashes and periods, and must be unique in this
+            project. For a nice URL, also set both the project name in Project
+            Settings <b>and</b> the project owner's name in Account Preferences.
+            (WARNING: If you change the name, existing public shared links using
+            the previous name will break, so change with caution.)
+          </div>
+        </div>
       )}{" "}
+      <h4>
+        <Icon name="retweet" /> Redirect
+      </h4>
+      <div>
+        <Space.Compact style={{ width: "100%" }}>
+          <Input
+            onChange={(e) => {
+              setRedirect(e.target.value);
+            }}
+            value={redirect}
+            readOnly={saving}
+          />
+          <Button
+            disabled={public_paths?.getIn([id, "redirect"]) == redirect}
+            onClick={() => {
+              saveRedirect(redirect);
+            }}
+          >
+            Save
+          </Button>
+        </Space.Compact>
+        <div style={{ color: "#666" }}>
+          If you move this share somewhere else, put the url relative to the
+          main site here and when people visit this share, they will be
+          redirected to that url. The URL must be to a publicly shared path.
+        </div>
+      </div>
     </div>
   );
 }
