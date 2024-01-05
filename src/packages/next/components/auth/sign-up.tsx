@@ -14,6 +14,8 @@ import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   is_valid_email_address as isValidEmailAddress,
   len,
+  plural,
+  smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
 import { Strategy } from "@cocalc/util/types/sso";
 import Logo from "components/logo";
@@ -70,6 +72,7 @@ function SignUp0({
     reCaptchaKey,
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
+  const [signupReason, setSingupReason] = useState<string>("");
   const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
@@ -149,6 +152,7 @@ function SignUp0({
         reCaptchaToken,
         tags: Array.from(tags),
         publicPathId,
+        signupReason,
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
@@ -194,6 +198,7 @@ function SignUp0({
   // number of tags except for the one name "CONTACT_TAG"
   const tagsSize = tags.size - (tags.has(CONTACT_TAG) ? 1 : 0);
   const needsTags = !minimal && tagsSize < MIN_TAGS;
+  const what = "role";
 
   return (
     <div style={{ margin: "30px", minHeight: "50vh" }}>
@@ -230,9 +235,10 @@ function SignUp0({
         {terms && !minimal && (
           <Tags
             setTags={setTags}
+            setSingupReason={setSingupReason}
             tags={tags}
             minTags={MIN_TAGS}
-            what="role"
+            what={what}
             style={{ width: "880px", maxWidth: "100%" }}
             contact={true}
           />
@@ -367,7 +373,9 @@ function SignUp0({
             {!terms
               ? "Agree to the terms"
               : needsTags && tagsSize < MIN_TAGS
-              ? `Select at least ${MIN_TAGS}`
+              ? `Select at least ${smallIntegerToEnglishWord(
+                  MIN_TAGS,
+                )} ${plural(MIN_TAGS, what)}`
               : requiresToken2 && !registrationToken
               ? "Enter the secret registration token"
               : !email

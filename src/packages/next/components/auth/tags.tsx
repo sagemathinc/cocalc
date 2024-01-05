@@ -1,15 +1,20 @@
-import { Checkbox, Tag, Tooltip } from "antd";
+import { Checkbox, Input, Tag, Tooltip } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { file_associations } from "@cocalc/frontend/file-associations";
-import { TAGS, CONTACT_TAG } from "@cocalc/util/db-schema/accounts";
-import { getRandomColor, plural } from "@cocalc/util/misc";
+import { CONTACT_TAG, TAGS } from "@cocalc/util/db-schema/accounts";
+import {
+  getRandomColor,
+  plural,
+  smallIntegerToEnglishWord,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   tags: Set<string>;
   setTags: (tags: Set<string>) => void;
+  setSingupReason: (reason: string) => void;
   minTags: number;
   what: string;
   style?;
@@ -19,6 +24,7 @@ interface Props {
 export default function Tags({
   tags,
   setTags,
+  setSingupReason,
   minTags,
   style,
   what,
@@ -39,26 +45,39 @@ export default function Tags({
 
   function renderContact() {
     if (!contact) return;
+    const checked = tags.has(CONTACT_TAG);
     return (
-      <Checkbox
-        style={{
-          margin: "20px 0 20px 0",
-          fontSize: "12pt",
-          color: COLORS.GRAY_M,
-        }}
-        checked={tags.has(CONTACT_TAG)}
-        onChange={onContact}
-      >
-        May we contact you after signing up? We will help you getting started or
-        just introduce CoCalc to you!
-      </Checkbox>
+      <>
+        <Checkbox
+          style={{
+            margin: "20px 0 20px 0",
+            fontSize: "12pt",
+            color: COLORS.GRAY_M,
+          }}
+          checked={checked}
+          onChange={onContact}
+        >
+          May we contact you after signing up? We will help you getting started
+          or just introduce CoCalc to you!
+        </Checkbox>
+        {checked ? (
+          <Input
+            addonBefore="Details"
+            placeholder="Tell us how you intend to use CoCalc."
+            style={{ width: "100%" }}
+            onChange={(e) => {
+              setSingupReason(e.target.value);
+            }}
+          />
+        ) : undefined}
+      </>
     );
   }
 
   function renderTags() {
     return TAGS.map(({ label, tag, icon, color, description }) => {
       const tagColor =
-        color ?? getRandomColor(tag, { min: 80, max: 180, diff: 100 });
+        color ?? getRandomColor(tag, { min: 140, max: 170, diff: 0 });
       const iconName = icon ?? file_associations[tag]?.icon;
       const tagElement = (
         <Tag
@@ -94,7 +113,8 @@ export default function Tags({
   return (
     <div style={style}>
       <div style={{ textAlign: "center" }}>
-        Select at least {minTags} {plural(minTags, what)}
+        Select at least {smallIntegerToEnglishWord(minTags)}{" "}
+        {plural(minTags, what)}
       </div>
       <div
         style={{
