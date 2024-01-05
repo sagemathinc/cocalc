@@ -5,7 +5,7 @@
 
 import { Col, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
-import React, { useMemo } from "react";
+import type { ReactNode } from "react";
 
 import { Available } from "@cocalc/comm/project-configuration";
 import { A } from "@cocalc/frontend/components/A";
@@ -32,7 +32,7 @@ interface Props {
   projectActions: ProjectActions | undefined;
   availableFeatures: Readonly<Available>;
   disabledFeatures?: Readonly<DisabledFeatures>;
-  children?: React.ReactNode;
+  children?: ReactNode;
   mode?: "flyout" | "full";
   selectedExt?: string;
   filename: string;
@@ -53,14 +53,6 @@ export function FileTypeSelector({
   filename,
   makeNewFilename,
 }: Props) {
-  const rootDivRef = React.useRef<HTMLDivElement>(null);
-
-  // observe the width of the rootDivRef and if above threshold, we pack more buttons in a row
-  const isWide = useMemo(() => {
-    if (rootDivRef.current == null) return false;
-    return rootDivRef.current.clientWidth > 700;
-  }, [rootDivRef.current?.clientWidth]);
-
   if (!create_file) {
     return null;
   }
@@ -68,10 +60,9 @@ export function FileTypeSelector({
   const isFlyout = mode === "flyout";
   const btnSize = isFlyout ? "small" : "large";
 
-  // the base unit depends on the width (when not in flyout mode)
-  const base = isWide ? 4 : 6;
 
   // col width of Antd's 24 grid system
+  const base = 6;
   const md = isFlyout ? 24 : base;
   const sm = isFlyout ? 24 : 2 * base;
   const doubleMd = isFlyout ? 24 : 2 * base;
@@ -473,14 +464,14 @@ export function FileTypeSelector({
             </Tip>
           </Col>
 
-                {renderRMD()}
+          {renderRMD()}
         </Row>
       </>
     );
   }
 
   return (
-    <div ref={rootDivRef}>
+    <div>
       {renderJupyterNotebook()}
       {renderLinux()}
       {renderServers()}
