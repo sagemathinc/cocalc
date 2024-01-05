@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Table } from "./types";
-import { checkAccountName } from "./name-rules";
-import { SCHEMA as schema } from "./index";
 import { NOTES } from "./crm";
+import { SCHEMA as schema } from "./index";
+import { checkAccountName } from "./name-rules";
+import { Table } from "./types";
 
 import {
   DEFAULT_FONT_SIZE,
-  NEW_FILENAMES,
   DEFAULT_NEW_FILENAMES,
+  NEW_FILENAMES,
 } from "./defaults";
 
 Table({
@@ -158,6 +158,7 @@ Table({
     sign_up_usage_intent: {
       type: "string",
       desc: "What user intended to use CoCalc for at sign up",
+      render: { type: "text" },
     },
     lti_id: {
       type: "array",
@@ -510,6 +511,7 @@ Table({
           groups: null,
           notes: null,
           salesloft_id: null,
+          sign_up_usage_intent: null,
         },
       },
       set: {
