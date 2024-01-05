@@ -89,8 +89,7 @@ export function FileTypeSelector({
     if (
       !availableFeatures.jupyter_notebook &&
       !availableFeatures.sage &&
-      !availableFeatures.latex &&
-      !availableFeatures.rmd
+      !availableFeatures.latex
     ) {
       return;
     }
@@ -110,7 +109,6 @@ export function FileTypeSelector({
           />
           {renderSageWS()}
           {renderLaTeX()}
-          {renderRMD()}
         </Row>
       </>
     );
@@ -474,6 +472,8 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
+
+                {renderRMD()}
         </Row>
       </>
     );

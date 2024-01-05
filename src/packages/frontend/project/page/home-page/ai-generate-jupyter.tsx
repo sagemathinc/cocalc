@@ -578,7 +578,7 @@ export function AIGenerateNotebookButton({
     <>
       <Button onClick={() => setShow(true)} style={btnStyle}>
         <AIAvatar size={14} style={{ position: "unset", marginRight: "5px" }} />{" "}
-        Generated…
+        AI Assist
       </Button>
       <Modal
         title="Create Jupyter Notebook using AI"
