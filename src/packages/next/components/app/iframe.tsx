@@ -48,7 +48,7 @@ export default function IFrame({
             }
           : {
               padding: "5px 15px",
-              height: start ? "70vh" : undefined,
+              height: start ? "95vh" : undefined,
               border: "1px solid #ddd",
               borderRadius: "5px",
               boxShadow: "5px 5px 5px #eee",

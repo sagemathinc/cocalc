@@ -19,7 +19,6 @@ import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 import GoogleSearch from "components/share/google-search";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 import ProxyInput from "components/share/proxy-input";
 import getAccountId from "lib/account/get-account";
 import A from "components/misc/A";
@@ -133,11 +132,6 @@ export default function All({ page, publicPaths, customize }) {
             direction="vertical"
           >
             <GoogleSearch style={{ width: "450px", maxWidth: "90vw" }} />
-            <ChatGPTHelp
-              tag={"share"}
-              style={{ width: "450px", maxWidth: "90vw" }}
-              prompt={"I am browsing all shared public files."}
-            />
           </Space>
           <h2>
             Browse publicly shared documents on <SiteName />
@@ -275,7 +269,7 @@ export async function getServerSideProps(context) {
   const { rows } = await pool.query(
     `SELECT public_paths.id, public_paths.path, public_paths.url, public_paths.description, ${timeInSeconds(
       "public_paths.last_edited",
-      "last_edited"
+      "last_edited",
     )}, projects.avatar_image_tiny,
     counter::INT,
      (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=public_paths.id) AS stars
@@ -285,7 +279,7 @@ export async function getServerSideProps(context) {
     ((public_paths.authenticated IS TRUE AND $1 IS TRUE) OR (public_paths.authenticated IS NOT TRUE))
     ${searchQuery}
     ORDER BY ${sort} LIMIT $2 OFFSET $3`,
-    params
+    params,
   );
 
   return await withCustomize({ context, props: { page, publicPaths: rows } });
