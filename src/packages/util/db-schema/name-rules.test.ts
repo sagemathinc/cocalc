@@ -70,10 +70,10 @@ test("checkProjectName", () => {
   expect(() => checkProjectName("foo-bar")).not.toThrow(/.*spaces.*/);
   expect(() => checkProjectName("foo.bar")).not.toThrow(/.*spaces.*/);
 
-  // not be a v4 UUID
+  // allow v4 UUID
   expect(() =>
     checkProjectName("3b38dd9c-f8bf-48c0-9d26-7cad4bac08eb"),
-  ).toThrow(/.*UUID.*/);
+  ).not.toThrow(/.*UUID.*/);
 });
 
 test("checkPublicPathName", () => {
@@ -98,8 +98,8 @@ test("checkPublicPathName", () => {
   expect(() => checkPublicPathName("foo-bar")).not.toThrow(/.*spaces.*/);
   expect(() => checkPublicPathName("foo.bar")).not.toThrow(/.*spaces.*/);
 
-  // not be a UUID
+  // allow UUID
   expect(() =>
     checkPublicPathName("3b38dd9c-f8bf-48c0-9d26-7cad4bac08eb"),
-  ).toThrow(/.*UUID.*/);
+  ).not.toThrow(/.*UUID.*/);
 });

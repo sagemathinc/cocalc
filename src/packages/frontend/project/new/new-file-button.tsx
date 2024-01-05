@@ -13,9 +13,9 @@ import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 const STYLE = {
   marginRight: "5px",
   marginBottom: "5px",
-  height: "auto",
   whiteSpace: "normal",
   padding: "10px",
+  height: "auto",
 } as const;
 
 const ICON_STYLE = {
@@ -74,7 +74,8 @@ export function NewFileButton({
         }
       : {}),
     ...(mode === "secondary" ? { padding: "5px" } : { width: "100%" }),
-    ...(active && mode === "secondary" ? {} : {}),
+    ...(active && mode === "secondary" ? {} : undefined),
+    ...(size == "large" ? { minHeight: "125px" } : undefined),
   };
 
   function renderBody() {

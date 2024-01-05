@@ -75,12 +75,12 @@ export default function ConfigureName({ project_id, path }: Props) {
           {error && (
             <Alert style={{ margin: "15px 0" }} type="error" message={error} />
           )}
-          Edit the name; it can be up to 100 letters, digits, dashes and
-          periods, and must be unique in this project. (TEMPORARY WARNING: If
-          you change the name, existing public shared links using the previous
-          name will break, so change with caution.) For a nice URLs, set the
-          project name in Project Settings and{" "}
-          <b>the project owner's name must be set in Account Preferences</b>.
+          Edit the name of this shared path. The name can be up to 100 letters,
+          digits, dashes and periods, and must be unique in this project. For a
+          nice URL, also set both the project name in Project Settings{" "}
+          <b>and</b> the project owner's name in Account Preferences. (WARNING:
+          If you change the name, existing public shared links using the
+          previous name will break, so change with caution.)
         </span>
       )}{" "}
     </div>

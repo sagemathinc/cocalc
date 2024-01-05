@@ -38,7 +38,6 @@ import type { PathContents as PathContentsType } from "lib/share/get-contents";
 import Avatar from "components/share/proxy/avatar";
 import A from "components/misc/A";
 import { join } from "path";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 
 interface Props {
   id: string;
@@ -98,7 +97,7 @@ export default function PublicPath({
   const [numStars, setNumStars] = useState<number>(stars);
 
   const [isStarred, setIsStarred] = useState<boolean | null | undefined>(
-    isStarred0 ?? null
+    isStarred0 ?? null,
   );
   useEffect(() => {
     setIsStarred(isStarred0);
@@ -331,10 +330,17 @@ export default function PublicPath({
             style={{ float: "right", justifyContent: "flex-end" }}
             direction="vertical"
           >
-            <ChatGPTHelp
-              tag={"share"}
-              style={{ width: "450px", maxWidth: "50vw" }}
-              prompt={`I am using the file ${path}.`}
+            <PathActions
+              id={id}
+              path={path}
+              url={url}
+              relativePath={relativePath}
+              isDir={contents?.isdir}
+              exclude={new Set(["hosted"])}
+              project_id={project_id}
+              image={compute_image}
+              description={description}
+              has_site_license={has_site_license}
             />
             <div style={{ float: "right" }}>{renderStar()}</div>
           </Space>
@@ -365,14 +371,12 @@ export default function PublicPath({
               value={description}
             />
           )}
+
           {renderProjectLink()}
           {renderPathLink()}
           {counter && (
             <>
-              <b>
-                <Icon name="eye" /> Views:
-              </b>{" "}
-              <Badge count={counter} />
+              <b>Views:</b> <Badge count={counter} />
               <br />
             </>
           )}
@@ -389,18 +393,6 @@ export default function PublicPath({
               <br />
             </>
           )}
-          <PathActions
-            id={id}
-            path={path}
-            url={url}
-            relativePath={relativePath}
-            isDir={contents?.isdir}
-            exclude={new Set(["hosted"])}
-            project_id={project_id}
-            image={compute_image}
-            description={description}
-            has_site_license={has_site_license}
-          />
         </div>
         <Divider />
         {error != null && (
