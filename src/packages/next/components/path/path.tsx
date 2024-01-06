@@ -107,14 +107,35 @@ export default function PublicPath({
 
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
+  const [invalidRedirect, setInvalidRedirect] = useState<boolean>(false);
 
   useEffect(() => {
     if (redirect) {
-      router.replace(redirect);
+      // User can in theory pass in an arbitrary redirect, which could probably be dangerous (e.g., to an external
+      // spam/hack site!?). So we only automatically redirect to the SAME site we're on right now.
+      if (redirect) {
+        const site = siteName(redirect);
+        if (!site) {
+          // no site specified -- path relative to our own site
+          router.replace(redirect);
+        } else if (site == siteName(location.href)) {
+          // site specified and it is our own site.
+          router.replace(redirect);
+        } else {
+          // user can manually inspect url and click
+          setInvalidRedirect(true);
+        }
+      }
     }
   }, [redirect]);
 
-  if (id == null) return <Loading style={{ fontSize: "30px" }} />;
+  if (id == null || (redirect && !invalidRedirect)) {
+    return (
+      <div style={{ margin: "30px", textAlign: "center" }}>
+        <Loading style={{ fontSize: "30px" }} />
+      </div>
+    );
+  }
 
   function visibility_explanation() {
     if (disabled) {
@@ -328,6 +349,25 @@ export default function PublicPath({
           />
         )}
         <div>
+          {invalidRedirect && (
+            <Alert
+              type="warning"
+              message={
+                <>
+                  <Icon name="external-link" /> External Redirect
+                </>
+              }
+              description={
+                <div>
+                  The author has configured a redirect to:{" "}
+                  <div style={{ fontSize: "13pt", textAlign: "center" }}>
+                    <A href={redirect}>{redirect}</A>
+                  </div>
+                </div>
+              }
+              style={{ margin: "15px 0" }}
+            />
+          )}
           <Space
             style={{ float: "right", justifyContent: "flex-end" }}
             direction="vertical"
@@ -427,4 +467,16 @@ export default function PublicPath({
       </Layout>
     </Customize>
   );
+}
+
+function siteName(url) {
+  const i = url.indexOf("://");
+  if (i == -1) {
+    return "";
+  }
+  const j = url.indexOf("/", i + 3);
+  if (j == -1) {
+    return url;
+  }
+  return url.slice(0, j);
 }
