@@ -11,12 +11,14 @@ interface Props {
   project_id: string;
   path: string;
   saveRedirect: (string) => void;
+  disabled?: boolean;
 }
 
 export default function ConfigureName({
   project_id,
   path,
   saveRedirect,
+  disabled,
 }: Props) {
   const public_paths = useTypedRedux({ project_id }, "public_paths");
   const id = client_db.sha1(project_id, path);
@@ -66,6 +68,7 @@ export default function ConfigureName({
       ) : (
         <div>
           <Input
+            disabled={disabled}
             onPressEnter={save}
             onKeyUp={keyup}
             onBlur={save}
@@ -99,6 +102,7 @@ export default function ConfigureName({
       <div>
         <Space.Compact style={{ width: "100%" }}>
           <Input
+            disabled={disabled}
             onChange={(e) => {
               setRedirect(e.target.value);
             }}
@@ -106,7 +110,9 @@ export default function ConfigureName({
             readOnly={saving}
           />
           <Button
-            disabled={public_paths?.getIn([id, "redirect"]) == redirect}
+            disabled={
+              disabled || public_paths?.getIn([id, "redirect"]) == redirect
+            }
             onClick={() => {
               saveRedirect(redirect);
             }}

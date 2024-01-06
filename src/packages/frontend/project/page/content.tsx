@@ -133,7 +133,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
 
   switch (tab_name) {
     case "home":
-      return <HomePage  />;
+      return <HomePage />;
     case "files":
       return <Explorer />;
     case "new":
@@ -163,7 +163,9 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
           MathComponent: KaTeXAndMathJaxV2,
           jupyterApiEnabled,
-          hasLanguageModel: redux?.getStore("projects").hasLanguageModelEnabled(project_id),
+          hasLanguageModel: redux
+            ?.getStore("projects")
+            .hasLanguageModelEnabled(project_id),
           disableMarkdownCodebar: redux
             ?.getStore("account")
             .getIn(["other_settings", "disable_markdown_codebar"]),
@@ -236,7 +238,7 @@ interface EditorContentProps {
 }
 
 const EditorContent: React.FC<EditorContentProps> = (
-  props: EditorContentProps
+  props: EditorContentProps,
 ) => {
   const { project_id, path, chat_width, is_visible, chatState, component } =
     props;

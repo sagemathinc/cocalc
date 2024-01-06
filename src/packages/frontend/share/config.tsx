@@ -22,7 +22,7 @@ between them.
 
 const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Button,
@@ -362,6 +362,7 @@ export default function Configure(props: Props) {
               </>
             )}
             <ConfigureJupyterApi
+              disabled={parent_is_public}
               jupyter_api={props.public?.jupyter_api}
               saveJupyterApi={(jupyter_api) => {
                 props.set_public_path({ jupyter_api });
@@ -387,6 +388,7 @@ export default function Configure(props: Props) {
               saveRedirect={(redirect) => {
                 props.set_public_path({ redirect });
               }}
+              disabled={parent_is_public}
             />
           </Col>
         </Row>
@@ -400,7 +402,13 @@ export default function Configure(props: Props) {
   );
 }
 
-function ConfigureJupyterApi({ jupyter_api, saveJupyterApi }) {
+function ConfigureJupyterApi({ jupyter_api, saveJupyterApi, disabled }) {
+  const [jupyterApi, setJupyterApi] = useState<boolean>(jupyter_api);
+  useEffect(() => {
+    setJupyterApi(jupyter_api);
+  }, [jupyter_api]);
+  const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
+  if (!jupyterApiEnabled) return null;
   return (
     <div style={{ marginTop: "15px" }}>
       <h4>
@@ -408,8 +416,10 @@ function ConfigureJupyterApi({ jupyter_api, saveJupyterApi }) {
         Stateless Jupyter Code Evaluation
       </h4>
       <Checkbox
-        checked={jupyter_api}
+        disabled={disabled}
+        checked={jupyterApi}
         onChange={(e) => {
+          setJupyterApi(e.target.checked);
           saveJupyterApi(e.target.checked);
         }}
       >
