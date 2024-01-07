@@ -368,22 +368,25 @@ export default function PublicPath({
               style={{ margin: "15px 0" }}
             />
           )}
+          <PathActions
+            id={id}
+            path={path}
+            url={url}
+            relativePath={relativePath}
+            isDir={contents?.isdir}
+            exclude={new Set(["hosted"])}
+            project_id={project_id}
+            image={compute_image}
+            description={description}
+            has_site_license={has_site_license}
+          />
           <Space
-            style={{ float: "right", justifyContent: "flex-end" }}
+            style={{
+              float: "right",
+              justifyContent: "flex-end",
+            }}
             direction="vertical"
           >
-            <PathActions
-              id={id}
-              path={path}
-              url={url}
-              relativePath={relativePath}
-              isDir={contents?.isdir}
-              exclude={new Set(["hosted"])}
-              project_id={project_id}
-              image={compute_image}
-              description={description}
-              has_site_license={has_site_license}
-            />
             <div style={{ float: "right" }}>{renderStar()}</div>
           </Space>
           {signingUp && (

@@ -68,7 +68,7 @@ export default function CellInput({
             <>
               Make a <i>temporary</i> change to this code.{" "}
               <b>This is not saved permanently anywhere!</b>
-              'Edit your own copy of this...' for much more powerful editing and
+              'Edit your own copy...' for much more powerful editing and
               to save your changes!
             </>
           }
