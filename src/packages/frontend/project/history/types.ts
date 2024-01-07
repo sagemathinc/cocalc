@@ -193,6 +193,8 @@ export type PublicPathEvent = {
   disabled?: boolean;
   authenticated?: boolean;
   site_license_id?: string;
+  redirect?: string;
+  jupyter_api?: boolean;
 };
 
 export type SoftwareEnvironmentEvent = {

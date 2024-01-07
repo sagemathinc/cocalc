@@ -122,6 +122,8 @@ export const QUERIES = {
       counter: null,
       compute_image: null,
       site_license_id: null,
+      redirect: null,
+      jupyter_api: null,
     },
   },
 };
@@ -2630,6 +2632,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       disabled?: boolean;
       authenticated?: boolean;
       site_license_id?: string | null;
+      jupyter_api?: boolean;
+      redirect?: string;
     },
   ) {
     if (
@@ -2700,6 +2704,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             log = true;
           } else if (k === "site_license_id" && will_change) {
             log = true;
+          } else if (k === "jupyter_api" && will_change) {
+            log = true;
+          } else if (k === "redirect" && will_change) {
+            log = true;
           }
         }
         obj = obj.set(k, opts[k]);
@@ -2721,6 +2729,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
         site_license_id: obj.get("site_license_id")?.slice(-8),
+        jupyter_api: obj.get("jupyter_api"),
+        redirect: obj.get("redirect"),
       });
     }
   }

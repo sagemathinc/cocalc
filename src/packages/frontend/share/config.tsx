@@ -22,8 +22,17 @@ between them.
 
 const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
-import { useState } from "react";
-import { Alert, Button, Row, Col, Input, Popconfirm, Radio } from "antd";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Row,
+  Col,
+  Input,
+  Popconfirm,
+  Radio,
+} from "antd";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   CopyToClipBoard,
@@ -61,6 +70,8 @@ interface PublicInfo {
   license?: string;
   name?: string;
   site_license_id?: string;
+  redirect?: string;
+  jupyter_api?: boolean;
 }
 
 interface Props {
@@ -81,6 +92,8 @@ interface Props {
     disabled?: boolean;
     authenticated?: boolean;
     site_license_id?: string | null;
+    redirect?: string;
+    jupyter_api?: boolean;
   }) => void;
   has_network_access?: boolean;
   compute_server_id?: number;
@@ -129,6 +142,44 @@ export default function Configure(props: Props) {
     );
   }
 
+  const handleSharingOptionsChange = (e) => {
+    const state: States = e.target.value;
+    setSharingOptionsState(state);
+    switch (state) {
+      case "private":
+        props.set_public_path(SHARE_FLAGS.DISABLED);
+        break;
+      case "public_listed":
+        // props.public is suppose to work in this state
+        props.set_public_path(SHARE_FLAGS.LISTED);
+        break;
+      case "public_unlisted":
+        props.set_public_path(SHARE_FLAGS.UNLISTED);
+        break;
+      case "authenticated":
+        props.set_public_path(SHARE_FLAGS.AUTHENTICATED);
+        break;
+      default:
+        unreachable(state);
+    }
+  };
+
+  const license = props.public?.license ?? "";
+
+  // This path is public because some parent folder is public.
+  const parent_is_public =
+    !!props.is_public &&
+    props.public != null &&
+    props.public.path != props.path;
+
+  const url = publicShareUrl(
+    props.project_id,
+    parent_is_public && props.public != null ? props.public.path : props.path,
+    props.path,
+  );
+
+  const server = shareServerUrl();
+
   if (!shareServer) {
     return (
       <Alert
@@ -168,44 +219,6 @@ export default function Configure(props: Props) {
       />
     );
   }
-
-  const handleSharingOptionsChange = (e) => {
-    const state: States = e.target.value;
-    setSharingOptionsState(state);
-    switch (state) {
-      case "private":
-        props.set_public_path(SHARE_FLAGS.DISABLED);
-        break;
-      case "public_listed":
-        // props.public is suppose to work in this state
-        props.set_public_path(SHARE_FLAGS.LISTED);
-        break;
-      case "public_unlisted":
-        props.set_public_path(SHARE_FLAGS.UNLISTED);
-        break;
-      case "authenticated":
-        props.set_public_path(SHARE_FLAGS.AUTHENTICATED);
-        break;
-      default:
-        unreachable(state);
-    }
-  };
-
-  const license = props.public?.license ?? "";
-
-  // This path is public because some parent folder is public.
-  const parent_is_public =
-    !!props.is_public &&
-    props.public != null &&
-    props.public.path != props.path;
-
-  const url = publicShareUrl(
-    props.project_id,
-    parent_is_public && props.public != null ? props.public.path : props.path,
-    props.path,
-  );
-
-  const server = shareServerUrl();
 
   return (
     <div>
@@ -366,6 +379,13 @@ export default function Configure(props: Props) {
                 </div>
               </>
             )}
+            <ConfigureJupyterApi
+              disabled={parent_is_public}
+              jupyter_api={props.public?.jupyter_api}
+              saveJupyterApi={(jupyter_api) => {
+                props.set_public_path({ jupyter_api });
+              }}
+            />
           </Col>
           <Col span={12}>
             <>
@@ -383,6 +403,10 @@ export default function Configure(props: Props) {
             <ConfigureName
               project_id={props.project_id}
               path={props.public?.path ?? props.path}
+              saveRedirect={(redirect) => {
+                props.set_public_path({ redirect });
+              }}
+              disabled={parent_is_public}
             />
           </Col>
         </Row>
@@ -391,6 +415,40 @@ export default function Configure(props: Props) {
         <Button onClick={props.close} type="primary">
           <Icon name="check" /> Finished
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function ConfigureJupyterApi({ jupyter_api, saveJupyterApi, disabled }) {
+  const [jupyterApi, setJupyterApi] = useState<boolean>(jupyter_api);
+  useEffect(() => {
+    setJupyterApi(jupyter_api);
+  }, [jupyter_api]);
+  const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
+  if (!jupyterApiEnabled) return null;
+  return (
+    <div style={{ marginTop: "15px" }}>
+      <h4>
+        <Icon name="jupyter" style={{ marginRight: "5px" }} />
+        Stateless Jupyter Code Evaluation
+      </h4>
+      <Checkbox
+        disabled={disabled}
+        checked={jupyterApi}
+        onChange={(e) => {
+          setJupyterApi(e.target.checked);
+          saveJupyterApi(e.target.checked);
+        }}
+      >
+        Enable Stateless Jupyter Code Evaluation
+      </Checkbox>
+      <div style={{ color: "#666" }}>
+        Enable stateless Jupyter code evaluation if the documents you are
+        sharing containing code that can be evaluated using a heavily sandboxed
+        Jupyter kernel, with no network access or access to related files. This
+        can be quickly used by people without having to sign in or make a copy
+        of files.
       </div>
     </div>
   );

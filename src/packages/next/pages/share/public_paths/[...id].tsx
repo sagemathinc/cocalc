@@ -23,13 +23,13 @@ export async function getServerSideProps(context) {
         basePath,
         names.owner,
         names.project,
-        names.public_path
+        names.public_path,
       );
       if (context.params.id.length > 1) {
         location = join(
           location,
           "files",
-          context.params.id.slice(1).join("/")
+          context.params.id.slice(1).join("/"),
         );
       }
       return { props: { redirect: location } };
