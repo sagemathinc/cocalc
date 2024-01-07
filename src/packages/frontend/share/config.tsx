@@ -258,13 +258,21 @@ export default function Configure(props: Props) {
                 value={sharingOptionsState}
                 onChange={handleSharingOptionsChange}
               >
-                <Radio name="sharing_options" value="public_listed">
+                <Radio
+                  name="sharing_options"
+                  value="public_listed"
+                  disabled={!props.has_network_access}
+                >
                   <Icon name="eye" style={{ marginRight: "5px" }} />
                   <i>Published (listed)</i> - on the{" "}
                   <A href={shareServerUrl()}>
-                    public search engine indexed server
+                    public search engine indexed server.{" "}
+                    {!props.has_network_access && (
+                      <b>
+                        (This project must be upgraded to have Internet access.)
+                      </b>
+                    )}
                   </A>
-                  .
                 </Radio>
                 <Radio name="sharing_options" value="public_unlisted">
                   <Icon name="eye-slash" style={{ marginRight: "5px" }} />
