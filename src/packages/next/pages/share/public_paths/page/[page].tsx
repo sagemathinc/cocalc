@@ -276,6 +276,7 @@ export async function getServerSideProps(context) {
     FROM public_paths, projects
     WHERE public_paths.project_id = projects.project_id
     AND public_paths.vhost IS NULL AND public_paths.disabled IS NOT TRUE AND public_paths.unlisted IS NOT TRUE AND
+    public_paths.url IS NULL AND
     ((public_paths.authenticated IS TRUE AND $1 IS TRUE) OR (public_paths.authenticated IS NOT TRUE))
     ${searchQuery}
     ORDER BY ${sort} LIMIT $2 OFFSET $3`,
