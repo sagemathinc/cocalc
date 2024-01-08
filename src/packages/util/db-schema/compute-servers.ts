@@ -72,8 +72,11 @@ export const IMAGES0 = {
     icon: "sagemath",
     url: "https://www.sagemath.org/",
     source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/sagemath-10.1",
-    versions: [{ label: "10.1", tag: "10.1" }],
+      "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/sagemath",
+    versions: [
+      { label: "10.1", tag: "10.1" },
+      { label: "10.2", tag: "10.2" },
+    ],
     description:
       "[SageMath](https://sagemath.org) is an open-source mathematics software system, integrating numerous software packages and providing a unified interface. It is designed for advanced algebra, geometry, number theory, cryptography, and various other fields of mathematics, accessible through a Python-based language.",
   },
@@ -101,7 +104,10 @@ export const IMAGES0 = {
     url: "https://julialang.org/",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/julia",
-    versions: [{ label: "1.9.4", tag: "1.9.4" }],
+    versions: [
+      { label: "1.9.4", tag: "1.9.4" },
+      { label: "1.10.0", tag: "1.10.0" },
+    ],
     description:
       "[Julia](https://julialang.org/) is a high-performance programming language designed for technical computing, combining the speed of C with the ease of use of Python. It excels in numerical analysis, computational science, and data processing with its efficient syntax and ability to handle high-level mathematical operations.",
   },
@@ -129,7 +135,10 @@ export const IMAGES0 = {
     icon: "pytorch",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch",
-    versions: [{ label: "2.2.0", tag: "23.11-py3" }],
+    versions: [
+      { label: "2.2.0 (2023-11)", tag: "23.11-py3" },
+      { label: "2.2.0 (2023-12)", tag: "23.12-py3" },
+    ],
     description:
       "[PyTorch](https://pytorch.org/) is an open-source machine learning library, known for its flexibility and ease of use, particularly in deep learning applications. It provides a dynamic computation graph and a rich ecosystem of tools and libraries, making it a preferred choice for researchers and developers in AI.",
   },
@@ -143,7 +152,10 @@ export const IMAGES0 = {
     icon: "tensorflow",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow",
-    versions: [{ label: "2.14.0", tag: "23.11-tf2-py3" }],
+    versions: [
+      { label: "2.14.0 (2023-11)", tag: "23.11-tf2-py3" },
+      { label: "2.14.0 (2023-12)", tag: "23.12-tf2-py3" },
+    ],
     description:
       "[TensorFlow](https://www.tensorflow.org/) is an open-source machine learning framework developed by Google, widely used for building and training neural networks. Its flexible architecture allows for easy deployment of computation across various platforms, from servers to edge devices, making it suitable for a broad range of AI applications.",
   },
@@ -162,6 +174,10 @@ export const IMAGES0 = {
         label: "2023-09-21",
         tag: "release-colab_20230921-060057_RC00",
       },
+      {
+        label: "2023-12-14",
+        tag: "release-colab_20231214-060137_RC00",
+      },
     ],
     description:
       "[Google Colab](https://colab.google/) comes preinstalled with a wide range of popular data science and machine learning libraries, such as TensorFlow, PyTorch, Matplotlib, and Pandas. It also includes support for Python and its various packages, enabling users to jump straight into coding without worrying about setup and installation.",
@@ -179,7 +195,7 @@ export const IMAGES0 = {
     description:
       "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
     authToken: true,
-    versions: [{ label: "0.1.15", tag: "0.1.15" }],
+    versions: [{ label: "0.1.15", tag: "0.1.15" }, { label: "0.1.18", tag: "0.1.18" }],
     jupyterKernels: false,
   },
   cuda: {
@@ -197,6 +213,20 @@ export const IMAGES0 = {
       "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications.  The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.   It enables dramatic increases in computing performance by harnessing the power of NVIDIA graphics processing units (GPUs) for a wide range of computing tasks.",
     versions: [{ label: "12.3.1", tag: "12.3.1" }],
     jupyterKernels: false,
+  },
+  jax: {
+    label: "JAX",
+    docker: `${DOCKER_USER}/jax`,
+    gpu: true,
+    minDiskSizeGb: 28 + 10 + 10,
+    dockerSizeGb: 24,
+    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax",
+    icon: "times",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/jax",
+    versions: [{ label: "0.4.17 (2023-10)", tag: "23.10-paxml-py3" }],
+    description:
+      "[JAX](https://jax.readthedocs.io/en/latest/) is a framework for high-performance numerical computing and machine learning research. It includes Numpy-like APIs, automatic differentiation, [XLA](https://github.com/openxla/openxla-nvgpu) acceleration and simple primitives for scaling across GPUs.   [The JAX NGC Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax) comes with all dependencies included, providing an easy place to start developing applications in areas such as NLP, Computer Vision, Multimodality, physics-based simulations, reinforcement learning, drug discovery, and neural rendering.",
   },
 
   //   "cocalc-docker": {
