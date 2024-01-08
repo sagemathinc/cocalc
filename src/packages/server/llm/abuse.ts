@@ -2,9 +2,10 @@
 We initially just implement some very simple rate limitations to prevent very
 blatant abuse.
 
-- at most $5*10^4$ tokens per signed in user per hour \(that's \$0.10\); that allows for major usage...
+- at most $10^5$ tokens per signed in user per hour \(that's \$0.20\); that allows for major usage...
   but if somebody tried to do something really abusive, it would stop it.  Nobody
-  would hit this in practice unless they are really trying to abuse cocalc.
+  would hit this in practice unless they are really trying to abuse cocalc...
+  WRONG: it's very easy to hit this due to large inputs, e.g., analyzing a paper.
 - at most $10^6$ tokens per hour across all users \-\- that's \$2/hour. That would
   come out to a bit more if sustained than my budget, but allows for bursts.
 
@@ -33,7 +34,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {
   noAccount: 0,
-  account: 5 * 10 ** 4,
+  account: 10 ** 5,
   global: 10 ** 6,
 };
 
@@ -68,6 +69,17 @@ export async function checkForAbuse({
     throw Error(`invalid model "${model}"`);
   }
 
+  if (!isFreeModel(model)) {
+    // This is a for-pay product, so let's make sure user can purchase it.
+    await assertPurchaseAllowed({
+      account_id,
+      service: model2service(model),
+    });
+    // We always allow usage of for pay models, since the user is paying for
+    // them.  Only free models need to be throttled.
+    return;
+  }
+
   const usage = await recentUsage({
     cache: "short",
     period: "1 hour",
@@ -78,7 +90,7 @@ export async function checkForAbuse({
   if (account_id) {
     if (usage > QUOTAS.account) {
       throw Error(
-        `You may use at most ${QUOTAS.account} tokens per hour. Please try again later.`,
+        `You may use at most ${QUOTAS.account} tokens per hour. Please try again later or use a non-free language model such as GPT-4.`,
       );
     }
   } else if (usage > QUOTAS.noAccount) {
@@ -93,7 +105,7 @@ export async function checkForAbuse({
   // console.log("overallUsage = ", usage);
   if (overallUsage > QUOTAS.global) {
     throw Error(
-      `There is too much usage of ChatGPT right now.  Please try again later.`,
+      `There is too much usage of ChatGPT right now.  Please try again later or use a non-free language model such as GPT-4.`,
     );
   }
 
