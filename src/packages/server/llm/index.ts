@@ -49,7 +49,9 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
     throw new Error(
       `There is a problem calling ${
         LLM_USERNAMES[model] ?? model
-      }. Please try another model, a different prompt, or at a later point in time.`,
+      }. Please try another model, a different prompt, or try again later. ${
+        !err?.unsafe ? err : ""
+      }`,
     );
   }
 }
@@ -206,17 +208,21 @@ async function evaluateVertexAI({
     } catch (err) {
       const retry = i < maxAttempts - 1;
       log.debug(
-        "vertex ai api call failed",
+        "Google Vertex AI API call failed",
         err,
         ` will ${retry ? "" : "NOT"} retry`,
       );
       if (!retry) {
+        // due to API key leak bug (which they will fix or probably already did fix)
+        // TODO: get rid of this workaround as soon as we can, since it can very seriously
+        // degrade the user experience not knowing why things break...
+        err.unsafe = true;
         throw err;
       }
       await delay(1000);
     }
   }
-  throw Error("vertex ai api called failed"); // this should never get reached.
+  throw Error("Google Vertex AI API called failed"); // this should never get reached.
 }
 
 async function evaluateOpenAI({

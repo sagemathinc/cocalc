@@ -34,7 +34,8 @@ export default async function getPublicPathInfo({
 
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
-    `SELECT project_id, path, description, compute_image, license, disabled, unlisted, authenticated, url,
+    `SELECT project_id, path, description, compute_image, license, disabled, unlisted,
+    authenticated, url, jupyter_api, redirect,
     counter::INT,
     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars,
     CASE WHEN site_license_id <> '' THEN TRUE ELSE FALSE END AS has_site_license

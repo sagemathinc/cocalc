@@ -33,6 +33,7 @@ interface Props {
   relativePath: string;
   path: string;
   truncated?: boolean;
+  jupyter_api?: boolean;
 }
 
 export default function FileContents({
@@ -40,6 +41,7 @@ export default function FileContents({
   content,
   path,
   relativePath,
+  jupyter_api,
 }: Props): JSX.Element {
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
@@ -51,7 +53,7 @@ export default function FileContents({
     const value = {
       urlTransform: getUrlTransform({ id, path, relativePath: relPath }),
       AnchorTagComponent: getAnchorTagComponent({ id, relativePath: relPath }),
-      jupyterApiEnabled,
+      jupyterApiEnabled: jupyterApiEnabled && jupyter_api,
       noSanitize: false, // We **MUST** sanitize, since we users could launch XSS attacks, mess up style, etc.,
       // This will, of course, break things, in which case users will have to open them in their own projects.
     };

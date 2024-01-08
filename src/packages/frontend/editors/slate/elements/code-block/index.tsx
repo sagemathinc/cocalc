@@ -32,7 +32,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
     throw Error("bug");
   }
 
-  const { disableMarkdownCodebar } = useFileContext();
+  const { disableMarkdownCodebar, jupyterApiEnabled } = useFileContext();
 
   // we need both a ref and state, because editing is used both for the UI
   // state and also at once point directly to avoid saving the last change
@@ -51,7 +51,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
 
   const { change, editor, setEditor } = useChange();
   const [history, setHistory] = useState<string[]>(
-    getHistory(editor, element) ?? []
+    getHistory(editor, element) ?? [],
   );
   useEffect(() => {
     const newHistory = getHistory(editor, element);
@@ -116,35 +116,37 @@ const StaticElement: React.FC<RenderElementProps> = ({
               }}
             >
               <div style={{ flex: 1 }}></div>
-              <Tooltip
-                title={
-                  <>
-                    Make a <i>temporary</i> change to this code.{" "}
-                    <b>This is not saved permanently anywhere!</b>
-                  </>
-                }
-              >
-                <Button
-                  size="small"
-                  type={
-                    editing && newValue != element.value ? undefined : "text"
+              {jupyterApiEnabled && (
+                <Tooltip
+                  title={
+                    <>
+                      Make a <i>temporary</i> change to this code.{" "}
+                      <b>This is not saved permanently anywhere!</b>
+                    </>
                   }
-                  style={
-                    editing && newValue != element.value
-                      ? { background: "#5cb85c", color: "white" }
-                      : { color: "#666" }
-                  }
-                  onClick={() => {
-                    if (editing) {
-                      save(newValue, false);
-                    } else {
-                      setEditing(true);
-                    }
-                  }}
                 >
-                  <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
-                </Button>
-              </Tooltip>{" "}
+                  <Button
+                    size="small"
+                    type={
+                      editing && newValue != element.value ? undefined : "text"
+                    }
+                    style={
+                      editing && newValue != element.value
+                        ? { background: "#5cb85c", color: "white" }
+                        : { color: "#666" }
+                    }
+                    onClick={() => {
+                      if (editing) {
+                        save(newValue, false);
+                      } else {
+                        setEditing(true);
+                      }
+                    }}
+                  >
+                    <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
+                  </Button>{" "}
+                </Tooltip>
+              )}
               <ActionButtons
                 auto
                 size="small"

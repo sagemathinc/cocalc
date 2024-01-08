@@ -66,6 +66,7 @@ interface Props {
   // visiting this by following a link from within the share server that
   // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
   redirect?: string;
+  jupyter_api: boolean;
 }
 
 export default function PublicPath({
@@ -92,6 +93,7 @@ export default function PublicPath({
   githubRepo,
   projectAvatarImage,
   redirect,
+  jupyter_api,
 }: Props) {
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
@@ -105,14 +107,35 @@ export default function PublicPath({
 
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
+  const [invalidRedirect, setInvalidRedirect] = useState<boolean>(false);
 
   useEffect(() => {
     if (redirect) {
-      router.replace(redirect);
+      // User can in theory pass in an arbitrary redirect, which could probably be dangerous (e.g., to an external
+      // spam/hack site!?). So we only automatically redirect to the SAME site we're on right now.
+      if (redirect) {
+        const site = siteName(redirect);
+        if (!site) {
+          // no site specified -- path relative to our own site
+          router.replace(redirect);
+        } else if (site == siteName(location.href)) {
+          // site specified and it is our own site.
+          router.replace(redirect);
+        } else {
+          // user can manually inspect url and click
+          setInvalidRedirect(true);
+        }
+      }
     }
   }, [redirect]);
 
-  if (id == null) return <Loading style={{ fontSize: "30px" }} />;
+  if (id == null || (redirect && !invalidRedirect)) {
+    return (
+      <div style={{ margin: "30px", textAlign: "center" }}>
+        <Loading style={{ fontSize: "30px" }} />
+      </div>
+    );
+  }
 
   function visibility_explanation() {
     if (disabled) {
@@ -326,22 +349,44 @@ export default function PublicPath({
           />
         )}
         <div>
+          {invalidRedirect && (
+            <Alert
+              type="warning"
+              message={
+                <>
+                  <Icon name="external-link" /> External Redirect
+                </>
+              }
+              description={
+                <div>
+                  The author has configured a redirect to:{" "}
+                  <div style={{ fontSize: "13pt", textAlign: "center" }}>
+                    <A href={redirect}>{redirect}</A>
+                  </div>
+                </div>
+              }
+              style={{ margin: "15px 0" }}
+            />
+          )}
+          <PathActions
+            id={id}
+            path={path}
+            url={url}
+            relativePath={relativePath}
+            isDir={contents?.isdir}
+            exclude={new Set(["hosted"])}
+            project_id={project_id}
+            image={compute_image}
+            description={description}
+            has_site_license={has_site_license}
+          />
           <Space
-            style={{ float: "right", justifyContent: "flex-end" }}
+            style={{
+              float: "right",
+              justifyContent: "flex-end",
+            }}
             direction="vertical"
           >
-            <PathActions
-              id={id}
-              path={path}
-              url={url}
-              relativePath={relativePath}
-              isDir={contents?.isdir}
-              exclude={new Set(["hosted"])}
-              project_id={project_id}
-              image={compute_image}
-              description={description}
-              has_site_license={has_site_license}
-            />
             <div style={{ float: "right" }}>{renderStar()}</div>
           </Space>
           {signingUp && (
@@ -418,10 +463,23 @@ export default function PublicPath({
             id={id}
             relativePath={relativePath}
             path={path}
+            jupyter_api={jupyter_api}
             {...contents}
           />
         )}
       </Layout>
     </Customize>
   );
+}
+
+function siteName(url) {
+  const i = url.indexOf("://");
+  if (i == -1) {
+    return "";
+  }
+  const j = url.indexOf("/", i + 3);
+  if (j == -1) {
+    return url;
+  }
+  return url.slice(0, j);
 }
