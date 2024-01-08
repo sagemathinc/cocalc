@@ -30,7 +30,6 @@ import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PathNavigator } from "../explorer/path-navigator";
-import { ChatGPTGenerateNotebookButton } from "../page/home-page/ai-generate-jupyter";
 import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
@@ -195,7 +194,7 @@ export default function NewFilePage(props: Props) {
         </Row>
         <Row>
           <Col sm={24}>
-            <div style={{ color: "#666", fontSize: "12pt" }}>
+            <div style={{ color: COLORS.GRAY_M, fontSize: "12pt" }}>
               You can drop one or more files here or on the Explorer file
               listing. See{" "}
               <A href="https://doc.cocalc.com/howto/upload.html">the docs</A>{" "}
@@ -355,12 +354,7 @@ export default function NewFilePage(props: Props) {
             create_folder={createFolder}
             projectActions={actions}
             availableFeatures={availableFeatures}
-            chatgptNotebook={
-              <ChatGPTGenerateNotebookButton
-                project_id={project_id}
-                style={{ width: "100%" }}
-              />
-            }
+            filename={filename}
           >
             <Tip
               title={"Download files from the Internet"}

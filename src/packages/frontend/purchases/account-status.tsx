@@ -3,8 +3,7 @@
 This is your balance, limit and spending rate.
 */
 
-import { Icon } from "@cocalc/frontend/components/icon";
-import { Alert, Button, Space } from "antd";
+import { Alert, Card, Space } from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import MinBalance from "./min-balance";
 import Balance from "./balance";
@@ -16,7 +15,8 @@ import {
   getMinBalance as getMinBalanceUsingApi,
   getSpendRate as getSpendRateUsingApi,
 } from "./api";
-import Next from "@cocalc/frontend/components/next";
+import Config from "./config";
+import Refresh from "./refresh";
 
 export default function AccountStatus({
   compact,
@@ -75,14 +75,11 @@ export default function AccountStatus({
       title={
         <span style={{ marginLeft: "5px" }}>
           Balance
-          <Button
-            onClick={handleRefresh}
+          <Refresh
+            handleRefresh={handleRefresh}
             disabled={loading}
-            style={{ marginLeft: "30px" }}
-          >
-            <Icon name="refresh" />
-            Refresh
-          </Button>
+            style={{ float: "right" }}
+          />
         </span>
       }
       style={style}
@@ -108,15 +105,16 @@ export default function AccountStatus({
               <div style={{ width: "30px" }} />
             </>
           )}
-          <SpendRate spendRate={spendRate} compact={compact} />
+          <Card>
+            <div style={{ color: "#888", marginBottom: "10px" }}>
+              Subscription Payments
+            </div>
+            <Config style={{ flexDirection: "column" }} />
+          </Card>
+          <div style={{ width: "30px" }} />
+          <SpendRate spendRate={spendRate} />
         </Space>
       </div>
-      {!compact && (
-        <div style={{ color: "#666", float: "right" }}>
-          To transfer money to another account,{" "}
-          <Next href={"store/vouchers"}>create a cash voucher</Next>.
-        </div>
-      )}
     </SettingBox>
   );
 }

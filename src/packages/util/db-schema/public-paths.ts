@@ -26,6 +26,8 @@ export interface PublicPath {
   auth?: string;
   compute_image?: string;
   site_license_id?: string;
+  redirect?: string;
+  jupyter_api?: boolean;
 }
 
 // Get publicly available information about a project.
@@ -185,6 +187,22 @@ Table({
       desc: "Image that illustrates this shared content.",
       render: { type: "image" },
     },
+    redirect: {
+      type: "string",
+      desc: "Redirect path for this share",
+      render: {
+        type: "text",
+        editable: true,
+      },
+    },
+    jupyter_api: {
+      type: "boolean",
+      desc: "If true, enable stateless jupyter api so users can evaluate code",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
+    },
   },
   rules: {
     primary_key: "id",
@@ -227,6 +245,8 @@ Table({
           compute_image: "default",
           site_license_id: null,
           cross_origin_isolation: null,
+          redirect: null,
+          jupyter_api: null,
         },
       },
       set: {
@@ -248,6 +268,8 @@ Table({
           compute_image: true,
           site_license_id: true, // user with write access to project can set this.
           cross_origin_isolation: true,
+          redirect: true,
+          jupyter_api: true,
         },
         required_fields: {
           id: true,
@@ -281,7 +303,7 @@ Table({
               }
               if (result.rows.length > 0) {
                 cb(
-                  `There is already a public path "${result.rows[0].path}" in this project with the name "${obj["name"]}".  Names are not case sensitive.`
+                  `There is already a public path "${result.rows[0].path}" in this project with the name "${obj["name"]}".  Names are not case sensitive.`,
                 );
                 return;
               }
@@ -328,6 +350,8 @@ Table({
           last_saved: null,
           counter: null,
           compute_image: null,
+          redirect: null,
+          jupyter_api: null,
         },
       },
     },
@@ -422,6 +446,8 @@ Table({
           created: true,
           compute_image: true,
           site_license_id: true,
+          redirect: true,
+          jupyter_api: true,
         },
         // not doing this since don't want to require project_id and path to
         // be set, and this is for admin use only anyways:

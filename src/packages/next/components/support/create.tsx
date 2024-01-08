@@ -27,6 +27,8 @@ import { NoZendesk } from "./util";
 import { Paragraph, Title } from "components/misc";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 
+const CHATGPT_DISABLED = true;
+
 function VSpace({ children }) {
   return (
     <Space direction="vertical" style={{ width: "100%", fontSize: "12pt" }}>
@@ -51,15 +53,15 @@ export default function Create() {
   // This could easily be blank, but if it is set it can be useful.
   const { url } = router.query;
   const [files, setFiles] = useState<{ project_id: string; path?: string }[]>(
-    []
+    [],
   );
   const [type, setType] = useState<Type>(stringToType(router.query.type));
   const [email, setEmail] = useState<string>(account?.email_address ?? "");
   const [body, setBody] = useState<string>(
-    router.query.body ? `${router.query.body}` : ""
+    router.query.body ? `${router.query.body}` : "",
   );
   const [subject, setSubject] = useState<string>(
-    router.query.subject ? `${router.query.subject}` : ""
+    router.query.subject ? `${router.query.subject}` : "",
   );
 
   const [submitError, setSubmitError] = useState<ReactNode>("");
@@ -111,7 +113,7 @@ export default function Create() {
           You can also see the{" "}
           <A href="/support/tickets">status of your support tickets</A>.
         </p>
-      </div>
+      </div>,
     );
   }
 
@@ -144,7 +146,9 @@ export default function Create() {
                 </>
               )}
             </p>
-            {openaiEnabled && <ChatGPT siteName={siteName} />}
+            {openaiEnabled && !CHATGPT_DISABLED && (
+              <ChatGPT siteName={siteName} />
+            )}
             <FAQ />
             <Title level={2}>Create Your Ticket</Title>
             <Instructions />
@@ -335,7 +339,7 @@ function Problem({ onChange }) {
             0,
             e.target.value
               ? "\n\nWHAT DID YOU DO EXACTLY?\n\n" + e.target.value
-              : ""
+              : "",
           )
         }
       />
@@ -347,7 +351,7 @@ function Problem({ onChange }) {
         onChange={(e) =>
           update(
             1,
-            e.target.value ? "\n\nWHAT HAPPENED?\n\n" + e.target.value : ""
+            e.target.value ? "\n\nWHAT HAPPENED?\n\n" + e.target.value : "",
           )
         }
       />
@@ -362,7 +366,7 @@ function Problem({ onChange }) {
             e.target.value
               ? "\n\nHOW DID THIS DIFFER FROM WHAT YOU EXPECTED?\n\n" +
                   e.target.value
-              : ""
+              : "",
           )
         }
       />
@@ -536,7 +540,7 @@ print(sid_obj.polarity_scores(text))`}
             0,
             e.target.value
               ? "\n\nWHAT SOFTWARE DO YOU NEED?\n\n" + e.target.value
-              : ""
+              : "",
           )
         }
       />
@@ -556,7 +560,7 @@ print(sid_obj.polarity_scores(text))`}
             1,
             e.target.value
               ? "\n\nHOW DO YOU PLAN TO USE THIS SOFTWARE?\n\n" + e.target.value
-              : ""
+              : "",
           )
         }
       />
@@ -575,7 +579,7 @@ print(sid_obj.polarity_scores(text))`}
             e.target.value
               ? "\n\nHOW CAN WE TEST THAT THE SOFTWARE IS PROPERLY INSTALLED?\n\n" +
                   e.target.value
-              : ""
+              : "",
           )
         }
       />

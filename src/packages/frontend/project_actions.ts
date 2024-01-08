@@ -40,7 +40,12 @@ import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
 } from "./project/history/types";
-import { log_file_open, log_opened_time, open_file } from "./project/open-file";
+import {
+  OpenFileOpts,
+  log_file_open,
+  log_opened_time,
+  open_file,
+} from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
 import {
@@ -116,6 +121,8 @@ export const QUERIES = {
       counter: null,
       compute_image: null,
       site_license_id: null,
+      redirect: null,
+      jupyter_api: null,
     },
   },
 };
@@ -857,7 +864,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open the given file in this project.
-  public async open_file(opts): Promise<void> {
+  public async open_file(opts: OpenFileOpts): Promise<void> {
     await open_file(this, opts);
   }
 
@@ -2301,7 +2308,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
   // that extension.  Throws an Error if the path name is invalid.
-  private _absolute_path(name, current_path, ext?) {
+  public construct_absolute_path(
+    name: string,
+    current_path?: string,
+    ext?: string,
+  ) {
     if (name.length === 0) {
       throw Error("Cannot use empty filename");
     }
@@ -2342,7 +2353,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       name = name.slice(0, -1);
     }
     try {
-      p = this._absolute_path(name, current_path);
+      p = this.construct_absolute_path(name, current_path);
     } catch (e) {
       this.setState({ file_creation_error: e.message });
       return;
@@ -2401,7 +2412,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     }
     try {
-      p = this._absolute_path(name, opts.current_path, opts.ext);
+      p = this.construct_absolute_path(name, opts.current_path, opts.ext);
     } catch (e) {
       console.warn("Absolute path creation error");
       this.setState({ file_creation_error: e.message });
@@ -2502,6 +2513,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       disabled?: boolean;
       authenticated?: boolean;
       site_license_id?: string | null;
+      jupyter_api?: boolean;
+      redirect?: string;
     },
   ) {
     if (
@@ -2572,6 +2585,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             log = true;
           } else if (k === "site_license_id" && will_change) {
             log = true;
+          } else if (k === "jupyter_api" && will_change) {
+            log = true;
+          } else if (k === "redirect" && will_change) {
+            log = true;
           }
         }
         obj = obj.set(k, opts[k]);
@@ -2593,6 +2610,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
         site_license_id: obj.get("site_license_id")?.slice(-8),
+        jupyter_api: obj.get("jupyter_api"),
+        redirect: obj.get("redirect"),
       });
     }
   }

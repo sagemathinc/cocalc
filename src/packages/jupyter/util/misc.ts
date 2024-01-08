@@ -15,6 +15,8 @@ part of CoCalc
 
 import * as immutable from "immutable";
 
+import { cmp } from "@cocalc/util/misc";
+
 // This list is inspired by OutputArea.output_types in https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/outputarea.js
 // The order matters -- we only keep the left-most type (see import-from-ipynb.coffee)
 
@@ -38,7 +40,7 @@ export type Kernels = immutable.List<Kernel>;
 
 export function codemirror_to_jupyter_pos(
   code: string,
-  pos: { ch: number; line: number }
+  pos: { ch: number; line: number },
 ): number {
   const lines = code.split("\n");
   let s = pos.ch;
@@ -101,10 +103,10 @@ export function char_idx_to_js_idx(char_idx: number, text: string): number {
 // Transforms the KernelSpec list into two useful datastructures.
 // Was part of jupyter/store, but now used in several places.
 export function get_kernels_by_name_or_language(
-  kernels: Kernels
+  kernels: Kernels,
 ): [
   immutable.OrderedMap<string, immutable.Map<string, string>>,
-  immutable.OrderedMap<string, immutable.List<string>>
+  immutable.OrderedMap<string, immutable.List<string>>,
 ] {
   const data_name: any = {};
   let data_lang: any = {};
@@ -141,4 +143,54 @@ export function get_kernels_by_name_or_language(
     .OrderedMap<string, immutable.List<string>>(data_lang)
     .sortBy((_v, k) => k.toLowerCase());
   return [by_name, by_lang];
+}
+
+/*
+ * select all kernels, which are ranked highest for a specific language.
+ *
+ * kernel metadata looks like that
+ *
+ *  "display_name": ...,
+ *  "argv":, ...
+ *  "language": "sagemath",
+ *  "metadata": {
+ *    "cocalc": {
+ *      "priority": 10,
+ *      "description": "Open-source mathematical software system",
+ *      "url": "https://www.sagemath.org/",
+ *      "disabled": true
+ *    }
+ *  }
+ *
+ * Return dict of language <-> kernel_name
+ */
+export function get_kernel_selection(
+  kernels: Kernels,
+): immutable.Map<string, string> {
+  // for each language, we pick the top priority kernel
+  const data: any = {};
+  kernels
+    .filter((entry) => entry.get("language") != null)
+    .groupBy((entry) => entry.get("language"))
+    .forEach((kernels, lang) => {
+      const top: any = kernels
+        .sort((a, b) => {
+          const va = -(a.getIn(
+            ["metadata", "cocalc", "priority"],
+            0,
+          ) as number);
+          const vb = -(b.getIn(
+            ["metadata", "cocalc", "priority"],
+            0,
+          ) as number);
+          return cmp(va, vb);
+        })
+        .first();
+      if (top == null || lang == null) return true;
+      const name = top.get("name");
+      if (name == null) return true;
+      data[lang] = name;
+    });
+
+  return immutable.Map<string, string>(data);
 }

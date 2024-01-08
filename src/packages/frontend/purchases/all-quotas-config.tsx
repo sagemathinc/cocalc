@@ -15,8 +15,9 @@ import { cloneDeep, isEqual } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import Cost from "./pay-as-you-go/cost";
 import ServiceTag from "./service";
+import Refresh from "./refresh";
 
-export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined"
+export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
 
 export const PRESETS = [0, 5, 20, 1000];
 export const STEP = 5;
@@ -177,14 +178,11 @@ export default function AllQuotasConfig() {
       )}
 
       <div style={{ marginLeft: "5px", float: "right" }}>
-        <Button
-          onClick={handleRefresh}
+        <Refresh
+          handleRefresh={handleRefresh}
           disabled={saving}
           style={{ float: "right" }}
-        >
-          <Icon name="refresh" />
-          Refresh
-        </Button>
+        />
       </div>
 
       <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
