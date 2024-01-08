@@ -15,17 +15,23 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
 import Info from "components/landing/info";
+import LaTeX from "components/landing/latex";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
 import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import AiLateXGenerate from "/public/features/ai-latex-generate.png";
+import AiLaTeXHelpMeFix from "/public/features/ai-latex-help-me-fix.png";
+import AILaTeXAnswer from "/public/features/ai-latex-maxwell-answer.png";
 import AILLMQuery from "/public/features/ai-llm-cprogram-query.png";
 import AILLMCprogramRun from "/public/features/ai-llm-cprogram-run.png";
 import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
 import ChatGptGenerateCodeRun from "/public/features/chatgpt-generate-code-run.png";
 import ChatGptGenerateCode from "/public/features/chatgpt-generate-code.png";
+import ChatGptJupyterCell from "/public/features/chatgpt-jupyter-linear-regression-cell.png";
+import ChatGptJupyterPrompt from "/public/features/chatgpt-jupyter-linear-regression-prompt.png";
 
 const title = `AI Assistance`;
 const component = title;
@@ -161,7 +167,7 @@ export default function AI({ customize }) {
             title={"Mention @chatgpt in any Chatroom in CoCalc"}
             icon="comment"
             image={ChatGptGenerateCode}
-            anchor="a-chatgpt-generate"
+            anchor="a-mention"
             alt="ChatGPT generates code in a chatroom"
           >
             <Paragraph>
@@ -197,10 +203,33 @@ export default function AI({ customize }) {
           </Info>
 
           <Info
+            title={"Generate Jupyter Cells"}
+            icon="jupyter"
+            anchor="a-jupyter"
+            alt="Generate Jupyter Cells"
+            image={ChatGptJupyterCell}
+            style={{ backgroundColor: COLORS.BLUE_LLLL }}
+          >
+            <Paragraph>
+              In a <A href="./jupyter-notebook">Jupyter Notebook</A>, you can
+              tell a language model to generate a cell for you. This is useful
+              if you want to explore a topic, but don't know where to start. In
+              the example on the left, we ask ChatGPT to generate a cell for us
+              about a linear regression for a stochastic process:
+            </Paragraph>
+            <Paragraph>
+              <Image
+                src={ChatGptJupyterPrompt}
+                alt="ChatGPT cell prompt in Jupyter Notebook"
+              />
+            </Paragraph>
+          </Info>
+
+          <Info
             title={"Generating Code"}
             icon="pen"
             image={AILLMCprogramRun}
-            anchor="a-chatgpt-cpp"
+            anchor="a-cpp"
             alt="Gemini generates C++ code in a file"
             narrow
             caption={<blockquote>{codePrompt}</blockquote>}
@@ -225,6 +254,51 @@ export default function AI({ customize }) {
             </Paragraph>
             <Paragraph>
               <Image src={AILLMQuery} alt={codePrompt} />
+            </Paragraph>
+          </Info>
+
+          <Info
+            title={
+              <>
+                Help with <LaTeX />
+              </>
+            }
+            icon="question-circle"
+            anchor="a-latex"
+            alt="Help with LaTeX"
+            image={AiLateXGenerate}
+            style={{ backgroundColor: COLORS.BLUE_LLLL }}
+            below={
+              <>
+                <Paragraph>
+                  On top of that, it can even assist you in{" "}
+                  <Text strong>fixing LaTeX error messages</Text>. the "Help me
+                  fix this…" button, and CoCalc will submit the error message,
+                  some context, and a prompt for correction. This will provide
+                  you with a useful indicator of the issue and potential
+                  solutions.
+                </Paragraph>
+                <Paragraph style={{ textAlign: "center" }}>
+                  <Image
+                    src={AiLaTeXHelpMeFix}
+                    alt="ChatGPT helps with LaTeX error messages"
+                  />
+                </Paragraph>
+              </>
+            }
+          >
+            <Paragraph>
+              Writing documents in the typesetting language{" "}
+              <A href="./latex-editor">LaTeX</A> can be challenging. In the
+              example on the left, we ask ChatGPT to generate the LaTeX formulas
+              for the Maxell equations. Sure enough, it answers with a short
+              explanation and a snippet of LaTeX code.
+            </Paragraph>
+            <Paragraph>
+              <Image
+                src={AILaTeXAnswer}
+                alt="ChatGPT generates LaTeX code for Maxwell equations"
+              />
             </Paragraph>
           </Info>
 
