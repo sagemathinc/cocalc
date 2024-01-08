@@ -8,6 +8,7 @@ import { Col, Layout, Row } from "antd";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -55,16 +56,14 @@ export default function AI({ customize }) {
             subtitle={
               <>
                 <div>
-                  Large language models like{" "}
+                  CoCalc integrates large language models such as{" "}
                   <A href="https://openai.com/chatgpt">OpenAI's ChatGPT</A> or{" "}
                   <A href="https://deepmind.google/technologies/gemini/">
                     Google's Gemini
                   </A>{" "}
-                  are capable of generating human-like responses and code based
-                  on various prompts and queries. CoCalc integrates them as a
-                  virtual assistants. They help you with coding, understand
-                  error message, generate code, and ultimately making it easier
-                  for you to work with various programming languages.
+                  as virtual assistants. They generate human-like responses and
+                  code, assist with programming, explain error messages, and
+                  ultimately making it easier for you to get your work done.
                 </div>
               </>
             }
@@ -78,12 +77,15 @@ export default function AI({ customize }) {
               <>
                 <Title level={2}>Help with coding</Title>
                 <Paragraph>
-                  <li>ChatGPT understands most programming languages.</li>
-                  <li>Based on your input, it can generate code for you.</li>
+                  <li>Understand a vast array of programming languages.</li>
+                  <li>Generate context-specific code based on your input.</li>
                   <li>
-                    It is able to interpret error messages and give suggestions.
+                    Interpret error messages, providing insightful suggestions.
                   </li>
-                  <li>Fixes code, by modifying a snippet of code of yours.</li>
+                  <li>
+                    Enhance code quality by modifying your provided code
+                    snippets.
+                  </li>
                 </Paragraph>
               </>
             }
@@ -92,13 +94,14 @@ export default function AI({ customize }) {
                 <Title level={2}>Virtual assistant</Title>
                 <Paragraph>
                   <li>
-                    ChatGPT provides virtual assistance, helping you fix bugs,
-                    and understand and write code. It supports all programming
-                    languages and is easy to use with the click of a button.
+                    These language models, as virtual assistants, rectify bugs,
+                    comprehend and write code across many programming languages
+                    in a very convenient way.
                   </li>
-                  <li>You can also ask it to add documentation to code.</li>
+                  <li>They are capable of appending documentation to code.</li>
                   <li>
-                    Complete code based on existing code and an instruction.
+                    They can even build upon existing code based on provided
+                    directives.
                   </li>
                 </Paragraph>
               </>
@@ -106,9 +109,10 @@ export default function AI({ customize }) {
           />
 
           <Info.Heading
+            style={{ backgroundColor: COLORS.BS_GREEN_LL }}
             description={
               <>
-                <Paragraph>
+                <Paragraph style={{ marginTop: "20px" }}>
                   There are various places where AI assistants appears in
                   CoCalc, as illustrated below and{" "}
                   <A href="https://doc.cocalc.com/chatgpt.html">
@@ -199,25 +203,28 @@ export default function AI({ customize }) {
             anchor="a-chatgpt-cpp"
             alt="Gemini generates C++ code in a file"
             narrow
+            caption={<blockquote>{codePrompt}</blockquote>}
+            below={
+              <Paragraph>
+                After the code is generated, we copy it into the
+                <Text code>c-program.cpp</Text> file as depicted. To compile and
+                run the C++ program, we use the <Text code>clang++</Text>{" "}
+                compiler provided in the{" "}
+                <A href="https://doc.cocalc.com/frame-editor.html">
+                  Frame Editor's
+                </A>{" "}
+                <A href="/features/terminal">Terminal</A>.
+              </Paragraph>
+            }
           >
             <Paragraph>
               ChatGPT or Gemini can also generate source code for you. In the
-              example on the left, first we first create an empty{" "}
-              <Text code>c-program.cpp</Text> C++ file. Then, we open the AI
-              Assistant dialog and a prompt it to generate some code:
-              <blockquote>{codePrompt}</blockquote>
+              example displayed on the left, we first create an empty file named{" "}
+              <Text code>c-program.cpp</Text> in C++. Next, we open the AI
+              Assistant dialogue and prompt it to generate some code:
             </Paragraph>
             <Paragraph>
               <Image src={AILLMQuery} alt={codePrompt} />
-            </Paragraph>
-            <Paragraph>
-              We then copy the code into the file - as seen on the left – and
-              compile using <Text code>clang++</Text> and run it right on the
-              spot. This is done using the{" "}
-              <A href="https://doc.cocalc.com/frame-editor.html">
-                Frame Editor's
-              </A>{" "}
-              <A href="/features/terminal">Terminal</A>.
             </Paragraph>
           </Info>
 
