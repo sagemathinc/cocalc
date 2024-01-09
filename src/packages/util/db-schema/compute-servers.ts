@@ -27,8 +27,15 @@ interface ImageBase {
   icon: string;
   source: string;
   versions: VERSIONS;
-  authToken?: boolean; // if true, image has web interface that supports configurable auth token
-  jupyterKernels?: false | true | string[]; // if false, no jupyter kernels included. If true or a list of names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
+
+  // authToken: if true, image has web interface that supports configurable auth token
+  authToken?: boolean;
+
+  // jupyterKernels: if false, no jupyter kernels included. If true or a list of names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
+  jupyterKernels?: false | true | string[];
+
+  // system: if true, this is a system container that is not for user compute
+  system?: boolean;
 }
 
 interface NonGPUImage extends ImageBase {
@@ -47,6 +54,20 @@ type Image = NonGPUImage | GPUImage;
 export const DOCKER_USER = "sagemathinc";
 
 export const IMAGES0 = {
+  filesystem: {
+    system: true,
+    label: "Filesystem",
+    docker: `${DOCKER_USER}/filesystem`,
+    minDiskSizeGb: 10,
+    dockerSizeGb: 1,
+    gpu: false,
+    icon: "files",
+    url: "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/filesystem",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/filesystem",
+    versions: [{ label: "1.0", tag: "1.0" }],
+    description: "Filesystem container.",
+  },
   python: {
     label: "Python",
     docker: `${DOCKER_USER}/python`,
@@ -58,8 +79,7 @@ export const IMAGES0 = {
     url: "https://www.python.org/",
     source:
       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python",
-    // TODO: I don't like the tag/version here.
-    versions: [{ label: "3.10.12", tag: "latest" }],
+    versions: [{ label: "3.10.12", tag: "3.10.12" }],
     description:
       "[Python](https://python.org) is a versatile and user-friendly programming language, known for its clear syntax and readability. It is widely used for web development, data analysis, artificial intelligence, and scientific computing.",
   },
@@ -195,7 +215,10 @@ export const IMAGES0 = {
     description:
       "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
     authToken: true,
-    versions: [{ label: "0.1.15", tag: "0.1.15" }, { label: "0.1.18", tag: "0.1.18b" }],
+    versions: [
+      { label: "0.1.15", tag: "0.1.15" },
+      { label: "0.1.18", tag: "0.1.18b" },
+    ],
     jupyterKernels: false,
   },
   cuda: {

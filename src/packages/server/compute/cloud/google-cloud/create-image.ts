@@ -440,7 +440,7 @@ ${installNode()}
 ${installCoCalc(arch)}
 
 # Pre-pull filesystem Docker container
-docker pull ${DOCKER_USER}/filesystem
+docker pull ${DOCKER_USER}/filesystem:${getTag("filesystem")}
 
 # Pre-pull compute Docker container
 docker pull ${docker}:${tag}

@@ -10,22 +10,24 @@ import { Icon, Markdown } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 
 // TODO: just putting a quick version here -- will redo.
-const OPTIONS = Object.keys(IMAGES).map((value) => {
-  const { label, icon, versions } = IMAGES[value];
-  return {
-    key: value,
-    value,
-    search: label?.toLowerCase() ?? "",
-    label: (
-      <div style={{ fontSize: "12pt" }}>
-        <div style={{ float: "right" }}>
-          {versions[versions.length - 1]?.label}
+const OPTIONS = Object.keys(IMAGES)
+  .filter((value) => !IMAGES[value].system)
+  .map((value) => {
+    const { label, icon, versions } = IMAGES[value];
+    return {
+      key: value,
+      value,
+      search: label?.toLowerCase() ?? "",
+      label: (
+        <div style={{ fontSize: "12pt" }}>
+          <div style={{ float: "right" }}>
+            {versions[versions.length - 1]?.label}
+          </div>
+          <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
         </div>
-        <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
-      </div>
-    ),
-  };
-});
+      ),
+    };
+  });
 
 interface Props {
   setConfig;
