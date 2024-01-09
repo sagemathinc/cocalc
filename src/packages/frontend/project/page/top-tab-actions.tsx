@@ -167,12 +167,15 @@ function TopTabBarActions(
     }
   }, [loading, width]);
 
-  async function getEditorActions(project_id, path) {
+  // wait for up to the given timeout (30 seconds or so) to get the actions
+  async function getEditorActions(
+    project_id: string,
+    path: string,
+  ): Promise<EditorActions | null> {
     const t0 = Date.now();
     while (true) {
-      if (!isMounted.current) {
-        return;
-      }
+      if (!isMounted.current) return null;
+
       const actions = redux.getEditorActions(project_id, path);
       if (actions != null) {
         return actions;
@@ -186,12 +189,12 @@ function TopTabBarActions(
   }
 
   useAsyncEffect(async () => {
-    // we start with a reset
+    // we start with a reset, just to be sure
     setActions(null);
     setTopBarActions(null);
     setLoading(false);
 
-    // now we try to get the actions and the store
+    // now we try to get the actions
     for (const path of open_files_order) {
       if (!path) continue;
       if (active_top_tab != project_id) continue;
@@ -199,10 +202,10 @@ function TopTabBarActions(
       if (activeTab !== tab_name) continue;
 
       const actionsNext = await getEditorActions(project_id, path);
+      if (!isMounted.current) return;
       if (actionsNext != null) {
         setActions(actionsNext);
         setTopBarActions(actionsNext.getTopBarActions?.());
-
         return;
       }
     }
@@ -211,43 +214,15 @@ function TopTabBarActions(
     console.log(`no actions found for ${project_id} ${path}`);
   }, [open_files_order, project_id, path]);
 
-  // useAsyncEffect(async () => {
-  //   const t0 = Date.now();
-  //   let actionsNext: EditorActions | null = null;
-  //   while (isMounted.current) {
-  //     if (Date.now() - t0 > 500) setLoadingShow(true);
-  //     if (!isMounted.current) return;
-  //     // first, we try to get the actions
-  //     if (actionsNext == null) {
-  //       actionsNext = await redux.getEditorActions(project_id, path);
-  //       if (!isMounted.current) return;
-  //     } else {
-  //       // we have the actions, now try to get the store as well
-  //       const store = await redux.getEditorStore(project_id, path);
-  //       if (!isMounted.current) return;
-  //       if (store != null) {
-  //         setTopBarActions(actionsNext.getTopBarActions?.());
-  //         setActions(actionsNext);
-  //         break;
-  //       }
-  //     }
-  //     await delay(10)
-  //   }
-  //   if (!isMounted.current) return;
-  //   // this comes last, because only then buttons will be rendered, which in turn use the redux store
-  //   setLoading(false);
-  //   setLoadingShow(false);
-  // }, [project_id, path]);
-
   const name = redux_name(project_id, path);
   const prevName = usePrevious(name);
 
-  // the name !== prevName test is an additional guard to avoid accessing a not yet initialized store.
-  // why is this necessary? the very first time the component renders with new values,
-  // none of the hooks above has fired yet → $loading is still false, although the names differ.
+  // The name !== prevName test is an additional guard to avoid accessing a not yet initialized store.
+  // Why is this necessary? The very first time the component renders with new values,
+  // none of the hooks above have fired yet → $loading is still false, although the names differ.
   // TODO: feels like a hack, but it works
   if (loading || name !== prevName) {
-    // while loading, render a placeholder to avoid flickering
+    // while loading or right after switching the open file, render a placeholder to avoid flickering
     return (
       <div style={{ width: `${placeholderWidth}px` }}>
         <Loading style={{ color: COLORS.GRAY_M, padding: "8px 10px" }} />
@@ -297,7 +272,7 @@ function ExtraButtons(props: Readonly<ExtraButtonsProps>): JSX.Element | null {
   const local_view_state: TypedMap<{ active_id?: string; full_id?: string }> =
     useRedux(name, "local_view_state");
 
-  function renderItem(conf, index) {
+  function renderItem(conf, index: number) {
     const { getAction, label, icon } = conf;
     const action = conf.action ?? getAction?.(local_view_state);
 
