@@ -25,7 +25,7 @@ await a.createImages({image:"sagemath", arch:'x86_64'});
 
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({gpu:true})
 
-// (Danger) This just creates ALL images in parallel:
+// (OCanger) This just creates ALL images in parallel:
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
 
 a = require('./dist/compute/cloud/google-cloud/images')
@@ -64,7 +64,6 @@ import type {
 import {
   getMinDiskSizeGb,
   IMAGES,
-  DOCKER_USER,
 } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -374,15 +373,15 @@ function createBuildConfiguration({
   cudaVersion?: CudaVersion;
 }): BuildConfig {
   const tag = getTag(image);
-  const { label, package, gpu } = IMAGES[image] ?? {};
+  const { label, package: pkg, gpu } = IMAGES[image] ?? {};
   logger.debug("createBuildConfiguration", {
     image,
     label,
-    docker,
+    pkg,
     gpu,
     cudaVersion,
   });
-  if (!docker) {
+  if (!pkg) {
     throw Error(`unknown image '${image}'`);
   }
   const maxTimeMinutes = gpu ? 120 : 45;
@@ -440,10 +439,10 @@ ${installNode()}
 ${installCoCalc(arch)}
 
 # Pre-pull filesystem Docker container
-docker pull ${IMAGES["filesystem"].docker}:${getTag("filesystem")}
+docker pull ${IMAGES["filesystem"].package}:${getTag("filesystem")}
 
 # Pre-pull compute Docker container
-docker pull ${package}:${tag}
+docker pull ${pkg}:${tag}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda(cudaVersion) : ""}

@@ -88,8 +88,6 @@ fi
 `;
 }
 
-function getCoCalcVersion() {}
-
 export function installCoCalc(arch: Architecture) {
   const pkg = IMAGES["cocalc"][getImageField(arch)];
 
