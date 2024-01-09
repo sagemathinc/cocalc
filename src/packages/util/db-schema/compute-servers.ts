@@ -197,7 +197,7 @@ export const IMAGES0 = {
     authToken: true,
     versions: [
       { label: "0.1.15", tag: "0.1.15" },
-      { label: "0.1.18", tag: "0.1.18" },
+      { label: "0.1.18", tag: "0.1.18b" },
     ],
     jupyterKernels: false,
   },
