@@ -12,6 +12,15 @@ import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
 
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import {
+  get_usage_info,
+  UsageInfoWS,
+} from "@cocalc/frontend/project/websocket/usage-info";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
@@ -22,12 +31,6 @@ import { from_json, merge_copy, to_json, uuid } from "@cocalc/util/misc";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
 import { open_popup_window } from "../misc";
-import {
-  delete_local_storage,
-  get_local_storage,
-  set_local_storage,
-} from "../misc/local-storage";
-import { get_usage_info, UsageInfoWS } from "../project/websocket/usage-info";
 import { cm_options } from "./cm_options";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { parse_headings } from "./contents";

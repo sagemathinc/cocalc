@@ -51,7 +51,7 @@ import {
 } from "./flyouts/state";
 import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import { TopTabBar } from "./top-bar";
+import { TopTabBar } from "./top-tabbar";
 import { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./vertical-fixed-tabs";
 
 const PAGE_STYLE: React.CSSProperties = {

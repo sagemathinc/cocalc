@@ -35,6 +35,7 @@ import {
   createTypedMap,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
 import { open_new_tab } from "@cocalc/frontend/misc";
@@ -44,15 +45,15 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import { TopBarActions } from "@cocalc/frontend/project/page/types";
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import { SyncString } from "@cocalc/sync/editor/string";
 import { once } from "@cocalc/util/async-utils";
 import {
+  Config as FormatterConfig,
   Exts as FormatterExts,
   Syntax as FormatterSyntax,
   Tool as FormatterTool,
@@ -99,7 +100,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 
 interface gutterMarkerParams {
   line: number;

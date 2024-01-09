@@ -214,18 +214,18 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     );
   }
 
-  function render_export_button(): JSX.Element {
-    return (
-      <VisibleMDLG>
-        <Button
-          onClick={() => actions.export_to_markdown()}
-          style={{ marginLeft: "5px" }}
-        >
-          <Icon name="external-link" /> Export
-        </Button>
-      </VisibleMDLG>
-    );
-  }
+  // function render_export_button(): JSX.Element {
+  //   return (
+  //     <VisibleMDLG>
+  //       <Button
+  //         onClick={() => actions.export_to_markdown()}
+  //         style={{ marginLeft: "5px" }}
+  //       >
+  //         <Icon name="external-link" /> Export
+  //       </Button>
+  //     </VisibleMDLG>
+  //   );
+  // }
 
   function render_save_button() {
     return (
@@ -279,7 +279,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             {render_decrease_font_size()}
             {render_increase_font_size()}
           </ButtonGroup>
-          {render_export_button()}
+          {/* {render_export_button()} */}
           {actions.syncdb != null && (
             <VisibleMDLG>
               <ButtonGroup style={{ marginLeft: "5px" }}>
@@ -292,14 +292,14 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               </ButtonGroup>
             </VisibleMDLG>
           )}
-          {actions.help != null && (
+          {/* {actions.help != null && (
             <Button
               onClick={() => actions.help()}
               style={{ marginLeft: "5px" }}
             >
               <Icon name="question-circle" /> Help
             </Button>
-          )}
+          )} */}
         </Col>
         <Col xs={3} md={3} style={{ padding: "2px" }}>
           {render_search()}

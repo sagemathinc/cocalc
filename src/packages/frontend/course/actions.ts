@@ -4,7 +4,7 @@
  */
 
 import { Actions, TypedMap } from "@cocalc/frontend/app-framework";
-import { TopBarActions } from "@cocalc/frontend/project/page/types";
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { bind_methods } from "@cocalc/util/misc";
 import { ProjectsStore } from "../projects/store";
@@ -244,7 +244,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // ACTIVITY ACTIONS
   public set_activity(
-    opts: { id: number; desc?: string } | { id?: number; desc: string }
+    opts: { id: number; desc?: string } | { id?: number; desc: string },
   ): number {
     return this.activity.set_activity(opts);
   }
@@ -347,7 +347,7 @@ export class CourseActions extends Actions<CourseState> {
       | "peer_config"
       | "handout"
       | "skip_grading",
-    item_id
+    item_id,
   ): void {
     let adjusted;
     const store = this.get_store();

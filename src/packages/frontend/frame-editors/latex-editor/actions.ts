@@ -7,13 +7,25 @@
 LaTeX Editor Actions.
 */
 
+import { reuseInFlight } from "async-await-utils/hof";
+import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+import { List, Map, fromJS } from "immutable";
+import { debounce, union } from "lodash";
+import { normalize as path_normalize } from "path";
+
+import {
+  Store,
+  TypedMap,
+  createTypedMap,
+} from "@cocalc/frontend/app-framework";
 import {
   TableOfContentsEntry,
   TableOfContentsEntryList,
 } from "@cocalc/frontend/components";
 import { IS_MACOS } from "@cocalc/frontend/feature";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { TopBarActions } from "@cocalc/frontend/project/page/types";
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import { once } from "@cocalc/util/async-utils";
 import {
   change_filename_extension,
@@ -23,13 +35,6 @@ import {
   splitlines,
   startswith,
 } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
-import { delay } from "awaiting";
-import * as CodeMirror from "codemirror";
-import { List, Map, fromJS } from "immutable";
-import { debounce, union } from "lodash";
-import { normalize as path_normalize } from "path";
-import { Store, TypedMap, createTypedMap } from "../../app-framework";
 import {
   Actions as BaseActions,
   CodeEditorState,
@@ -1532,7 +1537,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           const id = this._get_active_id();
           const editor_actions = this.redux.getEditorActions(
             this.project_id,
-            this.path
+            this.path,
           );
           return () => this.sync(id, editor_actions);
         },

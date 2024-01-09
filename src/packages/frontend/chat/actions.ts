@@ -12,6 +12,7 @@ import type {
 } from "@cocalc/frontend/editors/task-editor/types";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { History as LanguageModelHistory } from "@cocalc/frontend/misc/openai";
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -24,7 +25,6 @@ import {
   type LanguageModel,
 } from "@cocalc/util/db-schema/openai";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
-import { TopBarActions } from "../project/page/types";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
@@ -728,7 +728,22 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public getTopBarActions(): TopBarActions {
-    return [];
+    return [
+      {
+        priority: 1,
+        label: "Help",
+        icon: "question-circle",
+        hoverText: "Open the documentation for CoCalc's Chat",
+        action: () => this.help(),
+      },
+      {
+        priority: 0,
+        label: "Export",
+        icon: "external-link",
+        hoverText: "Export the chat to a markdown file",
+        action: () => this.export_to_markdown(),
+      },
+    ];
   }
 }
 

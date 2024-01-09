@@ -13,14 +13,13 @@ import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { CellNotebook } from "./cell-notebook/cell-notebook";
-import { RawIPynb } from "./raw-ipynb";
-import JSONIPynb from "./json-ipynb";
-import { Slideshow } from "./slideshow-revealjs/slideshow";
-import { TableOfContents } from "./table-of-contents";
 import { Introspect } from "./introspect/introspect";
-const SNIPPET_ICON_NAME =
-  require("@cocalc/frontend/assistant/common").ICON_NAME;
+import JSONIPynb from "./json-ipynb";
+import { RawIPynb } from "./raw-ipynb";
+import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
+import { SNIPPET_ICON_NAME } from "./snippets/utils";
+import { TableOfContents } from "./table-of-contents";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -30,22 +29,22 @@ export const EDITOR_SPEC = {
     component: CellNotebook,
     buttons: set([
       "chatgpt",
-      "print",
+      // "print",
       "set_zoom",
       "decrease_font_size",
       "increase_font_size",
-      "save",
+      // "save", // in the topbar now
       "time_travel",
       "cut",
       "paste",
       "copy",
       "undo",
       "redo",
-      "halt_jupyter",
-      "show_table_of_contents",
-      "guide",
-      "shell",
-      "help",
+      // "halt_jupyter", // in the topbar now
+      // "show_table_of_contents", // in the topbar now
+      // "guide", // in the topbar now
+      // "shell", // in the topbar now
+      // "help", // in the topbar now
       "compute_server",
     ]),
     guide_info: {

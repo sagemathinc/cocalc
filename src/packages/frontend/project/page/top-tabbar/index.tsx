@@ -9,9 +9,9 @@ Top tabs to switch editor + right hand side in a project.
 
 import { useRef, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useMeasureDimensions } from "@cocalc/frontend/hooks";
-import { useProjectContext } from "../context";
-import FileTabs from "./file-tabs";
-import { TopTabBarActionsContainer } from "./top-tab-actions";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import FileTabs from "../file-tabs";
+import { TopTabBarActionsContainer } from "./component";
 
 export function TopTabBar() {
   const { project_id } = useProjectContext();
