@@ -12,7 +12,6 @@ import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
 
-import { TopBarActions } from "@cocalc/frontend/project/page/types";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
@@ -36,7 +35,6 @@ import { CursorManager } from "./cursor-manager";
 import { NBGraderActions } from "./nbgrader/actions";
 import * as parsing from "./parsing";
 import { WidgetManager } from "./widgets/manager";
-const { instantiate_snippets } = require("../assistant/main");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -96,10 +94,6 @@ export class JupyterActions extends JupyterActions0 {
         path: this.path,
       });
     })();
-
-    // this initializes actions+store for the snippet dialog
-    // this is also only a UI specific action
-    this.snippet_actions = instantiate_snippets(this.project_id, this.path);
 
     // nbgrader support
     this.nbgrader_actions = new NBGraderActions(this, this.redux);
@@ -919,9 +913,5 @@ export class JupyterActions extends JupyterActions0 {
       this._state = "ready";
     }
     this.check_select_kernel();
-  }
-
-  public getTopBarActions(): TopBarActions {
-    return [];
   }
 }
