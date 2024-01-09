@@ -200,7 +200,7 @@ ${compute(opts)}
 }
 
 function filesystem({}) {
-  const image = `sagemathinc/filesystem:${getTag("filesystem")}`;
+  const image = `${IMAGES["filesystem"].package}:${getTag("filesystem")}`;
 
   return `
 # Docker container that mounts the filesystem(s)
@@ -279,7 +279,7 @@ const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
 function compute({ image, gpu }) {
-  const docker = IMAGES[image]?.docker ?? `sagemathinc/${image}`;
+  const docker = IMAGES[image]?.package ?? `sagemathinc/${image}`;
   const tag = getTag(image);
 
   // Start a container that connects to the project

@@ -6,8 +6,10 @@ import { CudaVersion } from "@cocalc/util/db-schema/compute-servers";
 import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 import {
   Architecture,
-  getImagePostfix,
+  getImageField,
 } from "@cocalc/util/db-schema/compute-servers";
+import { getTag } from "@cocalc/server/compute/cloud/startup-script";
+import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -86,11 +88,15 @@ fi
 `;
 }
 
+function getCoCalcVersion() {}
+
 export function installCoCalc(arch: Architecture) {
+  const pkg = IMAGES["cocalc"][getImageField(arch)];
+
   return `
 set +v
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-npx -y @cocalc/compute-server${getImagePostfix(arch)} /cocalc
+npx -y ${pkg}@${getTag("cocalc")} /cocalc
 set -v
 `;
 }

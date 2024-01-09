@@ -374,7 +374,7 @@ function createBuildConfiguration({
   cudaVersion?: CudaVersion;
 }): BuildConfig {
   const tag = getTag(image);
-  const { label, docker, gpu } = IMAGES[image] ?? {};
+  const { label, package, gpu } = IMAGES[image] ?? {};
   logger.debug("createBuildConfiguration", {
     image,
     label,
@@ -440,10 +440,10 @@ ${installNode()}
 ${installCoCalc(arch)}
 
 # Pre-pull filesystem Docker container
-docker pull ${DOCKER_USER}/filesystem:${getTag("filesystem")}
+docker pull ${IMAGES["filesystem"].docker}:${getTag("filesystem")}
 
 # Pre-pull compute Docker container
-docker pull ${docker}:${tag}
+docker pull ${package}:${tag}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda(cudaVersion) : ""}

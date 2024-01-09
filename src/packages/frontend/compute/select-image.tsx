@@ -11,7 +11,7 @@ import { A } from "@cocalc/frontend/components/A";
 
 // TODO: just putting a quick version here -- will redo.
 const OPTIONS = Object.keys(IMAGES)
-  .filter((value) => !IMAGES[value].system)
+  .filter((value) => !IMAGES[value].system && !IMAGES[value].disabled)
   .map((value) => {
     const { label, icon, versions } = IMAGES[value];
     return {
@@ -104,11 +104,23 @@ export function ImageLinks({ image, style }: { image; style? }) {
       <A style={{ flex: 1 }} href={data.source}>
         <Icon name="github" /> Source
       </A>
-      <A style={{ flex: 1 }} href={`https://hub.docker.com/r/${data.docker}`}>
+      <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
         <Icon name="docker" /> dockerhub
       </A>
     </div>
   );
+}
+
+// this is a heuristic but is probably right in many cases, and
+// right now the only case is n<=1, where it is right.
+function packageNameToUrl(name: string): string {
+  const n = name.split("/").length - 1;
+  if (n <= 1) {
+    return `https://hub.docker.com/r/${name}`;
+  } else {
+    // e.g., us-docker.pkg.dev/colab-images/public/runtime
+    return `https://${name}`;
+  }
 }
 
 export function DisplayImage({ configuration }) {

@@ -19,7 +19,8 @@ type VERSIONS = { label: string; tag: string }[];
 
 interface ImageBase {
   label: string;
-  docker: string;
+  package: string;
+  package_arm64?: string;
   minDiskSizeGb: number;
   dockerSizeGb: number;
   description?: string;
@@ -36,6 +37,7 @@ interface ImageBase {
 
   // system: if true, this is a system container that is not for user compute
   system?: boolean;
+  disabled?: boolean;
 }
 
 interface NonGPUImage extends ImageBase {
@@ -54,10 +56,29 @@ type Image = NonGPUImage | GPUImage;
 export const DOCKER_USER = "sagemathinc";
 
 export const IMAGES0 = {
+  cocalc: {
+    system: true,
+    label: "CoCalc",
+    minDiskSizeGb: 10,
+    dockerSizeGb: 1,
+    gpu: false,
+    icon: "files",
+    url: "https://www.npmjs.com/package/@cocalc/compute-server",
+    package: "@cocalc/compute-server",
+    package_arm64: "@cocalc/compute-server-arm64",
+    source:
+      "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/cocalc",
+    versions: [
+      { label: "latest", tag: "latest" },
+      { label: "devel", tag: "devel" },
+    ],
+    description:
+      "The lightweight subset of the CoCalc Javascript code needed to run cocalc directly on the compute server for supporting websocketfs mounting, terminals, and jupyter notebooks.",
+  },
   filesystem: {
     system: true,
     label: "Filesystem",
-    docker: `${DOCKER_USER}/filesystem`,
+    package: `${DOCKER_USER}/filesystem`,
     minDiskSizeGb: 10,
     dockerSizeGb: 1,
     gpu: false,
@@ -70,7 +91,7 @@ export const IMAGES0 = {
   },
   python: {
     label: "Python",
-    docker: `${DOCKER_USER}/python`,
+    package: `${DOCKER_USER}/python`,
     minDiskSizeGb: 10,
     dockerSizeGb: 2,
     gpu: false,
@@ -85,7 +106,7 @@ export const IMAGES0 = {
   },
   sagemath: {
     label: "SageMath",
-    docker: `${DOCKER_USER}/sagemath`,
+    package: `${DOCKER_USER}/sagemath`,
     minDiskSizeGb: 20, // 14 doesn't work.
     dockerSizeGb: 9,
     gpu: false,
@@ -102,7 +123,7 @@ export const IMAGES0 = {
   },
   rstats: {
     label: "R",
-    docker: `${DOCKER_USER}/rstats`,
+    package: `${DOCKER_USER}/rstats`,
     minDiskSizeGb: 10,
     dockerSizeGb: 3,
     gpu: false,
@@ -116,7 +137,7 @@ export const IMAGES0 = {
   },
   julia: {
     label: "Julia",
-    docker: `${DOCKER_USER}/julia`,
+    package: `${DOCKER_USER}/julia`,
     minDiskSizeGb: 10,
     dockerSizeGb: 3,
     gpu: false,
@@ -133,7 +154,7 @@ export const IMAGES0 = {
   },
   //   anaconda: {
   //     label: "Anaconda",
-  //     docker: `${DOCKER_USER}/anaconda`,
+  //     package: `${DOCKER_USER}/anaconda`,
   //     minDiskSizeGb: 10,
   //     dockerSizeGb: 2,
   //     gpu: false,
@@ -147,7 +168,7 @@ export const IMAGES0 = {
   //   },
   pytorch: {
     label: "PyTorch",
-    docker: `${DOCKER_USER}/pytorch`,
+    package: `${DOCKER_USER}/pytorch`,
     gpu: true,
     minDiskSizeGb: 29 + 10 + 10,
     dockerSizeGb: 24,
@@ -164,7 +185,7 @@ export const IMAGES0 = {
   },
   tensorflow: {
     label: "Tensorflow",
-    docker: `${DOCKER_USER}/tensorflow`,
+    package: `${DOCKER_USER}/tensorflow`,
     gpu: true,
     minDiskSizeGb: 28 + 10 + 10,
     dockerSizeGb: 23,
@@ -181,7 +202,7 @@ export const IMAGES0 = {
   },
   colab: {
     label: "Google Colab",
-    docker: `${DOCKER_USER}/colab`,
+    package: `${DOCKER_USER}/colab`,
     minDiskSizeGb: 33 + 10 + 10,
     dockerSizeGb: 28,
     gpu: true,
@@ -204,7 +225,7 @@ export const IMAGES0 = {
   },
   ollama: {
     label: "Ollama with WebUI",
-    docker: `${DOCKER_USER}/ollama`,
+    package: `${DOCKER_USER}/ollama`,
     dockerSizeGb: 2,
     minDiskSizeGb: 30,
     gpu: true,
@@ -223,7 +244,7 @@ export const IMAGES0 = {
   },
   cuda: {
     label: "CUDA Development Toolkit",
-    docker: `${DOCKER_USER}/cuda`,
+    package: `${DOCKER_USER}/cuda`,
     gpu: true,
     // have to add 10 for CUDA base drivers
     minDiskSizeGb: 13 + 10 + 10,
@@ -239,7 +260,7 @@ export const IMAGES0 = {
   },
   jax: {
     label: "JAX",
-    docker: `${DOCKER_USER}/jax`,
+    package: `${DOCKER_USER}/jax`,
     gpu: true,
     minDiskSizeGb: 28 + 10 + 10,
     dockerSizeGb: 24,
@@ -254,7 +275,7 @@ export const IMAGES0 = {
 
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",
-  //     docker: `${DOCKER_USER}/cocalc-docker`,
+  //     package: `${DOCKER_USER}/cocalc-docker`,
   //     minDiskSizeGb: 50,
   //   },
 };
@@ -445,10 +466,10 @@ export function getTargetState(x: State | Action): State {
 
 export type Architecture = "x86_64" | "arm64";
 
-// This same convention is used in cocalc-compute-docker for making
+// Convention is used in cocalc-compute-docker for making
 // the npm packages @cocalc/compute-server.  Don't mess with it!
-export function getImagePostfix(arch: Architecture) {
-  return arch == "x86_64" ? "" : "-arm64";
+export function getImageField(arch: Architecture) {
+  return arch == "x86_64" ? "package" : "package_arm64";
 }
 
 export type Cloud =
