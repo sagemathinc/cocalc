@@ -195,7 +195,10 @@ export const IMAGES0 = {
     description:
       "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
     authToken: true,
-    versions: [{ label: "0.1.15", tag: "0.1.15" }, { label: "0.1.18", tag: "0.1.18" }],
+    versions: [
+      { label: "0.1.15", tag: "0.1.15" },
+      { label: "0.1.18", tag: "0.1.18" },
+    ],
     jupyterKernels: false,
   },
   cuda: {
@@ -214,20 +217,20 @@ export const IMAGES0 = {
     versions: [{ label: "12.3.1", tag: "12.3.1" }],
     jupyterKernels: false,
   },
-  jax: {
-    label: "JAX",
-    docker: `${DOCKER_USER}/jax`,
-    gpu: true,
-    minDiskSizeGb: 28 + 10 + 10,
-    dockerSizeGb: 24,
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax",
-    icon: "times",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/jax",
-    versions: [{ label: "0.4.17 (2023-10)", tag: "23.10-paxml-py3" }],
-    description:
-      "[JAX](https://jax.readthedocs.io/en/latest/) is a framework for high-performance numerical computing and machine learning research. It includes Numpy-like APIs, automatic differentiation, [XLA](https://github.com/openxla/openxla-nvgpu) acceleration and simple primitives for scaling across GPUs.   [The JAX NGC Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax) comes with all dependencies included, providing an easy place to start developing applications in areas such as NLP, Computer Vision, Multimodality, physics-based simulations, reinforcement learning, drug discovery, and neural rendering.",
-  },
+  //   jax: {
+  //     label: "JAX",
+  //     docker: `${DOCKER_USER}/jax`,
+  //     gpu: true,
+  //     minDiskSizeGb: 28 + 10 + 10,
+  //     dockerSizeGb: 24,
+  //     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax",
+  //     icon: "times",
+  //     source:
+  //       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/jax",
+  //     versions: [{ label: "0.4.17 (2023-10)", tag: "23.10-paxml-py3" }],
+  //     description:
+  //       "[JAX](https://jax.readthedocs.io/en/latest/) is a framework for high-performance numerical computing and machine learning research. It includes Numpy-like APIs, automatic differentiation, [XLA](https://github.com/openxla/openxla-nvgpu) acceleration and simple primitives for scaling across GPUs.   [The JAX NGC Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax) comes with all dependencies included, providing an easy place to start developing applications in areas such as NLP, Computer Vision, Multimodality, physics-based simulations, reinforcement learning, drug discovery, and neural rendering.",
+  //   },
 
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",
