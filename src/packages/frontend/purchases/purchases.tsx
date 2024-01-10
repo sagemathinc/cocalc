@@ -240,6 +240,11 @@ export function PurchasesTable({
     }
   };
 
+  const refreshRecords = async () => {
+    await getPurchaseRecords();
+    await getBalance();
+  }
+
   useEffect(() => {
     getBalance();
   }, []);
@@ -296,7 +301,7 @@ export function PurchasesTable({
           />
           {showRefresh && (
             <Refresh
-              handleRefresh={getPurchaseRecords}
+              handleRefresh={refreshRecords}
               style={{ marginRight: "8px" }}
             />
           )}
