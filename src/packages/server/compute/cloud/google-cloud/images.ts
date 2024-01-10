@@ -27,7 +27,6 @@ import type {
   GoogleCloudConfiguration,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
 import { imageDeprecation } from "@cocalc/server/compute/cloud/startup-script";
@@ -148,9 +147,7 @@ export async function getNewestSourceImage(opts: ImageFilter): Promise<{
   const images = await getSourceImages(opts);
   if (images.length == 0) {
     throw Error(
-      `no images are available for ${
-        IMAGES[opts.image ?? ""]?.label ?? opts.image
-      } ${opts.arch ?? "x86_64"} ${
+      `no images are available for ${opts.image} ${opts.arch ?? "x86_64"} ${
         opts.prod
           ? "that are labeled prod=true"
           : " with no constraint on prod label"

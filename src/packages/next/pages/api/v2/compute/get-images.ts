@@ -3,7 +3,7 @@ Get IMAGES.
 */
 
 import getAccountId from "lib/account/get-account";
-import getImages from "@cocalc/server/compute/images";
+import { getImages } from "@cocalc/server/compute/images";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 

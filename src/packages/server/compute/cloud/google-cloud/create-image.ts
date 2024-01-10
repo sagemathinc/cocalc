@@ -61,13 +61,11 @@ import type {
   ImageName,
   CudaVersion,
 } from "@cocalc/util/db-schema/compute-servers";
-import {
-  getMinDiskSizeGb,
-  IMAGES,
-} from "@cocalc/util/db-schema/compute-servers";
+import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
+import { getImages, Images } from "@cocalc/server/compute/images";
 
 const logger = getLogger("server:compute:google-cloud:create-image");
 
@@ -78,6 +76,7 @@ interface Options {
   noParallel?: boolean;
   gpu?: boolean;
   arch?: Architecture;
+  IMAGES?: Images;
 }
 
 async function createAllImages(opts) {
@@ -86,21 +85,23 @@ async function createAllImages(opts) {
   }
   const t0 = Date.now();
 
+  if (opts.IMAGES == null) {
+    throw Error("IMAGES must be set");
+  }
+
   let names: string[] = [];
   if (opts.noParallel) {
     // serial
-    for (const image in IMAGES) {
+    for (const image in opts.IMAGES) {
       names = names.concat(await build(image));
     }
   } else {
-    for (const r of await Promise.all(Object.keys(IMAGES).map(build))) {
+    for (const r of await Promise.all(Object.keys(opts.IMAGES).map(build))) {
       names = names.concat(r);
     }
   }
   console.log("CREATED", names);
   console.log("DONE", (Date.now() - t0) / 1000 / 60, "minutes");
-  return names;
-
   return names;
 }
 
@@ -111,7 +112,9 @@ export async function createImages({
   noParallel,
   gpu,
   arch,
+  IMAGES,
 }: Options = {}): Promise<string[]> {
+  IMAGES = IMAGES ?? (await getImages());
   if (image == null) {
     // create all types
     return await createAllImages({
@@ -120,6 +123,7 @@ export async function createImages({
       noParallel,
       gpu,
       arch,
+      IMAGES,
     });
   }
 
@@ -185,7 +189,7 @@ export async function createImages({
       }
       names.push(name);
     }
-    const configs = getConf(image, gpu);
+    const configs = getConf(image, !!gpu, IMAGES);
     if (noParallel) {
       // serial
       for (const config of configs) {
@@ -221,19 +225,28 @@ interface BuildConfig {
   sourceImage: string;
 }
 
-function getConf(image: ImageName, gpu?: boolean): BuildConfig[] {
+function getConf(
+  image: ImageName,
+  gpu: boolean,
+  IMAGES: Images,
+): BuildConfig[] {
   const data = IMAGES[image];
   if (gpu != null && gpu != data.gpu) {
     // skip.
     return [];
   }
   if (data.gpu) {
-    const { cudaVersion } = data;
-    return [createBuildConfiguration({ image, arch: "x86_64", cudaVersion })];
+    // TODO: do not hardcode cudaVersion -- not sure...?
+    // Versions here -- https://developer.nvidia.com/cuda-toolkit-archive
+    // maybe store as a google label and use latest at build time.
+    const cudaVersion = "12.3.2";
+    return [
+      createBuildConfiguration({ image, arch: "x86_64", cudaVersion, IMAGES }),
+    ];
   } else {
     return [
-      createBuildConfiguration({ image, arch: "x86_64" }),
-      createBuildConfiguration({ image, arch: "arm64" }),
+      createBuildConfiguration({ image, arch: "x86_64", IMAGES }),
+      createBuildConfiguration({ image, arch: "arm64", IMAGES }),
     ];
   }
 }
@@ -367,12 +380,14 @@ function createBuildConfiguration({
   image,
   arch = "x86_64",
   cudaVersion = "12.3",
+  IMAGES,
 }: {
   image: ImageName;
   arch: Architecture;
   cudaVersion?: CudaVersion;
+  IMAGES: Images;
 }): BuildConfig {
-  const tag = getTag(image);
+  const tag = getTag({ image, IMAGES });
   const { label, package: pkg, gpu } = IMAGES[image] ?? {};
   logger.debug("createBuildConfiguration", {
     image,
@@ -436,10 +451,13 @@ docker system prune -a -f
 # Install nodejs
 ${installNode()}
 
-${installCoCalc(arch)}
+${installCoCalc({ arch, IMAGES })}
 
 # Pre-pull filesystem Docker container
-docker pull ${IMAGES["filesystem"].package}:${getTag("filesystem")}
+docker pull ${IMAGES["filesystem"].package}:${getTag({
+    image: "filesystem",
+    IMAGES,
+  })}
 
 # Pre-pull compute Docker container
 docker pull ${pkg}:${tag}

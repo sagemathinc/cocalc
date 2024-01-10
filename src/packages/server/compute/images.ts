@@ -69,6 +69,8 @@ export interface Image {
   // The ones with role='prod' (or not specified) are shown
   // to users as options.
   versions: Version[];
+  // If true, then a GPU is required to use this image.
+  gpu?: boolean;
   // authToken: if true, image has web interface that supports configurable auth token
   authToken?: boolean;
   // jupyterKernels: if false, no jupyter kernels included. If true or a list of
@@ -89,7 +91,7 @@ const NAME = "compute-server-images";
 const TTL_MS = 1000 * 60 * 60;
 
 // Used by everything else in cocalc to get access to the images.
-export default async function getImages(ttlMs = TTL_MS): Promise<Images> {
+export async function getImages(ttlMs = TTL_MS): Promise<Images> {
   logger.debug("getImages");
   // a few seconds of caching at least.
   const db = getPool(ttlMs == null ? "medium" : undefined);

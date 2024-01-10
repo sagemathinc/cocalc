@@ -9,7 +9,7 @@ import {
   getImageField,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
+import type { Images } from "@cocalc/server/compute/images";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -88,13 +88,19 @@ fi
 `;
 }
 
-export function installCoCalc(arch: Architecture) {
+export function installCoCalc({
+  arch,
+  IMAGES,
+}: {
+  arch: Architecture;
+  IMAGES: Images;
+}) {
   const pkg = IMAGES["cocalc"][getImageField(arch)];
 
   return `
 set +v
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-npx -y ${pkg}@${getTag("cocalc")} /cocalc
+npx -y ${pkg}@${getTag({ image: "cocalc", IMAGES })} /cocalc
 set -v
 `;
 }

@@ -3,7 +3,7 @@ import type {
   Architecture,
   ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
+import { getImages, Images } from "@cocalc/server/compute/images";
 import {
   installDocker,
   installNode,
@@ -63,6 +63,7 @@ export default async function startupScript({
   image = imageDeprecation(image);
 
   const apiServer = await getApiServer();
+  const IMAGES = await getImages();
 
   return `
 #!/bin/bash
@@ -114,7 +115,7 @@ if [ $? -ne 0 ]; then
 fi
 
 setState install install-cocalc '' 60 70
-${installCoCalc(arch)}
+${installCoCalc({ arch, IMAGES })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
@@ -133,6 +134,7 @@ setState vm start '' 60 60
 ${runCoCalcCompute({
   gpu,
   image,
+  IMAGES,
 })}
 
 exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
@@ -199,8 +201,11 @@ ${compute(opts)}
 `;
 }
 
-function filesystem({}) {
-  const image = `${IMAGES["filesystem"].package}:${getTag("filesystem")}`;
+function filesystem({ IMAGES }: { IMAGES: Images }) {
+  const image = `${IMAGES["filesystem"].package}:${getTag({
+    image: "filesystem",
+    IMAGES,
+  })}`;
 
   return `
 # Docker container that mounts the filesystem(s)
@@ -278,9 +283,17 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function compute({ image, gpu }) {
+function compute({
+  image,
+  gpu,
+  IMAGES,
+}: {
+  image: string;
+  gpu?: boolean;
+  IMAGES: Images;
+}) {
   const docker = IMAGES[image]?.package ?? `sagemathinc/${image}`;
-  const tag = getTag(image);
+  const tag = getTag({ image, IMAGES });
 
   // Start a container that connects to the project
   // and manages providing terminals and jupyter kernels
@@ -346,7 +359,13 @@ function setState {
 
 // For now we just get the newest tag, since there
 // is only one so far.  TODO!
-export function getTag(image): string {
+export function getTag({
+  image,
+  IMAGES,
+}: {
+  image: string;
+  IMAGES: Images;
+}): string {
   image = imageDeprecation(image);
   const { versions } = IMAGES[image] ?? {};
   if (versions == null || versions.length == 0) {
