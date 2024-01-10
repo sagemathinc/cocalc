@@ -142,6 +142,7 @@ export type SiteSettingsExtrasKeys =
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
   | "compute_servers_cloudflare_api_key"
+  | "compute_servers_images_spec_url"
   //   | "coreweave_kubeconfig"
   //   | "fluidstack_api_key"
   //   | "fluidstack_api_token"
@@ -151,6 +152,9 @@ export type SiteSettingsExtrasKeys =
   | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
+
+const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
+  "https://raw.githubusercontent.com/sagemathinc/cocalc-compute-docker/main/images.json";
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
@@ -596,6 +600,12 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: (conf) => to_bool(conf.compute_servers_dns_enabled),
+  },
+  compute_servers_images_spec_url: {
+    name: "Compute Servers: Images Spec URL",
+    desc: `The URL of the compute server "images.json" spec file.  By default this is ${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}, which is managed by SageMath, Inc.  However, you could replace this with your own json spec file, if you want to manage your own compute server images.`,
+    default: DEFAULT_COMPUTE_SERVER_IMAGES_JSON,
+    show: compute_servers_enabled,
   },
   //   fluidstack_api_key: {
   //     name: "Compute Servers: FluidStack - API Key (not implemented)",

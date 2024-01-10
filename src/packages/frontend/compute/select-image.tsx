@@ -21,7 +21,8 @@ const OPTIONS = Object.keys(IMAGES)
       label: (
         <div style={{ fontSize: "12pt" }}>
           <div style={{ float: "right" }}>
-            {versions[versions.length - 1]?.label}
+            {versions[versions.length - 1]?.label ??
+              versions[versions.length - 1]?.tag}
           </div>
           <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
         </div>
