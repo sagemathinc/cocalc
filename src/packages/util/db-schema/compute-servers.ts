@@ -272,7 +272,6 @@ export const IMAGES0 = {
     description:
       "[JAX](https://jax.readthedocs.io/en/latest/) is a framework for high-performance numerical computing and machine learning research. It includes Numpy-like APIs, automatic differentiation, [XLA](https://github.com/openxla/openxla-nvgpu) acceleration and simple primitives for scaling across GPUs.   [The JAX NGC Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax) comes with all dependencies included, providing an easy place to start developing applications in areas such as NLP, Computer Vision, Multimodality, physics-based simulations, reinforcement learning, drug discovery, and neural rendering.",
   },
-
   //   "cocalc-docker": {
   //     label: "CoCalc - Personal Server",
   //     package: `${DOCKER_USER}/cocalc-docker`,

@@ -70,21 +70,23 @@ export function mentionableUsers(
           search: "chatgpt3",
         });
       }
-      // Realistically it's maybe really unlikely to want to use this in a new chat
-      // you're making...? This did work when I wrote it, but I'm commenting it
-      // out since I think it's just not worth it.
-      // I'm adding this back because: (1) if you use GPT-3.5 too much you hit your limit,
-      // and (2) this is a non-free BUT CHEAP model you can actually use after hitting your
-      // limit, which is muh cheaper than GPT-4.
-      v.push({
-        value: "openai-gpt-3.5-turbo-16k",
-        label: (
-          <span>
-            <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-3.5-turbo-16k"]}
-          </span>
-        ),
-        search: "chatgpt3",
-      });
+      if (!search || "chatgpt3".includes(search)) {
+        // Realistically it's maybe really unlikely to want to use this in a new chat
+        // you're making...? This did work when I wrote it, but I'm commenting it
+        // out since I think it's just not worth it.
+        // I'm adding this back because: (1) if you use GPT-3.5 too much you hit your limit,
+        // and (2) this is a non-free BUT CHEAP model you can actually use after hitting your
+        // limit, which is muh cheaper than GPT-4.
+        v.push({
+          value: "openai-gpt-3.5-turbo-16k",
+          label: (
+            <span>
+              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-3.5-turbo-16k"]}
+            </span>
+          ),
+          search: "chatgpt3-16k",
+        });
+      }
     }
     if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4")) {
       if (!search || "chatgpt4".includes(search)) {
