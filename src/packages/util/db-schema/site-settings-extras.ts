@@ -603,7 +603,7 @@ export const EXTRAS: SettingsExtras = {
   },
   compute_servers_images_spec_url: {
     name: "Compute Servers: Images Spec URL",
-    desc: `The URL of the compute server "images.json" spec file.  By default this is ${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}, which is managed by SageMath, Inc.  However, you could replace this with your own json spec file, if you want to manage your own compute server images.`,
+    desc: `The URL of the compute server "images.json" spec file.  By default this is [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here), which is managed by SageMath, Inc.  However, you may replace this with your own json spec file, if you want to manage your own compute server images.  [Click here to update the database cache of the spec file and see the latest version.](api/v2/compute/get-images?ttl=0)`,
     default: DEFAULT_COMPUTE_SERVER_IMAGES_JSON,
     show: compute_servers_enabled,
   },
