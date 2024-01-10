@@ -1,8 +1,5 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import type {
-  Architecture,
-  ImageName,
-} from "@cocalc/util/db-schema/compute-servers";
+import type { Architecture } from "@cocalc/util/db-schema/compute-servers";
 import { getImages, Images } from "@cocalc/server/compute/images";
 import {
   installDocker,
@@ -42,7 +39,7 @@ export default async function startupScript({
   auth_token,
   installUser: doInstallUser,
 }: {
-  image?: ImageName;
+  image?: string;
   compute_server_id: number;
   api_key: string;
   project_id: string;
@@ -359,17 +356,25 @@ function setState {
 
 // For now we just get the newest tag, since there
 // is only one so far.  TODO!
+// We do optionally restrict to tested images only.
+// We should probably error when no versions are specified
+// rather than defaulting to latest.
 export function getTag({
   image,
   IMAGES,
+  tested,
 }: {
   image: string;
   IMAGES: Images;
+  tested?: boolean;
 }): string {
   image = imageDeprecation(image);
-  const { versions } = IMAGES[image] ?? {};
+  let { versions } = IMAGES[image] ?? {};
   if (versions == null || versions.length == 0) {
     return "latest";
+  }
+  if (tested) {
+    versions = versions.filter((x) => x.tested);
   }
   const version = versions[versions.length - 1];
   return version.tag ?? "latest";

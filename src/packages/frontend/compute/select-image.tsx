@@ -1,22 +1,52 @@
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import type {
-  ImageName,
   State,
   Configuration,
+  Images,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Alert, Select } from "antd";
-import { CSSProperties, useEffect, useState } from "react";
+import { Alert, Select, Spin } from "antd";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Icon, Markdown } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
+import { field_cmp } from "@cocalc/util/misc";
+import { useImages } from "./images-hook";
 
-// TODO: just putting a quick version here -- will redo.
-const OPTIONS = Object.keys(IMAGES)
-  .filter((value) => !IMAGES[value].system && !IMAGES[value].disabled)
-  .map((value) => {
-    const { label, icon, versions } = IMAGES[value];
-    return {
-      key: value,
-      value,
+function getOptions({
+  IMAGES,
+  tested,
+  gpu,
+}: {
+  IMAGES: Images;
+  tested: boolean;
+  gpu?: boolean;
+}) {
+  const options: {
+    key: string;
+    priority: number;
+    value: string;
+    search: string;
+    label: JSX.Element;
+  }[] = [];
+  for (const name in IMAGES) {
+    const image = IMAGES[name];
+    let { label, icon, versions, priority = 0 } = image;
+    if (image.system || image.disabled) {
+      continue;
+    }
+    if (gpu != null && gpu != image.gpu) {
+      continue;
+    }
+    if (tested) {
+      // restrict to only tested versions.
+      versions = versions.filter((x) => x.tested);
+    }
+    if (versions.length == 0) {
+      // no available versions, so no point in showing this option
+      continue;
+    }
+    options.push({
+      key: name,
+      value: name,
+      priority,
       search: label?.toLowerCase() ?? "",
       label: (
         <div style={{ fontSize: "12pt" }}>
@@ -27,8 +57,11 @@ const OPTIONS = Object.keys(IMAGES)
           <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
         </div>
       ),
-    };
-  });
+    });
+  }
+  options.sort(field_cmp("priority")).reverse();
+  return options;
+}
 
 interface Props {
   setConfig;
@@ -37,6 +70,7 @@ interface Props {
   state?: State;
   style?: CSSProperties;
   gpu: boolean; // if explicitly set, only gpu images shown when gpu true, and only non-gpu when false.
+  tested: boolean; // if false show dangerous untested images
 }
 
 export default function SelectImage({
@@ -46,19 +80,26 @@ export default function SelectImage({
   state = "deprovisioned",
   style,
   gpu,
+  tested,
 }: Props) {
-  const [value, setValue] = useState<ImageName | undefined>(
-    configuration.image,
-  );
+  const { IMAGES, ImagesError } = useImages();
+  const [value, setValue] = useState<string | undefined>(configuration.image);
   useEffect(() => {
     setValue(configuration.image);
   }, [configuration.image]);
-  let options;
-  // [ ] TODO: we should allow gpu/non-gpu options in all cases, but just suggest one or the other.
-  if (gpu != null) {
-    options = OPTIONS.filter((x) => gpu == IMAGES[x.value].gpu);
-  } else {
-    options = OPTIONS;
+  // [ ] TODO: MAYBE we should allow gpu/non-gpu options in all cases, but just suggest one or the other?
+  const options = useMemo(() => {
+    if (IMAGES == null || typeof IMAGES == "string") {
+      return [];
+    }
+    return getOptions({ IMAGES, gpu, tested });
+  }, [IMAGES, gpu, tested]);
+
+  if (IMAGES == null) {
+    return <Spin />;
+  }
+  if (typeof IMAGES == "string") {
+    return ImagesError;
   }
   const filterOption = (input: string, option?: { search: string }) =>
     (option?.search ?? "").includes(input.toLowerCase());
@@ -85,6 +126,13 @@ export default function SelectImage({
 }
 
 export function ImageLinks({ image, style }: { image; style? }) {
+  const { IMAGES, ImagesError } = useImages();
+  if (IMAGES == null) {
+    return <Spin />;
+  }
+  if (typeof IMAGES == "string") {
+    return ImagesError;
+  }
   const data = IMAGES[image];
   if (data == null) {
     return null;
@@ -124,7 +172,18 @@ function packageNameToUrl(name: string): string {
   }
 }
 
-export function DisplayImage({ configuration }) {
+export function DisplayImage({
+  configuration,
+}: {
+  configuration: { image: string };
+}) {
+  const { IMAGES, ImagesError } = useImages();
+  if (IMAGES == null) {
+    return <Spin />;
+  }
+  if (typeof IMAGES == "string") {
+    return ImagesError;
+  }
   const { image } = configuration ?? {};
   if (image == null) return null;
   const data = IMAGES[image];
@@ -138,7 +197,18 @@ export function DisplayImage({ configuration }) {
   );
 }
 
-export function ImageDescription({ configuration }) {
+export function ImageDescription({
+  configuration,
+}: {
+  configuration: { image: string };
+}) {
+  const { IMAGES, ImagesError } = useImages();
+  if (IMAGES == null) {
+    return <Spin />;
+  }
+  if (typeof IMAGES == "string") {
+    return ImagesError;
+  }
   return (
     <Alert
       style={{ padding: "7.5px 15px", marginTop: "10px" }}

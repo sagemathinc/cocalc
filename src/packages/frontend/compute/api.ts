@@ -3,6 +3,7 @@ import type {
   Action,
   Configuration,
   Cloud,
+  Images,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { reuseInFlight } from "async-await-utils/hof";
@@ -119,4 +120,34 @@ export async function setDetailedState(opts: {
   progress?: number;
 }) {
   return await api("compute/set-detailed-state", opts);
+}
+
+// We cache images for 1 minute.
+const imagesCache: { timestamp: number; IMAGES: Images | null } = {
+  timestamp: 0,
+  IMAGES: null,
+};
+
+export async function getImages(): Promise<Images> {
+  if (imagesCache.IMAGES && Date.now() - imagesCache.timestamp <= 60 * 1000) {
+    return imagesCache.IMAGES;
+  }
+  try {
+    imagesCache.IMAGES = await api("compute/get-images");
+    imagesCache.timestamp = Date.now();
+  } catch (err) {
+    if (imagesCache.IMAGES) {
+      console.warn(
+        "ERROR getting updated compute server images -- using cached data",
+        err,
+      );
+      // if we have cached data, just return it
+      return imagesCache.IMAGES;
+    }
+    throw err;
+  }
+  if (!imagesCache.IMAGES) {
+    throw Error("bug");
+  }
+  return imagesCache.IMAGES;
 }

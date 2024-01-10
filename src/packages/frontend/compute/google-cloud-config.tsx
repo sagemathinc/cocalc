@@ -1,12 +1,11 @@
 import type {
+  Images,
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
+import { useImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
-import {
-  getMinDiskSizeGb,
-  IMAGES,
-} from "@cocalc/util/db-schema/compute-servers";
+import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
   Button,
   Checkbox,
@@ -89,6 +88,7 @@ export default function GoogleCloudConfiguration({
   disabled,
   state,
 }: Props) {
+  const { IMAGES, ImagesError } = useImages();
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<GoogleCloudData | null>(null);
@@ -136,6 +136,14 @@ export default function GoogleCloudConfiguration({
     }
   }, [configuration, priceData]);
 
+  if (ImagesError != null) {
+    return ImagesError;
+  }
+
+  if (IMAGES == null) {
+    return <Spin />;
+  }
+
   if (!editable) {
     const gpu = configuration.acceleratorType
       ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
@@ -160,7 +168,7 @@ export default function GoogleCloudConfiguration({
         )}
         , and a{" "}
         {configuration.diskSizeGb ??
-          `at least ${getMinDiskSizeGb(configuration)}`}{" "}
+          `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
         GB
         {(configuration.diskType ?? "pd-standard") != "pd-standard"
           ? " SSD "
@@ -187,7 +195,12 @@ export default function GoogleCloudConfiguration({
       return;
     }
 
-    changes = ensureConsistentConfiguration(priceData, configuration, changes);
+    changes = ensureConsistentConfiguration(
+      priceData,
+      configuration,
+      changes,
+      IMAGES,
+    );
     const newConfiguration = { ...configuration, ...changes };
 
     if (
@@ -247,6 +260,7 @@ export default function GoogleCloudConfiguration({
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
+          IMAGES={IMAGES}
         />
       ),
     },
@@ -352,6 +366,7 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           priceData={priceData}
           state={state}
+          IMAGES={IMAGES}
         />
       ),
     },
@@ -366,6 +381,7 @@ export default function GoogleCloudConfiguration({
           loading={loading}
           priceData={priceData}
           state={state}
+          IMAGES={IMAGES}
         />
       ),
     },
@@ -996,16 +1012,17 @@ function BootDisk(props) {
     disabled,
     priceData,
     state = "deprovisioned",
+    IMAGES,
   } = props;
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
-    configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
+    configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
   );
   const [newDiskType, setNewDiskType] = useState<string | null>(
     configuration.diskType ?? "pd-standard",
   );
   useEffect(() => {
     setNewDiskSizeGb(
-      configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
+      configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
     );
     setNewDiskType(configuration.diskType ?? "pd-standard");
   }, [configuration.diskSizeGb]);
@@ -1014,14 +1031,14 @@ function BootDisk(props) {
     if (newDiskSizeGb == null) {
       return;
     }
-    const min = getMinDiskSizeGb(configuration);
+    const min = getMinDiskSizeGb({ configuration, IMAGES });
     if (newDiskSizeGb < min) {
       setNewDiskSizeGb(min);
     }
   }, [configuration.image]);
 
   useEffect(() => {
-    const min = getMinDiskSizeGb(configuration);
+    const min = getMinDiskSizeGb({ configuration, IMAGES });
     if ((newDiskSizeGb ?? 0) < min) {
       setConfig({
         diskSizeGb: min,
@@ -1043,7 +1060,7 @@ function BootDisk(props) {
           disabled={disabled}
           min={
             state == "deprovisioned"
-              ? getMinDiskSizeGb(configuration)
+              ? getMinDiskSizeGb({ configuration, IMAGES })
               : configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)
           }
           max={65536}
@@ -1056,7 +1073,8 @@ function BootDisk(props) {
             if (state == "deprovisioned") {
               // only set on blur or every keystroke rerenders and cause loss of focus.
               setConfig({
-                diskSizeGb: newDiskSizeGb ?? getMinDiskSizeGb(configuration),
+                diskSizeGb:
+                  newDiskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
               });
             }
           }}
@@ -1096,14 +1114,14 @@ function BootDisk(props) {
             size="small"
             onClick={() => {
               setConfig({
-                diskSizeGb: getMinDiskSizeGb(configuration),
+                diskSizeGb: getMinDiskSizeGb({ configuration, IMAGES }),
               });
             }}
           >
-            {getMinDiskSizeGb(configuration)} GB
+            {getMinDiskSizeGb({ configuration, IMAGES })} GB
           </Button>
         ) : (
-          <>{getMinDiskSizeGb(configuration)} GB</>
+          <>{getMinDiskSizeGb({ configuration, IMAGES })} GB</>
         )}{" "}
         and 65,536 GB.
         {state != "deprovisioned" && (
@@ -1294,7 +1312,7 @@ const ACCELERATOR_TYPES = [
         </A>
 */
 
-function GPU({ priceData, setConfig, configuration, disabled, state }) {
+function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
@@ -1345,6 +1363,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
         priceData,
         config1,
         changes,
+        IMAGES,
       );
       cost = computeAcceleratorCost({
         priceData,
@@ -1460,11 +1479,12 @@ function ensureConsistentConfiguration(
   priceData,
   configuration: GoogleCloudConfigurationType,
   changes: Partial<GoogleCloudConfigurationType>,
+  IMAGES: Images,
 ) {
   const newConfiguration = { ...configuration, ...changes };
   const newChanges = { ...changes };
 
-  ensureConsistentImage(newConfiguration, newChanges);
+  ensureConsistentImage(newConfiguration, newChanges, IMAGES);
 
   ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
 
@@ -1478,13 +1498,13 @@ function ensureConsistentConfiguration(
 
   ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
 
-  ensureSufficientDiskSize(newConfiguration, newChanges);
+  ensureSufficientDiskSize(newConfiguration, newChanges, IMAGES);
 
   return newChanges;
 }
 
 // We make the image consistent with the gpu selection.
-function ensureConsistentImage(configuration, changes) {
+function ensureConsistentImage(configuration, changes, IMAGES) {
   const { gpu } = IMAGES[configuration.image] ?? {};
   const gpuSelected =
     configuration.acceleratorType && configuration.acceleratorCount > 0;
@@ -1501,8 +1521,8 @@ function ensureConsistentImage(configuration, changes) {
   }
 }
 
-function ensureSufficientDiskSize(configuration, changes) {
-  const min = getMinDiskSizeGb(configuration);
+function ensureSufficientDiskSize(configuration, changes, IMAGES) {
+  const min = getMinDiskSizeGb({ configuration, IMAGES });
   if ((configuration.diskSizeGb ?? 0) < min) {
     changes.diskSizeGb = min;
   }
@@ -1767,7 +1787,14 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({ setConfig, configuration, loading, priceData, state }) {
+function Network({
+  setConfig,
+  configuration,
+  loading,
+  priceData,
+  state,
+  IMAGES,
+}) {
   const [externalIp, setExternalIp] = useState<boolean>(
     configuration.externalIp ?? true,
   );
@@ -1835,6 +1862,7 @@ function Network({ setConfig, configuration, loading, priceData, state }) {
           setConfig={setConfig}
           configuration={configuration}
           state={state}
+          IMAGES={IMAGES}
         />
       )}
     </div>
@@ -1845,7 +1873,7 @@ function createToken() {
   return generateVouchers({ count: 1, length: 16 })[0];
 }
 
-function AuthToken({ setConfig, configuration, state }) {
+function AuthToken({ setConfig, configuration, state, IMAGES }) {
   const { authToken } = IMAGES[configuration.image] ?? {};
   useEffect(() => {
     // create token if it is not set but required

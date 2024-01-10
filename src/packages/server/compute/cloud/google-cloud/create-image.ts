@@ -58,8 +58,6 @@ import getInstance from "./get-instance";
 import type {
   Architecture,
   GoogleCloudConfiguration,
-  ImageName,
-  CudaVersion,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
@@ -70,7 +68,7 @@ import { getImages, Images } from "@cocalc/server/compute/images";
 const logger = getLogger("server:compute:google-cloud:create-image");
 
 interface Options {
-  image?: ImageName;
+  image?: string;
   tag?: string;
   noDelete?: boolean;
   noParallel?: boolean;
@@ -144,7 +142,7 @@ export async function createImages({
       maxTimeMinutes,
       arch,
     }: {
-      image: ImageName;
+      image: string;
       configuration: GoogleCloudConfiguration;
       startupScript: string;
       sourceImage: string;
@@ -217,7 +215,7 @@ export async function createImages({
 }
 
 interface BuildConfig {
-  image: ImageName;
+  image: string;
   configuration: GoogleCloudConfiguration;
   startupScript: string;
   maxTimeMinutes: number;
@@ -225,11 +223,7 @@ interface BuildConfig {
   sourceImage: string;
 }
 
-function getConf(
-  image: ImageName,
-  gpu: boolean,
-  IMAGES: Images,
-): BuildConfig[] {
+function getConf(image: string, gpu: boolean, IMAGES: Images): BuildConfig[] {
   const data = IMAGES[image];
   if (gpu != null && gpu != data.gpu) {
     // skip.
@@ -382,9 +376,9 @@ function createBuildConfiguration({
   cudaVersion = "12.3",
   IMAGES,
 }: {
-  image: ImageName;
+  image: string;
   arch: Architecture;
-  cudaVersion?: CudaVersion;
+  cudaVersion?: string;
   IMAGES: Images;
 }): BuildConfig {
   const tag = getTag({ image, IMAGES });
@@ -401,6 +395,7 @@ function createBuildConfiguration({
   }
   const maxTimeMinutes = gpu ? 120 : 45;
   const configuration = {
+    image,
     ...({
       cloud: "google-cloud",
       externalIp: true,
@@ -409,7 +404,7 @@ function createBuildConfiguration({
       // SSD is hugely better in terms of speeding things up, since we're basically
       // just extracting/copying files around.
       diskType: "pd-ssd",
-      diskSizeGb: getMinDiskSizeGb({ image }),
+      diskSizeGb: getMinDiskSizeGb({ configuration: { image }, IMAGES }),
       maxRunDurationSeconds: 60 * maxTimeMinutes,
     } as const),
     /*

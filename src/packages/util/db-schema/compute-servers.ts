@@ -12,282 +12,60 @@ import { SCHEMA as schema } from "./index";
 export const STANDARD_DISK_SIZE = 20;
 export const CUDA_DISK_SIZE = 60;
 
-// Compute Server Images
+// Compute Server Images -- typings.  See packages/server/compute/images.ts for
+// how the actual data is populated.
 
-// for now the versions must be sorted from oldest to newest.
-type VERSIONS = { label: string; tag: string }[];
+export interface ImageVersion {
+  // tag - must be given and distinct for each version -- this typically identifies the image to docker
+  tag: string;
+  // version -- defaults to tag if not given; usually the upstream version
+  version?: string;
+  // label -- defaults to the tag; this is to display to the user
+  label?: string;
+  // tested -- if this is not set to true, then this version should not be shown by default.
+  // If not tested, only show to users who explicitly really want this (e.g., admins).
+  tested?: boolean;
+}
 
-interface ImageBase {
+// TODO: maybe should optionally add minDiskSizeGb to Version?
+
+export interface Image {
+  // What we show the user to describe this image, e.g., in the image select menu.
   label: string;
+  // The name of the package on npmjs or dockerhub:
   package: string;
+  // In case there is a different package name for ARM64, the name of it.
   package_arm64?: string;
-  minDiskSizeGb: number;
-  dockerSizeGb: number;
+  // Root filesystem image must be at least this big in GB.
+  minDiskSizeGb?: number;
+  // Description in MARKDOWN to show user of this image.  Can include links.
   description?: string;
+  // Upstream URL for this image, e.g., https://julialang.org/ for the Julia image.
   url: string;
+  // Icon to show next to the label for this image.
   icon: string;
+  // Link to a URL with the source for building this image.
   source: string;
-  versions: VERSIONS;
-
+  // The versions of this image that we claim to have built.
+  // The ones with role='prod' (or not specified) are shown
+  // to users as options.
+  versions: ImageVersion[];
+  // If true, then a GPU is required to use this image.
+  gpu?: boolean;
   // authToken: if true, image has web interface that supports configurable auth token
   authToken?: boolean;
-
-  // jupyterKernels: if false, no jupyter kernels included. If true or a list of names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
+  // jupyterKernels: if false, no jupyter kernels included. If true or a list of
+  // names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
   jupyterKernels?: false | true | string[];
-
   // system: if true, this is a system container that is not for user compute
   system?: boolean;
+  // disabled: if true, this image is completely disabled, so will not be used in any way.
   disabled?: boolean;
+  // priority -- optional integer used for sorting options to display to user. The bigger the higher.
+  priority?: number;
 }
 
-interface NonGPUImage extends ImageBase {
-  gpu: false;
-}
-
-export type CudaVersion = string;
-
-interface GPUImage extends ImageBase {
-  gpu: true;
-  cudaVersion?: CudaVersion;
-}
-
-type Image = NonGPUImage | GPUImage;
-
-export const DOCKER_USER = "sagemathinc";
-
-export const IMAGES0 = {
-  cocalc: {
-    system: true,
-    label: "CoCalc",
-    minDiskSizeGb: 10,
-    dockerSizeGb: 1,
-    gpu: false,
-    icon: "files",
-    url: "https://www.npmjs.com/package/@cocalc/compute-server",
-    package: "@cocalc/compute-server",
-    package_arm64: "@cocalc/compute-server-arm64",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/cocalc",
-    versions: [
-      { label: "latest", tag: "latest" },
-      { label: "devel", tag: "devel" },
-    ],
-    description:
-      "The lightweight subset of the CoCalc Javascript code needed to run cocalc directly on the compute server for supporting websocketfs mounting, terminals, and jupyter notebooks.",
-  },
-  filesystem: {
-    system: true,
-    label: "Filesystem",
-    package: `${DOCKER_USER}/filesystem`,
-    minDiskSizeGb: 10,
-    dockerSizeGb: 1,
-    gpu: false,
-    icon: "files",
-    url: "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/filesystem",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/filesystem",
-    versions: [{ label: "1.0", tag: "1.0" }],
-    description: "Filesystem container.",
-  },
-  python: {
-    label: "Python",
-    package: `${DOCKER_USER}/python`,
-    minDiskSizeGb: 10,
-    dockerSizeGb: 2,
-    gpu: false,
-    icon: "python",
-    // TODO -- should be a much better
-    url: "https://www.python.org/",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/python",
-    versions: [{ label: "3.10.12", tag: "3.10.12" }],
-    description:
-      "[Python](https://python.org) is a versatile and user-friendly programming language, known for its clear syntax and readability. It is widely used for web development, data analysis, artificial intelligence, and scientific computing.",
-  },
-  sagemath: {
-    label: "SageMath",
-    package: `${DOCKER_USER}/sagemath`,
-    minDiskSizeGb: 20, // 14 doesn't work.
-    dockerSizeGb: 9,
-    gpu: false,
-    icon: "sagemath",
-    url: "https://www.sagemath.org/",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/sagemath",
-    versions: [
-      { label: "10.1", tag: "10.1" },
-      { label: "10.2", tag: "10.2" },
-    ],
-    description:
-      "[SageMath](https://sagemath.org) is an open-source mathematics software system, integrating numerous software packages and providing a unified interface. It is designed for advanced algebra, geometry, number theory, cryptography, and various other fields of mathematics, accessible through a Python-based language.",
-  },
-  rstats: {
-    label: "R",
-    package: `${DOCKER_USER}/rstats`,
-    minDiskSizeGb: 10,
-    dockerSizeGb: 3,
-    gpu: false,
-    icon: "r",
-    url: "https://www.r-project.org/",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/rstats",
-    versions: [{ label: "4.3.2", tag: "4.3.2" }],
-    description:
-      "[R](https://www.r-project.org/) is a powerful statistical computing language and environment, widely used for data analysis, statistical modeling, and visualization. Its extensive package ecosystem and flexible scripting capabilities make it ideal for both simple and complex data exploration tasks.",
-  },
-  julia: {
-    label: "Julia",
-    package: `${DOCKER_USER}/julia`,
-    minDiskSizeGb: 10,
-    dockerSizeGb: 3,
-    gpu: false,
-    icon: "julia",
-    url: "https://julialang.org/",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/julia",
-    versions: [
-      { label: "1.9.4", tag: "1.9.4" },
-      { label: "1.10.0", tag: "1.10.0" },
-    ],
-    description:
-      "[Julia](https://julialang.org/) is a high-performance programming language designed for technical computing, combining the speed of C with the ease of use of Python. It excels in numerical analysis, computational science, and data processing with its efficient syntax and ability to handle high-level mathematical operations.",
-  },
-  //   anaconda: {
-  //     label: "Anaconda",
-  //     package: `${DOCKER_USER}/anaconda`,
-  //     minDiskSizeGb: 10,
-  //     dockerSizeGb: 2,
-  //     gpu: false,
-  //     icon: "python",
-  //     url: "https://www.sagemath.org/",
-  //     source:
-  //       "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/anaconda",
-  //     description:
-  //       "Minimal Anaconda environment nicely setup and ready for you to install packages into.",
-  //     versions: [{ label: "2023-11-26", tag: "2023-11-26" }],
-  //   },
-  pytorch: {
-    label: "PyTorch",
-    package: `${DOCKER_USER}/pytorch`,
-    gpu: true,
-    minDiskSizeGb: 29 + 10 + 10,
-    dockerSizeGb: 24,
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
-    icon: "pytorch",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/pytorch",
-    versions: [
-      { label: "2.2.0 (2023-11)", tag: "23.11-py3" },
-      { label: "2.2.0 (2023-12)", tag: "23.12-py3" },
-    ],
-    description:
-      "[PyTorch](https://pytorch.org/) is an open-source machine learning library, known for its flexibility and ease of use, particularly in deep learning applications. It provides a dynamic computation graph and a rich ecosystem of tools and libraries, making it a preferred choice for researchers and developers in AI.",
-  },
-  tensorflow: {
-    label: "Tensorflow",
-    package: `${DOCKER_USER}/tensorflow`,
-    gpu: true,
-    minDiskSizeGb: 28 + 10 + 10,
-    dockerSizeGb: 23,
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow",
-    icon: "tensorflow",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/tensorflow",
-    versions: [
-      { label: "2.14.0 (2023-11)", tag: "23.11-tf2-py3" },
-      { label: "2.14.0 (2023-12)", tag: "23.12-tf2-py3" },
-    ],
-    description:
-      "[TensorFlow](https://www.tensorflow.org/) is an open-source machine learning framework developed by Google, widely used for building and training neural networks. Its flexible architecture allows for easy deployment of computation across various platforms, from servers to edge devices, making it suitable for a broad range of AI applications.",
-  },
-  colab: {
-    label: "Google Colab",
-    package: `${DOCKER_USER}/colab`,
-    minDiskSizeGb: 33 + 10 + 10,
-    dockerSizeGb: 28,
-    gpu: true,
-    icon: "google",
-    url: "https://github.com/googlecolab",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/colab",
-    versions: [
-      {
-        label: "2023-09-21",
-        tag: "release-colab_20230921-060057_RC00",
-      },
-      {
-        label: "2023-12-14",
-        tag: "release-colab_20231214-060137_RC00",
-      },
-    ],
-    description:
-      "[Google Colab](https://colab.google/) comes preinstalled with a wide range of popular data science and machine learning libraries, such as TensorFlow, PyTorch, Matplotlib, and Pandas. It also includes support for Python and its various packages, enabling users to jump straight into coding without worrying about setup and installation.",
-  },
-  ollama: {
-    label: "Ollama with WebUI",
-    package: `${DOCKER_USER}/ollama`,
-    dockerSizeGb: 2,
-    minDiskSizeGb: 30,
-    gpu: true,
-    icon: "robot",
-    url: "https://ollama.ai/",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/ollama",
-    description:
-      "[Ollama](https://ollama.ai/) makes it very easy to run Llama 2, code Llama, and [hundreds of other models](https://ollama.ai/library).  Use the [web interface](https://github.com/ollama-webui/ollama-webui#readme) or call ollama from the Python API.",
-    authToken: true,
-    versions: [
-      { label: "0.1.15", tag: "0.1.15" },
-      { label: "0.1.18", tag: "0.1.18b" },
-    ],
-    jupyterKernels: false,
-  },
-  cuda: {
-    label: "CUDA Development Toolkit",
-    package: `${DOCKER_USER}/cuda`,
-    gpu: true,
-    // have to add 10 for CUDA base drivers
-    minDiskSizeGb: 13 + 10 + 10,
-    dockerSizeGb: 8,
-    icon: "nvidia",
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/cuda",
-    description:
-      "The CUDA Toolkit from NVIDIA provides everything you need to develop GPU-accelerated applications.  The CUDA Toolkit includes GPU-accelerated libraries, a compiler, development tools and the CUDA runtime.   It enables dramatic increases in computing performance by harnessing the power of NVIDIA graphics processing units (GPUs) for a wide range of computing tasks.",
-    versions: [{ label: "12.3.1", tag: "12.3.1" }],
-    jupyterKernels: false,
-  },
-  jax: {
-    label: "JAX",
-    package: `${DOCKER_USER}/jax`,
-    gpu: true,
-    minDiskSizeGb: 28 + 10 + 10,
-    dockerSizeGb: 24,
-    url: "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax",
-    icon: "times",
-    source:
-      "https://github.com/sagemathinc/cocalc-compute-docker/blob/main/src/jax",
-    versions: [{ label: "0.4.17 (2023-10)", tag: "23.10-paxml-py3" }],
-    description:
-      "[JAX](https://jax.readthedocs.io/en/latest/) is a framework for high-performance numerical computing and machine learning research. It includes Numpy-like APIs, automatic differentiation, [XLA](https://github.com/openxla/openxla-nvgpu) acceleration and simple primitives for scaling across GPUs.   [The JAX NGC Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax) comes with all dependencies included, providing an easy place to start developing applications in areas such as NLP, Computer Vision, Multimodality, physics-based simulations, reinforcement learning, drug discovery, and neural rendering.",
-  },
-  //   "cocalc-docker": {
-  //     label: "CoCalc - Personal Server",
-  //     package: `${DOCKER_USER}/cocalc-docker`,
-  //     minDiskSizeGb: 50,
-  //   },
-};
-
-export type ImageName = keyof typeof IMAGES0;
-
-export const IMAGES = IMAGES0 as { [name: string]: Image };
-
-// This is entirely to force the values to be type checked,
-// but without having to explicitly type IMAGES above, so
-// the key types can be got with 'keyof typeof IMAGES',
-// thus avoiding typing the key names twice!
-export const __IMAGES: { [name: string]: Image } = IMAGES;
+export type Images = { [name: string]: Image };
 
 export type State =
   | "off"
@@ -481,7 +259,13 @@ export type Cloud =
   | "fluid-stack"
   | "test";
 
-export function getMinDiskSizeGb(configuration) {
+export function getMinDiskSizeGb({
+  configuration,
+  IMAGES,
+}: {
+  configuration;
+  IMAGES: Images;
+}) {
   if (configuration?.image) {
     const { minDiskSizeGb } = IMAGES[configuration.image] ?? {};
     if (minDiskSizeGb) {
@@ -511,7 +295,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
     zone: "us-east5-a",
     machineType: "n2d-standard-4",
     spot: true,
-    diskSizeGb: getMinDiskSizeGb({ image: "python" }),
+    diskSizeGb: 10,
     diskType: "pd-balanced",
     externalIp: true,
     excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
@@ -523,7 +307,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
     cloud: "google-cloud",
     zone: "asia-northeast1-a",
     diskType: "pd-balanced",
-    diskSizeGb: getMinDiskSizeGb({ image: "pytorch" }) + 10,
+    diskSizeGb: 60,
     externalIp: true,
     machineType: "n1-highmem-2",
     acceleratorType: "nvidia-tesla-t4",
@@ -537,7 +321,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
     cloud: "google-cloud",
     region: "us-central1",
     diskType: "pd-balanced",
-    diskSizeGb: getMinDiskSizeGb({ image: "pytorch" }) + 10,
+    diskSizeGb: 60,
     externalIp: true,
     machineType: "g2-standard-4",
     acceleratorType: "nvidia-l4",
@@ -619,7 +403,7 @@ interface BaseConfiguration {
   // and dns is configured, then point https://{dns}....
   // with ssl proxying to this compute server when it is running.
   dns?: string;
-  image?: ImageName;
+  image: string;
   // Array of top level directories to exclude from sync.
   // These can't have "|" in them, since we use that as a separator.
   // Use "~" to completely disable sync.

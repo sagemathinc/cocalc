@@ -2,7 +2,6 @@
 This all assume Ubuntu 22.04.
 */
 
-import { CudaVersion } from "@cocalc/util/db-schema/compute-servers";
 import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 import {
   Architecture,
@@ -150,7 +149,7 @@ Code below with awk works pretty generically regarding supporting many cuda vers
 
 */
 
-export function installCuda(cudaVersion: CudaVersion) {
+export function installCuda(cudaVersion: string) {
   return `
 curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring.deb

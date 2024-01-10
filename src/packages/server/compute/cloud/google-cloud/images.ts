@@ -25,7 +25,6 @@ import dayjs from "dayjs";
 import type {
   Architecture,
   GoogleCloudConfiguration,
-  ImageName,
 } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
@@ -40,7 +39,7 @@ export async function imageName({
   tag,
   arch = "x86_64",
 }: {
-  image: ImageName;
+  image: string;
   date?: Date;
   tag?: string;
   arch?: Architecture;
@@ -90,7 +89,7 @@ export async function getAllImages({
   sourceImage,
   labels,
 }: {
-  image?: ImageName;
+  image?: string;
   arch?: Architecture;
   sourceImage?: string;
   labels?: object;

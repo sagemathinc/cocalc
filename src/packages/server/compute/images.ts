@@ -28,61 +28,13 @@ Here we manage the list of supported compute images and their versions.
 import { getPool } from "@cocalc/database";
 import getLogger from "@cocalc/backend/logger";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import type { Images } from "@cocalc/util/db-schema/compute-servers";
+export type { Images };
 // IMPORTANT: This code is only meant to be used by the nextjs app.  Note that
 // nextjs polyfills fetch in: https://nextjs.org/blog/next-9-4#improved-built-in-fetch-support
 declare var fetch;
 
 const logger = getLogger("server:compute:images");
-
-export interface Version {
-  // tag - must be given and distinct for each version -- this typically identifies the image to docker
-  tag: string;
-  // version -- defaults to tag if not given; usually the upstream version
-  version?: string;
-  // label -- defaults to the tag; this is to display to the user
-  label?: string;
-  // tested -- if this is not set to true, then this version should not be shown by default.
-  // If not tested, only show to users who explicitly really want this (e.g., admins).
-  tested?: boolean;
-}
-
-// TODO: maybe should optionally add minDiskSizeGb to Version?
-
-export interface Image {
-  // What we show the user to describe this image, e.g., in the image select menu.
-  label: string;
-  // The name of the package on npmjs or dockerhub:
-  package: string;
-  // In case there is a different package name for ARM64, the name of it.
-  package_arm64?: string;
-  // Root filesystem image must be at least this big in GB.
-  minDiskSizeGb?: number;
-  // Description in MARKDOWN to show user of this image.  Can include links.
-  description?: string;
-  // Upstream URL for this image, e.g., https://julialang.org/ for the Julia image.
-  url: string;
-  // Icon to show next to the label for this image.
-  icon: string;
-  // Link to a URL with the source for building this image.
-  source: string;
-  // The versions of this image that we claim to have built.
-  // The ones with role='prod' (or not specified) are shown
-  // to users as options.
-  versions: Version[];
-  // If true, then a GPU is required to use this image.
-  gpu?: boolean;
-  // authToken: if true, image has web interface that supports configurable auth token
-  authToken?: boolean;
-  // jupyterKernels: if false, no jupyter kernels included. If true or a list of
-  // names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
-  jupyterKernels?: false | true | string[];
-  // system: if true, this is a system container that is not for user compute
-  system?: boolean;
-  // disabled: if true, this image is completely disabled, so will not be used in any way.
-  disabled?: boolean;
-}
-
-export type Images = { [name: string]: Image };
 
 // name in the server_settings table
 const NAME = "compute-server-images";

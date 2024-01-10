@@ -28,7 +28,6 @@ import type {
   Cloud,
   ComputeServer,
   Configuration,
-  ImageName,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getTargetState } from "@cocalc/util/db-schema/compute-servers";
@@ -628,7 +627,7 @@ async function getStartupParams(id: number): Promise<{
   project_id: string;
   gpu?: boolean;
   arch: Architecture;
-  image: ImageName;
+  image: string;
   exclude_from_sync: string;
   auth_token: string;
 }> {
