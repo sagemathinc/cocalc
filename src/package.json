@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
-    "express": "^4.18.2",
+    "express": "^4.17.1",
     "pnpm": "^8.10.2"
   }
 }
