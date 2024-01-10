@@ -84,6 +84,7 @@ type FixedTabs = {
     flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
+    hide?: boolean; // if true, do not show it - e.g. the "active files" button is at the top where home was
   };
 };
 
@@ -98,6 +99,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     flyout: ActiveFlyout,
     noAnonymous: false,
     noFullPage: true,
+    hide: true,
   },
   files: {
     label: "Explorer",
@@ -424,6 +426,11 @@ export function FileTab(props: Readonly<Props>) {
     flyout != null &&
     FIXED_PROJECT_TABS[flyout].noFullPage
   ) {
+    return null;
+  }
+
+  // Ignore hidden ones
+  if (flyout != null && FIXED_PROJECT_TABS[flyout].hide) {
     return null;
   }
 

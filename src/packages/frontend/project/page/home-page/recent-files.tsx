@@ -176,7 +176,7 @@ export function HomeRecentFiles({
           <List
             style={{ maxHeight: "500px", overflow: "auto", ...style }}
             size="small"
-            bordered={true}
+            bordered={false}
             dataSource={log}
             renderItem={renderItem}
           />

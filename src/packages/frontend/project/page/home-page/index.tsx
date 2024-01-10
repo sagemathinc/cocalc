@@ -5,21 +5,20 @@
 
 import { Col, Row } from "antd";
 
-import { useActions } from "@cocalc/frontend/app-framework";
 import { Title } from "@cocalc/frontend/components";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { useProjectContext } from "../../context";
+import { COLORS } from "@cocalc/util/theme";
 import { HomeRecentFiles } from "./recent-files";
 
 export default function HomePage() {
-  const { project_id } = useProjectContext();
-  const actions = useActions({ project_id });
+  const { project_id, actions } = useProjectContext();
 
   return (
     <Row
       gutter={[30, 30]}
       style={{
-        maxWidth: "1000px",
+        maxWidth: "800px",
         margin: "0 auto",
         padding: "15px",
       }}
@@ -35,14 +34,22 @@ export default function HomePage() {
           <Title
             level={2}
             onClick={() => actions?.set_active_tab("settings")}
-            style={{ cursor: "pointer", textAlign: "center", color: "#666" }}
+            style={{
+              cursor: "pointer",
+              textAlign: "center",
+              color: COLORS.GRAY_M,
+            }}
           >
             <ProjectTitle project_id={project_id} noClick />
           </Title>
         </div>
       </Col>
       <Col md={24}>
-        <HomeRecentFiles project_id={project_id} style={{ height: "400px" }} mode="embed" />
+        <HomeRecentFiles
+          project_id={project_id}
+          style={{ height: "400px" }}
+          mode="embed"
+        />
       </Col>
     </Row>
   );

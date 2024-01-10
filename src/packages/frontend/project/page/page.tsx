@@ -50,7 +50,6 @@ import {
   getFlyoutWidth,
   storeFlyoutState,
 } from "./flyouts/state";
-import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { TopTabBar } from "./top-tabbar";
 import { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./vertical-fixed-tabs";
@@ -249,6 +248,29 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderActiveFilesButton() {
+    const isActive = flyout === "active";
+    return (
+      <Button
+        size="large"
+        style={{
+          border: "none",
+          borderRadius: "0",
+          fontSize: "24px",
+          color: isActive ? COLORS.ANTD_LINK_BLUE : COLORS.FILE_ICON,
+          transitionDuration: "0s",
+          width: homePageButtonWidth,
+        }}
+        type="text"
+        onClick={() => {
+          actions?.toggleFlyout("active");
+        }}
+      >
+        <Icon name="edit" />
+      </Button>
+    );
+  }
+
   function renderTopRow() {
     if (fullscreen && fullscreen !== "project") return;
 
@@ -256,11 +278,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
       <div style={{ display: "flex", margin: "0", paddingTop: "3px" }}>
-        <HomePageButton
-          project_id={project_id}
-          active={active_project_tab == "home"}
-          width={homePageButtonWidth}
-        />
+        {renderActiveFilesButton()}
         {renderFlyoutHeader()}
         <div style={{ flex: 1, overflow: "hidden" }}>
           <TopTabBar />
@@ -274,7 +292,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
     if (hideActionButtons) {
       return (
-        <Tooltip title="Show the action bar" placement="topRight">
+        <Tooltip title="Show the action bar" placement="right">
           <Button
             size="small"
             type="text"

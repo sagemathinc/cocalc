@@ -222,7 +222,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 
   function renderToggleSidebar() {
     return (
-      <Tooltip title="Hide the action bar" placement="topRight">
+      <Tooltip title="Hide the action bar" placement="right">
         <Button
           size="small"
           type="text"
