@@ -79,7 +79,7 @@ const features = {
   x11: { label: "X11" },
   div1: { type: "divider" },
   "compute-server": { label: "Compute" },
-  "openai-chatgpt": { label: "ChatGPT" },
+  ai: { label: "AI Assist" },
   compare: { label: "Compare" },
   api: { label: "API" },
 } as const;
