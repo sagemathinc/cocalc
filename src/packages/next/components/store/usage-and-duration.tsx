@@ -84,7 +84,23 @@ export function UsageAndDuration(props: Props) {
     const period = getFieldValue("period");
     if (period !== "range") return;
     const range = getFieldValue("range");
-    const invalidRange = range?.[0] == null || range?.[1] == null;
+    let invalidRange = range?.[0] == null || range?.[1] == null;
+    let suffix;
+    try {
+      if (!invalidRange) {
+        // always make them actual dates. See
+        //  https://github.com/sagemathinc/cocalc/issues/7173
+        // where this caused a crash when parsing the URL.
+        range[0] = new Date(range[0]);
+        range[1] = new Date(range[1]);
+      }
+      suffix =
+        range && range[0] && `(${getTimezoneFromDate(range[0], "long")})`;
+    } catch (err) {
+      invalidRange = true;
+      console.warn(`WARNING: issue parsing date ${range[0]}`);
+      suffix = undefined;
+    }
     return (
       <Form.Item
         label="License Term"
@@ -99,16 +115,12 @@ export function UsageAndDuration(props: Props) {
           noPast
           maxDaysInFuture={365 * 4}
           style={{ marginTop: "5px" }}
-          initialValues={getFieldValue("range")}
+          initialValues={range}
           onChange={(range) => {
             form.setFieldsValue({ range });
             onChange();
           }}
-          suffix={
-            range &&
-            range[0] &&
-            `(${getTimezoneFromDate(range[0] as Date, "long")})`
-          }
+          suffix={suffix}
         />
       </Form.Item>
     );
