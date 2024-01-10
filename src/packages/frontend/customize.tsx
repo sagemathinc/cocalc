@@ -166,6 +166,10 @@ export class CustomizeStore extends Store<CustomizeState> {
 
 export class CustomizeActions extends Actions<CustomizeState> {
   updateComputeServerImages = reuseInFlight(async () => {
+    if (!store.get("compute_servers_enabled")) {
+      this.setState({ compute_servers_images: fromJS({}) as any });
+      return;
+    }
     this.setState({ compute_servers_images: null });
     try {
       this.setState({

@@ -20,6 +20,7 @@ import {
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import { sortBy } from "lodash";
+import { useImages } from "@cocalc/frontend/compute/images-hook";
 
 import {
   CSS,
@@ -28,7 +29,7 @@ import {
   useActions,
   useRedux,
   useTypedRedux,
-} from "@cocalc/frontend//app-framework";
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -39,7 +40,6 @@ import {
 import { SiteName } from "@cocalc/frontend/customize";
 import track from "@cocalc/frontend/user-tracking";
 import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { KernelStar } from "../components/run-button/kernel-star";
@@ -515,6 +515,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 function ComputeServerInfo() {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
+  const { IMAGES, ImagesError } = useImages();
+  if (ImagesError) {
+    return ImagesError;
+  }
+  if (IMAGES == null) {
+    return <Spin />;
+  }
 
   // sort all images with a jupyter kernel by IMAGES[key].label
   const sortedImageKeys = sortBy(
