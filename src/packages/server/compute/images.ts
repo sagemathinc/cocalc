@@ -7,13 +7,8 @@ Here we manage the list of supported compute images and their versions.
 - Admins can customize the location of this data via a configurable admin setting, in case
   they want complete control over what images are offered.
 
-- Admins can set the role of their server to either 'test' or 'prod'. If the role is
-  'test' then all images with at least one version could be shown to users.  If the
-  role is 'prod', then only images with at least one role='prod' image are shown
-  to users.
-
 - A post-processed recent version of images.json is stored in the database, along
-  with a timestamp of when it was stored.
+  with a timestamp (ms since epoch) of when it was stored.
 
 - There is an API endpoint to get images.json.  If images.json was loaded recently enough,
   then the version in the database is returned.  If it was loaded too long ago, we attempt to
@@ -21,15 +16,13 @@ Here we manage the list of supported compute images and their versions.
   a new version fails, we return an older stale version -- github can go down for a while.
 
 - There is also an API call that only admins can make that updates images.json immediately.
-  Admins can use this if they want to force swiching to the newest version, rather than
+  Admins can use this if they want to force switching to the newest version, rather than
   waiting an hour or so for the currently loaded version to expire.
 
 - Before storing in the database, images.json gets post processed as follows:
    - (not done yet) additional information about which prebuilt images exist
      in each cloud that we support.
-   - if server role is 'prod', then we strip out any image versions that don't
-     have role='prod'.
-   - strip all images that don't have any versions.
+   - disabled images are removed
 */
 
 import { getPool } from "@cocalc/database";
@@ -41,8 +34,6 @@ declare var fetch;
 
 const logger = getLogger("server:compute:images");
 
-export type Role = "test" | "prod";
-
 export interface Version {
   // tag - must be given and distinct for each version -- this typically identifies the image to docker
   tag: string;
@@ -50,10 +41,9 @@ export interface Version {
   version?: string;
   // label -- defaults to the tag; this is to display to the user
   label?: string;
-  // role -- defaults to "prod"; set to "test" when this version is being tested or developed
-  // and isn't ready for general use.  When it is ready to be available in production,
-  // set to 'prod' (or don't set it).
-  role?: Role;
+  // tested -- if this is not set to true, then this version should not be shown by default.
+  // If not tested, only show to users who explicitly really want this (e.g., admins).
+  tested?: boolean;
 }
 
 // TODO: maybe should optionally add minDiskSizeGb to Version?
@@ -130,8 +120,8 @@ export async function getImages(ttlMs = TTL_MS): Promise<Images> {
     return await fetchImagesFromRemote();
   } catch (err) {
     logger.debug(
-      "ERROR: not able to fetch image, but we have a cached old one, so we return that",
-      err,
+      "ERROR: not able to fetch image, but we have a cached old one, so we return that -- ",
+      `${err}`,
     );
     // return what we have
     return IMAGES;
@@ -145,6 +135,11 @@ async function fetchImagesFromRemote(insert: boolean = false): Promise<Images> {
   const url = await getRemoteUrl(db);
   const response = await fetch(url);
   const IMAGES = await response.json();
+  for (const image in IMAGES) {
+    if (IMAGES[image].disabled) {
+      delete IMAGES[image];
+    }
+  }
   const value = JSON.stringify({ epochMs: Date.now(), IMAGES });
   const params = [NAME, value];
   if (insert) {
