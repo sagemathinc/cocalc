@@ -89,9 +89,10 @@ const NAME = "compute-server-images";
 const TTL_MS = 1000 * 60 * 60;
 
 // Used by everything else in cocalc to get access to the images.
-export async function getImages(ttlMs = TTL_MS): Promise<Images> {
+export default async function getImages(ttlMs = TTL_MS): Promise<Images> {
   logger.debug("getImages");
-  const db = getPool();
+  // a few seconds of caching at least.
+  const db = getPool(ttlMs == null ? "medium" : undefined);
   const { rows } = await db.query(
     "SELECT value FROM server_settings WHERE name=$1",
     [NAME],
