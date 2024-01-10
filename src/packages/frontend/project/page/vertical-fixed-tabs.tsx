@@ -8,7 +8,7 @@ Vertical Fixed Tabs on the left in a project.
 */
 
 import type { MenuProps } from "antd";
-import { Button, Dropdown, Modal, Switch, Tooltip } from "antd";
+import { Button, Dropdown, Modal, Tooltip } from "antd";
 import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -34,9 +34,9 @@ interface FVTProps {
 export function VerticalFixedTabs(props: Readonly<FVTProps>) {
   const { setHomePageButtonWidth } = props;
   const {
-    actions,
     project_id,
     active_project_tab: activeTab,
+    actions,
   } = useProjectContext();
   const account_settings = useActions("account");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
@@ -210,9 +210,31 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     return (
       <div style={{ textAlign: "center" }}>
         <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
-          <Button icon={<Icon name="layout" />} style={{ margin: "5px" }} />
+          <Button
+            icon={<Icon name="layout" />}
+            block
+            type="text"
+          />
         </Dropdown>
       </div>
+    );
+  }
+
+  function renderToggleSidebar() {
+    return (
+      <Tooltip title="Hide the action bar" placement="topRight">
+        <Button
+          size="small"
+          type="text"
+          block
+          onClick={() => {
+            track("action-bar", { action: "hide" });
+            actions?.toggleActionButtons();
+          }}
+        >
+          <Icon name="vertical-right-outlined" />
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -234,19 +256,10 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
       >
         {items}
-        <div style={{ flex: 1 }}></div> {/* moves hide switch to the bottom */}
+        <div style={{ flex: 1 }}></div>{" "}
+        {/* moves the layout selector to the bottom */}
         {renderLayoutSelector()}
-        <Tooltip title="Hide the action bar" placement="right">
-          <Switch
-            style={{ margin: "10px" }}
-            size="small"
-            checked
-            onChange={() => {
-              actions?.toggleActionButtons();
-              track("action-bar", { action: "hide" });
-            }}
-          />
-        </Tooltip>
+        {renderToggleSidebar()}
       </div>
     </div>
   );

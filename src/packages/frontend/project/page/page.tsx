@@ -4,7 +4,7 @@
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
-import { Modal } from "antd";
+import { Button, Modal, Tooltip } from "antd";
 
 import {
   React,
@@ -17,13 +17,14 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useAppState } from "@cocalc/frontend/app/context";
-import { Loading } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import {
   FrameContext,
   defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
+import track from "@cocalc/frontend/user-tracking";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
@@ -269,21 +270,46 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }
 
   function renderVerticalActionButtons() {
-    if (hideActionButtons) return;
     if (fullscreen && fullscreen !== "project") return;
 
-    return (
-      <div
-        style={{
-          background: FIXED_TABS_BG_COLOR,
-          borderRadius: "0",
-          borderTop: FIX_BORDERS.borderTop,
-          borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
-        }}
-      >
-        <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
-      </div>
-    );
+    if (hideActionButtons) {
+      return (
+        <Tooltip title="Show the action bar" placement="topRight">
+          <Button
+            size="small"
+            type="text"
+            style={{
+              position: "fixed",
+              bottom: "0px",
+              left: "0px",
+              zIndex: 1000,
+              outline: `1px solid ${COLORS.GRAY_L}`,
+              borderRadius: "0 3px 0 0 ",
+              backgroundColor: COLORS.GRAY_LLL,
+            }}
+            onClick={() => {
+              track("action-bar", { action: "show" });
+              actions?.toggleActionButtons();
+            }}
+          >
+            <Icon name="vertical-left-outlined" />
+          </Button>
+        </Tooltip>
+      );
+    } else {
+      return (
+        <div
+          style={{
+            background: FIXED_TABS_BG_COLOR,
+            borderRadius: "0",
+            borderTop: FIX_BORDERS.borderTop,
+            borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
+          }}
+        >
+          <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
+        </div>
+      );
+    }
   }
 
   function renderMainContent() {

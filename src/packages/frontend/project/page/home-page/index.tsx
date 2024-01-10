@@ -3,94 +3,47 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Card, Col, Row } from "antd";
+import { Col, Row } from "antd";
 
-import { redux, useActions } from "@cocalc/frontend/app-framework";
-import { Icon, Title } from "@cocalc/frontend/components";
+import { useActions } from "@cocalc/frontend/app-framework";
+import { Title } from "@cocalc/frontend/components";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { useProjectContext } from "../../context";
-import AIGenerateJupyterNotebook from "./ai-generate-jupyter";
 import { HomeRecentFiles } from "./recent-files";
-import {
-  computeServersEnabled,
-  ComputeServers,
-  ComputeServerDocs,
-} from "@cocalc/frontend/compute";
-import AccountStatus from "@cocalc/frontend/purchases/account-status";
-
-const SPAN = { md: 12, sm: 24, xs: 24 } as const;
 
 export default function HomePage() {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
 
-  function renderGPTGenerator() {
-    // if not available, the entire block should be gone
-    // making room for the toher blocks to move into its place
-    if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) return null;
-
-    return (
-      <Col {...SPAN}>
-        <AIGenerateJupyterNotebook project_id={project_id} />
-      </Col>
-    );
-  }
-
   return (
-    <div style={{ margin: "15px", maxWidth: "1300px" }}>
-      <Row gutter={[30, 30]}>
-        <Col {...SPAN}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "200px",
-            }}
+    <Row
+      gutter={[30, 30]}
+      style={{
+        maxWidth: "1000px",
+        margin: "0 auto",
+        padding: "15px",
+      }}
+    >
+      <Col md={24}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Title
+            level={2}
+            onClick={() => actions?.set_active_tab("settings")}
+            style={{ cursor: "pointer", textAlign: "center", color: "#666" }}
           >
-            <Title
-              level={2}
-              onClick={() => actions?.set_active_tab("settings")}
-              style={{ cursor: "pointer", textAlign: "center", color: "#666" }}
-            >
-              <ProjectTitle project_id={project_id} noClick />
-            </Title>
-          </div>
-        </Col>
-        <Col {...SPAN}>
-          <HomeRecentFiles
-            project_id={project_id}
-            style={{ height: "200px" }}
-          />
-        </Col>
-        {computeServersEnabled() && (
-          <Col {...SPAN}>
-            <Card
-              style={{
-                maxHeight: "500px",
-                overflow: "auto",
-                border: "1px solid #ddd",
-              }}
-              title={
-                <Title level={4}>
-                  <ComputeServerDocs style={{ float: "right" }} />
-                  <Icon
-                    name="servers"
-                    style={{ fontSize: "20pt", marginRight: "5px" }}
-                  />{" "}
-                  Compute Servers
-                </Title>
-              }
-            >
-              <ComputeServers project_id={project_id} />
-            </Card>
-          </Col>
-        )}
-        {renderGPTGenerator()}
-        <Col {...SPAN}>
-          <AccountStatus compact style={{ border: "1px solid #ddd" }} />
-        </Col>
-      </Row>
-    </div>
+            <ProjectTitle project_id={project_id} noClick />
+          </Title>
+        </div>
+      </Col>
+      <Col md={24}>
+        <HomeRecentFiles project_id={project_id} style={{ height: "400px" }} mode="embed" />
+      </Col>
+    </Row>
   );
 }

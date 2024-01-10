@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Input, List, Space } from "antd";
+import { Flex, Input, List } from "antd";
 
 import {
   CSS,
@@ -22,9 +22,9 @@ import {
 } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
+import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 import { User } from "@cocalc/frontend/users";
 import { handleFileEntryClick } from "../../history/utils";
-import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 
 interface OpenedFile {
   filename: string;
@@ -35,12 +35,14 @@ interface Props {
   project_id: string;
   max?: number;
   style?: CSS;
+  mode?: "box" | "embed";
 }
 
 export function HomeRecentFiles({
   max = 100,
   project_id,
   style,
+  mode = "box",
 }: Props): JSX.Element {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
@@ -57,7 +59,7 @@ export function HomeRecentFiles({
       .filter(
         (entry: EventRecordMap) =>
           entry.getIn(["event", "filename"]) &&
-          entry.getIn(["event", "event"]) === "open"
+          entry.getIn(["event", "event"]) === "open",
       )
       .sort((a, b) => getTime(b) - getTime(a))
       .filter((entry: EventRecordMap) => {
@@ -70,7 +72,7 @@ export function HomeRecentFiles({
         entry
           .getIn(["event", "filename"], "")
           .toLowerCase()
-          .includes(searchTerm.toLowerCase())
+          .includes(searchTerm.toLowerCase()),
       ) // <-- added filter
       .slice(0, max)
       .map((entry: EventRecordMap) => {
@@ -134,29 +136,51 @@ export function HomeRecentFiles({
 
   function renderHeader(): JSX.Element | undefined {
     return (
-      <>
-        <Space style={{ width: "100%" }}>
-          Recent Files{" "}
-          <Input
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyUp={onKeyUpHandler}
-            style={{ width: "350px" }}
-          />
-        </Space>
-      </>
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{
+          width: "100%",
+          ...(mode === "embed" ? { padding: "10px" } : undefined),
+        }}
+      >
+        <Text strong>Recent Files</Text>
+        <Input
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyUp={onKeyUpHandler}
+          style={{ width: "350px" }}
+        />
+      </Flex>
     );
   }
 
-  return (
-    <List
-      style={{ maxHeight: "500px", overflow: "auto", ...style }}
-      size="small"
-      header={renderHeader()}
-      bordered={true}
-      dataSource={log}
-      renderItem={renderItem}
-    />
-  );
+  switch (mode) {
+    case "box":
+      return (
+        <List
+          style={{ maxHeight: "500px", overflow: "auto", ...style }}
+          size="small"
+          header={renderHeader()}
+          bordered={true}
+          dataSource={log}
+          renderItem={renderItem}
+        />
+      );
+
+    case "embed":
+      return (
+        <>
+          {renderHeader()}
+          <List
+            style={{ maxHeight: "500px", overflow: "auto", ...style }}
+            size="small"
+            bordered={true}
+            dataSource={log}
+            renderItem={renderItem}
+          />
+        </>
+      );
+  }
 }

@@ -3,36 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Switch, Tooltip } from "antd";
+import { Button } from "antd";
 
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useActions } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import track from "@cocalc/frontend/user-tracking";
+import { COLORS } from "@cocalc/util/theme";
 
 export default function HomePageButton({ project_id, active, width }) {
   const actions = useActions({ project_id });
-  const hideActionButtons = useTypedRedux(project_id, "hideActionButtons");
-  if (hideActionButtons)
-    return (
-      <div
-        style={{
-          width,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Tooltip title="Show the action bar" placement="right">
-          <Switch
-            onChange={() => {
-              track("action-bar", { action: "show" });
-              actions?.toggleActionButtons();
-            }}
-          />
-        </Tooltip>
-      </div>
-    );
 
   return (
     <Button
