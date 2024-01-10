@@ -27,6 +27,8 @@ interface Customize extends ServerCustomize {
   sandboxProjectId?: string; // a sandbox project to put on landing pages...
   serverTime?: number; // the time on the server, in milliseconds since the epoch
   openaiEnabled?: boolean; // backend is configured to provide openai integration.
+  googleVertexaiEnabled?: boolean; // if enabled, e.g. Google Gemini is available
+
   jupyterApiEnabled?: boolean; // backend configured to use a pool of projects for sandboxed ephemeral jupyter code execution
   computeServersEnabled?: boolean; // backend configured to run on external compute servers
 }

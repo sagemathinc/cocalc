@@ -141,6 +141,8 @@ export default async function getCustomize(): Promise<Customize> {
     // true if openai integration is enabled -- this impacts the UI only, and can be
     // turned on and off independently of whether there is an api key set.
     openaiEnabled: settings.openai_enabled,
+    // same for google vertex (exposed as gemini)
+    googleVertexaiEnabled: settings.google_vertexai_enabled,
     neuralSearchEnabled: settings.neural_search_enabled,
 
     // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.

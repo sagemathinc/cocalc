@@ -301,6 +301,18 @@ export default function TermsOfService({ customize }) {
                     </li>
                   </ul>
                 </li>
+                <li>
+                  <A href="https://ai.google.dev/terms">Google AI</A>
+                  <ul>
+                    <li>
+                      <A href="https://ai.google.dev/terms">
+                        Google Generative AI Terms of Service
+                      </A>{" "}
+                      is relevant when you use the "Gemini" language model in
+                      CoCalc.
+                    </li>
+                  </ul>
+                </li>
               </ul>
               <h1>Questions?</h1>
               <p>

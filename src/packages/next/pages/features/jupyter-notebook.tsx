@@ -21,6 +21,7 @@ import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import { ChatGPTFixError } from "./ai";
 
 import JupyterChat from "/public/features/cocalc-chat-jupyter-20171120-2.png";
 import JupyterKernels from "/public/features/cocalc-jupyter-kernels.png";
@@ -31,7 +32,6 @@ import JupyterMem from "/public/features/cocalc-jupyter2-memory-cpu.png";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 import JupyterLab from "/public/features/jupyter-lab.png";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
-import { ChatGPTFixError } from "./openai-chatgpt";
 
 export default function JupyterNotebook({ customize }) {
   function pitchNoSetup() {
@@ -114,7 +114,7 @@ export default function JupyterNotebook({ customize }) {
     <Customize value={customize}>
       <Head title="Online Jupyter Notebooks" />
       <Layout>
-        <Header page="features" subPage="jupyter-notebook"  runnableTag="py" />
+        <Header page="features" subPage="jupyter-notebook" runnableTag="py" />
         <Layout.Content>
           <Content
             landing
