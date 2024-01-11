@@ -29,6 +29,9 @@ async function getApiServer() {
 
 export default async function startupScript({
   image = "python",
+  tag,
+  filesystem_tag,
+  cocalc_tag,
   compute_server_id,
   api_key,
   project_id,
@@ -39,7 +42,10 @@ export default async function startupScript({
   auth_token,
   installUser: doInstallUser,
 }: {
-  image?: string;
+  image?: string; // compute image
+  tag?: string; // compute docker image tag
+  filesystem_tag?: string; // filesystem docker image tag
+  cocalc_tag?: string; // @cocalc/compute-server npm package tag
   compute_server_id: number;
   api_key: string;
   project_id: string;
@@ -112,7 +118,7 @@ if [ $? -ne 0 ]; then
 fi
 
 setState install install-cocalc '' 60 70
-${installCoCalc({ arch, IMAGES })}
+${installCoCalc({ arch, IMAGES, tag: cocalc_tag })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
@@ -131,6 +137,8 @@ setState vm start '' 60 60
 ${runCoCalcCompute({
   gpu,
   image,
+  tag,
+  filesystem_tag,
   IMAGES,
 })}
 
@@ -198,11 +206,19 @@ ${compute(opts)}
 `;
 }
 
-function filesystem({ IMAGES }: { IMAGES: Images }) {
-  const image = `${IMAGES["filesystem"].package}:${getTag({
+function filesystem({
+  IMAGES,
+  filesystem_tag,
+}: {
+  IMAGES: Images;
+  filesystem_tag?: string;
+}) {
+  const tag = getTag({
     image: "filesystem",
     IMAGES,
-  })}`;
+    tag: filesystem_tag,
+  });
+  const docker = IMAGES["filesystem"].package;
 
   return `
 # Docker container that mounts the filesystem(s)
@@ -229,30 +245,27 @@ fi
 mkdir -p /data
 chown user:user /data
 
-docker start filesystem >/dev/null 2>&1
+docker stop filesystem >/dev/null 2>&1
+docker rm filesystem >/dev/null 2>&1
+
+setState filesystem run '' 45 25
+
+docker run \
+ -d \
+ --name=filesystem \
+ --privileged \
+ --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
+ --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
+ --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+ -v /cocalc:/cocalc \
+ ${docker}:${tag}
 
 if [ $? -ne 0 ]; then
-  setState filesystem run '' 45 25
-
-  docker run \
-   -d \
-   --name=filesystem \
-   --privileged \
-   --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
-   --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
-   --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
-   -v /cocalc:/cocalc \
-   ${image}
-  if [ $? -ne 0 ]; then
-     setState filesystem error "problem creating filesystem Docker container"
-     exit 1
-  fi
-  setState filesystem running '' 45 80
-
-else
-
-  setState filesystem running '' 45 80
+   setState filesystem error "problem creating filesystem Docker container"
+   exit 1
 fi
+
+setState filesystem running '' 45 80
  `;
 }
 
@@ -282,15 +295,17 @@ const GPU_FLAGS =
 
 function compute({
   image,
+  tag,
   gpu,
   IMAGES,
 }: {
   image: string;
+  tag?: string;
   gpu?: boolean;
   IMAGES: Images;
 }) {
   const docker = IMAGES[image]?.package ?? `sagemathinc/${image}`;
-  const tag = getTag({ image, IMAGES });
+  tag = getTag({ image, IMAGES, tag });
 
   // Start a container that connects to the project
   // and manages providing terminals and jupyter kernels
@@ -354,28 +369,44 @@ function setState {
   `;
 }
 
-// For now we just get the newest tag, since there
-// is only one so far.  TODO!
-// We do optionally restrict to tested images only.
-// We should probably error when no versions are specified
-// rather than defaulting to latest.
+/*
+If tag is given and available just returns that tag.
+If tag is given but not available or not tag is given,
+returns the newest tested tag, unless no tags are tested,
+in which case we just return the newest tag.
+Returns 'latest' in case nothing is available.
+*/
+
 export function getTag({
   image,
   IMAGES,
-  tested,
+  tag,
 }: {
   image: string;
   IMAGES: Images;
-  tested?: boolean;
+  tag?: string;
 }): string {
   image = imageDeprecation(image);
   let { versions } = IMAGES[image] ?? {};
   if (versions == null || versions.length == 0) {
     return "latest";
   }
-  if (tested) {
-    versions = versions.filter((x) => x.tested);
+  if (tag) {
+    for (const x of versions) {
+      if (x?.tag == tag) {
+        // tag is available
+        return tag;
+      }
+    }
   }
+  // tag is not available or not tag given, so
+  // try to return newest (latested in array, not
+  // actually sorting by tag) tested version.
+  const tested = versions.filter((x) => x.tested);
+  if (tested.length > 0) {
+    return tested[tested.length - 1]?.tag ?? "latest";
+  }
+  // just return non-tested newest sine nothing is tested.
   const version = versions[versions.length - 1];
   return version.tag ?? "latest";
 }

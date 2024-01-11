@@ -90,16 +90,18 @@ fi
 export function installCoCalc({
   arch,
   IMAGES,
+  tag,
 }: {
   arch: Architecture;
   IMAGES: Images;
+  tag?: string;
 }) {
   const pkg = IMAGES["cocalc"][getImageField(arch)];
 
   return `
 set +v
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-npx -y ${pkg}@${getTag({ image: "cocalc", IMAGES })} /cocalc
+npx -y ${pkg}@${getTag({ image: "cocalc", IMAGES, tag })} /cocalc
 set -v
 `;
 }

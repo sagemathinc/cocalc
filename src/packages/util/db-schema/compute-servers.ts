@@ -399,11 +399,18 @@ for (const short in CLOUDS) {
 }
 
 interface BaseConfiguration {
-  // If the string is set and the VM has an external ip address
+  // image: name of the image to use, e.g. 'python' or 'pytorch'.
+  // images are managed in src/packages/server/compute/images.ts
+  image: string;
+  // tag: tag for the image to use when starting the compute server.
+  // this references the versions field of the image.
+  // If the tag is not given or not available, we use the latest
+  // available tag.
+  tag?: string;
+  // dns - If the string is set and the VM has an external ip address
   // and dns is configured, then point https://{dns}....
   // with ssl proxying to this compute server when it is running.
   dns?: string;
-  image: string;
   // Array of top level directories to exclude from sync.
   // These can't have "|" in them, since we use that as a separator.
   // Use "~" to completely disable sync.
