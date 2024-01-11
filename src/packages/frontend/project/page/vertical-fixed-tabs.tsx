@@ -9,8 +9,8 @@ Vertical Fixed Tabs on the left in a project.
 
 import type { MenuProps } from "antd";
 import { Button, Dropdown, Modal, Tooltip } from "antd";
-import { debounce, throttle } from "lodash";
-import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { throttle } from "lodash";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -27,12 +27,7 @@ import {
 
 export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
 
-interface FVTProps {
-  setHomePageButtonWidth: (width: number) => void;
-}
-
-export function VerticalFixedTabs(props: Readonly<FVTProps>) {
-  const { setHomePageButtonWidth } = props;
+export function VerticalFixedTabs() {
   const {
     project_id,
     active_project_tab: activeTab,
@@ -84,28 +79,6 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       window.removeEventListener("resize", calcCondensed);
     };
   }, []);
-
-  useEffect(() => {
-    if (parent.current == null) return;
-
-    const observer = new ResizeObserver(
-      debounce(
-        () => {
-          const width = parent.current?.offsetWidth;
-          // we ignore zero width, which happens when not visible
-          if (width == null || width == 0) return;
-          setHomePageButtonWidth(width);
-        },
-        50,
-        { trailing: true, leading: false },
-      ),
-    );
-    observer.observe(parent.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [condensed, parent.current]);
 
   const items: ReactNode[] = [];
   for (const nameStr in FIXED_PROJECT_TABS) {
@@ -210,11 +183,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     return (
       <div style={{ textAlign: "center" }}>
         <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
-          <Button
-            icon={<Icon name="layout" />}
-            block
-            type="text"
-          />
+          <Button icon={<Icon name="layout" />} block type="text" />
         </Dropdown>
       </div>
     );

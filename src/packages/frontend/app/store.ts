@@ -7,7 +7,7 @@ import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
 import { parse_target } from "../history";
 
-type TopTab =
+export type TopTab =
   | "about" // the "/help" page
   | "account"
   | "admin"
@@ -20,7 +20,7 @@ type TopTab =
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 
 export interface PageState {
-  active_top_tab: TopTab; // key of the active tab
+  active_top_tab: TopTab | string; // key of the active tab, could be project_id as well
   show_connection: boolean;
   ping?: number;
   avgping?: number;

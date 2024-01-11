@@ -83,6 +83,7 @@ export interface ProjectStoreState {
   internet_warning_closed: boolean; // Makes bottom height update
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
+  flyout_active: boolean; // how the active files
   flyout_log_mode: FlyoutLogMode;
   flyout_active_mode: FlyoutActiveMode;
 
@@ -255,10 +256,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
       show_custom_software_reset: false,
 
       // Project Page
-      active_project_tab: "files",
+      active_project_tab: "home",
       internet_warning_closed: false, // Makes bottom height update
       num_ghost_file_tabs: 0,
       flyout: null,
+      flyout_active: false,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
       flyout_active_mode: FLYOUT_ACTIVE_DEFAULT_MODE,
 

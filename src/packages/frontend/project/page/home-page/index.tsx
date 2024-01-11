@@ -3,13 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
+import { Button, Col, Row } from "antd";
 
-import { Title } from "@cocalc/frontend/components";
+import { Icon, Title } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { COLORS } from "@cocalc/util/theme";
 import { HomeRecentFiles } from "./recent-files";
+import { FIXED_PROJECT_TABS } from "../file-tab";
+
+const BTN_PROPS = {
+  block: true,
+  size: "large",
+  style: { backgroundColor: COLORS.GRAY_LLL },
+} as const;
 
 export default function HomePage() {
   const { project_id, actions } = useProjectContext();
@@ -44,10 +51,49 @@ export default function HomePage() {
           </Title>
         </div>
       </Col>
+      <Col md={12}>
+        <Button
+          {...BTN_PROPS}
+          onClick={() => {
+            actions?.set_active_tab("new");
+          }}
+        >
+          <Icon name={FIXED_PROJECT_TABS.new.icon} /> Create a new file ...
+        </Button>
+      </Col>
+      <Col md={12}>
+        <Button
+          {...BTN_PROPS}
+          onClick={() => {
+            actions?.set_active_tab("files");
+          }}
+        >
+          <Icon name={FIXED_PROJECT_TABS.files.icon} /> Browse existing files
+          ...
+        </Button>
+      </Col>
+      <Col md={24} style={{ textAlign: "center" }}>
+        <Button type="text" onClick={() => actions?.set_active_tab("users")}>
+          <Icon name={FIXED_PROJECT_TABS.users.icon} />{" "}
+          {FIXED_PROJECT_TABS.users.label}
+        </Button>
+        <Button type="text" onClick={() => actions?.set_active_tab("upgrades")}>
+          <Icon name={FIXED_PROJECT_TABS.upgrades.icon} />{" "}
+          {FIXED_PROJECT_TABS.upgrades.label}
+        </Button>
+        <Button type="text" onClick={() => actions?.set_active_tab("servers")}>
+          <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
+          {FIXED_PROJECT_TABS.servers.label}
+        </Button>
+        <Button type="text" onClick={() => actions?.set_active_tab("settings")}>
+          <Icon name={FIXED_PROJECT_TABS.settings.icon} />{" "}
+          {FIXED_PROJECT_TABS.settings.label}
+        </Button>
+      </Col>
       <Col md={24}>
         <HomeRecentFiles
           project_id={project_id}
-          style={{ height: "400px" }}
+          style={{ height: "max(200px, 50%)" }}
           mode="embed"
         />
       </Col>

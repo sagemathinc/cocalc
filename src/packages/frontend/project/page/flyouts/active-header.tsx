@@ -5,12 +5,13 @@
 
 // Group headers of active files (editors) in the current project
 
-import { Button, Space } from "antd";
+import { Button, Flex, Space } from "antd";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
+import { ActiveFlyoutToggleButton } from "../active-flyout-toggle-button";
 
 export function ActiveHeader() {
   const { flipTabs, project_id } = useProjectContext();
@@ -20,7 +21,12 @@ export function ActiveHeader() {
 
   function renderScroll() {
     return (
-      <Space.Compact style={{ float: "right", marginRight: "10px" }}>
+      <Space.Compact
+        style={{
+          margin: "10px",
+          flex: "0",
+        }}
+      >
         <Button
           size="small"
           onClick={() => setFlipVal(flipVal + 1)}
@@ -39,10 +45,17 @@ export function ActiveHeader() {
     );
   }
 
+  function renderTitle() {
+    return (
+      <Flex style={{ flex: "1", fontWeight: "bold" }} align="center">
+        <ActiveFlyoutToggleButton /> {FIXED_PROJECT_TABS.active.flyoutTitle}
+      </Flex>
+    );
+  }
+
   return (
-    <div style={{ flex: 1, fontWeight: "bold" }}>
-      <Icon name={FIXED_PROJECT_TABS.active.icon} />{" "}
-      {FIXED_PROJECT_TABS.active.label} {renderScroll()}
-    </div>
+    <Flex flex={1} justify="space-between" align="center">
+      {renderTitle()} {renderScroll()}
+    </Flex>
   );
 }

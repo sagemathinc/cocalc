@@ -18,7 +18,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { CloseX2, Icon, Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { rowBackground, search_match, search_split } from "@cocalc/util/misc";
 import { Button } from "antd";
@@ -244,6 +244,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
       <>
         <h1 style={{ marginTop: "0px" }}>
           <Icon name="history" /> Project Activity Log
+          <CloseX2 close={() => actions?.set_active_tab("home")} />
         </h1>
         {render_search()}
         {render_body()}

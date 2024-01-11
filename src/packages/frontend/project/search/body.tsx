@@ -30,6 +30,7 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   auxFileToOriginal,
   filename_extension,
@@ -45,11 +46,16 @@ const RESULTS_WELL_STYLE: React.CSSProperties = {
   backgroundColor: "white",
 } as const;
 
-export const ProjectSearchBody: React.FC<{
-  project_id: string;
+interface ProjectSearchBodyProps {
   mode: "project" | "flyout";
   wrap?: Function;
-}> = ({ project_id, mode = "project", wrap }) => {
+}
+
+export function ProjectSearchBody({
+  mode = "project",
+  wrap,
+}: ProjectSearchBodyProps): JSX.Element {
+  const { project_id } = useProjectContext();
   const subdirectories = useTypedRedux({ project_id }, "subdirectories");
   const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
@@ -262,7 +268,7 @@ export const ProjectSearchBody: React.FC<{
   } else {
     return <Well>{renderContent()}</Well>;
   }
-};
+}
 
 interface ProjectSearchInputProps {
   project_id: string;

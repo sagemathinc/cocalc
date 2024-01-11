@@ -4,21 +4,30 @@
  */
 
 import { Divider } from "antd";
+
 import { redux } from "@cocalc/frontend//app-framework";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
+import {
+  CloseX2,
+  Icon,
+  Loading,
+  Paragraph,
+  Title,
+} from "@cocalc/frontend/components";
+import Purchases from "@cocalc/frontend/purchases/purchases";
+import { useProjectContext } from "../context";
 import { ICON_UPGRADES, ROOT_STYLE, TITLE_UPGRADES } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
 import { useProject } from "./common";
-import Purchases from "@cocalc/frontend/purchases/purchases";
 
 export function ProjectLicenses({ project_id }): JSX.Element {
+  const { actions } = useProjectContext();
   const { project, group } = useProject(project_id);
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
 
   const projects_store = redux.getStore("projects");
@@ -86,6 +95,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
     <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       <Title level={2}>
         <Icon name={ICON_UPGRADES} /> Quotas and {TITLE_UPGRADES}
+        <CloseX2 close={() => actions?.set_active_tab("home")} />
       </Title>
       <Paragraph>
         Licenses and pay as you go upgrades change the quotas and features

@@ -7,6 +7,7 @@ import React from "react";
 import { Popconfirm, Popover } from "antd";
 
 import { AccountActions } from "../account";
+import type { PageActions } from "@cocalc/frontend/app/actions";
 
 interface Props {
   icon: React.ReactNode; // When clicked, show popover
@@ -61,7 +62,7 @@ export const AccountTabDropdown: React.FC<Props> = (props: AccountTabProps) => {
 
 interface LinksProps {
   account_actions: AccountActions;
-  page_actions: any;
+  page_actions: PageActions;
 }
 
 export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({

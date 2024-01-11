@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon } from "@cocalc/frontend/components";
+import { CloseX2, Icon } from "@cocalc/frontend/components";
+import { useProjectContext } from "../context";
 import { PathNavigator } from "../explorer/path-navigator";
 
 const SIZE = "20px";
 
-export const ProjectSearchHeader: React.FC<{ project_id: string }> = ({
-  project_id,
-}) => {
+export function ProjectSearchHeader() {
+  const { project_id, actions } = useProjectContext();
   return (
     <div style={{ marginTop: "0px", fontSize: SIZE }}>
       <Icon name="search" /> Search{" "}
@@ -21,6 +21,7 @@ export const ProjectSearchHeader: React.FC<{ project_id: string }> = ({
           style={{ display: "inline-block", fontSize: SIZE }}
         />
       </span>
+      <CloseX2 close={() => actions?.set_active_tab("home")} />
     </div>
   );
-};
+}

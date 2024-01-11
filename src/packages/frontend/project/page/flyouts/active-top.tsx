@@ -24,6 +24,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
+import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 import {
@@ -31,7 +32,6 @@ import {
   FlyoutActiveTabSort,
   storeFlyoutState,
 } from "./state";
-import { unreachable } from "@cocalc/util/misc";
 
 interface ActiveTopProps {
   mode: FlyoutActiveMode;
@@ -138,6 +138,8 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
           flexDirection: "row",
           justifyContent: "space-between",
           paddingBottom: FLYOUT_PADDING,
+          paddingLeft: FLYOUT_PADDING,
+          paddingRight: FLYOUT_PADDING,
         }}
       >
         {renderToggleShowStarred()}
@@ -215,7 +217,10 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
       <Space
         direction="horizontal"
         size="small"
-        style={{ flex: "1 0 auto", justifyContent: "flex-end" }}
+        style={{
+          flex: "1 0 auto",
+          justifyContent: "flex-end",
+        }}
       >
         {renderActiveTabSortButton()}
 
@@ -241,6 +246,7 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
     const style: CSS = {
       width: "6em",
       flex: "1 1 auto",
+      paddingLeft: FLYOUT_PADDING,
       paddingRight: FLYOUT_PADDING,
     };
 

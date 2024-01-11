@@ -10,7 +10,7 @@ import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
 
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
-import { A, Loading, Tip } from "@cocalc/frontend/components";
+import { A, CloseX2, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
 import {
@@ -31,6 +31,7 @@ import {
 } from "./components";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 import { DETAILS_BTN_TEXT, SSH_KEYS_DOC } from "./utils";
+import { useProjectContext } from "../context";
 
 interface Props {
   any_alerts: () => boolean;
@@ -94,6 +95,8 @@ export function Full(props: Readonly<Props>): JSX.Element {
     render_cocalc,
     onCellProps,
   } = props;
+
+  const { actions } = useProjectContext();
 
   function render_help() {
     return (
@@ -519,6 +522,9 @@ export function Full(props: Readonly<Props>): JSX.Element {
 
   return (
     <Row style={{ padding: "15px 15px 0 15px" }}>
+      <Col md={12}>
+        <CloseX2 close={() => actions?.set_active_tab("home")} />
+      </Col>
       <Col md={12}>
         {render_not_running()}
         {render_error()}

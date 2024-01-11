@@ -4,11 +4,13 @@
  */
 
 import { Alert as AntdAlert } from "antd";
+import React from "react";
+
 import {
-  redux,
-  rclass,
-  rtypes,
   project_redux_name,
+  rclass,
+  redux,
+  rtypes,
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import {
@@ -20,7 +22,6 @@ import {
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as misc from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
-import React from "react";
 import { Body } from "./body";
 
 const { Alert } = require("react-bootstrap");
@@ -108,7 +109,7 @@ const ProjectSettings0 = rclass<ReactProps>(
       }
       this._table = webapp_client.sync_client.sync_table(
         { projects_admin: query },
-        []
+        [],
       );
       this._table.on("change", () => {
         this.setState({
@@ -187,7 +188,7 @@ const ProjectSettings0 = rclass<ReactProps>(
         );
       }
     }
-  }
+  },
 );
 
 export function SandboxProjectSettingsWarning() {

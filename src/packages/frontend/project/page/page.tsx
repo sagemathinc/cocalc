@@ -4,7 +4,7 @@
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
-import { Button, Modal, Tooltip } from "antd";
+import { Button, Flex, Modal, Tooltip } from "antd";
 
 import {
   React,
@@ -23,22 +23,22 @@ import {
   FrameContext,
   defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
-import track from "@cocalc/frontend/user-tracking";
-import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { AnonymousName } from "../anonymous-name";
+import { AnonymousName } from "@cocalc/frontend/project/anonymous-name";
 import {
   ProjectContext,
   useProjectContext,
   useProjectContextProvider,
-} from "../context";
-import { ProjectWarningBanner } from "../project-banner";
-import { StartButton } from "../start-button";
-import { DeletedProjectWarning } from "../warnings/deleted";
-import { DiskSpaceWarning } from "../warnings/disk-space";
-import { OOMWarning } from "../warnings/oom";
-import { RamWarning } from "../warnings/ram";
+} from "@cocalc/frontend/project/context";
+import { ProjectWarningBanner } from "@cocalc/frontend/project/project-banner";
+import { StartButton } from "@cocalc/frontend/project/start-button";
+import { DeletedProjectWarning } from "@cocalc/frontend/project/warnings/deleted";
+import { DiskSpaceWarning } from "@cocalc/frontend/project/warnings/disk-space";
+import { OOMWarning } from "@cocalc/frontend/project/warnings/oom";
+import { RamWarning } from "@cocalc/frontend/project/warnings/ram";
+import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
+import track from "@cocalc/frontend/user-tracking";
+import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDERS } from "./common";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
@@ -47,6 +47,7 @@ import { FLYOUT_DEFAULT_WIDTH_PX } from "./flyouts/consts";
 import { FlyoutHeader } from "./flyouts/header";
 import {
   getFlyoutExpanded,
+  getFlyoutShowActive,
   getFlyoutWidth,
   storeFlyoutState,
 } from "./flyouts/state";
@@ -70,6 +71,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const flyout = useTypedRedux({ project_id }, "flyout");
+  const flyout_active = useTypedRedux({ project_id }, "flyout_active");
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -86,8 +88,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     { project_id },
     "active_project_tab",
   );
-  const [homePageButtonWidth, setHomePageButtonWidth] =
-    React.useState<number>(80);
 
   const [flyoutWidth, setFlyoutWidth] = useState<number>(
     getFlyoutWidth(project_id),
@@ -95,16 +95,16 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const [oldFlyoutWidth, setOldFlyoutWidth] = useState(flyoutWidth);
   const { pageWidthPx } = useAppState();
 
-  const narrowerPX = useMemo(() => {
-    return hideActionButtons ? homePageButtonWidth : 0;
-  }, [hideActionButtons, homePageButtonWidth]);
-
   useEffect(() => {
     const name = getFlyoutExpanded(project_id);
+    const showActive = getFlyoutShowActive(project_id);
     if (isFixedTab(name)) {
       // if there is one to show, restore its width
       setFlyoutWidth(getFlyoutWidth(project_id));
       actions?.setFlyoutExpanded(name, true, false);
+    }
+    if (typeof showActive === "boolean") {
+      actions?.setFlyoutShowActive(showActive);
     }
   }, [project_id]);
 
@@ -123,7 +123,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   async function resetFlyoutWidth() {
     // brief delay to ignore what dragging does
     await new Promise((resolve) => setTimeout(resolve, 10));
-    setWidth(FLYOUT_DEFAULT_WIDTH_PX + narrowerPX, true);
+    setWidth(FLYOUT_DEFAULT_WIDTH_PX, true);
   }
 
   const flyoutLimit = useMemo(() => {
@@ -222,7 +222,10 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
     return (
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
+        <Flex vertical={true} flex={0}>
+          <FlyoutHeader flyoutWidth={flyoutWidth} flyout={flyout} />
+          <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
+        </Flex>
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
           onDragEnd={(e) => updateDrag(e)}
@@ -237,37 +240,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function renderFlyoutHeader() {
-    if (!flyout) return;
-    return (
-      <FlyoutHeader
-        flyoutWidth={flyoutWidth}
-        flyout={flyout}
-        narrowerPX={narrowerPX}
-      />
-    );
-  }
+  function renderFlyoutActive() {
+    if (!flyout_active) return;
 
-  function renderActiveFilesButton() {
-    const isActive = flyout === "active";
     return (
-      <Button
-        size="large"
-        style={{
-          border: "none",
-          borderRadius: "0",
-          fontSize: "24px",
-          color: isActive ? COLORS.ANTD_LINK_BLUE : COLORS.FILE_ICON,
-          transitionDuration: "0s",
-          width: homePageButtonWidth,
-        }}
-        type="text"
-        onClick={() => {
-          actions?.toggleFlyout("active");
-        }}
-      >
-        <Icon name="edit" />
-      </Button>
+      <Flex vertical={true} flex={0}>
+        <FlyoutHeader flyoutWidth={FLYOUT_DEFAULT_WIDTH_PX} flyout="active" />
+        <FlyoutBody flyout="active" flyoutWidth={FLYOUT_DEFAULT_WIDTH_PX} />
+      </Flex>
     );
   }
 
@@ -277,13 +257,18 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
-      <div style={{ display: "flex", margin: "0", paddingTop: "3px" }}>
-        {renderActiveFilesButton()}
-        {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <TopTabBar />
-        </div>
-      </div>
+      <Flex
+        vertical={false}
+        flex={0}
+        style={{
+          overflow: "hidden",
+          display: "flex",
+          margin: "0",
+          paddingTop: "3px",
+        }}
+      >
+        <TopTabBar />
+      </Flex>
     );
   }
 
@@ -316,7 +301,9 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       );
     } else {
       return (
-        <div
+        <Flex
+          vertical={false}
+          flex={0}
           style={{
             background: FIXED_TABS_BG_COLOR,
             borderRadius: "0",
@@ -324,8 +311,8 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
           }}
         >
-          <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
-        </div>
+          <VerticalFixedTabs />
+        </Flex>
       );
     }
   }
@@ -365,13 +352,18 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
-        {renderTopRow()}
-        {is_deleted && <DeletedProjectWarning />}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <Flex vertical={false} flex={1}>
           {renderVerticalActionButtons()}
           {renderFlyout()}
-          {renderMainContent()}
-        </div>
+          {renderFlyoutActive()}
+          <Flex vertical={true} flex={1}>
+            {renderTopRow()}
+            {is_deleted ? <DeletedProjectWarning /> : undefined}
+            <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+              {renderMainContent()}
+            </div>
+          </Flex>
+        </Flex>
       </div>
     </ProjectContext.Provider>
   );

@@ -27,6 +27,7 @@ interface FlyoutBodyProps {
 }
 
 export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
+  const isActiveFlyout = flyout === "active";
   const { project_id } = useProjectContext();
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
 
@@ -74,7 +75,7 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
     );
   }
 
-  const padding = hideActionButtons
+  const padding = (hideActionButtons || isActiveFlyout)
     ? `${FLYOUT_PADDING} 0 0 0`
     : `${FLYOUT_PADDING} 0 0 ${FLYOUT_PADDING}`;
 
@@ -85,6 +86,7 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
     margin: 0,
     marginRight: "0",
     borderRight: FIX_BORDER,
+    borderLeft: isActiveFlyout ? FIX_BORDER : "none",
     width: flyoutWidth,
     height: "100%",
     backgroundColor: FIXED_TABS_BG_COLOR,

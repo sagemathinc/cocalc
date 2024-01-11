@@ -3,21 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux, Actions } from "../app-framework";
-import { set_window_title } from "../browser";
-import { update_params, set_url } from "../history";
-import { disconnect_from_project } from "../project/websocket/connect";
-import { session_manager } from "../session";
-import { PageState } from "./store";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { set_window_title } from "@cocalc/frontend/browser";
+import { set_url, update_params } from "@cocalc/frontend/history";
 import {
   exitFullscreen,
   isFullscreen,
   requestFullscreen,
 } from "@cocalc/frontend/misc/fullscreen";
+import { disconnect_from_project } from "@cocalc/frontend/project/websocket/connect";
+import { SessionManager, session_manager } from "@cocalc/frontend/session";
 import { once } from "@cocalc/util/async-utils";
+import { PageState, TopTab } from "./store";
 
 export class PageActions extends Actions<PageState> {
-  private session_manager?: any;
+  private session_manager?: SessionManager;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
 
@@ -137,7 +137,10 @@ export class PageActions extends Actions<PageState> {
     disconnect_from_project(project_id);
   }
 
-  async set_active_tab(key, change_history = true): Promise<void> {
+  async set_active_tab(
+    key: TopTab | string,
+    change_history = true,
+  ): Promise<void> {
     const prev_key = this.redux.getStore("page").get("active_top_tab");
     this.setState({ active_top_tab: key });
 
@@ -224,7 +227,7 @@ export class PageActions extends Actions<PageState> {
     }
   }
 
-  show_connection(show_connection) {
+  show_connection(show_connection: boolean) {
     this.setState({ show_connection });
   }
 
@@ -246,7 +249,7 @@ export class PageActions extends Actions<PageState> {
     this.setState({ show_file_use: !currently_shown });
   }
 
-  set_ping(ping, avgping) {
+  set_ping(ping: number | undefined, avgping: number | undefined) {
     this.setState({ ping, avgping });
   }
 
@@ -304,11 +307,11 @@ export class PageActions extends Actions<PageState> {
     );
   }
 
-  set_session(session) {
+  set_session(session: string) {
     // If existing different session, close it.
     if (session !== redux.getStore("page").get("session")) {
       if (this.session_manager != null) {
-        this.session_manager.close();
+        this.session_manager.save();
       }
       delete this.session_manager;
     }
@@ -330,7 +333,7 @@ export class PageActions extends Actions<PageState> {
     this.session_manager?.save();
   }
 
-  restore_session(project_id) {
+  restore_session(project_id: string) {
     this.session_manager?.restore(project_id);
   }
 

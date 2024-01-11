@@ -19,6 +19,8 @@ import target from "@cocalc/frontend/client/handle-target";
 import { load_target } from "./history";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
+export type { SessionManager };
+
 export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);
   if (COCALC_MINIMAL) {
@@ -83,10 +85,10 @@ class SessionManager {
       const prefix = appBasePath.length > 1 ? `.${appBasePath}` : "";
       const postfix = `${webapp_client.account_id}.${this.name}`;
       this._local_storage_name = new LS.CustomKey(
-        `session${prefix}.${postfix}`
+        `session${prefix}.${postfix}`,
       );
       this._local_storage_name_closed = new LS.CustomKey(
-        `closed-session${prefix}.${postfix}`
+        `closed-session${prefix}.${postfix}`,
       );
       this._load_from_local_storage();
     }
@@ -191,7 +193,7 @@ class SessionManager {
           path,
           foreground: false,
           foreground_project: false,
-        })
+        }),
       );
     }
   }

@@ -26,11 +26,12 @@ const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 interface Props {
   flyoutWidth: number;
   flyout: FixedTab;
-  narrowerPX: number;
+  narrowerPX?: number;
 }
 
 export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
+  const isActiveFlyout = flyout === "active";
   const { actions, project_id, is_active } = useProjectContext();
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
@@ -65,17 +66,18 @@ export function FlyoutHeader(_: Readonly<Props>) {
 
   function closeBtn() {
     return (
-      <Tooltip title="Hide this panel" placement="bottom">
-        <Icon
-          name="times"
-          className="cc-project-fixedtab-close"
-          style={{
-            marginRight: FLYOUT_PADDING,
-            padding: FLYOUT_PADDING,
-          }}
-          onClick={() => actions?.toggleFlyout(flyout)}
-        />
-      </Tooltip>
+      <div
+        style={isActiveFlyout ? { margin: `10px ${FLYOUT_PADDING} 0 0` } : {}}
+      >
+        <Tooltip title="Hide this panel" placement="bottom">
+          <Icon
+            name="times"
+            className="cc-project-fixedtab-close"
+            style={{ padding: FLYOUT_PADDING }}
+            onClick={() => actions?.toggleFlyout(flyout)}
+          />
+        </Tooltip>
+      </div>
     );
   }
 
@@ -179,15 +181,16 @@ export function FlyoutHeader(_: Readonly<Props>) {
         flexDirection: "row",
         alignItems: "start",
         borderRight: FIX_BORDER,
+        borderLeft: isActiveFlyout ? FIX_BORDER : undefined,
         borderTop: FIX_BORDER,
-        borderLeft: FIX_BORDER,
         background: FIXED_TABS_BG_COLOR,
-        borderRadius: "5px 5px 0 0",
+        borderRadius: `${isActiveFlyout ? "5px 0" : "0 5px"} 0 0`,
         width: `${flyoutWidth - narrowerPX}px`,
-        paddingLeft: "10px",
-        paddingTop: "10px",
+        paddingLeft: isActiveFlyout ? "0" : "10px",
+        paddingTop: isActiveFlyout ? "0" : "10px",
         fontSize: "1.2em",
-        marginRight: FLYOUT_PADDING,
+        marginRight: isActiveFlyout ? FLYOUT_PADDING : 0,
+        justifyContent: "center",
       }}
     >
       {renderTitle()}

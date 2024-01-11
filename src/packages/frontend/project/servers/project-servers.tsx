@@ -5,20 +5,29 @@
 
 import { Col, Divider, Modal, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
+
 import { useState } from "@cocalc/frontend/app-framework";
-import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
+import {
+  A,
+  CloseX2,
+  Icon,
+  Paragraph,
+  Text,
+  Title,
+} from "@cocalc/frontend/components";
+import {
+  ComputeServerDocs,
+  ComputeServers,
+  computeServersEnabled,
+} from "@cocalc/frontend/compute";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { NamedServerPanel } from "../named-server-panel";
 import { NewFileButton } from "../new/new-file-button";
 import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
-import {
-  computeServersEnabled,
-  ComputeServers,
-  ComputeServerDocs,
-} from "@cocalc/frontend/compute";
 
 // Antd's 24 grid system
 const md = 6;
@@ -27,12 +36,8 @@ const y: Gutter = 30;
 const gutter: [Gutter, Gutter] = [20, y / 2];
 const newRowStyle = { marginTop: `${y}px` };
 
-interface Props {
-  project_id: string;
-}
-
-export function ProjectServers(props: Props) {
-  const { project_id } = props;
+export function ProjectServers() {
+  const { actions, project_id } = useProjectContext();
 
   const available = useAvailableFeatures(project_id);
 
@@ -151,6 +156,7 @@ export function ProjectServers(props: Props) {
     <div style={ROOT_STYLE}>
       <Title level={2}>
         <Icon name={ICON_NAME} /> {TITLE}
+        <CloseX2 close={() => actions?.set_active_tab("home")} />
       </Title>
       {computeServersEnabled() && (
         <>
