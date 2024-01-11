@@ -30,8 +30,8 @@ async function getApiServer() {
 export default async function startupScript({
   image = "python",
   tag,
-  filesystem_tag,
-  cocalc_tag,
+  tag_filesystem,
+  tag_cocalc,
   compute_server_id,
   api_key,
   project_id,
@@ -44,8 +44,8 @@ export default async function startupScript({
 }: {
   image?: string; // compute image
   tag?: string; // compute docker image tag
-  filesystem_tag?: string; // filesystem docker image tag
-  cocalc_tag?: string; // @cocalc/compute-server npm package tag
+  tag_filesystem?: string; // filesystem docker image tag
+  tag_cocalc?: string; // @cocalc/compute-server npm package tag
   compute_server_id: number;
   api_key: string;
   project_id: string;
@@ -118,7 +118,7 @@ if [ $? -ne 0 ]; then
 fi
 
 setState install install-cocalc '' 60 70
-${installCoCalc({ arch, IMAGES, tag: cocalc_tag })}
+${installCoCalc({ arch, IMAGES, tag: tag_cocalc })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
@@ -138,7 +138,7 @@ ${runCoCalcCompute({
   gpu,
   image,
   tag,
-  filesystem_tag,
+  tag_filesystem,
   IMAGES,
 })}
 
@@ -208,15 +208,15 @@ ${compute(opts)}
 
 function filesystem({
   IMAGES,
-  filesystem_tag,
+  tag_filesystem,
 }: {
   IMAGES: Images;
-  filesystem_tag?: string;
+  tag_filesystem?: string;
 }) {
   const tag = getTag({
     image: "filesystem",
     IMAGES,
-    tag: filesystem_tag,
+    tag: tag_filesystem,
   });
   const docker = IMAGES["filesystem"].package;
 
