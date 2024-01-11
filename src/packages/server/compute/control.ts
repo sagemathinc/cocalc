@@ -632,34 +632,44 @@ async function getStartupParams(id: number): Promise<{
   auth_token: string;
 }> {
   const server = await getServerNoCheck(id);
+  const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
   const exclude_from_sync = excludeFromSync.join("|");
+  let x;
   switch (server.cloud) {
     case "google-cloud":
-      return {
+      x = {
         ...(await googleCloud.getStartupParams(server)),
         exclude_from_sync,
         auth_token,
       };
+      break;
     case "onprem":
-      const { configuration } = server;
       if (configuration.cloud != "onprem") {
         throw Error("inconsistent configuration -- must be onprem");
       }
-      return {
+      x = {
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
         image: configuration.image ?? "python",
+
         exclude_from_sync,
         auth_token,
       };
+      break;
     default:
       throw Error(
         `getStartupParams for '${server.cloud}' not currently implemented`,
       );
   }
+  return {
+    tag: configuration.tag,
+    tag_cocalc: configuration.tag_cocalc,
+    tag_filesystem: configuration.tag_filesystem,
+    ...x,
+  };
 }
 
 export async function getHostname(id: number): Promise<string> {
