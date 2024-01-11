@@ -22,7 +22,6 @@ Here we manage the list of supported compute images and their versions.
 - Before storing in the database, images.json gets post processed as follows:
    - (not done yet) additional information about which prebuilt images exist
      in each cloud that we support.
-   - disabled images are removed
 */
 
 import { getPool } from "@cocalc/database";
@@ -90,11 +89,6 @@ async function fetchImagesFromRemote(insert: boolean = false): Promise<Images> {
   const url = await getRemoteUrl(db);
   const response = await fetch(url);
   const IMAGES = await response.json();
-  for (const image in IMAGES) {
-    if (IMAGES[image].disabled) {
-      delete IMAGES[image];
-    }
-  }
   const value = JSON.stringify({ epochMs: Date.now(), IMAGES });
   const params = [NAME, value];
   if (insert) {

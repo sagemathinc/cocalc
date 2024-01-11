@@ -407,6 +407,10 @@ interface BaseConfiguration {
   // If the tag is not given or not available, we use the latest
   // available tag.
   tag?: string;
+  // tag_filesystem: tag for the filesystem container
+  tag_filesystem?: string;
+  // tag_cocalc: tag for the @cocalc/compute-server package.
+  tag_cocalc?: string;
   // dns - If the string is set and the VM has an external ip address
   // and dns is configured, then point https://{dns}....
   // with ssl proxying to this compute server when it is running.

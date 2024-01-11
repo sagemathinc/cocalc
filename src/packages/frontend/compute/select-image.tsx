@@ -9,18 +9,24 @@ import { Icon, Markdown } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 import { field_cmp } from "@cocalc/util/misc";
 import { useImages } from "./images-hook";
+import SelectVersion from "./select-version";
 
 function getOptions({
   IMAGES,
-  tested,
+  advanced,
   gpu,
+  value,
+  selectedTag,
 }: {
   IMAGES: Images;
-  tested: boolean;
+  advanced?: boolean;
   gpu?: boolean;
+  value?: string;
+  selectedTag?: string;
 }) {
   const options: {
     key: string;
+    tag: string;
     priority: number;
     value: string;
     search: string;
@@ -29,13 +35,16 @@ function getOptions({
   for (const name in IMAGES) {
     const image = IMAGES[name];
     let { label, icon, versions, priority = 0 } = image;
-    if (image.system || image.disabled) {
+    if (image.system) {
+      continue;
+    }
+    if (image.disabled && !advanced) {
       continue;
     }
     if (gpu != null && gpu != image.gpu) {
       continue;
     }
-    if (tested) {
+    if (!advanced) {
       // restrict to only tested versions.
       versions = versions.filter((x) => x.tested);
     }
@@ -43,18 +52,31 @@ function getOptions({
       // no available versions, so no point in showing this option
       continue;
     }
+    let tag;
+    let versionLabel: string | undefined = undefined;
+    if (selectedTag && name == value) {
+      tag = selectedTag;
+      for (const x of versions) {
+        if (x.tag == tag) {
+          versionLabel = x.label ?? tag;
+          break;
+        }
+      }
+    } else {
+      tag = versions[versions.length - 1]?.tag;
+      versionLabel = versions[versions.length - 1]?.label ?? tag;
+    }
     options.push({
       key: name,
       value: name,
       priority,
       search: label?.toLowerCase() ?? "",
+      tag,
       label: (
         <div style={{ fontSize: "12pt" }}>
-          <div style={{ float: "right" }}>
-            {versions[versions.length - 1]?.label ??
-              versions[versions.length - 1]?.tag}
-          </div>
+          <div style={{ float: "right" }}>{versionLabel}</div>
           <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
+          {image.disabled && <> (disabled)</>}
         </div>
       ),
     });
@@ -69,8 +91,10 @@ interface Props {
   disabled?: boolean;
   state?: State;
   style?: CSSProperties;
-  gpu: boolean; // if explicitly set, only gpu images shown when gpu true, and only non-gpu when false.
-  tested: boolean; // if false show dangerous untested images
+  // if explicitly set, only gpu images shown when
+  // gpu true, and only non-gpu when false.
+  gpu: boolean;
+  advanced?: boolean;
 }
 
 export default function SelectImage({
@@ -80,20 +104,27 @@ export default function SelectImage({
   state = "deprovisioned",
   style,
   gpu,
-  tested,
+  advanced,
 }: Props) {
   const { IMAGES, ImagesError } = useImages();
   const [value, setValue] = useState<string | undefined>(configuration.image);
   useEffect(() => {
     setValue(configuration.image);
   }, [configuration.image]);
-  // [ ] TODO: MAYBE we should allow gpu/non-gpu options in all cases, but just suggest one or the other?
+  // [ ] TODO: MAYBE we should allow gpu/non-gpu options in
+  // all cases, but just suggest one or the other?
   const options = useMemo(() => {
     if (IMAGES == null || typeof IMAGES == "string") {
       return [];
     }
-    return getOptions({ IMAGES, gpu, tested });
-  }, [IMAGES, gpu, tested]);
+    return getOptions({
+      IMAGES,
+      gpu,
+      advanced,
+      value,
+      selectedTag: configuration.tag,
+    });
+  }, [IMAGES, gpu, advanced, value, configuration.tag]);
 
   if (IMAGES == null) {
     return <Spin />;
@@ -116,11 +147,28 @@ export default function SelectImage({
         options={options}
         onChange={(val) => {
           setValue(val);
-          setConfig({ image: val });
+          const x: any = { image: val };
+          for (const option of options) {
+            if (option.value == val) {
+              x.tag = option.tag;
+              break;
+            }
+          }
+          setConfig(x);
         }}
         showSearch
         filterOption={filterOption}
       />
+      {advanced && IMAGES != null && typeof IMAGES != "string" && value && (
+        <SelectVersion
+          style={{ margin: "10px 0" }}
+          disabled={disabled || state != "deprovisioned"}
+          image={value}
+          IMAGES={IMAGES}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      )}
     </div>
   );
 }

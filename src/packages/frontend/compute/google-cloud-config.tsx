@@ -46,6 +46,7 @@ import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 import generateVouchers from "@cocalc/util/vouchers";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
+import { Advanced } from "./select-version";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -1261,9 +1262,11 @@ function BootDisk(props) {
 
 function Image(props) {
   const { state = "deprovisioned" } = props;
+  const [advanced, setAdvanced] = useState<boolean>(false);
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
+        <Advanced advanced={advanced} setAdvanced={setAdvanced} />
         <b>
           <Icon name="disk-round" /> Image
         </b>
@@ -1275,7 +1278,11 @@ function Image(props) {
           including commercial software.
         </div>
       )}
-      <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />
+      <SelectImage
+        style={{ width: SELECTOR_WIDTH }}
+        {...props}
+        advanced={advanced}
+      />
       {state != "deprovisioned" && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.

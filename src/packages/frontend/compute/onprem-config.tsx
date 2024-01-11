@@ -3,7 +3,7 @@ import type {
   OnPremCloudConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { ON_PREM_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
-import { Divider, Select, Spin, Checkbox } from "antd";
+import { Checkbox, Divider, Select, Spin } from "antd";
 import { setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
@@ -11,6 +11,7 @@ import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
+import { Advanced } from "./select-version";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
@@ -138,9 +139,11 @@ export default function OnPremCloudConfiguration({
 
 function Image(props) {
   const { state = "deprovisioned" } = props;
+  const [advanced, setAdvanced] = useState<boolean>(false);
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
+        <Advanced advanced={advanced} setAdvanced={setAdvanced} />
         <b>Image</b>
       </div>
       {(state == "deprovisioned" || state == "off") && (
@@ -153,6 +156,7 @@ function Image(props) {
         style={{ width: SELECTOR_WIDTH }}
         {...props}
         gpu={!!props.configuration.gpu}
+        advanced={advanced}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
