@@ -19,7 +19,6 @@ import {
   Typography,
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
-import { sortBy } from "lodash";
 import { useImages } from "@cocalc/frontend/compute/images-hook";
 
 import {
@@ -523,19 +522,43 @@ function ComputeServerInfo() {
     return <Spin />;
   }
 
-  // sort all images with a jupyter kernel by IMAGES[key].label
-  const sortedImageKeys = sortBy(
-    Object.keys(IMAGES).filter((key) => IMAGES[key].jupyterKernels !== false),
-    (key) => IMAGES[key].label,
-  );
+  // sort all enabled non-system images with a jupyter kernel by priority first, then
+  // IMAGES[key].label
+  const sortedImageKeys = Object.keys(IMAGES)
+    .filter(
+      (key) =>
+        !IMAGES[key].disabled &&
+        !IMAGES[key].system &&
+        IMAGES[key].jupyterKernels !== false,
+    )
+    .sort((x, y) => {
+      const xp = IMAGES[x].priority ?? 0;
+      const yp = IMAGES[y].priority ?? 0;
+      if (xp > yp) {
+        return -1;
+      }
+      if (xp < yp) {
+        return 1;
+      }
+      const xl = IMAGES[x].label;
+      const yl = IMAGES[y].label;
+      if (xl < yl) {
+        return -1;
+      }
+      if (xl > yl) {
+        return 1;
+      }
+      return 0;
+    });
 
   const computeImages: Rendered[] = sortedImageKeys.map((key) => {
     const image = IMAGES[key];
 
     const label = (
-      <span style={ALL_LANGS_LABEL_STYLE}>
-        <Icon name={image.icon} /> {image.label}
-      </span>
+      <div style={{ ...ALL_LANGS_LABEL_STYLE, textAlign: "center" }}>
+        <Icon name={image.icon} style={{ fontSize: "24pt" }} />
+        <br /> {image.label}
+      </div>
     );
 
     return (
