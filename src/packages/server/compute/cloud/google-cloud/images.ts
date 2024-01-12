@@ -205,7 +205,10 @@ export async function getSourceImage({
   const options: (GoogleCloudImage & { name: string })[] = [];
   for (const name in googleImages) {
     const x = googleImages[name];
-    if (image == x.labels?.image && x.labels?.arch == arch) {
+    if (
+      makeValidGoogleName(image) == x.labels?.image &&
+      makeValidGoogleName(arch) == x.labels?.arch
+    ) {
       options.push({ name, ...x });
     }
   }
