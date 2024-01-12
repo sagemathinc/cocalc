@@ -68,7 +68,7 @@ export interface Image {
 export type Images = { [name: string]: Image };
 
 export interface GoogleCloudImage {
-  labels: object;
+  labels: { [name: string]: string };
   diskSizeGb: number;
   creationTimestamp: string;
 }

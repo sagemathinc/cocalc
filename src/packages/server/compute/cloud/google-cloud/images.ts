@@ -143,8 +143,12 @@ export async function deleteImage(name: string) {
   });
   const t0 = Date.now();
   let n = 5000;
-  // this can take a long time!
-  while (Date.now() - t0 <= 1000 * 60 * 15 && (await imageExists(name))) {
+  // this can take a while -- we give it 15 minutes.
+  while (Date.now() - t0 <= 1000 * 60 * 15) {
+    if (!(await imageExists(name))) {
+      logger.debug("deleteImage: ", name, "confirmed deleted");
+      return;
+    }
     n = Math.min(15000, n * 1.3);
     logger.debug(
       `deleteImage: ${name} waiting `,
@@ -200,8 +204,9 @@ export async function getSourceImage({
   // ones are likely to have the tag set.
   const options: (GoogleCloudImage & { name: string })[] = [];
   for (const name in googleImages) {
-    if (name.startsWith(image)) {
-      options.push({ name, ...googleImages[name] });
+    const x = googleImages[name];
+    if (image == x.labels?.image && x.labels?.arch == arch) {
+      options.push({ name, ...x });
     }
   }
   // best at beginning

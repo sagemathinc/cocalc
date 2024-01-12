@@ -390,21 +390,15 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
   if (await imageExists(name)) {
     // this should be rare, but we support getting into this situation
     // via the force option.
-    logger.debug(
-      "createImageFromInstance: image ",
+    await logToFile(
       name,
-      " exists, so deleting it before creating new version of it",
+      "createImageFromInstance: image exists, so deleting it before creating new version of it",
     );
     await deleteImage(name);
-  } else {
-    logger.debug(
-      "createImageFromInstance: image ",
-      name,
-      " does not yet exist",
-    );
   }
+  await logToFile(name, "createImageFromInstance: should now not exist");
 
-  logger.debug("createImageFromInstance: create ", { imageResource });
+  await logToFile(name, "createImageFromInstance: ", { imageResource });
   await client.insert({
     project: projectId,
     imageResource,
@@ -424,7 +418,12 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
       return;
     }
     n = Math.min(15000, n * 1.3);
-    logger.debug("waiting ", n / 1000, "seconds for image to be created...");
+    await logToFile(
+      name,
+      "createImageFromInstance: waiting ",
+      n / 1000,
+      "seconds for image to be created...",
+    );
     await delay(n);
   }
   throw Error(`image creation did not finish -- ${name}`);
