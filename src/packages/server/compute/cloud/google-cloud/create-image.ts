@@ -4,8 +4,9 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 >
 
-await require('./dist/compute/cloud/google-cloud/create-image').createImages({}); await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
+await require('./dist/compute/cloud/google-cloud/create-image').createImages({});
 
+await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
 
 a = require('./dist/compute/cloud/google-cloud/create-image')
@@ -19,6 +20,8 @@ await a.createImages({image:"tensorflow"});
 await a.createImages({image:"cuda"})
 
 await a.createImages({image:"ollama"})
+
+await a.createImages({image:"julia", tag:'1.9.4'});
 
 await a.createImages({image:"sagemath", arch:'x86_64'});
 
@@ -182,7 +185,6 @@ export async function createImages({
         image,
         tag: configuration.tag,
         arch,
-        gpu,
       });
       if (!force && (await imageExists(name))) {
         console.log(name, " -- image already exists, so not building it");

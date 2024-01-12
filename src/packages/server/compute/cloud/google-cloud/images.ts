@@ -44,18 +44,14 @@ export async function imageName({
   image,
   tag,
   arch,
-  gpu,
 }: {
   image: string;
   tag: string;
   arch: Architecture;
-  gpu?: boolean;
 }) {
   return `${await getGoogleCloudImagePrefix()}-${makeValidGoogleName(
     image,
-  )}-${makeValidGoogleName(tag)}${arch == "x86_64" ? "" : `-${arch}`}${
-    gpu ? "-gpu" : ""
-  }`; // _ not allowed
+  )}-${makeValidGoogleName(tag)}${arch == "x86_64" ? "" : `-${arch}`}`; // _ not allowed
 }
 
 let client: ImagesClient | undefined = undefined;
@@ -168,8 +164,6 @@ export async function getSourceImage({
   image,
   tag,
   machineType,
-  acceleratorType,
-  acceleratorCount,
 }: GoogleCloudConfiguration): Promise<{
   sourceImage: string;
   diskSizeGb: number;
@@ -178,17 +172,14 @@ export async function getSourceImage({
     image,
     tag,
     machineType,
-    acceleratorType,
-    acceleratorCount,
   });
   image = imageDeprecation(image);
   const arch = getArchitecture(machineType);
-  const gpu = !!acceleratorType && !!acceleratorCount;
   const googleImages = await getAllImages();
   const { projectId } = await getCredentials();
 
   if (tag) {
-    const name = await imageName({ image, tag, arch, gpu });
+    const name = await imageName({ image, tag, arch });
     const x = googleImages[name];
     return {
       sourceImage: `projects/${projectId}/global/images/${name}`,

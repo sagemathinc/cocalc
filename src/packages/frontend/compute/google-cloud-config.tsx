@@ -400,13 +400,7 @@ export default function GoogleCloudConfiguration({
     {
       key: "admin",
       label: <></>,
-      value: (
-        <Admin
-          setConfig={setConfig}
-          configuration={configuration}
-          loading={loading}
-        />
-      ),
+      value: <Admin configuration={configuration} loading={loading} />,
     },
   ];
 
@@ -2080,9 +2074,8 @@ function CostPerHour({
   );
 }
 
-function Admin({ setConfig, configuration, loading }) {
+function Admin({ configuration, loading }) {
   const isAdmin = useTypedRedux("account", "is_admin");
-  const [test, setTest] = useState<boolean>(configuration.test);
   if (!isAdmin) {
     return null;
   }
@@ -2095,18 +2088,10 @@ function Admin({ setConfig, configuration, loading }) {
         <br />
         Settings and functionality only available to admins.
         <br />
-        <Tooltip title="When you build a new image it is NOT used by default by compute servers until it gets labeled prod=true.  Check this box to test out the newest image.">
-          <Checkbox
-            disabled={loading}
-            checked={test}
-            onChange={() => {
-              setConfig({ test: !test });
-              setTest(!test);
-            }}
-          >
-            Use newest (possibly) unreleased image
-          </Checkbox>
+        <Tooltip title="Once you have tested the currently selected image, click this button to mark it as tested.">
+          <Button disabled={loading}>Mark Image Tested</Button>
         </Tooltip>
+        <pre>configuration={JSON.stringify(configuration, undefined, 2)}</pre>
       </div>
     </div>
   );
