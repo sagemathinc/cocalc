@@ -246,8 +246,6 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
     const style: CSS = {
       width: "6em",
       flex: "1 1 auto",
-      paddingLeft: FLYOUT_PADDING,
-      paddingRight: FLYOUT_PADDING,
     };
 
     return (
@@ -256,6 +254,8 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
           display: "flex",
           flexDirection: "row",
           justifyContent: "space-between",
+          paddingLeft: FLYOUT_PADDING,
+          paddingRight: FLYOUT_PADDING,
         }}
       >
         <Tooltip
