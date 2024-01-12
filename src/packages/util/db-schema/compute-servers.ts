@@ -67,6 +67,13 @@ export interface Image {
 
 export type Images = { [name: string]: Image };
 
+export interface GoogleCloudImage {
+  labels: object;
+  diskSizeGb: number;
+  creationTimestamp: string;
+}
+export type GoogleCloudImages = { [name: string]: GoogleCloudImage };
+
 export type State =
   | "off"
   | "starting"

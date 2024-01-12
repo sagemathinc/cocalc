@@ -24,6 +24,7 @@ Here we manage the list of supported compute images and their versions.
      in each cloud that we support.
 */
 
+import { createDatabaseCache } from "@cocalc/server/compute/database-cache";
 import { getPool } from "@cocalc/database";
 import getLogger from "@cocalc/backend/logger";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
@@ -36,71 +37,26 @@ declare var fetch;
 const logger = getLogger("server:compute:images");
 
 // name in the server_settings table
-const NAME = "compute-server-images";
+export const COMPUTE_SERVER_IMAGES = "compute-server-images";
 
 // 1 hour default ttl
 const TTL_MS = 1000 * 60 * 60;
 
 // Used by everything else in cocalc to get access to the images.
-export async function getImages(ttlMs = TTL_MS): Promise<Images> {
-  logger.debug("getImages");
-  // a few seconds of caching at least.
-  const db = getPool(ttlMs == null ? "medium" : undefined);
-  const { rows } = await db.query(
-    "SELECT value FROM server_settings WHERE name=$1",
-    [NAME],
-  );
-  if (rows.length == 0) {
-    logger.debug(
-      "images aren't in database at all, so we have to get them from remote",
-    );
-    return await fetchImagesFromRemote(true);
-  }
-  let epochMs, IMAGES;
-  try {
-    ({ epochMs, IMAGES } = JSON.parse(rows[0].value));
-  } catch (err) {
-    logger.debug("invalid data in database, so just try from scratch", err);
-    return await fetchImagesFromRemote();
-  }
-  if (Math.abs(Date.now() - epochMs) < ttlMs) {
-    // abs so if clock is wrong when inserting, do limited damage
-    logger.debug("return not expired IMAGES from database");
-    return IMAGES;
-  }
-
-  logger.debug("IMAGES expired, so updating from remote, if possible");
-  try {
-    return await fetchImagesFromRemote();
-  } catch (err) {
-    logger.debug(
-      "ERROR: not able to fetch image, but we have a cached old one, so we return that -- ",
-      `${err}`,
-    );
-    // return what we have
-    return IMAGES;
-  }
-}
+export const getImages = createDatabaseCache<Images>({
+  TTL_MS,
+  NAME: COMPUTE_SERVER_IMAGES,
+  fetchData: fetchImagesFromRemote,
+});
 
 // Update the images object that is stored in the database,
 // and also return it.
-async function fetchImagesFromRemote(insert: boolean = false): Promise<Images> {
+async function fetchImagesFromRemote(): Promise<Images> {
+  logger.debug("fetchImagesFromRemote");
   const db = getPool();
   const url = await getRemoteUrl(db);
   const response = await fetch(url);
-  const IMAGES = await response.json();
-  const value = JSON.stringify({ epochMs: Date.now(), IMAGES });
-  const params = [NAME, value];
-  if (insert) {
-    await db.query(
-      "INSERT INTO server_settings(name,value) VALUES($1,$2)",
-      params,
-    );
-  } else {
-    await db.query("UPDATE server_settings SET value=$2 WHERE name=$1", params);
-  }
-  logger.debug("successfully updated images from remote");
-  return IMAGES;
+  return await response.json();
 }
 
 async function getRemoteUrl(db): Promise<string> {

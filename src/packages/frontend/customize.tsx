@@ -48,8 +48,11 @@ import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
-import type { Images } from "@cocalc/util/db-schema/compute-servers";
-import { getImages } from "@cocalc/frontend/compute/api";
+import type {
+  GoogleCloudImages,
+  Images,
+} from "@cocalc/util/db-schema/compute-servers";
+import { getImages, getGoogleCloudImages } from "@cocalc/frontend/compute/api";
 import { reuseInFlight } from "async-await-utils/hof";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -144,6 +147,7 @@ export interface CustomizeState {
   compute_servers_dns_enabled?: boolean;
   compute_servers_dns?: string;
   compute_servers_images?: TypedMap<Images> | string | null;
+  compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -177,6 +181,22 @@ export class CustomizeActions extends Actions<CustomizeState> {
       });
     } catch (err) {
       this.setState({ compute_servers_images: `${err}` });
+    }
+  });
+  updateComputeServerImagesGoogle = reuseInFlight(async () => {
+    if (!store.get("compute_servers_google_enabled")) {
+      this.setState({ compute_servers_images_google: fromJS({}) as any });
+      return;
+    }
+    this.setState({ compute_servers_images_google: null });
+    try {
+      this.setState({
+        compute_servers_images_google: fromJS(
+          await getGoogleCloudImages(),
+        ) as any,
+      });
+    } catch (err) {
+      this.setState({ compute_servers_images_google: `${err}` });
     }
   });
 }

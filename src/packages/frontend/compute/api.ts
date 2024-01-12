@@ -4,6 +4,7 @@ import type {
   Configuration,
   Cloud,
   Images,
+  GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { reuseInFlight } from "async-await-utils/hof";
@@ -122,32 +123,66 @@ export async function setDetailedState(opts: {
   return await api("compute/set-detailed-state", opts);
 }
 
-// We cache images for 1 minute.
-const imagesCache: { timestamp: number; IMAGES: Images | null } = {
-  timestamp: 0,
-  IMAGES: null,
-};
+// We cache images for 5 minutes.
+const IMAGES_TTL = 5 * 60 * 1000;
 
-export async function getImages(): Promise<Images> {
-  if (imagesCache.IMAGES && Date.now() - imagesCache.timestamp <= 60 * 1000) {
-    return imagesCache.IMAGES;
+const imagesCache: {
+  [cloud: string]: { timestamp: number; images: Images | null };
+} = {};
+
+function cacheHas(cloud: string) {
+  const x = imagesCache[cloud];
+  if (x == null) {
+    return false;
+  }
+  if (Math.abs(x.timestamp - Date.now()) <= IMAGES_TTL) {
+    return true;
+  }
+  return false;
+}
+
+function cacheGet(cloud) {
+  return imagesCache[cloud]?.images;
+}
+
+function cacheSet(cloud, images) {
+  imagesCache[cloud] = { images, timestamp: Date.now() };
+}
+
+async function getImagesFor({
+  cloud,
+  endpoint,
+}: {
+  cloud: string;
+  endpoint: string;
+}): Promise<any> {
+  if (cacheHas(cloud)) {
+    return cacheGet(cloud);
   }
   try {
-    imagesCache.IMAGES = await api("compute/get-images");
-    imagesCache.timestamp = Date.now();
+    const images = await api(endpoint);
+    cacheSet(cloud, images);
+    return images;
   } catch (err) {
-    if (imagesCache.IMAGES) {
+    const images = cacheGet(cloud);
+    if (images != null) {
       console.warn(
         "ERROR getting updated compute server images -- using cached data",
         err,
       );
-      // if we have cached data, just return it
-      return imagesCache.IMAGES;
+      return images;
     }
     throw err;
   }
-  if (!imagesCache.IMAGES) {
-    throw Error("bug");
-  }
-  return imagesCache.IMAGES;
+}
+
+export async function getImages(): Promise<Images> {
+  return await getImagesFor({ cloud: "", endpoint: "compute/get-images" });
+}
+
+export async function getGoogleCloudImages(): Promise<GoogleCloudImages> {
+  return await getImagesFor({
+    cloud: "google",
+    endpoint: "compute/get-images-google",
+  });
 }

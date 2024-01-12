@@ -18,16 +18,19 @@ train those models is available on github.  But oh my god what a nightmare.
 In any case, typescript for the win here.
 */
 
+import { createDatabaseCache } from "@cocalc/server/compute/database-cache";
 import { getCredentials } from "./client";
 import { ImagesClient } from "@google-cloud/compute";
-import TTLCache from "@isaacs/ttlcache";
 import type {
   Architecture,
   GoogleCloudConfiguration,
+  GoogleCloudImage,
+  GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudImagePrefix } from "./index";
 import { imageDeprecation } from "@cocalc/server/compute/cloud/startup-script";
+import { COMPUTE_SERVER_IMAGES } from "@cocalc/server/compute/images";
 
 // Return the latest available image of the given type on the configured cluster.
 // Returns null if no images of the given type are available.
@@ -77,49 +80,26 @@ export async function getImagesClient() {
 // and "The matching is anchored and case insensitive. An optional trailing * does a
 // word prefix match."
 
-const imageCache = new TTLCache({ ttl: 60 * 1000 });
+// 1 hour default ttl -- data stored in the database,
+// and some operations like building new images
+// update this.
+const TTL_MS = 1000 * 60 * 60;
+const GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS = `${COMPUTE_SERVER_IMAGES}-google-cloud`;
 
-type ImageList = {
-  name: string;
-  labels: object;
-  diskSizeGb: string;
-  creationTimestamp: string;
-}[];
+export const getAllImages = createDatabaseCache<{
+  [name: string]: GoogleCloudImage;
+}>({
+  TTL_MS,
+  NAME: GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS,
+  fetchData: fetchImagesFromGoogleCloud,
+});
 
-export async function getAllImages({
-  image,
-  arch,
-  sourceImage,
+async function fetchImagesFromGoogleCloud({
   labels,
 }: {
-  image?: string;
-  arch?: Architecture;
-  sourceImage?: string;
   labels?: object;
-}): Promise<ImageList> {
-  let prefix;
-  if (image == null) {
-    // gets all images
-    prefix = `${await getGoogleCloudImagePrefix()}-`;
-  } else {
-    // fix for when we rename images
-    image = imageDeprecation(image);
-    if (image == null) {
-      throw Error("bug");
-    }
-    if (arch == null) {
-      throw Error("if image is given, then arch must also be specified");
-    }
-    // restrict images by image and arch
-    prefix = await imageName({ image, arch });
-    if (sourceImage) {
-      prefix = `${prefix}-${sourceImage}`;
-    }
-  }
-  const cacheKey = JSON.stringify({ image, arch, labels });
-  if (imageCache.has(cacheKey)) {
-    return imageCache.get(cacheKey)!;
-  }
+} = {}): Promise<GoogleCloudImages> {
+  const prefix = `${await getGoogleCloudImagePrefix()}-`;
   const { client, projectId } = await getImagesClient();
   let filter = `name:${prefix}*`;
   if (labels != null) {
@@ -129,11 +109,21 @@ export async function getAllImages({
   }
   const [images] = await client.list({
     project: projectId,
-    maxResults: 1000,
+    maxResults: 2000, // should never be close to this.
     filter,
   });
-  imageCache.set(cacheKey, images as ImageList);
-  return images as ImageList;
+
+  // there's a lot of extra info in images that we don't need to store.
+  const data: GoogleCloudImages = {};
+  for (const { name, labels, diskSizeGb, creationTimestamp } of images) {
+    if (!name) continue;
+    data[name] = {
+      labels,
+      diskSizeGb: parseInt(diskSizeGb as string),
+      creationTimestamp,
+    } as unknown as GoogleCloudImage;
+  }
+  return data;
 }
 
 // Returns true if the image currently exists; false, otherwise.
@@ -152,72 +142,66 @@ export function getArchitecture(machineType: string): Architecture {
   return machineType.startsWith("t2a-") ? "arm64" : "x86_64";
 }
 
-type ImageFilter = Partial<GoogleCloudConfiguration> & {
-  prod?: boolean;
-  arch?: Architecture;
-};
-
-export async function getNewestSourceImage(opts: ImageFilter): Promise<{
+export async function getSourceImage({
+  image,
+  tag,
+  machineType,
+  acceleratorType,
+  acceleratorCount,
+}: GoogleCloudConfiguration): Promise<{
   sourceImage: string;
   diskSizeGb: number;
 }> {
-  const images = await getSourceImages(opts);
-  if (images.length == 0) {
-    throw Error(
-      `no images are available for ${opts.image} ${opts.arch ?? "x86_64"} ${
-        opts.prod
-          ? "that are labeled prod=true"
-          : " with no constraint on prod label"
-      }`,
-    );
-  }
-  return images[0];
-}
-
-export async function getSourceImages({
-  image,
-  machineType,
-  sourceImage,
-  prod,
-  arch,
-}: ImageFilter = {}): Promise<
-  {
-    sourceImage: string;
-    diskSizeGb: number;
-  }[]
-> {
-  if (arch == null) {
-    arch = machineType ? getArchitecture(machineType) : undefined;
-  }
-  const images = await getAllImages({
-    image,
-    arch,
-    sourceImage,
-    labels: !prod || sourceImage ? undefined : { prod: true },
-  });
-  // sort by newest first; note that creationTimestamp is an iso date string
-  images.sort((a, b) => -cmp(a.creationTimestamp, b.creationTimestamp));
+  image = imageDeprecation(image);
+  const arch = getArchitecture(machineType);
+  const gpu = !!acceleratorType && !!acceleratorCount;
+  const googleImages = await getAllImages();
   const { projectId } = await getCredentials();
-  return images.map(({ name, diskSizeGb }) => {
+
+  if (tag) {
+    const name = await imageName({ image, tag, arch, gpu });
+    const x = googleImages[name];
     return {
       sourceImage: `projects/${projectId}/global/images/${name}`,
-      diskSizeGb: parseInt(diskSizeGb),
+      diskSizeGb: x.diskSizeGb,
     };
-  });
-}
-
-export async function labelSourceImages({
-  filter,
-  key = "prod",
-  value = true,
-}: {
-  filter: ImageFilter;
-  key;
-  value;
-}) {
-  for (const { sourceImage: name } of await getSourceImages(filter)) {
-    await setImageLabel({ name, key, value });
+    // failed to find image with the exactly specified tag.
+    throw Error(
+      `Prebuilt image tag='${tag}' not available -- please change the image version in advanced settings`,
+    );
   }
+  // choose source based on what is available -- best tested image if there is one;
+  // otherwise, an untested image.  This is mainly for old compute servers, since newer
+  // ones are likely to have the tag set.
+  const options: (GoogleCloudImage & { name: string })[] = [];
+  for (const name in googleImages) {
+    if (name.startsWith(image)) {
+      options.push({ name, ...googleImages[name] });
+    }
+  }
+  // best at beginning
+  options.sort((a, b) => {
+    const a_tested = a.labels?.["tested"];
+    const b_tested = b.labels?.["tested"];
+    if (a_tested && !b_tested) {
+      // a is better
+      return -1;
+    }
+    if (b_tested && !a_tested) {
+      // b is better
+      return 1;
+    }
+    // compare based on timestamp
+    return -cmp(a.creationTimestamp, b.creationTimestamp);
+  });
+  if (options.length > 0) {
+    const x = options[0];
+    return {
+      sourceImage: `projects/${projectId}/global/images/${x.name}`,
+      diskSizeGb: x.diskSizeGb,
+    };
+  }
+  throw Error(`No prebuilt image for '${image}' -- please change the image`);
 }
 
 // name = exact full name of the image
