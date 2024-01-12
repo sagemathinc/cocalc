@@ -27,17 +27,18 @@ import type {
   GoogleCloudImage,
   GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
+import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudImagePrefix } from "./index";
 import { imageDeprecation } from "@cocalc/server/compute/cloud/startup-script";
 import { COMPUTE_SERVER_IMAGES } from "@cocalc/server/compute/images";
+import { delay } from "awaiting";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("server:compute:google-cloud:images");
 
 // Return the latest available image of the given type on the configured cluster.
 // Returns null if no images of the given type are available.
-
-function makeValid(s: string): string {
-  return s.replace(/[._]/g, "-");
-}
 
 export async function imageName({
   image,
@@ -50,18 +51,11 @@ export async function imageName({
   arch: Architecture;
   gpu?: boolean;
 }) {
-  if (!image) {
-    throw Error("image must be specified");
-  }
-  if (!tag) {
-    throw Error("tag must be specified");
-  }
-  if (!arch) {
-    throw Error("arch must be specified");
-  }
-  return `${await getGoogleCloudImagePrefix()}-${makeValid(image)}-${makeValid(
-    tag,
-  )}${arch == "x86_64" ? "" : `-${arch}`}${gpu ? "-gpu" : ""}`; // _ not allowed
+  return `${await getGoogleCloudImagePrefix()}-${makeValidGoogleName(
+    image,
+  )}-${makeValidGoogleName(tag)}${arch == "x86_64" ? "" : `-${arch}`}${
+    gpu ? "-gpu" : ""
+  }`; // _ not allowed
 }
 
 let client: ImagesClient | undefined = undefined;
@@ -99,6 +93,7 @@ async function fetchImagesFromGoogleCloud({
 }: {
   labels?: object;
 } = {}): Promise<GoogleCloudImages> {
+  logger.debug("fetchImagesFromGoogleCloud", labels);
   const prefix = `${await getGoogleCloudImagePrefix()}-`;
   const { client, projectId } = await getImagesClient();
   let filter = `name:${prefix}*`;
@@ -135,7 +130,30 @@ export async function imageExists(name: string): Promise<boolean> {
     maxResults: 1,
     filter,
   });
+  logger.debug("imageExists:", name, images.length > 0);
   return images.length > 0;
+}
+
+export async function deleteImage(name: string) {
+  logger.debug("deleteImage:", name);
+  const { client, projectId } = await getImagesClient();
+  await client.delete({
+    project: projectId,
+    image: name,
+  });
+  const t0 = Date.now();
+  let n = 5000;
+  // this can take a long time!
+  while (Date.now() - t0 <= 1000 * 60 * 15 && (await imageExists(name))) {
+    n = Math.min(15000, n * 1.3);
+    logger.debug(
+      `deleteImage: ${name} waiting `,
+      n / 1000,
+      "seconds for image to be deleted...",
+    );
+    await delay(n);
+  }
+  throw Error(`image creation did not finish -- ${name}`);
 }
 
 export function getArchitecture(machineType: string): Architecture {
@@ -152,6 +170,13 @@ export async function getSourceImage({
   sourceImage: string;
   diskSizeGb: number;
 }> {
+  logger.debug("getSourceImage", {
+    image,
+    tag,
+    machineType,
+    acceleratorType,
+    acceleratorCount,
+  });
   image = imageDeprecation(image);
   const arch = getArchitecture(machineType);
   const gpu = !!acceleratorType && !!acceleratorCount;
@@ -205,16 +230,16 @@ export async function getSourceImage({
 }
 
 // name = exact full name of the image
-export async function setImageLabel({
+// labels: object key:value map.  Use value=null/undefined to delete keys.
+//        keys not mentioned in label are ignored.
+export async function setImageLabels({
   name,
-  key,
-  value,
+  labels: changes,
 }: {
   name: string;
-  key: string;
-  value: string | null | undefined;
+  labels: { [key: string]: string | null | undefined };
 }) {
-  // console.log("setImageLabel", { name, key, value });
+  logger.debug("setImageLabels", { name, changes });
   const { client, projectId } = await getImagesClient();
   const i = name.lastIndexOf("/");
   if (i != -1) {
@@ -229,14 +254,17 @@ export async function setImageLabel({
   if (labels == null) {
     labels = {};
   }
-  if (value == null) {
-    if (labels[key] == null) {
-      // nothing to do
-      return;
+  for (const key in changes) {
+    const value = changes[key];
+    if (value == null) {
+      if (labels[key] == null) {
+        // nothing to do
+        continue;
+      }
+      delete labels[key];
+    } else {
+      labels[key] = `${value}`;
     }
-    delete labels[key];
-  } else {
-    labels[key] = `${value}`;
   }
 
   await client.setLabels({

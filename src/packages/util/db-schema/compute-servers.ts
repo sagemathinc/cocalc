@@ -74,6 +74,11 @@ export interface GoogleCloudImage {
 }
 export type GoogleCloudImages = { [name: string]: GoogleCloudImage };
 
+// valid for google cloud -- probably not sufficient
+export function makeValidGoogleName(s: string): string {
+  return s.replace(/[._]/g, "-").toLowerCase().slice(0, 63);
+}
+
 export type State =
   | "off"
   | "starting"

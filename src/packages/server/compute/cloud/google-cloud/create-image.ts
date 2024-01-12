@@ -30,7 +30,8 @@ await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
 
 a = require('./dist/compute/cloud/google-cloud/images')
 {sourceImage} = await a.getNewestSourceImage({image:'python',test:true})
-await a.setImageLabel({key:'prod',value:true, name:sourceImage})
+
+await a.setImageLabels({name:sourceImage, labels:{prod:true}})
 
 
 
@@ -42,7 +43,13 @@ await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({fil
 
 */
 
-import { imageExists, imageName, getImagesClient } from "./images";
+import {
+  imageExists,
+  deleteImage,
+  imageName,
+  getImagesClient,
+  setImageLabels,
+} from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
@@ -59,6 +66,7 @@ import type {
   Architecture,
   GoogleCloudConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
+import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -200,6 +208,15 @@ export async function createImages({
       });
       await logToFile(name, "createImage: create image from instance");
       await createImageFromInstance({ zone, name, maxTimeMinutes });
+      await setImageLabels({
+        name,
+        labels: {
+          image: makeValidGoogleName(image),
+          tag: makeValidGoogleName(configuration.tag),
+          arch: makeValidGoogleName(arch),
+          gpu: gpu ? "true" : null,
+        },
+      });
       if (!noDelete) {
         await logToFile(name, "createImage: delete the instance");
         await deleteInstance({ zone, name });
@@ -369,8 +386,25 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
     name,
     sourceDisk: `/zones/${zone}/disks/${name}`,
   };
-  logger.debug("create ", { imageResource });
 
+  if (await imageExists(name)) {
+    // this should be rare, but we support getting into this situation
+    // via the force option.
+    logger.debug(
+      "createImageFromInstance: image ",
+      name,
+      " exists, so deleting it before creating new version of it",
+    );
+    await deleteImage(name);
+  } else {
+    logger.debug(
+      "createImageFromInstance: image ",
+      name,
+      " does not yet exist",
+    );
+  }
+
+  logger.debug("createImageFromInstance: create ", { imageResource });
   await client.insert({
     project: projectId,
     imageResource,

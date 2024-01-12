@@ -142,7 +142,7 @@ export interface CustomizeState {
   jupyter_api_enabled?: boolean;
 
   compute_servers_enabled?: boolean;
-  compute_servers_google_enabled?: boolean;
+  ["compute_servers_google-cloud_enabled"]?: boolean;
   compute_servers_lambda_enabled?: boolean;
   compute_servers_dns_enabled?: boolean;
   compute_servers_dns?: string;
@@ -184,7 +184,7 @@ export class CustomizeActions extends Actions<CustomizeState> {
     }
   });
   updateComputeServerImagesGoogle = reuseInFlight(async () => {
-    if (!store.get("compute_servers_google_enabled")) {
+    if (!store.get("compute_servers_google-cloud_enabled")) {
       this.setState({ compute_servers_images_google: fromJS({}) as any });
       return;
     }
