@@ -21,42 +21,44 @@ In any case, typescript for the win here.
 import { getCredentials } from "./client";
 import { ImagesClient } from "@google-cloud/compute";
 import TTLCache from "@isaacs/ttlcache";
-import dayjs from "dayjs";
 import type {
   Architecture,
   GoogleCloudConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
-import { getGoogleCloudPrefix } from "./index";
+import { getGoogleCloudImagePrefix } from "./index";
 import { imageDeprecation } from "@cocalc/server/compute/cloud/startup-script";
 
 // Return the latest available image of the given type on the configured cluster.
 // Returns null if no images of the given type are available.
 
+function makeValid(s: string): string {
+  return s.replace(/[._]/g, "-");
+}
+
 export async function imageName({
   image,
-  date,
   tag,
-  arch = "x86_64",
+  arch,
+  gpu,
 }: {
   image: string;
-  date?: Date;
-  tag?: string;
-  arch?: Architecture;
+  tag: string;
+  arch: Architecture;
+  gpu?: boolean;
 }) {
-  const image1 = image.replace(".", "-").replace("_", "-");
-  const gcloud_prefix = await getGoogleCloudPrefix();
-  const prefix = `${gcloud_prefix}-${image1}-${
-    arch == "x86_64" ? "x86" : arch
-  }`; // _ not allowed
-  if (!date) {
-    return prefix;
+  if (!image) {
+    throw Error("image must be specified");
   }
-
-  // this format matches with what we use internally on cocalc.com for
-  // docker images in Kubernetes:
-  const dateFormatted = dayjs(date).format("YYYY-MM-DD-HHmmss");
-  return `${prefix}-${dateFormatted}${tag ? "-" + tag : ""}`;
+  if (!tag) {
+    throw Error("tag must be specified");
+  }
+  if (!arch) {
+    throw Error("arch must be specified");
+  }
+  return `${await getGoogleCloudImagePrefix()}-${makeValid(image)}-${makeValid(
+    tag,
+  )}${arch == "x86_64" ? "" : `-${arch}`}${gpu ? "-gpu" : ""}`; // _ not allowed
 }
 
 let client: ImagesClient | undefined = undefined;
@@ -83,6 +85,7 @@ type ImageList = {
   diskSizeGb: string;
   creationTimestamp: string;
 }[];
+
 export async function getAllImages({
   image,
   arch,
@@ -97,12 +100,15 @@ export async function getAllImages({
   let prefix;
   if (image == null) {
     // gets all images
-    prefix = `${await getGoogleCloudPrefix()}-`;
+    prefix = `${await getGoogleCloudImagePrefix()}-`;
   } else {
     // fix for when we rename images
     image = imageDeprecation(image);
     if (image == null) {
       throw Error("bug");
+    }
+    if (arch == null) {
+      throw Error("if image is given, then arch must also be specified");
     }
     // restrict images by image and arch
     prefix = await imageName({ image, arch });
@@ -128,6 +134,18 @@ export async function getAllImages({
   });
   imageCache.set(cacheKey, images as ImageList);
   return images as ImageList;
+}
+
+// Returns true if the image currently exists; false, otherwise.
+export async function imageExists(name: string): Promise<boolean> {
+  const { client, projectId } = await getImagesClient();
+  const filter = `name:${name}`;
+  const [images] = await client.list({
+    project: projectId,
+    maxResults: 1,
+    filter,
+  });
+  return images.length > 0;
 }
 
 export function getArchitecture(machineType: string): Architecture {

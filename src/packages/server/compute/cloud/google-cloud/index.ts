@@ -36,6 +36,12 @@ export async function getGoogleCloudPrefix() {
   return google_cloud_compute_servers_prefix;
 }
 
+export async function getGoogleCloudImagePrefix() {
+  const { google_cloud_compute_servers_image_prefix = "cocalc-image" } =
+    await getServerSettings();
+  return google_cloud_compute_servers_image_prefix;
+}
+
 export async function getServerName(server: { id: number }) {
   const prefix = await getGoogleCloudPrefix();
   return `${prefix}-${server.id}`;

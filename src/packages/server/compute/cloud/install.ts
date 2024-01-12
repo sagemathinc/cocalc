@@ -137,31 +137,31 @@ https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&D
 
 (NOTE: K80's don't work since they are too old and not supported!)
 
-It takes about 10 minutes and 15GB of disk space are used on / afterwards.  The other approaches don't
-seem to work.
+It takes about 10 minutes and 15GB of disk space are used on / afterwards.
+The other approaches don't seem to work.
 
-NOTE: We also install nvidia-container-toolkit, which isn't in the instructions linked to above,
-because we want to support using Nvidia inside of Docker.
+NOTE: We also install nvidia-container-toolkit, which isn't in the instructions
+linked to above, because we want to support using Nvidia inside of Docker.
 
 Links to all versions: https://developer.nvidia.com/cuda-toolkit-archive
 
-Can see the versions from Ubuntu via: apt-cache madison cuda
-
-Code below with awk works pretty generically regarding supporting many cuda versions.
-
+**We always install the newest available version** of CUDA toolkits and kernel drivers.
 */
 
-export function installCuda(cudaVersion: string) {
+export function installCuda() {
   return `
 curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring.deb
 rm cuda-keyring.deb
 apt-get update -y
-export CUDA_VERSION=$(apt-cache madison cuda | awk '/${cudaVersion}/ { print $3 }' | head -1)
+export CUDA_VERSION=$(apt-cache madison cuda | awk '{ print $3 }' | head -1)
 apt-get -y install cuda=$CUDA_VERSION nvidia-container-toolkit
-apt-get --purge -y remove  nvidia-kernel-source-545
+export NVIDIA_KERNEL_SOURCE=$(apt-cache search nvidia-kernel-source | awk '{ print $1 }' | tail -1)
+apt-get --purge -y remove  $NVIDIA_KERNEL_SOURCE
 apt-get -y autoremove
-apt-get -y install nvidia-kernel-open-545 cuda-drivers-545
+export NVIDIA_KERNEL_OPEN=$(apt-cache search nvidia-kernel-open | awk '{ print $1 }' | tail -1)
+export CUDA_DRIVERS=$(apt-cache search cuda-drivers | grep CUDA | awk '{ print $1 }' | tail -1)
+apt-get -y install $NVIDIA_KERNEL_OPEN $CUDA_DRIVERS
 `;
 }
 

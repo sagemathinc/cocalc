@@ -42,7 +42,7 @@ await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({fil
 
 */
 
-import { imageName, getImagesClient } from "./images";
+import { imageExists, imageName, getImagesClient } from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
@@ -75,6 +75,7 @@ interface Options {
   gpu?: boolean;
   arch?: Architecture;
   IMAGES?: Images;
+  force?: boolean;
 }
 
 async function createAllImages(opts) {
@@ -91,6 +92,10 @@ async function createAllImages(opts) {
   if (opts.noParallel) {
     // serial
     for (const image in opts.IMAGES) {
+      const x = opts.IMAGES[image];
+      if (x.disabled || x.system) {
+        continue;
+      }
       names = names.concat(await build(image));
     }
   } else {
@@ -105,12 +110,13 @@ async function createAllImages(opts) {
 
 export async function createImages({
   image,
-  tag = "",
+  tag,
   noDelete,
   noParallel,
   gpu,
   arch,
   IMAGES,
+  force,
 }: Options = {}): Promise<string[]> {
   IMAGES = IMAGES ?? (await getImages());
   if (image == null) {
@@ -155,10 +161,25 @@ export async function createImages({
         console.log("Skipping ", arch);
         return;
       }
-      if (image == null) {
-        throw Error("bug -- image must not be null");
+      if (!image) {
+        throw Error("bug -- image must be specified");
       }
-      const name = await imageName({ image, date: new Date(), tag, arch });
+      if (!configuration.tag) {
+        throw Error("bug -- configuration.tag must be specified");
+      }
+      if (!arch) {
+        throw Error("bug -- arch must be specified");
+      }
+      const name = await imageName({
+        image,
+        tag: configuration.tag,
+        arch,
+        gpu,
+      });
+      if (!force && (await imageExists(name))) {
+        console.log(name, " -- image already exists, so not building it");
+        return;
+      }
       console.log("logging to ", logFile(name));
       await logToFile(name, { arch, configuration, sourceImage });
       let zone = "";
@@ -187,7 +208,7 @@ export async function createImages({
       }
       names.push(name);
     }
-    const configs = getConf(image, !!gpu, IMAGES);
+    const configs = getConf({ image, gpu, IMAGES, tag });
     if (noParallel) {
       // serial
       for (const config of configs) {
@@ -223,24 +244,29 @@ interface BuildConfig {
   sourceImage: string;
 }
 
-function getConf(image: string, gpu: boolean, IMAGES: Images): BuildConfig[] {
+function getConf({
+  image,
+  gpu,
+  IMAGES,
+  tag,
+}: {
+  image: string;
+  gpu?: boolean;
+  IMAGES: Images;
+  tag?: string;
+}): BuildConfig[] {
   const data = IMAGES[image];
+  console.log({ image, data });
   if (gpu != null && gpu != data.gpu) {
     // skip.
     return [];
   }
   if (data.gpu) {
-    // TODO: do not hardcode cudaVersion -- not sure...?
-    // Versions here -- https://developer.nvidia.com/cuda-toolkit-archive
-    // maybe store as a google label and use latest at build time.
-    const cudaVersion = "12.3.2";
-    return [
-      createBuildConfiguration({ image, arch: "x86_64", cudaVersion, IMAGES }),
-    ];
+    return [createBuildConfiguration({ image, arch: "x86_64", IMAGES, tag })];
   } else {
     return [
-      createBuildConfiguration({ image, arch: "x86_64", IMAGES }),
-      createBuildConfiguration({ image, arch: "arm64", IMAGES }),
+      createBuildConfiguration({ image, arch: "x86_64", IMAGES, tag }),
+      createBuildConfiguration({ image, arch: "arm64", IMAGES, tag }),
     ];
   }
 }
@@ -372,23 +398,28 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
 
 function createBuildConfiguration({
   image,
-  arch = "x86_64",
-  cudaVersion = "12.3",
+  arch,
   IMAGES,
+  tag,
 }: {
   image: string;
   arch: Architecture;
-  cudaVersion?: string;
   IMAGES: Images;
+  tag?: string;
 }): BuildConfig {
-  const tag = getTag({ image, IMAGES });
+  tag = getTag({ image, IMAGES, tag });
+  const tag_filesystem = getTag({
+    image: "filesystem",
+    IMAGES,
+  });
   const { label, package: pkg, gpu } = IMAGES[image] ?? {};
   logger.debug("createBuildConfiguration", {
     image,
     label,
     pkg,
     gpu,
-    cudaVersion,
+    tag,
+    tag_filesystem,
   });
   if (!pkg) {
     throw Error(`unknown image '${image}'`);
@@ -396,6 +427,8 @@ function createBuildConfiguration({
   const maxTimeMinutes = gpu ? 120 : 45;
   const configuration = {
     image,
+    tag,
+    tag_filesystem,
     ...({
       cloud: "google-cloud",
       externalIp: true,
@@ -449,16 +482,13 @@ ${installNode()}
 ${installCoCalc({ arch, IMAGES })}
 
 # Pre-pull filesystem Docker container
-docker pull ${IMAGES["filesystem"].package}:${getTag({
-    image: "filesystem",
-    IMAGES,
-  })}
+docker pull ${IMAGES["filesystem"].package}:${tag_filesystem}
 
 # Pre-pull compute Docker container
 docker pull ${pkg}:${tag}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
-${gpu ? installCuda(cudaVersion) : ""}
+${gpu ? installCuda() : ""}
 
 df -h /
 sync

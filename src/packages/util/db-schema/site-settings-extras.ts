@@ -141,6 +141,7 @@ export type SiteSettingsExtrasKeys =
   //  | "lambda_cloud_api_key"
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
+  | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
   | "compute_servers_images_spec_url"
   //   | "coreweave_kubeconfig"
@@ -588,8 +589,15 @@ export const EXTRAS: SettingsExtras = {
   },
   google_cloud_compute_servers_prefix: {
     name: "Compute Servers: Google Cloud - Resource Prefix",
-    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server. If the prefix is 'cocalc-compute-server', then the compute server with id 17 will be called 'cocalc-compute-server-17'.",
+    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server. If the prefix is 'cocalc-compute-server', then the compute server with id 17 will be called 'cocalc-compute-server-17'.  You very likely want to change this, especially if you have several servers in the same Google cloud project; it must be different between different servers.",
     default: "cocalc-compute-server",
+    to_val: to_trimmed_str,
+    show: compute_servers_google_enabled,
+  },
+  google_cloud_compute_servers_image_prefix: {
+    name: "Compute Servers: Google Cloud - Image Prefix",
+    desc: "Prepend this string to the Google cloud images that are created.  You should probably leave this as the default, keep it very short, and it's fine to share these between CoCalc servers using the same project.",
+    default: "cocalc",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
   },
