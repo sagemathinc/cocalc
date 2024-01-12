@@ -257,18 +257,19 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
-      <Flex
-        vertical={false}
-        flex={0}
+      <div
         style={{
+          // display: "flex",
+          flex: "0 1 auto",
+          flexDirection: "row",
           overflow: "hidden",
-          display: "flex",
           margin: "0",
+          width: "100%",
           paddingTop: "3px",
         }}
       >
         <TopTabBar />
-      </Flex>
+      </div>
     );
   }
 
@@ -301,10 +302,11 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       );
     } else {
       return (
-        <Flex
-          vertical={false}
-          flex={0}
+        <div
           style={{
+            flex: "0 0 auto",
+            display: "flex",
+            flexDirection: "column",
             background: FIXED_TABS_BG_COLOR,
             borderRadius: "0",
             borderTop: FIX_BORDERS.borderTop,
@@ -312,7 +314,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           }}
         >
           <VerticalFixedTabs />
-        </Flex>
+        </div>
       );
     }
   }
@@ -352,18 +354,24 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
-        <Flex vertical={false} flex={1}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "row" }}>
           {renderVerticalActionButtons()}
           {renderFlyout()}
           {renderFlyoutActive()}
-          <Flex vertical={true} flex={1}>
+          <div
+            style={{
+              flex: "1 1 auto",
+              flexDirection: "column",
+              display: "flex",
+            }}
+          >
             {renderTopRow()}
             {is_deleted ? <DeletedProjectWarning /> : undefined}
             <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
               {renderMainContent()}
             </div>
-          </Flex>
-        </Flex>
+          </div>
+        </div>
       </div>
     </ProjectContext.Provider>
   );

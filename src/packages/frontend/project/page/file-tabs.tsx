@@ -8,20 +8,21 @@ Tabs for the open files in a project.
 */
 
 import type { TabsProps } from "antd";
-import { Flex, Tabs } from "antd";
+import { Tabs } from "antd";
 
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
-  renderTabBar,
   SortableTabs,
+  renderTabBar,
   useItemContext,
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { file_tab_labels } from "../file-tab-labels";
 import { ActiveFlyoutToggleButton } from "./active-flyout-toggle-button";
+import { FileTabActiveFileTopbar } from "./file-active-topbar";
 import { FileTab } from "./file-tab";
-import { COLORS } from "@cocalc/util/theme";
 
 function Label({ path, project_id, label }) {
   const { width } = useItemContext();
@@ -147,45 +148,52 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     return { left: <ActiveFlyoutToggleButton /> };
   }
 
+  // we want the tab bar and the "file info bar" with the active files on the left have the same height
+  const heightPX = 36;
+  const styleTabs: CSS = {
+    minHeight: `${heightPX}px`,
+    height: `${heightPX}px`,
+  } as const;
+  const styleBar: CSS = { height: `${heightPX + 1}px` } as const;
+
   if (flyout_active) {
+    return <FileTabActiveFileTopbar activeKey={activeKey} style={styleBar} />;
+  } else {
+    // ATTN: flex auto and width 1 come from https://github.com/ant-design/ant-design/issues/17934
     return (
-      <Flex
-        flex={1}
-        align="center"
+      <div
         style={{
-          paddingLeft: "5px",
+          flex: "auto",
+          width: 1,
+          overflow: "hidden",
           borderBottom: `1px solid ${COLORS.GRAY_L}`,
         }}
       >
-        file: {activeTab}
-      </Flex>
-    );
-  } else {
-    return (
-      <SortableTabs
-        items={keys}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-      >
-        <Tabs
-          tabBarExtraContent={renderLeft()}
-          animated={false}
-          renderTabBar={renderTabBar}
-          tabBarStyle={{ minHeight: "36px" }}
-          onEdit={onEdit}
-          style={{ width: "100%" }}
-          size="small"
-          items={items}
-          activeKey={activeKey}
-          type={"editable-card"}
-          hideAdd={true}
-          onChange={(key) => {
-            if (actions == null) return;
-            actions.set_active_tab(path_to_tab(keyToPath(key)));
-          }}
-          popupClassName={"cocalc-files-tabs-more"}
-        />
-      </SortableTabs>
+        <SortableTabs
+          items={keys}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        >
+          <Tabs
+            tabBarExtraContent={renderLeft()}
+            animated={false}
+            renderTabBar={renderTabBar}
+            tabBarStyle={{ ...styleTabs }}
+            onEdit={onEdit}
+            style={{ width: "100%", ...styleBar }}
+            size="small"
+            items={items}
+            activeKey={activeKey}
+            type={"editable-card"}
+            hideAdd={true}
+            onChange={(key) => {
+              if (actions == null) return;
+              actions.set_active_tab(path_to_tab(keyToPath(key)));
+            }}
+            popupClassName={"cocalc-files-tabs-more"}
+          />
+        </SortableTabs>
+      </div>
     );
   }
 }

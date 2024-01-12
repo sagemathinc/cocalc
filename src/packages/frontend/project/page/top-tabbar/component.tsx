@@ -17,7 +17,7 @@ import {
 import { useAppState } from "@cocalc/frontend/app/context";
 import { useMeasureDimensions } from "@cocalc/frontend/hooks";
 import { tab_to_path } from "@cocalc/util/misc";
-import { useProjectContext } from "../../context";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { TopTabBarActions } from "./tabbar";
 
 interface TTBAProps {
@@ -41,7 +41,7 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
   function isCompact() {
     if (pageWidthPx < 500) return true;
     if (fullTabWidth < 500) return true;
-    if (fullTabWidth / 3 < topRightWidth) return true;
+    if (fullTabWidth / 4 < topRightWidth) return true;
     return false;
   }
 
@@ -76,14 +76,6 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
   useLayoutEffect(() => {
     calcCompact();
   }, [pageWidthPx, fullTabWidth, topRightWidth]);
-
-  // console.log({
-  //   compact,
-  //   isCompact: isCompact(),
-  //   fullTabWidth,
-  //   breakPoint: breakPoint.current,
-  //   topRightWidth,
-  // });
 
   if (activeTab == null || !activeTab.startsWith("editor-")) return null;
   const path = tab_to_path(activeTab);

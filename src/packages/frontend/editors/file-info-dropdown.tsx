@@ -148,7 +148,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     );
   },
   (prev, next) =>
-    prev.filename == next.filename && prev.is_public == next.is_public
+    prev.filename == next.filename && prev.is_public == next.is_public,
 );
 
 // This is for sage worksheets...
@@ -156,7 +156,7 @@ export function render_file_info_dropdown(
   filename: string,
   project_id: string,
   dom_node,
-  is_public?
+  is_public?,
 ) {
   const root = createRoot(dom_node);
   root.render(
@@ -166,6 +166,6 @@ export function render_file_info_dropdown(
       is_public={is_public}
       label={"Action"}
       style={{ height: "34px" }}
-    />
+    />,
   );
 }

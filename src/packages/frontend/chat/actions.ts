@@ -735,6 +735,7 @@ export class ChatActions extends Actions<ChatState> {
         icon: "question-circle",
         hoverText: "Open the documentation for CoCalc's Chat",
         action: () => this.help(),
+        type: "entry",
       },
       {
         priority: 0,
@@ -742,6 +743,7 @@ export class ChatActions extends Actions<ChatState> {
         icon: "external-link",
         hoverText: "Export the chat to a markdown file",
         action: () => this.export_to_markdown(),
+        type: "entry",
       },
     ];
   }

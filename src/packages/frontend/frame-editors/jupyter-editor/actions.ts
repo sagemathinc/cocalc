@@ -544,16 +544,19 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
         label: "Halt",
         icon: "PoweroffOutlined",
         action: () => this.halt_jupyter(),
+        type: "entry",
       },
       {
         label: "Snippets",
         icon: SNIPPET_ICON_NAME,
         action: () => this.guide(),
+        type: "entry",
       },
       {
         label: "Contents",
         icon: "align-right",
         action: () => this.show_table_of_contents(),
+        type: "entry",
       },
       {
         label: "Shell",
@@ -563,6 +566,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
           const id = this._get_active_id();
           this.shell(id);
         },
+        type: "entry",
       },
       {
         label: "Print",
@@ -572,6 +576,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
           const id = this._get_active_id();
           this.print(id);
         },
+        type: "entry",
       },
       {
         priority: -1,
@@ -579,6 +584,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
         icon: "question-circle",
         hoverText: "Open the documentation for CoCalc's Jupyter Editor",
         action: () => this.help(),
+        type: "entry",
       },
     ];
   }

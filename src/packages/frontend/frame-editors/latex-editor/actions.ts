@@ -1529,6 +1529,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         label: "Build",
         icon: "play-circle",
         action: () => this.force_build(),
+        type: "entry",
       },
       {
         label: `Sync views (${IS_MACOS ? "⌘" : "Alt"} + Enter)`,
@@ -1541,6 +1542,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           );
           return () => this.sync(id, editor_actions);
         },
+        type: "entry",
       },
       {
         label: "Format",
@@ -1549,6 +1551,7 @@ export class Actions extends BaseActions<LatexEditorState> {
           const id = this._get_active_id();
           return () => this.format(id);
         },
+        type: "entry",
       },
     ];
   }

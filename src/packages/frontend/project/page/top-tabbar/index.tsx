@@ -22,42 +22,31 @@ export function TopTabBar() {
 
   const { width: tabWidth } = useMeasureDimensions(tabContainerRef);
 
-  if (openFiles.size == 0) return <></>;
-
   return (
     <div
       ref={tabContainerRef}
-      className="smc-file-tabs"
       style={{
-        width: "100%",
+        // flex: "1",
         height: "40px",
         padding: "2.5px 0 0 0" /* TODO: that 2.5px looks like a hack */,
         overflow: "hidden",
+        display: "flex",
       }}
     >
-      <div style={{ display: "flex" }}>
-        <div
-          style={{
-            display: "flex",
-            overflow: "hidden",
-            flex: 1,
-          }}
-        >
-          <FileTabs
-            openFiles={openFiles}
-            project_id={project_id}
-            activeTab={activeTab}
-          />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flex: "0 0 auto",
-          }}
-        >
-          <TopTabBarActionsContainer fullTabWidth={tabWidth} />
-        </div>
+      <div
+        style={{
+          display: "flex",
+          overflow: "hidden",
+          flex: "1",
+        }}
+      >
+        <FileTabs
+          openFiles={openFiles}
+          project_id={project_id}
+          activeTab={activeTab}
+        />
       </div>
+      <TopTabBarActionsContainer fullTabWidth={tabWidth} />
     </div>
   );
 }

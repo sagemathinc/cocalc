@@ -33,7 +33,7 @@ $toprightborder: 1px solid $COL_GRAY_L
 .cc-project-tabs-top-right
   background: transparent
   display: flex
-  flex: 1 1 auto
+  flex: 0 1 auto
   flex-direction: row
   border-bottom: $toprightborder
 
@@ -42,22 +42,26 @@ $toprightborder: 1px solid $COL_GRAY_L
   justify-content: space-between
   gap: 5px
   z-index: 2
-  flex: 1 1 auto
+  flex: 1 0 auto
   flex-direction: row
   align-items: baseline
   background-color: $COL_GRAY_LL
   color: white
   border-top: $toprightborder
   padding-top: 2px
+  padding-bottom: 1px
+  position: relative
+  top: 1px
 
 .cc-project-tabs-top-right-slant
   z-index: 1
   display: flex
-  flex: 1 1 auto
+  flex: 1 0 auto
   flex-direction: row
   content: ""
   width: 20px
   position: relative
+  top: 1px
   left: 12px
   background-color: $COL_GRAY_LL
   -webkit-transform: skewX(-10deg)

@@ -2998,6 +2998,7 @@ export class Actions<
             return () => this.format(id);
           }
         },
+        type: "entry",
       },
       {
         label: "Print",
@@ -3007,6 +3008,7 @@ export class Actions<
           if (id == null) return;
           return () => this.print(id);
         },
+        type: "entry",
       },
     ];
   }

@@ -6,16 +6,19 @@
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { IconName } from "@cocalc/frontend/components";
 
-export interface TopBarAction {
-  label: string;
-  hoverText?: string;
-  priority?: number; // default 0
-  icon: IconName;
-  action?: (any) => any; // captures a static action
-  getAction?: (
-    local_view_state?: TypedMap<{ active_id?: string; full_id?: string }>,
-  ) => any; // for dynamic actions
-}
+export type TopBarAction =
+  | {
+      type: "entry";
+      label: string;
+      hoverText?: string;
+      priority?: number; // default 0
+      icon?: IconName;
+      action?: (any) => any; // captures a static action
+      getAction?: (
+        local_view_state?: TypedMap<{ active_id?: string; full_id?: string }>,
+      ) => any; // for dynamic actions
+    }
+  | { type: "divider" };
 
 export type TopBarActions = TopBarAction[];
 

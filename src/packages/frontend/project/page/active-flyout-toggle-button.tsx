@@ -29,7 +29,7 @@ export function ActiveFlyoutToggleButton() {
         <Icon
           style={{ color: isActive ? COLORS.FILE_ICON : COLORS.ANTD_LINK_BLUE }}
           name={"database"}
-          rotate={isActive ? "90" : undefined}
+          rotate={isActive ? "270" : undefined}
         />
       </Button>
     </Tooltip>

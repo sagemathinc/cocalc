@@ -8,23 +8,46 @@ import { Button as AntdButton, Dropdown } from "antd";
 
 import { TypedMap, useMemo, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { TopBarAction, TopBarActions } from "./types";
+import { file_actions } from "@cocalc/frontend/project_store";
+import { capitalize } from "@cocalc/util/misc";
+import { EditorActions, TopBarAction, TopBarActions } from "./types";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { useProjectContext } from "../../context";
 
 interface ExtraButtonsProps {
+  editorActions: EditorActions;
   topBarActions: TopBarActions | null;
   name: string;
   compact: boolean;
   shareIndicator?: JSX.Element;
+  path: string;
 }
 
 export function ExtraButtons(
   props: Readonly<ExtraButtonsProps>,
 ): JSX.Element | null {
-  const { topBarActions, name, compact, shareIndicator = null } = props;
+  const {
+    editorActions,
+    topBarActions,
+    name,
+    compact,
+    path,
+    shareIndicator = null,
+  } = props;
   const local_view_state: TypedMap<{ active_id?: string; full_id?: string }> =
     useRedux(name, "local_view_state");
+  const { project_id } = useProjectContext();
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
+  const fullscreen: undefined | "default" | "kiosk" = useRedux(
+    "page",
+    "fullscreen",
+  );
 
   function renderItem(conf: TopBarAction, index: number) {
+    if (conf.type === "divider") {
+      return { key: `${index}`, type: "divider" };
+    }
     const { getAction, label, icon, hoverText } = conf;
     const action = conf.action ?? getAction?.(local_view_state);
 
@@ -41,6 +64,28 @@ export function ExtraButtons(
     };
   }
 
+  function appendFileActions(items: TopBarAction[]) {
+    console.log({ editorActions });
+    // We don't show this menu in kiosk mode, where none of the options make sense,
+    // because they are all file management, which should be handled a different way.
+    if (fullscreen === "kiosk") return;
+    if (student_project_functionality.disableActions) return;
+    if (items.length > 0) {
+      items.push({ type: "divider" });
+    }
+    for (const k in file_actions) {
+      const { name, icon } = file_actions[k];
+      items.push({
+        type: "entry",
+        label: `${capitalize(name)}`,
+        icon,
+        action: () => {
+          console.log("TODO: implement FILE_ACTIONS", k, "on file", path);
+        },
+      });
+    }
+  }
+
   // the active_id or other view related aspects might change, so we need to
   // re-render this component if that happens.
   const [top, items]: [TopBarAction | null, NonNullable<MenuProps["items"]>] =
@@ -52,16 +97,22 @@ export function ExtraButtons(
       // pick the first action from topBarActions, which has the highest priority attribute
       const sorted = topBarActions.sort(
         // sort by .priority (a number) and then by .label (a string)
-        (a, b) =>
-          (b.priority ?? 0) - (a.priority ?? 0) ||
-          (a.label ?? "").localeCompare(b.label ?? ""),
+        (a, b) => {
+          if (a.type === "divider" || b.type === "divider") return 0;
+          return (
+            (b.priority ?? 0) - (a.priority ?? 0) ||
+            (a.label ?? "").localeCompare(b.label ?? "")
+          );
+        },
       );
       const top = sorted[0];
       const remainder = sorted.slice(1) ?? [];
+      appendFileActions(remainder);
       return [top, remainder.map(renderItem)];
     }, [local_view_state, topBarActions, name, compact]);
 
   if (top == null) return shareIndicator;
+  if (top.type === "divider") throw new Error("should not happen");
 
   if (items.length === 0) {
     return (

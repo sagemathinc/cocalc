@@ -39,31 +39,31 @@ export function VerticalFixedTabs() {
   const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
-  const tabs = useRef<HTMLDivElement>(null);
+  const gap = useRef<HTMLDivElement>(null);
   const breakPoint = useRef<number>(0);
   const refCondensed = useRef<boolean>(false);
   const [condensed, setCondensed] = useState(false);
 
   const calcCondensed = throttle(
     () => {
-      if (tabs.current == null) return;
+      if (gap.current == null) return;
       if (parent.current == null) return;
 
-      const th = tabs.current.clientHeight;
+      const gh = gap.current.clientHeight;
       const ph = parent.current.clientHeight;
 
       if (refCondensed.current) {
         // 5px slack to avoid flickering
-        if (ph > breakPoint.current + 5) {
+        if (gh > 0 && ph > breakPoint.current + 5) {
           setCondensed(false);
           refCondensed.current = false;
         }
       } else {
-        if (ph < th) {
+        if (gh < 1) {
           setCondensed(true);
           refCondensed.current = true;
           // max? because when we start with a thin window, the ph is already smaller than th
-          breakPoint.current = Math.max(th, ph);
+          breakPoint.current = ph;
         }
       }
     },
@@ -218,18 +218,14 @@ export function VerticalFixedTabs() {
         // also, the scrollbar is intentionally only active in condensed mode, to avoid it to show up briefly.
         overflowY: condensed ? "auto" : "hidden",
         overflowX: "hidden",
+        flex: "1 1 0",
       }}
     >
-      <div
-        ref={tabs}
-        style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
-      >
-        {items}
-        <div style={{ flex: 1 }}></div>{" "}
-        {/* moves the layout selector to the bottom */}
-        {renderLayoutSelector()}
-        {renderToggleSidebar()}
-      </div>
+      {items}
+      {/* moves the layout selector to the bottom */}
+      <div ref={gap} style={{ flex: 1 }}></div>
+      {renderLayoutSelector()}
+      {renderToggleSidebar()}
     </div>
   );
 }

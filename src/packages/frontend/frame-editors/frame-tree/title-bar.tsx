@@ -1708,11 +1708,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (isExplicitlyHidden("actions")) return;
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
-    if (fullscreen == "kiosk") return;
+    if (fullscreen === "kiosk") return;
     // Also, instructors can disable this for students:
     if (student_project_functionality.disableActions) return;
     const spec = props.editor_spec[props.type];
     if (spec != null && spec.hide_file_menu) return;
+    if (true) return;
     return (
       <EditorFileInfoDropdown
         key={"info"}

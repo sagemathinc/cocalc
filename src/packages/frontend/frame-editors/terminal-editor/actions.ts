@@ -115,7 +115,14 @@ export class TerminalActions extends Actions {
   }
 
   public getTopBarActions(): TopBarActions {
-    return [{ label: "Guide", icon: "magic", action: () => this.guide() }];
+    return [
+      {
+        type: "entry",
+        label: "Guide",
+        icon: "magic",
+        action: () => this.guide(),
+      },
+    ];
   }
 
   compute_server() {

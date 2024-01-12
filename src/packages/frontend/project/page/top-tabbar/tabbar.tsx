@@ -35,7 +35,7 @@ let lastWidth: number = 200;
 export function TopTabBarActions(
   props: Readonly<{ path: string; compact: boolean; width: number }>,
 ) {
-  const { path, compact, width } = props;
+  const { path, width, compact } = props;
   const { project_id, active_project_tab: activeTab } = useProjectContext();
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
@@ -141,6 +141,8 @@ export function TopTabBarActions(
           />
           {actions != null ? (
             <ExtraButtons
+            editorActions={actions}
+              path={path}
               topBarActions={topBarActions}
               name={name}
               compact={compact}
