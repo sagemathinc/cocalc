@@ -49,6 +49,7 @@ await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({fil
 import {
   imageExists,
   deleteImage,
+  getAllImages,
   imageName,
   getImagesClient,
   setImageLabels,
@@ -98,19 +99,23 @@ async function createAllImages(opts) {
   if (opts.IMAGES == null) {
     throw Error("IMAGES must be set");
   }
+  const toBuild: string[] = [];
+  for (const image in opts.IMAGES) {
+    const x = opts.IMAGES[image];
+    if (x.disabled || x.system) {
+      continue;
+    }
+    toBuild.push(image);
+  }
 
   let names: string[] = [];
   if (opts.noParallel) {
     // serial
-    for (const image in opts.IMAGES) {
-      const x = opts.IMAGES[image];
-      if (x.disabled || x.system) {
-        continue;
-      }
+    for (const image of toBuild) {
       names = names.concat(await build(image));
     }
   } else {
-    for (const r of await Promise.all(Object.keys(opts.IMAGES).map(build))) {
+    for (const r of await Promise.all(toBuild.map(build))) {
       names = names.concat(r);
     }
   }
@@ -129,7 +134,9 @@ export async function createImages({
   IMAGES,
   force,
 }: Options = {}): Promise<string[]> {
-  IMAGES = IMAGES ?? (await getImages());
+  // we use getImages(0) to force updating the images before doing a build,
+  // since this is when it matters (and this is rare).
+  IMAGES = IMAGES ?? (await getImages(0));
   if (image == null) {
     // create all types
     return await createAllImages({
@@ -219,6 +226,9 @@ export async function createImages({
           gpu: gpu ? "true" : null,
         },
       });
+      // force updating the list of google cloud images (in database), since we just
+      // changed them.  This of course only impacts the server we are running this on!
+      await getAllImages(0);
       if (!noDelete) {
         await logToFile(name, "createImage: delete the instance");
         await deleteInstance({ zone, name });

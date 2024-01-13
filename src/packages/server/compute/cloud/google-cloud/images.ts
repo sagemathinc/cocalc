@@ -181,13 +181,15 @@ export async function getSourceImage({
   if (tag) {
     const name = await imageName({ image, tag, arch });
     const x = googleImages[name];
-    return {
-      sourceImage: `projects/${projectId}/global/images/${name}`,
-      diskSizeGb: x.diskSizeGb,
-    };
+    if (x != null) {
+      return {
+        sourceImage: `projects/${projectId}/global/images/${name}`,
+        diskSizeGb: x.diskSizeGb,
+      };
+    }
     // failed to find image with the exactly specified tag.
     throw Error(
-      `Prebuilt image tag='${tag}' not available -- please change the image version in advanced settings`,
+      `Image '${name}' is not currently available on Google cloud -- please change the image, possibly in advanced settings`,
     );
   }
   // choose source based on what is available -- best tested image if there is one;
@@ -225,7 +227,9 @@ export async function getSourceImage({
       diskSizeGb: x.diskSizeGb,
     };
   }
-  throw Error(`No prebuilt image for '${image}' -- please change the image`);
+  throw Error(
+    `No prebuilt image for '${image}' on Google Cloud -- please change the image`,
+  );
 }
 
 // name = exact full name of the image
