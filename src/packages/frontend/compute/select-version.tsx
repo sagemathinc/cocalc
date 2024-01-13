@@ -2,7 +2,7 @@ import type {
   Configuration,
   Images,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Checkbox, Radio, Tooltip } from "antd";
+import { Radio } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { A } from "@cocalc/frontend/components";
 
@@ -156,19 +156,5 @@ function SelectTag({ disabled, tag, setTag, options, label, style }) {
         buttonStyle="solid"
       />
     </div>
-  );
-}
-
-export function Advanced({ advanced, setAdvanced }) {
-  return (
-    <Tooltip title="Show untested, old and possibly broken images and versions.">
-      <Checkbox
-        checked={advanced}
-        onChange={(e) => setAdvanced(e.target.checked)}
-        style={{ float: "right" }}
-      >
-        Advanced
-      </Checkbox>
-    </Tooltip>
   );
 }

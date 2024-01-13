@@ -1,8 +1,11 @@
 import type {
+  Architecture,
   State,
   Configuration,
   Images,
+  GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
+import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
 import { Alert, Select, Spin } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Icon, Markdown } from "@cocalc/frontend/components";
@@ -10,80 +13,7 @@ import { A } from "@cocalc/frontend/components/A";
 import { field_cmp } from "@cocalc/util/misc";
 import { useImages } from "./images-hook";
 import SelectVersion from "./select-version";
-
-function getOptions({
-  IMAGES,
-  advanced,
-  gpu,
-  value,
-  selectedTag,
-}: {
-  IMAGES: Images;
-  advanced?: boolean;
-  gpu?: boolean;
-  value?: string;
-  selectedTag?: string;
-}) {
-  const options: {
-    key: string;
-    tag: string;
-    priority: number;
-    value: string;
-    search: string;
-    label: JSX.Element;
-  }[] = [];
-  for (const name in IMAGES) {
-    const image = IMAGES[name];
-    let { label, icon, versions, priority = 0 } = image;
-    if (image.system) {
-      continue;
-    }
-    if (image.disabled && !advanced) {
-      continue;
-    }
-    if (gpu != null && gpu != image.gpu) {
-      continue;
-    }
-    if (!advanced) {
-      // restrict to only tested versions.
-      versions = versions.filter((x) => x.tested);
-    }
-    if (versions.length == 0) {
-      // no available versions, so no point in showing this option
-      continue;
-    }
-    let tag;
-    let versionLabel: string | undefined = undefined;
-    if (selectedTag && name == value) {
-      tag = selectedTag;
-      for (const x of versions) {
-        if (x.tag == tag) {
-          versionLabel = x.label ?? tag;
-          break;
-        }
-      }
-    } else {
-      tag = versions[versions.length - 1]?.tag;
-      versionLabel = versions[versions.length - 1]?.label ?? tag;
-    }
-    options.push({
-      key: name,
-      value: name,
-      priority,
-      search: label?.toLowerCase() ?? "",
-      tag,
-      label: (
-        <div style={{ fontSize: "12pt" }}>
-          <div style={{ float: "right" }}>{versionLabel}</div>
-          <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
-          {image.disabled && <> (disabled)</>}
-        </div>
-      ),
-    });
-  }
-  options.sort(field_cmp("priority")).reverse();
-  return options;
-}
+import Advanced from "./advanced";
 
 interface Props {
   setConfig;
@@ -94,7 +24,11 @@ interface Props {
   // if explicitly set, only gpu images shown when
   // gpu true, and only non-gpu when false.
   gpu: boolean;
-  advanced?: boolean;
+  // if googleImages is set, use this to restrict list of images to only
+  // what is actually available in non-advanced view, and to enhance the
+  // view otherwise (explicitly saying images aren't actually available)
+  googleImages?: GoogleCloudImages;
+  arch: Architecture;
 }
 
 export default function SelectImage({
@@ -104,9 +38,11 @@ export default function SelectImage({
   state = "deprovisioned",
   style,
   gpu,
-  advanced,
+  googleImages,
+  arch,
 }: Props) {
-  const { IMAGES, ImagesError } = useImages();
+  const [advanced, setAdvanced] = useState<boolean>(false);
+  const [IMAGES, ImagesError] = useImages();
   const [value, setValue] = useState<string | undefined>(configuration.image);
   useEffect(() => {
     setValue(configuration.image);
@@ -119,17 +55,19 @@ export default function SelectImage({
     }
     return getOptions({
       IMAGES,
+      googleImages,
       gpu,
       advanced,
       value,
       selectedTag: configuration.tag,
+      arch,
     });
   }, [IMAGES, gpu, advanced, value, configuration.tag]);
 
   if (IMAGES == null) {
     return <Spin />;
   }
-  if (typeof IMAGES == "string") {
+  if (ImagesError != null) {
     return ImagesError;
   }
   const filterOption = (input: string, option?: { search: string }) =>
@@ -137,6 +75,14 @@ export default function SelectImage({
 
   return (
     <div>
+      <Advanced
+        advanced={advanced}
+        setAdvanced={setAdvanced}
+        style={{ float: "right", marginTop: "10px" }}
+        title={
+          "Show possibly untested, old, missing, or broken images and versions."
+        }
+      />
       <Select
         size="large"
         disabled={disabled || state != "deprovisioned"}
@@ -173,8 +119,114 @@ export default function SelectImage({
   );
 }
 
+function getOptions({
+  IMAGES,
+  advanced,
+  googleImages,
+  gpu,
+  value,
+  selectedTag,
+  arch,
+}: {
+  IMAGES: Images;
+  advanced?: boolean;
+  gpu?: boolean;
+  value?: string;
+  selectedTag?: string;
+  googleImages?: GoogleCloudImages;
+  arch: Architecture;
+}) {
+  const options: {
+    key: string;
+    tag: string;
+    priority: number;
+    value: string;
+    search: string;
+    label: JSX.Element;
+  }[] = [];
+  for (const name in IMAGES) {
+    const image = IMAGES[name];
+    let { label, icon, versions, priority = 0 } = image;
+    if (image.system) {
+      continue;
+    }
+    if (image.disabled && !advanced) {
+      continue;
+    }
+    if (gpu != null && gpu != image.gpu) {
+      continue;
+    }
+    if (!advanced) {
+      // restrict to only tested versions.
+      versions = versions.filter((x) => x.tested);
+
+      if (googleImages != null) {
+        const x = googleImages[name];
+        // on google cloud, so make sure image is built and tested
+        versions = versions.filter(
+          (y) =>
+            x[`${makeValidGoogleName(y.tag)}-${makeValidGoogleName(arch)}`]
+              ?.tested,
+        );
+      }
+    }
+    if (versions.length == 0) {
+      // no available versions, so no point in showing this option
+      continue;
+    }
+    let tag;
+    let versionLabel: string | undefined = undefined;
+    if (selectedTag && name == value) {
+      tag = selectedTag;
+      for (const x of versions) {
+        if (x.tag == tag) {
+          versionLabel = x.label ?? tag;
+          break;
+        }
+      }
+    } else {
+      tag = versions[versions.length - 1]?.tag;
+      versionLabel = versions[versions.length - 1]?.label ?? tag;
+    }
+
+    let extra = "";
+    if (advanced && googleImages != null) {
+      const img =
+        googleImages[name]?.[
+          `${makeValidGoogleName(tag)}-${makeValidGoogleName(arch)}`
+        ];
+      if (!img) {
+        extra = " (no image)";
+      } else {
+        const tested = img?.tested;
+        if (!tested) {
+          extra = " (not tested)";
+        }
+      }
+    }
+
+    options.push({
+      key: name,
+      value: name,
+      priority,
+      search: label?.toLowerCase() ?? "",
+      tag,
+      label: (
+        <div style={{ fontSize: "12pt" }}>
+          <div style={{ float: "right" }}>{versionLabel}</div>
+          <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
+          {image.disabled && <> (disabled)</>}
+          {extra}
+        </div>
+      ),
+    });
+  }
+  options.sort(field_cmp("priority")).reverse();
+  return options;
+}
+
 export function ImageLinks({ image, style }: { image; style? }) {
-  const { IMAGES, ImagesError } = useImages();
+  const [IMAGES, ImagesError] = useImages();
   if (IMAGES == null) {
     return <Spin />;
   }
@@ -225,11 +277,11 @@ export function DisplayImage({
 }: {
   configuration: { image: string };
 }) {
-  const { IMAGES, ImagesError } = useImages();
+  const [IMAGES, ImagesError] = useImages();
   if (IMAGES == null) {
     return <Spin />;
   }
-  if (typeof IMAGES == "string") {
+  if (ImagesError != null) {
     return ImagesError;
   }
   const { image } = configuration ?? {};
@@ -250,7 +302,7 @@ export function ImageDescription({
 }: {
   configuration: { image: string };
 }) {
-  const { IMAGES, ImagesError } = useImages();
+  const [IMAGES, ImagesError] = useImages();
   if (IMAGES == null) {
     return <Spin />;
   }

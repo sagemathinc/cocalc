@@ -1,33 +1,91 @@
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
-import type { Images } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  Architecture,
+  Images,
+  GoogleCloudImages,
+} from "@cocalc/util/db-schema/compute-servers";
 import { useEffect } from "react";
 import type { CustomizeActions } from "@cocalc/frontend/customize";
 
-export async function reloadImages() {
+type Name = "compute_servers_images" | "compute_servers_images_google";
+
+export async function reloadImages(name: Name) {
   const actions = redux.getActions("customize") as CustomizeActions;
-  await actions.updateComputeServerImages();
+  switch (name) {
+    case "compute_servers_images":
+      await actions.updateComputeServerImages();
+      return;
+    case "compute_servers_images_google":
+      await actions.updateComputeServerImagesGoogle();
+      return;
+    default:
+      throw Error(`uknown images -- ${name}`);
+  }
 }
 
-export function useImages(): {
-  IMAGES: null | undefined | Images;
-  ImagesError: null | JSX.Element;
-} {
-  const IMAGES = useTypedRedux("customize", "compute_servers_images");
+function useImages0(name: Name) {
+  const IMAGES = useTypedRedux("customize", name);
   useEffect(() => {
     if (IMAGES == null) {
-      reloadImages();
+      reloadImages(name);
     }
   }, []);
 
   if (IMAGES == null) {
-    return { IMAGES: null, ImagesError: null };
+    return [null, null];
   }
   if (typeof IMAGES == "string") {
-    return {
-      IMAGES: null,
-      ImagesError: <ShowError error={IMAGES} setError={reloadImages} />,
-    };
+    return [
+      null,
+      <ShowError
+        error={`Error loading ${name} -- ${IMAGES}`}
+        setError={reloadImages}
+      />,
+    ];
   }
-  return { IMAGES: IMAGES.toJS() as Images, ImagesError: null };
+  if (name == "compute_servers_images") {
+    return [IMAGES.toJS() as Images, null];
+  } else if (name == "compute_servers_images_google") {
+    return [IMAGES.toJS() as GoogleCloudImages, null];
+  } else {
+    throw Error("bug");
+  }
+}
+
+export function useImages(): [Images | null, JSX.Element | null] {
+  const [images, error] = useImages0("compute_servers_images");
+  if (error != null) {
+    return [null, error as JSX.Element];
+  } else if (images == null) {
+    return [images as null, error as null];
+  } else {
+    return [images as Images, error as null];
+  }
+}
+
+// tag, arch, etc., are first through makeValidGoogleName
+type GoogleImages = {
+  [image: string]: {
+    [tag: string]: { arch: Architecture; tested?: boolean };
+  };
+};
+
+export function useGoogleImages(): [GoogleImages | null, JSX.Element | null] {
+  const [images, error] = useImages0("compute_servers_images_google");
+  if (error != null) {
+    return [null, error as JSX.Element];
+  } else if (images == null) {
+    return [images as null, error as null];
+  } else {
+    const x: GoogleImages = {};
+    for (const name in images) {
+      const { labels } = images[name];
+      if (x[labels.image] == null) {
+        x[labels.image] = {};
+      }
+      x[labels.image][`${labels.tag}-${labels.arch}`] = labels;
+    }
+    return [x, error as null];
+  }
 }

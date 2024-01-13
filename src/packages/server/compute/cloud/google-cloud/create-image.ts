@@ -469,7 +469,7 @@ function createBuildConfiguration({
   if (!pkg) {
     throw Error(`unknown image '${image}'`);
   }
-  const maxTimeMinutes = gpu ? 120 : 45;
+  const maxTimeMinutes = gpu ? 60 : 30;
   const configuration = {
     image,
     tag,

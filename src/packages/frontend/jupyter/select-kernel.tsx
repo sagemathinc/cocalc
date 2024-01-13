@@ -514,7 +514,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 function ComputeServerInfo() {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
-  const { IMAGES, ImagesError } = useImages();
+  const [IMAGES, ImagesError] = useImages();
   if (ImagesError) {
     return ImagesError;
   }

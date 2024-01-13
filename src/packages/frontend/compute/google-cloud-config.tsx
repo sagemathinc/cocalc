@@ -3,7 +3,7 @@ import type {
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
-import { useImages } from "./images-hook";
+import { useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
@@ -46,7 +46,6 @@ import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 import generateVouchers from "@cocalc/util/vouchers";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
-import { Advanced } from "./select-version";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -89,7 +88,8 @@ export default function GoogleCloudConfiguration({
   disabled,
   state,
 }: Props) {
-  const { IMAGES, ImagesError } = useImages();
+  const [IMAGES, ImagesError] = useImages();
+  const [googleImages, ImagesErrorGoogle] = useGoogleImages();
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<GoogleCloudData | null>(null);
@@ -140,8 +140,11 @@ export default function GoogleCloudConfiguration({
   if (ImagesError != null) {
     return ImagesError;
   }
+  if (ImagesErrorGoogle != null) {
+    return ImagesErrorGoogle;
+  }
 
-  if (IMAGES == null) {
+  if (IMAGES == null || googleImages == null) {
     return <Spin />;
   }
 
@@ -276,6 +279,10 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           gpu={
             !!(configuration.acceleratorType && configuration.acceleratorCount)
+          }
+          googleImages={googleImages}
+          arch={
+            configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64"
           }
         />
       ),
@@ -903,18 +910,20 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
               : "ARM64 architecture machines"
           }
         >
-          <Switch
+          <Radio.Group
             style={{ float: "right" }}
             disabled={
               disabled ||
               configuration.acceleratorType ||
               (state ?? "deprovisioned") != "deprovisioned"
             }
-            unCheckedChildren={"ARM64"}
-            checkedChildren={"X86"}
-            checked={archType == "x86_64"}
-            onChange={() => {
-              setArchType(archType == "x86_64" ? "arm64" : "x86_64");
+            options={[
+              { value: "x86_64", label: "X86_64" },
+              { value: "arm64", label: "ARM64" },
+            ]}
+            value={archType}
+            onChange={({ target: { value } }) => {
+              setArchType(value);
             }}
           />
         </Tooltip>
@@ -1256,11 +1265,9 @@ function BootDisk(props) {
 
 function Image(props) {
   const { state = "deprovisioned" } = props;
-  const [advanced, setAdvanced] = useState<boolean>(false);
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <Advanced advanced={advanced} setAdvanced={setAdvanced} />
         <b>
           <Icon name="disk-round" /> Image
         </b>
@@ -1272,11 +1279,7 @@ function Image(props) {
           including commercial software.
         </div>
       )}
-      <SelectImage
-        style={{ width: SELECTOR_WIDTH }}
-        {...props}
-        advanced={advanced}
-      />
+      <SelectImage style={{ width: "450px" }} {...props} />
       {state != "deprovisioned" && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.

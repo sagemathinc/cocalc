@@ -11,7 +11,6 @@ import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
-import { Advanced } from "./select-version";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
@@ -139,11 +138,9 @@ export default function OnPremCloudConfiguration({
 
 function Image(props) {
   const { state = "deprovisioned" } = props;
-  const [advanced, setAdvanced] = useState<boolean>(false);
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <Advanced advanced={advanced} setAdvanced={setAdvanced} />
         <b>Image</b>
       </div>
       {(state == "deprovisioned" || state == "off") && (
@@ -156,7 +153,7 @@ function Image(props) {
         style={{ width: SELECTOR_WIDTH }}
         {...props}
         gpu={!!props.configuration.gpu}
-        advanced={advanced}
+        arch={props.configuration.arch}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
