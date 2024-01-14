@@ -14,6 +14,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import debug from "debug";
 import { once } from "@cocalc/util/async-utils";
 import { EventEmitter } from "events";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
 const log = debug("cocalc:frontend:compute:manager");
 
@@ -67,7 +68,6 @@ export class ComputeServersManager extends EventEmitter {
   // Call this if you want no compute servers to provide the backend server
   // for given path.
   disconnectComputeServer = ({ path }: { path: string }) => {
-    assertSupportedPath(path);
     this.sync_db.delete({ path });
     this.sync_db.commit();
   };
@@ -77,7 +77,10 @@ export class ComputeServersManager extends EventEmitter {
     console.log(JSON.stringify(this.sync_db.get().toJS(), undefined, 2));
   };
 
-  getServerIdForPath = async (path: string): Promise<number> => {
+  // Returns the explicitly set server id for the given
+  // path, if one is set. Otherwise, return undefined
+  // if nothing is explicitly set for this path.
+  getServerIdForPath = async (path: string): Promise<number | undefined> => {
     const { sync_db } = this;
     if (sync_db.get_state() == "init") {
       await once(sync_db, "ready");
@@ -85,17 +88,16 @@ export class ComputeServersManager extends EventEmitter {
     if (sync_db.get_state() != "ready") {
       throw Error("syncdb not ready");
     }
-    return sync_db.get_one({ path })?.get("id") ?? 0;
+    return sync_db.get_one({ path })?.get("id");
   };
 }
 
 function assertSupportedPath(path: string) {
-  if (path.endsWith(".sagews")) {
+  if (excludeFromComputeServer(path)) {
     throw Error(
-      "Sage Worksheets cannot be run on a compute server -- use a Jupyter notebook instaed.",
+      `Opening '${path}' on a compute server is not yet supported -- copy it to the project and open it there instead`,
     );
   }
-  return true;
 }
 
 const computeServerManagerCache: {

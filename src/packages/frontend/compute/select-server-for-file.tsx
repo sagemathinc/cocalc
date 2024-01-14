@@ -10,6 +10,7 @@ import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import SelectServer, { PROJECT_COLOR } from "./select-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { alert_message } from "@cocalc/frontend/alerts";
 
 interface Props {
   project_id: string;
@@ -69,7 +70,7 @@ export default function SelectComputeServerForFile({
             return;
           }
         }
-        const id = await computeServerAssociations.getServerIdForPath(p);
+        const id = (await computeServerAssociations.getServerIdForPath(p)) ?? 0;
         if (type == "jupyter_cell_notebook" && actions != null) {
           actions.jupyter_actions.setState({ requestedComputeServerId: id });
           if (
@@ -154,16 +155,24 @@ export default function SelectComputeServerForFile({
         }}
         onOk={() => {
           setConfirmSwitch(false);
-          if (idNum) {
-            setValue(idNum);
-            computeServerAssociations.connectComputeServerToPath({
-              id: idNum,
-              path: getPath(path),
-            });
-          } else {
-            setValue(undefined);
-            computeServerAssociations.disconnectComputeServer({
-              path: getPath(path),
+          try {
+            if (idNum) {
+              computeServerAssociations.connectComputeServerToPath({
+                id: idNum,
+                path: getPath(path),
+              });
+              setValue(idNum);
+            } else {
+              computeServerAssociations.disconnectComputeServer({
+                path: getPath(path),
+              });
+              setValue(undefined);
+            }
+          } catch (err) {
+            alert_message({
+              type: "error",
+              message: `${err}`,
+              timeout: 20,
             });
           }
         }}

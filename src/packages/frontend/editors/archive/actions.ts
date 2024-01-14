@@ -97,10 +97,10 @@ export class ArchiveActions extends Actions<State> {
   private exec = async (opts) => {
     const { project_id, path } = this;
     const compute_server_id =
-      await webapp_client.project_client.getServerIdForPath({
+      (await webapp_client.project_client.getServerIdForPath({
         project_id,
         path,
-      });
+      })) ?? 0;
     return await webapp_client.exec({
       filesystem: true,
       compute_server_id,

@@ -58,6 +58,7 @@ import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -1925,7 +1926,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function renderComputeServer() {
-    if (!computeServersEnabled()) {
+    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
       return null;
     }
     return (

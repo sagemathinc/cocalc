@@ -18,7 +18,7 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import { ProjectActions } from "../project_actions";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { redux } from "../app-framework";
-import { alert_message } from "../alerts";
+import { alert_message } from "@cocalc/frontend/alerts";
 import { webapp_client } from "../webapp-client";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
@@ -273,7 +273,17 @@ export async function open_file(
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
 
   if (opts.explicit) {
-    await setComputeServer(actions, opts.path);
+    try {
+      await setComputeServer(actions, opts.path);
+    } catch (err) {
+      actions.open_files.delete(opts.path);
+      alert_message({
+        type: "error",
+        message: `${err}`,
+        timeout: 20,
+      });
+      return;
+    }
   }
 
   if (opts.foreground) {
@@ -450,22 +460,28 @@ function get_side_chat_state(
 }
 
 async function setComputeServer(actions, path: string) {
-  if (path.endsWith(".sagews")) {
-    // sagews is not supported
-    // TODO: show an error message?
-    return;
-  }
   const computeServerAssociations = webapp_client.project_client.computeServers(
     actions.project_id,
   );
   const id = await computeServerAssociations.getServerIdForPath(path);
+  if (id != null) {
+    // server id already set, so do not change it
+    return id;
+  }
   const store = actions.get_store();
   if (store == null) return;
   const selectedComputeServerId = store.get("compute_server_id");
+  if (!selectedComputeServerId) {
+    // currently on main project, so no need to set anything
+    return;
+  }
+  // opening on compute server and server id not set, so we explicitly
+  // open on the compute server
   if (id != selectedComputeServerId) {
     computeServerAssociations.connectComputeServerToPath({
       id: selectedComputeServerId,
       path,
     });
   }
+  return selectedComputeServerId;
 }
