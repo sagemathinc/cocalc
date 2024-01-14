@@ -279,3 +279,21 @@ export async function setImageLabels({
     },
   });
 }
+export async function setTested(
+  { image, tag, machineType }: GoogleCloudConfiguration,
+  tested: boolean,
+) {
+  logger.debug("setTested", {
+    image,
+    tag,
+    machineType,
+    tested,
+  });
+  image = imageDeprecation(image);
+  const arch = getArchitecture(machineType);
+  if (!tag) {
+    throw Error("tag must be set");
+  }
+  const name = await imageName({ image, tag, arch });
+  await setImageLabels({ name, labels: { tested: tested ? "true" : null } });
+}

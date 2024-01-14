@@ -3,7 +3,7 @@ import type {
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
-import { useImages, useGoogleImages } from "./images-hook";
+import { reloadImages, useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
@@ -32,7 +32,11 @@ import computeCost, {
   computeAcceleratorCost,
   computeInstanceCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
-import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
+import {
+  getGoogleCloudPriceData,
+  setImageTested,
+  setServerConfiguration,
+} from "./api";
 import { useEffect, useState } from "react";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { A } from "@cocalc/frontend/components/A";
@@ -46,6 +50,7 @@ import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 import generateVouchers from "@cocalc/util/vouchers";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -407,7 +412,7 @@ export default function GoogleCloudConfiguration({
     {
       key: "admin",
       label: <></>,
-      value: <Admin configuration={configuration} loading={loading} />,
+      value: <Admin id={id} configuration={configuration} loading={loading} />,
     },
   ];
 
@@ -1279,7 +1284,7 @@ function Image(props) {
           including commercial software.
         </div>
       )}
-      <SelectImage style={{ width: "450px" }} {...props} />
+      <SelectImage style={{ width: "500px" }} {...props} />
       {state != "deprovisioned" && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.
@@ -2077,8 +2082,10 @@ function CostPerHour({
   );
 }
 
-function Admin({ configuration, loading }) {
+function Admin({ id, configuration, loading }) {
   const isAdmin = useTypedRedux("account", "is_admin");
+  const [error, setError] = useState<string>("");
+  const [calling, setCalling] = useState<boolean>(false);
   if (!isAdmin) {
     return null;
   }
@@ -2091,8 +2098,26 @@ function Admin({ configuration, loading }) {
         <br />
         Settings and functionality only available to admins.
         <br />
+        <ShowError error={error} setError={setError} />
         <Tooltip title="Once you have tested the currently selected image, click this button to mark it as tested.">
-          <Button disabled={loading}>Mark Image Tested</Button>
+          <Button
+            disabled={loading || !id || calling}
+            onClick={async () => {
+              try {
+                setCalling(true);
+                await setImageTested({ id, tested: true });
+                // force reload to database via GCP api call
+                await reloadImages("compute_servers_images_google", true);
+              } catch (err) {
+                setError(`${err}`);
+              } finally {
+                setCalling(false);
+              }
+            }}
+          >
+            Mark Google Cloud Image Tested{" "}
+            {calling && <Spin style={{ marginLeft: "15px" }} />}
+          </Button>
         </Tooltip>
         <pre>configuration={JSON.stringify(configuration, undefined, 2)}</pre>
       </div>

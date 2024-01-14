@@ -169,30 +169,29 @@ export class CustomizeStore extends Store<CustomizeState> {
 }
 
 export class CustomizeActions extends Actions<CustomizeState> {
-  updateComputeServerImages = reuseInFlight(async () => {
+  // reload is admin only
+  updateComputeServerImages = reuseInFlight(async (reload?) => {
     if (!store.get("compute_servers_enabled")) {
       this.setState({ compute_servers_images: fromJS({}) as any });
       return;
     }
-    this.setState({ compute_servers_images: null });
     try {
       this.setState({
-        compute_servers_images: fromJS(await getImages()) as any,
+        compute_servers_images: fromJS(await getImages(reload)) as any,
       });
     } catch (err) {
       this.setState({ compute_servers_images: `${err}` });
     }
   });
-  updateComputeServerImagesGoogle = reuseInFlight(async () => {
+  updateComputeServerImagesGoogle = reuseInFlight(async (reload?) => {
     if (!store.get("compute_servers_google-cloud_enabled")) {
       this.setState({ compute_servers_images_google: fromJS({}) as any });
       return;
     }
-    this.setState({ compute_servers_images_google: null });
     try {
       this.setState({
         compute_servers_images_google: fromJS(
-          await getGoogleCloudImages(),
+          await getGoogleCloudImages(reload),
         ) as any,
       });
     } catch (err) {

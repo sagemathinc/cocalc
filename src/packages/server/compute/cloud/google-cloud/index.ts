@@ -20,7 +20,7 @@ import computeCost, {
   computeNetworkCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
-import { getArchitecture } from "./images";
+import { getArchitecture, setTested } from "./images";
 import { getInstanceDataTransferOut } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { hasDNS, makeDnsChange } from "@cocalc/server/compute/dns";
@@ -253,4 +253,12 @@ export async function getNetworkUsage({
   const instanceName = await getServerName(server);
   const amount = await getInstanceDataTransferOut({ instanceName, start, end });
   return { cost: computeNetworkCost(amount), amount };
+}
+
+export async function setImageTested(server: ComputeServer, tested: boolean) {
+  const { configuration } = server;
+  if (configuration?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  await setTested(configuration, tested);
 }

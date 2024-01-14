@@ -10,14 +10,14 @@ import type { CustomizeActions } from "@cocalc/frontend/customize";
 
 type Name = "compute_servers_images" | "compute_servers_images_google";
 
-export async function reloadImages(name: Name) {
+export async function reloadImages(name: Name, reload?: boolean) {
   const actions = redux.getActions("customize") as CustomizeActions;
   switch (name) {
     case "compute_servers_images":
-      await actions.updateComputeServerImages();
+      await actions.updateComputeServerImages(reload);
       return;
     case "compute_servers_images_google":
-      await actions.updateComputeServerImagesGoogle();
+      await actions.updateComputeServerImagesGoogle(reload);
       return;
     default:
       throw Error(`uknown images -- ${name}`);

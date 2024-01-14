@@ -721,3 +721,21 @@ export async function getDeprovisionScript({
     api_key,
   });
 }
+
+// Set the tested status of the image that the given server is using.
+// This is currently only meaningful on Google cloud.
+// This is something that only admins should use.
+export async function setImageTested(opts: {
+  id: number;
+  account_id: string;
+  tested: boolean;
+}) {
+  const server = await getServer(opts);
+  switch (server.cloud) {
+    case "google-cloud":
+      await googleCloud.setImageTested(server, opts.tested);
+      return;
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}

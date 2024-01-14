@@ -152,15 +152,18 @@ function cacheSet(cloud, images) {
 async function getImagesFor({
   cloud,
   endpoint,
+  reload,
 }: {
   cloud: string;
   endpoint: string;
+  // reload -- if true, reloads data from external resource; only admins can do this.
+  reload?: boolean;
 }): Promise<any> {
-  if (cacheHas(cloud)) {
+  if (!reload && cacheHas(cloud)) {
     return cacheGet(cloud);
   }
   try {
-    const images = await api(endpoint);
+    const images = await api(endpoint, reload ? { ttl: 0 } : undefined);
     cacheSet(cloud, images);
     return images;
   } catch (err) {
@@ -176,13 +179,27 @@ async function getImagesFor({
   }
 }
 
-export async function getImages(): Promise<Images> {
-  return await getImagesFor({ cloud: "", endpoint: "compute/get-images" });
+export async function getImages(reload?: boolean): Promise<Images> {
+  return await getImagesFor({
+    cloud: "",
+    endpoint: "compute/get-images",
+    reload,
+  });
 }
 
-export async function getGoogleCloudImages(): Promise<GoogleCloudImages> {
+export async function getGoogleCloudImages(
+  reload?: boolean,
+): Promise<GoogleCloudImages> {
   return await getImagesFor({
     cloud: "google",
     endpoint: "compute/get-images-google",
+    reload,
   });
+}
+
+export async function setImageTested(opts: {
+  id: number; // server id
+  tested: boolean;
+}) {
+  return await api("compute/set-image-tested", opts);
 }
