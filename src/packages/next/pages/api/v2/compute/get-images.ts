@@ -25,7 +25,7 @@ async function get(req) {
   const { ttl } = getParams(req, {
     allowGet: true,
   });
-  if (ttl) {
+  if (ttl != null) {
     if (!(await userIsInGroup(account_id, "admin"))) {
       throw Error("only admin are allowed to specify the ttl");
     }
