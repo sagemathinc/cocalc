@@ -242,10 +242,9 @@ class Manager {
     }
   };
 
-  private ensureConnected = (path) => {
+  private ensureConnected = async (path) => {
     this.log("ensureConnected", path);
     if (this.connections[path] == null) {
-      this.connections[path] = "connecting";
       if (path.endsWith(".term")) {
         const term = terminal({
           websocket: this.websocket,
@@ -263,22 +262,20 @@ class Manager {
           client: this.client,
           path,
         });
-      } else if (
-        path.endsWith(".md") ||
-        path.endsWith(".txt") ||
-        path.endsWith(".py")
-      ) {
-        // temporary proof of concept
-        this.connections[path] = fileServer({
-          client: this.client,
-          path,
-        });
       } else {
-        delete this.connections[path];
-        this.setError({
-          path,
-          message: "only term and ipynb files are supported",
-        });
+        try {
+          this.connections[path] = "connecting";
+          this.connections[path] = await fileServer({
+            client: this.client,
+            path,
+          });
+        } catch (err) {
+          delete this.connections[path];
+          this.setError({
+            path,
+            message: `${err}`,
+          });
+        }
       }
     }
   };
