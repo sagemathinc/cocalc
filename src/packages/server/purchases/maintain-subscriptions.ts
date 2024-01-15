@@ -188,7 +188,7 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
     await cancelSubscription({
       account_id,
       subscription_id,
-      now: true,
+      cancelImmediately: true,
       client,
     });
     await client.query("UPDATE purchases SET pending=false WHERE id=$1", [
