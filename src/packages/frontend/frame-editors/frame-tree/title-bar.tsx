@@ -11,17 +11,14 @@ import {
   Button as AntdButton0,
   Input,
   InputNumber,
-  Popconfirm,
   Popover,
   Tooltip,
 } from "antd";
 import { List } from "immutable";
-import { debounce } from "lodash";
 import { useEffect, useMemo, useRef } from "react";
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
-  ButtonStyle,
 } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -49,10 +46,8 @@ import { copy, path_split, trunc_middle } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { is_safari } from "../generic/browser";
-import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 import LanguageModel from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
@@ -101,7 +96,7 @@ const title_bar_style: CSS = {
   display: "flex",
 } as const;
 
-const MAX_TITLE_WIDTH = 25;
+const MAX_TITLE_WIDTH = 20;
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND,
@@ -275,11 +270,20 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "switch_to_files",
   ]);
 
-  function command(name: string, subs?: Partial<Command>): MenuItem | null {
+  function command(name: string): MenuItem | null {
     let cmd = COMMANDS[name];
     if (cmd == null) {
       throw Error(`unknown command '${name}'`);
     }
+    const subs =
+      props.editor_spec[props.type]?.customize_buttons?.[cmd.action ?? ""];
+    return commandToMenuItem(cmd, subs);
+  }
+
+  function commandToMenuItem(
+    cmd: Command,
+    subs?: Partial<Command>,
+  ): MenuItem | null {
     if (cmd.action && !is_visible(cmd.action)) {
       return null;
     }
@@ -291,12 +295,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     let label = (
       <>
-        {cmd.icon ? (
+        {typeof cmd.icon == "string" ? (
           <Icon name={cmd.icon} style={{ width: "25px" }} />
         ) : (
-          <div style={{ width: "25px", display: "inline-block" }} />
+          <div style={{ width: "25px", display: "inline-block" }}>
+            {cmd.icon}
+          </div>
         )}
-        {cmd.label}
+        {typeof cmd.label == "function" ? cmd.label({ props }) : cmd.label}
       </>
     );
     if (cmd.title) {
@@ -307,7 +313,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       );
     }
     let onClick =
-      cmd.onClick != null ? () => cmd.onClick?.({ props }) : undefined;
+      cmd.onClick != null
+        ? (event) => cmd.onClick?.({ props, event })
+        : undefined;
     if (onClick == null && cmd.action) {
       onClick = () => {
         // common special case default
@@ -318,11 +326,45 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (onClick == null) {
       throw Error(`one of onClick or action must be specified for ${name}`);
     }
+    if (cmd.keyboard) {
+      label = (
+        <div style={{ width: "300px" }}>
+          {label}
+          <div style={{ float: "right", color: "#888" }}>{cmd.keyboard}</div>
+        </div>
+      );
+    }
+    let key;
+    if (typeof cmd.label == "string") {
+      key = cmd.label;
+    } else if (typeof cmd.title == "string") {
+      key = cmd.title;
+    } else if (typeof cmd.action == "string") {
+      key = cmd.action;
+    } else if (typeof cmd.icon == "string") {
+      key = cmd.icon;
+    } else {
+      key = "xxx";
+    }
+    //     if (cmd.confirm != null) {
+    //       // TODO: this can't work -- https://github.com/ant-design/ant-design/issues/22578 -- so we need to create a modal like with Jupyter.
+    //       label = (
+    //         <Popconfirm
+    //           {...cmd.confirm}
+    //           onConfirm={onClick}
+    //           getPopupContainer={(trigger) => trigger.parentElement!}
+    //         >
+    //           {label}
+    //         </Popconfirm>
+    //       );
+    //     }
 
     return {
+      disabled: cmd.disabled?.({ props, read_only }),
       label,
       onClick,
-      key: name,
+      key,
+      children: cmd.children?.map((x) => commandToMenuItem(x, subs)),
     };
   }
 
@@ -490,13 +532,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <DropdownMenu
         key="types"
         cocalc-test={"types-dropdown"}
-        button={true}
         style={{
           float: "left",
           height: button_height(),
           marginBottom: "5px",
-          marginRight: "3px",
+          marginRight: "10px",
         }}
+        hide_down={false}
         title={title}
         items={items}
       />
@@ -567,113 +609,34 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function splitMenuGroup() {
-    return removeNulls([command("split-row"), command("split-col")]);
+    return removeNulls([
+      command("split-row"),
+      command("split-col"),
+      command("maximize"),
+      command("close"),
+    ]);
   }
 
   function showPanelsGroup() {
     return removeNulls([
+      command("show-time-travel"),
+      command("print"),
       command("show-terminal"),
       command("show-shell"),
       command("show-table-of-contents"),
-      command("show-guide", props.editor_spec[props.type]?.guide_info),
+      command("show-guide"),
       command("show-search"),
       command("show-overview"),
       command("show-pages"),
       command("show-slideshow"),
       command("show-speaker-notes"),
+      command("edit-init-script"),
+      command("show-help"),
     ]);
   }
 
   function findGroup() {
     return removeNulls([command("show-search")]);
-  }
-
-  function zoomOutMenuItem() {
-    if (!is_visible("decrease_font_size", true)) {
-      return;
-    }
-    return {
-      key: "font-increase",
-      label: (
-        <>
-          <Icon name={"search-minus"} /> Zoom Out
-        </>
-      ),
-      onClick: () => props.actions.decrease_font_size(props.id),
-      title: "Decrease font size (control + <)",
-    };
-  }
-
-  function zoomInMenuItem() {
-    if (!is_visible("increase_font_size", true)) {
-      return;
-    }
-    return {
-      key: "font-decrease",
-      title: "Increase font size (control + >)",
-      onClick: () => props.actions.increase_font_size(props.id),
-      label: (
-        <>
-          <Icon name={"search-plus"} /> Zoom In
-        </>
-      ),
-    };
-  }
-
-  function zoomSetSubmenu() {
-    if (!is_visible("set_zoom", true)) {
-      return;
-    }
-
-    const children: MenuItems = [50, 85, 100, 115, 125, 150, 200].map(
-      (zoom) => {
-        return {
-          key: `${zoom}`,
-          label: `${zoom}%`,
-          onClick: () => {
-            props.actions.set_zoom(zoom / 100, props.id);
-          },
-        };
-      },
-    );
-
-    const label =
-      props.font_size == null
-        ? "Zoom"
-        : `${Math.round((100 * props.font_size) / get_default_font_size())}%`;
-
-    return {
-      key: "zoom-levels",
-      title: "Set specific zoom",
-      label,
-      children,
-    };
-  }
-
-  function zoomPageWidthMenuItem() {
-    return {
-      key: "text-width",
-      title: "Zoom to page width",
-      label: (
-        <>
-          <Icon name={"ColumnWidthOutlined"} /> Zoom to Width
-        </>
-      ),
-      onClick: () => props.actions.zoom_page_width?.(props.id),
-    };
-  }
-
-  function zoomPageHeightMenuItem() {
-    return {
-      key: "text-height",
-      title: "Zoom to page height",
-      label: (
-        <>
-          <Icon name={"ColumnHeightOutlined"} /> Zoom to Height
-        </>
-      ),
-      onClick: () => props.actions.zoom_page_height?.(props.id),
-    };
   }
 
   function render_sync(labels): Rendered {
@@ -821,158 +784,36 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function cutMenuItem() {
-    if (!is_visible("cut")) {
-      return;
-    }
-    return {
-      key: "cut",
-      title: "Cut selection",
-      onClick: () => props.editor_actions.cut(props.id),
-      label: (
-        <>
-          <Icon name={"scissors"} /> Cut
-        </>
-      ),
-      disabled: read_only,
-    };
-  }
-
-  function pasteMenuItem() {
-    if (!is_visible("paste")) {
-      return;
-    }
-    return {
-      key: "paste",
-      title: "Paste buffer",
-      onClick: debounce(() => props.editor_actions.paste(props.id, true), 200, {
-        leading: true,
-        trailing: false,
-      }),
-      label: (
-        <>
-          <Icon name={"paste"} /> Paste
-        </>
-      ),
-      disabled: read_only,
-    };
-  }
-
-  function copyMenuItem() {
-    if (!is_visible("copy")) {
-      return;
-    }
-    return {
-      key: "copy",
-      title: "Copy selection",
-      onClick: () => props.editor_actions.copy(props.id),
-      label: (
-        <>
-          <Icon name={"copy"} /> Copy
-        </>
-      ),
-      disabled: read_only,
-    };
-  }
-
   function copyGroup() {
-    const v: MenuItem[] = [];
-    let x;
-    if ((x = cutMenuItem())) {
-      v.push(x);
-    }
-    if ((x = copyMenuItem())) {
-      v.push(x);
-    }
-    if ((x = pasteMenuItem())) {
-      v.push(x);
-    }
-    return v;
+    return removeNulls([command("cut"), command("copy"), command("paste")]);
   }
 
   function zoomMenuGroup() {
-    const v: MenuItem[] = [];
-    let x;
-    if ((x = zoomPageHeightMenuItem())) {
-      v.push(x);
-    }
-    if ((x = zoomPageWidthMenuItem())) {
-      v.push(x);
-    }
-    if ((x = zoomInMenuItem())) {
-      v.push(x);
-    }
-    if ((x = zoomOutMenuItem())) {
-      v.push(x);
-    }
-    if ((x = zoomSetSubmenu())) {
-      v.push(x);
-    }
-    return v;
-  }
-
-  function undoMenuItem() {
-    if (!is_visible("undo")) {
-      return;
-    }
-    return {
-      key: "undo",
-      onClick: () => {
-        if (props.type == "chat") {
-          // we have to special case this until we come up with a better way of having
-          // different kinds of actions for other frames.
-          chatUndo(props.project_id, props.path);
-        } else {
-          props.editor_actions.undo(props.id);
-        }
-      },
-      label: (
-        <>
-          <Icon name="undo" /> Undo
-        </>
-      ),
-      title: "Undo last thing *you* did",
-    };
-  }
-
-  function redoMenuItem() {
-    if (!is_visible("redo")) {
-      return;
-    }
-    return {
-      key: "redo",
-      onClick: () => {
-        if (props.type == "chat") {
-          // see undo comment above
-          chatRedo(props.project_id, props.path);
-        } else {
-          props.editor_actions.redo(props.id);
-        }
-      },
-      label: (
-        <>
-          <Icon name="repeat" /> Redo
-        </>
-      ),
-      title: "Redo last thing *you* undid",
-    };
+    return removeNulls([
+      command("zoom-page-height"),
+      command("zoom-page-width"),
+      command("zoom-in"),
+      command("zoom-out"),
+      command("set-zoom"),
+    ]);
   }
 
   function undoRedoGroup() {
-    const v: MenuItem[] = [];
-    let x;
-    if ((x = undoMenuItem())) {
-      v.push(x);
-    }
-    if ((x = redoMenuItem())) {
-      v.push(x);
-    }
-    return v;
+    return removeNulls([command("undo"), command("redo")]);
+  }
+
+  function actionsGroup() {
+    return removeNulls([
+      command("halt-jupyter"),
+      command("pause"),
+      command("clear"),
+      command("kick-other-users-out"),
+    ]);
   }
 
   function renderEditMenu() {
     const v: MenuItem[] = undoRedoGroup();
-    for (const x of [copyGroup(), findGroup()]) {
+    for (const x of [copyGroup(), findGroup(), actionsGroup()]) {
       if (x.length > 0) {
         if (v.length > 0) {
           v.push({ type: "divider" });
@@ -1042,58 +883,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function show_labels(): boolean {
     return !!(props.is_only || props.is_full);
-  }
-
-  function button_title(button_name: string, def?: string): string | undefined {
-    const custom = props.editor_spec[props.type].customize_buttons;
-    if (custom != null) {
-      const x = custom[button_name];
-      if (x != null && x.title != null) {
-        return x.title;
-      }
-    }
-    if (def != undefined) {
-      return def;
-    }
-    return;
-  }
-
-  function render_timetravel(labels): Rendered {
-    if (!is_visible("time_travel")) {
-      return;
-    }
-    return (
-      <AntdButton
-        key={"timetravel"}
-        title={"Show edit history"}
-        style={{
-          ...button_style(),
-          ...(!darkMode
-            ? { color: "white", background: "#5bc0de" }
-            : undefined),
-        }}
-        size={button_size()}
-        onClick={(event) => {
-          track("time-travel");
-          if (props.actions.name != props.editor_actions.name) {
-            // a subframe editor -- always open time travel in a name tab.
-            props.editor_actions.time_travel({ frame: false });
-            return;
-          }
-          // If a time_travel frame type is available and the
-          // user does NOT shift+click, then open as a frame.
-          // Otherwise, it opens as a new tab.
-          const frame =
-            !event.shiftKey && props.editor_spec["time_travel"] != null;
-          props.actions.time_travel({
-            frame,
-          });
-        }}
-      >
-        <Icon name="history" />
-        <VisibleMDLG>{labels ? " TimeTravel" : undefined}</VisibleMDLG>
-      </AntdButton>
-    );
   }
 
   function render_chatgpt(labels): Rendered {
@@ -1174,32 +963,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_help(labels: boolean): Rendered {
-    if (!is_visible("help", true) || is_public) {
-      return;
-    }
-    return (
-      <div
-        key="help"
-        ref={getTourRef("help")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          title={"Show documentation for working with this editor"}
-          bsSize={button_size()}
-          onClick={() =>
-            typeof props.actions.help === "function"
-              ? props.actions.help(props.type)
-              : undefined
-          }
-        >
-          <Icon name="question-circle" />{" "}
-          <VisibleMDLG>{labels ? "Docs…" : undefined}</VisibleMDLG>
-        </Button>
-      </div>
-    );
-  }
-
   function render_restart(labels): Rendered {
     if (!is_visible("restart", true)) {
       return;
@@ -1249,9 +1012,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const v: Rendered[] = [];
     let x: Rendered;
     if ((x = render_save(labels))) v.push(x);
-    if (!is_public) {
-      if ((x = render_timetravel(labels))) v.push(x);
-    }
     if ((x = render_chatgpt(labels))) v.push(x);
     if ((x = render_reload(labels))) v.push(x);
     if (v.length == 1) return v[0];
@@ -1367,115 +1127,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_kick_other_users_out(): Rendered {
-    if (!is_visible("kick_other_users_out")) {
-      return;
-    }
-    return (
-      <div
-        key={"kick_other_users_out"}
-        ref={getTourRef("kick_other_users_out")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          bsSize={button_size()}
-          onClick={() => props.actions.kick_other_users_out(props.id)}
-          title={"Kick all other users out"}
-        >
-          <Icon name={"skull-crossbones"} />
-        </Button>
-      </div>
-    );
-  }
-
-  function render_pause(labels): Rendered {
-    if (!is_visible("pause")) {
-      return;
-    }
-    let icon: IconName, title: string, style: ButtonStyle | undefined;
-    if (props.is_paused) {
-      icon = "play";
-      title = "Play";
-      style = "success";
-    } else {
-      icon = "pause";
-      title = "Pause";
-    }
-    return (
-      <div
-        key="pause"
-        ref={getTourRef("pause")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          bsSize={button_size()}
-          bsStyle={style}
-          onClick={() => {
-            if (props.is_paused) {
-              props.actions.unpause(props.id);
-            } else {
-              props.actions.pause(props.id);
-            }
-          }}
-          title={title}
-        >
-          <Icon name={icon} />
-          <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
-        </Button>
-      </div>
-    );
-  }
-
-  function render_edit_init_script(): Rendered {
-    if (!is_visible("edit_init_script")) {
-      return;
-    }
-    return (
-      <div
-        key="edit_init_script"
-        ref={getTourRef("edit_init_script")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          bsSize={button_size()}
-          onClick={() => props.actions.edit_init_script(props.id)}
-          title={"Edit initialization script"}
-        >
-          <Icon name={"rocket"} />{" "}
-        </Button>
-      </div>
-    );
-  }
-
-  function render_clear(): Rendered {
-    if (!is_visible("clear")) {
-      return;
-    }
-    const info = props.editor_spec[props.type].clear_info ?? {
-      text: "Clear this frame?",
-      confirm: "Yes",
-    };
-    const title = <div style={{ maxWidth: "250px" }}>{info.text}</div>;
-    const icon = <Icon unicode={0x2620} />;
-    return (
-      <Popconfirm
-        key={"clear"}
-        placement={"bottom"}
-        title={title}
-        icon={icon}
-        onConfirm={() => props.actions.clear?.(props.id)}
-        okText={info.confirm}
-        cancelText={"Cancel"}
-      >
-        <div ref={getTourRef("clear")} style={{ display: "inline-block" }}>
-          <Button bsSize={button_size()} title={"Clear"}>
-            {icon}{" "}
-          </Button>
-        </div>
-      </Popconfirm>
-    );
-  }
-
   function render_close_and_halt(labels: boolean): Rendered {
     if (!is_visible("close_and_halt")) {
       return;
@@ -1490,19 +1141,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       >
         <Icon name={"PoweroffOutlined"} />{" "}
         <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_halt_jupyter(): Rendered {
-    if (!is_visible("halt_jupyter")) return;
-    return (
-      <Button
-        key={"halt_jupyter"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.halt_jupyter?.()}
-      >
-        <Icon name={"PoweroffOutlined"} /> <VisibleMDLG>Halt</VisibleMDLG>
       </Button>
     );
   }
@@ -1527,23 +1165,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_print(labels): Rendered {
-    if (!is_visible("print") || student_project_functionality.disableActions) {
-      return;
-    }
-    return (
-      <Button
-        key={"print"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.print(props.id)}
-        title={"Print file..."}
-      >
-        <Icon name={"print"} />{" "}
-        <VisibleMDLG>{labels ? "Print" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
   function render_edit(): Rendered {
     if (!is_visible("edit") || is_public) {
       return;
@@ -1553,7 +1174,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"edit"}
         bsSize={button_size()}
         onClick={() => props.actions["edit"]?.(props.id)}
-        title={button_title("shell", "Click to edit file directly here")}
+        title={"Click to edit file directly here"}
       >
         <Icon name={"lock"} /> <VisibleMDLG>Locked</VisibleMDLG>
       </Button>
@@ -1569,7 +1190,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"readonly-view"}
         bsSize={button_size()}
         onClick={() => props.actions["readonly_view"]?.(props.id)}
-        title={button_title("shell", "Click to switch to readonly view")}
+        title={"Click to switch to readonly view"}
       >
         <Icon name={"pencil"} /> <VisibleMDLG>Editable</VisibleMDLG>
       </Button>
@@ -1634,9 +1255,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       if ((x = render_tour(labels))) {
         v.push(x);
       }
+      <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />;
       v.push(renderFileMenu());
       v.push(renderEditMenu());
       v.push(renderViewMenu());
+      <div style={{ border: "1px solid #ccc", margin: "5px 5px 5px 0px" }} />;
       v.push(render_save_timetravel_group(labels));
       v.push(render_build());
       v.push(render_force_build());
@@ -1651,19 +1274,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(render_close_and_halt(labels));
 
       v.push(render_download(labels));
-      v.push(render_pause(labels));
       v.push(render_find_replace_group());
       if (!is_public) {
         v.push(render_format_group());
       }
-      v.push(render_halt_jupyter());
-      v.push(render_clear());
-      v.push(render_kick_other_users_out());
-      v.push(render_edit_init_script());
       v.push(render_count_words());
-      v.push(render_print(labels));
       v.push(render_export_to_markdown(labels));
-      v.push(render_help(labels));
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -1831,6 +1447,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         ref={getTourRef("title")}
         style={{
           ...TITLE_STYLE,
+          margin: `${props.is_only || props.is_full ? "7px" : "5px"} 5px`,
           color: is_active ? undefined : "#777",
         }}
       >
@@ -2011,12 +1628,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         id={`titlebar-${props.id}`}
         className={"cc-frame-tree-title-bar"}
       >
+        {allButtonsPopover()}
         {renderComputeServer()}
         {render_title()}
-        <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />
         {render_main_buttons()}
         {render_connection_status()}
-        {allButtonsPopover()}
         {render_control()}
       </div>
       {render_confirm_bar()}

@@ -114,6 +114,7 @@ export const DropdownMenu: React.FC<Props> = (_: Readonly<Props>) => {
   // items is the way to go, i.e. instead of instantiating many react elements, Antd wants a list of dicts.
   return (
     <Dropdown
+      destroyPopupOnHide
       trigger={["click"]}
       placement={"bottomLeft"}
       menu={{ items, style: menuStyle, mode }}

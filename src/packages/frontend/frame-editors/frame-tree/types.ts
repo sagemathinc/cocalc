@@ -4,8 +4,8 @@
  */
 
 import { Map } from "immutable";
-
 import { IconName } from "@cocalc/frontend/components/icon";
+import type { Command } from "./commands";
 
 export type FrameDirection = "row" | "col";
 
@@ -35,11 +35,6 @@ export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
 // Editor spec
 
-interface ButtonCustomize {
-  text?: string; // overrides text content of the button
-  title?: string; // overrides tooltip that pops up on hover.
-}
-
 type ButtonFunction = (path: string) => { [button_name: string]: true };
 
 export interface EditorDescription {
@@ -48,8 +43,8 @@ export interface EditorDescription {
   icon: IconName;
   component: any; // React component
   buttons?: { [button_name: string]: true } | ButtonFunction;
-  // NOTE: customize is only implemented for shell button right now!
-  customize_buttons?: { [button_name: string]: ButtonCustomize };
+  // customize_buttons: use this to easily override label, tooltip, or anything else about ANY button command!
+  customize_buttons?: { [button_name: string]: Partial<Command> };
   hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
   subframe_init?: Function;
   style?: object;
@@ -60,7 +55,6 @@ export interface EditorDescription {
   gutters?: string[]; // I think it's cm gutters
   hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
   clear_info?: { text: string; confirm: string };
-  guide_info?: { title?: string; descr?: string; icon?: IconName };
   placeholder?: string; // placeholder text to use when empty.
 }
 

@@ -13,6 +13,9 @@ import { TerminalFrame } from "./terminal";
 import { CommandsGuide } from "./commands-guide";
 import { set } from "@cocalc/util/misc";
 
+const CLEAR =
+  "Clearing this terminal frame terminates any running programs, respawns the shell, and cleans up the display buffer.";
+
 export const terminal = {
   short: "Terminal",
   name: "Terminal",
@@ -39,13 +42,23 @@ export const terminal = {
     /*"reload" */
   ]),
   hide_public: true, // never show this editor option for public view
-  clear_info: {
-    text: "Clearing this Terminal terminates a running program, respawns the shell, and cleans up the display buffer.",
-    confirm: "Yes, clean up!",
-  },
-  guide_info: {
-    label: "Guide",
-    title: "Tool for creating, testing, and learning about terminal commands.",
+  customize_buttons: {
+    guide: {
+      label: "Guide",
+      title:
+        "Tool for creating, testing, and learning about terminal commands.",
+    },
+    help: {
+      title: "Show documentation for using the Linux Terminal in CoCalc.",
+    },
+    clear: {
+      title: CLEAR,
+      confirm: {
+        title: "Clear this Terminal?",
+        description: CLEAR,
+        okText: "Yes, clean up!",
+      },
+    },
   },
 } as EditorDescription;
 

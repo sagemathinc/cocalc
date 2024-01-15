@@ -8,11 +8,7 @@
 import { createRoot } from "react-dom/client";
 
 import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
-import {
-  DropdownMenu,
-  Icon,
-  IconName,
-} from "@cocalc/frontend/components";
+import { DropdownMenu, Icon, IconName } from "@cocalc/frontend/components";
 import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_actions } from "@cocalc/frontend/project_store";
@@ -77,11 +73,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         onClick: () => handle_click(name),
         label: (
           <>
-            <Icon
-              name={icon}
-              style={{ width: "25px" }}
-            />{" "}
-            {`${capitalize(name)}...`}
+            <Icon name={icon} style={{ width: "25px" }} /> {capitalize(name)}
           </>
         ),
       };

@@ -315,7 +315,7 @@ export default function SelectComputeServer({
               style={{ marginRight: "5px", color: "#666" }}
               name="servers"
             />{" "}
-            Server...
+            Server
           </span>
         }
         open={open}

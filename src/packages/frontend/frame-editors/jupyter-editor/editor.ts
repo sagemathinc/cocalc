@@ -49,16 +49,17 @@ export const EDITOR_SPEC = {
       "help",
       "compute_server",
     ]),
-    guide_info: {
-      label: "Snippets",
-      icon: SNIPPET_ICON_NAME,
-      title: "Open a panel containing code snippets.",
-    },
     customize_buttons: {
+      guide: {
+        label: "Snippets",
+        icon: SNIPPET_ICON_NAME,
+        title: "Open a panel containing code snippets.",
+      },
       shell: {
-        text: "Console",
+        label: "Jupyter Console",
+        icon: "ipynb",
         title:
-          "Open command line Jupyter console session attached to the same kernel as notebook",
+          "Open the Jupyter command line console connected to the running kernel.",
       },
     },
   } as EditorDescription,
