@@ -3,6 +3,8 @@ import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 import { Icon } from "@cocalc/frontend/components";
 import { debounce } from "lodash";
 import type { ReactNode } from "react";
+import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
+import { IS_MACOS } from "@cocalc/frontend/feature";
 
 export interface Command {
   title?: JSX.Element | string;
@@ -342,6 +344,66 @@ export const COMMANDS: { [command: string]: Command } = {
       props.actions.time_travel({
         frame,
       });
+    },
+  },
+
+  find: {
+    action: "find",
+    label: "Find",
+    icon: "search",
+    keyboard: "control + f",
+  },
+  "goto-line": {
+    action: "goto_line",
+    label: "Goto Line",
+    icon: "bolt",
+    keyboard: "control + l",
+  },
+  replace: {
+    action: "replace",
+    label: "Replace",
+    icon: "replace",
+    disabled: ({ read_only }) => read_only,
+  },
+
+  "auto-indent": {
+    action: "auto_indent",
+    label: "Auto Indent",
+    title: "Automatically indent selected code",
+    disabled: ({ read_only }) => read_only,
+    icon: "indent",
+  },
+
+  format: {
+    action: "format",
+    label: "Format",
+    title: "Syntactically format the document.",
+    icon: FORMAT_SOURCE_ICON,
+  },
+
+  build: {
+    action: "build",
+    label: "Build",
+    title:
+      "Build.  To disable automatic builds, change Account → Editor → 'Build on save'.",
+    icon: "play-circle",
+  },
+
+  "force-build": {
+    action: "force_build",
+    label: "Force Build",
+    title: "Force rebuild entire project.",
+    icon: "play",
+  },
+
+  sync: {
+    action: "sync",
+    label: "Synchronize Views",
+    keyboard: `${IS_MACOS ? "⌘" : "alt"} + enter`,
+    title: "Synchronize the latex source view with the PDF output",
+    icon: "sync",
+    onClick: ({ props }) => {
+      props.actions.sync?.(props.id, props.editor_actions);
     },
   },
 };

@@ -41,10 +41,8 @@ import {
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
-import { IS_MACOS } from "@cocalc/frontend/feature";
 import { copy, path_split, trunc_middle } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
-import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { is_safari } from "../generic/browser";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
@@ -619,6 +617,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function showPanelsGroup() {
     return removeNulls([
+      command("sync"),
       command("show-time-travel"),
       command("print"),
       command("show-terminal"),
@@ -636,24 +635,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function findGroup() {
-    return removeNulls([command("show-search")]);
-  }
-
-  function render_sync(labels): Rendered {
-    if (!is_visible("sync") || props.actions.sync == null) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"sync"}
-        title={`Synchronize views (${IS_MACOS ? "⌘" : "Alt"} + Enter)`}
-        bsSize={button_size()}
-        onClick={() => props.actions.sync?.(props.id, props.editor_actions)}
-      >
-        <Icon name="sync" />{" "}
-        {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
-      </StyledButton>
-    );
+    return removeNulls([
+      command("show-search"),
+      command("find"),
+      command("replace"),
+      command("goto-line"),
+    ]);
   }
 
   function render_switch_to_file(): Rendered {
@@ -713,77 +700,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_replace(): Rendered {
-    if (!is_visible("replace")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"replace"}
-        title={"Replace text"}
-        onClick={() => props.editor_actions.replace(props.id)}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="replace" />
-      </StyledButton>
-    );
-  }
-
-  function render_find(): Rendered {
-    if (!is_visible("find")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"find"}
-        title={"Find text"}
-        onClick={() => props.editor_actions.find(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name="search" />
-      </StyledButton>
-    );
-  }
-
-  function render_goto_line(): Rendered {
-    if (!is_visible("goto_line")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"goto-line"}
-        title={"Jump to line"}
-        onClick={() => props.editor_actions.goto_line(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name="bolt" />
-      </StyledButton>
-    );
-  }
-
-  function render_find_replace_group(): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
-    x = render_find();
-    if (x) {
-      v.push(x);
-    }
-    if (!is_public) {
-      x = render_replace();
-      if (x) {
-        v.push(x);
-      }
-    }
-    x = render_goto_line();
-    if (x) {
-      v.push(x);
-    }
-    if (v.length > 0) {
-      return <ButtonGroup key={"find-group"}>{v}</ButtonGroup>;
-    }
-  }
-
   function copyGroup() {
     return removeNulls([command("cut"), command("copy"), command("paste")]);
   }
@@ -804,6 +720,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function actionsGroup() {
     return removeNulls([
+      command("build"),
+      command("force-build"),
+      command("format"),
+      command("auto-indent"),
       command("halt-jupyter"),
       command("pause"),
       command("clear"),
@@ -862,23 +782,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         />
       );
     }
-  }
-
-  function render_format_group(): Rendered {
-    if (!is_visible("auto_indent")) {
-      return;
-    }
-    return (
-      <Button
-        key={"auto-indent"}
-        title={"Automatically format selected code"}
-        onClick={() => props.editor_actions.auto_indent(props.id)}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="indent" />
-      </Button>
-    );
   }
 
   function show_labels(): boolean {
@@ -1018,65 +921,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
     }
-  }
-
-  function render_format(labels): Rendered {
-    if (
-      !is_visible("format") ||
-      !props.editor_actions.has_format_support(
-        props.id,
-        props.available_features,
-      )
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"format"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.format(props.id)}
-        title={"Syntactically format the document."}
-      >
-        <Icon name={FORMAT_SOURCE_ICON} />{" "}
-        <VisibleMDLG>{labels ? "Format" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_build(): Rendered {
-    if (!is_visible("build", true)) {
-      return;
-    }
-    const title =
-      "Build (disable automatic builds in Account → Editor → 'Build on save')";
-    return (
-      <Button
-        key={"build"}
-        disabled={!!props.status}
-        bsSize={button_size()}
-        onClick={() => props.actions.build?.(props.id, false)}
-        title={title}
-      >
-        <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_force_build(): Rendered {
-    if (!is_visible("force_build", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"force-build"}
-        disabled={!!props.status}
-        bsSize={button_size()}
-        onClick={() => props.actions.force_build?.(props.id)}
-        title={"Force rebuild entire project"}
-      >
-        <Icon name={"play"} /> <VisibleMDLG>Force Rebuild</VisibleMDLG>
-      </Button>
-    );
   }
 
   function render_rescan_latex_directives(): Rendered {
@@ -1261,23 +1105,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(renderViewMenu());
       <div style={{ border: "1px solid #ccc", margin: "5px 5px 5px 0px" }} />;
       v.push(render_save_timetravel_group(labels));
-      v.push(render_build());
-      v.push(render_force_build());
       v.push(render_edit());
       v.push(render_readonly_view());
-      v.push(render_sync(labels));
       v.push(render_switch_to_file());
       v.push(render_clean(labels));
       v.push(render_rescan_latex_directives());
-      v.push(render_format(labels));
       v.push(render_restart(labels));
       v.push(render_close_and_halt(labels));
-
       v.push(render_download(labels));
-      v.push(render_find_replace_group());
-      if (!is_public) {
-        v.push(render_format_group());
-      }
       v.push(render_count_words());
       v.push(render_export_to_markdown(labels));
 
