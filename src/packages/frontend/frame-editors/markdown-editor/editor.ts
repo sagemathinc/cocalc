@@ -71,6 +71,9 @@ const EDITOR_SPEC = {
       // "format",
       "sync",
     ]),
+    format_bar_exclude: {
+      format_buttons: true,
+    },
   } as EditorDescription,
   markdown: {
     short: "Locked",
@@ -103,7 +106,7 @@ const EDITOR_SPEC = {
 };
 
 export const Editor = createEditor({
-  format_bar: true,
+  format_bar: false,
   format_bar_exclude: {
     format_buttons: true,
   },

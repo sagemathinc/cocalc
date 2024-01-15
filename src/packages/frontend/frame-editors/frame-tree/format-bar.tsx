@@ -21,6 +21,7 @@ interface Props {
   actions: any; // type of file being edited, which impacts what buttons are shown.
   extension: string; // store   : rtypes.immutable.Map      # state about format bar stored in external store
   exclude?: SetMap; // exclude buttons with these names
+  is_current?: boolean;
 }
 
 function shouldMemoize() {
@@ -28,7 +29,9 @@ function shouldMemoize() {
 }
 
 export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
-  const { actions, extension, exclude } = props;
+  const { actions, extension, exclude, is_current } = props;
+
+  console.log({ is_current });
 
   function render_button(
     name: string,
@@ -36,7 +39,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
     label?: string | Rendered, // if a string, the named icon; if a rendered
     // component for the button, show that in the button; if not given, use
     // icon with given name.
-    fontSize?: string
+    fontSize?: string,
   ): Rendered {
     if (exclude?.[name]) {
       return;
@@ -71,7 +74,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
         {render_button(
           "sup",
           "Make selected text a superscript",
-          "superscript"
+          "superscript",
         )}
         {render_button("comment", "Comment out selected text")}
       </ButtonGroup>
@@ -84,7 +87,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
         {render_button(
           "format_code",
           "Insert block of source code",
-          "CodeOutlined"
+          "CodeOutlined",
         )}
         {render_button("insertunorderedlist", "Insert unordered list", "list")}
         {render_button("insertorderedlist", "Insert ordered list", "list-ol")}
@@ -92,18 +95,18 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
         {render_button(
           "display_equation",
           "Insert displayed LaTeX math",
-          <span>$$</span>
+          <span>$$</span>,
         )}
         {render_button(
           "quote",
           "Make selected text into a quotation",
-          "quote-left"
+          "quote-left",
         )}
         {render_button("table", "Insert table", "table")}
         {render_button(
           "horizontalRule",
           "Insert horizontal rule",
-          <span>&mdash;</span>
+          <span>&mdash;</span>,
         )}
       </ButtonGroup>
     );
@@ -118,7 +121,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
           ? render_button(
               "SpecialChar",
               "Insert special character...",
-              <span style={{ fontSize: "larger" }}>&Omega;</span>
+              <span style={{ fontSize: "larger" }}>&Omega;</span>,
             )
           : undefined}
       </ButtonGroup>
@@ -137,22 +140,22 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
           {render_button(
             "justifyleft",
             "Left justify current text",
-            "align-left"
+            "align-left",
           )}
           {render_button(
             "justifycenter",
             "Center current text",
-            "align-center"
+            "align-center",
           )}
           {render_button(
             "justifyright",
             "Right justify current text",
-            "align-right"
+            "align-right",
           )}
           {render_button(
             "justifyfull",
             "Fully justify current text",
-            "align-justify"
+            "align-justify",
           )}
         </ButtonGroup>
         <Gap />
@@ -160,7 +163,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
           {render_button(
             "unformat",
             "Remove all formatting from selected text",
-            "remove"
+            "remove",
           )}
         </ButtonGroup>
       </>
@@ -217,7 +220,9 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <div style={{ background: COLORS.EDITOR.COL_BAR_BACKGROUND, padding: "0 1px" }}>
+    <div
+      style={{ background: COLORS.EDITOR.COL_BAR_BACKGROUND, padding: "0 1px" }}
+    >
       {render_font_dropdowns()}
       <div className={"cc-frame-tree-format-bar"}>
         {render_text_style_buttons()}
