@@ -561,7 +561,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       {
         label: "Shell",
         icon: "terminal",
-        hoverText: "Open the associated Jupyter Console session",
+        tooltip: "Open the associated Jupyter Console session",
         action: () => {
           const id = this._get_active_id();
           this.shell(id);
@@ -571,7 +571,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       {
         label: "Print",
         icon: "print",
-        hoverText: "Print this notebook as static HTML",
+        tooltip: "Print this notebook as static HTML",
         action: () => {
           const id = this._get_active_id();
           this.print(id);
@@ -582,7 +582,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
         priority: -1,
         label: "Help",
         icon: "question-circle",
-        hoverText: "Open the documentation for CoCalc's Jupyter Editor",
+        tooltip: "Open the documentation for CoCalc's Jupyter Editor",
         action: () => this.help(),
         type: "entry",
       },

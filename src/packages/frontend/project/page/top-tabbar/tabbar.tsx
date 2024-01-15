@@ -141,7 +141,7 @@ export function TopTabBarActions(
           />
           {actions != null ? (
             <ExtraButtons
-            editorActions={actions}
+              editorActions={actions}
               path={path}
               topBarActions={topBarActions}
               name={name}

@@ -48,7 +48,7 @@ export function ExtraButtons(
     if (conf.type === "divider") {
       return { key: `${index}`, type: "divider" };
     }
-    const { getAction, label, icon, hoverText } = conf;
+    const { getAction, label, icon, tooltip: hoverText } = conf;
     const action = conf.action ?? getAction?.(local_view_state);
 
     return {

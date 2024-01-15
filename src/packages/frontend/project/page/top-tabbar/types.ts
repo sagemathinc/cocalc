@@ -10,7 +10,7 @@ export type TopBarAction =
   | {
       type: "entry";
       label: string;
-      hoverText?: string;
+      tooltip?: string;
       priority?: number; // default 0
       icon?: IconName;
       action?: (any) => any; // captures a static action

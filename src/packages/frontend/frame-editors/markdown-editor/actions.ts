@@ -7,31 +7,34 @@
 Markdown Editor Actions
 */
 
-import { debounce } from "lodash";
-import { delay } from "awaiting";
-import { toggle_checkbox } from "@cocalc/frontend/editors/task-editor/desc-rendering";
 import $ from "jquery";
+
+import { delay } from "awaiting";
+import { fromJS } from "immutable";
+import { debounce } from "lodash";
+
+import {
+  TableOfContentsEntry,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
+import { scrollToHeading } from "@cocalc/frontend/editors/slate/control";
+import { SlateEditor } from "@cocalc/frontend/editors/slate/editable-markdown";
+import { formatAction as slateFormatAction } from "@cocalc/frontend/editors/slate/format";
+import {
+  markdownPositionToSlatePoint,
+  scrollIntoView as scrollSlateIntoView,
+  slatePointToMarkdownPosition,
+} from "@cocalc/frontend/editors/slate/sync";
+import { toggle_checkbox } from "@cocalc/frontend/editors/task-editor/desc-rendering";
+import { parseTableOfContents } from "@cocalc/frontend/markdown";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import {
   Actions as CodeEditorActions,
   CodeEditorState,
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
-import { scrollToHeading } from "@cocalc/frontend/editors/slate/control";
-import { SlateEditor } from "@cocalc/frontend/editors/slate/editable-markdown";
-import { formatAction as slateFormatAction } from "@cocalc/frontend/editors/slate/format";
-import {
-  TableOfContentsEntryList,
-  TableOfContentsEntry,
-} from "@cocalc/frontend/components";
-import { fromJS } from "immutable";
-import { parseTableOfContents } from "@cocalc/frontend/markdown";
-import {
-  markdownPositionToSlatePoint,
-  slatePointToMarkdownPosition,
-  scrollIntoView as scrollSlateIntoView,
-} from "@cocalc/frontend/editors/slate/sync";
-import { open_new_tab } from "@cocalc/frontend/misc";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
@@ -58,7 +61,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
     this._syncstring.on(
       "change",
-      debounce(this.updateTableOfContents.bind(this), 1500)
+      debounce(this.updateTableOfContents.bind(this), 1500),
     );
   }
 
@@ -172,13 +175,13 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   }
 
   public async show_table_of_contents(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "markdown_table_of_contents",
       "col",
       true,
-      1 / 3
+      1 / 3,
     );
     // the click to select TOC focuses the active id back on the notebook
     await delay(0);
@@ -198,7 +201,9 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       // There is no table of contents frame so don't update that info.
       return;
     }
-    const contents = fromJS(parseTableOfContents(this._syncstring.to_str())) as any;
+    const contents = fromJS(
+      parseTableOfContents(this._syncstring.to_str()),
+    ) as any;
     this.setState({ contents });
   }
 
@@ -229,7 +234,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
   private async sync_cm_to_slate(
     id: string,
-    editor_actions: Actions
+    editor_actions: Actions,
   ): Promise<void> {
     const cm = editor_actions._cm[id];
     if (cm == null) return;
@@ -275,7 +280,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       true,
       false,
       undefined,
-      pos.ch
+      pos.ch,
     );
   }
 
@@ -298,7 +303,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
   languageModelGetText(
     frameId: string,
-    scope: "selection" | "cell" | "all" = "all"
+    scope: "selection" | "cell" | "all" = "all",
   ): string {
     const node = this._get_frame_node(frameId);
     if (node?.get("type") == "cm") {
@@ -313,7 +318,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
         if (ed.selectionIsCollapsed()) {
           // if collapsed it could still be a void element, in which case we grab it.
           for (const x of fragment) {
-            if (x?.['isVoid']) {
+            if (x?.["isVoid"]) {
               return ed.getSourceValue(fragment);
             }
           }
@@ -328,5 +333,18 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       // shouldn't happen but it's an ok fallback.
       return this._syncstring.to_str();
     }
+  }
+
+  public getTopBarActions(): TopBarActions {
+    const actions = super.getTopBarActions();
+    // add markdown-specific actions
+    actions.push({
+      type: "entry",
+      label: "Contents",
+      icon: "align-right",
+      tooltip: "Show the Table of Contents",
+      action: () => this.show_table_of_contents(),
+    });
+    return actions;
   }
 }
