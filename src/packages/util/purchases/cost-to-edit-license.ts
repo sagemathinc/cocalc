@@ -1,14 +1,17 @@
 // See notes in packages/server/purchases/edit-license.ts for how this works.
 
 import { cloneDeep } from "lodash";
+import dayjs from "dayjs";
+
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { is_integer } from "@cocalc/util/type-checking";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import type { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
-import dayjs from "dayjs";
+
 import currentLicenseValue from "./current-license-value";
+import { round2 } from "../misc";
 
 export interface Changes {
   end?: Date;
@@ -27,21 +30,15 @@ const log = (..._args) => {};
 export default function costToEditLicense(
   info: PurchaseInfo,
   changes: Changes,
+  now: Date=new Date(),
 ): { cost: number; modifiedInfo: PurchaseInfo } {
   if (info.type == "vouchers") {
     throw Error("bug -- a license for vouchers makes no sense");
   }
   const originalInfo = cloneDeep(info);
-  if (info.subscription) {
-    // We set subscription to 'no' for rest of this function since otherwise
-    // compute_cost would ignore the start and end dates.
-    info = { ...info };
-    info.subscription = "no";
-  }
   log({ info, changes });
 
-  const now = new Date();
-  const recent = dayjs().subtract(5, "minutes").toDate();
+  const recent = dayjs(now).subtract(5, "minutes").toDate();
   // check constraints on the changes:
   if (changes.start != null) {
     if (info.start <= recent) {
@@ -95,12 +92,10 @@ export default function costToEditLicense(
   // Make copy of data with modified params.
   const modifiedInfo = cloneDeep(origInfo);
   if (changes.start != null) {
-    // @ts-ignore: TODO!
     modifiedInfo.start = changes.start;
   }
 
   if (changes.end != null) {
-    // @ts-ignore: TODO!
     modifiedInfo.end = changes.end;
   }
 
@@ -178,11 +173,9 @@ export default function costToEditLicense(
 
   // Determine price for the change
   const currentValue = currentLicenseValue({ info: origInfo });
-  const modifiedPrice = compute_cost(modifiedInfo);
-  const cost = modifiedPrice.discounted_cost - currentValue;
+  const modifiedPrice = compute_cost(modifiedInfo, !!info.subscription);
+  const cost = round2(modifiedPrice.discounted_cost - currentValue);
   log({ cost, currentValue, modifiedPrice });
-  // We removed subscription so it didn't impact price calculation.  Now we put it back.
-  modifiedInfo.subscription = originalInfo.subscription;
   // In case of a subscription, we changed start to correctly compute the cost
   // of the change.  Set it back:
   if (modifiedInfo.subscription != "no") {

@@ -5,6 +5,7 @@ for refund or other purposes.
 
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { ONE_HOUR_MS } from "@cocalc/util/consts/billing";
 
 interface Options {
   info: PurchaseInfo;
@@ -22,7 +23,7 @@ export default function currentLicenseValue({ info }: Options): number {
   if (info.cost_per_hour) {
     // if this is set, we use it to compute the value
     // The value is cost_per_hour times the number of hours left until info.end.
-    const hoursRemaining = (info.end.valueOf() - Date.now()) / (1000 * 60 * 60);
+    const hoursRemaining = (info.end.valueOf() - Date.now()) / ONE_HOUR_MS;
     // the hoursRemaining can easily be *negative* if info.end is in the past.
     // However the value of a license is never negative, so we max with 0.
     return Math.max(0, hoursRemaining * info.cost_per_hour);

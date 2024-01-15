@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
+import { ONE_HOUR_MS, ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
@@ -12,7 +12,7 @@ import { BASIC, COSTS, GCE_COSTS, MAX, STANDARD } from "./consts";
 import { dedicatedPrice } from "./dedicated-price";
 import { Cost, PurchaseInfo } from "./types";
 
-export function compute_cost(info: PurchaseInfo): Cost {
+export function compute_cost(info: PurchaseInfo, partialPeriod: boolean=false): Cost {
   if (info.type === "disk" || info.type === "vm") {
     return compute_cost_dedicated(info);
   }
@@ -20,7 +20,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   if (info.type !== "quota") {
     throw new Error(`can only compute cost for type=quota`);
   }
-  
+
   let {
     quantity,
     user,
@@ -134,8 +134,12 @@ export function compute_cost(info: PurchaseInfo): Cost {
 
   let base_cost = cost_per_project_per_month;
 
-  // Make cost properly account for period of purchase or subscription.
-  if (subscription == "no") {
+  if (subscription === "no") {
+    // Compute license cost for a partial period which has no subscription.
+    // b) The license is a subscription, but we're only computing the cost for a
+    // portion of the subscription period (which occurs when computing refunds
+    // for a cancelled subscription)
+    //
     if (start == null) {
       throw new Error("start must be set if subscription=no");
     }
@@ -145,7 +149,26 @@ export function compute_cost(info: PurchaseInfo): Cost {
     // scale by factor of a month
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
     base_cost *= months;
-  } else if (subscription == "yearly") {
+  } else if (partialPeriod) {
+    // Compute license cost for a partial period. This happens when the license is a subscription,
+    // but we're only computing the cost for a portion of the subscription period (which occurs when
+    // computing refunds for a cancelled subscription)
+    //
+    if (start == null) {
+      throw new Error("start must be set if computing for a partial period");
+    }
+    if (end == null) {
+      throw Error("end must be set if computing for a partial period");
+    }
+    if (!info.cost_per_hour) {
+      throw Error("cost_per_hour is required when computing license cost for a partial period");
+    }
+    const hours = (end.valueOf() - start.valueOf()) / ONE_HOUR_MS;
+    base_cost = hours * info.cost_per_hour;
+  } else if (subscription === "yearly") {
+    // If we're computing the cost for an annual subscription, multiply the monthly subscription
+    // cost by 12.
+    //
     base_cost *= 12;
   }
 
@@ -171,8 +194,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
     cost: cost_total,
     discounted_cost: Math.max(min_sale, cost_total * COSTS.online_discount),
     cost_per_project_per_month,
-    // attn: cost_sub* will be multiplied by the online discount in server/licenses/purchase/charge.ts
-    // regarding min_sale, see above regarding cost_per_unit
+    // attn: cost_sub* will be multiplied by the online discount in
+    // server/licenses/purchase/charge.ts regarding min_sale, see above regarding cost_per_unit
     cost_sub_month: Math.max(min_sale / COSTS.online_discount, cost_sub_month),
     cost_sub_year: Math.max(min_sale / COSTS.online_discount, cost_sub_year),
   };

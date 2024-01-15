@@ -31,12 +31,14 @@ import costToEditLicense, {
 } from "@cocalc/util/purchases/cost-to-edit-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { getQuota } from "@cocalc/server/licenses/purchase/create-license";
-import { assertPurchaseAllowed } from "./is-purchase-allowed";
-import createPurchase from "./create-purchase";
 import getName from "@cocalc/server/accounts/get-name";
 import { query_projects_using_site_license } from "@cocalc/database/postgres/site-license/analytics";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import { currency } from "@cocalc/util/misc";
+import { ONE_HOUR_MS } from "@cocalc/util/consts/billing";
+
+import { assertPurchaseAllowed } from "./is-purchase-allowed";
+import createPurchase from "./create-purchase";
 
 const logger = getLogger("purchases:edit-license");
 
@@ -427,8 +429,7 @@ async function getSubscriptionCostPerHour(
   }
   // How many hours in the current period
   const hoursInPeriod =
-    (current_period_end.valueOf() - current_period_start.valueOf()) /
-    (1000 * 60 * 60);
+    (current_period_end.valueOf() - current_period_start.valueOf()) / ONE_HOUR_MS;
   // Divide cost of current period by hours in the period to get the cost per hour.
   return cost / hoursInPeriod;
 }
