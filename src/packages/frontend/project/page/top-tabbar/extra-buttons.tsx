@@ -27,7 +27,7 @@ export function ExtraButtons(
   props: Readonly<ExtraButtonsProps>,
 ): JSX.Element | null {
   const {
-    editorActions,
+    // editorActions,
     topBarActions,
     name,
     compact,
@@ -36,7 +36,7 @@ export function ExtraButtons(
   } = props;
   const local_view_state: TypedMap<{ active_id?: string; full_id?: string }> =
     useRedux(name, "local_view_state");
-  const { project_id } = useProjectContext();
+  const { project_id, actions } = useProjectContext();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const fullscreen: undefined | "default" | "kiosk" = useRedux(
@@ -65,7 +65,6 @@ export function ExtraButtons(
   }
 
   function appendFileActions(items: TopBarAction[]) {
-    console.log({ editorActions });
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
     if (fullscreen === "kiosk") return;
@@ -73,14 +72,17 @@ export function ExtraButtons(
     if (items.length > 0) {
       items.push({ type: "divider" });
     }
-    for (const k in file_actions) {
-      const { name, icon } = file_actions[k];
+    for (const key in file_actions) {
+      const { name, icon, hideFlyout = false } = file_actions[key];
+      if (hideFlyout) continue;
+      // we have a separate publish button right next to it
+      if (name === "share") continue;
       items.push({
         type: "entry",
         label: `${capitalize(name)}`,
         icon,
         action: () => {
-          console.log("TODO: implement FILE_ACTIONS", k, "on file", path);
+          actions?.show_file_action_panel({ path, action: key });
         },
       });
     }
