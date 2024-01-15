@@ -36,6 +36,7 @@ import {
   DropdownMenu,
   Icon,
   IconName,
+  MenuItem,
   MenuItems,
   r_join,
   Gap,
@@ -108,7 +109,7 @@ const TITLE_STYLE: CSS = {
   whiteSpace: "nowrap",
   display: "inline-block",
   maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
-  fontWeight: 500,
+  fontWeight: 550,
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -550,67 +551,66 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_zoom_out(): Rendered {
+  function zoomOutMenuItem() {
     if (!is_visible("decrease_font_size", true)) {
       return;
     }
-    return (
-      <StyledButton
-        key={"font-increase"}
-        title={"Decrease font size (control + <)"}
-        bsSize={button_size()}
-        onClick={() => props.actions.decrease_font_size(props.id)}
-      >
-        <Icon name={"search-minus"} />
-      </StyledButton>
-    );
+    return {
+      key: "font-increase",
+      label: (
+        <>
+          <Icon name={"search-minus"} /> Zoom Out
+        </>
+      ),
+      onClick: () => props.actions.decrease_font_size(props.id),
+      title: "Decrease font size (control + <)",
+    };
   }
 
-  function render_zoom_in(): Rendered {
+  function zoomInMenuItem() {
     if (!is_visible("increase_font_size", true)) {
       return;
     }
-    return (
-      <StyledButton
-        key={"font-decrease"}
-        title={"Increase font size (control + >)"}
-        onClick={() => props.actions.increase_font_size(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name={"search-plus"} />
-      </StyledButton>
-    );
+    return {
+      key: "font-decrease",
+      title: "Increase font size (control + >)",
+      onClick: () => props.actions.increase_font_size(props.id),
+      label: (
+        <>
+          <Icon name={"search-plus"} /> Zoom In
+        </>
+      ),
+    };
   }
 
-  function render_set_zoom(): Rendered {
+  function zoomSetSubmenu() {
     if (!is_visible("set_zoom", true)) {
       return;
     }
 
-    const items: MenuItems = [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
-      return {
-        key: `${zoom}`,
-        label: `${zoom}%`,
-        onClick: () => {
-          props.actions.set_zoom(zoom / 100, props.id);
-        },
-      };
-    });
+    const children: MenuItems = [50, 85, 100, 115, 125, 150, 200].map(
+      (zoom) => {
+        return {
+          key: `${zoom}`,
+          label: `${zoom}%`,
+          onClick: () => {
+            props.actions.set_zoom(zoom / 100, props.id);
+          },
+        };
+      },
+    );
 
-    const title =
+    const label =
       props.font_size == null
         ? "Zoom"
         : `${Math.round((100 * props.font_size) / get_default_font_size())}%`;
 
-    return (
-      <DropdownMenu
-        key={"zoom-levels"}
-        button={true}
-        title={title}
-        style={{ height: button_height() }}
-        items={items}
-      />
-    );
+    return {
+      key: "zoom-levels",
+      title: "Set specific zoom",
+      label,
+      children,
+    };
   }
 
   function render_zoom_page_width(): Rendered {
@@ -784,105 +784,88 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_cut(): Rendered {
+  function cutMenuItem() {
     if (!is_visible("cut")) {
       return;
     }
-    return (
-      <StyledButton
-        key={"cut"}
-        title={"Cut selected"}
-        onClick={() => props.editor_actions.cut(props.id)}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name={"scissors"} />
-      </StyledButton>
-    );
+    return {
+      key: "cut",
+      title: "Cut selection",
+      onClick: () => props.editor_actions.cut(props.id),
+      label: (
+        <>
+          <Icon name={"scissors"} /> Cut
+        </>
+      ),
+      disabled: read_only,
+    };
   }
 
-  function render_paste(): Rendered {
+  function pasteMenuItem() {
     if (!is_visible("paste")) {
       return;
     }
-    return (
-      <StyledButton
-        key={"paste"}
-        title={"Paste buffer"}
-        onClick={debounce(
-          () => props.editor_actions.paste(props.id, true),
-          200,
-          { leading: true, trailing: false },
-        )}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name={"paste"} />
-      </StyledButton>
-    );
+    return {
+      key: "paste",
+      title: "Paste buffer",
+      onClick: debounce(() => props.editor_actions.paste(props.id, true), 200, {
+        leading: true,
+        trailing: false,
+      }),
+      label: (
+        <>
+          <Icon name={"paste"} /> Paste
+        </>
+      ),
+      disabled: read_only,
+    };
   }
 
-  function render_copy(): Rendered {
+  function copyMenuItem() {
     if (!is_visible("copy")) {
       return;
     }
-    return (
-      <StyledButton
-        key={"copy"}
-        title={"Copy selected"}
-        onClick={() => props.editor_actions.copy(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name={"copy"} />
-      </StyledButton>
-    );
+    return {
+      key: "copy",
+      title: "Copy selection",
+      onClick: () => props.editor_actions.copy(props.id),
+      label: (
+        <>
+          <Icon name={"copy"} /> Copy
+        </>
+      ),
+      disabled: read_only,
+    };
   }
 
-  function render_copy_group(): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
-    if (!is_public) {
-      x = render_cut();
-      if (x) {
-        v.push(x);
-      }
+  function copyGroup() {
+    const v: MenuItem[] = [];
+    let x;
+    if ((x = cutMenuItem())) {
+      v.push(x);
     }
-    if (is_visible("copy")) {
-      v.push(render_copy());
+    if ((x = copyMenuItem())) {
+      v.push(x);
     }
-    if (!is_public) {
-      x = render_paste();
-      if (x) {
-        v.push(x);
-      }
+    if ((x = pasteMenuItem())) {
+      v.push(x);
     }
-    if (v.length > 0) {
-      return (
-        <div
-          key="copy"
-          ref={getTourRef("copy")}
-          style={{ display: "inline-block" }}
-        >
-          <ButtonGroup>{v}</ButtonGroup>
-        </div>
-      );
-    }
+    return v;
   }
 
-  function render_zoom_group(): Rendered {
-    return (
-      <div
-        key="zoom"
-        ref={getTourRef("zoom")}
-        style={{ display: "inline-block" }}
-      >
-        <AntdButton.Group>
-          {render_set_zoom()}
-          {render_zoom_out()}
-          {render_zoom_in()}
-        </AntdButton.Group>
-      </div>
-    );
+  function zoomMenuGroup() {
+    const v: MenuItem[] = [];
+    let x;
+    if ((x = zoomInMenuItem())) {
+      v.push(x);
+    }
+    if ((x = zoomOutMenuItem())) {
+      v.push(x);
+    }
+    if ((x = zoomSetSubmenu())) {
+      v.push(x);
+    }
+    return v;
   }
 
   function render_page_width_height_group(): Rendered {
@@ -907,62 +890,109 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_undo(): Rendered {
+  function undoMenuItem() {
     if (!is_visible("undo")) {
       return;
     }
-    return (
-      <Button
-        key={"undo"}
-        title={"Undo last thing you did"}
-        onClick={() => {
-          if (props.type == "chat") {
-            // we have to special case this until we come up with a better way of having
-            // different kinds of actions for other frames.
-            chatUndo(props.project_id, props.path);
-          } else {
-            props.editor_actions.undo(props.id);
-          }
-        }}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="undo" />
-      </Button>
-    );
+    return {
+      key: "undo",
+      onClick: () => {
+        if (props.type == "chat") {
+          // we have to special case this until we come up with a better way of having
+          // different kinds of actions for other frames.
+          chatUndo(props.project_id, props.path);
+        } else {
+          props.editor_actions.undo(props.id);
+        }
+      },
+      label: (
+        <>
+          <Icon name="undo" /> Undo
+        </>
+      ),
+      title: "Undo last thing *you* did",
+    };
   }
 
-  function render_redo(): Rendered {
+  function redoMenuItem() {
     if (!is_visible("redo")) {
       return;
     }
-    return (
-      <Button
-        key={"redo"}
-        title={"Redo last thing you undid"}
-        onClick={() => {
-          if (props.type == "chat") {
-            // see undo comment above
-            chatRedo(props.project_id, props.path);
-          } else {
-            props.editor_actions.redo(props.id);
-          }
-        }}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="repeat" />
-      </Button>
-    );
+    return {
+      key: "redo",
+      onClick: () => {
+        if (props.type == "chat") {
+          // see undo comment above
+          chatRedo(props.project_id, props.path);
+        } else {
+          props.editor_actions.redo(props.id);
+        }
+      },
+      label: (
+        <>
+          <Icon name="repeat" /> Redo
+        </>
+      ),
+      title: "Redo last thing *you* undid",
+    };
   }
 
-  function render_undo_redo_group(): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
-    if ((x = render_undo())) v.push(x);
-    if ((x = render_redo())) v.push(x);
+  function undoRedoGroup() {
+    const v: MenuItem[] = [];
+    let x;
+    if ((x = undoMenuItem())) {
+      v.push(x);
+    }
+    if ((x = redoMenuItem())) {
+      v.push(x);
+    }
+    return v;
+  }
+
+  function renderEditMenu() {
+    const v: MenuItem[] = undoRedoGroup();
+    let x;
+    x = copyGroup();
+    if (x.length > 0) {
+      if (v.length > 0) {
+        v.push({ type: "divider" });
+      }
+      v.push(...x);
+    }
+
     if (v.length > 0) {
-      return <ButtonGroup key={"undo-group"}>{v}</ButtonGroup>;
+      return (
+        <DropdownMenu
+          key="edit-menu"
+          style={{
+            margin: "7px 10px",
+          }}
+          title={"Edit"}
+          items={v}
+        />
+      );
+    }
+  }
+
+  function renderViewMenu() {
+    const v: MenuItem[] = [];
+    let x;
+    x = zoomMenuGroup();
+    if (x.length > 0) {
+      v.push(...x);
+    }
+
+    if (v.length > 0) {
+      return (
+        <DropdownMenu
+          key="view-menu"
+          style={{
+            margin: "7px 10px",
+          }}
+          title={"View"}
+          items={v}
+        />
+      );
     }
   }
 
@@ -1706,7 +1736,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_file_dropdown(): Rendered {
+  function renderFileMenu(): Rendered {
     if (isExplicitlyHidden("actions")) return;
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
@@ -1758,13 +1788,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
       const labels: boolean = forceLabels ?? show_labels();
 
-      const v: Rendered[] = [];
+      const v: (JSX.Element | undefined)[] = [];
       v.push(renderPage());
       let x;
       if ((x = render_tour(labels))) {
         v.push(x);
       }
-      v.push(render_file_dropdown());
+      v.push(renderFileMenu());
+      v.push(renderEditMenu());
+      v.push(renderViewMenu());
       v.push(render_save_timetravel_group(labels));
       v.push(render_build());
       v.push(render_force_build());
@@ -1773,11 +1805,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(render_sync(labels));
       v.push(render_switch_to_file());
       v.push(render_clean(labels));
-      v.push(render_zoom_group());
       v.push(render_rescan_latex_directives());
-      if (!is_public) {
-        v.push(render_undo_redo_group());
-      }
       v.push(render_terminal(labels));
       v.push(render_format(labels));
       v.push(render_restart(labels));
@@ -1786,7 +1814,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(render_page_width_height_group());
       v.push(render_download(labels));
       v.push(render_pause(labels));
-      v.push(render_copy_group());
       v.push(render_find_replace_group());
       if (!is_public) {
         v.push(render_format_group());
@@ -2156,6 +2183,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       >
         {renderComputeServer()}
         {render_title()}
+        <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />
         {render_main_buttons()}
         {render_connection_status()}
         {allButtonsPopover()}
