@@ -108,6 +108,7 @@ const TITLE_STYLE: CSS = {
   whiteSpace: "nowrap",
   display: "inline-block",
   maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
+  fontWeight: 500,
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -1705,7 +1706,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_actions_dropdown(labels: boolean): Rendered {
+  function render_file_dropdown(): Rendered {
     if (isExplicitlyHidden("actions")) return;
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
@@ -1720,8 +1721,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         filename={props.path}
         project_id={props.project_id}
         is_public={false}
-        label={labels ? "Actions" : ""}
-        style={{ height: button_height() }}
+        style={{ margin: "7px 10px" }}
       />
     );
   }
@@ -1764,8 +1764,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       if ((x = render_tour(labels))) {
         v.push(x);
       }
+      v.push(render_file_dropdown());
       v.push(render_save_timetravel_group(labels));
-      v.push(render_actions_dropdown(labels));
       v.push(render_build());
       v.push(render_force_build());
       v.push(render_edit());
