@@ -259,7 +259,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     return (
       <div
         style={{
-          // display: "flex",
           flex: "0 1 auto",
           flexDirection: "row",
           overflow: "hidden",

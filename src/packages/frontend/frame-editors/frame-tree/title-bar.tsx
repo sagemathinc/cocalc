@@ -18,6 +18,7 @@ import {
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode, useEffect, useMemo, useRef } from "react";
+
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -26,38 +27,37 @@ import {
 import {
   CSS,
   React,
-  redux,
   Rendered,
+  redux,
   useForceUpdate,
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
 import {
   DropdownMenu,
+  Gap,
   Icon,
   IconName,
   MenuItems,
-  r_join,
-  Gap,
   VisibleMDLG,
+  r_join,
 } from "@cocalc/frontend/components";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import SelectComputeServer from "@cocalc/frontend/compute/select-server";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
-import { IS_MACOS } from "@cocalc/frontend/feature";
+import { IS_MACOS, IS_MOBILE } from "@cocalc/frontend/feature";
+import userTracking from "@cocalc/frontend/user-tracking";
 import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
+import LanguageModel from "../chatgpt/title-bar-button";
 import { Actions } from "../code-editor/actions";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { is_safari } from "../generic/browser";
+import { redo as chatRedo, undo as chatUndo } from "../generic/chat";
 import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
-import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
-import LanguageModel from "../chatgpt/title-bar-button";
-import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import SelectComputeServer from "@cocalc/frontend/compute/select-server";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
