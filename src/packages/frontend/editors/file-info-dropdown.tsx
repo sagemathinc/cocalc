@@ -17,7 +17,6 @@ import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_actions } from "@cocalc/frontend/project_store";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   filename: string; // expects the full path name
@@ -80,7 +79,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
           <>
             <Icon
               name={icon}
-              style={{ width: "1.125em", color: COLORS.FILE_ICON }}
+              style={{ width: "25px" }}
             />{" "}
             {`${capitalize(name)}...`}
           </>

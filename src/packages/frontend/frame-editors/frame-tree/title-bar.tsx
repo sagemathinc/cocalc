@@ -17,7 +17,7 @@ import {
 } from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
-import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -45,7 +45,7 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS } from "@cocalc/frontend/feature";
-import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
+import { copy, path_split, trunc_middle } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { is_safari } from "../generic/browser";
@@ -59,6 +59,7 @@ import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import SelectComputeServer from "@cocalc/frontend/compute/select-server";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { COMMANDS, Command } from "./commands";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -117,6 +118,10 @@ const CONNECTION_STATUS_STYLE: CSS = {
   fontSize: "10pt",
   float: "right",
 } as const;
+
+function removeNulls(v) {
+  return v.filter((x) => x != null);
+}
 
 function connection_status_color(status: ConnectionStatus): string {
   switch (status) {
@@ -270,9 +275,64 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "switch_to_files",
   ]);
 
+  function command(name: string, subs?: Partial<Command>): MenuItem | null {
+    let cmd = COMMANDS[name];
+    if (cmd == null) {
+      throw Error(`unknown command '${name}'`);
+    }
+    if (cmd.action && !is_visible(cmd.action)) {
+      return null;
+    }
+    if (cmd.disable && student_project_functionality[cmd.disable]) {
+      return null;
+    }
+    if (subs != null) {
+      cmd = { ...cmd, ...subs };
+    }
+    let label = (
+      <>
+        {cmd.icon ? (
+          <Icon name={cmd.icon} style={{ width: "25px" }} />
+        ) : (
+          <div style={{ width: "25px", display: "inline-block" }} />
+        )}
+        {cmd.label}
+      </>
+    );
+    if (cmd.title) {
+      label = (
+        <Tooltip mouseEnterDelay={0.5} placement="right" title={cmd.title}>
+          {label}
+        </Tooltip>
+      );
+    }
+    let onClick =
+      cmd.onClick != null ? () => cmd.onClick?.({ props }) : undefined;
+    if (onClick == null && cmd.action) {
+      onClick = () => {
+        // common special case default
+        props.actions[cmd.action ?? ""]?.(props.id);
+      };
+    } else {
+    }
+    if (onClick == null) {
+      throw Error(`one of onClick or action must be specified for ${name}`);
+    }
+
+    return {
+      label,
+      onClick,
+      key: name,
+    };
+  }
+
   function button_height(): string {
     return props.is_only || props.is_full ? "34px" : "30px";
   }
+
+  const MENU_STYLE = {
+    margin: `${props.is_only || props.is_full ? "7px" : "5px"} 10px`,
+  };
 
   function button_style(style?: CSS): CSS {
     return {
@@ -461,8 +521,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         ref={getTourRef("control")}
       >
         <ButtonGroup style={style} key={"close"}>
-          {!props.is_full ? render_split_row() : undefined}
-          {!props.is_full ? render_split_col() : undefined}
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
@@ -507,48 +565,27 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       );
     }
   }
-  function render_split_row(): Rendered {
-    return (
-      <StyledButton
-        key={"split-row"}
-        title={"Split frame horizontally into two rows"}
-        bsSize={button_size()}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-row");
-            return props.actions.split_frame("row", props.id);
-          }
-        }}
-      >
-        <Icon name="horizontal-split" />
-      </StyledButton>
-    );
+
+  function splitMenuGroup() {
+    return removeNulls([command("split-row"), command("split-col")]);
   }
 
-  function render_split_col(): Rendered {
-    return (
-      <StyledButton
-        key={"split-col"}
-        title={"Split frame vertically into two columns"}
-        bsSize={button_size()}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-col");
-            return props.actions.split_frame("col", props.id);
-          }
-        }}
-      >
-        <Icon name="vertical-split" />
-      </StyledButton>
-    );
+  function showPanelsGroup() {
+    return removeNulls([
+      command("show-terminal"),
+      command("show-shell"),
+      command("show-table-of-contents"),
+      command("show-guide", props.editor_spec[props.type]?.guide_info),
+      command("show-search"),
+      command("show-overview"),
+      command("show-pages"),
+      command("show-slideshow"),
+      command("show-speaker-notes"),
+    ]);
+  }
+
+  function findGroup() {
+    return removeNulls([command("show-search")]);
   }
 
   function zoomOutMenuItem() {
@@ -613,30 +650,30 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     };
   }
 
-  function render_zoom_page_width(): Rendered {
-    return (
-      <StyledButton
-        key={"text-width"}
-        title={"Zoom to page width"}
-        bsSize={button_size()}
-        onClick={() => props.actions.zoom_page_width?.(props.id)}
-      >
-        <Icon name={"ColumnWidthOutlined"} />
-      </StyledButton>
-    );
+  function zoomPageWidthMenuItem() {
+    return {
+      key: "text-width",
+      title: "Zoom to page width",
+      label: (
+        <>
+          <Icon name={"ColumnWidthOutlined"} /> Zoom to Width
+        </>
+      ),
+      onClick: () => props.actions.zoom_page_width?.(props.id),
+    };
   }
 
-  function render_zoom_page_height(): Rendered {
-    return (
-      <StyledButton
-        key={"text-height"}
-        title={"Zoom to page height"}
-        bsSize={button_size()}
-        onClick={() => props.actions.zoom_page_height?.(props.id)}
-      >
-        <Icon name={"ColumnHeightOutlined"} />
-      </StyledButton>
-    );
+  function zoomPageHeightMenuItem() {
+    return {
+      key: "text-height",
+      title: "Zoom to page height",
+      label: (
+        <>
+          <Icon name={"ColumnHeightOutlined"} /> Zoom to Height
+        </>
+      ),
+      onClick: () => props.actions.zoom_page_height?.(props.id),
+    };
   }
 
   function render_sync(labels): Rendered {
@@ -856,6 +893,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function zoomMenuGroup() {
     const v: MenuItem[] = [];
     let x;
+    if ((x = zoomPageHeightMenuItem())) {
+      v.push(x);
+    }
+    if ((x = zoomPageWidthMenuItem())) {
+      v.push(x);
+    }
     if ((x = zoomInMenuItem())) {
       v.push(x);
     }
@@ -866,28 +909,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(x);
     }
     return v;
-  }
-
-  function render_page_width_height_group(): Rendered {
-    const v: ReactNode[] = [];
-    if (
-      is_visible("zoom_page_height") &&
-      props.actions.zoom_page_height != null
-    ) {
-      v.push(render_zoom_page_height());
-    }
-    if (
-      is_visible("zoom_page_width") &&
-      props.actions.zoom_page_width != null
-    ) {
-      v.push(render_zoom_page_width());
-    }
-    if (v.length == 2) {
-      return <ButtonGroup key={"height-width"}>{v}</ButtonGroup>;
-    }
-    if (v.length == 1) {
-      return <span key={"height-width"}>{v}</span>;
-    }
   }
 
   function undoMenuItem() {
@@ -951,22 +972,20 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function renderEditMenu() {
     const v: MenuItem[] = undoRedoGroup();
-    let x;
-    x = copyGroup();
-    if (x.length > 0) {
-      if (v.length > 0) {
-        v.push({ type: "divider" });
+    for (const x of [copyGroup(), findGroup()]) {
+      if (x.length > 0) {
+        if (v.length > 0) {
+          v.push({ type: "divider" });
+        }
+        v.push(...x);
       }
-      v.push(...x);
     }
 
     if (v.length > 0) {
       return (
         <DropdownMenu
           key="edit-menu"
-          style={{
-            margin: "7px 10px",
-          }}
+          style={MENU_STYLE}
           title={"Edit"}
           items={v}
         />
@@ -981,14 +1000,22 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (x.length > 0) {
       v.push(...x);
     }
+    x = splitMenuGroup();
+    if (x.length > 0) {
+      v.push({ type: "divider" });
+      v.push(...x);
+    }
+    x = showPanelsGroup();
+    if (x.length > 0) {
+      v.push({ type: "divider" });
+      v.push(...x);
+    }
 
     if (v.length > 0) {
       return (
         <DropdownMenu
           key="view-menu"
-          style={{
-            margin: "7px 10px",
-          }}
+          style={MENU_STYLE}
           title={"View"}
           items={v}
         />
@@ -1015,21 +1042,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function show_labels(): boolean {
     return !!(props.is_only || props.is_full);
-  }
-
-  function button_text(
-    button_name: string,
-    labels?: boolean,
-  ): string | undefined {
-    if (!labels) return;
-    const custom = props.editor_spec[props.type].customize_buttons;
-    if (custom != null) {
-      const x = custom[button_name];
-      if (x != null && x.text != null) {
-        return x.text;
-      }
-    }
-    return capitalize(button_name);
   }
 
   function button_title(button_name: string, def?: string): string | undefined {
@@ -1188,41 +1200,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_guide(labels: boolean): Rendered {
-    if (!is_visible("guide", true) || is_public) {
-      return;
-    }
-    const { title, descr, icon } = {
-      ...{
-        title: "Guide",
-        descr: "Show guidebook",
-        icon: "magic" as IconName,
-      },
-      ...props.editor_spec[props.type].guide_info,
-    };
-    return (
-      <div
-        key="guide"
-        ref={getTourRef("guide")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          title={descr}
-          bsSize={button_size()}
-          onClick={() => {
-            if (typeof props.actions.help === "function") {
-              props.actions.guide(props.id, props.type);
-              track("guide");
-            }
-          }}
-        >
-          <Icon name={icon} />{" "}
-          <VisibleMDLG>{labels ? title : undefined}</VisibleMDLG>
-        </Button>
-      </div>
-    );
-  }
-
   function render_restart(labels): Rendered {
     if (!is_visible("restart", true)) {
       return;
@@ -1306,98 +1283,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_table_of_contents(labels): Rendered {
-    if (!is_visible("show_table_of_contents")) return;
-    return (
-      <Button
-        key={"contents"}
-        bsSize={button_size()}
-        onClick={() => {
-          track("table-of-contents");
-          props.actions.show_table_of_contents?.(props.id);
-        }}
-        title={"Show the Table of Contents"}
-      >
-        <Icon name={"align-right"} />{" "}
-        <VisibleMDLG>{labels ? "Contents" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_pages(labels): Rendered {
-    if (!is_visible("show_pages")) return;
-    return (
-      <Button
-        key={"pages"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_pages?.(props.id)}
-        title={"Show Pages"}
-      >
-        <Icon name={"pic-centered"} />{" "}
-        <VisibleMDLG>{labels ? "Pages" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_overview(labels): Rendered {
-    if (!is_visible("show_overview")) return;
-    return (
-      <Button
-        key={"overview"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_overview?.(props.id)}
-        title={"Show Overview of all Pages"}
-      >
-        <Icon name={"overview"} />{" "}
-        <VisibleMDLG>{labels ? "Overview" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_slideshow(labels): Rendered {
-    if (!is_visible("show_slideshow")) return;
-    return (
-      <Button
-        key={"slideshow"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_slideshow?.(props.id)}
-        title={"Display Slideshow Presentation"}
-      >
-        <Icon name={"play-square"} />{" "}
-        <VisibleMDLG>{labels ? "Slideshow" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_speaker_notes(labels): Rendered {
-    if (!is_visible("show_speaker_notes")) return;
-    return (
-      <Button
-        key={"speaker_notes"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_speaker_notes?.(props.id)}
-        title={"Show Speaker Notes"}
-      >
-        <Icon name={"pencil"} />{" "}
-        <VisibleMDLG>{labels ? "Speaker" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_search(labels): Rendered {
-    if (!is_visible("show_search")) return;
-    return (
-      <Button
-        key={"search"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_search?.(props.id)}
-        title={"Show Search"}
-      >
-        <Icon name={"search"} />{" "}
-        <VisibleMDLG>{labels ? "Search" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
   function render_build(): Rendered {
     if (!is_visible("build", true)) {
       return;
@@ -1659,51 +1544,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_terminal(labels): Rendered {
-    if (
-      !is_visible("terminal") ||
-      is_public ||
-      student_project_functionality.disableTerminals
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"terminal"}
-        bsSize={button_size()}
-        onClick={() => {
-          props.actions.terminal(props.id);
-          track("terminal");
-        }}
-        title={button_title("terminal", "Open a command line terminal")}
-      >
-        <Icon name={"terminal"} />{" "}
-        <VisibleMDLG>{button_text("terminal", labels)}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_shell(labels): Rendered {
-    if (
-      !is_visible("shell") ||
-      is_public ||
-      student_project_functionality.disableTerminals
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"shell"}
-        bsSize={button_size()}
-        onClick={() => props.actions.shell(props.id)}
-        title={button_title("shell", "Open a shell for running this code")}
-      >
-        <Icon name={"terminal"} />{" "}
-        <VisibleMDLG>{button_text("shell", labels)}</VisibleMDLG>
-      </Button>
-    );
-  }
-
   function render_edit(): Rendered {
     if (!is_visible("edit") || is_public) {
       return;
@@ -1751,7 +1591,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         filename={props.path}
         project_id={props.project_id}
         is_public={false}
-        style={{ margin: "7px 10px" }}
+        style={MENU_STYLE}
       />
     );
   }
@@ -1806,12 +1646,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(render_switch_to_file());
       v.push(render_clean(labels));
       v.push(render_rescan_latex_directives());
-      v.push(render_terminal(labels));
       v.push(render_format(labels));
       v.push(render_restart(labels));
       v.push(render_close_and_halt(labels));
 
-      v.push(render_page_width_height_group());
       v.push(render_download(labels));
       v.push(render_pause(labels));
       v.push(render_find_replace_group());
@@ -1823,16 +1661,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(render_kick_other_users_out());
       v.push(render_edit_init_script());
       v.push(render_count_words());
-      v.push(render_shell(labels));
       v.push(render_print(labels));
       v.push(render_export_to_markdown(labels));
-      v.push(render_table_of_contents(labels));
-      v.push(render_show_pages(labels));
-      v.push(render_show_overview(labels));
-      v.push(render_show_slideshow(labels));
-      v.push(render_show_speaker_notes(labels));
-      v.push(render_show_search(labels));
-      v.push(render_guide(labels));
       v.push(render_help(labels));
 
       const w: Rendered[] = [];

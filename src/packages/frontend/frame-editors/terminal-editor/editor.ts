@@ -44,8 +44,8 @@ export const terminal = {
     confirm: "Yes, clean up!",
   },
   guide_info: {
-    title: "Guide",
-    descr: "Tool for creating, testing, and learning about terminal commands.",
+    label: "Guide",
+    title: "Tool for creating, testing, and learning about terminal commands.",
   },
 } as EditorDescription;
 

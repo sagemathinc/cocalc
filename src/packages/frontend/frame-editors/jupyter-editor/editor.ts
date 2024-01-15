@@ -45,13 +45,14 @@ export const EDITOR_SPEC = {
       "show_table_of_contents",
       "guide",
       "shell",
+      "terminal",
       "help",
       "compute_server",
     ]),
     guide_info: {
-      title: "Snippets",
+      label: "Snippets",
       icon: SNIPPET_ICON_NAME,
-      descr: "Open a panel containing code snippets.",
+      title: "Open a panel containing code snippets.",
     },
     customize_buttons: {
       shell: {
