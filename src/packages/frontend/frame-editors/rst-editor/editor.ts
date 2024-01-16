@@ -11,13 +11,13 @@ import { IFrameHTML } from "../html-editor/iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { aux_file } from "@cocalc/util/misc";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   cm: {
     short: "Code",
     name: "Source Code",
@@ -40,7 +40,9 @@ const EDITOR_SPEC = {
       "redo",
       "reload",
     ]),
+    format_bar: true,
   } as EditorDescription,
+
   rst: {
     short: "View",
     name: "Rendered View (rst2html)",
@@ -69,10 +71,9 @@ const EDITOR_SPEC = {
   settings: SETTINGS_SPEC,
 
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: true,
   editor_spec: EDITOR_SPEC,
   display_name: "RstEditor",
 });

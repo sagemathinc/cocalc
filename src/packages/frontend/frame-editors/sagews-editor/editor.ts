@@ -17,9 +17,9 @@ Maybe
  - just the output from that inputs
 */
 
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
 import { set } from "@cocalc/util/misc";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";
@@ -42,7 +42,7 @@ const worksheet_buttons = set([
   "format",
 ]);
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   cells: {
     short: "Cells",
     name: "Cell Worksheet",
@@ -66,7 +66,7 @@ const EDITOR_SPEC = {
     component: Print,
     buttons: set(["print"])
   }*/
-};
+} as const;
 
 /* Ideas:
 
@@ -84,7 +84,6 @@ All this for sagews *or* .ipynb...
 */
 
 export const Editor = createEditor({
-  format_bar: true,
   editor_spec: EDITOR_SPEC,
   display_name: "SageWorksheetEditor",
 });

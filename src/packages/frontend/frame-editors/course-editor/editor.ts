@@ -9,7 +9,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import {
@@ -29,7 +29,7 @@ const buttons = set([
   "redo"*/,
 ]);
 
-export const EDITOR_SPEC = {
+export const EDITOR_SPEC: EditorSpec = {
   course_students: {
     short: "Students",
     name: "Students",
@@ -67,10 +67,9 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
   terminal,
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "CourseEditor",
 });

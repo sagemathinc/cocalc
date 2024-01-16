@@ -8,7 +8,7 @@ Top-level React component for the terminal
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { TerminalFrame } from "./terminal";
 import { CommandsGuide } from "./commands-guide";
 import { set } from "@cocalc/util/misc";
@@ -57,13 +57,12 @@ const commands_guide = {
   buttons: set(["decrease_font_size", "increase_font_size"]),
 } as EditorDescription;
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   terminal,
   commands_guide,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "TerminalEditor",
 });

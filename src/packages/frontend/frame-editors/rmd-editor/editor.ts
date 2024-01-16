@@ -10,7 +10,7 @@ Top-level react component for editing R markdown documents
 import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set } from "@cocalc/util/misc";
 import { derive_rmd_output_filename } from "./utils";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
@@ -21,7 +21,7 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { BuildLog } from "./build-log";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   cm: {
     short: "Code",
     name: "Source Code",
@@ -45,6 +45,7 @@ const EDITOR_SPEC = {
       "format",
       "build",
     ]),
+    format_bar: true,
   } as EditorDescription,
 
   iframe: {
@@ -112,10 +113,9 @@ const EDITOR_SPEC = {
   time_travel,
 
   settings: SETTINGS_SPEC,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: true,
   editor_spec: EDITOR_SPEC,
   display_name: "RmdEditor",
 });

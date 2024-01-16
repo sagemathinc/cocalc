@@ -7,20 +7,23 @@
 Spec for slate frame tree editor.
 */
 
-import { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
-import { set } from "@cocalc/util/misc";
+import {
+  EditorDescription,
+  EditorSpec,
+} from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
-import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
+import { set } from "@cocalc/util/misc";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
 
-import SpeakerNotes from "./speaker-notes";
-import Slides from "./slides";
-import Search from "../whiteboard-editor/search";
-import Pages from "../whiteboard-editor/pages";
 import Overview from "../whiteboard-editor/overview";
+import Pages from "../whiteboard-editor/pages";
+import Search from "../whiteboard-editor/search";
+import Slides from "./slides";
 import Slideshow from "./slideshow";
+import SpeakerNotes from "./speaker-notes";
 
 export const slidesButtons = set([
   "decrease_font_size",
@@ -43,7 +46,7 @@ export const slidesButtons = set([
   "chatgpt",
 ]);
 
-export const EDITOR_SPEC = {
+export const EDITOR_SPEC: EditorSpec = {
   slides: {
     short: "Slides",
     name: "Slides",
@@ -125,7 +128,6 @@ export const EDITOR_SPEC = {
 } as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "Slides",
 });

@@ -8,11 +8,11 @@ Spec for editing PDF documents.
 */
 
 import { set } from "@cocalc/util/misc";
-import { EditorDescription } from "../frame-tree/types";
-import { createEditor } from "../frame-tree/editor";
-import { PDFJS } from "../latex-editor/pdfjs";
-import { PDFEmbed } from "../latex-editor/pdf-embed";
 import { IS_IOS, IS_IPAD } from "../../feature";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
+import { PDFEmbed } from "../latex-editor/pdf-embed";
+import { PDFJS } from "../latex-editor/pdfjs";
 
 const pdfjs_buttons = set([
   "reload",
@@ -25,7 +25,7 @@ const pdfjs_buttons = set([
   "set_zoom",
 ]);
 
-export const EDITOR_SPEC = {
+export const EDITOR_SPEC: EditorSpec = {
   pdfjs_canvas: {
     short: "PDF.js",
     name: "PDF.js",
@@ -35,7 +35,7 @@ export const EDITOR_SPEC = {
     style: { background: "#525659" },
     renderer: "canvas",
   } as EditorDescription,
-};
+} as const;
 
 // NOTE: the native viewer is epically bad on ipad/ios:
 //      https://github.com/sagemathinc/cocalc/issues/5114
@@ -50,7 +50,6 @@ if (!IS_IPAD && !IS_IOS) {
 }
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "PDFEditor",
 });

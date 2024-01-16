@@ -7,19 +7,22 @@
 Spec for whiteboard frame tree editor.
 */
 
-import { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { IconName } from "@cocalc/frontend/components/icon";
 import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
-import { set } from "@cocalc/util/misc";
+import {
+  EditorDescription,
+  EditorSpec,
+} from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
-import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
-import { IconName } from "@cocalc/frontend/components/icon";
+import { set } from "@cocalc/util/misc";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
 
-import Whiteboard from "./whiteboard";
-import Search from "./search";
-import Pages from "./pages";
 import Overview from "./overview";
+import Pages from "./pages";
+import Search from "./search";
+import Whiteboard from "./whiteboard";
 
 export const whiteboardButtons = set([
   "decrease_font_size",
@@ -37,10 +40,10 @@ export const whiteboardButtons = set([
   "show_search",
   "show_overview",
   "help",
-  "chatgpt"
+  "chatgpt",
 ]);
 
-export const EDITOR_SPEC = {
+export const EDITOR_SPEC: EditorSpec = {
   whiteboard: {
     short: "Whiteboard",
     name: "Whiteboard",
@@ -48,6 +51,7 @@ export const EDITOR_SPEC = {
     component: Whiteboard,
     buttons: whiteboardButtons,
   } as EditorDescription,
+
   search: {
     short: "Search",
     name: "Search",
@@ -55,12 +59,14 @@ export const EDITOR_SPEC = {
     component: Search,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   },
+
   pages: {
     short: "Pages",
     name: "Pages",
     icon: "pic-centered" as IconName,
     component: Pages,
   },
+
   overview: {
     short: "Overview",
     name: "Overview",
@@ -68,8 +74,11 @@ export const EDITOR_SPEC = {
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
     component: Overview,
   },
+
   terminal,
+
   time_travel,
+
   introspect: {
     short: "Introspect",
     name: "Introspection",
@@ -77,6 +86,7 @@ export const EDITOR_SPEC = {
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
+
   table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
@@ -84,10 +94,9 @@ export const EDITOR_SPEC = {
     component: TableOfContents,
     buttons: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "Whiteboard",
 });

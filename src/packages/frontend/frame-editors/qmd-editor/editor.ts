@@ -10,7 +10,7 @@ Top-level react component for editing quarto documents
 import { set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { IFrameHTML } from "../html-editor/iframe-html";
 import { pdfjs_buttons } from "../latex-editor/editor";
 import { PDFJS } from "../latex-editor/pdfjs";
@@ -21,8 +21,9 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { BuildLog } from "./build-log";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   cm: {
+    format_bar: true,
     short: "Code",
     name: "Source Code",
     icon: "code",
@@ -112,10 +113,9 @@ const EDITOR_SPEC = {
   time_travel,
 
   settings: SETTINGS_SPEC,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: true,
   editor_spec: EDITOR_SPEC,
   display_name: "QuartoEditor",
 });

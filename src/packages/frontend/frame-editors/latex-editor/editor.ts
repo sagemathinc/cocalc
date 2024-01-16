@@ -8,20 +8,20 @@ Spec for editing LaTeX documents.
 */
 
 import { set } from "@cocalc/util/misc";
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
-import { PDFJS } from "./pdfjs";
-import { PDFEmbed } from "./pdf-embed";
+import { IS_IOS, IS_IPAD } from "../../feature";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import { Build } from "./build";
-import { ErrorsAndWarnings } from "./errors-and-warnings";
-import { LatexWordCount } from "./latex-word-count";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
+import { TableOfContents } from "../markdown-editor/table-of-contents";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { Build } from "./build";
+import { ErrorsAndWarnings } from "./errors-and-warnings";
+import { LatexWordCount } from "./latex-word-count";
+import { PDFEmbed } from "./pdf-embed";
+import { PDFJS } from "./pdfjs";
 import { pdf_path } from "./util";
-import { IS_IOS, IS_IPAD } from "../../feature";
-import { TableOfContents } from "../markdown-editor/table-of-contents";
 
 export const pdfjs_buttons = set([
   "print",
@@ -34,7 +34,7 @@ export const pdfjs_buttons = set([
   "sync",
 ]);
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   cm: {
     short: "Source",
     name: "LaTeX Source Code",
@@ -63,6 +63,14 @@ const EDITOR_SPEC = {
       "show_table_of_contents",
     ]),
     gutters: ["Codemirror-latex-errors"],
+    format_bar: true,
+    format_bar_exclude: {
+      strikethrough: true,
+      SpecialChar: true,
+      image: true,
+      unformat: true,
+      font_dropdowns: true, // disabled until we can properly implement them!
+    },
   } as EditorDescription,
 
   pdfjs_canvas: {
@@ -120,7 +128,7 @@ const EDITOR_SPEC = {
   settings: SETTINGS_SPEC,
 
   time_travel,
-};
+} as const;
 
 // See https://github.com/sagemathinc/cocalc/issues/5114
 if (!IS_IPAD && !IS_IOS) {
@@ -135,14 +143,6 @@ if (!IS_IPAD && !IS_IOS) {
 }
 
 export const Editor = createEditor({
-  format_bar: true,
-  format_bar_exclude: {
-    strikethrough: true,
-    SpecialChar: true,
-    image: true,
-    unformat: true,
-    font_dropdowns: true,
-  }, // disabled until we can properly implement them!
   editor_spec: EDITOR_SPEC,
   display_name: "LaTeXEditor",
 });

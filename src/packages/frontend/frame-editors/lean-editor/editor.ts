@@ -9,15 +9,15 @@ Top-level react component for editing LEAN documents
 
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
-import { LeanCodemirrorEditor } from "./lean-codemirror";
-import { LeanMessages } from "./lean-messages";
-import { LeanInfo } from "./lean-info";
-import { LeanHelp } from "./lean-help";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { LeanCodemirrorEditor } from "./lean-codemirror";
+import { LeanHelp } from "./lean-help";
+import { LeanInfo } from "./lean-info";
+import { LeanMessages } from "./lean-messages";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   "cm-lean": {
     short: "Input",
     name: "Input",
@@ -65,10 +65,9 @@ const EDITOR_SPEC = {
   } as EditorDescription,
   terminal,
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "LeanEditor",
 });

@@ -43,7 +43,7 @@ import { get_linked_doc, has_doc, set_doc } from "./doc";
 const STYLE: CSS = {
   width: "100%",
   overflow: "auto",
-  marginBottom: "1ex",
+  marginBottom: "0",
   minHeight: "2em",
   border: "0px",
   background: "#fff",
@@ -68,6 +68,7 @@ export interface Props {
   editor_settings: Map<string, any>;
   is_subframe?: boolean;
   placeholder?: string;
+  showFormatBar: boolean;
 }
 
 export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
@@ -490,11 +491,13 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
         path={props.path}
         is_current={props.is_current}
       />
-      <FormatBar
-        is_current={props.is_current}
-        actions={props.actions}
-        extension={filename_extension(props.path)}
-      />
+      {props.showFormatBar ? (
+        <FormatBar
+          is_current={props.is_current}
+          actions={props.actions}
+          extension={filename_extension(props.path)}
+        />
+      ) : undefined}
       <div
         style={{ ...STYLE, fontSize: `${props.font_size}px` }}
         className="smc-vfill"
@@ -506,7 +509,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
           style={{ display: "none" }}
           placeholder={props.placeholder}
         />
-        Format
       </div>
     </div>
   );

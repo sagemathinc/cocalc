@@ -7,18 +7,18 @@
 Top-level react component for editing markdown documents
 */
 
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
-import { RenderedMarkdown } from "./rendered-markdown";
-import { EditableMarkdown } from "./slate";
-import { TableOfContents } from "./table-of-contents";
 import { set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { RenderedMarkdown } from "./rendered-markdown";
+import { EditableMarkdown } from "./slate";
+import { TableOfContents } from "./table-of-contents";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   slate: {
     placeholder: "Enter text...",
     short: "Text",
@@ -71,6 +71,7 @@ const EDITOR_SPEC = {
       // "format",
       "sync",
     ]),
+    format_bar: true,
     format_bar_exclude: {
       format_buttons: true,
     },
@@ -103,13 +104,9 @@ const EDITOR_SPEC = {
   terminal,
   settings: SETTINGS_SPEC,
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
-  format_bar_exclude: {
-    format_buttons: true,
-  },
   editor_spec: EDITOR_SPEC,
   display_name: "MarkdownEditor",
 });

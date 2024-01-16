@@ -9,7 +9,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { CellNotebook } from "./cell-notebook/cell-notebook";
@@ -21,7 +21,7 @@ import { JupyterSnippets } from "./snippets";
 import { SNIPPET_ICON_NAME } from "./snippets/utils";
 import { TableOfContents } from "./table-of-contents";
 
-export const EDITOR_SPEC = {
+export const EDITOR_SPEC: EditorSpec = {
   jupyter_cell_notebook: {
     short: "Notebook",
     name: "Notebook (default)",
@@ -104,10 +104,9 @@ export const EDITOR_SPEC = {
     component: RawIPynb,
     buttons: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "JupyterNotebook",
 });

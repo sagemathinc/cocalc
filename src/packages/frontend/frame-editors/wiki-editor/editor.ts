@@ -7,17 +7,16 @@
 Top-level react component for editing MediaWiki documents
 */
 
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
-import { aux_file } from "@cocalc/util/misc";
-import { set } from "@cocalc/util/misc";
-import { IFrameHTML } from "../html-editor/iframe-html";
+import { aux_file, set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+import { createEditor } from "../frame-tree/editor";
+import { EditorSpec } from "../frame-tree/types";
+import { IFrameHTML } from "../html-editor/iframe-html";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   cm: {
     short: "Code",
     name: "Source Code",
@@ -40,7 +39,8 @@ const EDITOR_SPEC = {
       "redo",
       "reload",
     ]),
-  } as EditorDescription,
+    format_bar: true,
+  },
 
   html: {
     short: "HTML",
@@ -63,17 +63,16 @@ const EDITOR_SPEC = {
       "max-width": "900px",
       margin: "auto",
     },
-  } as EditorDescription,
+  },
 
   terminal,
 
   settings: SETTINGS_SPEC,
 
   time_travel,
-};
+} as const
 
 export const Editor = createEditor({
-  format_bar: true,
   editor_spec: EDITOR_SPEC,
   display_name: "WikiEditor",
 });

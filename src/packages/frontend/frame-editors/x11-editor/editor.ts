@@ -7,12 +7,12 @@
 Top-level React component for an X Window
 */
 
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
-import { X11 } from "./x11";
-import { Launcher } from "./launcher";
 import { set } from "@cocalc/util/misc";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
+import { Launcher } from "./launcher";
+import { X11 } from "./x11";
 
 export const x11 = {
   short: "X11",
@@ -40,14 +40,13 @@ export const launcher = {
   buttons: set([]),
 } as EditorDescription;
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   x11,
   terminal,
   launcher,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "X11",
 });

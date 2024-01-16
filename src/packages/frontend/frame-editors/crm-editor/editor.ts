@@ -4,32 +4,31 @@
  */
 
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { set } from "@cocalc/util/misc";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 
 import TableEditor from "./table-editor";
 import Users from "./users";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   tables: {
     short: "Tables",
     name: "Tables",
     icon: "database",
     component: TableEditor,
     buttons: set(["save", "undo", "redo"]),
-  },
+  } as EditorDescription,
   account: {
     short: "Users",
     name: "User Search",
     icon: "users",
     component: Users,
-  },
+  } as EditorDescription,
   time_travel,
-} as { [name: string]: EditorDescription };
+} as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "CRM Editor",
 });

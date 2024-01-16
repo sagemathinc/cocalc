@@ -14,8 +14,9 @@ import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { EditorSpec } from "../frame-tree/types";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   tasks: {
     short: "Tasks",
     name: "Task List",

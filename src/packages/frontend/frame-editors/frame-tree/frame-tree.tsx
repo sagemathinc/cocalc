@@ -237,7 +237,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     function render_titlebar(
       desc: NodeDesc,
       spec: EditorDescription,
-      editor_actions: Actions
+      editor_actions: Actions,
     ): Rendered {
       const id = desc.get("id");
       return (
@@ -271,7 +271,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       desc: NodeDesc,
       component: any,
       spec: EditorDescription,
-      editor_actions: Actions
+      editor_actions: Actions,
     ) {
       const type = desc.get("type");
       const project_id_leaf = desc.get("project_id", project_id);
@@ -323,6 +323,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         is_subframe = true;
       }
 
+      const showFormatBar: boolean =
+        (spec.format_bar ?? false) &&
+        !is_public &&
+        (editor_settings?.get("extra_button_bar") ?? true);
+
       return (
         <FrameTreeLeaf
           actions={actions_leaf}
@@ -351,6 +356,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           tab_is_visible={tab_is_visible}
           terminal={terminal}
           placeholder={spec.placeholder}
+          showFormatBar={showFormatBar}
         />
       );
     }
@@ -369,9 +375,10 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       }
       // NOTE: get_editor_actions may mutate props.editor_spec
       // if necessary for subframe, etc. So we call it first!
-      let editor_actions: Actions | undefined,
-        spec: EditorDescription,
-        component: any;
+      let editor_actions: Actions | undefined;
+      let spec: EditorDescription;
+      let component: any;
+
       try {
         editor_actions = get_editor_actions(desc);
         if (editor_actions == null) {
@@ -536,5 +543,5 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       </div>
     );
   },
-  shouldMemoize
+  shouldMemoize,
 );

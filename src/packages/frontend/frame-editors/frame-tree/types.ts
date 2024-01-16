@@ -62,6 +62,8 @@ export interface EditorDescription {
   clear_info?: { text: string; confirm: string };
   guide_info?: { title?: string; descr?: string; icon?: IconName };
   placeholder?: string; // placeholder text to use when empty.
+  format_bar?: boolean; // if true, show the format bar.
+  format_bar_exclude?: SetMap
 }
 
 export interface EditorSpec {
