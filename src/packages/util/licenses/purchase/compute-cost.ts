@@ -138,10 +138,6 @@ export function compute_cost(
 
   if (subscription === "no") {
     // Compute license cost for a partial period which has no subscription.
-    // Or, the license is a subscription, but we're only computing the cost for a
-    // portion of the subscription period (which occurs when computing refunds
-    // for a cancelled subscription).
-    //
     if (start == null) {
       throw new Error("start must be set if subscription=no");
     }
@@ -155,7 +151,6 @@ export function compute_cost(
     // Compute license cost for a partial period. This happens when the license is a subscription,
     // but we're only computing the cost for a portion of the subscription period (which occurs when
     // computing refunds for a cancelled subscription)
-    //
     if (start == null) {
       throw new Error("start must be set if computing for a partial period");
     }
@@ -173,7 +168,6 @@ export function compute_cost(
   } else if (subscription === "yearly") {
     // If we're computing the cost for an annual subscription, multiply the monthly subscription
     // cost by 12.
-    //
     base_cost = 12 * cost_per_project_per_month;
   } else if (subscription == "monthly") {
     base_cost = cost_per_project_per_month;
