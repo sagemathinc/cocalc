@@ -70,44 +70,25 @@ export default async function editLicense(
   } = opts;
   logger.debug("editLicense", opts);
 
-  // Get data about current license. See below.
-  const info = await getPurchaseInfo(license_id);
-  logger.debug("editLicense -- initial info = ", info);
-  if (info.type == "vouchers") {
+  const {
+    cost: changeCost,
+    info,
+    modifiedInfo,
+  } = await costToChangeLicense({
+    license_id,
+    isSubscriptionRenewal,
+    changes,
+  });
+  if (info.type == "vouchers" || modifiedInfo.type == "vouchers") {
     throw Error("editing voucher licenses is not supported");
   }
-  if (info.account_id != account_id) {
-    throw Error("only the user who the purchased a license can edit it");
-  }
-
-  if (
-    !isSubscriptionRenewal &&
-    info.subscription != null &&
-    info.subscription != "no"
-  ) {
-    if (changes.start != null || changes.end != null) {
-      throw Error(
-        "editing the start or end dates of a subscription license is not allowed",
-      );
-    }
-  }
-  if (
-    changes.start == null &&
-    changes.end != null &&
-    changes.end < info.start
-  ) {
-    // if changing end to be before start, just reset start to
-    // also equal end -- the result will of course cost 0.
-    changes = { ...changes, start: changes.end };
-  }
-
-  // account_id isn't defined in the schema for PurchaseInfo,
-  // but we do set it when making the license via a normal purchase.
-  // There are licenses without it set, e.g., manually test licenses
-  // made by admins, but those are exactly the sort of thing users
-  // should not be able to edit.
   const owner_id = (info as any).account_id;
   if (owner_id != account_id) {
+    // account_id isn't defined in the schema for PurchaseInfo,
+    // but we do set it when making the license via a normal purchase.
+    // There are licenses without it set, e.g., manually test licenses
+    // made by admins, but those are exactly the sort of thing users
+    // should not be able to edit.
     if (owner_id == null) {
       throw Error("this license does not support editing");
     } else {
@@ -117,11 +98,6 @@ export default async function editLicense(
         )}.`,
       );
     }
-  }
-
-  const { cost: changeCost, modifiedInfo } = costToEditLicense(info, changes);
-  if (modifiedInfo.type != info.type) {
-    throw Error("bug");
   }
 
   const service = "edit-license";
@@ -246,6 +222,54 @@ export default async function editLicense(
     })();
   }
   return { cost, purchase_id };
+}
+
+export async function costToChangeLicense({
+  license_id,
+  isSubscriptionRenewal,
+  changes,
+}: {
+  license_id: string;
+  isSubscriptionRenewal?: boolean;
+  changes: Changes;
+}): Promise<{
+  info: PurchaseInfo;
+  cost: number;
+  modifiedInfo: PurchaseInfo;
+}> {
+  // Get data about current license. See below.
+  const info = await getPurchaseInfo(license_id);
+  logger.debug("costToChangeLicense", { info, isSubscriptionRenewal, changes });
+  if (info.type == "vouchers") {
+    throw Error("editing voucher licenses is not supported");
+  }
+  if (
+    !isSubscriptionRenewal &&
+    info.subscription != null &&
+    info.subscription != "no"
+  ) {
+    if (changes.start != null || changes.end != null) {
+      throw Error(
+        "editing the start or end dates of a subscription license is not allowed",
+      );
+    }
+  }
+  if (
+    changes.start == null &&
+    changes.end != null &&
+    changes.end < info.start
+  ) {
+    // if changing end to be before start, just reset start to
+    // also equal end -- the result will of course cost 0.
+    changes = { ...changes, start: changes.end };
+  }
+
+  const { cost, modifiedInfo } = costToEditLicense(info, changes);
+  if (modifiedInfo.type != info.type) {
+    throw Error("bug");
+  }
+
+  return { cost, info, modifiedInfo };
 }
 
 /*
@@ -429,7 +453,8 @@ async function getSubscriptionCostPerHour(
   }
   // How many hours in the current period
   const hoursInPeriod =
-    (current_period_end.valueOf() - current_period_start.valueOf()) / ONE_HOUR_MS;
+    (current_period_end.valueOf() - current_period_start.valueOf()) /
+    ONE_HOUR_MS;
   // Divide cost of current period by hours in the period to get the cost per hour.
   return cost / hoursInPeriod;
 }

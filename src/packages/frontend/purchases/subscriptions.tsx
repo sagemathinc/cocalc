@@ -49,6 +49,7 @@ import {
   getSubscriptions as getSubscriptionsUsingApi,
   renewSubscription,
   resumeSubscription,
+  costToResumeSubscription,
 } from "./api";
 import Export from "./export";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
@@ -72,9 +73,26 @@ function SubscriptionActions({
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [license, setLicense] = useState<License | null>(null);
+  const [costToResume, setCostToResume] = useState<number | undefined>(
+    undefined,
+  );
 
   const updateLicense = async () => {
-    setLicense(await getLicense(license_id));
+    try {
+      setLicense(await getLicense(license_id));
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
+  const updateCostToResume = async () => {
+    try {
+      const cost = await costToResumeSubscription(subscription_id);
+      setCostToResume(cost);
+      return cost;
+    } catch (err) {
+      setError(`${err}`);
+    }
   };
 
   const handleCancel = async (now: boolean = false) => {
@@ -94,7 +112,16 @@ function SubscriptionActions({
     try {
       setLoading(true);
       setError("");
-      await resumeSubscription(subscription_id);
+      try {
+        await resumeSubscription(subscription_id);
+      } catch (_) {
+        cost = await updateCostToResume();
+        await webapp_client.purchases_client.quotaModal({
+          service: "edit-license",
+          cost,
+        });
+        await resumeSubscription(subscription_id);
+      }
       refresh();
     } catch (error) {
       setError(`${error}`);
@@ -251,14 +278,20 @@ function SubscriptionActions({
       )}
       {status == "canceled" && (
         <Popconfirm
-          title={
-            <div style={{ maxWidth: "450px" }}>
-              Are you sure you want to resume this subscription? The
-              corresponding license will become active again, and you will only
-              be charged for the remainder of the current period (at most{" "}
-              {currency(cost)}).
-            </div>
-          }
+          title={"Resume this subscription?"}
+          description={() => {
+            updateCostToResume();
+            if (costToResume == null) {
+              return <Spin />;
+            }
+            return (
+              <div style={{ maxWidth: "450px" }}>
+                The corresponding license will become active again, and{" "}
+                <b>you will be charged {currency(costToResume)}</b> for the
+                remainder of the current period.
+              </div>
+            );
+          }}
           onConfirm={handleResume}
           okText="Yes"
           cancelText="No"
