@@ -136,9 +136,9 @@ export function compute_cost(info: PurchaseInfo, partialPeriod: boolean=false): 
 
   if (subscription === "no") {
     // Compute license cost for a partial period which has no subscription.
-    // b) The license is a subscription, but we're only computing the cost for a
+    // Or, the license is a subscription, but we're only computing the cost for a
     // portion of the subscription period (which occurs when computing refunds
-    // for a cancelled subscription)
+    // for a cancelled subscription).
     //
     if (start == null) {
       throw new Error("start must be set if subscription=no");
