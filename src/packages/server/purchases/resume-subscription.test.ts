@@ -46,7 +46,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     await cancelSubscription({
       account_id,
       subscription_id,
-      now: true,
+      cancelImmediately: true,
     });
     expect((await getSubscription(subscription_id)).status).toBe("canceled");
     const license = await getLicense(license_id);
@@ -69,7 +69,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     await cancelSubscription({
       account_id,
       subscription_id,
-      now: true,
+      cancelImmediately: true,
     });
     const pool = getPool();
     await pool.query("DELETE FROM purchases WHERE account_id=$1", [
