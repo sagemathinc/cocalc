@@ -28,6 +28,7 @@ import { Paragraph, Title } from "components/misc";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const CHATGPT_DISABLED = true;
+const MIN_BODY_LENGTH = 16;
 
 function VSpace({ children }) {
   return (
@@ -77,7 +78,7 @@ export default function Create() {
     !success &&
     isValidEmailAddress(email) &&
     subject &&
-    body
+    (body ?? "").length >= MIN_BODY_LENGTH
   );
 
   if (!zendesk) {
@@ -215,7 +216,8 @@ export default function Create() {
               </>
             )}
             <b>
-              <Status done={body && body.length > 10} /> Description
+              <Status done={body && body.length >= MIN_BODY_LENGTH} />{" "}
+              Description
             </b>
             <div
               style={{
@@ -264,8 +266,8 @@ export default function Create() {
                 ? "Enter Valid Email Address above"
                 : !subject
                 ? "Enter Subject above"
-                : !body
-                ? "Describe your issue above"
+                : (body ?? "").length < MIN_BODY_LENGTH
+                ? `Describe your ${type} in detail above`
                 : "Create Support Ticket"}
             </Button>
             {submitting && <Loading style={{ fontSize: "32pt" }} />}
