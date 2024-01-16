@@ -106,6 +106,9 @@ export default function costToEditLicense(
         `you can only change the quantity of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
+    if (modifiedInfo.cost_per_hour != null) {
+      modifiedInfo.cost_per_hour *= changes.quantity / modifiedInfo.quantity;
+    }
     modifiedInfo.quantity = changes.quantity;
   }
 
@@ -173,16 +176,19 @@ export default function costToEditLicense(
 
   // Determine price for the change
   const currentValue = currentLicenseValue({ info: origInfo });
-  const modifiedPrice = compute_cost(modifiedInfo, !!info.subscription);
+  //const modifiedPrice = compute_cost(modifiedInfo, !!info.subscription);
   // cost can be negative (when we give user a refund) -- in all cases we round up, which
   // is in our favor, to avoid abuse.
-  const cost = round2up(modifiedPrice.discounted_cost - currentValue);
+  const modifiedValue = currentLicenseValue({ info: modifiedInfo });
+  //modifiedPrice.discounted_cost;
+  const cost = round2up(modifiedValue - currentValue);
   log({ cost, currentValue, modifiedPrice });
   // In case of a subscription, we changed start to correctly compute the cost
   // of the change.  Set it back:
   if (modifiedInfo.subscription != "no") {
     modifiedInfo.start = originalInfo.start;
   }
+
   return { cost, modifiedInfo };
 }
 
