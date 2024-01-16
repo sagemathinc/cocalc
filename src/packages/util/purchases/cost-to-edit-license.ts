@@ -11,7 +11,7 @@ import type { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
 
 import currentLicenseValue from "./current-license-value";
-import { round2 } from "../misc";
+import { round2up } from "../misc";
 
 export interface Changes {
   end?: Date;
@@ -30,7 +30,7 @@ const log = (..._args) => {};
 export default function costToEditLicense(
   info: PurchaseInfo,
   changes: Changes,
-  now: Date=new Date(),
+  now: Date = new Date(),
 ): { cost: number; modifiedInfo: PurchaseInfo } {
   if (info.type == "vouchers") {
     throw Error("bug -- a license for vouchers makes no sense");
@@ -174,7 +174,9 @@ export default function costToEditLicense(
   // Determine price for the change
   const currentValue = currentLicenseValue({ info: origInfo });
   const modifiedPrice = compute_cost(modifiedInfo, !!info.subscription);
-  const cost = round2(modifiedPrice.discounted_cost - currentValue);
+  // cost can be negative (when we give user a refund) -- in all cases we round up, which
+  // is in our favor, to avoid abuse.
+  const cost = round2up(modifiedPrice.discounted_cost - currentValue);
   log({ cost, currentValue, modifiedPrice });
   // In case of a subscription, we changed start to correctly compute the cost
   // of the change.  Set it back:
