@@ -50,6 +50,7 @@ import {
   renewSubscription,
   resumeSubscription,
   costToResumeSubscription,
+  creditToCancelSubscription,
 } from "./api";
 import Export from "./export";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
@@ -73,9 +74,6 @@ function SubscriptionActions({
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [license, setLicense] = useState<License | null>(null);
-  const [costToResume, setCostToResume] = useState<number | undefined>(
-    undefined,
-  );
 
   const updateLicense = async () => {
     try {
@@ -85,10 +83,26 @@ function SubscriptionActions({
     }
   };
 
+  const [costToResume, setCostToResume] = useState<number | undefined>(
+    undefined,
+  );
   const updateCostToResume = async () => {
     try {
       const cost = await costToResumeSubscription(subscription_id);
       setCostToResume(cost);
+      return cost;
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
+  const [creditToCancel, setCreditToCancel] = useState<number | undefined>(
+    undefined,
+  );
+  const updateCreditToCancel = async () => {
+    try {
+      const cost = await creditToCancelSubscription(subscription_id);
+      setCreditToCancel(-cost);
       return cost;
     } catch (err) {
       setError(`${err}`);
@@ -205,43 +219,55 @@ function SubscriptionActions({
               onClick={() => setModalOpen(false)}
               type="primary"
             >
-              Make No Change
+              No Change
             </Button>,
             <Popconfirm
-              title={
-                <div style={{ maxWidth: "450px" }}>
-                  Are you sure you want to cancel this subscription immediately?
-                  The license will immediately become invalid and any projects
-                  using it will be terminated.
-                  {license?.info?.purchased.type == "disk" && (
-                    <b> All data on the disk will be permanently deleted.</b>
-                  )}
-                </div>
-              }
+              key="cancelNow"
+              title={"Cancel this subscription immediately?"}
+              description={() => {
+                setTimeout(updateCreditToCancel, 1);
+                if (creditToCancel == null) {
+                  return <Spin />;
+                }
+
+                return (
+                  <div style={{ maxWidth: "450px" }}>
+                    The license will immediately become invalid and any projects
+                    using it will stop.
+                    {license?.info?.purchased.type == "disk" && (
+                      <b> All data on the disk will be permanently deleted.</b>
+                    )}{" "}
+                    You will receive a{" "}
+                    <b>credit of {currency(creditToCancel)}</b> for the prorated
+                    time left on the subscription. There are no transaction fees
+                    for canceling or resuming a subscription, and you can resume
+                    your subscription at any point later.
+                  </div>
+                );
+              }}
               onConfirm={() => handleCancel(true)}
               okText="Yes"
               cancelText="No"
             >
-              <Button disabled={loading} key="cancelNow" danger>
+              <Button disabled={loading} danger>
                 Cancel Now...
               </Button>
             </Popconfirm>,
             <Popconfirm
-              title={
+              key="cancelEnd"
+              title={"Cancel this subscription at period end?"}
+              description={
                 <div style={{ maxWidth: "450px" }}>
-                  Are you sure you want to cancel this subscription at period
-                  end? The license will still be valid until the subscription
-                  period ends. You can always restart the subscription or edit
-                  the license to change the subscription price.
+                  The license will still be valid until the subscription period
+                  ends. You can always restart the subscription or edit the
+                  license to change the subscription price.
                 </div>
               }
               onConfirm={() => handleCancel(false)}
               okText="Yes"
               cancelText="No"
             >
-              <Button disabled={loading} key="cancelEnd">
-                Cancel at Period End...
-              </Button>
+              <Button disabled={loading}>Cancel at Period End...</Button>
             </Popconfirm>,
           ]}
         >
@@ -280,7 +306,7 @@ function SubscriptionActions({
         <Popconfirm
           title={"Resume this subscription?"}
           description={() => {
-            updateCostToResume();
+            setTimeout(updateCostToResume, 1);
             if (costToResume == null) {
               return <Spin />;
             }
