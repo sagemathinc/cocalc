@@ -17,7 +17,7 @@ import LicenseEditor from "./license-editor";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import costToEditLicense from "@cocalc/util/purchases/cost-to-edit-license";
-import { currency } from "@cocalc/util/misc";
+import { currency, len } from "@cocalc/util/misc";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { isEqual } from "lodash";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -174,7 +174,10 @@ export default function EditLicense({ license_id, refresh }: Props) {
               >
                 <Button
                   style={{ marginRight: "8px" }}
-                  disabled={!cost || makingChange}
+                  disabled={
+                    makingChange ||
+                    len(getChanges(info ?? {}, modifiedInfo ?? {})) == 0
+                  }
                   type="primary"
                 >
                   {cost > 0 && (
@@ -186,7 +189,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
                       {currency(-cost)}
                     </>
                   )}
-                  {cost == 0 && <>Edit license below</>}
+                  {cost == 0 && <>Edit license below -- no charge right now</>}
                 </Button>
               </Popconfirm>
             </div>
