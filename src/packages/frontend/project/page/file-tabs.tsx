@@ -172,6 +172,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
         <ConfigProvider
           theme={{
             components: {
+              // slightly emphasize the active tab. Plain white is lost in the white background and that gray matches the editor bars.
               Tabs: {
                 colorBgContainer: COLORS.GRAY_LL,
                 colorBorder: COLORS.GRAY_L,

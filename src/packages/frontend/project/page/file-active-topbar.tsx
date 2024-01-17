@@ -12,7 +12,9 @@ import { Flex } from "antd";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { separate_file_extension } from "@cocalc/util/misc";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
+import { path_split, separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 interface FileTabActiveFileTopbarProps {
@@ -24,6 +26,7 @@ export function FileTabActiveFileTopbar({
   activeKey,
   style,
 }: FileTabActiveFileTopbarProps) {
+  const { project_id } = useProjectContext();
   const isEmpty = activeKey === "";
 
   function renderIcon() {
@@ -32,15 +35,26 @@ export function FileTabActiveFileTopbar({
   }
 
   function renderName() {
-    const { name: base, ext = "" } = separate_file_extension(activeKey);
+    const { tail: fn } = path_split(activeKey);
+    const { name: base, ext = "" } = separate_file_extension(fn);
 
     return (
-      <span>
+      <Flex flex={1}>
         {base}
         {ext === "" ? undefined : (
           <span style={{ color: COLORS.FILE_EXT }}>{`.${ext}`}</span>
         )}
-      </span>
+      </Flex>
+    );
+  }
+
+  function renderPath() {
+    return (
+      <PathNavigator
+        mode={"flyout"}
+        project_id={project_id}
+        className={"cc-project-flyout-path-navigator"}
+      />
     );
   }
 
@@ -50,6 +64,7 @@ export function FileTabActiveFileTopbar({
     } else {
       return (
         <>
+          {renderPath()}
           {renderIcon()}
           {renderName()}
         </>
