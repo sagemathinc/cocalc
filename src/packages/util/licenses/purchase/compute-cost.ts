@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ONE_HOUR_MS, ONE_MONTH_MS } from "@cocalc/util/consts/billing";
+import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
@@ -12,10 +12,7 @@ import { BASIC, COSTS, GCE_COSTS, MAX, STANDARD } from "./consts";
 import { dedicatedPrice } from "./dedicated-price";
 import { Cost, PurchaseInfo } from "./types";
 
-export function compute_cost(
-  info: PurchaseInfo,
-  partialPeriod: boolean = false,
-): Cost {
+export function compute_cost(info: PurchaseInfo): Cost {
   if (info.type === "disk" || info.type === "vm") {
     return compute_cost_dedicated(info);
   }
@@ -147,24 +144,6 @@ export function compute_cost(
     // scale by factor of a month
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
     base_cost = months * cost_per_project_per_month;
-  } else if (partialPeriod) {
-    // Compute license cost for a partial period. This happens when the license is a subscription,
-    // but we're only computing the cost for a portion of the subscription period (which occurs when
-    // computing refunds for a cancelled subscription)
-    if (start == null) {
-      throw new Error("start must be set if computing for a partial period");
-    }
-    if (end == null) {
-      throw Error("end must be set if computing for a partial period");
-    }
-    if (!info.cost_per_hour) {
-      throw Error(
-        "cost_per_hour is required when computing license cost for a partial period",
-      );
-    }
-    const hours = (end.valueOf() - start.valueOf()) / ONE_HOUR_MS;
-    const cost_per_project_per_hour = info.cost_per_hour / (quantity ?? 1);
-    base_cost = hours * cost_per_project_per_hour;
   } else if (subscription === "yearly") {
     // If we're computing the cost for an annual subscription, multiply the monthly subscription
     // cost by 12.

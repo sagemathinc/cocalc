@@ -2,15 +2,12 @@
 
 import { cloneDeep } from "lodash";
 import dayjs from "dayjs";
-
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { is_integer } from "@cocalc/util/type-checking";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import type { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
-
-import currentLicenseValue from "./current-license-value";
 import { round2up } from "../misc";
 
 export interface Changes {
@@ -86,6 +83,9 @@ export default function costToEditLicense(
     // during future time.
     origInfo.start = now;
   }
+  if (origInfo.end < origInfo.start) {
+    origInfo.end = origInfo.start;
+  }
 
   log("editLicense with start date updated:", { origInfo });
 
@@ -94,9 +94,17 @@ export default function costToEditLicense(
   if (changes.start != null) {
     modifiedInfo.start = changes.start;
   }
-
   if (changes.end != null) {
     modifiedInfo.end = changes.end;
+  }
+
+  if (modifiedInfo.start < now) {
+    // Change start date to right now, since we're only making a change
+    // during future time.
+    modifiedInfo.start = now;
+  }
+  if (modifiedInfo.end < modifiedInfo.start) {
+    modifiedInfo.end = modifiedInfo.start;
   }
 
   if (changes.quantity != null && modifiedInfo.quantity != changes.quantity) {
@@ -175,14 +183,24 @@ export default function costToEditLicense(
   log({ modifiedInfo });
 
   // Determine price for the change
-  const currentValue = currentLicenseValue({ info: origInfo });
-  //const modifiedPrice = compute_cost(modifiedInfo, !!info.subscription);
-  // cost can be negative (when we give user a refund) -- in all cases we round up, which
-  // is in our favor, to avoid abuse.
-  const modifiedValue = currentLicenseValue({ info: modifiedInfo });
-  //modifiedPrice.discounted_cost;
-  const cost = round2up(modifiedValue - currentValue);
-  log({ cost, currentValue, modifiedPrice });
+  const currentValue = currentLicenseValue(origInfo);
+  const modifiedValue = currentLicenseValue(modifiedInfo);
+  // cost can be negative, when we give user a refund.
+  // **We round away from zero!**  The reason is because
+  // if the user cancels a subscription for a refund and
+  // gets $X, then buys that same subscription again, we
+  // want the price to again be $X, and not $X+0.01, which
+  // could be really annoying and block the purchase.
+  const d = modifiedValue - currentValue;
+  const cost = (d < 0 ? -1 : 1) * round2up(Math.abs(d));
+  log({
+    cost,
+    currentValue,
+    modifiedValue,
+    origInfo,
+    changes,
+    modifiedInfo,
+  });
   // In case of a subscription, we changed start to correctly compute the cost
   // of the change.  Set it back:
   if (modifiedInfo.subscription != "no") {
@@ -199,4 +217,32 @@ function assertIsPositiveInteger(n: number, desc: string) {
   if (n <= 0) {
     throw Error(`${desc} must be positive`);
   }
+}
+
+// this function assumes now <= start <= end!
+function currentLicenseValue(info: PurchaseInfo): number {
+  if (info.type !== "quota") {
+    // We do not provide any prorated refund for ancient license types.
+    return 0;
+  }
+  if (info.end == null || info.start == null) {
+    // infinite value?
+    return 0;
+  }
+  if (info.cost_per_hour) {
+    // if this is set, we use it to compute the value
+    // The value is cost_per_hour times the number of hours left until info.end.
+    const end = dayjs(info.end);
+    const start = dayjs(info.start);
+    const hoursRemaining = end.diff(start, "hours", true);
+    // the hoursRemaining can easily be *negative* if info.end is
+    // in the past.
+    // However the value of a license is never negative, so we max with 0.
+    return Math.max(0, hoursRemaining * info.cost_per_hour);
+  }
+
+  // fall back to computing value using the current rate.
+  // TODO: we want to make it so this NEVER is used.
+  const price = compute_cost(info);
+  return price.discounted_cost;
 }
