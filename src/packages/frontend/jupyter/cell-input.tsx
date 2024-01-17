@@ -412,7 +412,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
               />
             )}
             {/* Should only show formatter button if there is a way to format this code. */}
-            {!props.is_readonly && (
+            {!props.is_readonly && props.actions != null && (
               <Tooltip title="Format this code to look nice" placement="top">
                 <Button
                   disabled={formatting}
