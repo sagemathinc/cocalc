@@ -5,7 +5,11 @@ Some of these are only used by the nextjs app!
 */
 
 import api from "@cocalc/frontend/client/api";
-import type { Purchase, Reason, Service } from "@cocalc/util/db-schema/purchases";
+import type {
+  Purchase,
+  Reason,
+  Service,
+} from "@cocalc/util/db-schema/purchases";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
@@ -390,6 +394,24 @@ export async function resumeSubscription(subscription_id: number) {
   return await api("purchases/resume-subscription", {
     subscription_id,
   });
+}
+
+export async function costToResumeSubscription(
+  subscription_id: number,
+): Promise<number> {
+  const { cost } = await api("purchases/cost-to-resume-subscription", {
+    subscription_id,
+  });
+  return cost;
+}
+
+export async function creditToCancelSubscription(
+  subscription_id: number,
+): Promise<number> {
+  const { cost } = await api("purchases/credit-to-cancel-subscription", {
+    subscription_id,
+  });
+  return cost;
 }
 
 export async function renewSubscription(

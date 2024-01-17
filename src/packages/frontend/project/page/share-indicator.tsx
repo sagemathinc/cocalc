@@ -72,7 +72,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
 
     function renderLabel() {
       const style: CSS = { fontSize: "10.5pt", marginLeft: "5px" };
-      const label = is_public ? "Published" : "Publish";
+      const label = is_public ? "Published" : "Private";
       if (typeof compact === "boolean") {
         return compact ? null : <span style={style}>{label}</span>;
       }
@@ -90,11 +90,11 @@ export const ShareIndicator: React.FC<Props> = React.memo(
               });
             }}
           >
-            <Icon name={is_public ? "bullhorn" : "lock"} />
+            <Icon name={is_public ? "share-square" : "lock"} />
             {renderLabel()}
           </Button>
         </Tooltip>
       </div>
     );
-  }
+  },
 );

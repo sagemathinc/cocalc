@@ -19,7 +19,7 @@ import {
   useState,
 } from "../app-framework";
 import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
-import { Icon, Loading, ErrorDisplay, Gap } from "../components";
+import { A, Icon, Loading, ErrorDisplay, Gap } from "../components";
 import { webapp_client } from "../webapp-client";
 import { SITE_NAME } from "@cocalc/util/theme";
 import {
@@ -91,7 +91,7 @@ export const AddCollaborators: React.FC<Props> = ({
   const project_map = useTypedRedux("projects", "project_map");
   const project: Project | undefined = useMemo(
     () => project_map?.get(project_id),
-    [project_id, project_map]
+    [project_id, project_map],
   );
 
   // search that user has typed in so far
@@ -125,7 +125,7 @@ export const AddCollaborators: React.FC<Props> = ({
 
   const allow_urls = useMemo(
     () => redux.getStore("projects").allow_urls_in_emails(project_id),
-    [project_id]
+    [project_id],
   );
 
   function reset(): void {
@@ -208,7 +208,7 @@ export const AddCollaborators: React.FC<Props> = ({
     search_results.sort((x, y) => {
       let c = cmp(
         x.account_id && user_map.has(x.account_id) ? 0 : 1,
-        y.account_id && user_map.has(y.account_id) ? 0 : 1
+        y.account_id && user_map.has(y.account_id) ? 0 : 1,
       );
       if (c) return c;
       c = -cmp(x.last_active?.valueOf() ?? 0, y.last_active?.valueOf() ?? 0);
@@ -276,7 +276,7 @@ export const AddCollaborators: React.FC<Props> = ({
             last_name={r.last_name}
           />{" "}
           <span title={r.name}>{r.name}</span>
-        </Select.Option>
+        </Select.Option>,
       );
     }
     return options;
@@ -300,7 +300,7 @@ export const AddCollaborators: React.FC<Props> = ({
       subject,
       false,
       replyto,
-      replyto_name
+      replyto_name,
     );
   }
 
@@ -315,7 +315,7 @@ export const AddCollaborators: React.FC<Props> = ({
         } else {
           // skip
           throw Error(
-            `BUG - invalid selection ${x} must be an email address or account_id.`
+            `BUG - invalid selection ${x} must be an email address or account_id.`,
           );
         }
       } catch (err) {
@@ -371,7 +371,7 @@ export const AddCollaborators: React.FC<Props> = ({
       subject,
       false,
       replyto,
-      replyto_name
+      replyto_name,
     );
     if (!allow_urls) {
       // Show a message that they might have to email that person
@@ -394,7 +394,7 @@ export const AddCollaborators: React.FC<Props> = ({
       subject,
       false,
       replyto,
-      replyto_name
+      replyto_name,
     );
     set_email_to("");
     set_email_body("");
@@ -490,9 +490,20 @@ export const AddCollaborators: React.FC<Props> = ({
   function render_search(): JSX.Element | undefined {
     return (
       <div style={{ height: "40px" }}>
-        {state == "searched"
-          ? render_select_list_button()
-          : "Who would you like to collaborate with?"}
+        {state == "searched" ? (
+          render_select_list_button()
+        ) : (
+          <>
+            Who would you like to collaborate with?{" "}
+            <b>
+              NOTE: If you are teaching,{" "}
+              <A href="https://doc.cocalc.com/teaching-create-course.html#add-students-to-the-course">
+                add your students to your course
+              </A>
+              , NOT HERE.
+            </b>
+          </>
+        )}
       </div>
     );
   }
@@ -528,7 +539,7 @@ export const AddCollaborators: React.FC<Props> = ({
             if (s.indexOf(",") != -1) return true;
             return search_match(
               (opt as any).label,
-              search_split(s.toLowerCase())
+              search_split(s.toLowerCase()),
             );
           }}
           style={{ width: "100%", marginBottom: "10px" }}
@@ -536,7 +547,7 @@ export const AddCollaborators: React.FC<Props> = ({
             results.length > 0 && search.trim() ? (
               `Select user from ${results.length} ${plural(
                 results.length,
-                "user"
+                "user",
               )} matching '${search}'.`
             ) : (
               <span>
@@ -613,7 +624,7 @@ export const AddCollaborators: React.FC<Props> = ({
       if (num_matching_already > 0) {
         label += ` (${num_matching_already} matching ${plural(
           num_matching_already,
-          "user"
+          "user",
         )} already added)`;
       }
       disabled = true;

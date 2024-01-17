@@ -102,10 +102,10 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(Math.abs(await getBalance(item.account_id))).toBeLessThan(0.05);
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
   });
 
-  it(" resumes subscription, then cancels it again, and verifies again that the balance is small", async () => {
+  it("resumes subscription, then cancels it again, and verifies again that the balance is small", async () => {
     const subs = await getSubscriptions({ account_id: item.account_id });
     const { id: subscription_id } = subs[0];
     await resumeSubscription({
@@ -117,7 +117,7 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(Math.abs(await getBalance(item.account_id))).toBeLessThan(0.05);
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
   });
 
   it("same test but with different parameters for the subscription, e.g., business and yearly", async () => {
@@ -136,7 +136,7 @@ describe("create a subscription license and edit it and confirm the subscription
         member: true,
         period: "yearly",
         uptime: "short",
-        run_limit: 5,
+        run_limit: 500,
       },
       cost: {} as any,
     };
@@ -152,7 +152,7 @@ describe("create a subscription license and edit it and confirm the subscription
     // set min balance so this all works below
     const pool = getPool();
     await pool.query("UPDATE accounts SET min_balance=$1 WHERE account_id=$2", [
-      -1000,
+      -100000,
       item.account_id,
     ]);
     // make closing day near in the future
@@ -161,6 +161,10 @@ describe("create a subscription license and edit it and confirm the subscription
       day = 1;
     }
     await setClosingDay(item.account_id, day);
+
+    // balance starts at 0
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+
     const client = await getPoolClient();
     await purchaseShoppingCartItem(item as any, client);
     client.release();
@@ -172,7 +176,7 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(Math.abs(await getBalance(item.account_id))).toBeLessThan(0.05);
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
     await resumeSubscription({
       account_id: item.account_id,
       subscription_id,
@@ -182,6 +186,6 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(Math.abs(await getBalance(item.account_id))).toBeLessThan(0.05);
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
   });
 });
