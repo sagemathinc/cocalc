@@ -14,7 +14,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
-import { useProjectContext } from "../../context";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
@@ -75,9 +75,10 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
     );
   }
 
-  const padding = (hideActionButtons || isActiveFlyout)
-    ? `${FLYOUT_PADDING} 0 0 0`
-    : `${FLYOUT_PADDING} 0 0 ${FLYOUT_PADDING}`;
+  const padding =
+    hideActionButtons || isActiveFlyout
+      ? `${FLYOUT_PADDING} 0 0 0`
+      : `${FLYOUT_PADDING} 0 0 ${FLYOUT_PADDING}`;
 
   const style: CSS = {
     display: "flex",

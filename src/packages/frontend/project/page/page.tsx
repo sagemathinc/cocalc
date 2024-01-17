@@ -43,7 +43,7 @@ import { FIX_BORDERS } from "./common";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
 import { FlyoutBody } from "./flyouts/body";
-import { FLYOUT_DEFAULT_WIDTH_PX } from "./flyouts/consts";
+import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./flyouts/consts";
 import { FlyoutHeader } from "./flyouts/header";
 import {
   getFlyoutExpanded,
@@ -71,7 +71,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const flyout = useTypedRedux({ project_id }, "flyout");
-  const flyout_active = useTypedRedux({ project_id }, "flyout_active");
+  const showFlyoutActive = useTypedRedux({ project_id }, "flyout_active");
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -234,6 +234,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             resetFlyoutWidth={resetFlyoutWidth}
             flyoutLimit={flyoutLimit}
             oldFlyoutWidth={oldFlyoutWidth}
+            addMargin={showFlyoutActive}
           />
         </DndContext>
       </div>
@@ -241,7 +242,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }
 
   function renderFlyoutActive() {
-    if (!flyout_active) return;
+    if (!showFlyoutActive) return;
 
     return (
       <Flex vertical={true} flex={0}>
@@ -380,10 +381,12 @@ function FlyoutDragbar({
   resetFlyoutWidth,
   flyoutLimit,
   oldFlyoutWidth,
+  addMargin: addPadding,
 }: {
   resetFlyoutWidth: () => void;
   flyoutLimit: { left: number; right: number };
   oldFlyoutWidth: number;
+  addMargin: boolean;
 }) {
   const { project_id } = useProjectContext();
 
@@ -414,6 +417,8 @@ function FlyoutDragbar({
         width: "5px",
         height: "100%",
         cursor: "col-resize",
+        // add some space if flyout + active files are visible
+        marginRight: addPadding ? FLYOUT_PADDING : undefined,
         ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
       }}
       {...listeners}

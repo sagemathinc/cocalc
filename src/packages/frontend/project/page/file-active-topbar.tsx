@@ -24,6 +24,8 @@ export function FileTabActiveFileTopbar({
   activeKey,
   style,
 }: FileTabActiveFileTopbarProps) {
+  const isEmpty = activeKey === "";
+
   function renderIcon() {
     const { icon } = file_options(activeKey);
     return <Icon name={icon} />;
@@ -42,21 +44,38 @@ export function FileTabActiveFileTopbar({
     );
   }
 
+  function renderContent() {
+    if (isEmpty) {
+      return <></>;
+    } else {
+      return (
+        <>
+          {renderIcon()}
+          {renderName()}
+        </>
+      );
+    }
+  }
+
+  function renderStyle(): CSS {
+    return {
+      display: "flex",
+      paddingLeft: "5px",
+      fontSize: "120%",
+      borderBottom: isEmpty ? undefined : `1px solid ${COLORS.GRAY_L}`,
+      ...style,
+    };
+  }
+
   return (
     <Flex
       justify="left"
       align="center"
       flex={1}
       gap="small"
-      style={{
-        display: "flex",
-        paddingLeft: "5px",
-        borderBottom: `1px solid ${COLORS.GRAY_L}`,
-        fontSize: "120%",
-        ...style,
-      }}
+      style={renderStyle()}
     >
-      {renderIcon()} {renderName()}
+      {renderContent()}
     </Flex>
   );
 }

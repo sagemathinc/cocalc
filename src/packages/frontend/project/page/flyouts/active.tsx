@@ -481,17 +481,18 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   function renderGroups(): JSX.Element {
+    const style: CSS = { marginTop: FLYOUT_PADDING, background: "white" };
     // flat, same ordering as file tabs
     if (mode === "tabs") {
       const [tabs, stars] = renderTabs();
       return (
         <>
-          {wrap(tabs, { marginTop: "10px" })}
+          {wrap(tabs, style)}
           {stars}
         </>
       );
     } else {
-      return wrap(renderGroupsOfGrouped(), { marginTop: "10px" });
+      return wrap(renderGroupsOfGrouped(), style);
     }
   }
 
