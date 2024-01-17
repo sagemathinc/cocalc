@@ -17,7 +17,7 @@ register({
   Element: ({ attributes, children, element }) => {
     const node = element as Link;
     const { url, title } = node;
-    const ref = useProcessLinks([url]);
+    const ref = useProcessLinks([url], { doubleClick: true });
     return (
       <span {...attributes}>
         <span ref={ref}>
