@@ -179,11 +179,27 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         return;
       }
       return (
-        <Button.Group style={{ float: "right" }}>
-          <Button onClick={handle_md_double_click}>
+        <Button.Group
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "-20px",
+          }}
+        >
+          <Button
+            style={{ color: "#666", fontSize: "11px" }}
+            size="small"
+            type="text"
+            onClick={handle_md_double_click}
+          >
             <Icon name="edit" /> Edit
           </Button>
-          <Button onClick={handle_upload_click}>
+          <Button
+            style={{ color: "#666", fontSize: "11px" }}
+            size="small"
+            type="text"
+            onClick={handle_upload_click}
+          >
             <Icon name="image" />
           </Button>
         </Button.Group>
