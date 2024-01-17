@@ -7,7 +7,17 @@
 Checkout -- finalize purchase and pay.
 */
 import type { RadioChangeEvent } from "antd";
-import { Alert, Button, Card, Divider, Col, Row, Spin, Table, Radio } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Divider,
+  Col,
+  Row,
+  Spin,
+  Table,
+  Radio,
+} from "antd";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -35,7 +45,9 @@ export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
-  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(PaymentIntent.PAY_TOTAL);
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(
+    PaymentIntent.PAY_TOTAL,
+  );
   const [totalCost, setTotalCost] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const { profile, reload: reloadProfile } = useProfileWithReload({
@@ -265,9 +277,14 @@ export default function Checkout() {
                     <Radio.Group
                       value={paymentIntent}
                       onChange={handlePaymentIntentChange}
-                      style={{ marginTop: 32 }}>
-                      <Radio.Button value={PaymentIntent.PAY_TOTAL}>Pay Total</Radio.Button>
-                      <Radio.Button value={PaymentIntent.APPLY_BALANCE}>Apply Account Balance</Radio.Button>
+                      style={{ marginTop: 32 }}
+                    >
+                      <Radio.Button value={PaymentIntent.PAY_TOTAL}>
+                        Pay Total
+                      </Radio.Button>
+                      <Radio.Button value={PaymentIntent.APPLY_BALANCE}>
+                        Apply Account Balance
+                      </Radio.Button>
                     </Radio.Group>
                   )}
                 </Col>
@@ -291,7 +308,9 @@ export default function Checkout() {
                   style={{ marginTop: "7px", marginBottom: "15px" }}
                   size="large"
                   type="primary"
-                  onClick={() => completePurchase(paymentIntent === PaymentIntent.PAY_TOTAL)}
+                  onClick={() =>
+                    completePurchase(paymentIntent === PaymentIntent.PAY_TOTAL)
+                  }
                 >
                   <Icon name="credit-card" />{" "}
                   {completingPurchase ? (
@@ -424,8 +443,8 @@ function GetAQuote({ items }) {
   return (
     <Paragraph style={{ paddingTop: "15px" }}>
       <A onClick={() => setMore(!more)}>
-        Need to obtain a quote, invoice, modified terms, a purchase order, to
-        use PayPal or pay via wire transfer, etc.?
+        Need to obtain a quote, invoice, modified terms, a purchase order, or
+        pay via wire transfer, etc.?
       </A>
       {more && (
         <Paragraph>

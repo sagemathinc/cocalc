@@ -45,14 +45,13 @@ const A_STYLE_ELEVATED: CSS = {
 } as const;
 
 export const ALERT_STYLE: CSS = {
-  paddingTop: "0px",
+  paddingTop: "5px",
   paddingLeft: "10px",
   paddingRight: "5px",
   paddingBottom: "5px",
   marginBottom: 0,
   fontSize: "9pt",
   borderRadius: 0,
-  lineHeight: "80%",
 } as const;
 
 const ALERT_STYLE_ELEVATED: CSS = {

@@ -64,6 +64,7 @@ Here's what a typical shopping cart item looks like:
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
+import type { Cost } from "@cocalc/util/licenses/purchase/types";
 import { sanity_checks } from "@cocalc/util/licenses/purchase/sanity-checks";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
@@ -72,14 +73,13 @@ import getLogger from "@cocalc/backend/logger";
 import createSubscription from "./create-subscription";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import { getClosingDay } from "./closing-date";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import dayjs from "dayjs";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 
 export default async function purchaseShoppingCartItem(
   item,
-  client: PoolClient
+  client: PoolClient,
 ) {
   logger.debug("purchaseShoppingCartItem", item);
   if (item.product != "site-license") {
@@ -99,7 +99,7 @@ export default async function purchaseShoppingCartItem(
     "purchaseShoppingCartItem -- created license from shopping cart item",
     license_id,
     item,
-    info
+    info,
   );
 
   const purchase_id = await createPurchase({
@@ -114,7 +114,7 @@ export default async function purchaseShoppingCartItem(
   });
   logger.debug(
     "purchaseShoppingCartItem -- created purchase from shopping cart item",
-    { purchase_id, license_id, item_id: item.id }
+    { purchase_id, license_id, item_id: item.id },
   );
 
   if (item.description.period != "range") {
@@ -133,11 +133,11 @@ export default async function purchaseShoppingCartItem(
         status: "active",
         metadata: { type: "license", license_id },
       },
-      client
+      client,
     );
     logger.debug(
       "purchaseShoppingCartItem -- created subscription from shopping cart item",
-      { subscription_id, license_id, item_id: item.id }
+      { subscription_id, license_id, item_id: item.id },
     );
   }
 
@@ -147,8 +147,31 @@ export default async function purchaseShoppingCartItem(
 
 export async function createLicenseFromShoppingCartItem(
   item,
-  client: PoolClient
+  client: PoolClient,
 ): Promise<{ license_id: string; info; licenseCost }> {
+  const info = getPurchaseInfo(item.description);
+  let licenseCost = item.cost;
+
+  if (info.type != "vouchers" && item.description.period != "range") {
+    // handle initial purchase of subscription:
+    const { cost, end } = await getInitialCostForSubscription(item);
+    licenseCost = cost;
+    info.end = end;
+  }
+
+  logger.debug("running sanity checks on license...");
+  const pool = client ?? getPool();
+  await sanity_checks(pool, info);
+  const license_id = await createLicense(item.account_id, info, pool);
+  if (item.project_id) {
+    addLicenseToProjectAndRestart(item.project_id, license_id, client);
+  }
+  return { info, license_id, licenseCost };
+}
+
+async function getInitialCostForSubscription(
+  item,
+): Promise<{ cost: Cost; end: Date }> {
   const info = getPurchaseInfo(item.description);
   let licenseCost = item.cost;
 
@@ -163,37 +186,43 @@ export async function createLicenseFromShoppingCartItem(
       end = dayjs(end).subtract(1, "day").toDate();
     }
     if (!dayjs(end).isSame(dayjs(info.end))) {
-      // Regarding cost -- because of adjusting end above, we prorate first month/year cost
-      const newCost = compute_cost({ ...info, end, subscription: "no" });
-      if (newCost.discounted_cost < licenseCost.discounted_cost) {
-        licenseCost = newCost;
-      }
-      info.end = end;
+      // Regarding cost -- because of adjusting end above, we prorate the initial cost
+      const normalPeriod = dayjs(info.end).diff(dayjs(info.start));
+      const modifiedPeriod = dayjs(end).diff(dayjs(info.start));
+      const proportionOfPeriod = modifiedPeriod / normalPeriod;
+      return { cost: scaleCost(licenseCost, proportionOfPeriod), end };
+    } else {
+      return { cost: licenseCost, end: info.end };
+    }
+  } else {
+    throw Error("must be a subscription");
+  }
+}
+
+function scaleCost(cost: Cost, scale: number): Cost {
+  const x: Partial<Cost> = {};
+  for (const key in cost) {
+    if (key == "cost" || key == "cost_per_unit" || key == "discounted_cost") {
+      x[key] = cost[key] * scale;
+    } else {
+      x[key] = cost;
     }
   }
-
-  logger.debug("running sanity checks on license...");
-  const pool = client ?? getPool();
-  await sanity_checks(pool, info);
-  const license_id = await createLicense(item.account_id, info, pool);
-  if (item.project_id) {
-    addLicenseToProjectAndRestart(item.project_id, license_id, client);
-  }
-  return { info, license_id, licenseCost };
+  return x as Cost;
 }
 
 async function markItemPurchased(item, license_id: string, client: PoolClient) {
   const pool = client ?? getPool();
   await pool.query(
     "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=$2",
-    [item.account_id, item.id, { success: true, time: new Date(), license_id }]
+    [item.account_id, item.id, { success: true, time: new Date(), license_id }],
   );
 }
 
 export async function addLicenseToProjectAndRestart(
   project_id: string,
   license_id: string,
-  client: PoolClient
+  client: PoolClient,
 ) {
   try {
     await addLicenseToProject({ project_id, license_id, client });

@@ -234,7 +234,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       // a subscription will extend it (unless it is canceled)
       return null;
     }
-    const word = expired ? "EXPIRED" : "Will expire";
+    const word = expired ? "EXPIRED" : "Paid through";
     const when =
       info?.expires != null ? (
         <TimeAgo date={info.expires} />

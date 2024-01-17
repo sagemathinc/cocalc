@@ -17,7 +17,8 @@ interface Options {
   description: Description;
   client: PoolClient | null; // all purchases have to explicitly set client (possibly to null), to strongly encourage doing them as part of an atomic transaction.
   project_id?: string;
-  cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
+  // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
+  cost?: number;
   cost_per_hour?: number;
   cost_so_far?: number;
   period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.

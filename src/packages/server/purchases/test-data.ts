@@ -51,7 +51,7 @@ export async function createTestSubscription(account_id: string) {
       metadata: { type: "license", license_id },
       latest_purchase_id: 0,
     },
-    null
+    null,
   );
   return { license_id, subscription_id, cost };
 }

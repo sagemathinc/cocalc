@@ -6,8 +6,8 @@ export default function Support({ children, style }: { children; style? }) {
     <A
       style={style}
       href={getSupportURL({
-        body: "Please change my minimum allowed balance.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
-        subject: "Change Minimum Allowed Balance",
+        body: "",
+        subject: "Request: Change Minimum Allowed Balance",
         type: "question",
         hideExtra: true,
       })}

@@ -38,7 +38,10 @@ export const useCollapsed = () => {
   return editor.selection != null && Range.isCollapsed(editor.selection);
 };
 
-export const useProcessLinks = (deps?) => {
+export const useProcessLinks = (
+  deps: (string | undefined)[],
+  { doubleClick } = { doubleClick: false },
+) => {
   // TODO: implementation is very ugly!
   const ref = useRef<any>(null);
   const { project_id, path } = useFrameContext();
@@ -48,6 +51,7 @@ export const useProcessLinks = (deps?) => {
     (elt as any).process_smc_links({
       project_id,
       file_path: path_split(path).head, // TODO: inefficient to compute this every time.
+      doubleClick,
     });
   }, deps);
   return ref;

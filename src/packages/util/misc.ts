@@ -1746,8 +1746,8 @@ export function to_money(n: number, d = 2): string {
   return n.toFixed(d).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
-// Display currency with a dollar sign, rounded to *nearest*, and
-// if d is not given and n is less than 1 cent, will show 3 digits
+// Display currency with a dollar sign, rounded to *nearest*.
+// If d is not given and n is less than 1 cent, will show 3 digits
 // instead of 2.
 export function currency(n: number, d?: number) {
   if (n == 0) {
