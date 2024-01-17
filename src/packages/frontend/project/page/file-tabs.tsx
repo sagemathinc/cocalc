@@ -8,7 +8,7 @@ Tabs for the open files in a project.
 */
 
 import type { TabsProps } from "antd";
-import { Tabs } from "antd";
+import { ConfigProvider, Tabs } from "antd";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -169,30 +169,41 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
           borderBottom: `1px solid ${COLORS.GRAY_L}`,
         }}
       >
-        <SortableTabs
-          items={keys}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
+        <ConfigProvider
+          theme={{
+            components: {
+              Tabs: {
+                colorBgContainer: COLORS.GRAY_LL,
+                colorBorder: COLORS.GRAY_L,
+              },
+            },
+          }}
         >
-          <Tabs
-            tabBarExtraContent={renderLeft()}
-            animated={false}
-            renderTabBar={renderTabBar}
-            tabBarStyle={{ ...styleTabs }}
-            onEdit={onEdit}
-            style={{ width: "100%", ...styleBar }}
-            size="small"
-            items={items}
-            activeKey={activeKey}
-            type={"editable-card"}
-            hideAdd={true}
-            onChange={(key) => {
-              if (actions == null) return;
-              actions.set_active_tab(path_to_tab(keyToPath(key)));
-            }}
-            popupClassName={"cocalc-files-tabs-more"}
-          />
-        </SortableTabs>
+          <SortableTabs
+            items={keys}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          >
+            <Tabs
+              tabBarExtraContent={renderLeft()}
+              animated={false}
+              renderTabBar={renderTabBar}
+              tabBarStyle={{ ...styleTabs }}
+              onEdit={onEdit}
+              style={{ width: "100%", ...styleBar }}
+              size="small"
+              items={items}
+              activeKey={activeKey}
+              type={"editable-card"}
+              hideAdd={true}
+              onChange={(key) => {
+                if (actions == null) return;
+                actions.set_active_tab(path_to_tab(keyToPath(key)));
+              }}
+              popupClassName={"cocalc-files-tabs-more"}
+            />
+          </SortableTabs>
+        </ConfigProvider>
       </div>
     );
   }
