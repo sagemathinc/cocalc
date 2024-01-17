@@ -358,8 +358,11 @@ export function LogFlyout({
         ref={virtuosoRef}
         style={{}}
         increaseViewportBy={10}
-        totalCount={log.length}
+        totalCount={log.length + 1}
         itemContent={(index) => {
+          if (index == log.length) {
+            return renderShowAll();
+          }
           const entry = log[index];
           if (entry == null) {
             // shouldn't happen
@@ -377,7 +380,7 @@ export function LogFlyout({
     );
   }
 
-  function renderBottom() {
+  function renderShowAll() {
     if (project_log_all != null) return null;
     return (
       <div style={{ flex: "1 1 auto", borderTop: FIX_BORDER }}>
@@ -388,7 +391,7 @@ export function LogFlyout({
             actions?.project_log_load_all();
           }}
         >
-          Load all log entries...
+          Show all log entries...
         </Button>
       </div>
     );
@@ -411,7 +414,6 @@ export function LogFlyout({
         prefix={<Icon name="search" />}
       />
       {wrap(list(), { marginTop: "10px" })}
-      {renderBottom()}
     </>
   );
 }
