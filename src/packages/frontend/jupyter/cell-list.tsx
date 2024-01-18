@@ -732,6 +732,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             style={{
               background: "white",
               boxShadow: "8px 8px 4px 4px #ccc",
+              fontSize: `${font_size}px`,
             }}
           >
             {render_insert_cell(id, "above")}

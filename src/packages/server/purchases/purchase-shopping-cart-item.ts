@@ -169,7 +169,7 @@ export async function createLicenseFromShoppingCartItem(
   return { info, license_id, licenseCost };
 }
 
-async function getInitialCostForSubscription(
+export async function getInitialCostForSubscription(
   item,
 ): Promise<{ cost: Cost; end: Date }> {
   const info = getPurchaseInfo(item.description);
