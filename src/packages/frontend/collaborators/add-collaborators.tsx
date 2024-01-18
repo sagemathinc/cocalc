@@ -489,7 +489,7 @@ export const AddCollaborators: React.FC<Props> = ({
 
   function render_search(): JSX.Element | undefined {
     return (
-      <div style={{ height: "40px" }}>
+      <div style={{ marginBottom: "15px" }}>
         {state == "searched" ? (
           render_select_list_button()
         ) : (

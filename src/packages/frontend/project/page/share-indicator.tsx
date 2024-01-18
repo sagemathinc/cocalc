@@ -39,6 +39,7 @@ interface Props {
 export const ShareIndicator: React.FC<Props> = React.memo(
   ({ project_id, path, compact, style }) => {
     const public_paths = useTypedRedux({ project_id }, "public_paths");
+    const share_server = useTypedRedux("customize", "share_server");
 
     const student_project_functionality =
       useStudentProjectFunctionality(project_id);
@@ -53,6 +54,10 @@ export const ShareIndicator: React.FC<Props> = React.memo(
       });
       return containing_public_path(path, paths) != null;
     }, [public_paths, path, project_id]);
+
+    if(!share_server) {
+      return  <></>;
+    }
 
     if (student_project_functionality.disableActions) {
       return <></>;
