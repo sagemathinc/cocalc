@@ -281,8 +281,7 @@ export default function Checkout() {
                         }
                       }}
                     >
-                      Apply Account Balance of {currency(params.balance)} Toward
-                      Purchase
+                      Apply Account Balance Toward Purchase
                     </Checkbox>
                   )}
                 </Col>
@@ -677,7 +676,7 @@ export function ExplainPaymentSituation({
     params;
   const curBalance = (
     <div style={{ float: "right" }}>
-      Current balance: {currency(balance)}
+      Balance: {currency(balance)}
       {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
     </div>
   );
@@ -688,25 +687,12 @@ export function ExplainPaymentSituation({
         showIcon
         type="info"
         style={style}
-        message={
-          <>
-            {curBalance}
-            <b>No Payment Required</b>
-          </>
-        }
         description={
           <>
-            <i>
-              You can complete this purchase <b>without making a payment now</b>
-            </i>
-            , since your account balance is {currency(balance)}
-            {minBalance < 0 && (
-              <>
-                , and your balance is allowed to go as low as{" "}
-                {currency(minBalance)}
-              </>
-            )}
-            .
+            {curBalance}
+            You can complete this purchase{" "}
+            <b>without adding credit to your account</b> by checking the box
+            above.
           </>
         }
       />
@@ -715,14 +701,15 @@ export function ExplainPaymentSituation({
   if (chargeAmount == minPayment) {
     return (
       <Alert
+        showIcon
         type="info"
         style={style}
-        message={<>{curBalance}Payment Required</>}
         description={
           <>
+            {curBalance}
             <i>
-              To complete this purchase, you will need to{" "}
-              <b>add at least {currency(chargeAmount)}</b> to your balance.
+              To complete this purchase, you must{" "}
+              <b>add at least {currency(chargeAmount)}</b> to your account.
             </i>{" "}
             {chargeAmount > amountDue && (
               <>
@@ -738,15 +725,15 @@ export function ExplainPaymentSituation({
   }
   return (
     <Alert
+      showIcon
       type="info"
       style={style}
-      message={<>{curBalance}Payment Required</>}
       description={
         <>
+          {curBalance}
           <i>
-            To complete this purchase, you will need to{" "}
-            <b>add at least {currency(chargeAmount)}</b> to your account
-            balance.
+            To complete this purchase, you must{" "}
+            <b>add at least {currency(chargeAmount)}</b> to your account.
           </i>{" "}
           {chargeAmount > total && params.minBalance < 0 && (
             <>
