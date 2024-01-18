@@ -136,7 +136,7 @@ export default function AutomaticPayments({ style }: Props) {
               ? "Update Your Automatic Payment Method"
               : "Disable Automatic Payments"
           }
-          okText={legacyCard ? "Update..." : "Disable Automatic Payments"}
+          okText={legacyCard ? "Update" : "Disable Automatic Payments"}
           cancelText={"Close"}
           description={
             stripe_checkout_session?.url != null ? (
@@ -153,7 +153,7 @@ export default function AutomaticPayments({ style }: Props) {
               </div>
             ) : legacyCard ? (
               <div style={{ maxWidth: "400px" }}>
-                You have a credit card on file. Please click "Update..." below
+                You have a credit card on file. Please click "Update" below
                 to enter a new payment method and switch to the new automatic
                 payments systems. After that you can easily cancel or enable
                 automatic payments at any time.
@@ -177,11 +177,11 @@ export default function AutomaticPayments({ style }: Props) {
             {legacyCard ? (
               <>
                 <Icon name="credit-card" /> Automatic Payments: Update
-                Required...
+                Required
               </>
             ) : (
               <>
-                <Icon name="check" /> Automatic Payments are Enabled...
+                <Icon name="check" /> Automatic Payments are Enabled
               </>
             )}
             {loading && <Spin />}
@@ -220,7 +220,7 @@ export default function AutomaticPayments({ style }: Props) {
           }
         >
           <Button disabled={loading}>
-            <Icon name="credit-card" /> Enable Automatic Payments...{" "}
+            <Icon name="credit-card" /> Enable Automatic Payments{" "}
             {loading && <Spin />}
           </Button>
         </Popconfirm>
