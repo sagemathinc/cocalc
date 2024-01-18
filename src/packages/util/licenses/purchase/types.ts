@@ -17,6 +17,10 @@ export interface Cost {
   cost_per_project_per_month: number;
   cost_sub_month: number;
   cost_sub_year: number;
+  // if buying a subscription, the cost for the first period
+  // may be less than cost_sub_month / cost_sub_year, depending
+  // on the closing statement date of the user.
+  cost_sub_first_period?: number;
 }
 
 export type CostInput =

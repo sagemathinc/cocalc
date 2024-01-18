@@ -6,17 +6,16 @@
 /*
 Checkout -- finalize purchase and pay.
 */
-import type { RadioChangeEvent } from "antd";
 import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Divider,
   Col,
   Row,
   Spin,
   Table,
-  Radio,
 } from "antd";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -32,7 +31,7 @@ import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2up, round2down } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ProductColumn } from "./cart";
 
@@ -62,15 +61,19 @@ export default function Checkout() {
     return session;
   };
 
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentAmount, setPaymentAmount0] = useState<number>(0);
+  const setPaymentAmount = (amount: number) => {
+    // no matter how this is set, always round it up to nearest penny.
+    setPaymentAmount0(round2up(amount));
+  };
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async () => {
     try {
       const params = await purchasesApi.getShoppingCartCheckoutParams();
-      const cost = discountedCost(params.cart);
+      const cost = params.total;
 
       setParams(params);
-      setTotalCost(cost);
+      setTotalCost(round2up(cost));
 
       if (paymentIntent === PaymentIntent.APPLY_BALANCE) {
         setPaymentAmount(params?.chargeAmount ?? 0);
@@ -187,16 +190,6 @@ export default function Checkout() {
 
   const columns = getColumns();
 
-  const handlePaymentIntentChange = (e: RadioChangeEvent) => {
-    setPaymentIntent(e.target.value);
-
-    if (e.target.value === PaymentIntent.PAY_TOTAL) {
-      setPaymentAmount(totalCost);
-    } else if (e.target.value === PaymentIntent.APPLY_BALANCE) {
-      setPaymentAmount(params?.chargeAmount || 0);
-    }
-  };
-
   return (
     <>
       {session != null && (
@@ -267,25 +260,30 @@ export default function Checkout() {
             <div style={{ height: "30px" }} />
 
             <Card title={<>2. Place Your Order</>}>
-              <ExplainPaymentSituation
-                params={params}
-                style={{ margin: "15px 0" }}
-              />
               <Row>
                 <Col sm={12} style={{ textAlign: "center" }}>
-                  {(params.balance ?? 0) - (params.minBalance ?? 0) > 0 && (
-                    <Radio.Group
-                      value={paymentIntent}
-                      onChange={handlePaymentIntentChange}
-                      style={{ marginTop: 32 }}
+                  {round2down(
+                    (params.balance ?? 0) - (params.minBalance ?? 0),
+                  ) > 0 && (
+                    <Checkbox
+                      style={{ marginTop: "32px" }}
+                      checked={paymentIntent == PaymentIntent.APPLY_BALANCE}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setPaymentIntent(PaymentIntent.APPLY_BALANCE);
+                        } else {
+                          setPaymentIntent(PaymentIntent.PAY_TOTAL);
+                        }
+                        if (!e.target.checked) {
+                          setPaymentAmount(totalCost);
+                        } else if (e.target.checked) {
+                          setPaymentAmount(params?.chargeAmount || 0);
+                        }
+                      }}
                     >
-                      <Radio.Button value={PaymentIntent.PAY_TOTAL}>
-                        Pay Total
-                      </Radio.Button>
-                      <Radio.Button value={PaymentIntent.APPLY_BALANCE}>
-                        Apply Account Balance
-                      </Radio.Button>
-                    </Radio.Group>
+                      Apply Account Balance of {currency(params.balance)} Toward
+                      Purchase
+                    </Checkbox>
                   )}
                 </Col>
                 <Col sm={12}>
@@ -296,6 +294,11 @@ export default function Checkout() {
                   </div>
                 </Col>
               </Row>
+
+              <ExplainPaymentSituation
+                params={params}
+                style={{ margin: "15px 0" }}
+              />
               <div style={{ textAlign: "center" }}>
                 <Divider />
                 <Button
@@ -315,7 +318,7 @@ export default function Checkout() {
                   <Icon name="credit-card" />{" "}
                   {completingPurchase ? (
                     <>
-                      Completing Purchase...
+                      Completing Purchase
                       <Spin />
                     </>
                   ) : params == null || paymentAmount == 0 ? (
@@ -323,7 +326,7 @@ export default function Checkout() {
                       session != null ? " (finish payment first)" : ""
                     }`
                   ) : (
-                    `Add ${currency(paymentAmount)} credit to your account...`
+                    `Add ${currency(paymentAmount)} credit to your account`
                   )}
                 </Button>
               </div>
@@ -340,7 +343,7 @@ export function fullCost(items) {
   let full_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
-      full_cost += cost.cost;
+      full_cost += cost.cost_sub_first_period ?? cost.cost;
     }
   }
   return full_cost;
@@ -350,7 +353,7 @@ export function discountedCost(items) {
   let discounted_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
-      discounted_cost += cost.discounted_cost;
+      discounted_cost += cost.cost_sub_first_period ?? cost.discounted_cost;
     }
   }
   return discounted_cost;
@@ -718,7 +721,7 @@ export function ExplainPaymentSituation({
         description={
           <>
             <i>
-              To complete this purchase,{" "}
+              To complete this purchase, you will need to{" "}
               <b>add at least {currency(chargeAmount)}</b> to your balance.
             </i>{" "}
             {chargeAmount > amountDue && (
@@ -741,7 +744,7 @@ export function ExplainPaymentSituation({
       description={
         <>
           <i>
-            To complete this purchase,{" "}
+            To complete this purchase, you will need to{" "}
             <b>add at least {currency(chargeAmount)}</b> to your account
             balance.
           </i>{" "}

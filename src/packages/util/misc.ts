@@ -804,6 +804,10 @@ export function round4(num: number): number {
 export function round2up(num: number): number {
   return Math.ceil(num * 100) / 100;
 }
+// Round given number down to 2 decimal places
+export function round2down(num: number): number {
+  return Math.floor(num * 100) / 100;
+}
 
 // returns the number parsed from the input text, or undefined if invalid
 // rounds to the nearest 0.01 if round_number is true (default : true)
