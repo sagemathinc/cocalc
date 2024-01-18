@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS } from "@cocalc/frontend/app-framework";
+import { CSS, useMemo } from "@cocalc/frontend/app-framework";
 import { getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { DirectoryListingEntry } from "../../explorer/types";
 import { fileItemLeftBorder } from "./file-list-item";
 import { FlyoutActiveMode, FlyoutLogMode } from "./state";
 
@@ -27,4 +28,20 @@ export function deterministicColor(group: string) {
 export function randomLeftBorder(group: string): CSS {
   const col = deterministicColor(group);
   return fileItemLeftBorder(col);
+}
+
+export function useSingleFile({
+  checked_files,
+  activeFile,
+  getFile,
+  directoryFiles,
+}): DirectoryListingEntry | undefined {
+  return useMemo(() => {
+    if (checked_files.size === 0 && activeFile != null) {
+      return activeFile;
+    }
+    if (checked_files.size === 1) {
+      return getFile(checked_files.first() ?? "");
+    }
+  }, [checked_files, directoryFiles, activeFile]);
 }
