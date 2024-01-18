@@ -6,6 +6,8 @@
 import { AccountStore } from "@cocalc/frontend/account";
 import { redux } from "@cocalc/frontend/app-framework";
 
+const FLYOUT_DEFAULT_DATE = new Date("2100-01-01");
+
 // in the other_settings map
 export const VBAR_KEY = "vertical_fixed_bar";
 
@@ -35,7 +37,7 @@ function getDefaultVBAROption() {
   // check that cretaed is a Date
   if (created == null || !(created instanceof Date)) return "both";
   // if created is after this date return "flyout", else "both"
-  if (created > new Date("2024-01-15")) {
+  if (created > FLYOUT_DEFAULT_DATE) {
     return "flyout";
   } else {
     return "both";
@@ -43,7 +45,7 @@ function getDefaultVBAROption() {
 }
 
 export function getValidVBAROption(
-  vbar_setting: any
+  vbar_setting: any,
 ): keyof typeof VBAR_OPTIONS {
   if (typeof vbar_setting !== "string" || VBAR_OPTIONS[vbar_setting] == null) {
     return getDefaultVBAROption();
