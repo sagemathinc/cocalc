@@ -308,8 +308,10 @@ export async function shoppingCartCheckout(opts: {
   return await api("purchases/shopping-cart-checkout", opts);
 }
 
-export async function getShoppingCartCheckoutParams() {
-  return await api("purchases/get-shopping-cart-checkout-params");
+export async function getShoppingCartCheckoutParams(
+  opts: { ignoreBalance?: boolean } = {},
+) {
+  return await api("purchases/get-shopping-cart-checkout-params", opts);
 }
 
 import type { WhenPay } from "@cocalc/util/vouchers";

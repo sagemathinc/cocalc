@@ -98,7 +98,7 @@ describe("create-stripe-checkout-session", () => {
         ...testSessionOpts,
       }))
         .rejects
-        .toThrow("amount must be at least");
+        .toThrow("Amount must be at least");
     });
 
     it("conforms to minimum Stripe transaction charge when forced", async () => {
