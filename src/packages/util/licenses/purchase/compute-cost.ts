@@ -113,23 +113,15 @@ export function compute_cost(info: PurchaseInfo): Cost {
   // is used or the quality of hosting.
   cost_per_project_per_month += custom_disk * COSTS.custom_cost.disk;
 
-  // It's convenient in all cases to have the actual amount we will be
-  // for both monthly and yearly available (used by backend for setting up
-  // stripe products).
-  const cost_sub_month =
-    cost_per_project_per_month *
-    COSTS.user_discount[user] *
-    COSTS.sub_discount["monthly"];
-
-  const cost_sub_year =
-    cost_per_project_per_month *
-    12 *
-    COSTS.user_discount[user] *
-    COSTS.sub_discount["yearly"];
-
   // Now give the academic and subscription discounts:
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
+
+  // It's convenient in all cases to have the actual amount we will be
+  // for both monthly and yearly available (used by backend for setting up
+  // stripe products).
+  const cost_sub_month = cost_per_project_per_month;
+  const cost_sub_year = cost_per_project_per_month * 12;
 
   let base_cost;
 

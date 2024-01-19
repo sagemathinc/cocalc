@@ -47,7 +47,8 @@ interface Options {
   changes: Changes;
   cost?: number;
   note?: string;
-  isSubscriptionRenewal?: boolean; // set to true if this is a subscription renewal.
+  // set to true if this is a subscription renewal.
+  isSubscriptionRenewal?: boolean;
   client?: PoolClient;
   // If force is true, we allow the purchase even if it exceeds any quotas.
   // Used for automatic subscription renewal. Such forced purchases are marked as
