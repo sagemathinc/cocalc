@@ -245,7 +245,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   public async rescan_latex_directive(): Promise<void> {
-    await this.init_build_directive(true);
+    // make this false since this is only called when user explicitly requests it, so it
+    // should scan for all options.
+    await this.init_build_directive(false);
   }
 
   /**

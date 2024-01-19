@@ -10,7 +10,7 @@ export const MENUS = {
   file: {
     label: "File",
     pos: 0,
-    groups: ["close"],
+    groups: ["reload", "close"],
   },
   edit: {
     label: "Edit",
@@ -25,7 +25,7 @@ export const MENUS = {
   go: {
     label: "Go",
     pos: 3,
-    groups: ["build", "other-users"],
+    groups: ["build", "scan", "other-users"],
   },
   help: {
     label: "Help",
@@ -405,6 +405,22 @@ export const COMMANDS: { [command: string]: Command } = {
     title: "Halt the running Jupyter kernel and close this notebook.",
   },
 
+  close_and_halt: {
+    group: "close",
+    action: "close_and_halt",
+    icon: "PoweroffOutlined",
+    label: "Close and Halt",
+    title: "Halt backend server and close this file.",
+  },
+
+  reload: {
+    group: "reload",
+    action: "reload",
+    icon: "reload",
+    label: "Reload",
+    title: "Reload this document",
+  },
+
   "show-time-travel": {
     group: "show-frames",
     pos: 3,
@@ -473,7 +489,7 @@ export const COMMANDS: { [command: string]: Command } = {
     action: "build",
     label: "Build",
     title:
-      "Build.  To disable automatic builds, change Account → Editor → 'Build on save'.",
+      "Build the document.  To disable automatic builds, change Account → Editor → 'Build on save'.",
     icon: "play-circle",
   },
 
@@ -483,6 +499,28 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Force Build",
     title: "Force rebuild entire project.",
     icon: "play",
+  },
+
+  clean: {
+    group: "build",
+    action: "clean",
+    label: "Delete Aux Files",
+    title: "Delete all temporary files left around from builds",
+    icon: "trash",
+  },
+
+  rescan_latex_directive: {
+    group: "scan",
+    action: "rescan_latex_directive",
+    label: "Scan for Build Directives",
+    title: (
+      <>
+        Rescan the document for build directives, starting{" "}
+        <code>'% !TeX program = xelatex, pdflatex, etc'</code> or{" "}
+        <code>'% !TeX cocalc = exact command line'</code>
+      </>
+    ),
+    icon: "reload",
   },
 
   sync: {

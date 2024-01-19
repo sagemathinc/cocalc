@@ -714,23 +714,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_reload(labels): Rendered {
-    if (!is_visible("reload", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"reload"}
-        title={"Reload this file"}
-        bsSize={button_size()}
-        onClick={() => props.actions.reload(props.id)}
-      >
-        <Icon name="reload" />
-        <VisibleMDLG>{labels ? " Reload" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
   function render_restart(labels): Rendered {
     if (!is_visible("restart", true)) {
       return;
@@ -781,43 +764,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     let x: Rendered;
     if ((x = render_save(labels))) v.push(x);
     if ((x = render_chatgpt(labels))) v.push(x);
-    if ((x = render_reload(labels))) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
     }
-  }
-
-  function render_rescan_latex_directives(): Rendered {
-    if (!is_visible("rescan_latex_directive", true)) return;
-    return (
-      <Button
-        key={"rescan-latex-directive"}
-        disabled={!!props.status}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.rescan_latex_directive?.()}
-        title={"Rescan document for build directive"}
-      >
-        <Icon name={"reload"} /> <VisibleMDLG>Directive</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_clean(labels): Rendered {
-    if (!is_visible("clean", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"clean"}
-        bsSize={button_size()}
-        onClick={() => props.actions.clean?.(props.id)}
-        title={"Clean auxiliary build files"}
-      >
-        <Icon name={"trash"} />{" "}
-        <VisibleMDLG>{labels ? "Clean" : undefined}</VisibleMDLG>
-      </Button>
-    );
   }
 
   function render_count_words(): Rendered {
@@ -832,24 +782,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Runs texcount"}
       >
         <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_close_and_halt(labels: boolean): Rendered {
-    if (!is_visible("close_and_halt")) {
-      return;
-    }
-    return (
-      <Button
-        key={"close_and_halt"}
-        disabled={close_and_halt_confirm}
-        bsSize={button_size()}
-        onClick={() => set_close_and_halt_confirm(true)}
-        title={"Close and halt server"}
-      >
-        <Icon name={"PoweroffOutlined"} />{" "}
-        <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -966,7 +898,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function renderMenus() {
     const v: { menu: JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
-      if (name == "view") continue;
       const x = createMenu(name);
       if (x != null) {
         v.push(x);
@@ -978,7 +909,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key="dropdown-menus"
         style={{
           display: "inline-block",
-          paddingTop: props.is_full ? "7px" : "5px",
+          paddingTop: props.is_only || props.is_full ? "7px" : "5px",
           borderLeft: "1px solid #ccc",
           borderRight: "1px solid #ccc",
         }}
@@ -1034,10 +965,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(render_edit());
       v.push(render_readonly_view());
       v.push(render_switch_to_file());
-      v.push(render_clean(labels));
-      v.push(render_rescan_latex_directives());
       v.push(render_restart(labels));
-      v.push(render_close_and_halt(labels));
       v.push(render_download(labels));
       v.push(render_count_words());
       v.push(render_export_to_markdown(labels));
@@ -1066,16 +994,22 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_main_buttons(): Rendered {
-    // This is complicated below (with the flex display) in order to have a drop down menu that actually appears
+    // This is complicated below (with the flex display) in order to have
+    // a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them.
-    const style: CSS = {
-      flexFlow: "row nowrap",
-      display: "flex",
-      flex: 1,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-    };
-    return <div style={style}>{render_buttons()}</div>;
+    return (
+      <div
+        style={{
+          flexFlow: "row nowrap",
+          display: "flex",
+          flex: 1,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        {render_buttons()}
+      </div>
+    );
   }
 
   function allButtonsPopover() {
