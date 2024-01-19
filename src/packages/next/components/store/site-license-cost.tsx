@@ -98,7 +98,9 @@ export function DisplayCost({
       </>
     );
   } else {
-    desc = `${money(round2up(cost.cost))} ${cost.period != "range" ? cost.period : ""}`;
+    desc = `${money(round2up(cost.cost))} ${
+      cost.period != "range" ? cost.period : ""
+    }`;
   }
 
   return (
@@ -205,8 +207,8 @@ function describeQuantity(props: DescribeQuantityProps): ReactNode {
 interface PeriodProps {
   quota: {
     subscription?: Omit<Subscription, "no">;
-    start?: Date | string;
-    end?: Date | string;
+    start?: Date | string | null;
+    end?: Date | string | null;
   };
   variant?: "short" | "long";
   // voucherPeriod: description used for a voucher -- just give number of days, since the exact dates themselves are discarded.

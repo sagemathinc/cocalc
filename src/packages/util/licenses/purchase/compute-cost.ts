@@ -133,18 +133,15 @@ export function compute_cost(info: PurchaseInfo): Cost {
 
   let base_cost;
 
-  if (subscription === "no") {
+  if (subscription == "no") {
     // Compute license cost for a partial period which has no subscription.
     if (start == null) {
-      throw new Error("start must be set if subscription=no");
+      throw Error("start must be set if subscription=no");
     }
     if (end == null) {
       throw Error("end must be set if subscription=no");
     }
-    // scale by factor of a month
-    const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
-    base_cost = months * cost_per_project_per_month;
-  } else if (subscription === "yearly") {
+  } else if (subscription == "yearly") {
     // If we're computing the cost for an annual subscription, multiply the monthly subscription
     // cost by 12.
     base_cost = 12 * cost_per_project_per_month;
@@ -154,6 +151,13 @@ export function compute_cost(info: PurchaseInfo): Cost {
     throw Error(
       "BUG -- a subscription must be yearly or monthly or a partial period",
     );
+  }
+  if (start != null && end != null) {
+    // In all cases -- subscription or not -- if the start and end dates are
+    // explicitly set, then we compute the cost over the given period.  This
+    // does not impact cost_sub_month or cost_sub_year.
+    const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
+    base_cost = months * cost_per_project_per_month;
   }
 
   // cost_per_unit is important for purchasing upgrades for specific intervals.

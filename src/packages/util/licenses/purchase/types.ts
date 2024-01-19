@@ -36,8 +36,8 @@ export interface CostInputPeriod extends Cost {
 }
 
 export interface StartEndDates {
-  start: Date;
-  end: Date;
+  start: Date | null;
+  end: Date | null;
 }
 
 export interface StartEndDatesWithStrings {
@@ -54,7 +54,7 @@ import type { Uptime } from "@cocalc/util/consts/site-license";
 import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import type { CustomDescription, Period } from "../../upgrades/shopping";
 
-export type PurchaseInfoQuota = {
+interface PurchaseInfoQuota0 {
   type: "quota";
   user: User;
   upgrade: Upgrade;
@@ -75,8 +75,11 @@ export type PurchaseInfoQuota = {
   custom_always_running?: boolean; // no longer really used, defined by custom_uptime above!
   boost?: boolean;
   run_limit?: number;
-} & StartEndDates &
-  CustomDescription;
+}
+
+export type PurchaseInfoQuota = PurchaseInfoQuota0 &
+  CustomDescription &
+  StartEndDates;
 
 export type PurchaseInfoVoucher = {
   type: "vouchers";

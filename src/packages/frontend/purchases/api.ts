@@ -15,6 +15,7 @@ import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
+import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -134,7 +135,8 @@ export async function getSubscription(
       },
     },
   });
-  return x.query.subscriptions;
+  const z = x.query.subscriptions;
+  return { ...z, cost_per_hour: z.cost / hoursInInterval(z.interval) };
 }
 
 export interface LiveSubscription {

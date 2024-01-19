@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
 export const ONE_DAY_MS = 24 * ONE_HOUR_MS;
 export const AVG_MONTH_DAYS = 30.5;
 export const AVG_YEAR_DAYS = 12 * AVG_MONTH_DAYS;

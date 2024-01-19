@@ -7,13 +7,12 @@
 // it might count one day too many or too little.
 // use the rounding functions below to fix this, but maybe you have to use the "store/util::useTimeFixer" hook.
 
-import { StartEndDatesWithStrings } from "@cocalc/util/licenses/purchase/types";
 import { DateRangeOptional } from "@cocalc/util/types/store";
 import dayjs, { Dayjs } from "dayjs";
 
 // this does NOT round to start/end of the day.
 
-export function getDays({ start, end }: StartEndDatesWithStrings): number {
+export function getDays({ start, end }): number {
   if (start == null || end == null) {
     throw Error("bug");
   }
@@ -35,7 +34,7 @@ export function endOfDay(date: Date | string): Date {
 // because e.g. 2022-08-13T23:59:99 is interpreted as the 13th, although (with rounding) it's the 14th
 export function roundToMidnight(
   date: Dayjs | Date | string | undefined,
-  side: "start" | "end"
+  side: "start" | "end",
 ): Date | undefined {
   if (date == null) return date;
   const ts = dayjs(date).add(12, "hours").startOf("day");
@@ -80,5 +79,15 @@ export function appendAfterNowToDate({
     return new Date(end.getTime() + diff);
   } else {
     return end;
+  }
+}
+
+export function hoursInInterval(interval: "month" | "year"): number {
+  if (interval.startsWith("month")) {
+    return 730;
+  } else if (interval.startsWith("year")) {
+    return 8760;
+  } else {
+    throw Error("bug");
   }
 }

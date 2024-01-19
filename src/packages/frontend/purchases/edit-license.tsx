@@ -4,7 +4,8 @@ of a license **they purchased**.  They may have to pay for changes they
 make, or get a refund.
 */
 
-import { Alert, Button, Card, Divider, Popconfirm, Spin } from "antd";
+import { Alert, Button, Card, Divider, Popconfirm, Spin, Tooltip } from "antd";
+import ShowError from "@cocalc/frontend/components/error";
 import { useEffect, useState } from "react";
 import {
   getLicense,
@@ -12,7 +13,7 @@ import {
   getSubscription,
   isPurchaseAllowed,
 } from "./api";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import LicenseEditor from "./license-editor";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
@@ -65,10 +66,17 @@ export default function EditLicense({ license_id, refresh }: Props) {
       setLoading(true);
       const license = await getLicense(license_id);
       setLicense(license);
-      if (license.subscription_id) {
-        setSubscription(await getSubscription(license.subscription_id));
-      }
       const info = license.info?.purchased ?? null;
+      if (license.subscription_id) {
+        const sub = await getSubscription(license.subscription_id);
+        setSubscription(sub);
+        // this is a subscription license, so include the CURRENT cost from the subscription,
+        // so this can be used in computations (rather than just prorating from current rates).
+        if (sub.cost_per_hour == null) {
+          throw Error("cost_per_hour must be set");
+        }
+        info.cost_per_hour = sub.cost_per_hour;
+      }
       if (info != null) {
         if (info.start != null) {
           info.start = new Date(info.start);
@@ -95,7 +103,17 @@ export default function EditLicense({ license_id, refresh }: Props) {
     try {
       setEditError("");
       setCost(costToChange(info, modifiedInfo));
-      setModifiedSubscriptionCost(compute_cost(modifiedInfo).discounted_cost);
+      if (isSubscription) {
+        // very important that start and end not set so get the subscription period cost,
+        // not the cost during that interval.
+        const subInfo = { ...modifiedInfo };
+        if (subInfo.type != "quota") {
+          throw Error("bug");
+        }
+        subInfo.start = null;
+        subInfo.end = null;
+        setModifiedSubscriptionCost(compute_cost(subInfo).discounted_cost);
+      }
     } catch (err) {
       setEditError(`${err}`);
     }
@@ -103,7 +121,12 @@ export default function EditLicense({ license_id, refresh }: Props) {
 
   if (error) {
     return (
-      <Alert type="error" message="Error Loading License" description={error} />
+      <ShowError
+        error={error}
+        message={"Error Loading License"}
+        setError={setError}
+        style={{ margin: "15px 0" }}
+      />
     );
   }
   return (
@@ -137,6 +160,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
                 Cancel
               </Button>
               <Popconfirm
+                zIndex={1900}
                 title="Change the license"
                 description="Are you sure to change this license?"
                 onConfirm={async () => {
@@ -172,35 +196,53 @@ export default function EditLicense({ license_id, refresh }: Props) {
                 okText="Yes"
                 cancelText="No"
               >
-                <Button
-                  style={{ marginRight: "8px" }}
-                  disabled={
-                    makingChange ||
-                    len(getChanges(info ?? {}, modifiedInfo ?? {})) == 0
+                <Tooltip
+                  placement={"right"}
+                  zIndex={1800}
+                  title={
+                    isSubscription && cost != 0 ? (
+                      <div>
+                        The change amount is the cost of the new license minus
+                        the value of your existing license for the rest of the
+                        current subscription period (i.e., until{" "}
+                        <TimeAgo date={info.end} />
+                        ). There are no transaction fees.
+                      </div>
+                    ) : (
+                      <div>Please edit the license below.</div>
+                    )
                   }
-                  type="primary"
                 >
-                  {cost > 0 && (
-                    <>Change License -- pay {currency(cost)} change fee</>
-                  )}
-                  {cost < 0 && (
-                    <>
-                      Change License -- your account will be credited{" "}
-                      {currency(-cost)}
-                    </>
-                  )}
-                  {cost == 0 && <>Edit license below -- no charge right now</>}
-                </Button>
+                  <Button
+                    style={{ marginRight: "8px" }}
+                    disabled={
+                      makingChange ||
+                      len(getChanges(info ?? {}, modifiedInfo ?? {})) == 0
+                    }
+                    type="primary"
+                  >
+                    {cost > 0 && <>Change License -- pay {currency(cost)}</>}
+                    {cost < 0 && (
+                      <>
+                        Change License -- your account will be credited{" "}
+                        {currency(-cost)}
+                      </>
+                    )}
+                    {cost == 0 && (
+                      <>Edit license below -- no charge right now</>
+                    )}
+                  </Button>
+                </Tooltip>
               </Popconfirm>
             </div>
           }
           style={{ maxWidth: "600px", margin: "auto" }}
         >
           {editError && (
-            <Alert
-              type="error"
-              message="Error Editing License"
-              description={editError}
+            <ShowError
+              error={editError}
+              message={"Error Editing License"}
+              setError={setEditError}
               style={{ margin: "15px 0" }}
             />
           )}
@@ -310,5 +352,6 @@ function getChanges(info: PurchaseInfo, modifiedInfo: PurchaseInfo): Changes {
 }
 
 function costToChange(info: PurchaseInfo, modifiedInfo: PurchaseInfo): number {
-  return costToEditLicense(info, getChanges(info, modifiedInfo)).cost;
+  const c = costToEditLicense(info, getChanges(info, modifiedInfo));
+  return c.cost;
 }

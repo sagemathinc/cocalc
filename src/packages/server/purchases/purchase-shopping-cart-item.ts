@@ -176,6 +176,9 @@ export async function getInitialCostForSubscription(
   let licenseCost = item.cost;
 
   if (info.type != "vouchers" && item.description.period != "range") {
+    if (info.end == null || info.start == null) {
+      throw Error("start and end must be set");
+    }
     let end = info.end;
     // adjust end day to match user's closing day, since it's very nice for all the subscriptions
     // to renew on the same day as the statement, so user's get one single bill rather than a mess.

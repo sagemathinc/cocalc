@@ -29,11 +29,19 @@ export default function costToEditLicense(
   changes: Changes,
   now: Date = new Date(),
 ): { cost: number; modifiedInfo: PurchaseInfo } {
-  if (info.type == "vouchers") {
-    throw Error("bug -- a license for vouchers makes no sense");
+  if (info.type != "quota") {
+    throw Error(
+      `bug -- editing a license of type "${info.type}" is not currently supported`,
+    );
   }
   const originalInfo = cloneDeep(info);
   log({ info, changes });
+  if (info.start == null) {
+    throw Error("start must be set");
+  }
+  if (info.end == null) {
+    throw Error("end must be set");
+  }
 
   const recent = dayjs(now).subtract(5, "minutes").toDate();
   // check constraints on the changes:
@@ -78,6 +86,12 @@ export default function costToEditLicense(
   }
 
   const origInfo = cloneDeep(info);
+  if (origInfo.start == null) {
+    throw Error("start must be set");
+  }
+  if (origInfo.end == null) {
+    throw Error("end must be set");
+  }
   if (origInfo.start < now) {
     // Change start date to right now, since we're only making a change
     // during future time.
@@ -98,6 +112,12 @@ export default function costToEditLicense(
     modifiedInfo.end = changes.end;
   }
 
+  if (modifiedInfo.start == null) {
+    throw Error("start must be set");
+  }
+  if (modifiedInfo.end == null) {
+    throw Error("end must be set");
+  }
   if (modifiedInfo.start < now) {
     // Change start date to right now, since we're only making a change
     // during future time.
@@ -107,6 +127,7 @@ export default function costToEditLicense(
     modifiedInfo.end = modifiedInfo.start;
   }
 
+  let numChanges = 0;
   if (changes.quantity != null && modifiedInfo.quantity != changes.quantity) {
     assertIsPositiveInteger(changes.quantity, "quantity");
     if (modifiedInfo.type != "quota") {
@@ -114,13 +135,14 @@ export default function costToEditLicense(
         `you can only change the quantity of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
-    if (modifiedInfo.cost_per_hour != null) {
-      modifiedInfo.cost_per_hour *= changes.quantity / modifiedInfo.quantity;
-    }
+    numChanges += 1;
     modifiedInfo.quantity = changes.quantity;
   }
 
-  if (changes.custom_ram != null) {
+  if (
+    changes.custom_ram != null &&
+    modifiedInfo.custom_ram != changes.custom_ram
+  ) {
     assertIsPositiveInteger(changes.custom_ram, "custom_ram");
     if (changes.custom_ram > MAX["ram"]) {
       throw Error(`custom_ram must be at most ${MAX["ram"]}`);
@@ -130,10 +152,14 @@ export default function costToEditLicense(
         `you can only change the custom_ram of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
+    numChanges += 1;
     modifiedInfo.custom_ram = changes.custom_ram;
   }
 
-  if (changes.custom_cpu != null) {
+  if (
+    changes.custom_cpu != null &&
+    modifiedInfo.custom_cpu != changes.custom_cpu
+  ) {
     assertIsPositiveInteger(changes.custom_cpu, "custom_cpu");
     if (changes.custom_cpu > MAX["cpu"]) {
       throw Error(`custom_ram must be at most ${MAX["ram"]}`);
@@ -143,10 +169,14 @@ export default function costToEditLicense(
         `you can only change the custom_cpu of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
+    numChanges += 1;
     modifiedInfo.custom_cpu = changes.custom_cpu;
   }
 
-  if (changes.custom_disk != null) {
+  if (
+    changes.custom_disk != null &&
+    modifiedInfo.custom_disk != changes.custom_disk
+  ) {
     assertIsPositiveInteger(changes.custom_disk, "custom_disk");
     if (changes.custom_disk > MAX["disk"]) {
       throw Error(`custom_ram must be at most ${MAX["disk"]}`);
@@ -156,10 +186,14 @@ export default function costToEditLicense(
         `you can only change the custom_disk of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
+    numChanges += 1;
     modifiedInfo.custom_disk = changes.custom_disk;
   }
 
-  if (changes.custom_member != null) {
+  if (
+    changes.custom_member != null &&
+    !!modifiedInfo.custom_member != !!changes.custom_member
+  ) {
     if (typeof changes.custom_member != "boolean") {
       throw Error("custom_member must be boolean");
     }
@@ -168,15 +202,20 @@ export default function costToEditLicense(
         `you can only change the custom_member of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
+    numChanges += 1;
     modifiedInfo.custom_member = changes.custom_member;
   }
 
-  if (changes.custom_uptime != null) {
+  if (
+    changes.custom_uptime != null &&
+    modifiedInfo.custom_uptime != changes.custom_uptime
+  ) {
     if (modifiedInfo.type != "quota") {
       throw Error(
         `you can only change the custom_uptime of a quota upgrade license but this license has type '${modifiedInfo.type}'`,
       );
     }
+    numChanges += 1;
     modifiedInfo.custom_uptime = changes.custom_uptime;
   }
 
@@ -184,6 +223,17 @@ export default function costToEditLicense(
 
   // Determine price for the change
   const currentValue = currentLicenseValue(origInfo);
+
+  if (numChanges > 0 && modifiedInfo.type == "quota") {
+    // Delete modifiedInfo.cost_per_hour, since that would be the current
+    // rate, and also it is completely wrong since it does not take into
+    // account any of the changes!  Also, it's impossible in general to
+    // account for changing all params (e.g., quantity is easy, but others are hard).
+    // Also, we want to force computation of the current going rate, not
+    // the old rate.
+    delete modifiedInfo.cost_per_hour;
+  }
+
   const modifiedValue = currentLicenseValue(modifiedInfo);
   // cost can be negative, when we give user a refund.
   // **We round away from zero!**  The reason is because
