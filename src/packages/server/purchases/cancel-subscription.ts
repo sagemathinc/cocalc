@@ -36,13 +36,7 @@ export default async function cancelSubscription({
     return;
   }
 
-  // edit the corresponding license so that it ends either
-  //
-  // a) now, or
-  // b) at the same instant of activation
-  //
-  // (and user gets credit)
-  //
+  // edit the corresponding license so that it ends now and users gets credit.
   await editLicense({
     isSubscriptionRenewal: true,
     account_id,

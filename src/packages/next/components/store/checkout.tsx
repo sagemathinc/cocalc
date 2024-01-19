@@ -34,6 +34,7 @@ import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { currency, round2up, round2down } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ProductColumn } from "./cart";
+import ShowError from "@cocalc/frontend/components/error";
 
 enum PaymentIntent {
   PAY_TOTAL,
@@ -45,7 +46,7 @@ export default function Checkout() {
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(
-    PaymentIntent.PAY_TOTAL,
+    PaymentIntent.APPLY_BALANCE,
   );
   const [totalCost, setTotalCost] = useState<number>(0);
   const [error, setError] = useState<string>("");
@@ -67,18 +68,21 @@ export default function Checkout() {
     setPaymentAmount0(round2up(amount));
   };
   const [params, setParams] = useState<CheckoutParams | null>(null);
-  const updateParams = async () => {
+  const updateParams = async (intent?) => {
     try {
-      const params = await purchasesApi.getShoppingCartCheckoutParams();
+      const params = await purchasesApi.getShoppingCartCheckoutParams({
+        ignoreBalance: (intent ?? paymentIntent) == PaymentIntent.PAY_TOTAL,
+      });
       const cost = params.total;
-
       setParams(params);
       setTotalCost(round2up(cost));
 
-      if (paymentIntent === PaymentIntent.APPLY_BALANCE) {
-        setPaymentAmount(params?.chargeAmount ?? 0);
+      if ((intent ?? paymentIntent) === PaymentIntent.APPLY_BALANCE) {
+        setPaymentAmount(params.chargeAmount ?? 0);
       } else {
-        setPaymentAmount(Math.max(cost, params?.chargeAmount ?? 0));
+        setPaymentAmount(
+          Math.max(Math.max(params.minPayment, cost), params.chargeAmount ?? 0),
+        );
       }
     } catch (err) {
       setError(`${err}`);
@@ -118,15 +122,7 @@ export default function Checkout() {
   }, []);
 
   if (error) {
-    return (
-      <Alert
-        type="error"
-        message="Error"
-        description={error}
-        closable
-        onClose={updateParams}
-      />
-    );
+    return <ShowError error={error} setError={setError} />;
   }
   async function completePurchase(ignoreBalance: boolean) {
     try {
@@ -245,7 +241,7 @@ export default function Checkout() {
         )}
         {params.cart.length > 0 && (
           <>
-            <ShowError error={error} />
+            <ShowError error={error} setError={setError} />
             <Card title={<>1. Review Items ({params.cart.length})</>}>
               <Table
                 showHeader={false}
@@ -266,23 +262,20 @@ export default function Checkout() {
                     (params.balance ?? 0) - (params.minBalance ?? 0),
                   ) > 0 && (
                     <Checkbox
-                      style={{ marginTop: "32px" }}
+                      style={{ marginTop: "38px" }}
                       checked={paymentIntent == PaymentIntent.APPLY_BALANCE}
-                      onChange={(e) => {
+                      onChange={async (e) => {
+                        let intent;
                         if (e.target.checked) {
-                          setPaymentIntent(PaymentIntent.APPLY_BALANCE);
+                          intent = PaymentIntent.APPLY_BALANCE;
                         } else {
-                          setPaymentIntent(PaymentIntent.PAY_TOTAL);
+                          intent = PaymentIntent.PAY_TOTAL;
                         }
-                        if (!e.target.checked) {
-                          setPaymentAmount(totalCost);
-                        } else if (e.target.checked) {
-                          setPaymentAmount(params?.chargeAmount || 0);
-                        }
+                        setPaymentIntent(intent);
+                        await updateParams(intent);
                       }}
                     >
-                      Apply Account Balance of {currency(params.balance)} Toward
-                      Purchase
+                      Apply Account Balance Toward Purchase
                     </Checkbox>
                   )}
                 </Col>
@@ -319,7 +312,7 @@ export default function Checkout() {
                   {completingPurchase ? (
                     <>
                       Completing Purchase
-                      <Spin />
+                      <Spin style={{ marginLeft: "10px" }} />
                     </>
                   ) : params == null || paymentAmount == 0 ? (
                     `Complete Purchase${
@@ -330,10 +323,18 @@ export default function Checkout() {
                   )}
                 </Button>
               </div>
+              {completingPurchase ||
+              params == null ||
+              paymentAmount != params.minPayment ? null : (
+                <div style={{ color: "#666", marginTop: "15px" }}>
+                  NOTE: There is a minimum transaction amount of{" "}
+                  {currency(params.minPayment)}.
+                </div>
+              )}
             </Card>
           </>
         )}
-        <ShowError error={error} />
+        <ShowError error={error} setError={setError} />
       </div>
     </>
   );
@@ -579,18 +580,6 @@ export function RequireEmailAddress({ profile, reloadProfile }) {
   );
 }
 
-export function ShowError({ error }) {
-  if (!error) return null;
-  return (
-    <Alert
-      type="error"
-      message="Error"
-      description={<>{error}</>}
-      style={{ margin: "30px 0" }}
-    />
-  );
-}
-
 export function getColumns({
   noDiscount,
   voucherPeriod,
@@ -673,11 +662,10 @@ export function ExplainPaymentSituation({
   if (params == null) {
     return <Spin />;
   }
-  const { balance, minPayment, amountDue, chargeAmount, total, minBalance } =
-    params;
+  const { balance, chargeAmount, total, minBalance } = params;
   const curBalance = (
-    <div style={{ float: "right" }}>
-      Current balance: {currency(balance)}
+    <div style={{ float: "right", marginLeft: "30px", fontWeight: "bold" }}>
+      Account Balance: {currency(balance)}
       {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
     </div>
   );
@@ -688,49 +676,10 @@ export function ExplainPaymentSituation({
         showIcon
         type="info"
         style={style}
-        message={
+        description={
           <>
             {curBalance}
-            <b>No Payment Required</b>
-          </>
-        }
-        description={
-          <>
-            <i>
-              You can complete this purchase <b>without making a payment now</b>
-            </i>
-            , since your account balance is {currency(balance)}
-            {minBalance < 0 && (
-              <>
-                , and your balance is allowed to go as low as{" "}
-                {currency(minBalance)}
-              </>
-            )}
-            .
-          </>
-        }
-      />
-    );
-  }
-  if (chargeAmount == minPayment) {
-    return (
-      <Alert
-        type="info"
-        style={style}
-        message={<>{curBalance}Payment Required</>}
-        description={
-          <>
-            <i>
-              To complete this purchase, you will need to{" "}
-              <b>add at least {currency(chargeAmount)}</b> to your balance.
-            </i>{" "}
-            {chargeAmount > amountDue && (
-              <>
-                The minimum transaction amount is {currency(minPayment)}. The
-                difference will be credited to your account, and you can use it
-                toward future purchases.
-              </>
-            )}
+            Complete this purchase without adding credit to your account.
           </>
         }
       />
@@ -738,17 +687,15 @@ export function ExplainPaymentSituation({
   }
   return (
     <Alert
+      showIcon
       type="info"
       style={style}
-      message={<>{curBalance}Payment Required</>}
       description={
         <>
-          <i>
-            To complete this purchase, you will need to{" "}
-            <b>add at least {currency(chargeAmount)}</b> to your account
-            balance.
-          </i>{" "}
-          {chargeAmount > total && params.minBalance < 0 && (
+          {curBalance}
+          Complete this purchase by adding {currency(chargeAmount)} to your
+          account.{" "}
+          {chargeAmount > total && (
             <>
               Your account balance must always be at least{" "}
               {currency(params.minBalance)}.

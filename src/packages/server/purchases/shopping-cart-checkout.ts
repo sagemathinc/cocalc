@@ -77,7 +77,13 @@ export const shoppingCartCheckout = async ({
   ignoreBalance?: boolean;
   paymentAmount?: number;
 }) => {
-  logger.debug("shoppingCartCheckout", { account_id, success_url, cancel_url });
+  logger.debug("shoppingCartCheckout", {
+    account_id,
+    success_url,
+    cancel_url,
+    paymentAmount,
+    ignoreBalance,
+  });
 
   // When explicit payment amount is not provided (or is zero), we use the user's existing
   // account balance.
@@ -88,7 +94,9 @@ export const shoppingCartCheckout = async ({
     throw Error("Invalid payment amount.");
   }
 
-  const params = await getShoppingCartCheckoutParams(account_id);
+  const params = await getShoppingCartCheckoutParams(account_id, {
+    ignoreBalance,
+  });
   const surplusCredit = ignoreBalance
     ? 0
     : Math.max(round2down(paymentAmountValue - params.chargeAmount), 0);
@@ -167,7 +175,6 @@ export const shoppingCartCheckout = async ({
           };
         } else if (availableBalance > 0) {
           // Otherwise, deduct remaining available balance and charge the remainder accordingly.
-          //
           const remainingAvailableBalance = availableBalance;
           availableBalance = 0;
 
@@ -300,6 +307,7 @@ export const getCheckoutCart = async (
 
 export const getShoppingCartCheckoutParams = async (
   account_id: string,
+  { ignoreBalance }: { ignoreBalance?: boolean } = {},
 ): Promise<
   CheckoutParams & { minimumPaymentCharge: number; cureAmount: number }
 > => {
@@ -310,7 +318,7 @@ export const getShoppingCartCheckoutParams = async (
   const { amountDue, chargeAmount, minimumPaymentCharge, cureAmount } =
     getChargeAmount({
       cost: total,
-      balance,
+      balance: ignoreBalance ? 0 : balance,
       minBalance,
       minPayment,
     });
