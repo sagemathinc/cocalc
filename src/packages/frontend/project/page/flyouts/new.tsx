@@ -252,7 +252,7 @@ export function NewFlyout({
         mode="flyout"
         create_file={(ext) => ext && setExt(ext)}
         title={title}
-        hide_down={true}
+        showDown
         button={false}
       />
     );

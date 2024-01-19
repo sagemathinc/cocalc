@@ -6,7 +6,41 @@ import type { ReactNode } from "react";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { IS_MACOS } from "@cocalc/frontend/feature";
 
+export const MENUS = {
+  file: {
+    label: "File",
+    pos: 0,
+    groups: ["close"],
+  },
+  edit: {
+    label: "Edit",
+    pos: 1,
+    groups: ["undo-redo", "find", "copy", "format", "config"],
+  },
+  view: {
+    label: "View",
+    pos: 2,
+    groups: ["zoom", "frame-control", "show-frames"],
+  },
+  go: {
+    label: "Go",
+    pos: 3,
+    groups: ["build", "other-users"],
+  },
+  help: {
+    label: "Help",
+    pos: 4,
+    groups: ["help-link"],
+  },
+} as const;
+
+type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
+
 export interface Command {
+  // group -- inside of a menu
+  group: Group;
+  // position, for sorting
+  pos?: number;
   title?: JSX.Element | string;
   icon?: JSX.Element | string;
   label: string | (({ props }) => JSX.Element);
@@ -15,7 +49,7 @@ export interface Command {
   onClick?: ({ props, event }: { props?; event? }) => void;
   disable?: string;
   keyboard?: string;
-  children?: Command[];
+  children?: Partial<Command>[];
   disabled?: ({ props, read_only }) => boolean;
   // not used yet
   tour?: string;
@@ -30,6 +64,8 @@ export interface Command {
 
 export const COMMANDS: { [command: string]: Command } = {
   "split-row": {
+    group: "frame-control",
+    pos: 1,
     title: "Split frame horizontally into two rows",
     onClick: ({ props }) => {
       if (props.is_full) {
@@ -42,6 +78,8 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Split Down",
   },
   "split-col": {
+    group: "frame-control",
+    pos: 2,
     title: "Split frame vertically into two columns",
     onClick: ({ props }) => {
       if (props.is_full) {
@@ -54,6 +92,8 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Split Right",
   },
   maximize: {
+    group: "frame-control",
+    pos: 3,
     title: "Toggle whether or not this frame is maximized",
     onClick: ({ props }) => {
       if (props.is_full) {
@@ -72,6 +112,8 @@ export const COMMANDS: { [command: string]: Command } = {
     icon: "expand",
   },
   close: {
+    group: "frame-control",
+    pos: 4,
     title: "Close this frame. Close all frames to restore the default layout.",
     onClick: ({ props }) => {
       props.actions.close_frame(props.id);
@@ -80,12 +122,14 @@ export const COMMANDS: { [command: string]: Command } = {
     icon: "times",
   },
   "show-table-of-contents": {
+    group: "show-frames",
     action: "show_table_of_contents",
     title: "Show the Table of Contents",
     icon: "align-right",
     label: "Table of Contents",
   },
   "show-guide": {
+    group: "show-frames",
     action: "guide",
     title: "Show guidebook",
     onClick: ({ props }) => {
@@ -95,36 +139,43 @@ export const COMMANDS: { [command: string]: Command } = {
     icon: "magic",
   },
   "show-search": {
+    group: "find",
+    pos: 0,
     action: "show_search",
     title: "Show panel for searching in this document",
     label: "Search",
     icon: "search",
   },
   "show-overview": {
+    group: "show-frames",
     action: "show_overview",
     title: "Show overview of all pages",
     label: "Overview",
     icon: "overview",
   },
   "show-pages": {
+    group: "show-frames",
     action: "show_pages",
     title: "Show all pages of this document",
     label: "Pages",
     icon: "pic-centered",
   },
   "show-slideshow": {
+    group: "show-frames",
     action: "show_slideshow",
     title: "Display Slideshow Presentation",
     label: "Slideshow",
     icon: "play-square",
   },
   "show-speaker-notes": {
+    group: "show-frames",
     action: "show_speaker_notes",
     title: "Show Speaker Notes",
     label: "Speaker Notes",
     icon: "pencil",
   },
   "show-shell": {
+    group: "show-frames",
     action: "shell",
     title: "Open a terminal for running code",
     icon: "terminal",
@@ -132,6 +183,7 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Shell",
   },
   "show-terminal": {
+    group: "show-frames",
     action: "terminal",
     title: "Open a command line terminal for interacting with the Linux prompt",
     icon: "terminal",
@@ -139,6 +191,8 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Terminal",
   },
   "zoom-out": {
+    pos: 1,
+    group: "zoom",
     action: "decrease_font_size",
     title: "Decrease font size",
     icon: "search-minus",
@@ -146,6 +200,8 @@ export const COMMANDS: { [command: string]: Command } = {
     keyboard: "control + <",
   },
   "zoom-in": {
+    pos: 0,
+    group: "zoom",
     action: "increase_font_size",
     title: "Increase font size",
     icon: "search-plus",
@@ -153,18 +209,24 @@ export const COMMANDS: { [command: string]: Command } = {
     keyboard: "control + >",
   },
   "zoom-page-width": {
+    pos: 3,
+    group: "zoom",
     action: "zoom_page_width",
     title: "Zoom to page width",
     label: "Zoom to Width",
     icon: "ColumnWidthOutlined",
   },
   "zoom-page-height": {
+    pos: 4,
+    group: "zoom",
     action: "zoom_page_height",
     title: "Zoom to page height",
     label: "Zoom to Height",
     icon: "ColumnHeightOutlined",
   },
   "set-zoom": {
+    pos: 5,
+    group: "zoom",
     action: "set_zoom",
     title: "Zoom to a preset size",
     label: ({ props }) => (
@@ -180,13 +242,15 @@ export const COMMANDS: { [command: string]: Command } = {
       return {
         label: `${zoom}%`,
         onClick: ({ props }) => {
-          console.log("set_zoom", { zoom }, zoom / 100, props.id);
+          // console.log("set_zoom", { zoom }, zoom / 100, props.id);
           props.actions.set_zoom(zoom / 100, props.id);
         },
       };
     }),
   },
   undo: {
+    group: "undo-redo",
+    pos: 0,
     action: "undo",
     icon: "undo",
     label: "Undo",
@@ -202,6 +266,8 @@ export const COMMANDS: { [command: string]: Command } = {
     },
   },
   redo: {
+    group: "undo-redo",
+    pos: 1,
     action: "redo",
     icon: "redo",
     label: "Redo",
@@ -217,6 +283,8 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   cut: {
+    group: "copy",
+    pos: 0,
     action: "cut",
     label: "Cut",
     title: "Cut selection",
@@ -225,6 +293,8 @@ export const COMMANDS: { [command: string]: Command } = {
     disabled: ({ read_only }) => read_only,
   },
   copy: {
+    group: "copy",
+    pos: 1,
     action: "copy",
     label: "Copy",
     title: "Copy selection",
@@ -232,6 +302,8 @@ export const COMMANDS: { [command: string]: Command } = {
     keyboard: "control + c",
   },
   paste: {
+    group: "copy",
+    pos: 2,
     action: "paste",
     label: "Paste",
     title: "Paste buffer",
@@ -249,6 +321,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   "edit-init-script": {
+    group: "config",
     action: "edit_init_script",
     label: "Init Script",
     title: "Edit the initialization script that is run when this starts",
@@ -257,6 +330,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   "show-help": {
+    group: "help-link",
     action: "help",
     label: "Documentation",
     icon: "question-circle",
@@ -265,6 +339,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   clear: {
+    group: "format",
     action: "clear",
     label: "Clear frame",
     icon: <Icon unicode={0x2620} />,
@@ -274,6 +349,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   pause: {
+    group: "format",
     action: "pause",
     icon: "pause",
     label: ({ props }) => {
@@ -304,6 +380,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   "kick-other-users-out": {
+    group: "other-users",
     action: "kick_other_users_out",
     icon: "skull-crossbones",
     title:
@@ -313,6 +390,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   print: {
+    group: "show-frames",
     action: "print",
     icon: "print",
     title: "Show a printable version of this document in a popup window.",
@@ -320,6 +398,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   "halt-jupyter": {
+    group: "close",
     action: "halt_jupyter",
     icon: "PoweroffOutlined",
     label: "Close and Halt",
@@ -327,6 +406,8 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   "show-time-travel": {
+    group: "show-frames",
+    pos: 3,
     action: "time_travel",
     icon: "history",
     label: "TimeTravel",
@@ -346,27 +427,32 @@ export const COMMANDS: { [command: string]: Command } = {
       });
     },
   },
-
   find: {
+    group: "find",
+    pos: 0,
     action: "find",
     label: "Find",
     icon: "search",
     keyboard: "control + f",
   },
-  "goto-line": {
-    action: "goto_line",
-    label: "Goto Line",
-    icon: "bolt",
-    keyboard: "control + l",
-  },
   replace: {
+    group: "find",
+    pos: 0,
     action: "replace",
     label: "Replace",
     icon: "replace",
     disabled: ({ read_only }) => read_only,
   },
-
+  "goto-line": {
+    group: "find",
+    pos: 3,
+    action: "goto_line",
+    label: "Goto Line",
+    icon: "bolt",
+    keyboard: "control + l",
+  },
   "auto-indent": {
+    group: "format",
     action: "auto_indent",
     label: "Auto Indent",
     title: "Automatically indent selected code",
@@ -375,6 +461,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   format: {
+    group: "format",
     action: "format",
     label: "Format",
     title: "Syntactically format the document.",
@@ -382,6 +469,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   build: {
+    group: "build",
     action: "build",
     label: "Build",
     title:
@@ -390,6 +478,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   "force-build": {
+    group: "build",
     action: "force_build",
     label: "Force Build",
     title: "Force rebuild entire project.",
@@ -397,6 +486,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   sync: {
+    group: "show-frames",
     action: "sync",
     label: "Synchronize Views",
     keyboard: `${IS_MACOS ? "⌘" : "alt"} + enter`,
@@ -406,8 +496,29 @@ export const COMMANDS: { [command: string]: Command } = {
       props.actions.sync?.(props.id, props.editor_actions);
     },
   },
-};
-/*
+} as const;
 
+export const GROUPS: { [group: string]: string[] } = {};
+for (const name in MENUS) {
+  for (const group of MENUS[name].groups) {
+    if (GROUPS[group] != null) {
+      throw Error(
+        "groups must be unique but '${group}' of '${key}' is duplicated",
+      );
+    } else {
+      GROUPS[group] = [];
+    }
+  }
+}
 
-*/
+for (const name in COMMANDS) {
+  const command = COMMANDS[name];
+  const { group } = command;
+  if (group != null) {
+    const v = GROUPS[group];
+    if (v == null) {
+      throw Error(`command ${name} in unknown group '${group}'`);
+    }
+    v.push(name);
+  }
+}

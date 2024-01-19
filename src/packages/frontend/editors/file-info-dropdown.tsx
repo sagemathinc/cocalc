@@ -113,7 +113,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         button={button}
         style={{ ...{ height: "100%" }, ...style }}
         id="file_info_button"
-        title={"File"}
+        title={"Explorer"}
         items={render_menu_items()}
       />
     );

@@ -6,8 +6,6 @@
 import { DownOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu } from "antd";
 import type { MenuProps } from "antd";
-
-import { CSS, React } from "@cocalc/frontend/app-framework";
 import { IS_TOUCH } from "../feature";
 
 // overlay={menu} is deprecated. Instead, use MenuItems as items={...}.
@@ -26,104 +24,96 @@ export type MenuItem = MenuItems[number];
  */
 
 interface Props {
-  button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
-  disabled?: boolean;
-  hide_down?: boolean;
-  id?: string;
   items: MenuItems;
+  // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
+  button?: boolean;
+  disabled?: boolean;
+  showDown?: boolean;
+  id?: string;
   maxHeight?: string;
-  style?: CSS;
+  style?;
   title?: JSX.Element | string;
   size?;
   mode?: "vertical" | "inline";
 }
 
-const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
+const STYLE = { margin: "6px 10px", cursor: "pointer" } as const;
 
-export const DropdownMenu: React.FC<Props> = (_: Readonly<Props>) => {
-  const {
-    button,
-    disabled,
-    hide_down,
-    id,
-    items,
-    maxHeight,
-    style,
-    title,
-    size,
-    mode,
-  } = _;
+export function DropdownMenu({
+  button,
+  disabled,
+  showDown,
+  id,
+  items,
+  maxHeight,
+  style,
+  title,
+  size,
+  mode,
+}: Props) {
+  let body;
 
-  function render_title() {
-    if (title !== "") {
-      return (
-        <>
-          {title} {!hide_down && <DownOutlined />}
-        </>
+  if (button && !IS_TOUCH) {
+    body = (
+      <Button style={style} disabled={disabled} id={id} size={size}>
+        {title ? (
+          <>
+            {title} {showDown && <DownOutlined />}
+          </>
+        ) : (
+          // empty title implies to only show the downward caret sign
+          <DownOutlined />
+        )}
+      </Button>
+    );
+  } else {
+    if (disabled) {
+      body = (
+        <span
+          id={id}
+          style={{
+            ...{
+              color: "#777",
+              cursor: "not-allowed",
+            },
+            ...STYLE,
+          }}
+        >
+          <span style={style}>{title}</span>
+        </span>
       );
     } else {
-      // emtpy string implies to only show the downward caret sign
-      return <DownOutlined />;
-    }
-  }
-
-  function render_body() {
-    if (button && !IS_TOUCH) {
-      return (
-        <Button style={style} disabled={disabled} id={id} size={size}>
-          {render_title()}
-        </Button>
+      body = (
+        <span style={{ ...STYLE, ...style }} id={id}>
+          {title}
+        </span>
       );
-    } else {
-      if (disabled) {
-        return (
-          <span
-            id={id}
-            style={{
-              ...{
-                color: "#777",
-                cursor: "not-allowed",
-              },
-              ...STYLE,
-            }}
-          >
-            <span style={style}>{title}</span>
-          </span>
-        );
-      } else {
-        return (
-          <span style={{ ...STYLE, ...style }} id={id}>
-            {title}
-          </span>
-        );
-      }
     }
   }
-
-  const body = render_body();
 
   if (disabled) {
     return body;
   }
 
-  const menuStyle: CSS = {
-    maxHeight: maxHeight ? maxHeight : "70vH",
-    overflow: "auto",
-  } as const;
-
-  // items is the way to go, i.e. instead of instantiating many react elements, Antd wants a list of dicts.
   return (
     <Dropdown
       destroyPopupOnHide
       trigger={["click"]}
       placement={"bottomLeft"}
-      menu={{ items, style: menuStyle, mode }}
+      menu={{
+        items,
+        style: {
+          maxHeight: maxHeight ?? "70vh",
+          overflow: "auto",
+        },
+        mode,
+      }}
       disabled={disabled}
     >
       {body}
     </Dropdown>
   );
-};
+}
 
 export function MenuItem(props) {
   const M: any = Menu.Item;

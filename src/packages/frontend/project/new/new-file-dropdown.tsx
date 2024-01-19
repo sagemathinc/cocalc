@@ -21,7 +21,7 @@ interface Props {
   create_file: (ext?: string) => void;
   mode: "project" | "flyout";
   title?: string;
-  hide_down?: boolean;
+  showDown?: boolean;
   button?: boolean;
 }
 
@@ -29,8 +29,8 @@ export function NewFileDropdown({
   create_file,
   mode = "project",
   title = "More file types...",
-  hide_down=false,
-  button= true
+  showDown = true,
+  button = true,
 }: Props) {
   // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
   const items = React.useMemo((): MenuItems => {
@@ -79,7 +79,11 @@ export function NewFileDropdown({
               </span>
             </Button>
 
-            <DropdownMenu size="large" button={button} items={items} />
+            <DropdownMenu
+              size="large"
+              button={button}
+              items={items}
+            />
           </Button.Group>
         </span>
       );
@@ -90,7 +94,7 @@ export function NewFileDropdown({
           size="medium"
           button={button}
           items={items}
-          hide_down={hide_down}
+          showDown={showDown}
           style={{ width: "100%" }}
         />
       );

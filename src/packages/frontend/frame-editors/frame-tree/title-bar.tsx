@@ -41,7 +41,7 @@ import {
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
-import { copy, path_split, trunc_middle } from "@cocalc/util/misc";
+import { copy, path_split, trunc_middle, field_cmp } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
 import { SaveButton } from "./save-button";
@@ -52,7 +52,7 @@ import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import SelectComputeServer from "@cocalc/frontend/compute/select-server";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import { COMMANDS, Command } from "./commands";
+import { COMMANDS, Command, MENUS, GROUPS } from "./commands";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -111,10 +111,6 @@ const CONNECTION_STATUS_STYLE: CSS = {
   fontSize: "10pt",
   float: "right",
 } as const;
-
-function removeNulls(v) {
-  return v.filter((x) => x != null);
-}
 
 function connection_status_color(status: ConnectionStatus): string {
   switch (status) {
@@ -275,12 +271,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     const subs =
       props.editor_spec[props.type]?.customize_buttons?.[cmd.action ?? ""];
-    return commandToMenuItem(cmd, subs);
+    return commandToMenuItem(cmd, subs, name);
   }
 
   function commandToMenuItem(
-    cmd: Command,
-    subs?: Partial<Command>,
+    cmd: Partial<Command>,
+    subs: Partial<Command> | undefined,
+    key: string,
   ): MenuItem | null {
     if (cmd.action && !is_visible(cmd.action)) {
       return null;
@@ -332,18 +329,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         </div>
       );
     }
-    let key;
-    if (typeof cmd.label == "string") {
-      key = cmd.label;
-    } else if (typeof cmd.title == "string") {
-      key = cmd.title;
-    } else if (typeof cmd.action == "string") {
-      key = cmd.action;
-    } else if (typeof cmd.icon == "string") {
-      key = cmd.icon;
-    } else {
-      key = "xxx";
-    }
     //     if (cmd.confirm != null) {
     //       // TODO: this can't work -- https://github.com/ant-design/ant-design/issues/22578 -- so we need to create a modal like with Jupyter.
     //       label = (
@@ -362,7 +347,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       label,
       onClick,
       key,
-      children: cmd.children?.map((x) => commandToMenuItem(x, subs)),
+      children: cmd.children?.map((x, i) =>
+        commandToMenuItem(x, subs, `${key}-${i}`),
+      ),
     };
   }
 
@@ -536,7 +523,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           marginBottom: "5px",
           marginRight: "10px",
         }}
-        hide_down={false}
         title={title}
         items={items}
       />
@@ -606,43 +592,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function splitMenuGroup() {
-    return removeNulls([
-      command("split-row"),
-      command("split-col"),
-      command("maximize"),
-      command("close"),
-    ]);
-  }
-
-  function showPanelsGroup() {
-    return removeNulls([
-      command("sync"),
-      command("show-time-travel"),
-      command("print"),
-      command("show-terminal"),
-      command("show-shell"),
-      command("show-table-of-contents"),
-      command("show-guide"),
-      command("show-search"),
-      command("show-overview"),
-      command("show-pages"),
-      command("show-slideshow"),
-      command("show-speaker-notes"),
-      command("edit-init-script"),
-      command("show-help"),
-    ]);
-  }
-
-  function findGroup() {
-    return removeNulls([
-      command("show-search"),
-      command("find"),
-      command("replace"),
-      command("goto-line"),
-    ]);
-  }
-
   function render_switch_to_file(): Rendered {
     if (
       !is_visible("switch_to_file") ||
@@ -698,90 +647,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
       </StyledButton>
     );
-  }
-
-  function copyGroup() {
-    return removeNulls([command("cut"), command("copy"), command("paste")]);
-  }
-
-  function zoomMenuGroup() {
-    return removeNulls([
-      command("zoom-page-height"),
-      command("zoom-page-width"),
-      command("zoom-in"),
-      command("zoom-out"),
-      command("set-zoom"),
-    ]);
-  }
-
-  function undoRedoGroup() {
-    return removeNulls([command("undo"), command("redo")]);
-  }
-
-  function actionsGroup() {
-    return removeNulls([
-      command("build"),
-      command("force-build"),
-      command("format"),
-      command("auto-indent"),
-      command("halt-jupyter"),
-      command("pause"),
-      command("clear"),
-      command("kick-other-users-out"),
-    ]);
-  }
-
-  function renderEditMenu() {
-    const v: MenuItem[] = undoRedoGroup();
-    for (const x of [copyGroup(), findGroup(), actionsGroup()]) {
-      if (x.length > 0) {
-        if (v.length > 0) {
-          v.push({ type: "divider" });
-        }
-        v.push(...x);
-      }
-    }
-
-    if (v.length > 0) {
-      return (
-        <DropdownMenu
-          key="edit-menu"
-          style={MENU_STYLE}
-          title={"Edit"}
-          items={v}
-        />
-      );
-    }
-  }
-
-  function renderViewMenu() {
-    const v: MenuItem[] = [];
-    let x;
-    x = zoomMenuGroup();
-    if (x.length > 0) {
-      v.push(...x);
-    }
-    x = splitMenuGroup();
-    if (x.length > 0) {
-      v.push({ type: "divider" });
-      v.push(...x);
-    }
-    x = showPanelsGroup();
-    if (x.length > 0) {
-      v.push({ type: "divider" });
-      v.push(...x);
-    }
-
-    if (v.length > 0) {
-      return (
-        <DropdownMenu
-          key="view-menu"
-          style={MENU_STYLE}
-          title={"View"}
-          items={v}
-        />
-      );
-    }
   }
 
   function show_labels(): boolean {
@@ -1061,6 +926,68 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function createMenu(name: string) {
+    const { label, pos, groups } = MENUS[name];
+    const v: MenuItem[] = [];
+    for (const group of groups) {
+      const w: { pos?: number; item: MenuItem }[] = [];
+      for (const commandName of GROUPS[group]) {
+        const item = command(commandName);
+        if (item != null) {
+          w.push({ item, pos: COMMANDS[commandName].pos ?? 1e6 });
+        }
+      }
+      if (w.length > 0) {
+        if (w.length > 1) {
+          w.sort(field_cmp("pos"));
+        }
+        if (v.length > 0) {
+          v.push({ type: "divider", key: `divider-${v.length}` });
+        }
+        v.push(...w.map((x) => x.item));
+      }
+    }
+    if (v.length == 0) {
+      return null;
+    }
+    return {
+      menu: (
+        <DropdownMenu
+          key={`menu-${name}`}
+          style={MENU_STYLE}
+          title={label}
+          items={v}
+        />
+      ),
+      pos,
+    };
+  }
+
+  function renderMenus() {
+    const v: { menu: JSX.Element; pos: number }[] = [];
+    for (const name in MENUS) {
+      if (name == "view") continue;
+      const x = createMenu(name);
+      if (x != null) {
+        v.push(x);
+      }
+    }
+    v.sort(field_cmp("pos"));
+    return (
+      <div
+        key="dropdown-menus"
+        style={{
+          display: "inline-block",
+          paddingTop: props.is_full ? "7px" : "5px",
+          borderLeft: "1px solid #ccc",
+          borderRight: "1px solid #ccc",
+        }}
+      >
+        {v.map((x) => x.menu)}
+      </div>
+    );
+  }
+
   function render_buttons(
     forceLabels?: boolean,
     style?: CSS,
@@ -1101,8 +1028,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       }
       <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />;
       v.push(renderFileMenu());
-      v.push(renderEditMenu());
-      v.push(renderViewMenu());
+      v.push(renderMenus());
       <div style={{ border: "1px solid #ccc", margin: "5px 5px 5px 0px" }} />;
       v.push(render_save_timetravel_group(labels));
       v.push(render_edit());
