@@ -27,7 +27,7 @@ export const MENUS = {
   go: {
     label: "Go",
     pos: 3,
-    groups: ["build", "scan", "other-users", "get-info"],
+    groups: ["action", "build", "scan", "other-users", "get-info"],
   },
   help: {
     label: "Help",
@@ -334,7 +334,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   pause: {
-    group: "format",
+    group: "action",
     icon: "pause",
     label: ({ props }) => {
       if (props.is_paused) {
@@ -361,6 +361,13 @@ export const COMMANDS: { [command: string]: Command } = {
         props.actions.pause(props.id);
       }
     },
+  },
+
+  restart: {
+    group: "action",
+    icon: "sync",
+    label: "Restart Server",
+    title: "Restart the backend service",
   },
 
   kick_other_users_out: {

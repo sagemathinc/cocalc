@@ -675,22 +675,6 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_restart(labels): Rendered {
-    if (!isVisible("restart")) {
-      return;
-    }
-    return (
-      <Button
-        key={"restart"}
-        title={"Restart service"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.restart?.()}
-      >
-        <Icon name="sync" />{" "}
-        {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
-      </Button>
-    );
-  }
 
   function render_save(labels: boolean): Rendered {
     if (!isVisible("save")) {
@@ -886,7 +870,6 @@ export function FrameTitleBar(props: Props) {
       v.push(render_edit());
       v.push(render_readonly_view());
       v.push(render_switch_to_file());
-      v.push(render_restart(labels));
       v.push(render_download(labels));
 
       const w: Rendered[] = [];
