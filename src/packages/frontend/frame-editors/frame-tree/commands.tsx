@@ -1,6 +1,7 @@
 import { get_default_font_size } from "../generic/client";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 import { Icon } from "@cocalc/frontend/components";
+import { redux } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import type { ReactNode } from "react";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
@@ -12,7 +13,7 @@ export const MENUS = {
   file: {
     label: "File",
     pos: 0,
-    groups: ["export", "reload", "close"],
+    groups: ["export", "reload", "close", "delete"],
   },
   edit: {
     label: "Edit",
@@ -572,6 +573,36 @@ export const COMMANDS: { [command: string]: Command } = {
       "This is a readonly view of the document.  Select this option to switch to a directly editable view.",
     label: "Switch to Editable View",
     onClick: ({ props }) => props.actions["edit"]?.(props.id),
+  },
+
+//   new: {
+//         alwaysShow: true,
+//     group: "delete",
+//     icon: "trash",
+//     title: "Delete this file",
+//     label: "Delete File...",
+//     onClick: ({ props }) => {
+//       const actions = redux.getProjectActions(props.project_id);
+//       actions.show_file_action_panel({
+//         path: props.path,
+//         action: "delete",
+//       });
+//     },
+//   }
+
+  delete: {
+    alwaysShow: true,
+    group: "delete",
+    icon: "trash",
+    title: "Delete this file",
+    label: "Delete File...",
+    onClick: ({ props }) => {
+      const actions = redux.getProjectActions(props.project_id);
+      actions.show_file_action_panel({
+        path: props.path,
+        action: "delete",
+      });
+    },
   },
 } as const;
 
