@@ -544,6 +544,35 @@ export const COMMANDS: { [command: string]: Command } = {
       );
     },
   },
+
+  download: {
+    group: "export",
+    label: "Download",
+    title: "Download this file",
+    icon: "cloud-download",
+  },
+
+  readonly_view: {
+    pos: -1,
+    group: "show-frames",
+    icon: "lock",
+    title:
+      "This is an editable view of the document. You can edit it directly.  Select this option to switch to a read only view.",
+    label: "Switch to Readonly View",
+    onClick: ({ props }) => {
+      props.actions["readonly_view"]?.(props.id);
+    },
+  },
+
+  edit: {
+    pos: -1,
+    group: "show-frames",
+    icon: "pencil",
+    title:
+      "This is a readonly view of the document.  Select this option to switch to a directly editable view.",
+    label: "Switch to Editable View",
+    onClick: ({ props }) => props.actions["edit"]?.(props.id),
+  },
 } as const;
 
 export const GROUPS: { [group: string]: string[] } = {};

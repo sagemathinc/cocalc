@@ -35,7 +35,6 @@ import {
   MenuItems,
   r_join,
   Gap,
-  VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
@@ -101,6 +100,7 @@ const TITLE_STYLE: CSS = {
   whiteSpace: "nowrap",
   display: "inline-block",
   maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
+  overflow: "hidden",
   fontWeight: 550,
 } as const;
 
@@ -622,27 +622,6 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_download(labels): Rendered {
-    if (
-      !isVisible("download") ||
-      props.editor_actions.download == null ||
-      student_project_functionality.disableActions
-    ) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"download"}
-        title={"Download this file"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.download?.(props.id)}
-      >
-        <Icon name={"cloud-download"} />{" "}
-        {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
-      </StyledButton>
-    );
-  }
-
   function show_labels(): boolean {
     return !!(props.is_only || props.is_full);
   }
@@ -674,7 +653,6 @@ export function FrameTitleBar(props: Props) {
       />
     );
   }
-
 
   function render_save(labels: boolean): Rendered {
     if (!isVisible("save")) {
@@ -713,38 +691,6 @@ export function FrameTitleBar(props: Props) {
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
     }
-  }
-
-  function render_edit(): Rendered {
-    if (!isVisible("edit") || is_public) {
-      return;
-    }
-    return (
-      <Button
-        key={"edit"}
-        bsSize={button_size()}
-        onClick={() => props.actions["edit"]?.(props.id)}
-        title={"Click to edit file directly here"}
-      >
-        <Icon name={"lock"} /> <VisibleMDLG>Locked</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_readonly_view(): Rendered {
-    if (!isVisible("readonly_view") || is_public) {
-      return;
-    }
-    return (
-      <Button
-        key={"readonly-view"}
-        bsSize={button_size()}
-        onClick={() => props.actions["readonly_view"]?.(props.id)}
-        title={"Click to switch to readonly view"}
-      >
-        <Icon name={"pencil"} /> <VisibleMDLG>Editable</VisibleMDLG>
-      </Button>
-    );
   }
 
   function renderFileMenu(): Rendered {
@@ -867,10 +813,7 @@ export function FrameTitleBar(props: Props) {
       v.push(renderFileMenu());
       <div style={{ border: "1px solid #ccc", margin: "5px 5px 5px 0px" }} />;
       v.push(render_save_timetravel_group(labels));
-      v.push(render_edit());
-      v.push(render_readonly_view());
       v.push(render_switch_to_file());
-      v.push(render_download(labels));
 
       const w: Rendered[] = [];
       for (const c of v) {

@@ -63,6 +63,13 @@ const EDITOR_SPEC = {
       "show_table_of_contents",
       "word_count",
     ]),
+    customize_buttons: {
+      print: {
+        label: "Print LaTeX Source",
+        title: "Use Print from the PDF Preview to print the rendered document.",
+      },
+    },
+
     gutters: ["Codemirror-latex-errors"],
   } as EditorDescription,
 
@@ -72,6 +79,7 @@ const EDITOR_SPEC = {
     icon: "file-pdf",
     component: PDFJS,
     buttons: pdfjs_buttons,
+    customize_buttons: { download: { label: "Download PDF" } },
     path: pdf_path,
     style: { background: "#525659" },
     renderer: "canvas",
