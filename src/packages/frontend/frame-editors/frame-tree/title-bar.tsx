@@ -15,17 +15,15 @@ import {
   Tooltip,
 } from "antd";
 import { List } from "immutable";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
 } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
-  React,
   redux,
   Rendered,
-  useForceUpdate,
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
@@ -166,7 +164,7 @@ interface Props {
   tab_is_visible?: boolean;
 }
 
-export const FrameTitleBar: React.FC<Props> = (props: Props) => {
+export function FrameTitleBar(props: Props) {
   const is_active = props.active_id === props.id;
   const track = useMemo(() => {
     const { project_id, path } = props;
@@ -179,21 +177,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       });
     };
   }, [props.project_id, props.path]);
-  const buttons_ref = useRef<
-    { [button_name: string]: true } | null | undefined
-  >(null);
-
-  const force_update = useForceUpdate();
 
   const [showMainButtonsPopover, setShowMainButtonsPopover] =
     useState<boolean>(false);
-
-  useEffect(() => {
-    // clear button cache whenever type changes; otherwise,
-    // the buttons at the top wouldn't change.
-    buttons_ref.current = null;
-    force_update();
-  }, [props.type]);
 
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
@@ -249,7 +235,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   };
   const tours = useRedux(["account", "tours"]);
   const hasTour = useMemo(() => {
-    if (IS_MOBILE || !is_visible("tour", true)) {
+    if (IS_MOBILE || !isVisible("tour")) {
       return false;
     }
     if (tours?.includes("all") || tours?.includes(`frame-${props.type}`)) {
@@ -264,30 +250,65 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "switch_to_files",
   ]);
 
+  function isVisible(name: string, cmd?: Command): boolean {
+    if (cmd == null) {
+      cmd = COMMANDS[name];
+    }
+    // some buttons are always visible, e.g., for controlling the frame.
+    if (cmd?.alwaysShow) {
+      return true;
+    }
+
+    // check button spec for current editor:
+    const buttons = props.spec.buttons;
+    if (buttons != null) {
+      if (!buttons[name]) {
+        // not in the spec
+        return false;
+      }
+      if (buttons[`-${name}`]) {
+        // explicitly hidden by the spec
+        return false;
+      }
+    }
+    if (cmd?.disable && student_project_functionality[cmd.disable]) {
+      return false;
+    }
+    if (cmd?.isVisible != null) {
+      return cmd.isVisible({ props });
+    }
+    return true;
+  }
+
   function command(name: string): MenuItem | null {
     let cmd = COMMANDS[name];
     if (cmd == null) {
       throw Error(`unknown command '${name}'`);
     }
-    const subs =
-      props.editor_spec[props.type]?.customize_buttons?.[cmd.action ?? ""];
-    return commandToMenuItem(cmd, subs, name);
+    const subs = props.editor_spec[props.type]?.customize_buttons?.[name ?? ""];
+    if (subs != null) {
+      cmd = { ...cmd, ...subs };
+    }
+    if (!isVisible(name, cmd)) {
+      return null;
+    }
+
+    // it's an action defined by the name of that action, so visible
+    // only if that function is defined.
+    if (props.editor_actions[name] == null && cmd?.onClick == null) {
+      // action not defined, so only chance is if onClick is defined
+      // but it isn't
+      return null;
+    }
+    return commandToMenuItem(name, cmd, subs, name);
   }
 
   function commandToMenuItem(
+    name: string,
     cmd: Partial<Command>,
     subs: Partial<Command> | undefined,
     key: string,
   ): MenuItem | null {
-    if (cmd.action && !is_visible(cmd.action)) {
-      return null;
-    }
-    if (cmd.disable && student_project_functionality[cmd.disable]) {
-      return null;
-    }
-    if (subs != null) {
-      cmd = { ...cmd, ...subs };
-    }
     let label = (
       <>
         {typeof cmd.icon == "string" ? (
@@ -307,20 +328,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         </Tooltip>
       );
     }
-    let onClick =
+    const onClick =
       cmd.onClick != null
         ? (event) => cmd.onClick?.({ props, event })
-        : undefined;
-    if (onClick == null && cmd.action) {
-      onClick = () => {
-        // common special case default
-        props.actions[cmd.action ?? ""]?.(props.id);
-      };
-    } else {
-    }
-    if (onClick == null) {
-      throw Error(`one of onClick or action must be specified for ${name}`);
-    }
+        : () => {
+            // common special case default
+            props.actions[name]?.(props.id);
+          };
     if (cmd.keyboard) {
       label = (
         <div style={{ width: "300px" }}>
@@ -348,7 +362,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       onClick,
       key,
       children: cmd.children?.map((x, i) =>
-        commandToMenuItem(x, subs, `${key}-${i}`),
+        commandToMenuItem("", x, subs, `${key}-${i}`),
       ),
     };
   }
@@ -409,26 +423,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return <AntdButton0 {...props1} />;
   }
   AntdButton.Group = AntdButton0.Group;
-
-  function is_visible(action_name: string, explicit?: boolean): boolean {
-    if (props.editor_actions[action_name] == null) {
-      return false;
-    }
-    if (isExplicitlyHidden(action_name)) {
-      return false;
-    }
-
-    if (buttons_ref.current == null) {
-      if (!explicit) {
-        return true;
-      }
-      let buttons = props.spec.buttons ?? {};
-      buttons_ref.current =
-        typeof buttons == "function" ? buttons(props.path) : buttons;
-    }
-
-    return !!buttons_ref.current?.[action_name];
-  }
 
   function isExplicitlyHidden(actionName: string): boolean {
     return !!props.spec.buttons?.[`-${actionName}`];
@@ -594,7 +588,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_switch_to_file(): Rendered {
     if (
-      !is_visible("switch_to_file") ||
+      !isVisible("switch_to_file") ||
       props.actions.switch_to_file == null ||
       switch_to_files == null ||
       switch_to_files.size <= 1
@@ -630,7 +624,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_download(labels): Rendered {
     if (
-      !is_visible("download") ||
+      !isVisible("download") ||
       props.editor_actions.download == null ||
       student_project_functionality.disableActions
     ) {
@@ -655,7 +649,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_chatgpt(labels): Rendered {
     if (
-      !is_visible("chatgpt") ||
+      !isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
     ) {
       return;
@@ -715,7 +709,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_restart(labels): Rendered {
-    if (!is_visible("restart", true)) {
+    if (!isVisible("restart")) {
       return;
     }
     return (
@@ -732,7 +726,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_save(labels: boolean): Rendered {
-    if (!is_visible("save", true)) {
+    if (!isVisible("save")) {
       return;
     }
     return (
@@ -770,44 +764,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_count_words(): Rendered {
-    if (!is_visible("word_count", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"word_count"}
-        bsSize={button_size()}
-        onClick={() => props.actions.word_count?.(0, true)}
-        title={"Runs texcount"}
-      >
-        <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_export_to_markdown(labels): Rendered {
-    if (
-      !is_visible("export_to_markdown") ||
-      student_project_functionality.disableActions
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"export"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions["export_to_markdown"]?.(props.id)}
-        title={"Export to Markdown File..."}
-      >
-        <Icon name={"markdown"} />{" "}
-        <VisibleMDLG>{labels ? "Export" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
   function render_edit(): Rendered {
-    if (!is_visible("edit") || is_public) {
+    if (!isVisible("edit") || is_public) {
       return;
     }
     return (
@@ -823,7 +781,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_readonly_view(): Rendered {
-    if (!is_visible("readonly_view") || is_public) {
+    if (!isVisible("readonly_view") || is_public) {
       return;
     }
     return (
@@ -958,8 +916,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         v.push(x);
       }
       <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />;
-      v.push(renderFileMenu());
       v.push(renderMenus());
+      v.push(renderFileMenu());
       <div style={{ border: "1px solid #ccc", margin: "5px 5px 5px 0px" }} />;
       v.push(render_save_timetravel_group(labels));
       v.push(render_edit());
@@ -967,8 +925,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       v.push(render_switch_to_file());
       v.push(render_restart(labels));
       v.push(render_download(labels));
-      v.push(render_count_words());
-      v.push(render_export_to_markdown(labels));
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -1069,7 +1025,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_connection_status(): Rendered | undefined {
-    if (!props.connection_status || !is_visible("connection_status", true)) {
+    if (!props.connection_status || !isVisible("connection_status")) {
       return;
     }
     if (props.connection_status == "connected") {
@@ -1093,7 +1049,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function renderComputeServer() {
-    if (!is_visible("compute_server") || !computeServersEnabled()) {
+    if (!isVisible("compute_server") || !computeServersEnabled()) {
       return null;
     }
     const { type } = props;
@@ -1336,4 +1292,4 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       )}
     </>
   );
-};
+}

@@ -61,6 +61,7 @@ const EDITOR_SPEC = {
       "format",
       "switch_to_file",
       "show_table_of_contents",
+      "word_count",
     ]),
     gutters: ["Codemirror-latex-errors"],
   } as EditorDescription,
@@ -81,7 +82,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set(["build"]),
+    buttons: set(["build", "force_build", "clean"]),
   } as EditorDescription,
 
   build: {
@@ -96,6 +97,7 @@ const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
       "rescan_latex_directive",
+      "word_count",
     ]),
   } as EditorDescription,
 

@@ -34,15 +34,13 @@ export type ErrorStyles = undefined | "monospace";
 export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
 // Editor spec
-
-type ButtonFunction = (path: string) => { [button_name: string]: true };
-
 export interface EditorDescription {
   short: string; // short description of the editor
   name: string; // slightly longer description
   icon: IconName;
   component: any; // React component
-  buttons?: { [button_name: string]: true } | ButtonFunction;
+  buttons?: { [button_name: string]: true };
+  // | ButtonFunction;
   // customize_buttons: use this to easily override label, tooltip, or anything else about ANY button command!
   customize_buttons?: { [button_name: string]: Partial<Command> };
   hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
