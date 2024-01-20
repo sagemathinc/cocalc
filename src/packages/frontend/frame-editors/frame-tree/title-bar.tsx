@@ -675,39 +675,6 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_tour(labels): Rendered {
-    if (!hasTour) {
-      return;
-    }
-    return (
-      <div ref={getTourRef("tour")} key={"tour"}>
-        <AntdButton
-          type="primary"
-          title={"Take the tour!"}
-          size={button_size()}
-          onClick={() => {
-            track("tour");
-            userTracking("tour", { name: `frame-${props.type}` });
-            props.actions.set_frame_full(props.id);
-            // we have to wait until the frame renders before
-            // setting the tour; otherwise, the references won't
-            // be defined and it won't work.
-            setTimeout(
-              () => props.actions.set_frame_tree({ id: props.id, tour: true }),
-              1,
-            );
-          }}
-          style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
-        >
-          <div style={{ display: "inline-block" }}>
-            <Icon name="map" />
-            <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
-          </div>
-        </AntdButton>
-      </div>
-    );
-  }
-
   function render_restart(labels): Rendered {
     if (!isVisible("restart")) {
       return;
@@ -911,10 +878,6 @@ export function FrameTitleBar(props: Props) {
 
       const v: (JSX.Element | undefined)[] = [];
       v.push(renderPage());
-      let x;
-      if ((x = render_tour(labels))) {
-        v.push(x);
-      }
       <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />;
       v.push(renderMenus());
       v.push(renderFileMenu());

@@ -5,6 +5,8 @@ import { debounce } from "lodash";
 import type { ReactNode } from "react";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { IS_MACOS } from "@cocalc/frontend/feature";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import userTracking from "@cocalc/frontend/user-tracking";
 
 export const MENUS = {
   file: {
@@ -25,12 +27,12 @@ export const MENUS = {
   go: {
     label: "Go",
     pos: 3,
-    groups: ["build", "scan", "other-users", 'get-info'],
+    groups: ["build", "scan", "other-users", "get-info"],
   },
   help: {
     label: "Help",
     pos: 4,
-    groups: ["help-link"],
+    groups: ["help-link", "tour"],
   },
 } as const;
 
@@ -514,6 +516,25 @@ export const COMMANDS: { [command: string]: Command } = {
     icon: "file-alt",
     onClick: ({ props }) => {
       props.actions.word_count?.(0, true);
+    },
+  },
+
+  tour: {
+    group: "tour",
+    label: "Take the Tour",
+    title: "Take a guided tour of the user interface for this editor.",
+    icon: "map",
+    isVisible: () => !IS_MOBILE,
+    onClick: ({ props }) => {
+      userTracking("tour", { name: `frame-${props.type}` });
+      props.actions.set_frame_full(props.id);
+      // we have to wait until the frame renders before
+      // setting the tour; otherwise, the references won't
+      // be defined and it won't work.
+      setTimeout(
+        () => props.actions.set_frame_tree({ id: props.id, tour: true }),
+        1,
+      );
     },
   },
 } as const;
