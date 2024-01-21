@@ -13,7 +13,14 @@ export const MENUS = {
   file: {
     label: "File",
     pos: 0,
-    groups: ["export", "reload", "close", "delete"],
+    groups: [
+      "new-open",
+      "reload",
+      "close",
+      "export",
+      "misc-file-actions",
+      "delete",
+    ],
   },
   edit: {
     label: "Edit",
@@ -380,13 +387,6 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Kick others users out",
   },
 
-  print: {
-    group: "export",
-    icon: "print",
-    title: "Show a printable version of this document in a popup window.",
-    label: "Print",
-  },
-
   halt_jupyter: {
     group: "close",
     icon: "PoweroffOutlined",
@@ -575,36 +575,67 @@ export const COMMANDS: { [command: string]: Command } = {
     onClick: ({ props }) => props.actions["edit"]?.(props.id),
   },
 
-//   new: {
-//         alwaysShow: true,
-//     group: "delete",
-//     icon: "trash",
-//     title: "Delete this file",
-//     label: "Delete File...",
-//     onClick: ({ props }) => {
-//       const actions = redux.getProjectActions(props.project_id);
-//       actions.show_file_action_panel({
-//         path: props.path,
-//         action: "delete",
-//       });
-//     },
-//   }
-
   delete: {
-    alwaysShow: true,
     group: "delete",
     icon: "trash",
     title: "Delete this file",
-    label: "Delete File...",
+    label: "Delete",
+    ...fileAction("delete"),
+  },
+
+  rename: {
+    pos: 0,
+    group: "misc-file-actions",
+    icon: "swap",
+    title: "Rename this file",
+    label: "Rename",
+    ...fileAction("rename"),
+  },
+  compress: {
+    pos: 1,
+    group: "misc-file-actions",
+    icon: "compress",
+    title: "Compress this file",
+    label: "Compress",
+    ...fileAction("compress"),
+  },
+  duplicate: {
+    pos: 2,
+    group: "misc-file-actions",
+    icon: "clone",
+    title: "Duplicate this file",
+    label: "Duplicate",
+    ...fileAction("duplicate"),
+  },
+  print: {
+    pos: 10,
+    group: "misc-file-actions",
+    icon: "print",
+    title: "Show a printable version of this document in a popup window.",
+    label: "Print",
+  },
+  new: {
+    pos: 0,
+    group: "new-open",
+    icon: "plus-circle",
+    title: "Create a new file",
+    label: "New",
+    ...fileAction("new"),
+  },
+} as const;
+
+function fileAction(action) {
+  return {
+    alwaysShow: true,
     onClick: ({ props }) => {
       const actions = redux.getProjectActions(props.project_id);
       actions.show_file_action_panel({
         path: props.path,
-        action: "delete",
+        action,
       });
     },
-  },
-} as const;
+  };
+}
 
 export const GROUPS: { [group: string]: string[] } = {};
 for (const name in MENUS) {

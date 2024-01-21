@@ -1580,6 +1580,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: required,
       action: required,
     });
+    if (opts.action == "new" || opts.action == 'create') {
+      // special case because it isn't a normal "file action panel",
+      // but it is convenient to still support this.
+      this.set_active_tab("new");
+      this.setState({
+        default_filename: default_filename(
+          misc.filename_extension(opts.path),
+          this.project_id,
+        ),
+      });
+      return;
+    }
     const path_splitted = misc.path_split(opts.path);
     this.open_directory(path_splitted.head);
     this.set_all_files_unchecked();
