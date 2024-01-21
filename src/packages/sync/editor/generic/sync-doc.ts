@@ -2075,7 +2075,8 @@ export class SyncDoc extends EventEmitter {
     }
     const query = this.patch_table_query();
     const result = await callback2(this.client.query, {
-      query: { patches: [query], project_id: this.project_id },
+      project_id: this.project_id,
+      query: { patches: [query] },
     });
     const v: Patch[] = [];
     // process_patch assumes immutable objects
