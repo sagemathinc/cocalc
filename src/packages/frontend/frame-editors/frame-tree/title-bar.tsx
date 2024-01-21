@@ -43,7 +43,7 @@ import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import LanguageModel from "../chatgpt/title-bar-button";
+import LanguageModelTitleBarButton from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -184,6 +184,8 @@ export function FrameTitleBar(props: Props) {
 
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
+
+  const [showAI, setShowAI] = useState<boolean>(false);
 
   const student_project_functionality = useStudentProjectFunctionality(
     props.project_id,
@@ -326,7 +328,7 @@ export function FrameTitleBar(props: Props) {
     }
     const onClick =
       cmd.onClick != null
-        ? (event) => cmd.onClick?.({ props, event })
+        ? (event) => cmd.onClick?.({ props, event, setShowAI })
         : () => {
             // common special case default
             props.actions[name]?.(props.id);
@@ -520,7 +522,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_control(): Rendered {
+  function renderFrameControls(): Rendered {
     const style: CSS = {
       padding: 0,
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
@@ -707,7 +709,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_chatgpt(): Rendered {
+  function rander_artificial_intelligence(): Rendered {
     if (
       !isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
@@ -715,8 +717,10 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <Tooltip title="Get help using an Artificial Intelligence model">
-        <LanguageModel
+      <Tooltip title="Get help using an Artificial Intelligence Large Language model (e.g., ChatGPT)">
+        <LanguageModelTitleBarButton
+          showDialog={showAI}
+          setShowDialog={setShowAI}
           project_id={props.project_id}
           buttonRef={getTourRef("chatgpt")}
           key={"chatgpt"}
@@ -769,7 +773,7 @@ export function FrameTitleBar(props: Props) {
     let x: Rendered;
     if ((x = render_save(labels))) v.push(x);
     if ((x = render_timetravel())) v.push(x);
-    if ((x = render_chatgpt())) v.push(x);
+    if ((x = rander_artificial_intelligence())) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
@@ -902,7 +906,7 @@ export function FrameTitleBar(props: Props) {
     }
   }
 
-  function render_main_buttons(): Rendered {
+  function renderMainMenusAndButtons(): Rendered {
     // This is complicated below (with the flex display) in order to have
     // a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them.
@@ -943,7 +947,7 @@ export function FrameTitleBar(props: Props) {
                   true,
                 )}
               </div>
-              <div>{render_control()}</div>
+              <div>{renderFrameControls()}</div>
               <Icon
                 onClick={() => setShowMainButtonsPopover(false)}
                 name="times"
@@ -976,7 +980,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_connection_status(): Rendered | undefined {
+  function renderConnectionStatus(): Rendered | undefined {
     if (!props.connection_status || !isVisible("connection_status")) {
       return;
     }
@@ -1025,7 +1029,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_title(): Rendered {
+  function renderTitle(): Rendered {
     let title: string = "";
     let icon: IconName | undefined = undefined;
     if (props.title !== undefined) {
@@ -1064,7 +1068,7 @@ export function FrameTitleBar(props: Props) {
     return body;
   }
 
-  function render_close_and_halt_confirm(): Rendered {
+  function renderCloseAndHaltConfirm(): Rendered {
     if (!close_and_halt_confirm) return;
     return (
       <div
@@ -1099,11 +1103,9 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_confirm_bar(): Rendered {
+  function renderConfirmBar(): Rendered {
     return (
-      <div style={{ position: "relative" }}>
-        {render_close_and_halt_confirm()}
-      </div>
+      <div style={{ position: "relative" }}>{renderCloseAndHaltConfirm()}</div>
     );
   }
 
@@ -1232,12 +1234,12 @@ export function FrameTitleBar(props: Props) {
       >
         {allButtonsPopover()}
         {renderComputeServer()}
-        {render_title()}
-        {render_main_buttons()}
-        {render_connection_status()}
-        {render_control()}
+        {renderTitle()}
+        {renderMainMenusAndButtons()}
+        {renderConnectionStatus()}
+        {renderFrameControls()}
       </div>
-      {render_confirm_bar()}
+      {renderConfirmBar()}
       {hasTour && props.is_visible && props.tab_is_visible && (
         <TitleBarTour refs={tourRefs} />
       )}

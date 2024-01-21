@@ -12,11 +12,7 @@ to do the work.
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import {
-  Icon,
-  IconName,
-  Title,
-} from "@cocalc/frontend/components";
+import { Icon, IconName, Title } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -120,9 +116,11 @@ interface Props {
   path: string;
   buttonRef;
   project_id: string;
+  showDialog: boolean;
+  setShowDialog: (boolean) => void;
 }
 
-export default function LanguageModelTitleBarButtonDialog({
+export default function LanguageModelTitleBarButton({
   id,
   actions,
   buttonSize,
@@ -131,8 +129,9 @@ export default function LanguageModelTitleBarButtonDialog({
   path,
   buttonRef,
   project_id,
+  showDialog,
+  setShowDialog,
 }: Props) {
-  const [showDialog, setShowDialog] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [custom, setCustom] = useState<string>("");
   const frameType = actions._get_frame_type(id);

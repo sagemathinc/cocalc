@@ -8,6 +8,7 @@ import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { IS_MACOS } from "@cocalc/frontend/feature";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import userTracking from "@cocalc/frontend/user-tracking";
+import openSupportTab from "@cocalc/frontend/support/open";
 
 export const MENUS = {
   file: {
@@ -16,6 +17,7 @@ export const MENUS = {
     groups: [
       "new-open",
       "reload",
+      "save",
       "close",
       "export",
       "misc-file-actions",
@@ -25,7 +27,7 @@ export const MENUS = {
   edit: {
     label: "Edit",
     pos: 1,
-    groups: ["undo-redo", "find", "copy", "format", "config"],
+    groups: ["undo-redo", "find", "copy", "ai", "format", "config"],
   },
   view: {
     label: "View",
@@ -56,7 +58,15 @@ export interface Command {
   label: string | (({ props }) => JSX.Element);
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
-  onClick?: ({ props, event }: { props?; event? }) => void;
+  onClick?: ({
+    props,
+    event,
+    setShowAI,
+  }: {
+    props?;
+    event?;
+    setShowAI?: (boolean) => void;
+  }) => void;
   isVisible?: ({ props }) => boolean;
   disable?: string;
   keyboard?: string;
@@ -255,7 +265,7 @@ export const COMMANDS: { [command: string]: Command } = {
     pos: 0,
     icon: "undo",
     label: "Undo",
-    keyboard: "control + z",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + Z`,
     onClick: ({ props }) => {
       if (props.type == "chat") {
         // we have to special case this until we come up with a better way of having
@@ -271,7 +281,7 @@ export const COMMANDS: { [command: string]: Command } = {
     pos: 1,
     icon: "redo",
     label: "Redo",
-    keyboard: "control + shift + z",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + shift + Z`,
     onClick: ({ props }) => {
       if (props.type == "chat") {
         // see undo comment above
@@ -287,7 +297,7 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Cut",
     title: "Cut selection",
     icon: "scissors",
-    keyboard: "control + x",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + X`,
     disabled: ({ read_only }) => read_only,
   },
   copy: {
@@ -296,7 +306,7 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Copy",
     title: "Copy selection",
     icon: "copy",
-    keyboard: "control + c",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + C`,
   },
   paste: {
     group: "copy",
@@ -304,7 +314,7 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Paste",
     title: "Paste buffer",
     icon: "paste",
-    keyboard: "control + v",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + V`,
     disabled: ({ read_only }) => read_only,
     onClick: debounce(
       ({ props }) => props.editor_actions.paste(props.id, true),
@@ -325,6 +335,7 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   help: {
+    pos: 0,
     group: "help-link",
     label: "Documentation",
     icon: "question-circle",
@@ -434,7 +445,7 @@ export const COMMANDS: { [command: string]: Command } = {
     pos: 0,
     label: "Find",
     icon: "search",
-    keyboard: "control + f",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + F`,
   },
   replace: {
     group: "find",
@@ -448,7 +459,7 @@ export const COMMANDS: { [command: string]: Command } = {
     pos: 3,
     label: "Goto Line",
     icon: "bolt",
-    keyboard: "control + l",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + L`,
   },
   auto_indent: {
     group: "format",
@@ -655,7 +666,7 @@ export const COMMANDS: { [command: string]: Command } = {
     ...fileAction("new"),
   },
   open: {
-    pos: 0,
+    pos: 1,
     group: "new-open",
     icon: "files",
     title: "Open a file",
@@ -663,12 +674,43 @@ export const COMMANDS: { [command: string]: Command } = {
     ...fileAction("open"),
   },
   open_recent: {
-    pos: 0,
+    pos: 2,
     group: "new-open",
     icon: "history",
     title: "Open a file that was recently opened",
     label: "Open Recent",
     ...fileAction("open_recent"),
+  },
+  save: {
+    pos: 0,
+    group: "save",
+    icon: "save",
+    title: "Save this file to disk",
+    label: "Save",
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + S`,
+  },
+  chatgpt: {
+    pos: 1,
+    group: "format",
+    icon: "robot",
+    title:
+      "Ask an Artificial Intelligence Assistant (e.g., ChatGPT) for help on what you're doing.",
+    label: "AI Assistant",
+    onClick: ({ setShowAI }) => setShowAI?.(true),
+    isVisible: ({ props }) =>
+      redux.getStore("projects").hasLanguageModelEnabled(props.project_id),
+  },
+  support: {
+    alwaysShow: true,
+    pos: 5,
+    group: "help-link",
+    icon: "medkit",
+    label: "Support Ticket",
+    title:
+      "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
+    onClick: () => {
+      openSupportTab();
+    },
   },
 } as const;
 
