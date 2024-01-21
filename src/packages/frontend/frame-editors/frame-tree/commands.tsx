@@ -546,13 +546,6 @@ export const COMMANDS: { [command: string]: Command } = {
     },
   },
 
-  download: {
-    group: "export",
-    label: "Download",
-    title: "Download this file",
-    icon: "cloud-download",
-  },
-
   readonly_view: {
     pos: -1,
     group: "show-frames",
@@ -607,9 +600,48 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Duplicate",
     ...fileAction("duplicate"),
   },
-  print: {
+  copy_file: {
+    pos: 3,
+    group: "misc-file-actions",
+    icon: "files",
+    title: "Copy this file to another directory or project",
+    label: "Copy",
+    ...fileAction("copy"),
+  },
+  move_file: {
+    pos: 4,
+    group: "misc-file-actions",
+    icon: "move",
+    title: "Move this file to another directory",
+    label: "Move",
+    ...fileAction("move"),
+  },
+  download: {
+    group: "export",
+    label: "Download",
+    title: "Download this file",
+    icon: "cloud-download",
+    ...fileAction("download"),
+  },
+  upload: {
     pos: 10,
     group: "misc-file-actions",
+    icon: "upload",
+    title: "Upload a file or directory from your compute to the server",
+    label: "Upload",
+    ...fileAction("upload"),
+  },
+  share: {
+    pos: 10,
+    group: "export",
+    icon: "share-square",
+    title: "Share this file publicly or unlisted",
+    label: "Share",
+    ...fileAction("share"),
+  },
+  print: {
+    pos: 2,
+    group: "export",
     icon: "print",
     title: "Show a printable version of this document in a popup window.",
     label: "Print",
@@ -619,8 +651,24 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "new-open",
     icon: "plus-circle",
     title: "Create a new file",
-    label: "New",
+    label: "New File",
     ...fileAction("new"),
+  },
+  open: {
+    pos: 0,
+    group: "new-open",
+    icon: "files",
+    title: "Open a file",
+    label: "Open File",
+    ...fileAction("open"),
+  },
+  open_recent: {
+    pos: 0,
+    group: "new-open",
+    icon: "history",
+    title: "Open a file that was recently opened",
+    label: "Open Recent",
+    ...fileAction("open_recent"),
   },
 } as const;
 

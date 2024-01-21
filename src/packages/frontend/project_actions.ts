@@ -1580,16 +1580,39 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: required,
       action: required,
     });
-    if (opts.action == "new" || opts.action == 'create') {
+    if (opts.action == "new" || opts.action == "create") {
       // special case because it isn't a normal "file action panel",
       // but it is convenient to still support this.
-      this.set_active_tab("new");
+      if (this.get_store()?.get("flyout") != "new") {
+        this.toggleFlyout("new");
+      }
       this.setState({
         default_filename: default_filename(
           misc.filename_extension(opts.path),
           this.project_id,
         ),
       });
+      return;
+    }
+    if (opts.action == "upload") {
+      this.set_active_tab("files");
+      setTimeout(() => {
+        // NOTE: I'm not proud of this, but right now our upload functionality
+        // is based on not-very-react-ish library...
+        $(".upload-button").click();
+      }, 100);
+      return;
+    }
+    if (opts.action == "open") {
+      if (this.get_store()?.get("flyout") != "files") {
+        this.toggleFlyout("files");
+      }
+      return;
+    }
+    if (opts.action == "open_recent") {
+      if (this.get_store()?.get("flyout") != "log") {
+        this.toggleFlyout("log");
+      }
       return;
     }
     const path_splitted = misc.path_split(opts.path);

@@ -67,8 +67,20 @@ export function NewFlyout({
     "file_creation_error",
   );
 
-  const [filename, setFilename] = useState<string>("");
-  const [ext, setExt] = useState<string>(defaultExt);
+  const filename0 = useTypedRedux({ project_id }, "default_filename");
+  const [filename, setFilename] = useState<string>(() => {
+    if (filename0) {
+      return separate_file_extension(filename0 ?? "").name ?? "";
+    }
+    return "";
+  });
+  const [ext, setExt] = useState<string>(() => {
+    if (filename0) {
+      const ext = getFileExtension(filename0);
+      return ext ? ext : defaultExt;
+    }
+    return defaultExt;
+  });
   const [manualExt, setManualExt] = useState<boolean>(false);
   const [manual, setManual] = useState<boolean>(false);
   const [creating, setCreating] = useState<boolean>(false);
@@ -90,7 +102,7 @@ export function NewFlyout({
   }, []);
 
   useEffect(() => {
-    if (!manual) {
+    if (!manual && !filename0) {
       makeNewFilename();
     }
   }, [ext, manual, selected]);

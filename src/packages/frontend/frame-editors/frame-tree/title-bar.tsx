@@ -1,4 +1,5 @@
 /*
+
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
@@ -37,7 +38,6 @@ import {
   Gap,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { copy, path_split, trunc_middle, field_cmp } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
@@ -165,6 +165,7 @@ interface Props {
 }
 
 export function FrameTitleBar(props: Props) {
+  // Whether this is *the* active currently focused frame:
   const is_active = props.active_id === props.id;
   const track = useMemo(() => {
     const { project_id, path } = props;
@@ -216,11 +217,6 @@ export function FrameTitleBar(props: Props) {
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
-  const fullscreen: undefined | "default" | "kiosk" = useRedux(
-    "page",
-    "fullscreen",
-  );
-
   const otherSettings = useRedux(["account", "other_settings"]);
   const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
@@ -458,6 +454,7 @@ export function FrameTitleBar(props: Props) {
   }
 
   function render_types(): Rendered {
+    if (!is_active) return;
     const selected_type: string = props.type;
     let selected_icon: IconName | undefined = undefined;
     let selected_short = "";
@@ -541,6 +538,8 @@ export function FrameTitleBar(props: Props) {
         ref={getTourRef("control")}
       >
         <ButtonGroup style={style} key={"close"}>
+          {!props.is_full ? render_split_row() : undefined}
+          {!props.is_full ? render_split_col() : undefined}
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
@@ -586,6 +585,50 @@ export function FrameTitleBar(props: Props) {
     }
   }
 
+  function render_split_row(): Rendered {
+    return (
+      <StyledButton
+        key={"split-row"}
+        title={"Split frame horizontally into two rows"}
+        bsSize={button_size()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (props.is_full) {
+            track("unset-full");
+            return props.actions.unset_frame_full();
+          } else {
+            track("split-row");
+            return props.actions.split_frame("row", props.id);
+          }
+        }}
+      >
+        <Icon name="horizontal-split" />
+      </StyledButton>
+    );
+  }
+
+  function render_split_col(): Rendered {
+    return (
+      <StyledButton
+        key={"split-col"}
+        title={"Split frame vertically into two columns"}
+        bsSize={button_size()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (props.is_full) {
+            track("unset-full");
+            return props.actions.unset_frame_full();
+          } else {
+            track("split-col");
+            return props.actions.split_frame("col", props.id);
+          }
+        }}
+      >
+        <Icon name="vertical-split" />
+      </StyledButton>
+    );
+  }
+
   function render_switch_to_file(): Rendered {
     if (
       !isVisible("switch_to_file") ||
@@ -626,7 +669,45 @@ export function FrameTitleBar(props: Props) {
     return !!(props.is_only || props.is_full);
   }
 
-  function render_chatgpt(labels): Rendered {
+  function render_timetravel(): Rendered {
+    if (!isVisible("time_travel")) {
+      return;
+    }
+    return (
+      <Tooltip title="Show TimeTravel edit history">
+        <AntdButton
+          key={"timetravel"}
+          style={{
+            ...button_style(),
+            ...(!darkMode
+              ? { color: "white", background: "#5bc0de" }
+              : undefined),
+          }}
+          size={button_size()}
+          onClick={(event) => {
+            track("time-travel");
+            if (props.actions.name != props.editor_actions.name) {
+              // a subframe editor -- always open time travel in a name tab.
+              props.editor_actions.time_travel({ frame: false });
+              return;
+            }
+            // If a time_travel frame type is available and the
+            // user does NOT shift+click, then open as a frame.
+            // Otherwise, it opens as a new tab.
+            const frame =
+              !event.shiftKey && props.editor_spec["time_travel"] != null;
+            props.actions.time_travel({
+              frame,
+            });
+          }}
+        >
+          <Icon name="history" />
+        </AntdButton>
+      </Tooltip>
+    );
+  }
+
+  function render_chatgpt(): Rendered {
     if (
       !isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
@@ -634,23 +715,24 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <LanguageModel
-        project_id={props.project_id}
-        buttonRef={getTourRef("chatgpt")}
-        key={"chatgpt"}
-        id={props.id}
-        actions={props.actions}
-        path={props.path}
-        buttonSize={button_size()}
-        buttonStyle={{
-          ...button_style(),
-          ...(!darkMode
-            ? { backgroundColor: "rgb(16, 163, 127)", color: "white" }
-            : undefined),
-        }}
-        labels={labels}
-        visible={props.tab_is_visible && props.is_visible}
-      />
+      <Tooltip title="Get help using an Artificial Intelligence model">
+        <LanguageModel
+          project_id={props.project_id}
+          buttonRef={getTourRef("chatgpt")}
+          key={"chatgpt"}
+          id={props.id}
+          actions={props.actions}
+          path={props.path}
+          buttonSize={button_size()}
+          buttonStyle={{
+            ...button_style(),
+            ...(!darkMode
+              ? { backgroundColor: "rgb(16, 163, 127)", color: "white" }
+              : undefined),
+          }}
+          visible={props.tab_is_visible && props.is_visible}
+        />
+      </Tooltip>
     );
   }
 
@@ -686,31 +768,12 @@ export function FrameTitleBar(props: Props) {
     const v: Rendered[] = [];
     let x: Rendered;
     if ((x = render_save(labels))) v.push(x);
-    if ((x = render_chatgpt(labels))) v.push(x);
+    if ((x = render_timetravel())) v.push(x);
+    if ((x = render_chatgpt())) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
     }
-  }
-
-  function renderFileMenu(): Rendered {
-    if (isExplicitlyHidden("actions")) return;
-    // We don't show this menu in kiosk mode, where none of the options make sense,
-    // because they are all file management, which should be handled a different way.
-    if (fullscreen == "kiosk") return;
-    // Also, instructors can disable this for students:
-    if (student_project_functionality.disableActions) return;
-    const spec = props.editor_spec[props.type];
-    if (spec != null && spec.hide_file_menu) return;
-    return (
-      <EditorFileInfoDropdown
-        key={"info"}
-        filename={props.path}
-        project_id={props.project_id}
-        is_public={false}
-        style={MENU_STYLE}
-      />
-    );
   }
 
   function createMenu(name: string) {
@@ -751,6 +814,7 @@ export function FrameTitleBar(props: Props) {
   }
 
   function renderMenus() {
+    if (!is_active) return;
     const v: { menu: JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
       const x = createMenu(name);
@@ -779,6 +843,7 @@ export function FrameTitleBar(props: Props) {
     style?: CSS,
     noRefs?,
   ): Rendered {
+    if (!is_active) return;
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
@@ -810,7 +875,6 @@ export function FrameTitleBar(props: Props) {
       v.push(renderPage());
       <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />;
       v.push(renderMenus());
-      v.push(renderFileMenu());
       <div style={{ border: "1px solid #ccc", margin: "5px 5px 5px 0px" }} />;
       v.push(render_save_timetravel_group(labels));
       v.push(render_switch_to_file());
@@ -866,7 +930,7 @@ export function FrameTitleBar(props: Props) {
         }
         content={() => {
           return (
-            <div style={{ display: "flex", maxWidth: "100vw" }}>
+            <div style={{ display: "flex", maxWidth: "100vw", height: "34px" }}>
               <div
                 style={{
                   marginLeft: "3px",
@@ -879,13 +943,12 @@ export function FrameTitleBar(props: Props) {
                   true,
                 )}
               </div>
-              <div>{render_types()}</div>
+              <div>{render_control()}</div>
               <Icon
                 onClick={() => setShowMainButtonsPopover(false)}
                 name="times"
                 style={{
                   color: COLORS.GRAY_M,
-                  marginTop: "10px",
                   marginLeft: "10px",
                 }}
               />
@@ -901,12 +964,12 @@ export function FrameTitleBar(props: Props) {
           <AntdButton
             type="text"
             style={{
-              margin: "0 3px",
+              padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
-            <Icon name="ellipsis" />
+            <Icon name="ellipsis" rotate="90" />
           </AntdButton>
         </div>
       </Popover>
@@ -1137,7 +1200,6 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  // Whether this is *the* active currently focused frame:
   let style;
   style = copy(title_bar_style);
   style.background = COL_BAR_BACKGROUND;

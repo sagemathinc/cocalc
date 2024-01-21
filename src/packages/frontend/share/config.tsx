@@ -241,6 +241,7 @@ export default function Configure(props: Props) {
                 onChange={handleSharingOptionsChange}
               >
                 <Radio
+                  style={{ marginTop: "5px" }}
                   name="sharing_options"
                   value="public_listed"
                   disabled={!props.has_network_access}
@@ -256,7 +257,11 @@ export default function Configure(props: Props) {
                     )}
                   </A>
                 </Radio>
-                <Radio name="sharing_options" value="public_unlisted">
+                <Radio
+                  name="sharing_options"
+                  value="public_unlisted"
+                  style={{ marginTop: "5px" }}
+                >
                   <Icon name="eye-slash" style={{ marginRight: "5px" }} />
                   <i>Published (unlisted)</i> - only people with the link can
                   view this.
@@ -273,7 +278,11 @@ export default function Configure(props: Props) {
                   </>
                 )}
 
-                <Radio name="sharing_options" value="private">
+                <Radio
+                  name="sharing_options"
+                  value="private"
+                  style={{ marginTop: "5px" }}
+                >
                   <Icon name="lock" style={{ marginRight: "5px" }} />
                   <i>Private</i> - only collaborators on this project can view
                   this.
