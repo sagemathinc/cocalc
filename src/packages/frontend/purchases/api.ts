@@ -5,12 +5,17 @@ Some of these are only used by the nextjs app!
 */
 
 import api from "@cocalc/frontend/client/api";
-import type { Purchase, Reason, Service } from "@cocalc/util/db-schema/purchases";
+import type {
+  Purchase,
+  Reason,
+  Service,
+} from "@cocalc/util/db-schema/purchases";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
+import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -130,7 +135,8 @@ export async function getSubscription(
       },
     },
   });
-  return x.query.subscriptions;
+  const z = x.query.subscriptions;
+  return { ...z, cost_per_hour: z.cost / hoursInInterval(z.interval) };
 }
 
 export interface LiveSubscription {
@@ -304,8 +310,10 @@ export async function shoppingCartCheckout(opts: {
   return await api("purchases/shopping-cart-checkout", opts);
 }
 
-export async function getShoppingCartCheckoutParams() {
-  return await api("purchases/get-shopping-cart-checkout-params");
+export async function getShoppingCartCheckoutParams(
+  opts: { ignoreBalance?: boolean } = {},
+) {
+  return await api("purchases/get-shopping-cart-checkout-params", opts);
 }
 
 import type { WhenPay } from "@cocalc/util/vouchers";
@@ -390,6 +398,24 @@ export async function resumeSubscription(subscription_id: number) {
   return await api("purchases/resume-subscription", {
     subscription_id,
   });
+}
+
+export async function costToResumeSubscription(
+  subscription_id: number,
+): Promise<number> {
+  const { cost } = await api("purchases/cost-to-resume-subscription", {
+    subscription_id,
+  });
+  return cost;
+}
+
+export async function creditToCancelSubscription(
+  subscription_id: number,
+): Promise<number> {
+  const { cost } = await api("purchases/credit-to-cancel-subscription", {
+    subscription_id,
+  });
+  return cost;
 }
 
 export async function renewSubscription(

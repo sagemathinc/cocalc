@@ -1,5 +1,6 @@
 import { Card, Statistic, Tooltip } from "antd";
 import { currency } from "@cocalc/util/misc";
+import { round2 } from "@cocalc/util/misc";
 
 interface Props {
   style?;
@@ -21,7 +22,7 @@ export default function SpendRate({ style, spendRate }: Props) {
       >
         <Statistic
           title={"Metered Spend Rate (USD)"}
-          value={spendRate}
+          value={round2(spendRate)}
           precision={2}
           prefix={"$"}
           suffix={"/hour"}

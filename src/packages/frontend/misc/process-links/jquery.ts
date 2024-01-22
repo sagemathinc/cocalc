@@ -19,6 +19,7 @@ interface Options {
   href_transform?: (href: string, tag?: string) => string;
   project_id?: string;
   file_path?: string;
+  doubleClick?: boolean;
 }
 
 // @ts-ignore
@@ -28,6 +29,7 @@ $.fn.process_smc_links = function (opts: Options) {
     urlTransform: opts?.href_transform,
     projectId: opts?.project_id,
     filePath: opts?.file_path,
+    doubleClick: opts?.doubleClick,
     $,
     projectActions: redux.getActions("projects"),
   });

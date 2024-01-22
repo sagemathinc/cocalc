@@ -14,10 +14,12 @@ import LaTeX from "components/landing/latex";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";
 import apiScreenshot from "/public/features/api-screenshot.png";
+import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
 import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
 import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
 import LatexEditorImage from "/public/features/cocalc-latex-editor-2019.png";
@@ -28,7 +30,6 @@ import teachingLogo from "/public/features/fa-graduation-cap.svg";
 import FrameEditorPython from "/public/features/frame-editor-python.png";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
 import LatexLogo from "/public/features/latex-logo.svg";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import {
   default as linuxLogo,
   default as terminalLogo,
@@ -41,13 +42,12 @@ import terminalScreenshot from "/public/features/terminal.png";
 import WhiteboardImage from "/public/features/whiteboard-sage.png";
 import x11Screenshot from "/public/features/x11-01.png";
 import x11Logo from "/public/features/x11-logo.svg";
-import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
-import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
 
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import {
-  component as computeServerName,
   title as compueServerTitle,
   logo as computeServerLogo,
+  component as computeServerName,
 } from "./compute-server";
 
 const dataSource = [
@@ -69,7 +69,7 @@ const dataSource = [
   },
   {
     link: "/features/jupyter-notebook",
-    title: "Jupyter notebooks",
+    title: "Jupyter Notebooks",
     logo: JupyterLogo,
     image: JupyterTF,
     logoBackground: "white",
@@ -101,16 +101,19 @@ const dataSource = [
     ),
   },
   {
-    link: "/features/openai-chatgpt",
-    title: <>OpenAI's ChatGPT</>,
+    link: "/features/ai",
+    title: <>AI Assistance</>,
     logoBackground: "white",
-    logo: <OpenAIAvatar size={64} />,
+    logo: <AIAvatar size={64} />,
     image: ChatGptInChatroom,
     description: (
       <>
-        CoCalc extensively integrates with{" "}
-        <A href="https://openai.com/">OpenAI's ChatGPT</A> in many ways. It
-        participates in a{" "}
+        CoCalc extensively integrates with AI language models like{" "}
+        <A href="https://openai.com/">OpenAI's ChatGPT</A> and{" "}
+        <A href="https://deepmind.google/technologies/gemini/">
+          Google's Gemini
+        </A>
+        . It participates in a{" "}
         <A href={"https://doc.cocalc.com/chat.html"}>Chatroom</A> as a bot,
         helps you understand your code, deciphers error messages in{" "}
         <A href={"/features/jupyter-notebook"}>Jupyter notebooks</A> or

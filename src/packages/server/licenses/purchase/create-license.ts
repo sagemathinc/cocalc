@@ -18,7 +18,7 @@ const logger = getLogger("createLicense");
 export default async function createLicense(
   account_id: string,
   info: PurchaseInfo,
-  client?: PoolClient
+  client?: PoolClient,
 ): Promise<string> {
   const pool = client ?? getPool();
   const license_id = await getUUID(pool, info);
@@ -26,7 +26,9 @@ export default async function createLicense(
   if (info.type == "vouchers") {
     throw Error("purchaseLicense can't be used to purchase vouchers");
   }
-
+  if (info.start == null || info.end == null) {
+    throw Error("start and end must be defined");
+  }
   const [start, end] =
     info.type !== "disk"
       ? adjustDateRangeEndOnSameDay([info.start, info.end])
@@ -49,7 +51,7 @@ export default async function createLicense(
       info.description,
       info.quantity,
       end,
-    ]
+    ],
   );
   return license_id;
 }
@@ -120,7 +122,7 @@ async function getUUID(pool, info: PurchaseInfo) {
 SELECT EXISTS(
   SELECT 1 FROM site_licenses WHERE quota -> 'dedicated_vm' ->> 'name' = $1
 ) AS exists`,
-      [name]
+      [name],
     );
     if (!rows[0]?.exists) {
       return id;

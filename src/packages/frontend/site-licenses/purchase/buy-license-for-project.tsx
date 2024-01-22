@@ -7,7 +7,7 @@ import { Button, Space } from "antd";
 import { join } from "path";
 
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { A, Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
@@ -47,11 +47,14 @@ export const BuyLicenseForProject: React.FC<Props> = ({
   }
 
   function renderBuyButton() {
+    if (asLink) {
+      return <A href={url("store/site-license")}>{buyText}...</A>;
+    }
     return (
       <Button
-        size={asLink ? undefined : size}
-        type={asLink ? "link" : "default"}
-        icon={asLink ? undefined : <Icon name="shopping-cart" />}
+        size={size}
+        type={"default"}
+        icon={<Icon name="shopping-cart" />}
         style={style}
         onClick={() => {
           open_new_tab(url("store/site-license"));
@@ -63,12 +66,15 @@ export const BuyLicenseForProject: React.FC<Props> = ({
   }
 
   function renderVoucherButton() {
+    if (asLink) {
+      return <A href={url("redeem")}>{voucherText}...</A>;
+    }
     return (
       <Button
-        size={asLink ? undefined : size}
-        type={asLink ? "link" : "default"}
+        size={size}
+        type={"default"}
         style={style}
-        icon={asLink ? undefined : <Icon name="gift2" />}
+        icon={<Icon name="gift2" />}
         onClick={() => {
           open_new_tab(url("redeem"));
         }}

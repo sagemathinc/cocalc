@@ -74,7 +74,6 @@ function SignUp0({
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
   const [signupReason, setSingupReason] = useState<string>("");
-  const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -84,7 +83,6 @@ function SignUp0({
   const [issues, setIssues] = useState<{
     email?: string;
     password?: string;
-    terms?: string;
     error?: string;
     registrationToken?: string;
     reCaptcha?: string;
@@ -120,7 +118,6 @@ function SignUp0({
   const requestContact = tags.has(CONTACT_TAG);
 
   submittable.current = !!(
-    terms &&
     requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
     email &&
@@ -147,14 +144,13 @@ function SignUp0({
       }
 
       const result = await apiPost("/auth/sign-up", {
-        terms,
+        terms: true,
         email,
         password,
         firstName,
         lastName,
         registrationToken,
         reCaptchaToken,
-        tags: Array.from(tags),
         publicPathId,
         signupReason,
       });
@@ -224,19 +220,14 @@ function SignUp0({
       )}
 
       <div style={{ ...LOGIN_STYLE, maxWidth: "890px" }}>
-        {
-          <TermsCheckbox
-            onChange={setTerms}
-            checked={terms}
-            style={{
-              marginTop: "10px",
-              marginBottom: terms ? "10px" : undefined,
-              fontSize: "12pt",
-              color: COLORS.GRAY_M,
-            }}
-          />
-        }
-        {terms && !minimal && onCoCalcCom && (
+        <div>
+          By creating an account, you agree to the{" "}
+          <A external={true} href="/policies/terms">
+            Terms of Service
+          </A>
+          .
+        </div>
+        {!minimal && onCoCalcCom && (
           <Tags
             setTags={setTags}
             signupReason={signupReason}
@@ -273,7 +264,7 @@ function SignUp0({
               }
             />
           )}
-          {!needsTags && terms && requiresToken2 && (
+          {requiresToken2 && (
             <div style={LINE}>
               <p>Registration Token</p>
               <Input
@@ -284,15 +275,13 @@ function SignUp0({
               />
             </div>
           )}
-          {!needsTags && terms && (
-            <EmailOrSSO
-              email={email}
-              setEmail={setEmail}
-              signUp={signUp}
-              strategies={strategies}
-              hideSSO={requiredSSO != null}
-            />
-          )}
+          <EmailOrSSO
+            email={email}
+            setEmail={setEmail}
+            signUp={signUp}
+            strategies={strategies}
+            hideSSO={requiredSSO != null}
+          />
           <RequiredSSO strategy={requiredSSO} />
           {issues.email && (
             <Alert
@@ -309,7 +298,7 @@ function SignUp0({
               }
             />
           )}
-          {!needsTags && terms && email && requiredSSO == null && (
+          {requiredSSO == null && (
             <div style={LINE}>
               <p>Password</p>
               <Input.Password
@@ -325,39 +314,30 @@ function SignUp0({
           {issues.password && (
             <Alert style={LINE} type="error" showIcon message={issues.email} />
           )}
-          {!needsTags &&
-            terms &&
-            email &&
-            requiredSSO == null &&
-            password?.length >= 6 && (
-              <div style={LINE}>
-                <p>First name (Given name)</p>
-                <Input
-                  style={{ fontSize: "12pt" }}
-                  placeholder="First name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  onPressEnter={signUp}
-                />
-              </div>
-            )}
-          {!needsTags &&
-            terms &&
-            email &&
-            password &&
-            requiredSSO == null &&
-            firstName?.trim() && (
-              <div style={LINE}>
-                <p>Last name (Family name)</p>
-                <Input
-                  style={{ fontSize: "12pt" }}
-                  placeholder="Last name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  onPressEnter={signUp}
-                />
-              </div>
-            )}
+          {requiredSSO == null && (
+            <div style={LINE}>
+              <p>First name (Given name)</p>
+              <Input
+                style={{ fontSize: "12pt" }}
+                placeholder="First name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                onPressEnter={signUp}
+              />
+            </div>
+          )}
+          {requiredSSO == null && (
+            <div style={LINE}>
+              <p>Last name (Family name)</p>
+              <Input
+                style={{ fontSize: "12pt" }}
+                placeholder="Last name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                onPressEnter={signUp}
+              />
+            </div>
+          )}
         </form>
         <div style={LINE}>
           <Button
@@ -375,9 +355,7 @@ function SignUp0({
             }}
             onClick={signUp}
           >
-            {!terms
-              ? "Agree to the terms"
-              : needsTags && tagsSize < MIN_TAGS
+            {needsTags && tagsSize < MIN_TAGS
               ? `Select at least ${smallIntegerToEnglishWord(
                   MIN_TAGS,
                 )} ${plural(MIN_TAGS, what)}`
@@ -470,8 +448,8 @@ function EmailOrSSO(props: EmailOrSSOProps) {
 
   return (
     <div>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ color: "#444", marginTop: "20px" }}>
+      <div>
+        <p style={{ color: "#444", marginTop: "10px" }}>
           {hideSSO
             ? "Sign up using your single sign-on provider"
             : strategies.length > 0 && emailSignup

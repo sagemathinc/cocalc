@@ -8,7 +8,7 @@ import {
 } from "@cocalc/util/db-schema/openai";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
-import { currency, round2up } from "@cocalc/util/misc";
+import { currency, round2up, round2down } from "@cocalc/util/misc";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { getPurchaseQuotas } from "./purchase-quotas";
@@ -27,7 +27,7 @@ interface Options {
   cost?: number;
   client?: PoolClient;
 
-  // if margin is set to a positive number, then the user's balance and all quotas are viewd as
+  // if margin is set to a positive number, then the user's balance and all quotas are viewed as
   // increased by this amount when deciding of the purchase is allowed or not.
   margin?: number;
 }
@@ -45,6 +45,9 @@ export async function isPurchaseAllowed({
   reason?: string;
   chargeAmount?: number; // if purchase is not allowed entirely because balance is too low -- this is how much you must pay, taking into account the configured minPayment. The reason will explain this.
 }> {
+  if (cost != null && cost >= 0) {
+    cost = round2up(cost);
+  }
   if (!(await isValidAccount(account_id))) {
     return { allowed: false, reason: `${account_id} is not a valid account` };
   }
@@ -105,24 +108,28 @@ export async function isPurchaseAllowed({
     const { pay_as_you_go_min_payment } = await getServerSettings();
     const required = round2up(cost - (balance - minBalance));
     const chargeAmount = Math.max(pay_as_you_go_min_payment, required);
-    return {
-      allowed: false,
-      chargeAmount,
-      reason: `You do not have enough credits to spend up to ${currency(
+    let reason = ` Please add at least ${currency(
+      round2up(chargeAmount),
+    )} to your account. `;
+    if (balance) {
+      reason = `You do not have enough credits to spend up to ${currency(
         cost,
       )} since your balance is ${currency(
-        balance,
-      )}, and spending up to ${currency(
-        cost,
-      )} would cause your balance to go below your allowed minimum balance of ${currency(
+        round2down(balance),
+      )}, and this would cause your balance to go below your allowed minimum of ${currency(
         minBalance,
-      )}.  Please add at least ${currency(chargeAmount)} to your account.${
+      )}.  ${reason}${
         required < pay_as_you_go_min_payment
           ? " There is a minimum payment of " +
             currency(pay_as_you_go_min_payment) +
             "."
           : ""
-      }`,
+      }`;
+    }
+    return {
+      allowed: false,
+      chargeAmount,
+      reason,
     };
   }
   // Next check that the quota for the specific service is not exceeded.

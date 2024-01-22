@@ -4,12 +4,12 @@ Resume a canceled subscription, which does all of the following in a single ATOM
 - Changes the status of the subscription to active, so it'll get renewed each month.
 - Sets the current_period_start/end dates for the subscription to include now.
 - Edits the license so that start date is now and end date is current_period_end.
-  Doing this edit involves a charge and will fail if user doesn't have sufficient 
+  Doing this edit involves a charge and will fail if user doesn't have sufficient
   credit.
 */
 
 import { getTransactionClient } from "@cocalc/database/pool";
-import editLicense from "./edit-license";
+import editLicense, { costToChangeLicense } from "./edit-license";
 import { getSubscription, intervalContainingNow } from "./renew-subscription";
 
 interface Options {
@@ -21,15 +21,8 @@ export default async function resumeSubscription({
   account_id,
   subscription_id,
 }: Options): Promise<number | null | undefined> {
-  const { current_period_end, interval, metadata, status } =
-    await getSubscription(subscription_id);
-  if (status != "canceled") {
-    throw Error(
-      `You can only resume a canceled subscription, but this subscription is "${status}"`
-    );
-  }
-  const { license_id } = metadata;
-  const { start, end } = intervalContainingNow(current_period_end, interval);
+  const { license_id, start, end } =
+    await getSubscriptionRenewalData(subscription_id);
   const client = await getTransactionClient();
   try {
     const { purchase_id } = await editLicense({
@@ -44,12 +37,12 @@ export default async function resumeSubscription({
     if (purchase_id) {
       await client.query(
         "UPDATE subscriptions SET status='active', resumed_at=NOW(), current_period_start=$3, current_period_end=$4, latest_purchase_id=$5 WHERE id=$1 AND account_id=$2",
-        [subscription_id, account_id, start, end, purchase_id]
+        [subscription_id, account_id, start, end, purchase_id],
       );
     } else {
       await client.query(
         "UPDATE subscriptions SET status='active', resumed_at=NOW(), current_period_start=$3, current_period_end=$4 WHERE id=$1 AND account_id=$2",
-        [subscription_id, account_id, start, end]
+        [subscription_id, account_id, start, end],
       );
     }
     await client.query("COMMIT");
@@ -60,4 +53,31 @@ export default async function resumeSubscription({
   } finally {
     client.release();
   }
+}
+
+async function getSubscriptionRenewalData(
+  subscription_id,
+): Promise<{ license_id: string; start: Date; end: Date }> {
+  const { current_period_end, interval, metadata, status } =
+    await getSubscription(subscription_id);
+  if (status != "canceled") {
+    throw Error(
+      `You can only resume a canceled subscription, but this subscription is "${status}"`,
+    );
+  }
+  const { license_id } = metadata;
+  const { start, end } = intervalContainingNow(current_period_end, interval);
+  return { license_id, start, end };
+}
+
+export async function costToResumeSubscription(
+  subscription_id,
+): Promise<number> {
+  const { license_id, end } = await getSubscriptionRenewalData(subscription_id);
+  const { cost } = await costToChangeLicense({
+    license_id,
+    changes: { end },
+    isSubscriptionRenewal: true,
+  });
+  return cost;
 }

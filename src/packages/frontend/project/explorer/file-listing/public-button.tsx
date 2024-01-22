@@ -10,7 +10,7 @@ import { Icon, VisibleLG } from "@cocalc/frontend/components";
 export function PublicButton({ on_click }) {
   return (
     <Button size="small" onClick={on_click}>
-      <Icon name="bullhorn" /> <VisibleLG>Published</VisibleLG>
+      <Icon name="share-square" /> <VisibleLG>Published</VisibleLG>
     </Button>
   );
 }

@@ -42,11 +42,11 @@ export const AccountPage: React.FC = () => {
   const signing_up = useTypedRedux("account", "signing_up");
   const forgot_password_error = useTypedRedux(
     "account",
-    "forgot_password_error"
+    "forgot_password_error",
   );
   const forgot_password_success = useTypedRedux(
     "account",
-    "forgot_password_success"
+    "forgot_password_success",
   );
   const show_forgot_password = useTypedRedux("account", "show_forgot_password");
   const token = useTypedRedux("account", "token");
@@ -202,7 +202,7 @@ export const AccountPage: React.FC = () => {
       key: "public-files",
       label: (
         <span>
-          <Icon name="bullhorn" /> Public Files
+          <Icon name="share-square" /> Public Files
         </span>
       ),
       children: active_page === "public-files" && <PublicPaths />,

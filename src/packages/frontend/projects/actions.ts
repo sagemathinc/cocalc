@@ -45,7 +45,7 @@ export type { Datastore, EnvVars, EnvVarsRecord };
 export class ProjectsActions extends Actions<ProjectsState> {
   private async projects_table_set(
     obj: object,
-    merge: "deep" | "shallow" | "none" | undefined = "deep"
+    merge: "deep" | "shallow" | "none" | undefined = "deep",
   ): Promise<void> {
     const the_table = this.redux.getTable("projects");
     if (the_table == null) {
@@ -66,13 +66,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
   }
 
-  private set_project_open(project_id: string): void {
+  private isProjectOpen = (project_id: string): boolean => {
+    return store.get("open_projects").indexOf(project_id) != -1;
+  };
+
+  private setProjectOpen = (project_id: string): void => {
     const x = store.get("open_projects");
     const index = x.indexOf(project_id);
     if (index === -1) {
       this.setState({ open_projects: x.push(project_id) });
     }
-  }
+  };
 
   // Do not call this directly to close a project.  Instead call
   //   redux.getActions('page').close_project_tab(project_id),
@@ -134,11 +138,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   public async set_project_title(
     project_id: string,
-    title: string
+    title: string,
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       console.warn(
-        `Can't set title -- you are not a collaborator on project '${project_id}'.`
+        `Can't set title -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
@@ -157,11 +161,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   public async set_project_description(
     project_id: string,
-    description: string
+    description: string,
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       console.warn(
-        `Can't set description -- you are not a collaborator on project '${project_id}'.`
+        `Can't set description -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
@@ -180,11 +184,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   public async set_project_name(
     project_id: string,
-    name: string
+    name: string,
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       console.warn(
-        `Can't set project name -- you are not a collaborator on project '${project_id}'.`
+        `Can't set project name -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
@@ -208,7 +212,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }: {
       full: string; // full size image
       tiny: string; // tiny image
-    }
+    },
   ) {
     if (tiny.length > 10000) {
       // quick sanity check
@@ -297,7 +301,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     datastore: Datastore,
     type: "student" | "shared" | "nbgrader",
     student_project_functionality?: StudentProjectFunctionality,
-    envvars?: EnvVars
+    envvars?: EnvVars,
   ): Promise<void | { course: null | CourseInfo }> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
@@ -430,18 +434,20 @@ export class ProjectsActions extends Actions<ProjectsState> {
         .getActions("page")
         .set_active_tab(opts.project_id, opts.change_history);
     }
-    this.set_project_open(opts.project_id);
+    if (!this.isProjectOpen(opts.project_id)) {
+      this.setProjectOpen(opts.project_id);
+      if (opts.restore_session) {
+        redux.getActions("page").restore_session(opts.project_id);
+      }
+    }
     if (opts.target != null) {
       project_actions.load_target(
         opts.target,
         opts.switch_to,
         opts.ignore_kiosk,
         opts.change_history,
-        opts.fragmentId
+        opts.fragmentId,
       );
-    }
-    if (opts.restore_session) {
-      redux.getActions("page").restore_session(opts.project_id);
     }
     // initialize project
     project_actions.init();
@@ -469,7 +475,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     switch_to?: boolean,
     ignore_kiosk?: boolean,
     change_history?: boolean,
-    fragmentId?: FragmentId
+    fragmentId?: FragmentId,
   ): Promise<void> {
     if (!target || target.length === 0) {
       redux.getActions("page").set_active_tab("projects");
@@ -494,7 +500,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   // Put the given project in the foreground
   public async foreground_project(
     project_id: string,
-    change_history: boolean = true
+    change_history: boolean = true,
   ): Promise<void> {
     redux.getActions("page").set_active_tab(project_id, change_history);
 
@@ -566,7 +572,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
    */
   public async remove_collaborator(
     project_id: string,
-    account_id: string
+    account_id: string,
   ): Promise<void> {
     const removed_name = redux.getStore("users").get_name(account_id);
     try {
@@ -591,7 +597,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     subject?: string,
     silent?: boolean, // if true, don't show error message on fail
     replyto?: string,
-    replyto_name?: string
+    replyto_name?: string,
   ): Promise<void> {
     await this.redux.getProjectActions(project_id).async_log({
       event: "invite_user",
@@ -630,7 +636,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     subject: string,
     silent: boolean,
     replyto: string | undefined,
-    replyto_name: string | undefined
+    replyto_name: string | undefined,
   ): Promise<void> {
     await this.redux.getProjectActions(project_id).async_log({
       event: "invite_nonuser",
@@ -676,7 +682,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   public async apply_upgrades_to_project(
     project_id: string,
     upgrades: Upgrades,
-    merge: boolean = true
+    merge: boolean = true,
   ): Promise<void> {
     assert_uuid(project_id);
     const account_id = this.redux.getStore("account").get_account_id();
@@ -734,7 +740,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   // by commas to add several at once.
   public async add_site_license_to_project(
     project_id: string,
-    license_id: string
+    license_id: string,
   ): Promise<void> {
     if (license_id.indexOf(",") != -1) {
       for (const id of license_id.split(",")) {
@@ -744,7 +750,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     if (!is_valid_uuid_string(license_id)) {
       throw Error(
-        `invalid license key '${license_id}' -- it must be a 36-character valid v4 uuid`
+        `invalid license key '${license_id}' -- it must be a 36-character valid v4 uuid`,
       );
     }
     const project = store.getIn(["project_map", project_id]);
@@ -766,7 +772,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   // by commas to remove several at once.
   public async remove_site_license_from_project(
     project_id: string,
-    license_id: string = ""
+    license_id: string = "",
   ): Promise<void> {
     if (license_id.indexOf(",") != -1) {
       for (const id of license_id.split(",")) {
@@ -803,7 +809,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   private async log_site_license_change(
     project_id: string,
     license_id: string,
-    action: "add" | "remove"
+    action: "add" | "remove",
   ): Promise<void> {
     if (!is_valid_uuid_string(project_id)) {
       throw Error(`invalid project_id "${project_id}"`);
@@ -851,7 +857,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   // by commas to set several at once.
   public async set_site_license(
     project_id: string,
-    license_id: string = ""
+    license_id: string = "",
   ): Promise<void> {
     const project = store.getIn(["project_map", project_id]);
     if (project == null) {
@@ -909,7 +915,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   // return true, if it actually started the project
   public async start_project(
     project_id: string,
-    options: { disablePayAsYouGo?: boolean } = {}
+    options: { disablePayAsYouGo?: boolean } = {},
   ): Promise<boolean> {
     if (!(await allow_project_to_run(project_id))) {
       return false;
@@ -1023,7 +1029,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   public async set_project_hide(
     account_id: string,
     project_id: string,
-    hide: boolean
+    hide: boolean,
   ): Promise<void> {
     await this.projects_table_set({
       project_id,
@@ -1047,7 +1053,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   public async set_project_sandbox(
     project_id: string,
-    sandbox: boolean
+    sandbox: boolean,
   ): Promise<void> {
     await this.projects_table_set({
       project_id,

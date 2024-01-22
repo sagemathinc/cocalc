@@ -26,6 +26,7 @@ export interface Subscription {
   metadata: Metadata;
   renewal_email?: Date;
   notes?: string;
+  cost_per_hour?: number;
 }
 
 export const STATUS_TO_COLOR = {

@@ -23,6 +23,6 @@ async function get(req) {
     throw Error("must be signed in");
   }
   const { subscription_id, now } = getParams(req);
-  await cancelSubscription({ account_id, subscription_id, now });
+  await cancelSubscription({ account_id, subscription_id, cancelImmediately: now });
   return { status: "ok" };
 }

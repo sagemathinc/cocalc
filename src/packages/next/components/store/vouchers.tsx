@@ -39,9 +39,9 @@ import {
   fullCost,
   discountedCost,
   getColumns,
-  ShowError as OrderError,
   RequireEmailAddress,
 } from "./checkout";
+import ShowError from "@cocalc/frontend/components/error";
 import { COLORS } from "@cocalc/util/theme";
 import vouchers, {
   CharSet,
@@ -142,7 +142,7 @@ export default function CreateVouchers() {
   // avoid dup, and vouchers are *barely* used.
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
   const [session, setSession] = useState<{ id: string; url: string } | null>(
-    null
+    null,
   );
   const updateSession = async () => {
     const session = await getCurrentCheckoutSession();
@@ -399,7 +399,7 @@ export default function CreateVouchers() {
   function nonemptyCart(items) {
     return (
       <>
-        <OrderError error={orderError} />
+        <ShowError error={orderError} setError={setOrderError} />
         <div>
           <h3 style={{ fontSize: "16pt" }}>
             <Icon name={"gift2"} style={{ marginRight: "10px" }} />
@@ -675,7 +675,7 @@ export default function CreateVouchers() {
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && <EmptyCart />}
       {items.length > 0 && nonemptyCart(items)}
-      <OrderError error={orderError} />
+      <ShowError error={orderError} setError={setOrderError} />
     </>
   );
 }

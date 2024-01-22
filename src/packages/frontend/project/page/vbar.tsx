@@ -3,6 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { AccountStore } from "@cocalc/frontend/account";
+import { redux } from "@cocalc/frontend/app-framework";
+
+const FLYOUT_DEFAULT_DATE = new Date("2100-01-01");
+
 // in the other_settings map
 export const VBAR_KEY = "vertical_fixed_bar";
 
@@ -24,20 +29,26 @@ export const VBAR_OPTIONS = {
   full: "Buttons show full pages",
 } as const;
 
-type VbarName = keyof typeof VBAR_OPTIONS;
-
-// Tweak this function to change the default mode for the buttons on the vertical bar.
-// See commit 7eaa96ed6ddbe5851765b0f08224abfd8885e65e for an abandoned idea to base this on the
-// account creation time – i.e. to change this for new users.
-function getDefaultVBAROption(): VbarName {
-  return "both";
+// New users created after this date will have the default VBAR option set to "flyout"
+function getDefaultVBAROption() {
+  const store: AccountStore = redux.getStore("account");
+  if (store == null) return "both";
+  const created = store.get("created");
+  // check that cretaed is a Date
+  if (created == null || !(created instanceof Date)) return "both";
+  // if created is after this date return "flyout", else "both"
+  if (created > FLYOUT_DEFAULT_DATE) {
+    return "flyout";
+  } else {
+    return "both";
+  }
 }
 
 export function getValidVBAROption(
-  vbar_setting: any
+  vbar_setting: any,
 ): keyof typeof VBAR_OPTIONS {
   if (typeof vbar_setting !== "string" || VBAR_OPTIONS[vbar_setting] == null) {
     return getDefaultVBAROption();
   }
-  return vbar_setting as VbarName;
+  return vbar_setting as keyof typeof VBAR_OPTIONS;
 }

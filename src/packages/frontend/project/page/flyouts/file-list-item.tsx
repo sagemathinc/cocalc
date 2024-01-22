@@ -211,7 +211,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           size="small"
           type="text"
           style={BTN_STYLE}
-          icon={<Icon name="bullhorn" />}
+          icon={<Icon name="share-square" />}
           onClick={(e) => {
             e.stopPropagation();
             onPublic?.(e);
@@ -482,7 +482,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       ctx.push({
         key: "public",
         label: "Item is published",
-        icon: <Icon name="bullhorn" />,
+        icon: <Icon name="share-square" />,
         onClick: () => onPublic?.(),
       });
     }

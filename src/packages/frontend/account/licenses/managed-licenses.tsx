@@ -18,6 +18,7 @@ import {
 import { ErrorDisplay, Title } from "@cocalc/frontend/components";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import type { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import { plural } from "@cocalc/util/misc";
 
 export const LICENSES_STYLE: CSS = {
   margin: "30px 0",
@@ -35,7 +36,7 @@ export const ManagedLicenses: React.FC = () => {
   const all_licenses = useTypedRedux("billing", "all_managed_license_ids");
   const licenses = useMemo(
     () => (show_all ? all_licenses : active_licenses),
-    [active_licenses, all_licenses, show_all]
+    [active_licenses, all_licenses, show_all],
   );
 
   async function reload() {
@@ -109,7 +110,9 @@ export const ManagedLicenses: React.FC = () => {
         checked={show_all}
         onChange={() => set_show_all(!show_all)}
       >
-        {n == 0 ? "Showing all" : `Show all (${n} expired licenses omitted)`}
+        {n == 0
+          ? "Showing all"
+          : `Show all (${n} older expired ${plural(n, "license")} omitted)`}
       </Checkbox>
     );
   }

@@ -52,6 +52,8 @@ const lastCalled = new LRU<string, true>({
   max: 1000,
 });
 
+export const _TEST_ = { lastCalled };
+
 export async function createStatements({
   time, // must be in the past
   interval,
@@ -88,8 +90,8 @@ export async function createStatements({
   const client = await getTransactionClient();
 
   // Get all accounts that had a statement already with this time and interval
-  // -- the time is UTC midnight of a given day, hence why we just us an
-  // quality test.
+  // -- the time is UTC midnight of a given day, hence why we just use an
+  // equality test.
   const { rows } = await client.query(
     "SELECT account_id FROM statements WHERE interval=$1 AND time=$2",
     [interval, time],
@@ -104,8 +106,13 @@ export async function createStatements({
     */
     const charges = await getData(time, client, interval, "charges");
     const credits = await getData(time, client, interval, "credits");
-    const accounts = new Set(Object.keys(charges));
+    const accounts = new Set<string>([]);
     for (const account_id of Object.keys(credits)) {
+      if (!alreadyHasStatement.has(account_id)) {
+        accounts.add(account_id);
+      }
+    }
+    for (const account_id of Object.keys(charges)) {
       if (!alreadyHasStatement.has(account_id)) {
         accounts.add(account_id);
       }
@@ -147,7 +154,6 @@ export async function createStatements({
         statements.length,
         " statements into database",
       );
-
       const { query, values } = multiInsert(
         "INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits) ",
         statements.map(

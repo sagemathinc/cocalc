@@ -15,7 +15,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { capitalize, isValidUUID, plural } from "@cocalc/util/misc";
+import { capitalize, currency, isValidUUID, plural, round2up } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -33,7 +33,6 @@ import type {
   ProductDescription,
   ProductType,
 } from "@cocalc/util/db-schema/shopping-cart-items";
-import { currency } from "@cocalc/util/misc";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -306,7 +305,7 @@ function TotalCost({ items }) {
   }
   return (
     <>
-      Subtotal ({n} items): <b>{money(discounted_cost)}</b>
+      Subtotal ({n} items): <b>{money(round2up(discounted_cost))}</b>
     </>
   );
 }

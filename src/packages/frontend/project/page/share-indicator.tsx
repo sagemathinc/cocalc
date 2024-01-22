@@ -36,6 +36,7 @@ interface Props {
 export const ShareIndicator: React.FC<Props> = React.memo(
   ({ project_id, path }) => {
     const public_paths = useTypedRedux({ project_id }, "public_paths");
+    const share_server = useTypedRedux("customize", "share_server");
 
     const student_project_functionality =
       useStudentProjectFunctionality(project_id);
@@ -50,6 +51,10 @@ export const ShareIndicator: React.FC<Props> = React.memo(
       });
       return containing_public_path(path, paths) != null;
     }, [public_paths, path, project_id]);
+
+    if(!share_server) {
+      return  <></>;
+    }
 
     if (student_project_functionality.disableActions) {
       return <></>;
@@ -69,12 +74,12 @@ export const ShareIndicator: React.FC<Props> = React.memo(
             });
           }}
         >
-          <Icon name={is_public ? "bullhorn" : "lock"} />
+          <Icon name={is_public ? "share-square" : "lock"} />
           <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-            {is_public ? "Published" : "Publish"}
+            {is_public ? "Published" : "Private"}
           </HiddenXSSM>
         </Button>
       </div>
     );
-  }
+  },
 );

@@ -16,7 +16,7 @@ import type {
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
 import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
-import { plural, round2 } from "@cocalc/util/misc";
+import { plural, round2, round2up } from "@cocalc/util/misc";
 import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
 import {
   dedicatedDiskDisplay,
@@ -60,7 +60,15 @@ export function DisplayCost({
     );
     return (
       <>
-        {money(noDiscount ? cost.cost : cost.discounted_cost)}
+        {cost.cost_sub_first_period != null &&
+          cost.cost_sub_first_period != cost.cost && (
+            <>
+              {" "}
+              {money(round2up(cost.cost_sub_first_period))} due today, then
+              {oneLine ? <>, </> : <br />}
+            </>
+          )}
+        {money(round2up(noDiscount ? cost.cost : cost.discounted_cost))}
         {cost.period != "range" ? (
           <>
             {oneLine ? " " : <br />}
@@ -79,18 +87,20 @@ export function DisplayCost({
     desc = (
       <>
         <span style={{ textDecoration: "line-through" }}>
-          {money(cost.cost)}
+          {money(round2up(cost.cost))}
         </span>
         {" or "}
         <b>
-          {money(cost.discounted_cost)}
+          {money(round2up(cost.discounted_cost))}
           {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
         </b>
         , if you purchase right now ({discount_pct}% self-service discount).
       </>
     );
   } else {
-    desc = `${money(cost.cost)} ${cost.period != "range" ? cost.period : ""}`;
+    desc = `${money(round2up(cost.cost))} ${
+      cost.period != "range" ? cost.period : ""
+    }`;
   }
 
   return (
@@ -197,8 +207,8 @@ function describeQuantity(props: DescribeQuantityProps): ReactNode {
 interface PeriodProps {
   quota: {
     subscription?: Omit<Subscription, "no">;
-    start?: Date | string;
-    end?: Date | string;
+    start?: Date | string | null;
+    end?: Date | string | null;
   };
   variant?: "short" | "long";
   // voucherPeriod: description used for a voucher -- just give number of days, since the exact dates themselves are discarded.
