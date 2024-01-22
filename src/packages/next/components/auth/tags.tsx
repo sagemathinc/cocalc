@@ -10,6 +10,7 @@ import {
   smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { CSS } from "components/misc";
 
 interface Props {
   tags: Set<string>;
@@ -18,7 +19,7 @@ interface Props {
   setSingupReason: (reason: string) => void;
   minTags: number;
   what: string;
-  style?;
+  style?: CSS;
   contact?: boolean; // if true, add checkbox to be "contacted" below, which adds a "contact" tag
 }
 

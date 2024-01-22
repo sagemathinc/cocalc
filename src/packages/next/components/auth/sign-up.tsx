@@ -152,6 +152,7 @@ function SignUp0({
         registrationToken,
         reCaptchaToken,
         publicPathId,
+        tags: Array.from(tags),
         signupReason,
       });
       if (result.issues && len(result.issues) > 0) {
@@ -235,7 +236,7 @@ function SignUp0({
             tags={tags}
             minTags={MIN_TAGS}
             what={what}
-            style={{ width: "880px", maxWidth: "100%" }}
+            style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
             contact={true}
           />
         )}
@@ -365,6 +366,8 @@ function SignUp0({
               ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"
+              : !isValidEmailAddress(email)
+              ? "Enter a valid email address above"
               : requiredSSO != null
               ? "You must sign up via SSO"
               : !password || password.length < 6
@@ -373,8 +376,6 @@ function SignUp0({
               ? "Enter your first name above"
               : !lastName?.trim()
               ? "Enter your last name above"
-              : !isValidEmailAddress(email)
-              ? "Enter a valid email address above"
               : signingUp
               ? ""
               : "Sign Up!"}
