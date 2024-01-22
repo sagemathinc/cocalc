@@ -280,7 +280,7 @@ export function FrameTitleBar(props: Props) {
     return true;
   }
 
-  function command(name: string): MenuItem | null {
+  function command(name: string, search?: string): MenuItem | null {
     let cmd = COMMANDS[name];
     if (cmd == null) {
       throw Error(`unknown command '${name}'`);
@@ -291,6 +291,15 @@ export function FrameTitleBar(props: Props) {
     }
     if (!isVisible(name, cmd)) {
       return null;
+    }
+
+    if (search) {
+      const s = `${cmd.title ?? ""} ${name} ${
+        typeof cmd.label == "string" ? cmd.label : ""
+      }`;
+      if (!s.toLowerCase().includes(search)) {
+        return null;
+      }
     }
 
     // it's an action defined by the name of that action, so visible
@@ -366,6 +375,7 @@ export function FrameTitleBar(props: Props) {
       children: cmd.children?.map((x, i) =>
         commandToMenuItem("", x, subs, `${key}-${i}`),
       ),
+      stayOpenOnClick: cmd.stayOpenOnClick,
     };
   }
 
@@ -794,6 +804,24 @@ export function FrameTitleBar(props: Props) {
         if (item != null) {
           w.push({ item, pos: COMMANDS[commandName].pos ?? 1e6 });
         }
+        if (helpSearch.trim() && commandName == "help_search") {
+          const search = helpSearch.trim().toLowerCase();
+          // special case -- the search menu item
+          for (const commandName in COMMANDS) {
+            if (commandName == "help_search") continue;
+            const item = command(commandName, search);
+            if (item != null) {
+              w.push({
+                item: { ...item, key: `__search-${item.key}` },
+                pos: COMMANDS[commandName].pos ?? 1e6,
+              });
+              if (w.length > 10) {
+                break;
+              }
+            }
+          }
+          w.push({ type: "divider", key: `divider-${w.length}` });
+        }
       }
       if (w.length > 0) {
         if (w.length > 1) {
@@ -823,6 +851,7 @@ export function FrameTitleBar(props: Props) {
 
   function renderMenus() {
     if (!is_active) return;
+
     const v: { menu: JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
       const x = createMenu(name);

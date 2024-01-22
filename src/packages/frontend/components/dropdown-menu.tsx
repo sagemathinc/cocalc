@@ -36,6 +36,7 @@ interface Props {
   title?: JSX.Element | string;
   size?;
   mode?: "vertical" | "inline";
+  defaultOpen?: boolean;
 }
 
 const STYLE = { margin: "6px 10px", cursor: "pointer" } as const;
@@ -51,8 +52,9 @@ export function DropdownMenu({
   title,
   size,
   mode,
+  defaultOpen,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(!!defaultOpen);
 
   let body;
 
@@ -122,8 +124,11 @@ export function DropdownMenu({
           overflow: "auto",
         },
         mode,
+        onClick: handleMenuClick,
       }}
       disabled={disabled}
+      onOpenChange={handleOpenChange}
+      open={open}
     >
       {body}
     </Dropdown>

@@ -56,7 +56,14 @@ export interface Command {
   pos?: number;
   title?: JSX.Element | string;
   icon?: JSX.Element | string;
-  label: string | (({ props }) => JSX.Element);
+  label:
+    | string
+    | ((opts: {
+        props?;
+        helpSearch?;
+        setHelpSearch?;
+        renderMenus?;
+      }) => JSX.Element);
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
   onClick?: ({
@@ -83,6 +90,7 @@ export interface Command {
     cancelText?: string;
   };
   alwaysShow?: boolean;
+  stayOpenOnClick?: boolean;
 }
 
 export const COMMANDS: { [command: string]: Command } = {
@@ -584,7 +592,7 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "delete",
     icon: "trash",
     title: "Delete this file",
-    label: "Delete",
+    label: "Delete File",
     ...fileAction("delete"),
   },
 
@@ -593,7 +601,7 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "misc-file-actions",
     icon: "swap",
     title: "Rename this file",
-    label: "Rename",
+    label: "Rename File",
     ...fileAction("rename"),
   },
   compress: {
@@ -601,7 +609,7 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "misc-file-actions",
     icon: "compress",
     title: "Compress this file",
-    label: "Compress",
+    label: "Compress File",
     ...fileAction("compress"),
   },
   duplicate: {
@@ -609,7 +617,7 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "misc-file-actions",
     icon: "clone",
     title: "Duplicate this file",
-    label: "Duplicate",
+    label: "Duplicate File",
     ...fileAction("duplicate"),
   },
   copy_file: {
@@ -617,7 +625,7 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "misc-file-actions",
     icon: "files",
     title: "Copy this file to another directory or project",
-    label: "Copy",
+    label: "Copy File",
     ...fileAction("copy"),
   },
   move_file: {
@@ -625,12 +633,12 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "misc-file-actions",
     icon: "move",
     title: "Move this file to another directory",
-    label: "Move",
+    label: "Move File",
     ...fileAction("move"),
   },
   download: {
     group: "export",
-    label: "Download",
+    label: "Download File",
     title: "Download this file",
     icon: "cloud-download",
     ...fileAction("download"),
@@ -648,7 +656,7 @@ export const COMMANDS: { [command: string]: Command } = {
     group: "export",
     icon: "share-square",
     title: "Share this file publicly or unlisted",
-    label: "Share",
+    label: "Share File",
     ...fileAction("share"),
   },
   print: {
@@ -715,14 +723,21 @@ export const COMMANDS: { [command: string]: Command } = {
   },
   help_search: {
     alwaysShow: true,
+    stayOpenOnClick: true,
     pos: 0,
     group: "help-search",
     title: "Search through all commands for this document frame.",
     label: ({ helpSearch, setHelpSearch }) => {
       return (
-        <Input.Search allowClear value={helpSearch} onSearch={setHelpSearch} />
+        <Input.Search
+          placeholder="Search"
+          allowClear
+          value={helpSearch}
+          onChange={(e) => setHelpSearch(e.target.value)}
+        />
       );
     },
+    onClick: () => {},
   },
 } as const;
 
