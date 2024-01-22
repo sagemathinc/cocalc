@@ -5,8 +5,9 @@
 
 import { DownOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu } from "antd";
-import type { MenuProps } from "antd";
+import type { DropdownProps, MenuProps } from "antd";
 import { IS_TOUCH } from "../feature";
+import { useState } from "react";
 
 // overlay={menu} is deprecated. Instead, use MenuItems as items={...}.
 export type MenuItems = NonNullable<MenuProps["items"]>;
@@ -51,6 +52,8 @@ export function DropdownMenu({
   size,
   mode,
 }: Props) {
+  const [open, setOpen] = useState(false);
+
   let body;
 
   if (button && !IS_TOUCH) {
@@ -94,6 +97,18 @@ export function DropdownMenu({
   if (disabled) {
     return body;
   }
+
+  const handleMenuClick: MenuProps["onClick"] = (e) => {
+    if ((e as any).stayOpenOnClick) {
+      setOpen(false);
+    }
+  };
+
+  const handleOpenChange: DropdownProps["onOpenChange"] = (nextOpen, info) => {
+    if (info.source === "trigger" || nextOpen) {
+      setOpen(nextOpen);
+    }
+  };
 
   return (
     <Dropdown

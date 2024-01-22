@@ -187,6 +187,8 @@ export function FrameTitleBar(props: Props) {
 
   const [showAI, setShowAI] = useState<boolean>(false);
 
+  const [helpSearch, setHelpSearch] = useState<string>("");
+
   const student_project_functionality = useStudentProjectFunctionality(
     props.project_id,
   );
@@ -316,7 +318,9 @@ export function FrameTitleBar(props: Props) {
             {cmd.icon}
           </div>
         )}
-        {typeof cmd.label == "function" ? cmd.label({ props }) : cmd.label}
+        {typeof cmd.label == "function"
+          ? cmd.label({ props, helpSearch, setHelpSearch })
+          : cmd.label}
       </>
     );
     if (cmd.title) {

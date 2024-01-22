@@ -9,6 +9,7 @@ import { IS_MACOS } from "@cocalc/frontend/feature";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import userTracking from "@cocalc/frontend/user-tracking";
 import openSupportTab from "@cocalc/frontend/support/open";
+import { Input } from "antd";
 
 export const MENUS = {
   file: {
@@ -42,7 +43,7 @@ export const MENUS = {
   help: {
     label: "Help",
     pos: 4,
-    groups: ["help-link", "tour"],
+    groups: ["help-search", "help-link", "tour"],
   },
 } as const;
 
@@ -710,6 +711,17 @@ export const COMMANDS: { [command: string]: Command } = {
       "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
     onClick: () => {
       openSupportTab();
+    },
+  },
+  help_search: {
+    alwaysShow: true,
+    pos: 0,
+    group: "help-search",
+    title: "Search through all commands for this document frame.",
+    label: ({ helpSearch, setHelpSearch }) => {
+      return (
+        <Input.Search allowClear value={helpSearch} onSearch={setHelpSearch} />
+      );
     },
   },
 } as const;
