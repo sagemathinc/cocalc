@@ -99,7 +99,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     try {
       await resumeSubscription({ account_id, subscription_id });
     } catch (e) {
-      expect(e.message).toMatch("do not have enough credits");
+      expect(e.message).toMatch("Please add at least $7.90 to your account.");
     }
   });
 });

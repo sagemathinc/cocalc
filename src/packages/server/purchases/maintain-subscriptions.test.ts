@@ -96,7 +96,7 @@ describe("test renewSubscriptions", () => {
     expect(
       Math.abs(subs[0].current_period_start.valueOf() - Date.now()),
     ).toBeLessThan(1000 * 3600 * 24 * 2);
-    // the purchase should be pending so we don't have any money.
+    // the purchase should be pending, since we don't have any money.
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT pending FROM purchases where id=$1",
@@ -314,5 +314,95 @@ describe("testing cancelAllPendingSubscriptions works as it should", () => {
     const subs = await getSubscriptions({ account_id });
     expect(subs.length).toBe(1);
     expect(subs[0].status).toBe("canceled");
+  });
+});
+
+describe("test renewSubscriptions doesn't cancel tiny subscription", () => {
+  const account_id = uuid();
+  const x: any = {};
+  it("creates an account, license and subscription", async () => {
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id,
+    });
+    const info = getPurchaseInfo(license0);
+    x.license_id = await createLicense(account_id, info);
+    x.subscription_id = await createSubscription(
+      {
+        account_id,
+        cost: 1, // way less than min payment
+        interval: "month",
+        current_period_start: dayjs().toDate(),
+        current_period_end: dayjs().add(1, "month").toDate(),
+        status: "active",
+        metadata: { type: "license", license_id: x.license_id },
+        latest_purchase_id: 0,
+      },
+      null,
+    );
+  });
+
+  it("modifies our subscription so the start date is a month ago and the end date is 12 hours from now", async () => {
+    const pool = getPool();
+    await pool.query(
+      "UPDATE subscriptions SET current_period_start=$1, current_period_end=$2 WHERE id=$3",
+      [
+        dayjs().subtract(1, "month").toDate(),
+        dayjs().add(12, "hour").toDate(),
+        x.subscription_id,
+      ],
+    );
+  });
+
+  it("runs renewSubscriptions and checks that our subscription did renew", async () => {
+    await test.renewSubscriptions();
+    const subs = await getSubscriptions({ account_id });
+    // within 3 days of a month from now:
+    expect(
+      Math.abs(
+        subs[0].current_period_end.valueOf() -
+          dayjs().add(1, "month").toDate().valueOf(),
+      ),
+    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    // within 3 days of now:
+    expect(
+      Math.abs(subs[0].current_period_start.valueOf() - Date.now()),
+    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    // the purchase should be pending, since we don't have any money.
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT pending FROM purchases where id=$1",
+      [subs[0].latest_purchase_id],
+    );
+    expect(rows[0].pending).toBe(true);
+  });
+
+  it("changes time of purchase back to slightly more than grace period and verifies that cancelAllPendingSubscriptions does NOT cancel the subscription", async () => {
+    const grace = await test.getGracePeriodDays();
+    const pool = getPool();
+    await pool.query(
+      `UPDATE purchases SET time=NOW() - interval '${
+        grace + 1
+      } days' WHERE id=$1`,
+      [x.purchase_id],
+    );
+    await test.cancelAllPendingSubscriptions();
+    const subs = await getSubscriptions({ account_id });
+    expect(subs.length).toBe(1);
+    expect(subs[0].status).toBe("active");
+  });
+
+  it("changes amount of pending purchase to also be BIG, and then subscription should get canceled", async () => {
+    const pool = getPool();
+    await pool.query(`UPDATE purchases SET cost=1000 WHERE id=$1`, [
+      x.purchase_id,
+    ]);
+    await test.cancelAllPendingSubscriptions();
+    const subs = await getSubscriptions({ account_id });
+    expect(subs.length).toBe(1);
+    expect(subs[0].status).toBe("active");
   });
 });

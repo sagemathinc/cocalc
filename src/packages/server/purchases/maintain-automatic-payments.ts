@@ -126,15 +126,16 @@ export default async function maintainAutomaticPayments() {
         logger.debug(
           "Since amount ",
           amount,
-          " is positive, will try to collect automatically",
+          " is positive, may try to collect automatically",
         );
 
         if (amount < pay_as_you_go_min_payment) {
           logger.debug(
-            "amount is below min payment, so we instead charge the min payment amount of ",
+            "amount is below min payment, so we do not charge anything for now. the min payment amount is ",
             pay_as_you_go_min_payment,
           );
-          amount = pay_as_you_go_min_payment;
+          // amount = pay_as_you_go_min_payment;
+          continue;
         }
 
         // Now make the attempt.  This might work quickly, it might take a day, it might

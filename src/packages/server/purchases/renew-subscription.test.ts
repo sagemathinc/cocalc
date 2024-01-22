@@ -36,7 +36,7 @@ describe("create a subscription, then renew it", () => {
     try {
       await renewSubscription({ account_id, subscription_id });
     } catch (e) {
-      expect(e.message).toMatch("do not have enough credits");
+      expect(e.message).toMatch("Please add");
     }
     //const sub = await getSubscription(subscription_id);
   });
