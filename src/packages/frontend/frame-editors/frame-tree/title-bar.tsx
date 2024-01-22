@@ -317,7 +317,7 @@ export function FrameTitleBar(props: Props) {
     cmd: Partial<Command>,
     subs: Partial<Command> | undefined,
     key: string,
-  ): MenuItem | null {
+  ) {
     let label = (
       <>
         {typeof cmd.icon == "string" ? (
@@ -820,7 +820,6 @@ export function FrameTitleBar(props: Props) {
               }
             }
           }
-          w.push({ type: "divider", key: `divider-${w.length}` });
         }
       }
       if (w.length > 0) {
