@@ -19,13 +19,15 @@ export async function studentPay(token, description, account_id): Promise<any> {
     const url = await getTokenUrl(token);
     const session = await createStripeCheckoutSession({
       account_id,
-      line_items: [{
-        amount,
-        description: `Add ${currency(
+      line_items: [
+        {
           amount,
-          2
-        )} to your account (signed in as ${user}).`,
-      }],
+          description: `Add ${currency(
+            amount,
+            2,
+          )} to your account (signed in as ${user}).`,
+        },
+      ],
       success_url: url,
       cancel_url: url,
       force: true,
@@ -36,7 +38,7 @@ export async function studentPay(token, description, account_id): Promise<any> {
       session,
       instructions: `Click here to deposit ${currency(
         amount,
-        2
+        2,
       )} into your account, so you can pay the course fee for ${studentName}...`,
     };
   } else {
@@ -56,7 +58,7 @@ export async function extraInfo(description: Description, account_id?: string) {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT course FROM projects WHERE project_id=$1",
-    [description.project_id]
+    [description.project_id],
   );
   const { course } = rows[0] ?? {};
   if (course == null) {
@@ -69,7 +71,7 @@ export async function extraInfo(description: Description, account_id?: string) {
       title: "Pay Course Fee",
       details: `The ${currency(
         cost,
-        2
+        2,
       )} course fee for [this project](/projects/${
         description.project_id
       }) has already been paid. Thank you!`,
@@ -83,7 +85,7 @@ export async function extraInfo(description: Description, account_id?: string) {
       ...description,
       title: "Pay Course Fee",
       details: `You must be signed in to pay the course fee for ${await getName(
-        course.account_id
+        course.account_id,
       )}.  You can be signed in as any user, and it is very easy to make a new account.`,
       signIn: true,
     };
@@ -103,29 +105,30 @@ export async function extraInfo(description: Description, account_id?: string) {
   if (due > 0 && due < pay_as_you_go_min_payment) {
     due = Math.max(due, pay_as_you_go_min_payment);
     minPayment = `\n\n- The minimum credit that you can add is ${currency(
-      pay_as_you_go_min_payment
+      pay_as_you_go_min_payment,
     )}. `;
   }
+  const name = await getName(course.account_id);
+
   return {
     ...description,
     due,
     title: "Pay Course Fee",
     details: `
-- The course fee of ${currency(cost, 2)} for ${await getName(
-      course.account_id
-    )} has not yet been paid to upgrade [this project](/projects/${
-      description.project_id
-    }).${
+- The course fee of ${currency(round2up(cost))} ${
+      name ? `for ${name} ` : ""
+    } has not yet been paid to upgrade the project.${
       due == 0
         ? "\n\n- You can pay this now from your current balance without having to add money to your account."
         : `\n\n- To pay you will first have to add \\${currency(
             due,
-            2
+            2,
           )} to your account.`
-    } \n\n- Your balance is \\${currency(
-      balance,
-      2
-    )}, which must stay above \\${currency(minBalance, 2)}.
+    } \n\n- Your balance is \\${currency(balance, 2)}${
+      minBalance < 0
+        ? `, which must stay above \\${currency(minBalance, 2)}`
+        : "."
+    }
     ${minPayment}
 `,
     okText:
