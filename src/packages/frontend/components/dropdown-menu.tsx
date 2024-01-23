@@ -9,6 +9,8 @@ import type { DropdownProps, MenuProps } from "antd";
 import { IS_TOUCH } from "../feature";
 import { useState } from "react";
 
+export const STAY_OPEN_ON_CLICK = "stay-open-on-click";
+
 // overlay={menu} is deprecated. Instead, use MenuItems as items={...}.
 export type MenuItems = NonNullable<MenuProps["items"]>;
 export type MenuItem = MenuItems[number];
@@ -101,7 +103,9 @@ export function DropdownMenu({
   }
 
   const handleMenuClick: MenuProps["onClick"] = (e) => {
-    if ((e as any).stayOpenOnClick) {
+    if (e.key?.includes(STAY_OPEN_ON_CLICK)) {
+      setOpen(true);
+    } else {
       setOpen(false);
     }
   };

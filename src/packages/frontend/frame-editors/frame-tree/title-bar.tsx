@@ -29,7 +29,6 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import {
-  DropdownMenu,
   Icon,
   IconName,
   MenuItem,
@@ -37,6 +36,10 @@ import {
   r_join,
   Gap,
 } from "@cocalc/frontend/components";
+import {
+  DropdownMenu,
+  STAY_OPEN_ON_CLICK,
+} from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { copy, path_split, trunc_middle, field_cmp } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
@@ -49,7 +52,7 @@ import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import SelectComputeServer from "@cocalc/frontend/compute/select-server";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import { COMMANDS, Command, MENUS, GROUPS } from "./commands";
+import { COMMANDS, Command, MENUS, GROUPS, SEARCH_COMMANDS } from "./commands";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -371,11 +374,10 @@ export function FrameTitleBar(props: Props) {
       disabled: cmd.disabled?.({ props, read_only }),
       label,
       onClick,
-      key,
+      key: cmd.stayOpenOnClick ? `${key}-${STAY_OPEN_ON_CLICK}` : key,
       children: cmd.children?.map((x, i) =>
         commandToMenuItem("", x, subs, `${key}-${i}`),
       ),
-      stayOpenOnClick: cmd.stayOpenOnClick,
     };
   }
 
@@ -804,7 +806,7 @@ export function FrameTitleBar(props: Props) {
         if (item != null) {
           w.push({ item, pos: COMMANDS[commandName].pos ?? 1e6 });
         }
-        if (helpSearch.trim() && commandName == "help_search") {
+        if (helpSearch.trim() && commandName == SEARCH_COMMANDS) {
           const search = helpSearch.trim().toLowerCase();
           // special case -- the search menu item
           for (const commandName in COMMANDS) {

@@ -11,6 +11,8 @@ import userTracking from "@cocalc/frontend/user-tracking";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { Input } from "antd";
 
+export const SEARCH_COMMANDS = "search_commands";
+
 export const MENUS = {
   file: {
     label: "File",
@@ -43,7 +45,7 @@ export const MENUS = {
   help: {
     label: "Help",
     pos: 4,
-    groups: ["help-search", "help-link", "tour"],
+    groups: ["search-commands", "help-link", "tour"],
   },
 } as const;
 
@@ -217,6 +219,7 @@ export const COMMANDS: { [command: string]: Command } = {
     label: "Terminal",
   },
   decrease_font_size: {
+    stayOpenOnClick: true,
     pos: 1,
     group: "zoom",
     title: "Decrease font size",
@@ -225,6 +228,7 @@ export const COMMANDS: { [command: string]: Command } = {
     keyboard: "control + <",
   },
   increase_font_size: {
+    stayOpenOnClick: true,
     pos: 0,
     group: "zoom",
     title: "Increase font size",
@@ -721,11 +725,11 @@ export const COMMANDS: { [command: string]: Command } = {
       openSupportTab();
     },
   },
-  help_search: {
-    alwaysShow: true,
+  [SEARCH_COMMANDS]: {
     stayOpenOnClick: true,
+    alwaysShow: true,
     pos: 0,
-    group: "help-search",
+    group: "search-commands",
     title: "Search through all commands for this document frame.",
     label: ({ helpSearch, setHelpSearch }) => {
       return (
