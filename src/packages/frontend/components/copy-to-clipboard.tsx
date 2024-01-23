@@ -17,6 +17,7 @@ interface Props {
   label?: ReactNode;
   labelStyle?: CSS;
   inputStyle?: CSS;
+  outerStyle?: CSS;
   inputWidth?: string;
   size?: "large" | "middle" | "small";
   before?: boolean;
@@ -41,6 +42,7 @@ export default function CopyToClipBoard({
   label,
   labelStyle,
   inputStyle,
+  outerStyle,
   inputWidth,
   before,
 }: Props) {
@@ -68,7 +70,7 @@ export default function CopyToClipBoard({
   // right way to do this.
   // hsy: Input.Group is deprecated, using Space.Compact instead
   const input = (
-    <Space.Compact>
+    <Space.Compact style={outerStyle}>
       {before ? copy : undefined}
       <Input
         style={{
