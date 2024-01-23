@@ -4,6 +4,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { redux } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import type { ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { IS_MACOS } from "@cocalc/frontend/feature";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -743,13 +744,7 @@ export const COMMANDS: { [command: string]: Command } = {
     title: "Search through all commands for this document frame.",
     label: ({ helpSearch, setHelpSearch }) => {
       return (
-        <Input.Search
-          autoFocus
-          placeholder="Search"
-          allowClear
-          value={helpSearch}
-          onChange={(e) => setHelpSearch(e.target.value)}
-        />
+        <SearchBox helpSearch={helpSearch} setHelpSearch={setHelpSearch} />
       );
     },
     onClick: () => {},
@@ -825,4 +820,32 @@ for (const name in COMMANDS) {
     }
     v.push(name);
   }
+}
+
+function SearchBox({ setHelpSearch, helpSearch }) {
+  const didFocus = useRef<boolean>(false);
+  useEffect(() => {
+    return () => {
+      if (didFocus.current) {
+        // make sure it is restored.
+        redux.getActions("page").enableGlobalKeyHandler();
+      }
+    };
+  }, []);
+  return (
+    <Input.Search
+      autoFocus
+      placeholder="Search"
+      allowClear
+      value={helpSearch}
+      onChange={(e) => setHelpSearch(e.target.value)}
+      onFocus={() => {
+        didFocus.current = true;
+        redux.getActions("page").disableGlobalKeyHandler();
+      }}
+      onBlur={() => {
+        redux.getActions("page").enableGlobalKeyHandler();
+      }}
+    />
+  );
 }
