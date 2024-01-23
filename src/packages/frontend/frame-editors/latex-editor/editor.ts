@@ -42,6 +42,7 @@ const EDITOR_SPEC = {
     component: CodemirrorEditor,
     buttons: set([
       "build",
+      "force_build",
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -66,7 +67,8 @@ const EDITOR_SPEC = {
     customize_buttons: {
       print: {
         label: "Print LaTeX Source",
-        title: "Use Print from the PDF Preview to print the rendered document.",
+        title:
+          "Print the source code of this document.  Use Print from the PDF Preview frame to print the rendered document.",
       },
     },
 

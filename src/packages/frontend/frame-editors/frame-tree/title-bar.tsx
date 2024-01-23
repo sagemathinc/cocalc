@@ -61,6 +61,8 @@ import {
   SEARCH_COMMANDS,
 } from "./commands";
 
+const MAX_SEARCH_RESULTS = 10;
+
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
 // In all cases, we check these are actually defined before calling
@@ -143,11 +145,6 @@ export function ConnectionStatusIcon({ status }: { status: ConnectionStatus }) {
     />
   );
 }
-
-const ICON_STYLE: CSS = {
-  width: "20px",
-  display: "inline-block",
-} as const;
 
 interface Props {
   actions: FrameActions;
@@ -260,7 +257,7 @@ export function FrameTitleBar(props: Props) {
     "switch_to_files",
   ]);
 
-  function isVisible(name: string, cmd?: Command): boolean {
+  function isVisible(name: string, cmd?: Partial<Command>): boolean {
     if (cmd == null) {
       cmd = COMMANDS[name];
     }
@@ -290,7 +287,101 @@ export function FrameTitleBar(props: Props) {
     return true;
   }
 
-  function command(name: string, search?: string): MenuItem | null {
+  function matchesSearch(cmd: Partial<Command>, name: string, search: string) {
+    if (COMMANDS[name] != null && !isVisible(name, cmd)) {
+      return false;
+    }
+    if (!search) {
+      return true;
+    }
+    if (name == SEARCH_COMMANDS) {
+      return false;
+    }
+    const s = `${cmd.search ?? ""} ${cmd.title ?? ""} ${name} ${
+      typeof cmd.label == "string" ? cmd.label : ""
+    }`;
+    return s.toLowerCase().includes(search);
+  }
+
+  function getParentLabel(cmd: Partial<Command>): JSX.Element | string {
+    const { group } = cmd;
+    if (!group) {
+      return "Menu";
+    }
+    for (const name in MENUS) {
+      const { groups, label } = MENUS[name];
+      if (groups.includes(group)) {
+        if (label == APPLICATION_MENU) {
+          return renderMenuTitle();
+        }
+        return label;
+      }
+    }
+    return "Menu";
+  }
+
+  function searchCommands(name: string, search: string) {
+    const cmd = getCommandInfo(name);
+    const v: MenuItem[] = [];
+    if (cmd == null) {
+      return v;
+    }
+    function process(cmd, name, parentLabel: JSX.Element | string) {
+      if (cmd.children) {
+        const newParentLabel = (
+          <div style={{ display: "flex" }}>
+            {parentLabel}{" "}
+            <Icon name="angle-right" style={{ margin: "0px 10px" }} />{" "}
+            {getCommandLabel(cmd)}
+          </div>
+        );
+        // recursively deal with any children (and children of children)
+        for (const childCmd of getCommandChildren(cmd)) {
+          process(childCmd, "", newParentLabel);
+        }
+        // never actually include cmd itself if it has children
+        return;
+      }
+      if (matchesSearch(cmd, name, search)) {
+        const item = commandToMenuItem({
+          name,
+          cmd,
+          noChildren: true,
+          key: name,
+        });
+        if (item != null) {
+          item.label = (
+            <div style={{ display: "flex" }}>
+              {parentLabel}{" "}
+              <Icon name="angle-right" style={{ margin: "0px 10px" }} />{" "}
+              {item.label}
+            </div>
+          );
+          v.push(item);
+          if (v.length >= MAX_SEARCH_RESULTS) {
+            return;
+          }
+        }
+      }
+    }
+    // set it going
+    process(cmd, name, getParentLabel(cmd));
+    // return what we found in v
+    return v;
+  }
+
+  function getCommandChildren(cmd) {
+    if (cmd.children != null) {
+      if (typeof cmd.children == "function") {
+        return cmd.children({ props, frameTypeCommands });
+      } else {
+        return cmd.children;
+      }
+    } else {
+      return null;
+    }
+  }
+  function getCommandInfo(name: string): Command | null {
     let cmd = COMMANDS[name];
     if (cmd == null) {
       throw Error(`unknown command '${name}'`);
@@ -302,33 +393,20 @@ export function FrameTitleBar(props: Props) {
     if (!isVisible(name, cmd)) {
       return null;
     }
-
-    if (search) {
-      const s = `${cmd.title ?? ""} ${name} ${
-        typeof cmd.label == "string" ? cmd.label : ""
-      }`;
-      if (!s.toLowerCase().includes(search)) {
-        return null;
-      }
-    }
-
-    // it's an action defined by the name of that action, so visible
-    // only if that function is defined.
-    if (props.editor_actions[name] == null && cmd?.onClick == null) {
-      // action not defined, so only chance is if onClick is defined
-      // but it isn't
-      return null;
-    }
-    return commandToMenuItem(name, cmd, subs, name);
+    return cmd;
   }
 
-  function commandToMenuItem(
-    name: string,
-    cmd: Partial<Command>,
-    subs: Partial<Command> | undefined,
-    key: string,
-  ) {
-    let label = (
+  function command(name: string) {
+    const cmd = getCommandInfo(name);
+    if (cmd == null) {
+      return null;
+    }
+
+    return commandToMenuItem({ name, cmd, key: name, noChildren: false });
+  }
+
+  function getCommandLabel(cmd) {
+    return (
       <>
         {typeof cmd.icon == "string" ? (
           <Icon name={cmd.icon} style={{ width: "25px" }} />
@@ -342,9 +420,30 @@ export function FrameTitleBar(props: Props) {
           : cmd.label}
       </>
     );
+  }
+
+  function commandToMenuItem({
+    name = "",
+    key,
+    cmd,
+    noChildren,
+  }: {
+    name?: string;
+    key: string;
+    cmd: Partial<Command>;
+    noChildren: boolean;
+  }) {
+    // it's an action defined by the name of that action, so visible
+    // only if that function is defined.
+    if (name && props.editor_actions[name] == null && cmd?.onClick == null) {
+      // action not defined, so only chance is if onClick is defined
+      // but it isn't
+      return null;
+    }
+    let label = getCommandLabel(cmd);
     if (cmd.title) {
       label = (
-        <Tooltip mouseEnterDelay={0.5} placement="right" title={cmd.title}>
+        <Tooltip mouseEnterDelay={0.9} title={cmd.title}>
           {label}
         </Tooltip>
       );
@@ -382,9 +481,15 @@ export function FrameTitleBar(props: Props) {
       label,
       onClick,
       key: cmd.stayOpenOnClick ? `${key}-${STAY_OPEN_ON_CLICK}` : key,
-      children: cmd.children?.map((x, i) =>
-        commandToMenuItem("", x, subs, `${key}-${i}`),
-      ),
+      children: noChildren
+        ? undefined
+        : getCommandChildren(cmd)?.map((x, i) =>
+            commandToMenuItem({
+              cmd: x,
+              key: `${key}-${i}`,
+              noChildren,
+            }),
+          ),
     };
   }
 
@@ -478,19 +583,14 @@ export function FrameTitleBar(props: Props) {
     props.actions.set_frame_type(props.id, type);
   }
 
-  function render_types() {
-    return null;
-    if (!is_active) return;
+  function frameTypeCommands() {
     const selected_type: string = props.type;
-    let selected_icon: IconName | undefined = undefined;
-    let selected_short = "";
-    const items: MenuItems = [];
+    const items: Partial<Command>[] = [];
     for (const type in props.editor_spec) {
       const spec = props.editor_spec[type];
       if (spec == null) {
         // typescript should prevent this but, also double checking
         // makes this easier to debug.
-        console.log(props.editor_spec);
         throw Error(
           `BUG -- ${type} must be defined by the editor_spec, but is not`,
         );
@@ -500,50 +600,16 @@ export function FrameTitleBar(props: Props) {
         // e.g., settings or terminal might use this.
         continue;
       }
-      if (selected_type === type) {
-        selected_icon = spec.icon;
-        selected_short = spec.short;
-      }
+      const search = spec.name?.toLowerCase();
+      let label = spec.name;
       items.push({
-        key: type,
-        label: (
-          <>
-            <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
-            {spec.name}
-          </>
-        ),
+        search,
+        label: selected_type == type ? <b>{label}</b> : label,
+        icon: spec.icon ? spec.icon : "file",
         onClick: () => select_type(type),
       });
     }
-
-    let title;
-    if (selected_short) {
-      title = (
-        <span cocalc-test={"short-" + selected_short}>
-          <Icon name={selected_icon} style={{ marginRight: "5px" }} />
-          {title} {selected_short}
-        </span>
-      );
-    } else if (selected_icon != null) {
-      title = <Icon name={selected_icon} />;
-    }
-
-    // TODO: The "float: left" below is a hack
-    // to workaround that this is still in a bootstrap button group.
-    return (
-      <DropdownMenu
-        key="types"
-        cocalc-test={"types-dropdown"}
-        style={{
-          float: "left",
-          height: button_height(),
-          marginBottom: "5px",
-          marginRight: "10px",
-        }}
-        title={title}
-        items={items}
-      />
-    );
+    return items;
   }
 
   function renderFrameControls(): Rendered {
@@ -569,8 +635,6 @@ export function FrameTitleBar(props: Props) {
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
-
-        {render_types()}
       </div>
     );
   }
@@ -691,10 +755,6 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function show_labels(): boolean {
-    return !!(props.is_only || props.is_full);
-  }
-
   function render_timetravel(): Rendered {
     if (!isVisible("time_travel")) {
       return;
@@ -767,7 +827,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_save(labels: boolean): Rendered {
+  function render_save(): Rendered {
     if (!isVisible("save")) {
       return;
     }
@@ -783,7 +843,7 @@ export function FrameTitleBar(props: Props) {
         read_only={read_only}
         is_public={is_public}
         is_saving={is_saving}
-        no_labels={!labels}
+        no_labels={true}
         size={button_size()}
         style={button_style()}
         onClick={() => {
@@ -795,10 +855,10 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_save_timetravel_group(labels): Rendered {
+  function render_save_timetravel_group(): Rendered {
     const v: Rendered[] = [];
     let x: Rendered;
-    if ((x = render_save(labels))) v.push(x);
+    if ((x = render_save())) v.push(x);
     if ((x = render_timetravel())) v.push(x);
     if ((x = render_artificial_intelligence())) v.push(x);
     if (v.length == 1) return v[0];
@@ -813,6 +873,7 @@ export function FrameTitleBar(props: Props) {
     const { label, pos, groups } = MENUS[name];
     const v: MenuItem[] = [];
     for (const group of groups) {
+      let i = 0;
       const w: { pos?: number; item: MenuItem }[] = [];
       for (const commandName of GROUPS[group]) {
         const item = command(commandName);
@@ -823,16 +884,18 @@ export function FrameTitleBar(props: Props) {
           const search = helpSearch.trim().toLowerCase();
           // special case -- the search menu item
           for (const commandName in COMMANDS) {
-            if (commandName == "help_search") continue;
-            const item = command(commandName, search);
-            if (item != null) {
+            for (const item of searchCommands(commandName, search)) {
+              i += 1;
               w.push({
-                item: { ...item, key: `__search-${item.key}` },
+                item: { ...item, key: `__search-${commandName}-${i}` },
                 pos: COMMANDS[commandName].pos ?? 1e6,
               });
-              if (w.length > 10) {
+              if (w.length >= MAX_SEARCH_RESULTS) {
                 break;
               }
+            }
+            if (w.length >= MAX_SEARCH_RESULTS) {
+              break;
             }
           }
         }
@@ -888,11 +951,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_buttons(
-    forceLabels?: boolean,
-    style?: CSS,
-    noRefs?,
-  ): Rendered {
+  function renderButtons(style?: CSS, noRefs?): Rendered {
     if (!is_active) return;
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
@@ -919,12 +978,10 @@ export function FrameTitleBar(props: Props) {
         disableTourRefs.current = true;
       }
 
-      const labels: boolean = forceLabels ?? show_labels();
-
       const v: (JSX.Element | undefined)[] = [];
       v.push(renderPage());
+      v.push(render_save_timetravel_group());
       v.push(renderMenus());
-      v.push(render_save_timetravel_group(labels));
       v.push(render_switch_to_file());
 
       const w: Rendered[] = [];
@@ -964,7 +1021,7 @@ export function FrameTitleBar(props: Props) {
           overflow: "hidden",
         }}
       >
-        {render_buttons()}
+        {renderButtons()}
       </div>
     );
   }
@@ -985,11 +1042,7 @@ export function FrameTitleBar(props: Props) {
                   marginRight: "3px",
                 }}
               >
-                {render_buttons(
-                  true,
-                  { maxHeight: "50vh", display: "block" },
-                  true,
-                )}
+                {renderButtons({ maxHeight: "50vh", display: "block" }, true)}
               </div>
               <div>{renderFrameControls()}</div>
               <Icon
@@ -1296,10 +1349,10 @@ export function FrameTitleBar(props: Props) {
         id={`titlebar-${props.id}`}
         className={"cc-frame-tree-title-bar"}
       >
-        {allButtonsPopover()}
         {props.title != null || !is_active ? renderTitle() : undefined}
         {renderMainMenusAndButtons()}
         {renderConnectionStatus()}
+        {allButtonsPopover()}
         {renderFrameControls()}
       </div>
       {renderConfirmBar()}

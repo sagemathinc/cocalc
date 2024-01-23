@@ -18,7 +18,7 @@ export const MENUS = {
   app: {
     label: APPLICATION_MENU,
     pos: -10,
-    groups: ["about", "quit"],
+    groups: ["about", "frame_types", "quit"],
   },
   file: {
     label: "File",
@@ -65,6 +65,7 @@ export interface Command {
   icon?: JSX.Element | string;
   label:
     | string
+    | JSX.Element
     | ((opts: {
         props?;
         helpSearch?;
@@ -85,7 +86,9 @@ export interface Command {
   isVisible?: ({ props }) => boolean;
   disable?: string;
   keyboard?: string;
-  children?: Partial<Command>[];
+  children?:
+    | Partial<Command>[]
+    | (({ props, frameTypeCommands }) => Partial<Command>[]);
   disabled?: ({ props, read_only }) => boolean;
   // not used yet
   tour?: string;
@@ -98,6 +101,7 @@ export interface Command {
   };
   alwaysShow?: boolean;
   stayOpenOnClick?: boolean;
+  search?: string;
 }
 
 export const COMMANDS: { [command: string]: Command } = {
@@ -270,6 +274,7 @@ export const COMMANDS: { [command: string]: Command } = {
     icon: "percentage",
     children: [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
       return {
+        stayOpenOnClick: true,
         label: `${zoom}%`,
         onClick: ({ props }) => {
           // console.log("set_zoom", { zoom }, zoom / 100, props.id);
@@ -739,6 +744,7 @@ export const COMMANDS: { [command: string]: Command } = {
     label: ({ helpSearch, setHelpSearch }) => {
       return (
         <Input.Search
+          autoFocus
           placeholder="Search"
           allowClear
           value={helpSearch}
@@ -747,6 +753,14 @@ export const COMMANDS: { [command: string]: Command } = {
       );
     },
     onClick: () => {},
+  },
+  about: {
+    alwaysShow: true,
+    group: "about",
+    icon: "info-circle",
+    title: "About this application",
+    label: "About",
+    onClick: ({}) => {},
   },
   quit: {
     pos: 10,
@@ -759,10 +773,19 @@ export const COMMANDS: { [command: string]: Command } = {
   close_tab: {
     pos: 9,
     group: "quit",
-    icon: "PoweroffOutlined",
+    icon: "times-circle",
     title: "Close this editor",
     label: "Close File",
     ...fileAction("close"),
+  },
+  frame_type: {
+    alwaysShow: true,
+    icon: "frame",
+    group: "frame_types",
+    title: "Select the type of editor or view for this frame",
+    label: "Frame Types",
+    onClick: ({}) => {},
+    children: ({ frameTypeCommands }) => frameTypeCommands(),
   },
 } as const;
 
