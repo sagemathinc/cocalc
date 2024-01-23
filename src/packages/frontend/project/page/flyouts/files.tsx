@@ -585,10 +585,6 @@ export function FilesFlyout({
           }
         }}
         itemStyle={fileItemStyle(age ?? 0, mask)}
-        onClose={(e: React.MouseEvent, name: string) => {
-          e.stopPropagation();
-          actions?.close_tab(path_to_file(current_path, name));
-        }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
         showCheckbox={
