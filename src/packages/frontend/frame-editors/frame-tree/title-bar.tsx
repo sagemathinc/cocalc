@@ -547,7 +547,7 @@ export function FrameTitleBar(props: Props) {
     };
     return (
       <div
-        key="control"
+        key="control-buttons-group"
         style={{
           overflow: "hidden",
           display: "inline-block",
@@ -555,7 +555,7 @@ export function FrameTitleBar(props: Props) {
         }}
         ref={getTourRef("control")}
       >
-        <ButtonGroup style={style} key={"close"}>
+        <ButtonGroup style={style} key={"control-buttons"}>
           {!props.is_full ? render_split_row() : undefined}
           {!props.is_full ? render_split_col() : undefined}
           {!props.is_only ? render_full() : undefined}
@@ -573,7 +573,7 @@ export function FrameTitleBar(props: Props) {
         <StyledButton
           disabled={props.is_only}
           title={"Show all frames"}
-          key={"compress"}
+          key={"full-screen-button"}
           bsSize={button_size()}
           onClick={() => {
             track("unset-full");
@@ -589,7 +589,7 @@ export function FrameTitleBar(props: Props) {
       return (
         <StyledButton
           disabled={props.is_only}
-          key={"expand"}
+          key={"full-screen-button"}
           title={"Show only this frame"}
           bsSize={button_size()}
           onClick={() => {
@@ -606,7 +606,7 @@ export function FrameTitleBar(props: Props) {
   function render_split_row(): Rendered {
     return (
       <StyledButton
-        key={"split-row"}
+        key={"split-row-button"}
         title={"Split frame horizontally into two rows"}
         bsSize={button_size()}
         onClick={(e) => {
@@ -628,7 +628,7 @@ export function FrameTitleBar(props: Props) {
   function render_split_col(): Rendered {
     return (
       <StyledButton
-        key={"split-col"}
+        key={"split-col-button"}
         title={"Split frame vertically into two columns"}
         bsSize={button_size()}
         onClick={(e) => {
@@ -692,9 +692,9 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <Tooltip title="Show TimeTravel edit history">
+      <Tooltip key="time-travel-button" title="Show TimeTravel edit history">
         <AntdButton
-          key={"timetravel"}
+          key={"time-travel-button"}
           style={{
             ...button_style(),
             ...(!darkMode
@@ -725,7 +725,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function rander_artificial_intelligence(): Rendered {
+  function render_artificial_intelligence(): Rendered {
     if (
       !isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
@@ -733,13 +733,16 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <Tooltip title="Get help using an Artificial Intelligence Large Language model (e.g., ChatGPT)">
+      <Tooltip
+        key={"ai-button"}
+        title="Get help using an Artificial Intelligence Large Language model (e.g., ChatGPT)"
+      >
         <LanguageModelTitleBarButton
           showDialog={showAI}
           setShowDialog={setShowAI}
           project_id={props.project_id}
           buttonRef={getTourRef("chatgpt")}
-          key={"chatgpt"}
+          key={"ai-button"}
           id={props.id}
           actions={props.actions}
           path={props.path}
@@ -789,10 +792,12 @@ export function FrameTitleBar(props: Props) {
     let x: Rendered;
     if ((x = render_save(labels))) v.push(x);
     if ((x = render_timetravel())) v.push(x);
-    if ((x = rander_artificial_intelligence())) v.push(x);
+    if ((x = render_artificial_intelligence())) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
-      return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
+      return (
+        <ButtonGroup key={"save-timetravel-button-group"}>{v}</ButtonGroup>
+      );
     }
   }
 
@@ -867,8 +872,6 @@ export function FrameTitleBar(props: Props) {
         style={{
           display: "inline-block",
           paddingTop: props.is_only || props.is_full ? "7px" : "5px",
-          borderLeft: "1px solid #ccc",
-          borderRight: "1px solid #ccc",
         }}
       >
         {v.map((x) => x.menu)}
@@ -911,9 +914,7 @@ export function FrameTitleBar(props: Props) {
 
       const v: (JSX.Element | undefined)[] = [];
       v.push(renderPage());
-      <div style={{ border: "1px solid #ccc", margin: "5px 0 5px 5px" }} />;
       v.push(renderMenus());
-      <div style={{ border: "1px solid #ccc", margin: "5px 5px 5px 0px" }} />;
       v.push(render_save_timetravel_group(labels));
       v.push(render_switch_to_file());
 
