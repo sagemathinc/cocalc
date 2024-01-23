@@ -333,9 +333,10 @@ export default function SelectComputeServer({
         style={{
           ...style,
           width: open ? "300px" : value && value != "0" ? "175px" : "120px",
-          background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
+          //background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
+        suffixIcon={null}
       />
       <Modal
         keyboard

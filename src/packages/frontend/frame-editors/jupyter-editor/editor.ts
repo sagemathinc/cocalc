@@ -24,8 +24,8 @@ import { JupyterSnippets } from "./snippets";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
-    short: "Notebook",
-    name: "Notebook (default)",
+    short: "Jupyter",
+    name: "Jupyter Notebook",
     icon: "ipynb",
     component: CellNotebook,
     buttons: set([

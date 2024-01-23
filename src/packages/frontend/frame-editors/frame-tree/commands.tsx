@@ -12,8 +12,14 @@ import openSupportTab from "@cocalc/frontend/support/open";
 import { Input } from "antd";
 
 export const SEARCH_COMMANDS = "search_commands";
+export const APPLICATION_MENU = "__title__";
 
 export const MENUS = {
+  app: {
+    label: APPLICATION_MENU,
+    pos: -10,
+    groups: ["about", "quit"],
+  },
   file: {
     label: "File",
     pos: 0,
@@ -21,7 +27,6 @@ export const MENUS = {
       "new-open",
       "reload",
       "save",
-      "close",
       "export",
       "misc-file-actions",
       "delete",
@@ -412,14 +417,14 @@ export const COMMANDS: { [command: string]: Command } = {
   },
 
   halt_jupyter: {
-    group: "close",
+    group: "quit",
     icon: "PoweroffOutlined",
     label: "Close and Halt",
     title: "Halt the running Jupyter kernel and close this notebook.",
   },
 
   close_and_halt: {
-    group: "close",
+    group: "quit",
     icon: "PoweroffOutlined",
     label: "Close and Halt",
     title: "Halt backend server and close this file.",
@@ -742,6 +747,22 @@ export const COMMANDS: { [command: string]: Command } = {
       );
     },
     onClick: () => {},
+  },
+  quit: {
+    pos: 10,
+    group: "quit",
+    icon: "PoweroffOutlined",
+    title: "Quit this editor",
+    label: "Quit Application",
+    ...fileAction("quit"),
+  },
+  close_tab: {
+    pos: 9,
+    group: "quit",
+    icon: "PoweroffOutlined",
+    title: "Close this editor",
+    label: "Close File",
+    ...fileAction("close"),
   },
 } as const;
 

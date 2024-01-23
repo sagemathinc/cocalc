@@ -1580,6 +1580,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: required,
       action: required,
     });
+    this.set_all_files_unchecked();
     if (opts.action == "new" || opts.action == "create") {
       // special case because it isn't a normal "file action panel",
       // but it is convenient to still support this.
@@ -1615,9 +1616,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       return;
     }
+
     const path_splitted = misc.path_split(opts.path);
     this.open_directory(path_splitted.head);
-    this.set_all_files_unchecked();
+
+    if (opts.action == "quit") {
+      // TODO: for jupyter and terminal at least, should also do more!
+      this.close_tab(opts.path);
+      return;
+    }
+    if (opts.action == "close") {
+      this.close_tab(opts.path);
+      return;
+    }
     this.set_file_checked(opts.path, true);
     this.set_file_action(opts.action, () => path_splitted.tail);
   }

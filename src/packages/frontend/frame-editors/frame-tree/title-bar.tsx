@@ -52,7 +52,14 @@ import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import SelectComputeServer from "@cocalc/frontend/compute/select-server";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import { COMMANDS, Command, MENUS, GROUPS, SEARCH_COMMANDS } from "./commands";
+import {
+  APPLICATION_MENU,
+  COMMANDS,
+  Command,
+  MENUS,
+  GROUPS,
+  SEARCH_COMMANDS,
+} from "./commands";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -471,7 +478,8 @@ export function FrameTitleBar(props: Props) {
     props.actions.set_frame_type(props.id, type);
   }
 
-  function render_types(): Rendered {
+  function render_types() {
+    return null;
     if (!is_active) return;
     const selected_type: string = props.type;
     let selected_icon: IconName | undefined = undefined;
@@ -847,7 +855,7 @@ export function FrameTitleBar(props: Props) {
         <DropdownMenu
           key={`menu-${name}`}
           style={MENU_STYLE}
-          title={label}
+          title={label == APPLICATION_MENU ? renderMenuTitle() : label}
           items={v}
         />
       ),
@@ -875,6 +883,7 @@ export function FrameTitleBar(props: Props) {
         }}
       >
         {v.map((x) => x.menu)}
+        {renderComputeServer()}
       </div>
     );
   }
@@ -1050,30 +1059,46 @@ export function FrameTitleBar(props: Props) {
     }
     return (
       <SelectComputeServer
+        style={{ marginTop: "-7px" }}
         actions={props.actions}
         frame_id={props.id}
         type={type}
-        style={{
-          marginRight: "3px",
-          marginTop: "1px",
-          height: button_height(),
-        }}
         project_id={props.project_id}
         path={props.path}
       />
     );
   }
 
+  function renderMenuTitle() {
+    let title: string = "Application";
+    let icon: IconName | undefined = undefined;
+    if (props.editor_spec != null) {
+      const spec = props.editor_spec[props.type];
+      if (spec != null) {
+        icon = spec.icon;
+        if (spec.short) {
+          title = spec.short;
+        } else if (spec.name) {
+          title = spec.name;
+        }
+      }
+    }
+    return (
+      <span style={{ fontWeight: 450 }}>
+        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
+        {trunc_middle(title, MAX_TITLE_WIDTH)}
+      </span>
+    );
+  }
+
   function renderTitle(): Rendered {
     let title: string = "";
-    let icon: IconName | undefined = undefined;
     if (props.title !== undefined) {
       title = props.title;
     }
     if (props.editor_spec != null) {
       const spec = props.editor_spec[props.type];
       if (spec != null) {
-        icon = spec.icon;
         if (!title) {
           if (spec.name) {
             title = spec.name;
@@ -1082,6 +1107,11 @@ export function FrameTitleBar(props: Props) {
           }
         }
       }
+    }
+    const label = <span>{trunc_middle(title, MAX_TITLE_WIDTH)}</span>;
+
+    if (props.title == null && is_active) {
+      return label;
     }
 
     const body = (
@@ -1093,8 +1123,7 @@ export function FrameTitleBar(props: Props) {
           color: is_active ? undefined : "#777",
         }}
       >
-        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
-        {trunc_middle(title, MAX_TITLE_WIDTH)}
+        {label}
       </div>
     );
     if (title.length >= MAX_TITLE_WIDTH) {
@@ -1268,8 +1297,7 @@ export function FrameTitleBar(props: Props) {
         className={"cc-frame-tree-title-bar"}
       >
         {allButtonsPopover()}
-        {renderComputeServer()}
-        {renderTitle()}
+        {props.title != null || !is_active ? renderTitle() : undefined}
         {renderMainMenusAndButtons()}
         {renderConnectionStatus()}
         {renderFrameControls()}
