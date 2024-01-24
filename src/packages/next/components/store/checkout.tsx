@@ -17,7 +17,7 @@ import {
   Spin,
   Table,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
@@ -35,6 +35,7 @@ import { currency, round2up, round2down } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ProductColumn } from "./cart";
 import ShowError from "@cocalc/frontend/components/error";
+import { StoreBalanceContext } from "../../lib/balance";
 
 enum PaymentIntent {
   PAY_TOTAL,
@@ -53,6 +54,7 @@ export default function Checkout() {
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
+  const { refreshBalance } = useContext(StoreBalanceContext);
   const [session, setSession] = useState<{ id: string; url: string } | null>(
     null,
   );
@@ -161,6 +163,7 @@ export default function Checkout() {
       // The purchase failed.
       setError(err.message);
     } finally {
+      refreshBalance();
       if (!isMounted.current) return;
       setCompletingPurchase(false);
     }

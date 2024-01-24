@@ -3,41 +3,68 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon } from "@cocalc/frontend/components/icon";
-import { Menu, MenuProps, Typography } from "antd";
+import React, { useContext } from 'react';
+import { Menu, MenuProps, Flex, Typography } from "antd";
 import { useRouter } from "next/router";
+
+import { currency } from "@cocalc/util/misc";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { StoreBalanceContext } from "../../lib/balance";
+
 const { Text } = Typography;
 
 type MenuItem = Required<MenuProps>["items"][number];
 
-export default function ConfigMenu({ main }) {
-  const router = useRouter();
+const styles: { [k: string]: React.CSSProperties } = {
+  menuBookend: {
+    height: "100%",
+    whiteSpace: "nowrap",
+  },
+  menu: {
+    width: "100%",
+    height: "100%",
+    border: 0
+  },
+  menuContainer: {
+    marginBottom: "24px",
+    whiteSpace: "nowrap",
+    alignItems: "center",
+    border: 0,
+    borderBottom: "1px solid rgba(5, 5, 5, 0.06)",
+    boxShadow: "none",
+  }
+};
 
-  function select(e) {
-    router.push(`/store/${e.keyPath[0]}`, undefined, {
+export interface ConfigMenuProps {
+  main?: string;
+}
+
+export default function ConfigMenu({ main }: ConfigMenuProps) {
+  const router = useRouter();
+  const { balance } = useContext(StoreBalanceContext);
+
+  const handleMenuItemSelect: MenuProps['onSelect'] = ({ keyPath }) => {
+    router.push(`/store/${keyPath[0]}`, undefined, {
       scroll: false,
     });
   }
 
   const items: MenuItem[] = [
-    { label: <Text strong>Store</Text>, key: "" },
     {
       label: "Licenses",
       key: "site-license",
       icon: <Icon name="key" />,
     },
-    //     {
-    //       label: "Booster",
-    //       key: "boost",
-    //       icon: <Icon name="rocket" />,
-    //     },
-    //     {
-    //       label: "Dedicated VM or Disk",
-    //       key: "dedicated",
-    //       icon: <Icon name="dedicated" />,
-    //     },
-    { label: "Cart", key: "cart", icon: <Icon name="shopping-cart" /> },
-    { label: "Checkout", key: "checkout", icon: <Icon name="list" /> },
+    {
+      label: "Cart",
+      key: "cart",
+      icon: <Icon name="shopping-cart" />,
+    },
+    {
+      label: "Checkout",
+      key: "checkout",
+      icon: <Icon name="list" />,
+    },
     {
       label: "Congrats",
       key: "congrats",
@@ -51,12 +78,18 @@ export default function ConfigMenu({ main }) {
   ];
 
   return (
-    <Menu
-      mode="horizontal"
-      selectedKeys={[main]}
-      style={{ height: "100%", marginBottom: "24px" }}
-      onSelect={select}
-      items={items}
-    />
+    <Flex gap="middle" justify="space-between" style={styles.menuContainer}>
+      <Text strong style={styles.menuBookend}>Store</Text>
+      <Menu
+        mode="horizontal"
+        selectedKeys={main ? [main] : undefined}
+        style={styles.menu}
+        onSelect={handleMenuItemSelect}
+        items={items}
+      />
+      <Text strong style={styles.menuBookend}>
+        {balance !== undefined ? `Balance: ${currency(balance)}` : null}
+      </Text>
+    </Flex>
   );
 }
