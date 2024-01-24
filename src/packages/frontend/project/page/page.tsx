@@ -4,7 +4,7 @@
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
-import { Button, Flex, Modal, Tooltip } from "antd";
+import { Button, Modal, Tooltip } from "antd";
 
 import {
   React,
@@ -220,12 +220,28 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (!flyout) return;
     if (fullscreen && fullscreen !== "project") return;
 
+    // this renders the flyout (consisting of a header and body) and a dragbar
+    // special care must be taken when editing the CSS styles. The flyout body has a
+    // vertical orientation and fills the remaining height 100%. insdie the body, there
+    // is a "wrap()" function, which is where a scrollable dragbar appears, when the
+    // overall content is more than the height of the flyout body. One of the key
+    // "tricks" is to specify height 100%, flex:"1 1 0" (start height 0, then calculate),
+    // and be extra careful when to display it as a flex container, and when this stops in the tree.
     return (
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <Flex vertical={true} flex={0}>
+        <div
+          style={{
+            display: "flex",
+            flex: "1 1 auto",
+            height: "100%",
+            flexDirection: "column",
+            overflow: "hidden",
+            marginRight: "5px",
+          }}
+        >
           <FlyoutHeader flyoutWidth={flyoutWidth} flyout={flyout} />
-          <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
-        </Flex>
+          <FlyoutBody flyoutWidth={flyoutWidth} flyout={flyout} />
+        </div>
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
           onDragEnd={(e) => updateDrag(e)}
@@ -245,10 +261,10 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (!showFlyoutActive) return;
 
     return (
-      <Flex vertical={true} flex={0}>
+      <div style={{ display: "flex", flex: "0", flexDirection: "column" }}>
         <FlyoutHeader flyoutWidth={FLYOUT_DEFAULT_WIDTH_PX} flyout="active" />
-        <FlyoutBody flyout="active" flyoutWidth={FLYOUT_DEFAULT_WIDTH_PX} />
-      </Flex>
+        <FlyoutBody flyoutWidth={FLYOUT_DEFAULT_WIDTH_PX} flyout="active" />
+      </div>
     );
   }
 
@@ -413,7 +429,6 @@ function FlyoutDragbar({
       className="cc-project-flyout-dragbar"
       style={{
         transform: transform ? `translate3d(${dx}px, 0, 0)` : undefined,
-        flex: "1 0 ",
         width: "5px",
         height: "100%",
         cursor: "col-resize",

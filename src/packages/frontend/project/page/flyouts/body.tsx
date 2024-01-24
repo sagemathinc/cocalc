@@ -65,8 +65,8 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
         ref={setBodyDiv}
         onScroll={onScroll}
         style={{
-          height: "100%",
-          overflowY: "auto",
+          flex: "1 1 0",
+          overflow: "auto",
           ...style,
         }}
       >
@@ -82,14 +82,15 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
 
   const style: CSS = {
     display: "flex",
+    flex: "1 1 auto",
+    height: "100%",
     flexDirection: "column",
     padding,
     margin: 0,
     marginRight: "0",
     borderRight: FIX_BORDER,
     borderLeft: isActiveFlyout ? FIX_BORDER : "none",
-    width: flyoutWidth,
-    height: "100%",
+    width:`${flyoutWidth}px`,
     backgroundColor: FIXED_TABS_BG_COLOR,
     overflowY: "hidden",
     overflowX: "hidden",

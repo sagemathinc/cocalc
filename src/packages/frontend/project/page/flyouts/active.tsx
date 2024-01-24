@@ -347,7 +347,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
 
   // if there are starred files but they're hidden, remind the user of that
   function renderEmptyStarredInfo() {
-    if (starred.length === 0 || showStarred) return;
+    if (starred.length === 0 || !showStarred) return;
     return (
       <>
         {" "}
@@ -563,7 +563,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     return (
       <div
         style={{
-          flex: "1 1 auto",
+          flex: "0 1 auto",
           borderTop: FIX_BORDER,
         }}
       >
