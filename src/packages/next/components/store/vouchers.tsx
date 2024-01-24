@@ -22,7 +22,7 @@ import {
   Space,
 } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
@@ -58,6 +58,7 @@ import {
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ExplainPaymentSituation } from "./checkout";
 import AddCashVoucher from "./add-cash-voucher";
+import { StoreBalanceContext } from "../../lib/balance";
 
 interface Config {
   whenPay: WhenPay;
@@ -76,6 +77,7 @@ export default function CreateVouchers() {
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
+  const { refreshBalance } = useContext(StoreBalanceContext);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
 
@@ -225,6 +227,7 @@ export default function CreateVouchers() {
       // The purchase failed.
       setOrderError(err.message);
     } finally {
+      refreshBalance();
       if (!isMounted.current) return;
       setCompletingPurchase(false);
     }
