@@ -77,23 +77,23 @@ export function FilesSelectedControls({
   }
 
   function renderFileInfoTop() {
-    if (checked_files.size === 0) {
-      let [nFiles, nDirs] = [0, 0];
-      for (const f of directoryFiles) {
-        if (f.isdir) {
-          nDirs++;
-        } else {
-          nFiles++;
-        }
-      }
+    if (checked_files.size !== 0) return;
 
-      return (
-        <div style={{ color: COLORS.GRAY_M }}>
-          <Icon name="files" /> {nFiles} {plural(nFiles, "file")}, {nDirs}{" "}
-          {plural(nDirs, "folder")}
-        </div>
-      );
+    let [nFiles, nDirs] = [0, 0];
+    for (const f of directoryFiles) {
+      if (f.isdir) {
+        nDirs++;
+      } else {
+        nFiles++;
+      }
     }
+
+    return (
+      <div style={{ color: COLORS.GRAY_M }}>
+        <Icon name="files" /> {nFiles} {plural(nFiles, "file")}, {nDirs}{" "}
+        {plural(nDirs, "folder")}
+      </div>
+    );
   }
 
   function renderFileInfoBottom() {
@@ -193,6 +193,8 @@ export function FilesSelectedControls({
   }
 
   function renderButtons(names) {
+    if (mode === "top" && checked_files.size === 0) return;
+
     return (
       <Space direction="horizontal" wrap>
         {checked_files.size > 0 ? renderOpenFile() : undefined}

@@ -26,6 +26,7 @@ export function FilesSelectButtons({
 }: FilesSelectButtonsProps) {
   function renderButtons() {
     if (mode !== "select") return null;
+
     if (checked_files.size === 0) {
       return (
         <Tooltip title="Select all files">
