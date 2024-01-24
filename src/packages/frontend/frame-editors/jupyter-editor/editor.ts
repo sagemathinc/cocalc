@@ -21,7 +21,11 @@ import { Introspect } from "./introspect/introspect";
 const SNIPPET_ICON_NAME =
   require("@cocalc/frontend/assistant/common").ICON_NAME;
 import { JupyterSnippets } from "./snippets";
-//import { commands } from "@cocalc/frontend/jupyter/commands";
+import {
+  addCommands,
+  addMenus,
+} from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { IS_MACOS } from "@cocalc/frontend/feature";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -117,4 +121,79 @@ export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "JupyterNotebook",
+});
+
+addMenus({
+  run: {
+    label: "Run",
+    pos: 4,
+    groups: ["jupyter-cell-run"],
+  },
+  kernel: {
+    label: "Kernel",
+    pos: 5,
+    groups: ["jupyter-kernel-control"],
+  },
+});
+
+addCommands({
+  "jupyter-run-cell": {
+    title: "Run all cells that are currently selected",
+    label: "Run Selected Cells",
+    group: "jupyter-cell-run",
+    icon: "step-forward",
+    keyboard: `ctrl + enter, ${IS_MACOS ? "⌘ + enter" : ""} `,
+    onClick: ({ props }) => {
+      const frame_actions = props.actions.frame_actions?.[props.id];
+      frame_actions.run_selected_cells();
+      frame_actions.set_mode("escape");
+      frame_actions.scroll("cell visible");
+    },
+  },
+  "jupyter-cell-type": {
+    label: "Cell Type",
+    group: "jupyter-cell-type",
+    icon: "code-outlined",
+    children: [
+      {
+        keyboard: "Y",
+        label: "Code",
+        icon: "code-outlined",
+        onClick: ({ props }) => {
+          const frame_actions = props.actions.frame_actions?.[props.id];
+          frame_actions?.set_selected_cell_type("code");
+        },
+      },
+      {
+        keyboard: "M",
+        label: "Markdown",
+        icon: "markdown",
+        onClick: ({ props }) => {
+          const frame_actions = props.actions.frame_actions?.[props.id];
+          frame_actions?.set_selected_cell_type("markdown");
+        },
+      },
+      {
+        keyboard: "R",
+        label: "Raw NBConvert",
+        icon: "file-archive",
+        onClick: ({ props }) => {
+          const frame_actions = props.actions.frame_actions?.[props.id];
+          frame_actions?.set_selected_cell_type("raw");
+        },
+      },
+    ],
+  },
+  "jupyter-kernel-restart": {
+    keyboard: "0, 0",
+    label: "Restart",
+    title:
+      "Restart the current Jupyter kernel.  There is a kernel pool, so restarting is fast, but you may need to restart twice if you installed a new package.",
+    group: "jupyter-kernel-control",
+    icon: "refresh",
+    onClick: ({ props }) => {
+      const jupyter_actions = props.actions.jupyter_actions;
+      jupyter_actions?.confirm_restart();
+    },
+  },
 });

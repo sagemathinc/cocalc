@@ -1,121 +1,22 @@
-import { get_default_font_size } from "../generic/client";
-import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
+import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
+import {
+  undo as chatUndo,
+  redo as chatRedo,
+} from "@cocalc/frontend/frame-editors/generic/chat";
 import { Icon } from "@cocalc/frontend/components";
 import { redux } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
-import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
-import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { IS_MACOS } from "@cocalc/frontend/feature";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import userTracking from "@cocalc/frontend/user-tracking";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { Input } from "antd";
+import { SEARCH_COMMANDS } from "./const";
+import { addCommands } from "./commands";
 
-export const SEARCH_COMMANDS = "search_commands";
-export const APPLICATION_MENU = "__title__";
-
-export const MENUS = {
-  app: {
-    label: APPLICATION_MENU,
-    pos: -10,
-    groups: ["about", "frame_types", "quit"],
-  },
-  file: {
-    label: "File",
-    pos: 0,
-    groups: [
-      "new-open",
-      "reload",
-      "save",
-      "export",
-      "misc-file-actions",
-      "delete",
-    ],
-  },
-  edit: {
-    label: "Edit",
-    pos: 1,
-    groups: ["undo-redo", "find", "copy", "ai", "format", "config"],
-  },
-  view: {
-    label: "View",
-    pos: 2,
-    groups: ["zoom", "frame-control", "show-frames"],
-  },
-  go: {
-    label: "Go",
-    pos: 3,
-    groups: ["action", "build", "scan", "other-users", "get-info"],
-  },
-  cell: {
-    label: "Cell",
-    pos: 4,
-    groups: ["jupyter-cell-run", "jupyter-cell-type"],
-  },
-  kernel: {
-    label: "Kernel",
-    pos: 5,
-    groups: ["jupyter-kernel-control"],
-  },
-  help: {
-    label: "Help",
-    pos: 100,
-    groups: ["search-commands", "help-link", "tour"],
-  },
-} as const;
-
-type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
-
-export interface Command {
-  // group -- inside of a menu
-  group: Group;
-  // position, for sorting
-  pos?: number;
-  title?: JSX.Element | string;
-  icon?: JSX.Element | string;
-  label:
-    | string
-    | JSX.Element
-    | ((opts: {
-        props?;
-        helpSearch?;
-        setHelpSearch?;
-        renderMenus?;
-      }) => JSX.Element);
-  // If onClick is NOT set, then editor_actions[name] must be defined
-  // and be a function that takes the frame id as input.
-  onClick?: ({
-    props,
-    event,
-    setShowAI,
-  }: {
-    props?;
-    event?;
-    setShowAI?: (boolean) => void;
-  }) => void;
-  isVisible?: ({ props }) => boolean;
-  disable?: string;
-  keyboard?: string;
-  children?:
-    | Partial<Command>[]
-    | (({ props, frameTypeCommands }) => Partial<Command>[]);
-  disabled?: ({ props, read_only }) => boolean;
-  // not used yet
-  tour?: string;
-  confirm?: {
-    // popconfirm first
-    title?: ReactNode;
-    description?: ReactNode;
-    okText?: string;
-    cancelText?: string;
-  };
-  alwaysShow?: boolean;
-  stayOpenOnClick?: boolean;
-  search?: string;
-}
-
-export const COMMANDS: { [command: string]: Command } = {
+addCommands({
   "split-row": {
     group: "frame-control",
     alwaysShow: true,
@@ -792,66 +693,7 @@ export const COMMANDS: { [command: string]: Command } = {
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(),
   },
-  "jupyter-run-cell": {
-    title: "Run all cells that are currently selected",
-    label: "Run Cells",
-    group: "jupyter-cell-run",
-    icon: "step-forward",
-    keyboard: `ctrl + enter, ${IS_MACOS ? "⌘ + enter" : ""} `,
-    onClick: ({ props }) => {
-      const frame_actions = props.actions.frame_actions?.[props.id];
-      frame_actions.run_selected_cells();
-      frame_actions.set_mode("escape");
-      frame_actions.scroll("cell visible");
-    },
-  },
-  "jupyter-cell-type": {
-    label: "Cell Type",
-    group: "jupyter-cell-type",
-    icon: "code-outlined",
-    children: [
-      {
-        keyboard: "Y",
-        label: "Code",
-        icon: "code-outlined",
-        onClick: ({ props }) => {
-          const frame_actions = props.actions.frame_actions?.[props.id];
-          frame_actions?.set_selected_cell_type("code");
-        },
-      },
-      {
-        keyboard: "M",
-        label: "Markdown",
-        icon: "markdown",
-        onClick: ({ props }) => {
-          const frame_actions = props.actions.frame_actions?.[props.id];
-          frame_actions?.set_selected_cell_type("markdown");
-        },
-      },
-      {
-        keyboard: "R",
-        label: "Raw NBConvert",
-        icon: "file-archive",
-        onClick: ({ props }) => {
-          const frame_actions = props.actions.frame_actions?.[props.id];
-          frame_actions?.set_selected_cell_type("raw");
-        },
-      },
-    ],
-  },
-  "jupyter-kernel-restart": {
-    keyboard: "0, 0",
-    label: "Restart",
-    title:
-      "Restart the current Jupyter kernel.  There is a kernel pool, so restarting is fast, but you may need to restart twice if you installed a new package.",
-    group: "jupyter-kernel-control",
-    icon: "refresh",
-    onClick: ({ props }) => {
-      const jupyter_actions = props.actions.jupyter_actions;
-      jupyter_actions?.confirm_restart();
-    },
-  },
-};
+});
 
 function fileAction(action) {
   return {
@@ -864,31 +706,6 @@ function fileAction(action) {
       });
     },
   };
-}
-
-export const GROUPS: { [group: string]: string[] } = {};
-for (const name in MENUS) {
-  for (const group of MENUS[name].groups) {
-    if (GROUPS[group] != null) {
-      throw Error(
-        "groups must be unique but '${group}' of '${key}' is duplicated",
-      );
-    } else {
-      GROUPS[group] = [];
-    }
-  }
-}
-
-for (const name in COMMANDS) {
-  const command = COMMANDS[name];
-  const { group } = command;
-  if (group != null) {
-    const v = GROUPS[group];
-    if (v == null) {
-      throw Error(`command ${name} in unknown group '${group}'`);
-    }
-    v.push(name);
-  }
 }
 
 function SearchBox({ setHelpSearch, helpSearch }) {
