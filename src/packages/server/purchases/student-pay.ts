@@ -114,6 +114,10 @@ export default async function studentPay({
       }
     })();
 
+    if (purchaseInfo.start == null || purchaseInfo.end == null) {
+      throw Error("start and end must be set");
+    }
+
     // Create the purchase
     const purchase_id = await createPurchase({
       account_id,

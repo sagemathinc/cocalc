@@ -4,6 +4,7 @@
  */
 
 import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
+import immutable from "immutable";
 import { VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
@@ -19,7 +20,10 @@ import {
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
+import {
+  DirectoryListing,
+  DirectoryListingEntry,
+} from "@cocalc/frontend/project/explorer/types";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { separate_file_extension, strictMod } from "@cocalc/util/misc";
@@ -27,6 +31,8 @@ import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 import { ActiveFileSort } from "./files";
+import { FilesSelectedControls } from "./files-controls";
+import { FilesSelectButtons } from "./files-select-extra";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
 
 function searchToFilename(search: string): string {
@@ -46,7 +52,6 @@ function searchToFilename(search: string): string {
 
 interface Props {
   activeFileSort: ActiveFileSort;
-  directoryFiles: DirectoryListingEntry[];
   disableUploads: boolean;
   handleSearchChange: (search: string) => void;
   isEmpty: boolean;
@@ -57,12 +62,19 @@ interface Props {
   setScrollIdxHide: (hide: boolean) => void;
   setSearchState: (search: string) => void;
   virtuosoRef: React.RefObject<VirtuosoHandle>;
+  showFileSharingDialog(file): void;
+  checked_files: immutable.Set<string>;
+  directoryFiles: DirectoryListing;
+  getFile: (path: string) => DirectoryListingEntry | undefined;
+  activeFile: DirectoryListingEntry | null;
+  modeState: ["open" | "select", (mode: "open" | "select") => void];
+  clearAllSelections: (switchMode: boolean) => void;
+  selectAllFiles: () => void;
 }
 
 export function FilesHeader(props: Readonly<Props>): JSX.Element {
   const {
     activeFileSort,
-    directoryFiles,
     disableUploads,
     handleSearchChange,
     isEmpty,
@@ -73,6 +85,14 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     setScrollIdxHide,
     setSearchState,
     virtuosoRef,
+    showFileSharingDialog,
+    checked_files,
+    directoryFiles,
+    getFile,
+    activeFile,
+    modeState,
+    selectAllFiles,
+    clearAllSelections,
   } = props;
 
   const {
@@ -80,6 +100,8 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     project_id,
     actions,
   } = useProjectContext();
+
+  const [mode, setMode] = modeState;
 
   const uploadClassName = `upload-button-flyout-${project_id}`;
 
@@ -301,6 +323,36 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     );
   }
 
+  function renderFileControls() {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          width: "100%",
+        }}
+      >
+        <FilesSelectedControls
+          project_id={project_id}
+          checked_files={checked_files}
+          directoryFiles={directoryFiles}
+          open={open}
+          showFileSharingDialog={showFileSharingDialog}
+          getFile={getFile}
+          mode="top"
+          activeFile={activeFile}
+        />
+        <FilesSelectButtons
+          setMode={setMode}
+          checked_files={checked_files}
+          mode={mode}
+          selectAllFiles={selectAllFiles}
+          clearAllSelections={clearAllSelections}
+        />
+      </div>
+    );
+  }
+
   return (
     <>
       <Space
@@ -404,6 +456,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
             </Space.Compact>
           ) : undefined}
         </div>
+        {renderFileControls()}
       </Space>
       <Space
         direction="vertical"

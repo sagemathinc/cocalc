@@ -4,14 +4,7 @@
  */
 
 import { CaretRightOutlined } from "@ant-design/icons";
-import {
-  Button,
-  Collapse,
-  CollapseProps,
-  Descriptions,
-  Space,
-  Tooltip,
-} from "antd";
+import { Button, Collapse, CollapseProps, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
 
@@ -21,78 +14,61 @@ import {
   useActions,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ConnectionStatus } from "@cocalc/frontend/app/store";
-import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { ConnectionStatusIcon } from "@cocalc/frontend/frame-editors/frame-tree/title-bar";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import {
-  ACTION_BUTTONS_DIR,
-  ACTION_BUTTONS_FILE,
-  ACTION_BUTTONS_MULTI,
-  isDisabledSnapshots,
-} from "@cocalc/frontend/project/explorer/action-bar";
 import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
 import {
   DirectoryListing,
   DirectoryListingEntry,
-  FileMap,
 } from "@cocalc/frontend/project/explorer/types";
 import { url_href } from "@cocalc/frontend/project/utils";
-import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
   filename_extension,
   human_readable_size,
-  path_split,
   path_to_file,
   plural,
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
-import { FLYOUT_PADDING } from "./consts";
+import { FLYOUT_PADDING, PANEL_STYLE_BOTTOM, PanelKey } from "./consts";
+import { FilesSelectedControls } from "./files-controls";
 import { TerminalFlyout } from "./files-terminal";
 import { getFlyoutFiles, storeFlyoutState } from "./state";
-
-const PANEL_STYLE: CSS = {
-  width: "100%",
-  paddingLeft: "10px",
-  paddingRight: "10px",
-  paddingBottom: FLYOUT_PADDING,
-};
-
-const PANEL_KEYS = ["selected", "terminal"];
-type PanelKey = (typeof PANEL_KEYS)[number];
+import { useSingleFile } from "./utils";
+import { FilesSelectButtons } from "./files-select-extra";
 
 interface FilesBottomProps {
   project_id: string;
   checked_files: immutable.Set<string>;
   activeFile: DirectoryListingEntry | null;
-  directoryData: [DirectoryListing, FileMap];
+  directoryFiles: DirectoryListing;
   projectIsRunning?: boolean;
   rootHeightPx: number;
   open: (
     e: React.MouseEvent | React.KeyboardEvent,
     index: number,
-    skip?: boolean
+    skip?: boolean,
   ) => void;
   showFileSharingDialog(file): void;
   modeState: ["open" | "select", (mode: "open" | "select") => void];
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
+  getFile: (path: string) => DirectoryListingEntry | undefined;
 }
 
 export function FilesBottom({
   project_id,
   checked_files,
   activeFile,
-  directoryData,
   modeState,
   projectIsRunning,
   clearAllSelections,
@@ -100,8 +76,9 @@ export function FilesBottom({
   rootHeightPx,
   open,
   showFileSharingDialog,
+  getFile,
+  directoryFiles,
 }: FilesBottomProps) {
-  const [directoryFiles, fileMap] = directoryData;
   const [mode, setMode] = modeState;
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
@@ -133,11 +110,6 @@ export function FilesBottom({
     }
   }
 
-  function getFile(name: string): DirectoryListingEntry | undefined {
-    const basename = path_split(name).tail;
-    return fileMap[basename];
-  }
-
   useEffect(() => {
     const state = getFlyoutFiles(project_id);
     // once upon mounting, expand the collapse panels if they were open
@@ -151,34 +123,32 @@ export function FilesBottom({
     setActiveKeys([...next, ...activeKeys]);
   }, []);
 
-  useEffect(() => {
-    // if any selected and nothing in state, open "selected".
-    // this is to teach users this can be expanded.
-    if (
-      checked_files.size > 0 &&
-      getFlyoutFiles(project_id).selected?.show == null
-    ) {
-      setActiveKeys(["selected", ...activeKeys]);
-    }
-  }, [checked_files]);
+  // useEffect(() => {
+  //   // if any selected and nothing in state, open "selected".
+  //   // this is to teach users this can be expanded.
+  //   if (
+  //     checked_files.size > 0 &&
+  //     getFlyoutFiles(project_id).selected?.show == null
+  //   ) {
+  //     setActiveKeys(["selected", ...activeKeys]);
+  //   }
+  // }, [checked_files]);
 
-  useEffect(() => {
-    if (mode === "select") {
-      // expand the select panel if it was closed
-      if (!activeKeys.includes("selected")) {
-        setActiveKeys(["selected", ...activeKeys]);
-      }
-    }
-  }, [mode]);
+  // useEffect(() => {
+  //   if (mode === "select") {
+  //     // expand the select panel if it was closed
+  //     if (!activeKeys.includes("selected")) {
+  //       setActiveKeys(["selected", ...activeKeys]);
+  //     }
+  //   }
+  // }, [mode]);
 
-  const singleFile = useMemo(() => {
-    if (checked_files.size === 0 && activeFile != null) {
-      return activeFile;
-    }
-    if (checked_files.size === 1) {
-      return getFile(checked_files.first() ?? "");
-    }
-  }, [checked_files, directoryFiles, activeFile]);
+  const singleFile = useSingleFile({
+    checked_files,
+    activeFile,
+    getFile,
+    directoryFiles,
+  });
 
   // if rootRef changes size, increase resize
   useLayoutEffect(() => {
@@ -210,78 +180,6 @@ export function FilesBottom({
         syncPath={syncPath}
         sync={sync}
       />
-    );
-  }
-
-  function renderButtons(names) {
-    return (
-      <Space direction="horizontal" wrap>
-        {checked_files.size > 0 ? renderOpenFile() : undefined}
-        <Space.Compact size="small">
-          {names.map((name) => {
-            const disabled =
-              isDisabledSnapshots(name) &&
-              (current_path?.startsWith(".snapshots") ?? false);
-
-            const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
-            if (hideFlyout) return;
-            return (
-              <Tooltip key={name} title={`${actionName}...`}>
-                <Button
-                  size="small"
-                  key={name}
-                  disabled={disabled}
-                  onClick={() => {
-                    // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
-                    actions?.set_active_tab("files");
-                    actions?.set_file_action(
-                      name,
-                      () => path_split(checked_files.first()).tail
-                    );
-                  }}
-                >
-                  <Icon name={icon} />
-                </Button>
-              </Tooltip>
-            );
-          })}
-        </Space.Compact>
-      </Space>
-    );
-  }
-
-  async function openAllSelectedFiles(e: React.MouseEvent) {
-    e.stopPropagation();
-    const skipDirs = checked_files.size > 1;
-    for (const file of checked_files) {
-      const basename = path_split(file).tail;
-      const index = directoryFiles.findIndex((f) => f.name === basename);
-      // skipping directories, because it makes no sense to flip through them rapidly
-      if (skipDirs && getFile(file)?.isdir) {
-        open(e, index, true);
-        continue;
-      }
-      open(e, index);
-      // wait 10ms to avoid opening all files at once
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-  }
-
-  function renderOpenFile() {
-    if (checked_files.size === 0) return;
-    return (
-      <Tooltip
-        title={
-          checked_files.size === 1
-            ? "Or double-click file in listing"
-            : "Open all selected files"
-        }
-      >
-        <Button type="primary" size="small" onClick={openAllSelectedFiles}>
-          <Icon name="edit-filled" /> Edit
-          {checked_files.size > 1 ? " all" : ""}
-        </Button>
-      </Tooltip>
     );
   }
 
@@ -348,118 +246,29 @@ export function FilesBottom({
     return (
       <Space size="small" direction="horizontal" wrap>
         {singleFile != null ? renderDownloadView() : undefined}
-        <Space.Compact size="small">
-          <BSButton
-            bsSize="xsmall"
-            active={mode === "select"}
-            title={
-              <>
-                Switch into file file selection mode.
-                <br />
-                Note: Like on a desktop, you can also use the Shift and Ctrl key
-                for selecting files – or hover over the file icon to reveal the
-                checkbox.
-              </>
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              const nextMode = mode === "select" ? "open" : "select";
-              if (nextMode === "open") {
-                clearAllSelections(true);
-              }
-              setMode(nextMode);
-            }}
-          >
-            <Icon name={mode === "select" ? "check-square" : "square"} /> Select
-          </BSButton>
-          {renderSelectButtons()}
-        </Space.Compact>
+        <FilesSelectButtons
+          setMode={setMode}
+          checked_files={checked_files}
+          mode={mode}
+          selectAllFiles={selectAllFiles}
+          clearAllSelections={clearAllSelections}
+        />
       </Space>
     );
   }
 
-  function renderFileInfo() {
-    if (singleFile != null) {
-      const { size , mtime, isdir } = singleFile;
-      const age = typeof mtime === "number" ? 1000 * mtime : null;
-      return (
-        <Descriptions size="small" layout="horizontal" column={1}>
-          {age ? (
-            <Descriptions.Item label="Modified" span={1}>
-              <TimeAgo date={new Date(age)} />
-            </Descriptions.Item>
-          ) : undefined}
-          {isdir ? (
-            <Descriptions.Item label="Contains">
-              {size} {plural(size, "item")}
-            </Descriptions.Item>
-          ) : (
-            <Descriptions.Item label="Size">
-              {human_readable_size(size)}
-            </Descriptions.Item>
-          )}
-          {singleFile.is_public ? (
-            <Descriptions.Item label="Published">
-              <Button
-                size="small"
-                icon={<Icon name="share-square" />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  showFileSharingDialog(singleFile);
-                }}
-              >
-                configure
-              </Button>
-            </Descriptions.Item>
-          ) : undefined}
-        </Descriptions>
-      );
-    }
-
-    // summary of multiple selected files
-    if (checked_files.size > 1) {
-      let [totSize, startDT, endDT] = [0, new Date(0), new Date(0)];
-      for (const f of checked_files) {
-        const file = getFile(f);
-        if (file == null) continue;
-        const { size = 0, mtime, isdir } = file;
-        totSize += isdir ? 0 : size;
-        if (typeof mtime === "number") {
-          const dt = new Date(1000 * mtime);
-          if (startDT.getTime() === 0 || dt < startDT) startDT = dt;
-          if (endDT.getTime() === 0 || dt > endDT) endDT = dt;
-        }
-      }
-
-      return (
-        <Descriptions size="small" layout="horizontal" column={1}>
-          <Descriptions.Item label="Total size" span={1}>
-            {human_readable_size(totSize)}
-          </Descriptions.Item>
-          {startDT.getTime() > 0 ? (
-            <Descriptions.Item label="Modified" span={1}>
-              <div>
-                <TimeAgo date={startDT} /> – <TimeAgo date={endDT} />
-              </div>
-            </Descriptions.Item>
-          ) : undefined}
-        </Descriptions>
-      );
-    }
-  }
-
   function renderSelectedControls() {
     return (
-      <Space direction="vertical" size="small" style={PANEL_STYLE}>
-        {singleFile
-          ? singleFile.isdir
-            ? renderButtons(ACTION_BUTTONS_DIR)
-            : renderButtons(ACTION_BUTTONS_FILE.filter((n) => n !== "download"))
-          : checked_files.size > 1
-          ? renderButtons(ACTION_BUTTONS_MULTI)
-          : undefined}
-        {renderFileInfo()}
-      </Space>
+      <FilesSelectedControls
+        project_id={project_id}
+        checked_files={checked_files}
+        directoryFiles={directoryFiles}
+        open={open}
+        showFileSharingDialog={showFileSharingDialog}
+        getFile={getFile}
+        mode="bottom"
+        activeFile={activeFile}
+      />
     );
   }
 
@@ -470,7 +279,7 @@ export function FilesBottom({
         if (!f.isdir) totSize += f.size ?? 0;
       }
       return (
-        <div style={PANEL_STYLE}>
+        <div style={PANEL_STYLE_BOTTOM}>
           No files selected. Total size {human_readable_size(totSize)}.
         </div>
       );
@@ -588,39 +397,6 @@ export function FilesBottom({
         </Space.Compact>
       </Space>
     );
-  }
-
-  function renderSelectButtons() {
-    if (mode !== "select") return;
-    if (checked_files.size === 0) {
-      return (
-        <Tooltip title="Select all files">
-          <Button
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              selectAllFiles();
-            }}
-          >
-            All
-          </Button>
-        </Tooltip>
-      );
-    } else {
-      return (
-        <Tooltip title="Deselect all selected files">
-          <Button
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              clearAllSelections(false);
-            }}
-          >
-            Clear
-          </Button>
-        </Tooltip>
-      );
-    }
   }
 
   function setActiveKeyHandler(keys: PanelKey[]) {

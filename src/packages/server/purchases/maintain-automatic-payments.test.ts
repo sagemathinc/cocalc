@@ -199,11 +199,7 @@ describe("testing automatic payments in several situations", () => {
     );
     collect.length = 0;
     await maintainAutomaticPayments();
-    expect(collect).toEqual([
-      {
-        account_id,
-        amount: pay_as_you_go_min_payment,
-      },
-    ]);
+    // DO NOT collect whne amount is less than pay as you go min
+    expect(collect).toEqual([]);
   });
 });

@@ -66,13 +66,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
   }
 
-  private set_project_open(project_id: string): void {
+  private isProjectOpen = (project_id: string): boolean => {
+    return store.get("open_projects").indexOf(project_id) != -1;
+  };
+
+  private setProjectOpen = (project_id: string): void => {
     const x = store.get("open_projects");
     const index = x.indexOf(project_id);
     if (index === -1) {
       this.setState({ open_projects: x.push(project_id) });
     }
-  }
+  };
 
   // Do not call this directly to close a project.  Instead call
   //   redux.getActions('page').close_project_tab(project_id),
@@ -430,7 +434,12 @@ export class ProjectsActions extends Actions<ProjectsState> {
         .getActions("page")
         .set_active_tab(opts.project_id, opts.change_history);
     }
-    this.set_project_open(opts.project_id);
+    if (!this.isProjectOpen(opts.project_id)) {
+      this.setProjectOpen(opts.project_id);
+      if (opts.restore_session) {
+        redux.getActions("page").restore_session(opts.project_id);
+      }
+    }
     if (opts.target != null) {
       project_actions.load_target(
         opts.target,
@@ -439,9 +448,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
         opts.change_history,
         opts.fragmentId,
       );
-    }
-    if (opts.restore_session) {
-      redux.getActions("page").restore_session(opts.project_id);
     }
     // initialize project
     project_actions.init();

@@ -7,7 +7,7 @@ Renewing a subscription means that two big things happen:
  - the license end date is increased by the period: 'month' or 'year'
  - a purchase is created to pay for that period.
 
-Also, the current_period dates for the subscription are updated, and 
+Also, the current_period dates for the subscription are updated, and
 the status is active.
 */
 
@@ -16,6 +16,7 @@ import getLogger from "@cocalc/backend/logger";
 import dayjs from "dayjs";
 import editLicense from "./edit-license";
 import type { Status } from "@cocalc/util/db-schema/subscriptions";
+import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 
 const logger = getLogger("purchases:renew-subscription");
 
@@ -59,7 +60,7 @@ export default async function renewSubscription({
 
     await client.query(
       "UPDATE subscriptions SET status='active',current_period_start=$1,current_period_end=$2,latest_purchase_id=$3 WHERE id=$4",
-      [subtractInterval(end, interval), end, purchase_id, subscription_id]
+      [subtractInterval(end, interval), end, purchase_id, subscription_id],
     );
     await client.query("COMMIT");
     return purchase_id;
@@ -90,7 +91,7 @@ function subtractInterval(expires: Date, interval: "month" | "year"): Date {
 
 export function intervalContainingNow(
   end: Date,
-  interval: "month" | "year"
+  interval: "month" | "year",
 ): { start: Date; end: Date } {
   const now = new Date();
   // not being clever, since usually the interval needed is just 1 or 2 steps away.
@@ -119,6 +120,7 @@ export async function getSubscription(subscription_id: number): Promise<{
   account_id: string;
   metadata: any;
   cost: number;
+  cost_per_hour: number;
   interval: "month" | "year";
   current_period_end: Date;
   status: Status; // used externally (not in this file)
@@ -126,10 +128,13 @@ export async function getSubscription(subscription_id: number): Promise<{
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT id, account_id, metadata, cost, interval, current_period_end, status FROM subscriptions WHERE id=$1",
-    [subscription_id]
+    [subscription_id],
   );
   if (rows.length == 0) {
     throw Error(`no subscription with id=${subscription_id}`);
   }
-  return rows[0];
+  return {
+    ...rows[0],
+    cost_per_hour: rows[0].cost / hoursInInterval(rows[0].interval),
+  };
 }

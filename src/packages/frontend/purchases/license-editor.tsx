@@ -51,7 +51,7 @@ const END_PRESETS: {
   { label: "3 Months", number: 3, interval: "month" },
   { label: "4 Months", number: 4, interval: "month" },
   { label: "1 Year", number: 1, interval: "year", color: "green" },
-  { label: "Cancel", number: 0, interval: "day", color: "red" },
+  { label: "Cancel Immediately", number: 0, interval: "day", color: "red" },
 ];
 
 export default function LicenseEditor({
@@ -114,7 +114,7 @@ export default function LicenseEditor({
           return (
             <Tag
               key={label}
-              style={{ cursor: "pointer" }}
+              style={{ cursor: "pointer", marginTop:'5px' }}
               color={color ?? "blue"}
               onClick={() => {
                 const now = dayjs();

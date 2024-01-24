@@ -17,6 +17,10 @@ export interface Cost {
   cost_per_project_per_month: number;
   cost_sub_month: number;
   cost_sub_year: number;
+  // if buying a subscription, the cost for the first period
+  // may be less than cost_sub_month / cost_sub_year, depending
+  // on the closing statement date of the user.
+  cost_sub_first_period?: number;
 }
 
 export type CostInput =
@@ -32,8 +36,8 @@ export interface CostInputPeriod extends Cost {
 }
 
 export interface StartEndDates {
-  start: Date;
-  end: Date;
+  start: Date | null;
+  end: Date | null;
 }
 
 export interface StartEndDatesWithStrings {
@@ -50,7 +54,7 @@ import type { Uptime } from "@cocalc/util/consts/site-license";
 import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import type { CustomDescription, Period } from "../../upgrades/shopping";
 
-export type PurchaseInfoQuota = {
+interface PurchaseInfoQuota0 {
   type: "quota";
   user: User;
   upgrade: Upgrade;
@@ -71,8 +75,11 @@ export type PurchaseInfoQuota = {
   custom_always_running?: boolean; // no longer really used, defined by custom_uptime above!
   boost?: boolean;
   run_limit?: number;
-} & StartEndDates &
-  CustomDescription;
+}
+
+export type PurchaseInfoQuota = PurchaseInfoQuota0 &
+  CustomDescription &
+  StartEndDates;
 
 export type PurchaseInfoVoucher = {
   type: "vouchers";
