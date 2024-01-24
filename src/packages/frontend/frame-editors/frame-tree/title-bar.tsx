@@ -266,17 +266,14 @@ export function FrameTitleBar(props: Props) {
       return true;
     }
 
-    // check button spec for current editor:
-    const buttons = props.spec.buttons;
-    if (buttons != null) {
-      if (!buttons[name]) {
-        // not in the spec
-        return false;
-      }
-      if (buttons[`-${name}`]) {
-        // explicitly hidden by the spec
-        return false;
-      }
+    // check editor spec for current editor:
+    if (!props.spec.buttons?.[name] && !props.spec.customize_buttons?.[name]) {
+      // not in the spec
+      return false;
+    }
+    if (props.spec.buttons?.[`-${name}`]) {
+      // explicitly hidden by the spec
+      return false;
     }
     if (cmd?.disable && student_project_functionality[cmd.disable]) {
       return false;
@@ -435,7 +432,12 @@ export function FrameTitleBar(props: Props) {
   }) {
     // it's an action defined by the name of that action, so visible
     // only if that function is defined.
-    if (name && props.editor_actions[name] == null && cmd?.onClick == null) {
+    if (
+      name &&
+      props.editor_actions[name] == null &&
+      cmd?.onClick == null &&
+      cmd?.children == null
+    ) {
       // action not defined, so only chance is if onClick is defined
       // but it isn't
       return null;
@@ -945,10 +947,13 @@ export function FrameTitleBar(props: Props) {
           paddingTop: props.is_only || props.is_full ? "7px" : "5px",
         }}
       >
-        {v.map((x) => x.menu)}
+        {v.slice(0, -1).map((x) => x.menu)}
+        {v[v.length - 1]?.menu}
         {renderComputeServer()}
       </div>
     );
+    // todo move compute server as earlier menu, when it is a menu.
+    // seems too horrible right now since it is a selector.
   }
 
   function renderButtons(style?: CSS, noRefs?): Rendered {

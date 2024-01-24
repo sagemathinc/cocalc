@@ -15,7 +15,8 @@ import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-const PROJECT_COLOR = "#f6ffed";
+//const PROJECT_COLOR = "#f6ffed";
+const PROJECT_COLOR = "#fff";
 
 interface Option {
   position?: number;
@@ -211,7 +212,8 @@ export default function SelectComputeServer({
       {
         label: (
           <div style={{ fontSize: "12pt" }}>
-            Where to run this {type == "terminal" ? "Terminal" : "Notebook"}
+            <Icon name="servers" /> Where to run this{" "}
+            {type == "terminal" ? "Terminal" : "Notebook"}
           </div>
         ),
         options: [
@@ -309,15 +311,7 @@ export default function SelectComputeServer({
         allowClear
         bordered={false}
         disabled={loading}
-        placeholder={
-          <span style={{ color: "#666" }}>
-            <Icon
-              style={{ marginRight: "5px", color: "#666" }}
-              name="servers"
-            />{" "}
-            Server
-          </span>
-        }
+        placeholder={<span style={{ color: "#000" }}>Server</span>}
         open={open}
         onSelect={(id) => {
           if (id == "create") return;
@@ -332,7 +326,14 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value && value != "0" ? "175px" : "120px",
+          width:
+            !open && value == "0"
+              ? undefined
+              : open
+              ? "300px"
+              : value && value != "0"
+              ? "175px"
+              : "120px",
           //background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
@@ -342,7 +343,7 @@ export default function SelectComputeServer({
         keyboard
         title={
           idNum == 0 ? (
-            <>Run in this Project?</>
+            <>Run in this Project</>
           ) : (
             <>Run on the compute server "{computeServers[idNum]?.title}"?</>
           )

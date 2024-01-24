@@ -48,9 +48,19 @@ export const MENUS = {
     pos: 3,
     groups: ["action", "build", "scan", "other-users", "get-info"],
   },
+  cell: {
+    label: "Cell",
+    pos: 4,
+    groups: ["jupyter-cell-run", "jupyter-cell-type"],
+  },
+  kernel: {
+    label: "Kernel",
+    pos: 5,
+    groups: ["jupyter-kernel-control"],
+  },
   help: {
     label: "Help",
-    pos: 4,
+    pos: 100,
     groups: ["search-commands", "help-link", "tour"],
   },
 } as const;
@@ -782,7 +792,66 @@ export const COMMANDS: { [command: string]: Command } = {
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(),
   },
-} as const;
+  "jupyter-run-cell": {
+    title: "Run all cells that are currently selected",
+    label: "Run Cells",
+    group: "jupyter-cell-run",
+    icon: "step-forward",
+    keyboard: `ctrl + enter, ${IS_MACOS ? "⌘ + enter" : ""} `,
+    onClick: ({ props }) => {
+      const frame_actions = props.actions.frame_actions?.[props.id];
+      frame_actions.run_selected_cells();
+      frame_actions.set_mode("escape");
+      frame_actions.scroll("cell visible");
+    },
+  },
+  "jupyter-cell-type": {
+    label: "Cell Type",
+    group: "jupyter-cell-type",
+    icon: "code-outlined",
+    children: [
+      {
+        keyboard: "Y",
+        label: "Code",
+        icon: "code-outlined",
+        onClick: ({ props }) => {
+          const frame_actions = props.actions.frame_actions?.[props.id];
+          frame_actions?.set_selected_cell_type("code");
+        },
+      },
+      {
+        keyboard: "M",
+        label: "Markdown",
+        icon: "markdown",
+        onClick: ({ props }) => {
+          const frame_actions = props.actions.frame_actions?.[props.id];
+          frame_actions?.set_selected_cell_type("markdown");
+        },
+      },
+      {
+        keyboard: "R",
+        label: "Raw NBConvert",
+        icon: "file-archive",
+        onClick: ({ props }) => {
+          const frame_actions = props.actions.frame_actions?.[props.id];
+          frame_actions?.set_selected_cell_type("raw");
+        },
+      },
+    ],
+  },
+  "jupyter-kernel-restart": {
+    keyboard: "0, 0",
+    label: "Restart",
+    title:
+      "Restart the current Jupyter kernel.  There is a kernel pool, so restarting is fast, but you may need to restart twice if you installed a new package.",
+    group: "jupyter-kernel-control",
+    icon: "refresh",
+    onClick: ({ props }) => {
+      const jupyter_actions = props.actions.jupyter_actions;
+      jupyter_actions?.confirm_restart();
+    },
+  },
+};
 
 function fileAction(action) {
   return {

@@ -21,6 +21,7 @@ import { Introspect } from "./introspect/introspect";
 const SNIPPET_ICON_NAME =
   require("@cocalc/frontend/assistant/common").ICON_NAME;
 import { JupyterSnippets } from "./snippets";
+//import { commands } from "@cocalc/frontend/jupyter/commands";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -48,6 +49,9 @@ export const EDITOR_SPEC = {
       "terminal",
       "help",
       "compute_server",
+      "jupyter-run-cell",
+      "jupyter-cell-type",
+      "jupyter-kernel-restart",
     ]),
     customize_buttons: {
       guide: {
