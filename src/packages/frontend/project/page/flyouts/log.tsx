@@ -259,10 +259,6 @@ export function LogFlyout({
           });
           handleFileEntryClick(e, path, project_id);
         }}
-        onClose={(e: React.MouseEvent, path: string) => {
-          e.stopPropagation();
-          actions?.close_tab(path);
-        }}
         onMouseDown={(e: React.MouseEvent) => {
           if (e.button === 1) {
             // middle mouse click

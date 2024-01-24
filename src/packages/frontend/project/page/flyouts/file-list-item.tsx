@@ -189,7 +189,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const bodyRef = useRef<HTMLDivElement>(null);
 
   function renderCloseItem(item: Item): JSX.Element | null {
-    if (!item.isopen) return null;
+    if (onClose == null || !item.isopen) return null;
+
     const { name } = item;
     return (
       <Icon
