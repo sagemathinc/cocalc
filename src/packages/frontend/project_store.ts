@@ -55,6 +55,8 @@ import {
   FLYOUT_ACTIVE_DEFAULT_MODE,
   FLYOUT_LOG_DEFAULT_DEDUP,
   FLYOUT_LOG_DEFAULT_MODE,
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
@@ -90,6 +92,7 @@ export interface ProjectStoreState {
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
   flyout_log_deduplicate: FlyoutLogDeduplicate;
+  flyout_log_filter: immutable.List<FlyoutLogFilter>;
   flyout_active_mode: FlyoutActiveMode;
 
   // Project Files
@@ -268,6 +271,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
       flyout_log_deduplicate: FLYOUT_LOG_DEFAULT_DEDUP,
       flyout_active_mode: FLYOUT_ACTIVE_DEFAULT_MODE,
+      flyout_log_filter: immutable.List(FLYOUT_LOG_FILTER_DEFAULT),
 
       // Project Files
       activity: undefined,

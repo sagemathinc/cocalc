@@ -10,6 +10,8 @@ import {
   FLYOUT_ACTIVE_DEFAULT_MODE,
   FLYOUT_LOG_DEFAULT_DEDUP,
   FLYOUT_LOG_DEFAULT_MODE,
+  FLYOUT_LOG_FILTER_MODES,
+  FlyoutLogFilter,
 } from "./utils";
 
 const LogModes = ["files", "history"] as const;
@@ -25,18 +27,22 @@ export function isFlyoutLogDeduplicate(
   return typeof val === "boolean";
 }
 
-const ActiveModes = ["folder", "type", "tabs"] as const;
-export type FlyoutActiveMode = (typeof ActiveModes)[number];
-export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
-  return ActiveModes.includes(val as any);
+export function isFlyoutLogFilterMode(val?: string): val is FlyoutLogFilter {
+  return FLYOUT_LOG_FILTER_MODES.includes(val as any);
 }
 
-const ActiveTabSorts = ["custom", "alphanum-up", "alphanum-down"] as const;
-export type FlyoutActiveTabSort = (typeof ActiveTabSorts)[number];
+const ACTIVE_MODES = ["folder", "type", "tabs"] as const;
+export type FlyoutActiveMode = (typeof ACTIVE_MODES)[number];
+export function isFlyoutActiveMode(val?: string): val is FlyoutActiveMode {
+  return ACTIVE_MODES.includes(val as any);
+}
+
+const ACTIVE_TAB_SORTS = ["custom", "alphanum-up", "alphanum-down"] as const;
+export type FlyoutActiveTabSort = (typeof ACTIVE_TAB_SORTS)[number];
 export function isFlyoutActiveTabSort(
   val?: string,
 ): val is FlyoutActiveTabSort {
-  return ActiveTabSorts.includes(val as any);
+  return ACTIVE_TAB_SORTS.includes(val as any);
 }
 
 export type FlyoutActiveStarred = string[];
@@ -61,6 +67,7 @@ export type LSFlyout = {
   starred?: FlyoutActiveStarred;
   showStarred?: boolean;
   activeTabSort?: FlyoutActiveTabSort;
+  logFilter?: FlyoutLogFilter[];
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -84,9 +91,11 @@ export function storeFlyoutState(
     showStarred?: boolean;
     width?: number | null;
     activeTabSort?: FlyoutActiveTabSort;
+    logFilter?: FlyoutLogFilter[];
   },
 ): void {
-  const { scroll, expanded, width, mode, files, deduplicate } = state;
+  const { scroll, expanded, width, mode, files, deduplicate, logFilter } =
+    state;
   const key = lsKey(project_id);
   const current = LS.get<LSFlyout>(key) ?? {};
   current.scroll ??= {};
@@ -109,12 +118,18 @@ export function storeFlyoutState(
     delete current.expanded;
   }
 
-  if (isFlyoutLogMode(mode)) {
-    current.mode = mode;
-  }
+  if (flyout === "log") {
+    if (isFlyoutLogMode(mode)) {
+      current.mode = mode;
+    }
 
-  if (isFlyoutLogDeduplicate(deduplicate)) {
-    current.deduplicate = deduplicate;
+    if (isFlyoutLogDeduplicate(deduplicate)) {
+      current.deduplicate = deduplicate;
+    }
+
+    if (logFilter != null && Array.isArray(logFilter)) {
+      current.logFilter = logFilter.filter(isFlyoutLogFilterMode);
+    }
   }
 
   if (flyout === "files" && files != null) {

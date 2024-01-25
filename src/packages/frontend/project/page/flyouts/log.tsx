@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Flex, Input } from "antd";
+import { Alert, Button, Flex, Input, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -102,18 +103,90 @@ function deriveFiles(
     .toJS() as any;
 }
 
-function deriveHistory(project_log, searchTerm: string, max: number) {
+const PROJECT_EVENTS = [
+  "project_start_requested",
+  "project_stop_requested",
+  "project_restart_requested",
+  "project_stopped",
+  "project_started",
+  "start_project",
+  "license",
+  "pay-as-you-go-upgrade",
+] as const;
+
+function isProjectEvent(event, entry: EventRecordMap): boolean {
+  if (PROJECT_EVENTS.includes(event)) {
+    return true;
+  }
+  if (event === "set") {
+    const attrs = ["title", "description", "image", "name"];
+    for (const attr of attrs) {
+      if (typeof entry.getIn(["event", attr]) === "string") return true;
+    }
+  }
+  return false;
+}
+
+function isFileEvent(event, entry: EventRecordMap): boolean {
+  if (event === "open") {
+    if (typeof entry.getIn(["event", "filename"]) === "string") {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isUserEvent(event): boolean {
+  if (event === "invite_user" || event === "remove_collaborator") {
+    return true;
+  }
+  return false;
+}
+
+function deriveHistory(
+  project_log,
+  searchTerm: string,
+  max: number,
+  filter: {
+    showOpenFiles: boolean;
+    showFileActions: boolean;
+    showProject: boolean;
+    showShare: boolean;
+    showUser: boolean;
+    showOther: boolean;
+  },
+) {
+  const {
+    showOpenFiles,
+    showFileActions,
+    showProject,
+    showShare,
+    showUser,
+    showOther,
+  } = filter;
   const searchWords = search_split(searchTerm);
 
   return project_log
     .valueSeq()
-    .filter(
-      (entry: EventRecordMap) =>
-        !(
-          entry.getIn(["event", "filename"]) &&
-          entry.getIn(["event", "event"]) === "open"
-        ),
-    )
+    .filter((entry: EventRecordMap) => {
+      const event = entry.getIn(["event", "event"]);
+      if (isFileEvent(event, entry)) {
+        return showOpenFiles;
+      }
+      if (event === "file_action") {
+        return showFileActions;
+      }
+      if (isProjectEvent(event, entry)) {
+        return showProject;
+      }
+      if (event === "public_path") {
+        return showShare;
+      }
+      if (isUserEvent(event)) {
+        return showUser;
+      }
+      return showOther;
+    })
     .filter((entry: EventRecordMap) => {
       if (searchTerm === "") return true;
       const searchStr = to_search_string(entry.toJS());
@@ -139,6 +212,13 @@ export function LogFlyout({
 }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
+  const logFilter = useTypedRedux({ project_id }, "flyout_log_filter");
+  const showOpenFiles = logFilter.contains("open");
+  const showFileActions = logFilter.contains("files");
+  const showProject = logFilter.contains("project");
+  const showOther = logFilter.contains("other");
+  const showUser = logFilter.contains("user");
+  const showShare = logFilter.contains("share");
   const deduplicate: FlyoutLogDeduplicate = useTypedRedux(
     { project_id },
     "flyout_log_deduplicate",
@@ -171,11 +251,18 @@ export function LogFlyout({
       case "files":
         return deriveFiles(log, search, max, deduplicate);
       case "history":
-        return deriveHistory(log, search, max);
+        return deriveHistory(log, search, max, {
+          showOpenFiles,
+          showFileActions,
+          showProject,
+          showShare,
+          showUser,
+          showOther,
+        });
       default:
         unreachable(mode);
     }
-  }, [project_log, project_log_all, search, max, mode, deduplicate]);
+  }, [project_log, project_log_all, search, max, mode, deduplicate, logFilter]);
 
   const [showExtra, showExtra2] = useMemo(() => {
     return [
@@ -216,8 +303,14 @@ export function LogFlyout({
 
   function renderFileItemExtra2(entry: OpenedFile) {
     if (!showExtra2) return null;
-    if (!entry.account_id) return;
-    return <User account_id={entry.account_id} user_map={user_map} />;
+    const { account_id } = entry;
+    if (!account_id) return;
+    return (
+      <>
+        <Avatar account_id={account_id} size={24} />{" "}
+        <User account_id={entry.account_id} user_map={user_map} />
+      </>
+    );
   }
 
   function renderFileItem(index: number, entry: OpenedFile) {
@@ -381,7 +474,6 @@ export function LogFlyout({
   function renderDedup() {
     if (mode === "history") return null;
     const icon: IconName = deduplicate ? "file" : "copy";
-    const txt = deduplicate ? "Show all" : "Deduplicate";
     return (
       <BSButton
         active={!deduplicate}
@@ -397,34 +489,161 @@ export function LogFlyout({
           actions?.setFlyoutLogDeduplicate(!deduplicate);
         }}
       >
-        <Icon name={icon} /> {txt}
+        <Icon name={icon} /> Show all
       </BSButton>
     );
   }
 
+  function renderFilter() {
+    if (mode === "files") return null;
+    return (
+      <>
+        Show:
+        <Space.Compact>
+          <BSButton
+            active={showOpenFiles}
+            bsSize="xsmall"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions?.setFlyoutLogFilter("open", !showOpenFiles);
+            }}
+            title={"Show file open events"}
+          >
+            <Icon name="edit" />
+          </BSButton>
+          <BSButton
+            active={showFileActions}
+            bsSize="xsmall"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions?.setFlyoutLogFilter("files", !showFileActions);
+            }}
+            title={"Show file action events"}
+          >
+            <Icon name="files" />
+          </BSButton>
+          <BSButton
+            active={showProject}
+            bsSize="xsmall"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions?.setFlyoutLogFilter("project", !showProject);
+            }}
+            title={"Show project events"}
+          >
+            <Icon name="edit" />
+          </BSButton>
+          <BSButton
+            active={showShare}
+            bsSize="xsmall"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions?.setFlyoutLogFilter("share", !showShare);
+            }}
+            title={"Show sharing files events"}
+          >
+            <Icon name="share-square" />
+          </BSButton>
+          <BSButton
+            active={showUser}
+            bsSize="xsmall"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions?.setFlyoutLogFilter("user", !showUser);
+            }}
+            title={"Show user events"}
+          >
+            <Icon name="users" />
+          </BSButton>
+          <BSButton
+            active={showOther}
+            bsSize="xsmall"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions?.setFlyoutLogFilter("other", !showOther);
+            }}
+            title={"Show other events"}
+          >
+            <Icon name="solution" />
+          </BSButton>
+        </Space.Compact>
+      </>
+    );
+  }
+
+  function activeFilterWarning() {
+    if (mode !== "history") return null;
+    if (logFilter.size > 0) return null;
+
+    return (
+      <Alert
+        type="info"
+        banner
+        showIcon={false}
+        style={{ padding: FLYOUT_PADDING, margin: 0 }}
+        description={
+          <>
+            <Tooltip title="Reset filter" placement="bottom">
+              <Button
+                size="small"
+                type="text"
+                style={{ float: "right", color: COLORS.GRAY_M }}
+                onClick={() => actions?.resetFlyoutLogFilter()}
+                icon={<Icon name="close-circle-filled" />}
+              >
+                Reset
+              </Button>
+            </Tooltip>
+            All activies are filtered!
+          </>
+        }
+      />
+    );
+  }
+
+  function renderControls() {
+    switch (mode) {
+      case "files":
+        return renderDedup();
+      case "history":
+        return renderFilter();
+      default:
+        unreachable(mode);
+    }
+  }
+
   return (
     <>
-      <Flex
-        justify="space-between"
-        align="center"
-        gap="middle"
-        style={{ marginRight: FLYOUT_PADDING }}
+      <Space
+        direction="vertical"
+        style={{
+          flex: "0 0 auto",
+          borderBottom: FIX_BORDER,
+        }}
       >
-        <Input
-          placeholder="Search..."
-          size="small"
-          value={searchTerm}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            handleOnChange(e.target.value);
-          }}
-          onKeyDown={onKeyDownHandler}
-          onFocus={() => setScrollIdxHide(false)}
-          onBlur={() => setScrollIdxHide(true)}
-          allowClear
-          prefix={<Icon name="search" />}
-        />
-        {renderDedup()}
-      </Flex>
+        <Flex
+          justify="space-between"
+          align="center"
+          gap="middle"
+          style={{ marginRight: FLYOUT_PADDING }}
+        >
+          <Input
+            placeholder="Search..."
+            size="small"
+            value={searchTerm}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              handleOnChange(e.target.value);
+            }}
+            onKeyDown={onKeyDownHandler}
+            onFocus={() => setScrollIdxHide(false)}
+            onBlur={() => setScrollIdxHide(true)}
+            allowClear
+            prefix={<Icon name="search" />}
+          />
+          {renderControls()}
+        </Flex>
+        {activeFilterWarning()}
+      </Space>
       {wrap(list(), { marginTop: "10px" })}
     </>
   );
