@@ -125,23 +125,98 @@ const JUPYTER_MENUS = {
     "cell-copy": [
       "cut cell",
       "copy cell",
-      "paste cell above",
-      "paste cell below",
-      "paste cell and replace",
+      {
+        icon: "paste",
+        name: "paste-cells",
+        label: "Paste Cells",
+        children: [
+          "paste cell and replace",
+          "paste cell above",
+          "paste cell below",
+        ],
+      },
     ],
-    "delete-cells": ["delete cell", "delete all blank code cells"],
-    "cell-selection": ["select all cells", "deselect all cells"],
-    "move-cells": ["move cell up", "move cell down"],
-    "split-merge-cells": [
-      "split cell at cursor",
-      "merge cell with previous cell",
-      "merge cell with next cell",
-      "merge cells",
+    "insert-delete": [
+      {
+        label: "Insert Cell",
+        name: "insert-cell",
+        icon: "plus",
+        children: ["insert cell above", "insert cell below"],
+      },
+      {
+        label: "Delete Cells",
+        name: "delete-cell",
+        children: ["delete cell", "delete all blank code cells"],
+      },
     ],
-    "clear-cells": ["clear cell output", "clear all cells output"],
+    "cell-selection": [
+      {
+        label: "Select Cells",
+        name: "select",
+        children: ["select all cells", "deselect all cells"],
+      },
+    ],
+    "cell-type": [
+      {
+        name: "cell-type",
+        label: "Cell Type",
+        children: [
+          "change cell to code",
+          "change cell to markdown",
+          "change cell to raw",
+        ],
+      },
+    ],
+    "move-cells": [
+      {
+        name: "move",
+        label: "Move Cells",
+        children: ["move cell up", "move cell down"],
+      },
+    ],
+    "split-and-merge-cells": [
+      {
+        name: "split-merge-cells",
+        label: "Split and Merge",
+        children: [
+          "split cell at cursor",
+          "merge cell with previous cell",
+          "merge cell with next cell",
+          "merge cells",
+        ],
+      },
+    ],
+    "clear-cells": [
+      {
+        name: "clear",
+        label: "Clear Output",
+        children: [
+          "clear cell output",
+          "clear all cells output",
+          "confirm restart kernel and clear output",
+        ],
+      },
+    ],
     find: ["find and replace"],
-    protect: ["write protect", "delete protect"],
-    hide: ["toggle hide input", "toggle hide output"],
+    "format-cells": [
+      {
+        label: "Format Cells",
+        name: "cell-format",
+        children: ["format cells", "format all cells"],
+      },
+    ],
+    "cell-toggle": [
+      {
+        label: "Toggle Selected Cells",
+        name: "cell-toggle",
+        children: [
+          "toggle hide input",
+          "toggle hide output",
+          "write protect",
+          "delete protect",
+        ],
+      },
+    ],
     "insert-image": ["insert image"],
   },
   jupyter_run: {
@@ -160,17 +235,29 @@ const JUPYTER_MENUS = {
     pos: 5,
     "kernel-control": ["interrupt kernel"],
     "restart-kernel": [
-      "confirm restart kernel",
-      "confirm restart kernel and clear output",
-      "confirm restart kernel and run all cells",
+      {
+        label: "Restart Kernel",
+        name: "restart",
+        children: [
+          "confirm restart kernel",
+          "confirm restart kernel and clear output",
+          "confirm restart kernel and run all cells",
+        ],
+      },
+      "confirm restart kernel and run all cells without halting on error",
     ],
     "shutdown-kernel": ["confirm shutdown kernel"],
+    "refresh kernels": ["refresh kernels"],
+    "no-kernel": ["no kernel"],
+    "custom-kernel": ["custom kernel"],
   },
 };
 
 function initMenus() {
   const MENUS: Menus = {};
-  const COMMANDS: { [name: string]: string } = {};
+  const COMMANDS: {
+    [name: string]: { group: string; pos: number; children?; label?; icon? };
+  } = {};
   for (const menu in JUPYTER_MENUS) {
     const spec = JUPYTER_MENUS[menu];
     const groups: string[] = [];
@@ -178,8 +265,16 @@ function initMenus() {
       if (group != "label" && group != "pos") {
         const gp = `jupyter-${group}`;
         groups.push(gp);
+        let pos = -1;
         for (const cmd of spec[group]) {
-          COMMANDS[cmd] = gp;
+          pos += 1;
+          if (typeof cmd == "string") {
+            COMMANDS[cmd] = { group: gp, pos };
+          } else {
+            // submenu
+            const { name, label, children, icon } = cmd;
+            COMMANDS[name] = { group: gp, pos, children, label, icon };
+          }
         }
       }
     }
@@ -187,6 +282,7 @@ function initMenus() {
   }
 
   // organization of the commands into groups
+  // console.log("add Menus", MENUS);
   addMenus(MENUS);
 
   // the commands
@@ -194,27 +290,54 @@ function initMenus() {
   const allCommands = commands(allActions);
   const C: { [name: string]: Command } = {};
   for (const name in COMMANDS) {
-    const cmd = allCommands[name];
-    if (cmd == null) {
-      throw Error(`invalid Jupyter command name "${name}"`);
-    }
+    const { group, pos, children, label, icon } = COMMANDS[name];
     const cmdName = `jupyter-${name}`;
-    C[cmdName] = {
-      title: cmd.t,
-      label: cmd.m,
-      group: COMMANDS[name],
-      icon: cmd.i,
-      keyboard: cmd.k ? cmd.k.map(shortcut_to_string).join(", ") : undefined,
-      onClick: ({ props }) => {
-        allActions.frame_actions = props.actions.frame_actions?.[props.id];
-        allActions.jupyter_actions = props.actions.jupyter_actions;
-        allActions.editor_actions = props.actions;
-        cmd.f();
-      },
-    };
+    if (children == null) {
+      const cmd = allCommands[name];
+      if (cmd == null) {
+        throw Error(`invalid Jupyter command name "${name}"`);
+      }
+      C[cmdName] = {
+        pos,
+        title: cmd.t,
+        label: cmd.m,
+        group,
+        icon: cmd.i,
+        keyboard: cmd.k ? cmd.k.map(shortcut_to_string).join(", ") : undefined,
+        onClick: ({ props }) => {
+          allActions.frame_actions = props.actions.frame_actions?.[props.id];
+          allActions.jupyter_actions = props.actions.jupyter_actions;
+          allActions.editor_actions = props.actions;
+          cmd.f();
+        },
+      };
+    } else {
+      const childCommands: Partial<Command>[] = [];
+      for (const childName of children) {
+        const cmd = allCommands[childName];
+        childCommands.push({
+          title: cmd.t,
+          label: cmd.m,
+          icon: cmd.i,
+          onClick: ({ props }) => {
+            allActions.frame_actions = props.actions.frame_actions?.[props.id];
+            allActions.jupyter_actions = props.actions.jupyter_actions;
+            allActions.editor_actions = props.actions;
+            cmd.f();
+          },
+        });
+      }
+      C[cmdName] = {
+        pos,
+        label,
+        group,
+        icon,
+        children: childCommands,
+      };
+    }
     jupyterCommands[cmdName] = true;
   }
-  console.log("adding commands", C);
+  // console.log("adding commands", C);
   addCommands(C);
 }
 
@@ -225,67 +348,3 @@ export const Editor = createEditor({
   editor_spec: EDITOR_SPEC,
   display_name: "JupyterNotebook",
 });
-
-/*
-addCommands({
-  "jupyter-run-cell": {
-    title: "Run all cells that are currently selected",
-    label: "Run Selected Cells",
-    group: "jupyter-cell-run",
-    icon: "step-forward",
-    keyboard: `ctrl + enter, ${IS_MACOS ? "⌘ + enter" : ""} `,
-    onClick: ({ props }) => {
-      const frame_actions = props.actions.frame_actions?.[props.id];
-      frame_actions.run_selected_cells();
-      frame_actions.set_mode("escape");
-      frame_actions.scroll("cell visible");
-    },
-  },
-  "jupyter-cell-type": {
-    label: "Cell Type",
-    group: "jupyter-cell-type",
-    icon: "code-outlined",
-    children: [
-      {
-        keyboard: "Y",
-        label: "Code",
-        icon: "code-outlined",
-        onClick: ({ props }) => {
-          const frame_actions = props.actions.frame_actions?.[props.id];
-          frame_actions?.set_selected_cell_type("code");
-        },
-      },
-      {
-        keyboard: "M",
-        label: "Markdown",
-        icon: "markdown",
-        onClick: ({ props }) => {
-          const frame_actions = props.actions.frame_actions?.[props.id];
-          frame_actions?.set_selected_cell_type("markdown");
-        },
-      },
-      {
-        keyboard: "R",
-        label: "Raw NBConvert",
-        icon: "file-archive",
-        onClick: ({ props }) => {
-          const frame_actions = props.actions.frame_actions?.[props.id];
-          frame_actions?.set_selected_cell_type("raw");
-        },
-      },
-    ],
-  },
-  "jupyter-kernel-restart": {
-    keyboard: "0, 0",
-    label: "Restart",
-    title:
-      "Restart the current Jupyter kernel.  There is a kernel pool, so restarting is fast, but you may need to restart twice if you installed a new package.",
-    group: "jupyter-kernel-control",
-    icon: "refresh",
-    onClick: ({ props }) => {
-      const jupyter_actions = props.actions.jupyter_actions;
-      jupyter_actions?.confirm_restart();
-    },
-  },
-});
-*/

@@ -290,13 +290,13 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       });
     }
 
-    function render_insert(): Rendered {
-      return render_menu({
-        heading: "Insert",
-        names: ["insert cell above", "insert cell below"],
-        disabled: read_only,
-      });
-    }
+//     function render_insert(): Rendered {
+//       return render_menu({
+//         heading: "Insert",
+//         names: ["insert cell above", "insert cell below"],
+//         disabled: read_only,
+//       });
+//     }
 
     function render_cell(): Rendered {
       return render_menu({
@@ -715,7 +715,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       >
         {render_file()}
         {render_view()}
-        {render_insert()}
         {render_cell()}
         {render_kernel()}
         {render_help()}

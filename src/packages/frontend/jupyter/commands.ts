@@ -91,7 +91,7 @@ export function commands(actions: AllActions): {
     },
 
     "change cell to code": {
-      m: "Change to code",
+      m: "Change Cell to Code",
       k: [{ which: 89, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("code"),
     },
@@ -128,25 +128,25 @@ export function commands(actions: AllActions): {
     },
 
     "change cell to markdown": {
-      m: "Change to markdown",
+      m: "Change Cell to Markdown",
       k: [{ which: 77, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("markdown"),
     },
 
     "change cell to raw": {
-      m: "Change to raw",
+      m: "Change Cell to Raw",
       k: [{ which: 82, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("raw"),
     },
 
     "clear all cells output": {
-      m: "Clear All Outputs",
+      m: "Clear All Cell Outputs",
       t: "Clear the output of all cells in the notebook",
       f: () => actions.jupyter_actions?.clear_all_outputs(),
     },
 
     "clear cell output": {
-      m: "Clear Output",
+      m: "Clear Output of Selected Cells",
       t: "Clear the output of the selected cells",
       f: () => actions.frame_actions?.clear_selected_outputs(),
     },
@@ -167,7 +167,7 @@ export function commands(actions: AllActions): {
 
     "confirm restart kernel": {
       m: "Restart Kernel...",
-      i: "refresh",
+      i: "reload",
       k: [{ mode: "escape", which: 48, twice: true }],
       f: () => actions.jupyter_actions?.confirm_restart(),
     },
@@ -179,6 +179,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel and clear output": {
+      i: "retweet",
       m: "Restart Kernel and Clear All Outputs...",
       menu: "Clear output...",
       f: () => actions.jupyter_actions?.restart_clear_all_output(),
@@ -196,7 +197,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel and run all cells without halting on error": {
-      m: "Run all (do not stop on errors)...",
+      m: "Run All (do not stop on errors)...",
       menu: "Restart and run all (do not stop on errors)...",
       i: "run",
       k: [{ which: 13, ctrl: true, shift: true }],
@@ -210,6 +211,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm shutdown kernel": {
+      i: "PoweroffOutlined",
       m: "Shutdown Kernel...",
       async f(): Promise<void> {
         const choice = await actions.jupyter_actions?.confirm_dialog({
@@ -337,7 +339,7 @@ export function commands(actions: AllActions): {
 
     "find and replace": {
       i: "replace",
-      m: "Find and replace",
+      m: "Find and Replace",
       k: [
         { mode: "escape", which: 70 },
         { alt: true, mode: "escape", which: 70 },
@@ -387,7 +389,8 @@ export function commands(actions: AllActions): {
     //ignore: undefined, // no clue what this means
 
     "insert cell above": {
-      m: "Insert cell above",
+      m: "Insert Cell Above",
+      i: "square",
       k: [{ mode: "escape", which: 65 }],
       f: () => {
         actions.frame_actions?.insert_cell(-1);
@@ -396,7 +399,7 @@ export function commands(actions: AllActions): {
 
     "insert cell below": {
       i: "plus",
-      m: "Insert cell below",
+      m: "Insert Cell Below",
       k: [{ mode: "escape", which: 66 }],
       f: () => {
         actions.frame_actions?.insert_cell(1);
@@ -439,14 +442,14 @@ export function commands(actions: AllActions): {
 
     "move cell down": {
       i: "arrow-down",
-      m: "Move Cells Down",
+      m: "Move Selected Cells Down",
       k: [{ alt: true, mode: "escape", which: 40 }],
       f: () => actions.frame_actions?.move_selected_cells(1),
     },
 
     "move cell up": {
       i: "arrow-up",
-      m: "Move Cells Up",
+      m: "Move Selected Cells Up",
       k: [{ alt: true, mode: "escape", which: 38 }],
       f: () => actions.frame_actions?.move_selected_cells(-1),
     },
@@ -601,8 +604,8 @@ export function commands(actions: AllActions): {
     },
 
     "paste cell and replace": {
-      // jupyter doesn't have this but it's supposed to be normal paste behavior
-      i: "clipboard",
+      // jupyter doesn't have this but it's normal paste behavior!
+      i: "paste",
       m: "Paste Cells and Replace",
       k: [
         { mode: "escape", alt: true, which: 86 },
@@ -619,17 +622,22 @@ export function commands(actions: AllActions): {
     },
 
     "no kernel": {
-      m: "Remove kernel from notebook...",
+      i: "ban",
+      m: "Remove Kernel from Notebook...",
+      t: "Set the notebook so that it doesn't have any kernel set at all.",
       f: () => actions.jupyter_actions?.confirm_remove_kernel(),
     },
 
     "refresh kernels": {
-      m: "Refresh kernel list",
+      i: "refresh",
+      m: "Refresh Kernel List",
       f: () => actions.jupyter_actions?.fetch_jupyter_kernels(),
     },
 
     "custom kernel": {
-      m: "How to create a custom kernel...",
+      i: "plus-circle",
+      m: "Create a Custom Kernel...",
+      t: "Show tutorial for how to create your own custom Jupyter kernel and use it here.",
       f: () => actions.jupyter_actions?.custom_jupyter_kernel_docs(),
     },
 
@@ -740,6 +748,7 @@ export function commands(actions: AllActions): {
     },
 
     "select all cells": {
+      i: "menu-outlined",
       m: "Select All Cells",
       k: [
         { alt: true, mode: "escape", which: 65 },
@@ -749,6 +758,7 @@ export function commands(actions: AllActions): {
     },
 
     "deselect all cells": {
+      i: "ban",
       m: "Deselect All Cells",
       f: () => actions.frame_actions?.unselect_all_cells(),
     },
@@ -811,6 +821,7 @@ export function commands(actions: AllActions): {
     },
 
     "shutdown kernel": {
+      i: "PoweroffOutlined",
       m: "Shutdown kernel",
       f: () => actions.jupyter_actions?.shutdown(),
     },
@@ -979,13 +990,13 @@ export function commands(actions: AllActions): {
 
     "format cells": {
       i: FORMAT_SOURCE_ICON,
-      m: "Format selected cells",
+      m: "Format Selected Cells",
       f: () => actions.frame_actions?.format_selected_cells(),
     },
 
     "format all cells": {
       i: FORMAT_SOURCE_ICON,
-      m: "Format all cells",
+      m: "Format All Cells",
       f: () => actions.frame_actions?.format_all_cells(),
     },
   };

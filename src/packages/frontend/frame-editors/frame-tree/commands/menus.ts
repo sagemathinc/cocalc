@@ -22,10 +22,12 @@ export function addMenus(menus: Menus) {
           throw Error(`attempt to change position of menu "${name}"`);
         }
       }
+      // console.log(`adding ${group} to ${JSON.stringify(MENUS[name].groups)}`);
       MENUS[name].groups.push(group);
     }
   }
 }
+// window.x = { MENUS };
 
 export function addCommandsToMenus(commands: { [command: string]: Command }) {
   for (const name in commands) {

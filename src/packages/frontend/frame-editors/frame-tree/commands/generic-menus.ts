@@ -27,7 +27,6 @@ addMenus({
       "find",
       "copy",
       "ai",
-      "jupyter-cell-type",
       "format",
       "config",
     ],

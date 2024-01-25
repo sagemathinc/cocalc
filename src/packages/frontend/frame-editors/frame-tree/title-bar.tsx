@@ -885,7 +885,7 @@ export function FrameTitleBar(props: Props) {
     }
   }
 
-  function createMenu(name: string) {
+  function renderMenu(name: string) {
     const { label, pos, groups } = MENUS[name];
     const v: MenuItem[] = [];
     for (const group of groups) {
@@ -947,7 +947,7 @@ export function FrameTitleBar(props: Props) {
 
     const v: { menu: JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
-      const x = createMenu(name);
+      const x = renderMenu(name);
       if (x != null) {
         v.push(x);
       }
