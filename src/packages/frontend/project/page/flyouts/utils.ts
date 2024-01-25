@@ -8,11 +8,13 @@ import { getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { DirectoryListingEntry } from "../../explorer/types";
 import { fileItemLeftBorder } from "./file-list-item";
-import { FlyoutActiveMode, FlyoutLogMode } from "./state";
+import { FlyoutActiveMode, FlyoutLogDeduplicate, FlyoutLogMode } from "./state";
 
 export const FLYOUT_LOG_DEFAULT_MODE: FlyoutLogMode = "files";
 
 export const FLYOUT_ACTIVE_DEFAULT_MODE: FlyoutActiveMode = "tabs";
+
+export const FLYOUT_LOG_DEFAULT_DEDUP: FlyoutLogDeduplicate = true;
 
 export const GROUP_STYLE: CSS = {
   fontWeight: "bold",

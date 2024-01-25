@@ -50,6 +50,7 @@ import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
 import {
   FlyoutActiveMode,
+  FlyoutLogDeduplicate,
   FlyoutLogMode,
   storeFlyoutState,
 } from "./project/page/flyouts/state";
@@ -626,6 +627,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public setFlyoutLogMode(mode: FlyoutLogMode): void {
     this.setState({ flyout_log_mode: mode });
     storeFlyoutState(this.project_id, "log", { mode });
+  }
+
+  public setFlyoutLogDeduplicate(deduplicate: FlyoutLogDeduplicate): void {
+    this.setState({ flyout_log_deduplicate: deduplicate });
+    storeFlyoutState(this.project_id, "log", { deduplicate });
   }
 
   public setFlyoutActiveMode(mode: FlyoutActiveMode): void {

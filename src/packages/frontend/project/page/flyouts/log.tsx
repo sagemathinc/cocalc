@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, Radio } from "antd";
+import { Button, Flex, Input } from "antd";
 import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   redux,
@@ -18,9 +19,8 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, IconName, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
 import {
   EventRecordMap,
@@ -38,54 +38,18 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
-import { FIXED_PROJECT_TABS } from "../file-tab";
-import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
+import {
+  FLYOUT_EXTRA2_WIDTH_PX,
+  FLYOUT_EXTRA_WIDTH_PX,
+  FLYOUT_PADDING,
+} from "./consts";
 import { FileListItem, fileItemStyle } from "./file-list-item";
-import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
+import { FlyoutLogDeduplicate, FlyoutLogMode } from "./state";
 
 interface OpenedFile {
   filename: string;
   time: Date;
   account_id: string;
-}
-
-export function LogHeader(): JSX.Element {
-  const { project_id } = useProjectContext();
-
-  const [mode, setModeState] = useState<FlyoutLogMode>(
-    getFlyoutLogMode(project_id),
-  );
-
-  function setMode(mode: FlyoutLogMode) {
-    if (isFlyoutLogMode(mode)) {
-      setModeState(mode);
-    } else {
-      console.warn(`Invalid flyout log mode: ${mode}`);
-    }
-  }
-
-  // any mode change triggers an action to compute it
-  const actions = useActions({ project_id });
-  useEffect(() => actions?.setFlyoutLogMode(mode), [mode]);
-
-  function renderToggle() {
-    return (
-      <Radio.Group
-        value={mode}
-        onChange={(val) => setMode(val.target.value)}
-        size="small"
-      >
-        <Radio.Button value="files">Files</Radio.Button>
-        <Radio.Button value="history">Activity</Radio.Button>
-      </Radio.Group>
-    );
-  }
-
-  return (
-    <div style={{ flex: 1, fontWeight: "bold" }}>
-      <Icon name={FIXED_PROJECT_TABS.log.icon} /> Recent {renderToggle()}
-    </div>
-  );
 }
 
 export function getTime(a): number {
@@ -96,7 +60,12 @@ export function getTime(a): number {
   }
 }
 
-function deriveFiles(project_log, searchTerm: string, max: number) {
+function deriveFiles(
+  project_log,
+  searchTerm: string,
+  max: number,
+  deduplicate: boolean,
+) {
   const dedupe: string[] = [];
   const searchWords = search_split(searchTerm);
 
@@ -109,6 +78,9 @@ function deriveFiles(project_log, searchTerm: string, max: number) {
     )
     .sort((a, b) => getTime(b) - getTime(a))
     .filter((entry: EventRecordMap) => {
+      // pick all files if not deduplicated
+      if (!deduplicate) return true;
+      // otherwise, we check if the filename already appeared in the sorted list
       const fn = entry.getIn(["event", "filename"]);
       if (dedupe.includes(fn)) return false;
       dedupe.push(fn);
@@ -167,6 +139,10 @@ export function LogFlyout({
 }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
+  const deduplicate: FlyoutLogDeduplicate = useTypedRedux(
+    { project_id },
+    "flyout_log_deduplicate",
+  );
   const project_log = useTypedRedux({ project_id }, "project_log");
   const project_log_all = useTypedRedux({ project_id }, "project_log_all");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
@@ -193,18 +169,20 @@ export function LogFlyout({
 
     switch (mode) {
       case "files":
-        return deriveFiles(log, search, max);
+        return deriveFiles(log, search, max, deduplicate);
       case "history":
         return deriveHistory(log, search, max);
       default:
         unreachable(mode);
     }
-  }, [project_log, project_log_all, search, max, mode]);
+  }, [project_log, project_log_all, search, max, mode, deduplicate]);
 
-  const showExtra = useMemo(
-    () => flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
-    [flyoutWidth],
-  );
+  const [showExtra, showExtra2] = useMemo(() => {
+    return [
+      flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
+      flyoutWidth > FLYOUT_EXTRA2_WIDTH_PX,
+    ];
+  }, [flyoutWidth]);
 
   // trigger a search state change, only once and with a debounce
   const setSearchState = debounce(
@@ -236,6 +214,12 @@ export function LogFlyout({
     return <TimeAgo date={entry.time} />;
   }
 
+  function renderFileItemExtra2(entry: OpenedFile) {
+    if (!showExtra2) return null;
+    if (!entry.account_id) return;
+    return <User account_id={entry.account_id} user_map={user_map} />;
+  }
+
   function renderFileItem(index: number, entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
@@ -248,6 +232,7 @@ export function LogFlyout({
         mode="log"
         item={{ name: path, isopen: isOpened, isactive: isActive }}
         extra={renderFileItemExtra(entry)}
+        extra2={renderFileItemExtra2(entry)}
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
         selected={!scollIdxHide && index === scrollIdx}
@@ -393,22 +378,53 @@ export function LogFlyout({
     );
   }
 
+  function renderDedup() {
+    if (mode === "history") return null;
+    const icon: IconName = deduplicate ? "file" : "copy";
+    const txt = deduplicate ? "Show all" : "Deduplicate";
+    return (
+      <BSButton
+        active={!deduplicate}
+        bsSize="xsmall"
+        title={
+          <>
+            If enabled, the list contains duplicate entries. By default, only
+            the most recent file open activity is shown.
+          </>
+        }
+        onClick={(e) => {
+          e.stopPropagation();
+          actions?.setFlyoutLogDeduplicate(!deduplicate);
+        }}
+      >
+        <Icon name={icon} /> {txt}
+      </BSButton>
+    );
+  }
+
   return (
     <>
-      <Input
-        placeholder="Search..."
-        style={{ flex: "1", marginRight: "10px" }}
-        size="small"
-        value={searchTerm}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          handleOnChange(e.target.value);
-        }}
-        onKeyDown={onKeyDownHandler}
-        onFocus={() => setScrollIdxHide(false)}
-        onBlur={() => setScrollIdxHide(true)}
-        allowClear
-        prefix={<Icon name="search" />}
-      />
+      <Flex
+        justify="space-between"
+        align="center"
+        gap="middle"
+        style={{ marginRight: FLYOUT_PADDING }}
+      >
+        <Input
+          placeholder="Search..."
+          size="small"
+          value={searchTerm}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            handleOnChange(e.target.value);
+          }}
+          onKeyDown={onKeyDownHandler}
+          onFocus={() => setScrollIdxHide(false)}
+          onBlur={() => setScrollIdxHide(true)}
+          allowClear
+          prefix={<Icon name="search" />}
+        />
+        {renderDedup()}
+      </Flex>
       {wrap(list(), { marginTop: "10px" })}
     </>
   );
