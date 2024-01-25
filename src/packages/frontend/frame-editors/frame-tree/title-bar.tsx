@@ -450,13 +450,18 @@ export function FrameTitleBar(props: Props) {
         </Tooltip>
       );
     }
-    const onClick =
-      cmd.onClick != null
-        ? (event) => cmd.onClick?.({ props, event, setShowAI })
-        : () => {
-            // common special case default
-            props.actions[name]?.(props.id);
-          };
+    const onClick = async (event) => {
+      try {
+        if (cmd.onClick != null) {
+          await cmd.onClick?.({ props, event, setShowAI });
+        } else {
+          // common special case default
+          await props.actions[name]?.(props.id);
+        }
+      } catch (err) {
+        props.actions.set_error(`${err}`);
+      }
+    };
     if (cmd.keyboard) {
       label = (
         <div style={{ display: "flex" }}>

@@ -140,12 +140,14 @@ export function commands(actions: AllActions): {
     },
 
     "clear all cells output": {
-      m: "Clear all output",
+      m: "Clear All Outputs",
+      t: "Clear the output of all cells in the notebook",
       f: () => actions.jupyter_actions?.clear_all_outputs(),
     },
 
     "clear cell output": {
-      m: "Clear output",
+      m: "Clear Output",
+      t: "Clear the output of the selected cells",
       f: () => actions.frame_actions?.clear_selected_outputs(),
     },
 
@@ -245,6 +247,7 @@ export function commands(actions: AllActions): {
     "delete cell": {
       // jupyter has this but with d,d as shortcut, since they have no undo.
       m: "Delete Cells",
+      i: "trash",
       k: [
         { mode: "escape", which: 68, twice: true },
         { mode: "escape", which: 8 },
@@ -256,7 +259,8 @@ export function commands(actions: AllActions): {
     "delete all blank code cells": {
       // Requested by a user; not in upstream jupyter or any known extension
       // https://github.com/sagemathinc/cocalc/issues/6194
-      m: "Delete all blank code cells",
+      i: "trash",
+      m: "Delete All Blank Code Cells",
       f: () => actions.jupyter_actions?.delete_all_blank_code_cells(),
     },
 
@@ -332,6 +336,7 @@ export function commands(actions: AllActions): {
     },
 
     "find and replace": {
+      i: "replace",
       m: "Find and replace",
       k: [
         { mode: "escape", which: 70 },
@@ -399,7 +404,7 @@ export function commands(actions: AllActions): {
     },
 
     "insert image": {
-      m: "Insert images in selected markdown cell...",
+      m: "Insert Images in Selected Markdown Cell...",
       f: () => actions.frame_actions?.insert_image(),
     },
 
@@ -411,17 +416,17 @@ export function commands(actions: AllActions): {
     },
 
     "merge cell with next cell": {
-      m: "Merge cell below",
+      m: "Merge Cell Below",
       f: () => actions.frame_actions?.merge_cell_below(),
     },
 
     "merge cell with previous cell": {
-      m: "Merge cell above",
+      m: "Merge Cell Above",
       f: () => actions.frame_actions?.merge_cell_above(),
     },
 
     "merge cells": {
-      m: "Merge selected cells",
+      m: "Merge Selected Cells",
       k: [{ mode: "escape", shift: true, which: 77 }],
       f: () => actions.frame_actions?.merge_selected_cells(),
     },
@@ -434,14 +439,14 @@ export function commands(actions: AllActions): {
 
     "move cell down": {
       i: "arrow-down",
-      m: "Move cells down",
+      m: "Move Cells Down",
       k: [{ alt: true, mode: "escape", which: 40 }],
       f: () => actions.frame_actions?.move_selected_cells(1),
     },
 
     "move cell up": {
       i: "arrow-up",
-      m: "Move cells up",
+      m: "Move Cells Up",
       k: [{ alt: true, mode: "escape", which: 38 }],
       f: () => actions.frame_actions?.move_selected_cells(-1),
     },
@@ -811,7 +816,8 @@ export function commands(actions: AllActions): {
     },
 
     "split cell at cursor": {
-      m: "Split cell",
+      i: "horizontal-split",
+      m: "Split Cell",
       k: [
         { ctrl: true, shift: true, which: 189 },
         { ctrl: true, key: ";", which: 186 },
@@ -918,13 +924,16 @@ export function commands(actions: AllActions): {
     },
 
     "write protect": {
-      m: "Edit protect -- toggle whether selected cells are editable",
+      i: "lock",
+      m: "Toggle Edit Protection",
+      t: "Toggle whether the selected cells can be editable.",
       f: () =>
         actions.frame_actions?.toggle_write_protection_on_selected_cells(),
     },
 
     "delete protect": {
-      m: "Delete protection -- toggle whether selected cells are deletable",
+      m: "Toggle Delete Protection",
+      t: "Toggle whether the selected cells can be deleted.",
       f: () =>
         actions.frame_actions?.toggle_delete_protection_on_selected_cells(),
     },
@@ -949,7 +958,8 @@ export function commands(actions: AllActions): {
     9 lines just for this means way more scrolling/searching in the menu.
     */
     "toggle hide input": {
-      m: "Toggle hide input of cells",
+      m: "Toggle Hide Input",
+      t: "Toggle whether the input of the selected cells is hidden.",
       f: () => actions.frame_actions?.toggle_source_hidden(),
       k: [
         { alt: true, which: 72 },
@@ -958,7 +968,8 @@ export function commands(actions: AllActions): {
     },
 
     "toggle hide output": {
-      m: "Toggle hide output of cells",
+      m: "Toggle Hide Output",
+      t: "Toggle whether the output of the selected cells is hidden.",
       f: () => actions.frame_actions?.toggle_outputs_hidden(),
       k: [
         { alt: true, shift: true, which: 72 },
