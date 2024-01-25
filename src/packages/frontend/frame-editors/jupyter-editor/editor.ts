@@ -24,8 +24,32 @@ import { JupyterSnippets } from "./snippets";
 import {
   addCommands,
   addMenus,
+  Command,
 } from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import { IS_MACOS } from "@cocalc/frontend/feature";
+import { commands, AllActions } from "@cocalc/frontend/jupyter/commands";
+import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
+
+const jupyterCommands = set([
+  "chatgpt",
+  "print",
+  "set_zoom",
+  "decrease_font_size",
+  "increase_font_size",
+  "save",
+  "time_travel",
+  "cut",
+  "paste",
+  "copy",
+  "undo",
+  "redo",
+  "halt_jupyter",
+  "show_table_of_contents",
+  "guide",
+  "shell",
+  "terminal",
+  "help",
+  "compute_server",
+]);
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -33,30 +57,7 @@ export const EDITOR_SPEC = {
     name: "Jupyter Notebook",
     icon: "ipynb",
     component: CellNotebook,
-    buttons: set([
-      "chatgpt",
-      "print",
-      "set_zoom",
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel",
-      "cut",
-      "paste",
-      "copy",
-      "undo",
-      "redo",
-      "halt_jupyter",
-      "show_table_of_contents",
-      "guide",
-      "shell",
-      "terminal",
-      "help",
-      "compute_server",
-      "jupyter-run-cell",
-      "jupyter-cell-type",
-      "jupyter-kernel-restart",
-    ]),
+    buttons: jupyterCommands,
     customize_buttons: {
       guide: {
         label: "Snippets",
@@ -117,25 +118,74 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
 };
 
-export const Editor = createEditor({
-  format_bar: false,
-  editor_spec: EDITOR_SPEC,
-  display_name: "JupyterNotebook",
-});
-
-addMenus({
+const MENUS = {
   run: {
     label: "Run",
     pos: 4,
-    groups: ["jupyter-cell-run"],
+    groups: [
+      "jupyter-run-cells",
+      "jupyter-run-cells-2",
+      "jupyter-run-cells-adjacent",
+      "jupyter-render-markdown-cells",
+      "jupyter-run-cells-all",
+    ],
   },
   kernel: {
     label: "Kernel",
     pos: 5,
     groups: ["jupyter-kernel-control"],
   },
+};
+
+const COMMANDS = {
+  "run cell and select next": "jupyter-run-cells",
+  "run cell and insert below": "jupyter-run-cells-2",
+  "run cell": "jupyter-run-cells-2",
+  "run all cells above": "jupyter-run-cells-adjacent",
+  "run all cells below": "jupyter-run-cells-adjacent",
+  "run all cells": "jupyter-run-cells-all",
+  "confirm restart kernel and run all cells": "jupyter-run-cells-all",
+};
+
+function initMenus() {
+  // organization of the commands into groups
+  addMenus(MENUS);
+
+  // the commands
+  const allActions: AllActions = {};
+  const allCommands = commands(allActions);
+  const C: { [name: string]: Command } = {};
+  for (const name in COMMANDS) {
+    const cmd = allCommands[name];
+    const cmdName = `jupyter-${name}`;
+    C[cmdName] = {
+      title: cmd.t,
+      label: cmd.m,
+      group: COMMANDS[name],
+      icon: cmd.i,
+      keyboard: cmd.k ? cmd.k.map(shortcut_to_string).join(", ") : undefined,
+      onClick: ({ props }) => {
+        allActions.frame_actions = props.actions.frame_actions?.[props.id];
+        allActions.jupyter_actions = props.actions.jupyter_actions;
+        allActions.editor_actions = props.actions;
+        cmd.f();
+      },
+    };
+    jupyterCommands[cmdName] = true;
+  }
+  console.log("adding commands", C);
+  addCommands(C);
+}
+
+initMenus();
+
+export const Editor = createEditor({
+  format_bar: false,
+  editor_spec: EDITOR_SPEC,
+  display_name: "JupyterNotebook",
 });
 
+/*
 addCommands({
   "jupyter-run-cell": {
     title: "Run all cells that are currently selected",
@@ -197,3 +247,4 @@ addCommands({
     },
   },
 });
+*/

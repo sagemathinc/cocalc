@@ -8,11 +8,10 @@ export interface Command {
   group: Group;
   // position, for sorting
   pos?: number;
-  title?: JSX.Element | string;
-  icon?: JSX.Element | string;
+  title?: ReactNode;
+  icon?: ReactNode;
   label:
-    | string
-    | JSX.Element
+    | ReactNode
     | ((opts: {
         props?;
         helpSearch?;
@@ -32,7 +31,7 @@ export interface Command {
   }) => void;
   isVisible?: ({ props }) => boolean;
   disable?: string;
-  keyboard?: string;
+  keyboard?: ReactNode;
   children?:
     | Partial<Command>[]
     | (({ props, frameTypeCommands }) => Partial<Command>[]);

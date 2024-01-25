@@ -459,9 +459,18 @@ export function FrameTitleBar(props: Props) {
           };
     if (cmd.keyboard) {
       label = (
-        <div style={{ width: "300px" }}>
+        <div style={{ display: "flex" }}>
           {label}
-          <div style={{ float: "right", color: "#888" }}>{cmd.keyboard}</div>
+          <div
+            style={{
+              flex: 1,
+              color: "#666",
+              textAlign: "right",
+              marginLeft: "20px",
+            }}
+          >
+            {cmd.keyboard}
+          </div>
         </div>
       );
     }

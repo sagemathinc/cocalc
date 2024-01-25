@@ -73,11 +73,11 @@ export class NotebookFrameActions {
     this.update_cur_id();
     this.init_syncdb_change_hook();
 
-    this.commands = commands(
-      this.jupyter_actions,
-      { current: this },
-      this.frame_tree_actions,
-    );
+    this.commands = commands({
+      jupyter_actions: this.jupyter_actions,
+      frame_actions: this,
+      editor_actions: this.frame_tree_actions,
+    });
 
     this.setState({ scroll: "", scroll_seq: -1 });
   }
