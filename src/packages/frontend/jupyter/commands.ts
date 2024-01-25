@@ -164,7 +164,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel": {
-      m: "Restart kernel...",
+      m: "Restart Kernel...",
       i: "refresh",
       k: [{ mode: "escape", which: 48, twice: true }],
       f: () => actions.jupyter_actions?.confirm_restart(),
@@ -177,7 +177,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel and clear output": {
-      m: "Restart and clear output...",
+      m: "Restart Kernel and Clear All Outputs...",
       menu: "Clear output...",
       f: () => actions.jupyter_actions?.restart_clear_all_output(),
     },
@@ -208,7 +208,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm shutdown kernel": {
-      m: "Shutdown kernel...",
+      m: "Shutdown Kernel...",
       async f(): Promise<void> {
         const choice = await actions.jupyter_actions?.confirm_dialog({
           title: "Shutdown kernel?",
@@ -226,7 +226,7 @@ export function commands(actions: AllActions): {
 
     "copy cell": {
       i: "files",
-      m: "Copy cells",
+      m: "Copy Cells",
       k: [{ mode: "escape", which: 67 }],
       f: () => actions.frame_actions?.copy_selected_cells(),
     },
@@ -235,7 +235,7 @@ export function commands(actions: AllActions): {
 
     "cut cell": {
       i: "scissors",
-      m: "Cut cells",
+      m: "Cut Cells",
       k: [{ mode: "escape", which: 88 }],
       f: () => actions.frame_actions?.cut_selected_cells(),
     },
@@ -244,7 +244,7 @@ export function commands(actions: AllActions): {
 
     "delete cell": {
       // jupyter has this but with d,d as shortcut, since they have no undo.
-      m: "Delete cells",
+      m: "Delete Cells",
       k: [
         { mode: "escape", which: 68, twice: true },
         { mode: "escape", which: 8 },
@@ -405,7 +405,7 @@ export function commands(actions: AllActions): {
 
     "interrupt kernel": {
       i: "stop",
-      m: "Interrupt kernel",
+      m: "Interrupt Kernel",
       k: [{ mode: "escape", which: 73, twice: true }],
       f: () => actions.jupyter_actions?.signal("SIGINT"),
     },
@@ -578,7 +578,7 @@ export function commands(actions: AllActions): {
     },
 
     "paste cell above": {
-      m: "Paste cells above",
+      m: "Paste Cells Above",
       k: [
         { mode: "escape", shift: true, which: 86 },
         { mode: "escape", shift: true, ctrl: true, which: 86 },
@@ -590,18 +590,17 @@ export function commands(actions: AllActions): {
     //"paste cell attachments": undefined, // TODO ? not sure what the motivation is...
 
     "paste cell below": {
-      // jupyter has this with the keyboard shortcut for paste; clearly because they have no undo
-      m: "Paste cells below",
+      k: [{ mode: "escape", which: 86 }],
+      m: "Paste Cells Below",
       f: () => actions.frame_actions?.paste_cells(1),
     },
 
     "paste cell and replace": {
       // jupyter doesn't have this but it's supposed to be normal paste behavior
       i: "clipboard",
-      m: "Paste cells & replace",
+      m: "Paste Cells and Replace",
       k: [
         { mode: "escape", alt: true, which: 86 },
-        { mode: "escape", which: 86 },
         { mode: "escape", ctrl: true, which: 86 },
       ],
       f() {
@@ -736,12 +735,17 @@ export function commands(actions: AllActions): {
     },
 
     "select all cells": {
-      m: "Select all cells",
+      m: "Select All Cells",
       k: [
         { alt: true, mode: "escape", which: 65 },
         { ctrl: true, mode: "escape", which: 65 },
       ],
       f: () => actions.frame_actions?.select_all_cells(),
+    },
+
+    "deselect all cells": {
+      m: "Deselect All Cells",
+      f: () => actions.frame_actions?.unselect_all_cells(),
     },
 
     "select next cell": {

@@ -1,6 +1,16 @@
 import { MENUS } from "./menus";
 import type { ReactNode } from "react";
 
+interface MenuSpec {
+  label: string;
+  pos: number;
+  groups: string[];
+}
+
+export interface Menus {
+  [name: string]: MenuSpec;
+}
+
 export type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
 
 export interface Command {

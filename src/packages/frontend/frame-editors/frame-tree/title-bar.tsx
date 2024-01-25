@@ -466,7 +466,7 @@ export function FrameTitleBar(props: Props) {
               flex: 1,
               color: "#666",
               textAlign: "right",
-              marginLeft: "20px",
+              marginLeft: "50px",
             }}
           >
             {cmd.keyboard}

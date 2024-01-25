@@ -626,7 +626,7 @@ addCommands({
   },
   chatgpt: {
     pos: 1,
-    group: "format",
+    group: "show-frames",
     icon: "robot",
     title:
       "Ask an Artificial Intelligence Assistant (e.g., ChatGPT) for help on what you're doing.",

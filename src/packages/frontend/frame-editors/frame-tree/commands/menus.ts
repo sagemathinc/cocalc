@@ -1,14 +1,4 @@
-import type { Command } from "./types";
-
-interface MenuSpec {
-  label: string;
-  pos: number;
-  groups: string[];
-}
-
-interface Menus {
-  [name: string]: MenuSpec;
-}
+import type { Command, Menus } from "./types";
 
 export const MENUS: Menus = {};
 

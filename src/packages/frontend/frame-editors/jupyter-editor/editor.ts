@@ -24,7 +24,10 @@ import { JupyterSnippets } from "./snippets";
 import {
   addCommands,
   addMenus,
+} from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import type {
   Command,
+  Menus,
 } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { commands, AllActions } from "@cocalc/frontend/jupyter/commands";
 import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
@@ -37,9 +40,6 @@ const jupyterCommands = set([
   "increase_font_size",
   "save",
   "time_travel",
-  "cut",
-  "paste",
-  "copy",
   "undo",
   "redo",
   "halt_jupyter",
@@ -118,36 +118,62 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
 };
 
-const MENUS = {
-  run: {
+const JUPYTER_MENUS = {
+  edit: {
+    label: "Edit",
+    pos: 1,
+    "cell-copy": [
+      "cut cell",
+      "copy cell",
+      "paste cell below",
+      "paste cell above",
+      "paste cell and replace",
+    ],
+    "delete-cells": ["delete cell"],
+    "cell-selection": ["select all cells", "deselect all cells"],
+  },
+  jupyter_run: {
     label: "Run",
     pos: 4,
-    groups: [
-      "jupyter-run-cells",
-      "jupyter-run-cells-2",
-      "jupyter-run-cells-adjacent",
-      "jupyter-render-markdown-cells",
-      "jupyter-run-cells-all",
+    "run-cells": ["run cell and select next"],
+    "run-cells-2": ["run cell and insert below", "run cell"],
+    "run-cells-adjacent": ["run all cells above", "run all cells below"],
+    "run-cells-all": [
+      "run all cells",
+      "confirm restart kernel and run all cells",
     ],
   },
-  kernel: {
+  jupyter_kernel: {
     label: "Kernel",
     pos: 5,
-    groups: ["jupyter-kernel-control"],
+    "kernel-control": ["interrupt kernel"],
+    "restart-kernel": [
+      "confirm restart kernel",
+      "confirm restart kernel and clear output",
+      "confirm restart kernel and run all cells",
+    ],
+    "shutdown-kernel": ["confirm shutdown kernel"],
   },
-};
-
-const COMMANDS = {
-  "run cell and select next": "jupyter-run-cells",
-  "run cell and insert below": "jupyter-run-cells-2",
-  "run cell": "jupyter-run-cells-2",
-  "run all cells above": "jupyter-run-cells-adjacent",
-  "run all cells below": "jupyter-run-cells-adjacent",
-  "run all cells": "jupyter-run-cells-all",
-  "confirm restart kernel and run all cells": "jupyter-run-cells-all",
 };
 
 function initMenus() {
+  const MENUS: Menus = {};
+  const COMMANDS: { [name: string]: string } = {};
+  for (const menu in JUPYTER_MENUS) {
+    const spec = JUPYTER_MENUS[menu];
+    const groups: string[] = [];
+    for (const group in spec) {
+      if (group != "label" && group != "pos") {
+        const gp = `jupyter-${group}`;
+        groups.push(gp);
+        for (const cmd of spec[group]) {
+          COMMANDS[cmd] = gp;
+        }
+      }
+    }
+    MENUS[menu] = { label: spec.label, pos: spec.pos, groups };
+  }
+
   // organization of the commands into groups
   addMenus(MENUS);
 
@@ -157,6 +183,9 @@ function initMenus() {
   const C: { [name: string]: Command } = {};
   for (const name in COMMANDS) {
     const cmd = allCommands[name];
+    if (cmd == null) {
+      throw Error(`invalid Jupyter command name "${name}"`);
+    }
     const cmdName = `jupyter-${name}`;
     C[cmdName] = {
       title: cmd.t,
