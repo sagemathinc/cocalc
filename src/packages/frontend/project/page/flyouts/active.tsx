@@ -355,7 +355,10 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         <Button
           size="small"
           icon={<Icon name="star-filled" style={{ color: COLORS.STAR }} />}
-          onClick={() => setShowStarred(true)}
+          onClick={() => {
+            setShowStarred(true);
+            setShowStarredTabs(true);
+          }}
         >
           starred files
         </Button>
