@@ -336,14 +336,14 @@ addCommands({
   halt_jupyter: {
     group: "quit",
     icon: "PoweroffOutlined",
-    label: "Close and Halt",
+    label: "Close and Halt...",
     title: "Halt the running Jupyter kernel and close this notebook.",
   },
 
   close_and_halt: {
     group: "quit",
     icon: "PoweroffOutlined",
-    label: "Close and Halt",
+    label: "Close and Halt...",
     title: "Halt backend server and close this file.",
   },
 
@@ -661,12 +661,10 @@ addCommands({
     onClick: () => {},
   },
   about: {
-    alwaysShow: true,
     group: "about",
     icon: "info-circle",
     title: "About this application",
     label: "About",
-    onClick: ({}) => {},
   },
   quit: {
     pos: 10,

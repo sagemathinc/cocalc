@@ -7,7 +7,6 @@
 // File, Edit, etc....
 
 import * as immutable from "immutable";
-import { sortBy } from "lodash";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -18,15 +17,11 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   DropdownMenu,
-  Icon,
   MenuDivider,
   MenuItems,
   r_join,
 } from "@cocalc/frontend/components";
-import { KernelStar } from "@cocalc/frontend/components/run-button/kernel-star";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { open_new_tab } from "@cocalc/frontend/misc";
-import { user_activity } from "@cocalc/frontend/tracker";
 import {
   all_fields_equal,
   capitalize,
@@ -35,10 +30,7 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
-import { get_help_links } from "./help-links";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
-import Logo from "./logo";
-import { KernelSpec } from "@cocalc/jupyter/types";
 
 type MenuItemName = string | { name: string; display?: string; style?: object };
 
@@ -80,35 +72,15 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
   (props: TopMenubarProps) => {
     const { actions, /*cur_id, cells, */ name } = props;
     const frameActions = useNotebookFrameActions();
-    const kernel_selection: undefined | immutable.Map<string, string> =
-      useRedux([actions.name, "kernel_selection"]);
-    const kernels_by_name:
-      | undefined
-      | immutable.OrderedMap<string, immutable.Map<string, string>> = useRedux([
-      actions.name,
-      "kernels_by_name",
-    ]);
-    const kernels_by_language:
-      | undefined
-      | immutable.OrderedMap<string, immutable.List<string>> = useRedux([
-      actions.name,
-      "kernels_by_language",
-    ]);
 
-    const kernel_state: string | undefined = useRedux([name, "kernel_state"]);
     const has_unsaved_changes: boolean | undefined = useRedux([
       name,
       "has_unsaved_changes",
-    ]);
-    const kernel_info: immutable.Map<any, any> | undefined = useRedux([
-      name,
-      "kernel_info",
     ]);
     const backend_kernel_info: immutable.Map<any, any> | undefined = useRedux([
       name,
       "backend_kernel_info",
     ]);
-    const current_kernel: string | undefined = useRedux([name, "kernel"]);
     const toolbar_state: boolean | undefined = useRedux([name, "toolbar"]);
     const cell_toolbar: string | undefined = useRedux([name, "cell_toolbar"]);
     const read_only: boolean | undefined = useRedux([name, "read_only"]);
@@ -290,14 +262,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       });
     }
 
-//     function render_insert(): Rendered {
-//       return render_menu({
-//         heading: "Insert",
-//         names: ["insert cell above", "insert cell below"],
-//         disabled: read_only,
-//       });
-//     }
-
     function render_cell(): Rendered {
       return render_menu({
         heading: "Cell",
@@ -332,154 +296,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       });
     }
 
-    // TODO: upper case kernel names, descriptions... and make it a new component for
-    // efficiency so don't re-render if not change
-
-    function handle_kernel_select(kernel_name: string): void {
-      actions.set_kernel(kernel_name);
-      focus();
-      actions.set_default_kernel(kernel_name);
-      user_activity("cocal_jupyter", "change kernel", kernel_name);
-    }
-
-    function render_kernel_item(
-      kernel: KernelSpec,
-      prefix = "",
-    ): MenuItems[0] | string {
-      if (kernel == null) return "";
-      const current = kernel.name === current_kernel;
-      const style: React.CSSProperties = {
-        marginLeft: "4ex",
-        ...(current ? SELECTED_STYLE : undefined),
-      };
-      const priority = (kernel as any).metadata?.cocalc?.priority ?? 0;
-      const arrow = current ? (
-        <span style={{ float: "left", position: "absolute" }}>
-          <Icon
-            name="arrow-right"
-            style={{ position: "relative", left: "-4ex" }}
-          />
-        </span>
-      ) : undefined;
-      const logo = (
-        <Logo kernel={kernel.name} size={20} style={{ marginTop: "-2px" }} />
-      );
-      return {
-        key: `${prefix}-${kernel.name}`,
-        label: (
-          <div style={style}>
-            {arrow}
-            {logo} {kernel.display_name}
-            <KernelStar priority={priority} />
-          </div>
-        ),
-        onClick: () => {
-          handle_kernel_select(kernel.name);
-        },
-      };
-    }
-
-    function getKernelOfLanguageByPriority(currentLang: string): string[] {
-      if (kernels_by_language == null || kernels_by_name == null) return [];
-      return sortBy(
-        kernels_by_language.get(currentLang)?.toJS() ?? [],
-        (name) => {
-          const kernel = kernels_by_name.get(name);
-          return (
-            -(kernel?.getIn(["metadata", "cocalc", "priority"]) as any) ?? 0
-          );
-        },
-      );
-    }
-
-    function render_kernel_items(): (MenuItems[0] | string)[] {
-      if (
-        kernels_by_name == null ||
-        kernel_selection == null ||
-        kernels_by_language == null
-      )
-        return [];
-
-      const entries: (MenuItems[0] | string)[] = [];
-
-      if (current_kernel != null) {
-        const currentLang = kernels_by_name
-          .get(current_kernel)
-          ?.get("language");
-        undefined;
-
-        if (currentLang != null) {
-          const byPrio = getKernelOfLanguageByPriority(currentLang);
-
-          // if there is actually something to choose...
-          if (byPrio.length > 1) {
-            entries.push(`<Change ${capitalize(currentLang)} kernel ...`);
-            for (const name of byPrio) {
-              const kernel = kernels_by_name
-                .get(name)
-                ?.toJS() as unknown as KernelSpec;
-              if (kernel == null) continue;
-              entries.push(render_kernel_item(kernel, "current"));
-            }
-
-            entries.push(null);
-          }
-        }
-      }
-
-      // and below are all kernels by language
-      if (entries.length > 0) {
-        entries.push("<Change language...");
-      } else {
-        entries.push("<Change language and select kernel...");
-      }
-      const langSorted = sortBy(
-        kernels_by_language.keySeq().toJS(),
-        capitalize,
-      );
-      for (const lang of langSorted) {
-        if (lang == null) continue;
-        entries.push(`~${capitalize(lang)}...`);
-        for (const name of getKernelOfLanguageByPriority(lang)) {
-          const kernel = kernels_by_name
-            .get(name)
-            ?.toJS() as unknown as KernelSpec;
-          const e = render_kernel_item(kernel, "all");
-          if (typeof e === "string") continue;
-          entries.push(e);
-        }
-      }
-
-      return entries;
-    }
-
-    function render_kernel(): Rendered {
-      const items = render_kernel_items();
-      const names: any[] = [
-        `${kernel_state !== "busy" ? "<" : ""}interrupt kernel`,
-        "confirm restart kernel",
-        "confirm halt kernel",
-        "<Restart and...",
-        ">confirm restart kernel and clear output",
-        ">confirm restart kernel and run all cells",
-        ">confirm restart kernel and run all cells without halting on error",
-        "",
-      ]
-        .concat([
-          items?.length ?? 0 > 0 ? (items[0] as any) : "<No Kernels available!",
-        ])
-        .concat((items.slice(1) as any) || [])
-        .concat(["", "no kernel"])
-        .concat(["", "refresh kernels"])
-        .concat(["", "custom kernel"]);
-
-      return render_menu({
-        heading: "Kernel",
-        names,
-        disabled: read_only,
-      });
-    }
-
     function focus(): void {
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
       frameActions.current?.focus(true);
@@ -497,18 +313,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       }
     }
 
-    function command(name: string) {
-      return () => {
-        frameActions.current?.command(name);
-        $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-        const c = frameActions.current?.commands[name];
-        if (c && c.m && endswith(c.m, "...")) {
-          frameActions.current?.blur();
-        } else {
-          focus();
-        }
-      };
-    }
 
     function render_menu_item(
       key: string,
@@ -632,78 +436,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       );
     }
 
-    function render_links(): MenuItems {
-      if (kernel_info == null) return [];
-      const lang = kernel_info.get("language");
-      const links = get_help_links(lang);
-      const v: MenuItems = [];
-      if (links == null) return v;
-      for (const name in links) {
-        const url = links[name];
-        v.push(external_link(name, url));
-      }
-      if (v.length > 0) {
-        v.unshift(MenuDivider);
-      }
-      return v;
-    }
-
-    function render_help(): Rendered {
-      const items: MenuItems = [
-        {
-          key: "help-about",
-          label: (
-            <>
-              <Icon name="question-circle" /> About...
-            </>
-          ),
-          onClick: () => actions.show_about(),
-        },
-        MenuDivider,
-        {
-          key: "help-keyboard",
-          label: (
-            <>
-              <Icon name="keyboard" /> Keyboard shortcuts...
-            </>
-          ),
-          onClick: command("edit keyboard shortcuts"),
-        },
-        MenuDivider,
-        external_link(
-          "Notebook help",
-          "http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb",
-        ),
-        external_link(
-          "Jupyter in CoCalc",
-          "https://doc.cocalc.com/jupyter.html",
-        ),
-        external_link(
-          "nbgrader in CoCalc",
-          "https://doc.cocalc.com/teaching-nbgrader.html",
-        ),
-        external_link(
-          "Custom Jupyter kernels",
-          "https://doc.cocalc.com/howto/custom-jupyter-kernel.html",
-        ),
-        external_link(
-          "Markdown",
-          "https://help.github.com/articles/basic-writing-and-formatting-syntax",
-        ),
-        ...render_links(),
-      ];
-
-      return (
-        <DropdownMenu
-          key="help"
-          id="menu-help"
-          title={"Help"}
-          style={TITLE_STYLE}
-          items={items}
-        />
-      );
-    }
-
     return (
       <ButtonGroup
         className="cocalc-jupyter-menu"
@@ -716,22 +448,9 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         {render_file()}
         {render_view()}
         {render_cell()}
-        {render_kernel()}
-        {render_help()}
       </ButtonGroup>
     );
   },
   should_memoize,
 );
 
-function external_link(name: string, url: string): MenuItems[0] {
-  return {
-    key: name,
-    label: (
-      <>
-        <Icon name="external-link" /> {name}
-      </>
-    ),
-    onClick: () => open_new_tab(url),
-  };
-}

@@ -19,7 +19,7 @@ import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "@cocalc/jupyter/types";
-import { open_popup_window } from "../misc";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
 import * as parsing from "./parsing";
@@ -780,7 +780,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public custom_jupyter_kernel_docs(): void {
-    open_popup_window(
+    open_new_tab(
       "https://doc.cocalc.com/howto/custom-jupyter-kernel.html",
     );
   }

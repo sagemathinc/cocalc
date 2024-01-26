@@ -12,7 +12,7 @@ import { IconName } from "@cocalc/frontend/components";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "@cocalc/jupyter/types";
 
@@ -186,7 +186,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel and run all cells": {
-      m: "Restart Kernel and Run All Cells...",
+      m: "Restart and Run All Cells...",
       menu: "Run all...",
       i: "forward",
       f: () => {
@@ -197,7 +197,7 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel and run all cells without halting on error": {
-      m: "Run All (do not stop on errors)...",
+      m: "Restart and Run All (do not stop on errors)...",
       menu: "Restart and run all (do not stop on errors)...",
       i: "run",
       k: [{ which: 13, ctrl: true, shift: true }],
@@ -272,7 +272,8 @@ export function commands(actions: AllActions): {
     },
 
     "edit keyboard shortcuts": {
-      m: "Keyboard shortcuts and commands...",
+      i: "keyboard",
+      m: "Keyboard Shortcuts and Commands...",
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
     },
 
@@ -863,35 +864,35 @@ export function commands(actions: AllActions): {
     },
 
     "toggle all cells output collapsed": {
-      m: "Toggle all collapsed",
+      m: "Toggle Collapsed Output of All Cells",
       f: () => actions.jupyter_actions?.toggle_all_outputs("collapsed"),
     },
 
     "toggle all cells output scrolled": {
-      m: "Toggle all scrolled",
+      m: "Toggle Scrolled Output of All Cells",
       f: () => actions.jupyter_actions?.toggle_all_outputs("scrolled"),
     },
 
     "toggle all line numbers": {
-      m: "Toggle all line numbers",
+      m: "Toggle Line Numbers of All Cells",
       k: [{ mode: "escape", shift: true, which: 76 }],
       f: () => actions.jupyter_actions?.toggle_line_numbers(),
     },
 
     "toggle cell line numbers": {
-      m: "Toggle cell line numbers",
+      m: "Toggle cell line numbers of Selected Cells",
       k: [{ mode: "escape", which: 76 }],
       f: () => actions.jupyter_actions?.toggle_cell_line_numbers(id()),
     },
 
     "toggle cell output collapsed": {
-      m: "Toggle collapsed",
+      m: "Toggle Collapsed Output",
       k: [{ mode: "escape", which: 79 }],
       f: () => actions.frame_actions?.toggle_selected_outputs("collapsed"),
     },
 
     "toggle cell output scrolled": {
-      m: "Toggle scrolled",
+      m: "Toggle Scrolled Output",
       k: [{ mode: "escape", which: 79, shift: true }],
       f: () => actions.frame_actions?.toggle_selected_outputs("scrolled"),
     },
@@ -916,11 +917,11 @@ export function commands(actions: AllActions): {
       f: () => actions.jupyter_actions?.trust_notebook(),
     },
 
-    "undo cell deletion": {
-      m: "Undo cell deletion",
-      k: [{ mode: "escape", which: 90 }],
-      f: () => actions.jupyter_actions?.undo(),
-    },
+    //     "undo cell deletion": {
+    //       m: "Undo cell deletion",
+    //       k: [{ mode: "escape", which: 90 }],
+    //       f: () => actions.jupyter_actions?.undo(),
+    //     },
 
     "zoom in": {
       m: "Zoom in",
@@ -1006,6 +1007,98 @@ export function commands(actions: AllActions): {
       t: "Select from any of the available kernels.",
       f: () => {
         actions.jupyter_actions?.show_select_kernel("user request");
+      },
+    },
+
+    "help - jupyter in cocalc": {
+      i: "external-link",
+      m: "Jupyter in CoCalc",
+      f: () => {
+        open_new_tab("https://doc.cocalc.com/jupyter.html");
+      },
+    },
+
+    "help - nbgrader in cocalc": {
+      i: "external-link",
+      m: "NBgrader in CoCalc",
+      f: () => {
+        open_new_tab("https://doc.cocalc.com/teaching-nbgrader.html");
+      },
+    },
+    "help - markdown": {
+      i: "external-link",
+      m: "Markdown in CoCalc",
+      f: () => {
+        open_new_tab("https://doc.cocalc.com/markdown.html");
+      },
+    },
+
+    "hide input": {
+      m: "Collapse Selected Input",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({ target: "source" });
+      },
+    },
+    "hide output": {
+      m: "Collapse Selected Outputs",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({ target: "outputs" });
+      },
+    },
+    "hide all input": {
+      m: "Collapse All Input",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({
+          target: "source",
+          all: true,
+        });
+      },
+    },
+    "hide all output": {
+      m: "Collapse All Output",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({
+          target: "outputs",
+          all: true,
+        });
+      },
+    },
+    "show input": {
+      m: "Expand Selected Input",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({
+          target: "source",
+          expanded: true,
+        });
+      },
+    },
+    "show output": {
+      m: "Expand Selected Output",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({
+          target: "outputs",
+          expanded: true,
+        });
+      },
+    },
+    "show all input": {
+      m: "Expand All Input",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({
+          target: "source",
+          all: true,
+          expanded: true,
+        });
+      },
+    },
+    "show all output": {
+      m: "Expand All Output",
+      f: () => {
+        actions.frame_actions?.setExpandCollapse({
+          target: "outputs",
+          all: true,
+          expanded: true,
+        });
       },
     },
   };

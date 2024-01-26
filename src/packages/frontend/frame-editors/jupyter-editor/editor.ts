@@ -35,6 +35,7 @@ import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts"
 import KernelMenuItem from "./kernel-menu-item";
 
 const jupyterCommands = set([
+  "about",
   "chatgpt",
   "print",
   "set_zoom",
@@ -150,33 +151,11 @@ const JUPYTER_MENUS = {
         name: "delete-cell",
         children: ["delete cell", "delete all blank code cells"],
       },
-    ],
-    "cell-selection": [
-      {
-        label: "Select Cells",
-        name: "select",
-        children: ["select all cells", "deselect all cells"],
-      },
-    ],
-    "cell-type": [
-      {
-        name: "cell-type",
-        label: "Cell Type",
-        children: [
-          "change cell to code",
-          "change cell to markdown",
-          "change cell to raw",
-        ],
-      },
-    ],
-    "move-cells": [
       {
         name: "move",
         label: "Move Cells",
         children: ["move cell up", "move cell down"],
       },
-    ],
-    "split-and-merge-cells": [
       {
         name: "split-merge-cells",
         label: "Split and Merge",
@@ -188,6 +167,25 @@ const JUPYTER_MENUS = {
         ],
       },
     ],
+    "cell-selection": [
+      {
+        label: "Select Cells",
+        name: "select",
+        children: ["select all cells", "deselect all cells"],
+      },
+    ],
+    "cell-type": [
+      {
+        name: "cell-type",
+        label: "Change Cell Type",
+        children: [
+          "change cell to code",
+          "change cell to markdown",
+          "change cell to raw",
+        ],
+      },
+    ],
+    outputs: [],
     "clear-cells": [
       {
         name: "clear",
@@ -200,6 +198,28 @@ const JUPYTER_MENUS = {
       },
     ],
     find: ["find and replace"],
+    "collapse-and-expand": [
+      {
+        label: "Collapse",
+        name: "cell-collapse",
+        children: [
+          "hide input",
+          "hide output",
+          "hide all input",
+          "hide all output",
+        ],
+      },
+      {
+        label: "Expand",
+        name: "cell-expand",
+        children: [
+          "show input",
+          "show output",
+          "show all input",
+          "show all output",
+        ],
+      },
+    ],
     "format-cells": [
       {
         label: "Format Cells",
@@ -207,11 +227,13 @@ const JUPYTER_MENUS = {
         children: ["format cells", "format all cells"],
       },
     ],
-    "cell-toggle": [
+    "cell-toggle-selected": [
       {
         label: "Toggle Selected Cells",
         name: "cell-toggle",
         children: [
+          "toggle cell output collapsed",
+          "toggle cell output scrolled",
           "toggle hide input",
           "toggle hide output",
           "write protect",
@@ -219,7 +241,21 @@ const JUPYTER_MENUS = {
         ],
       },
     ],
+    "cell-toggle-all": [
+      {
+        label: "Toggle All Cells",
+        name: "cell-toggle-all",
+        children: [
+          "toggle all cells output collapsed",
+          "toggle all cells output scrolled",
+        ],
+      },
+    ],
     "insert-image": ["insert image"],
+  },
+  view: {
+    label: "View",
+    pos: 2,
   },
   jupyter_run: {
     label: "Run",
@@ -230,6 +266,7 @@ const JUPYTER_MENUS = {
     "run-cells-all": [
       "run all cells",
       "confirm restart kernel and run all cells",
+      "confirm restart kernel and run all cells without halting on error",
     ],
   },
   jupyter_kernel: {
@@ -246,7 +283,6 @@ const JUPYTER_MENUS = {
           "confirm restart kernel and run all cells",
         ],
       },
-      "confirm restart kernel and run all cells without halting on error",
     ],
     "shutdown-kernel": ["confirm shutdown kernel"],
     kernels: [
@@ -334,6 +370,17 @@ const JUPYTER_MENUS = {
     "no-kernel": ["no kernel"],
     "custom-kernel": ["custom kernel"],
   },
+  help: {
+    label: "Help",
+    pos: 100,
+    keyboard: ["edit keyboard shortcuts"],
+    links: [
+      "help - jupyter in cocalc",
+      "help - nbgrader in cocalc",
+      "custom kernel",
+      "help - markdown",
+    ],
+  },
 };
 
 function initMenus() {
@@ -403,6 +450,9 @@ function initMenus() {
         childCommands = [] as Partial<Command>[];
         for (const childName of children) {
           const cmd = allCommands[childName];
+          if (cmd == null) {
+            throw Error(`unknown command "${childName}"`);
+          }
           childCommands.push({
             title: cmd.t,
             label: cmd.m,

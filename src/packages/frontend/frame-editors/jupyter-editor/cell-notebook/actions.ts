@@ -1036,4 +1036,27 @@ export class NotebookFrameActions {
     });
     this.scroll("cell visible");
   }
+
+  setExpandCollapse = ({
+    target,
+    expanded,
+    all,
+  }: {
+    target: "source" | "outputs";
+    expanded?: boolean;
+    all?: boolean; // true = everything; false = selected
+  }) => {
+    const ids = all
+      ? this.jupyter_actions.store.get_cell_list().toJS()
+      : Object.keys(this.store.get_selected_cell_ids());
+
+    for (const id of ids) {
+      this.jupyter_actions.set_jupyter_metadata(
+        id,
+        `${target}_hidden`,
+        !expanded,
+        false,
+      );
+    }
+  };
 }
