@@ -103,6 +103,8 @@ function deriveFiles(
     .toJS() as any;
 }
 
+// TOOD: refactor project/history/types.ts and add type tests to clean this up
+
 const PROJECT_EVENTS = [
   "project_start_requested",
   "project_stop_requested",
@@ -110,12 +112,18 @@ const PROJECT_EVENTS = [
   "project_stopped",
   "project_started",
   "start_project",
+  "upgrade",
   "license",
   "pay-as-you-go-upgrade",
+  "delete_project",
+  "undelete_project",
+  "hide_project",
+  "unhide_project",
+  "software_environment",
 ] as const;
 
-function isProjectEvent(event, entry: EventRecordMap): boolean {
-  if (PROJECT_EVENTS.includes(event)) {
+function isProjectEvent(event: string, entry: EventRecordMap): boolean {
+  if (PROJECT_EVENTS.includes(event as any)) {
     return true;
   }
   if (event === "set") {
@@ -127,7 +135,7 @@ function isProjectEvent(event, entry: EventRecordMap): boolean {
   return false;
 }
 
-function isFileEvent(event, entry: EventRecordMap): boolean {
+function isFileEvent(event: string, entry: EventRecordMap): boolean {
   if (event === "open") {
     if (typeof entry.getIn(["event", "filename"]) === "string") {
       return true;
@@ -136,8 +144,14 @@ function isFileEvent(event, entry: EventRecordMap): boolean {
   return false;
 }
 
-function isUserEvent(event): boolean {
-  if (event === "invite_user" || event === "remove_collaborator") {
+const USER_EVENTS = [
+  "invite_user",
+  "invite_nonuser",
+  "remove_collaborator",
+] as const;
+
+function isUserEvent(event: string): boolean {
+  if (USER_EVENTS.includes(event as any)) {
     return true;
   }
   return false;
@@ -363,6 +377,7 @@ export function LogFlyout({
     return (
       <LogEntry
         mode="flyout"
+        flyoutExtra={showExtra}
         id={entry.id}
         time={entry.time}
         project_id={project_id}
