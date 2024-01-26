@@ -8,7 +8,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 */
 
 import { createElement } from "react";
-import { set } from "@cocalc/util/misc";
+import { capitalize, field_cmp, set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
@@ -263,6 +263,9 @@ const JUPYTER_MENUS = {
             actions.fetch_jupyter_kernels();
             return "Kernels";
           }
+          if (!currentKernel) {
+            return "No Kernel";
+          }
           return createElement(KernelMenuItem, {
             ...kernels[currentKernel],
             currentKernel,
@@ -281,9 +284,14 @@ const JUPYTER_MENUS = {
             actions.fetch_jupyter_kernels();
             return [];
           }
-          const v: Partial<Command>[] = [];
+          const languages: Partial<Command>[] = [];
           const addKernel = (kernelName: string) => {
-            v.push({
+            const {
+              language = "language",
+              metadata,
+              display_name,
+            } = kernels[kernelName];
+            const menuItem = {
               label: createElement(KernelMenuItem, {
                 ...kernels[kernelName],
                 currentKernel,
@@ -292,12 +300,32 @@ const JUPYTER_MENUS = {
                 actions.set_kernel(kernelName);
                 actions.set_default_kernel(kernelName);
               },
-            });
+            };
+            const Language = capitalize(language);
+            let done = false;
+            for (const z of languages) {
+              if (z.label == Language) {
+                // @ts-ignore
+                z.children.push(menuItem);
+                done = true;
+                break;
+              }
+            }
+            if (!done) {
+              languages.push({
+                pos: -(metadata?.cocalc?.priority ?? 0),
+                icon: languageToIcon(language),
+                title: `Select the ${display_name} Jupyter kernel for writing code in ${Language}.`,
+                label: Language,
+                children: [menuItem],
+              });
+            }
           };
           for (const kernelName in kernels) {
             addKernel(kernelName);
           }
-          return v;
+          languages.sort(field_cmp("pos"));
+          return languages;
         },
       },
       "refresh kernels",
@@ -410,3 +438,18 @@ export const Editor = createEditor({
   editor_spec: EDITOR_SPEC,
   display_name: "JupyterNotebook",
 });
+
+function languageToIcon(lang: string): string {
+  if (
+    lang == "python" ||
+    lang == "octave" ||
+    lang == "julia" ||
+    lang == "r" ||
+    lang == "sagemath"
+  ) {
+    return lang;
+  } else if (lang == "javascript") {
+    return "js-square";
+  }
+  return "terminal";
+}

@@ -1004,7 +1004,9 @@ export function commands(actions: AllActions): {
       i: "jupyter",
       m: "Change Kernel...",
       t: "Select from any of the available kernels.",
-      f: () => {},
+      f: () => {
+        actions.jupyter_actions?.show_select_kernel("user request");
+      },
     },
   };
 }
