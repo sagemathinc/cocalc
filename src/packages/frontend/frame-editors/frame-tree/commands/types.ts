@@ -44,7 +44,7 @@ export interface Command {
   keyboard?: ReactNode;
   children?:
     | Partial<Command>[]
-    | (({ props, frameTypeCommands }) => Partial<Command>[]);
+    | ((opts: { props?; frameTypeCommands? }) => Partial<Command>[]);
   disabled?: ({ props, read_only }) => boolean;
   // not used yet
   tour?: string;

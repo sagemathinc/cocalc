@@ -635,8 +635,8 @@ export function commands(actions: AllActions): {
     },
 
     "custom kernel": {
-      i: "plus-circle",
-      m: "Create a Custom Kernel...",
+      i: "external-link",
+      m: "How to Create a Custom Kernel...",
       t: "Show tutorial for how to create your own custom Jupyter kernel and use it here.",
       f: () => actions.jupyter_actions?.custom_jupyter_kernel_docs(),
     },
@@ -998,6 +998,13 @@ export function commands(actions: AllActions): {
       i: FORMAT_SOURCE_ICON,
       m: "Format All Cells",
       f: () => actions.frame_actions?.format_all_cells(),
+    },
+
+    "change kernel": {
+      i: "jupyter",
+      m: "Change Kernel...",
+      t: "Select from any of the available kernels.",
+      f: () => {},
     },
   };
 }

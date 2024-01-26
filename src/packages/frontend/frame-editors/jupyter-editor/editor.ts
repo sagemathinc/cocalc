@@ -7,6 +7,7 @@
 Spec for editing Jupyter notebooks via a frame tree.
 */
 
+import { createElement } from "react";
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
@@ -31,6 +32,7 @@ import type {
 } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { commands, AllActions } from "@cocalc/frontend/jupyter/commands";
 import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
+import KernelMenuItem from "./kernel-menu-item";
 
 const jupyterCommands = set([
   "chatgpt",
@@ -247,7 +249,60 @@ const JUPYTER_MENUS = {
       "confirm restart kernel and run all cells without halting on error",
     ],
     "shutdown-kernel": ["confirm shutdown kernel"],
-    "refresh kernels": ["refresh kernels"],
+    kernels: [
+      {
+        label: ({ props }) => {
+          const actions = props.actions.jupyter_actions;
+          const store = actions.store;
+          if (!store) {
+            return "Kernels";
+          }
+          const kernels = store.get("kernels_by_name")?.toJS();
+          const currentKernel = store.get("kernel");
+          if (kernels == null || currentKernel == null) {
+            actions.fetch_jupyter_kernels();
+            return "Kernels";
+          }
+          return createElement(KernelMenuItem, {
+            ...kernels[currentKernel],
+            currentKernel,
+          });
+        },
+        name: "kernels",
+        children: ({ props }) => {
+          const actions = props.actions.jupyter_actions;
+          const store = actions.store;
+          if (!store) {
+            return [];
+          }
+          const kernels = store.get("kernels_by_name")?.toJS();
+          const currentKernel = store.get("kernel");
+          if (kernels == null) {
+            actions.fetch_jupyter_kernels();
+            return [];
+          }
+          const v: Partial<Command>[] = [];
+          const addKernel = (kernelName: string) => {
+            v.push({
+              label: createElement(KernelMenuItem, {
+                ...kernels[kernelName],
+                currentKernel,
+              }),
+              onClick: () => {
+                actions.set_kernel(kernelName);
+                actions.set_default_kernel(kernelName);
+              },
+            });
+          };
+          for (const kernelName in kernels) {
+            addKernel(kernelName);
+          }
+          return v;
+        },
+      },
+      "refresh kernels",
+      "change kernel",
+    ],
     "no-kernel": ["no kernel"],
     "custom-kernel": ["custom kernel"],
   },
@@ -312,20 +367,27 @@ function initMenus() {
         },
       };
     } else {
-      const childCommands: Partial<Command>[] = [];
-      for (const childName of children) {
-        const cmd = allCommands[childName];
-        childCommands.push({
-          title: cmd.t,
-          label: cmd.m,
-          icon: cmd.i,
-          onClick: ({ props }) => {
-            allActions.frame_actions = props.actions.frame_actions?.[props.id];
-            allActions.jupyter_actions = props.actions.jupyter_actions;
-            allActions.editor_actions = props.actions;
-            cmd.f();
-          },
-        });
+      let childCommands;
+      if (typeof children == "function") {
+        childCommands = children;
+        console.log("child is function for ", name);
+      } else {
+        childCommands = [] as Partial<Command>[];
+        for (const childName of children) {
+          const cmd = allCommands[childName];
+          childCommands.push({
+            title: cmd.t,
+            label: cmd.m,
+            icon: cmd.i,
+            onClick: ({ props }) => {
+              allActions.frame_actions =
+                props.actions.frame_actions?.[props.id];
+              allActions.jupyter_actions = props.actions.jupyter_actions;
+              allActions.editor_actions = props.actions;
+              cmd.f();
+            },
+          });
+        }
       }
       C[cmdName] = {
         pos,
