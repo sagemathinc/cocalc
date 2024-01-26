@@ -220,14 +220,7 @@ const JUPYTER_MENUS = {
         ],
       },
     ],
-    "format-cells": [
-      {
-        label: "Format Cells",
-        name: "cell-format",
-        children: ["format cells", "format all cells"],
-      },
-    ],
-    "cell-toggle-selected": [
+    "cell-toggle": [
       {
         label: "Toggle Selected Cells",
         name: "cell-toggle",
@@ -240,8 +233,6 @@ const JUPYTER_MENUS = {
           "delete protect",
         ],
       },
-    ],
-    "cell-toggle-all": [
       {
         label: "Toggle All Cells",
         name: "cell-toggle-all",
@@ -249,6 +240,13 @@ const JUPYTER_MENUS = {
           "toggle all cells output collapsed",
           "toggle all cells output scrolled",
         ],
+      },
+    ],
+    "format-cells": [
+      {
+        label: "Format Cells",
+        name: "cell-format",
+        children: ["format cells", "format all cells"],
       },
     ],
     "insert-image": ["insert image"],

@@ -262,40 +262,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       });
     }
 
-    function render_cell(): Rendered {
-      return render_menu({
-        heading: "Cell",
-        disabled: read_only,
-        names: [
-          "run cell",
-          "run cell and select next",
-          "run cell and insert below",
-          "run all cells",
-          "run all cells above",
-          "run all cells below",
-          "",
-          "<Cell type...",
-          ">change cell to code",
-          ">change cell to markdown",
-          ">change cell to raw",
-          "",
-          "<Selected output...",
-          ">toggle cell output collapsed",
-          ">toggle cell output scrolled",
-          ">clear cell output",
-          "",
-          "<All output...",
-          ">toggle all cells output collapsed",
-          ">toggle all cells output scrolled",
-          ">clear all cells output",
-          "",
-          "<Format code...",
-          ">format cells",
-          ">format all cells",
-        ],
-      });
-    }
-
     function focus(): void {
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
       frameActions.current?.focus(true);
@@ -447,7 +413,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       >
         {render_file()}
         {render_view()}
-        {render_cell()}
       </ButtonGroup>
     );
   },
