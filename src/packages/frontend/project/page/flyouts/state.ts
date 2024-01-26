@@ -182,6 +182,16 @@ export function getFlyoutLogMode(project_id: string): FlyoutLogMode {
   return isFlyoutLogMode(mode) ? mode : FLYOUT_LOG_DEFAULT_MODE;
 }
 
+export function getFlyoutLogFilter(
+  project_id: string,
+): FlyoutLogFilter[] | null {
+  const f = LS.get<LSFlyout>(lsKey(project_id))?.logFilter;
+  if (f != null && Array.isArray(f)) {
+    return f.filter(isFlyoutLogFilterMode);
+  }
+  return null;
+}
+
 export function getFlyoutLogDeduplicate(
   project_id: string,
 ): FlyoutLogDeduplicate {

@@ -4,6 +4,7 @@
  */
 
 import { Alert, Button, Flex, Input, Space, Tooltip } from "antd";
+import immutable from "immutable";
 import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
@@ -45,7 +46,11 @@ import {
   FLYOUT_PADDING,
 } from "./consts";
 import { FileListItem, fileItemStyle } from "./file-list-item";
-import { FlyoutLogDeduplicate, FlyoutLogMode } from "./state";
+import {
+  FlyoutLogDeduplicate,
+  FlyoutLogMode,
+  getFlyoutLogFilter,
+} from "./state";
 
 interface OpenedFile {
   filename: string;
@@ -252,6 +257,13 @@ export function LogFlyout({
 
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
   const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
+
+  // restore the logFilter from local storage (mode is similar, restored in the LogHeader)
+  useEffect(() => {
+    const next = getFlyoutLogFilter(project_id);
+    if (next == null) return; // nothing stored in local storage, hence just keeping the default
+    actions?.setState({ flyout_log_filter: immutable.List(next) });
+  }, []);
 
   const activePath = useMemo(() => {
     return tab_to_path(activeTab);
@@ -480,7 +492,7 @@ export function LogFlyout({
             actions?.project_log_load_all();
           }}
         >
-          Show all log entries...
+          Load older log entries...
         </Button>
       </div>
     );
@@ -496,7 +508,7 @@ export function LogFlyout({
         title={
           <>
             If enabled, the list contains duplicate entries. By default, only
-            the most recent file open activity is shown.
+            the most recent open file activity is shown.
           </>
         }
         onClick={(e) => {
@@ -513,13 +525,21 @@ export function LogFlyout({
     if (mode === "files") return null;
     return (
       <>
-        Show:
         <Space.Compact>
+          <BSButton
+            active={false}
+            bsSize="xsmall"
+            onClick={() => actions?.resetFlyoutLogFilter()}
+            title={
+              "Toggle the filter buttons on the right to show/hide specific groups of events. Click this button to reset the filter."
+            }
+          >
+            Show:
+          </BSButton>
           <BSButton
             active={showOpenFiles}
             bsSize="xsmall"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               actions?.setFlyoutLogFilter("open", !showOpenFiles);
             }}
             title={"Show file open events"}
@@ -529,8 +549,7 @@ export function LogFlyout({
           <BSButton
             active={showFileActions}
             bsSize="xsmall"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               actions?.setFlyoutLogFilter("files", !showFileActions);
             }}
             title={"Show file action events"}
@@ -540,8 +559,7 @@ export function LogFlyout({
           <BSButton
             active={showProject}
             bsSize="xsmall"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               actions?.setFlyoutLogFilter("project", !showProject);
             }}
             title={"Show project events"}
@@ -551,8 +569,7 @@ export function LogFlyout({
           <BSButton
             active={showShare}
             bsSize="xsmall"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               actions?.setFlyoutLogFilter("share", !showShare);
             }}
             title={"Show sharing files events"}
@@ -562,8 +579,7 @@ export function LogFlyout({
           <BSButton
             active={showUser}
             bsSize="xsmall"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               actions?.setFlyoutLogFilter("user", !showUser);
             }}
             title={"Show user events"}
@@ -573,8 +589,7 @@ export function LogFlyout({
           <BSButton
             active={showOther}
             bsSize="xsmall"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               actions?.setFlyoutLogFilter("other", !showOther);
             }}
             title={"Show other events"}
@@ -641,6 +656,7 @@ export function LogFlyout({
           align="center"
           gap="middle"
           style={{ marginRight: FLYOUT_PADDING }}
+          wrap="wrap"
         >
           <Input
             placeholder="Search..."
@@ -654,6 +670,7 @@ export function LogFlyout({
             onBlur={() => setScrollIdxHide(true)}
             allowClear
             prefix={<Icon name="search" />}
+            style={{ minWidth: "5em", flex: "1" }}
           />
           {renderControls()}
         </Flex>
