@@ -55,6 +55,7 @@ export function commands(actions: AllActions): {
 
   return {
     "cell toolbar none": {
+      i: "ban",
       m: "No cell toolbar",
       menu: "None",
       f: () => actions.jupyter_actions?.cell_toolbar(),
@@ -67,6 +68,7 @@ export function commands(actions: AllActions): {
     },
 
     "cell toolbar tags": {
+      i: "tags-outlined",
       m: "Edit cell tags toolbar",
       menu: "Tags",
       f: () => actions.jupyter_actions?.cell_toolbar("tags"),
@@ -79,50 +81,59 @@ export function commands(actions: AllActions): {
     },
 
     "cell toolbar create_assignment": {
-      m: "Create assignment (nbgrader) toolbar",
+      i: "graduation-cap",
+      m: "Create Assignment Using NBgrader",
       menu: "Create assignment (nbgrader)",
       f: () => actions.jupyter_actions?.cell_toolbar("create_assignment"),
     },
 
     "cell toolbar slideshow": {
+      i: "graduation-cap",
       m: "Slideshow toolbar",
       menu: "Slideshow",
       f: () => actions.jupyter_actions?.cell_toolbar("slideshow"),
     },
 
     "change cell to code": {
+      i: "code-outlined",
       m: "Change Cell to Code",
       k: [{ which: 89, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("code"),
     },
 
     "change cell to heading 1": {
-      m: "Heading 1",
+      i: "header",
+      m: "Change Markdown to Heading 1",
       k: [{ which: 49, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 1),
     },
     "change cell to heading 2": {
-      m: "Heading 2",
+      i: "header",
+      m: "Change Markdown to Heading 2",
       k: [{ which: 50, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 2),
     },
     "change cell to heading 3": {
-      m: "Heading 3",
+      i: "header",
+      m: "Change Markdown to Heading 3",
       k: [{ which: 51, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 3),
     },
     "change cell to heading 4": {
-      m: "Heading 4",
+      i: "header",
+      m: "Change Markdown to Heading 4",
       k: [{ which: 52, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 4),
     },
     "change cell to heading 5": {
-      m: "Heading 5",
+      i: "header",
+      m: "Change Markdown to Heading 5",
       k: [{ which: 53, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 5),
     },
     "change cell to heading 6": {
-      m: "Heading 6",
+      i: "header",
+      m: "Change Markdown to Heading 6",
       k: [{ which: 54, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 6),
     },

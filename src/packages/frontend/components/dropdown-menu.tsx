@@ -97,7 +97,7 @@ export function DropdownMenu({
     } else {
       body = (
         <span
-          style={{ background: open ? "#ddd" : undefined, ...STYLE, ...style }}
+          style={{ background: open ? "#eee" : undefined, ...STYLE, ...style }}
           id={id}
         >
           {title}

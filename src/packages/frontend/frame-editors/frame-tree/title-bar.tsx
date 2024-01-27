@@ -87,7 +87,6 @@ interface EditorActions extends Actions {
 }
 
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { COLORS } from "@cocalc/util/theme";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
@@ -627,12 +626,6 @@ export function FrameTitleBar(props: Props) {
   }
 
   function renderFrameControls(): Rendered {
-    const style: CSS = {
-      padding: 0,
-      background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
-      height: button_height(),
-      float: "right",
-    };
     return (
       <div
         key="control-buttons-group"
@@ -643,7 +636,17 @@ export function FrameTitleBar(props: Props) {
         }}
         ref={getTourRef("control")}
       >
-        <ButtonGroup style={style} key={"control-buttons"}>
+        <ButtonGroup
+          style={{
+            padding: 0,
+            background: is_active
+              ? COL_BAR_BACKGROUND
+              : COL_BAR_BACKGROUND_DARK,
+            height: button_height(),
+            float: "right",
+          }}
+          key={"control-buttons"}
+        >
           {!props.is_full ? render_split_row() : undefined}
           {!props.is_full ? render_split_col() : undefined}
           {!props.is_only ? render_full() : undefined}
@@ -1052,7 +1055,13 @@ export function FrameTitleBar(props: Props) {
         }
         content={() => {
           return (
-            <div style={{ display: "flex", maxWidth: "100vw", height: "34px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                maxWidth: "100vw",
+              }}
+            >
               <div
                 style={{
                   marginLeft: "3px",
@@ -1061,15 +1070,16 @@ export function FrameTitleBar(props: Props) {
               >
                 {renderButtons({ maxHeight: "50vh", display: "block" }, true)}
               </div>
-              <div>{renderFrameControls()}</div>
-              <Icon
-                onClick={() => setShowMainButtonsPopover(false)}
-                name="times"
-                style={{
-                  color: COLORS.GRAY_M,
-                  marginLeft: "10px",
-                }}
-              />
+              <div>
+                {renderFrameControls()}
+
+                <Button
+                  style={{ float: "right" }}
+                  onClick={() => setShowMainButtonsPopover(false)}
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           );
         }}
@@ -1084,6 +1094,7 @@ export function FrameTitleBar(props: Props) {
             style={{
               padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
+              background: showMainButtonsPopover ? "#eee" : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >

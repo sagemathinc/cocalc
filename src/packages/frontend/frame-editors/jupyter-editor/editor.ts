@@ -312,16 +312,17 @@ const JUPYTER_MENUS = {
     label: "View",
     pos: 2,
     components: [
+      "cell toolbar create_assignment",
       {
         label: "Cell Toolbar",
         name: "cell-toolbar",
         children: [
           "cell toolbar none",
-          "cell toolbar attachments",
-          "cell toolbar tags",
-          "cell toolbar metadata",
           "cell toolbar create_assignment",
           "cell toolbar slideshow",
+          "cell toolbar metadata",
+          "cell toolbar attachments",
+          "cell toolbar tags",
         ],
       },
       {
