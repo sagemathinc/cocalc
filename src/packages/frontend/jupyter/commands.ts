@@ -373,7 +373,8 @@ export function commands(actions: AllActions): {
     },
 
     "hide all line numbers": {
-      m: "Hide all line numbers",
+      i: "list-ol",
+      m: "Hide Line Numbers for All Cells",
       f: () => actions.jupyter_actions?.set_line_numbers(false),
     },
 
@@ -791,7 +792,8 @@ export function commands(actions: AllActions): {
     },
 
     "show all line numbers": {
-      m: "Show all line numbers",
+      i: "list-ol",
+      m: "Show Line Numbers for All Cells",
       f: () => actions.jupyter_actions?.set_line_numbers(true),
     },
 
@@ -874,13 +876,15 @@ export function commands(actions: AllActions): {
     },
 
     "toggle all line numbers": {
+      i: "list-ol",
       m: "Toggle Line Numbers of All Cells",
       k: [{ mode: "escape", shift: true, which: 76 }],
       f: () => actions.jupyter_actions?.toggle_line_numbers(),
     },
 
     "toggle cell line numbers": {
-      m: "Toggle cell line numbers of Selected Cells",
+      i: "list-ol",
+      m: "Toggle Line Numbers of Selected Cells",
       k: [{ mode: "escape", which: 76 }],
       f: () => actions.jupyter_actions?.toggle_cell_line_numbers(id()),
     },

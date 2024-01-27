@@ -254,6 +254,35 @@ const JUPYTER_MENUS = {
   view: {
     label: "View",
     pos: 2,
+    components: [
+      {
+        label: "Cell Toolbar",
+        name: "cell-toolbar",
+        children: [
+          "cell toolbar none",
+          "cell toolbar attachments",
+          "cell toolbar tags",
+          "cell toolbar metadata",
+          "cell toolbar create_assignment",
+          "cell toolbar slideshow",
+        ],
+      },
+      {
+        label: "Button Toolbar",
+        name: "button-toolbar",
+        children: ["hide toolbar", "show toolbar"],
+      },
+      {
+        label: "Line Numbers",
+        name: "line-numbers",
+        icon: "list-ol",
+        children: [
+          "show all line numbers",
+          "hide all line numbers",
+          "toggle cell line numbers",
+        ],
+      },
+    ],
   },
   jupyter_run: {
     label: "Run",

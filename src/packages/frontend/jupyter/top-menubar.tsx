@@ -41,11 +41,6 @@ const TITLE_STYLE: React.CSSProperties = {
   border: 0,
 } as const;
 
-const SELECTED_STYLE: React.CSSProperties = {
-  color: COLORS.BS_BLUE_TEXT,
-  fontWeight: "bold",
-} as const;
-
 interface TopMenubarProps {
   // OWN PROPS
   actions: JupyterActions;
@@ -81,8 +76,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       name,
       "backend_kernel_info",
     ]);
-    const toolbar_state: boolean | undefined = useRedux([name, "toolbar"]);
-    const cell_toolbar: string | undefined = useRedux([name, "cell_toolbar"]);
     const read_only: boolean | undefined = useRedux([name, "read_only"]);
     const trust: boolean | undefined = useRedux([name, "trust"]);
 
@@ -223,44 +216,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     //         ],
     //       }); // disable if not markdown
     //     }
-
-    function render_view(): Rendered {
-      const toolbar = {
-        name: "toggle toolbar",
-        display: toolbar_state ? "Hide Toolbar" : "Show Toolbar",
-      };
-
-      const cell_toolbars: any = [];
-      for (const name of [
-        "none",
-        "metadata",
-        "slideshow",
-        "attachments",
-        "tags",
-        "create_assignment",
-      ]) {
-        const item_name = `>cell toolbar ${name}`;
-        if ((cell_toolbar != null ? cell_toolbar : "none") === name) {
-          cell_toolbars.push({ name: item_name, style: SELECTED_STYLE });
-        } else {
-          cell_toolbars.push(item_name);
-        }
-      }
-
-      return render_menu({
-        heading: "View",
-        disabled: read_only,
-        names: [
-          "toggle header",
-          toolbar,
-          "toggle all line numbers",
-          "",
-          "<Cell Toolbar...",
-        ]
-          .concat(cell_toolbars)
-          .concat(["", "zoom in", "zoom out"]),
-      });
-    }
 
     function focus(): void {
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
@@ -412,7 +367,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         }}
       >
         {render_file()}
-        {render_view()}
       </ButtonGroup>
     );
   },
