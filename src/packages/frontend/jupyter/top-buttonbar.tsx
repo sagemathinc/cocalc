@@ -7,7 +7,8 @@
 
 import * as immutable from "immutable";
 
-import { Button, ButtonGroup, Form } from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "antd";
+import { ButtonGroup, Form } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import {
   DropdownMenu,
@@ -22,6 +23,8 @@ import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-edit
 import { capitalize, endswith } from "@cocalc/util/misc";
 import { Cells, CellType, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
+
+const SIZE=undefined;
 
 type ButtonDescription =
   | string
@@ -81,9 +84,6 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     if (disabled == null) {
       disabled = false;
     }
-    if (label == null) {
-      label = "";
-    }
     if (className == null) {
       className = undefined;
     }
@@ -93,11 +93,12 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     }
     const obj = frameActions.current?.commands[name];
     if (obj == null) {
-      throw Error(`command ${name} is not defined`);
+      throw Error(`command "${name}" is not defined`);
     }
     const focus: boolean = !endswith(obj.m ? obj.m : "", "...");
     return (
       <Button
+        size={SIZE}
         key={key}
         className={className}
         onClick={command(name, focus)}
@@ -105,7 +106,8 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
         style={style}
         title={obj.m}
       >
-        {obj.i && <Icon name={obj.i} />} {label}
+        {obj.i && <Icon name={obj.i} />}
+        {!!label ? label : undefined}
       </Button>
     );
   }
@@ -180,7 +182,9 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
 
   function render_select_cell_type() {
     const cell_type =
-      sel_ids.size > 1 ? "multi" : cells.getIn([cur_id, "cell_type"], "code") as string;
+      sel_ids.size > 1
+        ? "multi"
+        : (cells.getIn([cur_id, "cell_type"], "code") as string);
     const title = cell_type_title(cell_type);
 
     const items: MenuItems = [
@@ -214,7 +218,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
       // cell of different types if the width isn't fixed.
       <ButtonGroup>
         <DropdownMenu
-          style={{ height: "34px", width: "6em" }}
+          size={SIZE}
           cocalc-test={"jupyter-cell-type-dropdown"}
           button={true}
           key={"cell-type"}
@@ -240,7 +244,11 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
       "Format the syntax of selected cells. Only works if a formatter is installed.";
     return (
       <ButtonGroup className="hidden-xs">
-        <Button onClick={() => frameActions.current?.format()} title={help}>
+        <Button
+          size={SIZE}
+          onClick={() => frameActions.current?.format()}
+          title={help}
+        >
           <Icon name={FORMAT_SOURCE_ICON} /> <VisibleMDLG>Format</VisibleMDLG>
         </Button>
       </ButtonGroup>
@@ -272,7 +280,15 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <Form inline style={{ whiteSpace: "nowrap", margin: "2px 0" }}>
+    <Form
+      inline
+      style={{
+        whiteSpace: "nowrap",
+        margin: "2px 0",
+        borderBottom: "1px solid #ccc",
+        padding: "3px",
+      }}
+    >
       {render_add_cell()}
       <span style={{ marginLeft: "5px" }} />
       {render_group_move()}

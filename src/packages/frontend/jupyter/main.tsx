@@ -41,7 +41,6 @@ import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
 import { TopButtonbar } from "./top-buttonbar";
-import { TopMenubar } from "./top-menubar";
 import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import * as chatgpt from "./chatgpt";
@@ -244,21 +243,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_menubar() {
-    if (actions == null || cells == null || sel_ids == null || cur_id == null) {
-      return;
-    } else {
-      return (
-        <TopMenubar
-          actions={actions}
-          name={name}
-          cells={cells}
-          cur_id={cur_id}
-        />
-      );
-    }
-  }
-
   function render_buttonbar() {
     if (
       actions == null ||
@@ -285,11 +269,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
 
   function render_heading() {
     return (
-      <div>
-        {render_kernel()}
-        {render_menubar()}
-        {toolbar ? render_buttonbar() : undefined}
-      </div>
+      <>
+        {toolbar && <div> {render_buttonbar()}</div>}
+        <div>{render_kernel()}</div>
+      </>
     );
   }
 

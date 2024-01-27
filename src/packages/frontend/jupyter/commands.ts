@@ -472,7 +472,8 @@ export function commands(actions: AllActions): {
     },
 
     "nbconvert ipynb": {
-      m: "Notebook (.ipynb)...",
+      i: "jupyter",
+      m: "Notebook (.ipynb)",
       f() {
         actions.jupyter_actions?.save();
         actions.jupyter_actions?.file_action("download");
@@ -480,56 +481,67 @@ export function commands(actions: AllActions): {
     },
 
     "nbconvert asciidoc": {
-      m: "AsciiDoc (.asciidoc)...",
+      i: "file-code",
+      m: "AsciiDoc (.asciidoc)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("asciidoc"),
     },
 
     "nbconvert python": {
-      m: "Python (.py)...",
+      i: "python",
+      m: "Python (.py)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("python"),
     },
 
     "nbconvert classic html": {
-      m: "HTML via Classic nbconvert (.html)...",
+      i: "html5",
+      m: "HTML via Classic nbconvert (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("classic-html"),
     },
 
     "nbconvert classic pdf": {
-      m: "PDF via Classic nbconvert and Chrome (.pdf)...",
+      i: "file-pdf",
+      m: "PDF via Classic nbconvert and Chrome (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("classic-pdf"),
     },
 
     "nbconvert lab html": {
-      m: "HTML via JupyterLab nbconvert (.html)...",
+      i: "html5",
+      m: "HTML via JupyterLab nbconvert (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("lab-html"),
     },
 
     "nbconvert lab pdf": {
-      m: "PDF via JupyterLab nbconvert and Chrome (.pdf)...",
+      i: "file-pdf",
+      m: "PDF via JupyterLab nbconvert and Chrome (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("lab-pdf"),
     },
 
     "nbconvert cocalc html": {
-      m: "HTML (.html)...",
+      i: "html5",
+      m: "HTML (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("cocalc-html"),
     },
 
     "nbconvert markdown": {
-      m: "Markdown (.md)...",
+      i: "markdown",
+      m: "Markdown (.md)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("markdown"),
     },
 
     "nbconvert rst": {
-      m: "reST (.rst)...",
+      i: "code",
+      m: "reST (.rst)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("rst"),
     },
 
     "nbconvert slides": {
-      m: "Slideshow server via nbconvert...",
+      i: "slides",
+      m: "Slideshow server via nbconvert",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("slides"),
     },
 
     slideshow: {
+      i: "slides",
       m: "Slideshow",
       f: () => actions.editor_actions?.show_revealjs_slideshow(),
     },
@@ -540,32 +552,38 @@ export function commands(actions: AllActions): {
     },
 
     "nbconvert tex": {
-      m: "LaTeX (.tex)...",
+      i: "tex",
+      m: "LaTeX (.tex)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("latex"),
     },
 
     "nbconvert cocalc pdf": {
-      m: "PDF (.pdf)...",
+      i: "file-pdf",
+      m: "PDF (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("cocalc-pdf"),
     },
 
     "nbconvert latex pdf": {
-      m: "PDF via LaTeX (.pdf)...",
+      i: "tex",
+      m: "PDF via LaTeX (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("pdf"),
     },
 
     "nbconvert script": {
-      m: "Executable script...",
+      i: "code-outlined",
+      m: "Executable Script",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("script"),
     },
 
     "nbconvert sagews": {
-      m: "Sage worksheet (.sagews)...",
+      i: "sagemath",
+      m: "Sage Worksheet (.sagews)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("sagews"),
     },
 
     "nbgrader validate": {
-      m: "Restart and validate...",
+      i: "graduation-cap",
+      m: "Restart and Validate...",
       menu: "Validate...",
       f: () => {
         if (actions.frame_actions != null) {
@@ -577,6 +595,7 @@ export function commands(actions: AllActions): {
     },
 
     "nbgrader assign": {
+      i: "graduation-cap",
       m: "Create student version...",
       menu: "Generate student version...",
       f: () => actions.jupyter_actions?.nbgrader_actions.confirm_assign(),

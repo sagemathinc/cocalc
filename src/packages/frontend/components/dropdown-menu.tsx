@@ -41,7 +41,12 @@ interface Props {
   defaultOpen?: boolean;
 }
 
-const STYLE = { margin: "6px 10px", cursor: "pointer" } as const;
+const STYLE = {
+  padding: "7px 10px",
+  margin: 0,
+  cursor: "pointer",
+  borderRadius: "3px",
+} as const;
 
 export function DropdownMenu({
   button,
@@ -91,7 +96,10 @@ export function DropdownMenu({
       );
     } else {
       body = (
-        <span style={{ ...STYLE, ...style }} id={id}>
+        <span
+          style={{ background: open ? "#ddd" : undefined, ...STYLE, ...style }}
+          id={id}
+        >
           {title}
         </span>
       );

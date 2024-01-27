@@ -311,7 +311,11 @@ export default function SelectComputeServer({
         allowClear
         bordered={false}
         disabled={loading}
-        placeholder={<span style={{ color: "#000" }}>Server</span>}
+        placeholder={
+          <span style={{ color: "#000" }}>
+            <Icon name="servers" /> Servers
+          </span>
+        }
         open={open}
         onSelect={(id) => {
           if (id == "create") return;
@@ -326,6 +330,7 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
+          borderRight: "1px solid #ccc",
           width:
             !open && value == "0"
               ? undefined
@@ -337,7 +342,6 @@ export default function SelectComputeServer({
           //background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
-        suffixIcon={null}
       />
       <Modal
         keyboard

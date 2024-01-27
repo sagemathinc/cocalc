@@ -122,6 +122,63 @@ export const EDITOR_SPEC = {
 };
 
 const JUPYTER_MENUS = {
+  file: {
+    label: "File",
+    pos: 0,
+    download: [
+      {
+        icon: "file-export",
+        label: "Save and Export As PDF",
+        name: "save-and-download-as-pdf",
+        children: [
+          "nbconvert cocalc pdf",
+          "nbconvert latex pdf",
+          "nbconvert classic pdf",
+          "nbconvert lab pdf",
+        ],
+      },
+      {
+        icon: "file-export",
+        label: "Save and Export As HTML",
+        name: "save-and-download-as-html",
+        children: [
+          "nbconvert cocalc html",
+          "nbconvert classic html",
+          "nbconvert lab html",
+        ],
+      },
+      {
+        icon: "file-export",
+        label: "Save and Export...",
+        name: "save-and-download-as-other",
+        children: [
+          "nbconvert script",
+          "nbconvert markdown",
+          "nbconvert rst",
+          "nbconvert tex",
+          "nbconvert sagews",
+          "nbconvert asciidoc",
+        ],
+      },
+    ],
+    slideshow: ["slideshow", "nbconvert slides"],
+    trusted: [
+      {
+        name: "trust notebook",
+        disabled: ({ props }) => {
+          return !!props.actions.jupyter_actions?.store?.get("trust");
+        },
+        label: ({ props }) => {
+          if (props.actions.jupyter_actions?.store?.get("trust")) {
+            return "Trusted Notebook";
+          } else {
+            return "Trust Notebook...";
+          }
+        },
+      },
+    ],
+    classic: ["switch to classical notebook"],
+  },
   edit: {
     label: "Edit",
     pos: 1,
@@ -413,7 +470,15 @@ const JUPYTER_MENUS = {
 function initMenus() {
   const MENUS: Menus = {};
   const COMMANDS: {
-    [name: string]: { group: string; pos: number; children?; label?; icon? };
+    [name: string]: {
+      group: string;
+      pos: number;
+      children?;
+      label?;
+      icon?;
+      onClick?;
+      disabled?;
+    };
   } = {};
   for (const menu in JUPYTER_MENUS) {
     const spec = JUPYTER_MENUS[menu];
@@ -428,9 +493,16 @@ function initMenus() {
           if (typeof cmd == "string") {
             COMMANDS[cmd] = { group: gp, pos };
           } else {
-            // submenu
-            const { name, label, children, icon } = cmd;
-            COMMANDS[name] = { group: gp, pos, children, label, icon };
+            // custom -- could be submenu or dynamic based on props
+            const { name, label, children, icon, disabled } = cmd;
+            COMMANDS[name] = {
+              group: gp,
+              pos,
+              children,
+              label,
+              icon,
+              disabled,
+            };
           }
         }
       }
@@ -447,9 +519,10 @@ function initMenus() {
   const allCommands = commands(allActions);
   const C: { [name: string]: Command } = {};
   for (const name in COMMANDS) {
-    const { group, pos, children, label, icon } = COMMANDS[name];
+    const { group, pos, children, label, icon, disabled } = COMMANDS[name];
     const cmdName = `jupyter-${name}`;
     if (children == null) {
+      // everthing based entirely on command spec file (commands.ts):
       const cmd = allCommands[name];
       if (cmd == null) {
         throw Error(`invalid Jupyter command name "${name}"`);
@@ -457,10 +530,11 @@ function initMenus() {
       C[cmdName] = {
         pos,
         title: cmd.t,
-        label: cmd.m,
+        label: label ?? cmd.m,
         group,
-        icon: cmd.i,
+        icon: icon ?? cmd.i,
         keyboard: cmd.k ? cmd.k.map(shortcut_to_string).join(", ") : undefined,
+        disabled,
         onClick: ({ props }) => {
           allActions.frame_actions = props.actions.frame_actions?.[props.id];
           allActions.jupyter_actions = props.actions.jupyter_actions;
@@ -472,7 +546,6 @@ function initMenus() {
       let childCommands;
       if (typeof children == "function") {
         childCommands = children;
-        console.log("child is function for ", name);
       } else {
         childCommands = [] as Partial<Command>[];
         for (const childName of children) {
@@ -484,6 +557,7 @@ function initMenus() {
             title: cmd.t,
             label: cmd.m,
             icon: cmd.i,
+            disabled,
             onClick: ({ props }) => {
               allActions.frame_actions =
                 props.actions.frame_actions?.[props.id];

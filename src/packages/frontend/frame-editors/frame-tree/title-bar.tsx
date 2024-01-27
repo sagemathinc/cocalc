@@ -402,15 +402,13 @@ export function FrameTitleBar(props: Props) {
     return commandToMenuItem({ name, cmd, key: name, noChildren: false });
   }
 
-  function getCommandLabel(cmd) {
+  function getCommandLabel(cmd, width = "25px") {
     return (
       <>
         {typeof cmd.icon == "string" ? (
           <Icon name={cmd.icon} style={{ width: "25px" }} />
         ) : (
-          <div style={{ width: "25px", display: "inline-block" }}>
-            {cmd.icon}
-          </div>
+          <div style={{ width, display: "inline-block" }}>{cmd.icon}</div>
         )}
         {typeof cmd.label == "function"
           ? cmd.label({ props, helpSearch, setHelpSearch })
@@ -514,7 +512,7 @@ export function FrameTitleBar(props: Props) {
   }
 
   const MENU_STYLE = {
-    margin: `${props.is_only || props.is_full ? "7px" : "5px"} 10px`,
+    padding: `${props.is_only || props.is_full ? "7px" : "5px"} 10px`,
   };
 
   function button_style(style?: CSS): CSS {
@@ -735,7 +733,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_switch_to_file(): Rendered {
+  function renderSwitchToFile(): Rendered {
     if (
       !isVisible("switch_to_file") ||
       props.actions.switch_to_file == null ||
@@ -871,7 +869,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_save_timetravel_group(): Rendered {
+  function renderSaveTimetravelGroup(): Rendered {
     const v: Rendered[] = [];
     let x: Rendered;
     if ((x = render_save())) v.push(x);
@@ -963,7 +961,6 @@ export function FrameTitleBar(props: Props) {
       >
         {v.slice(0, -1).map((x) => x.menu)}
         {v[v.length - 1]?.menu}
-        {renderComputeServer()}
       </div>
     );
     // todo move compute server as earlier menu, when it is a menu.
@@ -997,11 +994,12 @@ export function FrameTitleBar(props: Props) {
         disableTourRefs.current = true;
       }
 
-      const v: (JSX.Element | undefined)[] = [];
+      const v: (JSX.Element | undefined | null)[] = [];
+      v.push(renderComputeServer());
       v.push(renderPage());
-      v.push(render_save_timetravel_group());
+      v.push(renderSaveTimetravelGroup());
       v.push(renderMenus());
-      v.push(render_switch_to_file());
+      v.push(renderSwitchToFile());
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -1131,7 +1129,7 @@ export function FrameTitleBar(props: Props) {
     }
     return (
       <SelectComputeServer
-        style={{ marginTop: "-7px" }}
+        key="compute-server-selector"
         actions={props.actions}
         frame_id={props.id}
         type={type}
