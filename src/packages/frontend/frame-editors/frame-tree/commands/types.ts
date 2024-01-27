@@ -39,7 +39,9 @@ export interface Command {
     event?;
     setShowAI?: (boolean) => void;
   }) => void;
-  isVisible?: ({ props }) => boolean;
+  // isVisible: if a function, determine visibility based on that.
+  //            if a string, use editor spec for given frame.
+  isVisible?: string | (({ props }) => boolean);
   disable?: string;
   keyboard?: ReactNode;
   children?:

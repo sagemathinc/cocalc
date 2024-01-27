@@ -79,7 +79,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const project_store_name = project_redux_name(project_id);
     const available_features: AvailableFeatures = useRedux(
       project_store_name,
-      "available_features"
+      "available_features",
     );
 
     const editor_settings = useTypedRedux("account", "editor_settings");
@@ -89,13 +89,13 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const has_unsaved_changes: boolean = useRedux(name, "has_unsaved_changes");
     const has_uncommitted_changes: boolean = useRedux(
       name,
-      "has_uncommitted_changes"
+      "has_uncommitted_changes",
     );
     const read_only: boolean = useRedux(name, "read_only");
     const is_loaded: boolean = useRedux(name, "is_loaded");
     const local_view_state: Map<string, any> = useRedux(
       name,
-      "local_view_state"
+      "local_view_state",
     );
     const error: string = useRedux(name, "error");
     const errorstyle: ErrorStyles = useRedux(name, "errorstyle");
@@ -105,7 +105,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const status: string = useRedux(name, "status");
     const load_time_estimate: LoadingEstimate | undefined = useRedux(
       name,
-      "load_time_estimate"
+      "load_time_estimate",
     );
     const value: string | undefined = useRedux(name, "value");
     const reload: Map<string, number> = useRedux(name, "reload");
@@ -117,7 +117,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const complete: Map<string, any> = useRedux(name, "complete");
     const derived_file_types: Set<string> = useRedux(
       name,
-      "derived_file_types"
+      "derived_file_types",
     );
     const visible: boolean | undefined = useRedux(name, "visible");
 
@@ -238,7 +238,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       </div>
     );
   },
-  shouldMemoize
+  shouldMemoize,
 );
 
 interface Options {

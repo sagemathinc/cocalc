@@ -26,6 +26,7 @@ const EDITOR_SPEC = {
     icon: "pencil",
     component: EditableMarkdown,
     buttons: set([
+      "format_action",
       "chatgpt",
       //"print",
       "decrease_font_size",
@@ -53,6 +54,7 @@ const EDITOR_SPEC = {
     icon: "markdown",
     component: CodemirrorEditor,
     buttons: set([
+      "format_action",
       "chatgpt",
       "print",
       "decrease_font_size",

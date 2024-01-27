@@ -22,14 +22,17 @@ addMenus({
   edit: {
     label: "Edit",
     pos: 1,
-    groups: [
-      "undo-redo",
-      "find",
-      "copy",
-      "ai",
-      "format",
-      "config",
-    ],
+    groups: ["undo-redo", "find", "copy", "ai", "format", "config"],
+  },
+  insert: {
+    label: "Insert",
+    pos: 1.3,
+    groups: ["math"],
+  },
+  format: {
+    label: "Format",
+    pos: 1.5,
+    groups: ["font"],
   },
   view: {
     label: "View",

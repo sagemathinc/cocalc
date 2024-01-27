@@ -41,6 +41,7 @@ const EDITOR_SPEC = {
     icon: "code",
     component: CodemirrorEditor,
     buttons: set([
+      "format_action",
       "build",
       "force_build",
       "print",

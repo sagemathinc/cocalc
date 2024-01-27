@@ -264,22 +264,27 @@ export function FrameTitleBar(props: Props) {
     if (cmd?.alwaysShow) {
       return true;
     }
-
-    // check editor spec for current editor:
-    if (!props.spec.buttons?.[name] && !props.spec.customize_buttons?.[name]) {
-      // not in the spec
+    if (cmd?.disable && student_project_functionality[cmd.disable]) {
       return false;
     }
     if (props.spec.buttons?.[`-${name}`]) {
       // explicitly hidden by the spec
       return false;
     }
-    if (cmd?.disable && student_project_functionality[cmd.disable]) {
+    if (cmd?.isVisible != null) {
+      const { isVisible } = cmd;
+      if (typeof isVisible == "string") {
+        return !!props.spec.buttons?.[isVisible];
+      } else {
+        isVisible({ props });
+      }
+    }
+    // check editor spec for current editor:
+    if (!props.spec.buttons?.[name] && !props.spec.customize_buttons?.[name]) {
+      // not in the spec
       return false;
     }
-    if (cmd?.isVisible != null) {
-      return cmd.isVisible({ props });
-    }
+
     return true;
   }
 
