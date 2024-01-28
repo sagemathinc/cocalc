@@ -90,7 +90,10 @@ export function addEditorMenus({
   // organization of the commands into groups
   addMenus(MENUS);
 
-  const cmd = (name) => {
+  const cmd = (name: string) => {
+    if (typeof name != "string") {
+      throw Error(`name must be a string, but it is ${JSON.stringify(name)}`);
+    }
     let c = getCommand(name);
     if (!c) {
       throw Error(
@@ -107,9 +110,9 @@ export function addEditorMenus({
         childCommands = children;
       } else {
         childCommands = [] as Partial<Command>[];
-        for (const childName of children) {
+        for (const child of children) {
           // recursion!
-          childCommands.push(cmd(childName));
+          childCommands.push(typeof child == "string" ? cmd(child) : child);
         }
       }
       c = { ...c, children: childCommands };
@@ -135,8 +138,8 @@ export function addEditorMenus({
         childCommands = children;
       } else {
         childCommands = [] as Partial<Command>[];
-        for (const childName of children) {
-          childCommands.push(cmd(childName));
+        for (const child of children) {
+          childCommands.push(typeof child == "string" ? cmd(child) : child);
         }
       }
       C[cmdName] = {

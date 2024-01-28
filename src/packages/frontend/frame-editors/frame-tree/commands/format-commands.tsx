@@ -1,4 +1,5 @@
 import { addEditorMenus } from "./editor-menus";
+import { FONT_SIZES } from "@cocalc/frontend/editors/editor-button-bar";
 
 const FORMAT_SPEC = {
   equation: {
@@ -133,6 +134,24 @@ const FORMAT_MENUS = {
           "sub",
           "sup",
         ],
+      },
+      {
+        icon: "text-height",
+        isVisible: "format_action", // todo
+        name: "font-size",
+        label: "Size",
+        children: FONT_SIZES.map((size) => {
+          return {
+            name: `${size}`,
+            onClick: ({ props }) =>
+              props.actions.format_action("font_size_new", size),
+            label: (
+              <span style={{ fontSize: size }}>
+                {size} {size === "medium" ? "(default)" : undefined}
+              </span>
+            ),
+          };
+        }),
       },
       {
         icon: "text",
