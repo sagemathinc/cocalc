@@ -655,7 +655,7 @@ export function commands(actions: AllActions): {
 
     "no kernel": {
       i: "ban",
-      m: "Remove Kernel from Notebook...",
+      m: "Set Kernel to None...",
       t: "Set the notebook so that it doesn't have any kernel set at all.",
       f: () => actions.jupyter_actions?.confirm_remove_kernel(),
     },

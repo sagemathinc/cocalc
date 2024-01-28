@@ -30,7 +30,7 @@ export interface Command {
   pos?: number;
   title?: ReactNode;
   icon?: ReactNode;
-  label:
+  label?:
     | ReactNode
     | ((opts: {
         props?;

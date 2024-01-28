@@ -27,12 +27,12 @@ addMenus({
   insert: {
     label: "Insert",
     pos: 1.3,
-    groups: ["math"],
+    groups: [],
   },
   format: {
     label: "Format",
     pos: 1.5,
-    groups: ["font"],
+    groups: [],
   },
   view: {
     label: "View",

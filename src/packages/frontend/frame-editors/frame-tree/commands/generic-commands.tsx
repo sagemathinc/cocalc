@@ -693,55 +693,6 @@ addCommands({
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(),
   },
-
-  equation: {
-    isVisible: "format_action",
-    icon: <span>$</span>,
-    group: "math",
-    label: "Inline Equation",
-    title: "Insert an inline equation.",
-    onClick: ({ props }) => props.actions.format_action("equation"),
-  },
-  display_equation: {
-    isVisible: "format_action",
-    icon: <span>$$</span>,
-    group: "math",
-    label: "Displayed Equation",
-    title: "Insert displayed math equation",
-    onClick: ({ props }) => props.actions.format_action("display_equation"),
-  },
-  text: {
-    icon: "text",
-    label: "Text",
-    group: "font",
-    isVisible: "format_action",
-    children: [
-      {
-        icon: "bold",
-        label: "Bold",
-        title: "Make selected text bold",
-        onClick: ({ props }) => props.actions.format_action("bold"),
-      },
-      {
-        icon: "italic",
-        label: "Italic",
-        title: "Make selected text italic",
-        onClick: ({ props }) => props.actions.format_action("italic"),
-      },
-      {
-        icon: "underline",
-        label: "Underline",
-        title: "Make selected text underline",
-        onClick: ({ props }) => props.actions.format_action("underline"),
-      },
-      {
-        icon: "strikethrough",
-        label: "Strikethrough",
-        title: "Strike through selected text",
-        onClick: ({ props }) => props.actions.format_action("strikethrough"),
-      },
-    ],
-  },
 });
 
 function fileAction(action) {

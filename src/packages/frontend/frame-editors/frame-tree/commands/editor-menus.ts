@@ -9,6 +9,7 @@ and addCommands functions.
 import { addCommands } from "./commands";
 import { addMenus } from "./menus";
 import type { Command, Menus } from "./types";
+import { capitalize } from "@cocalc/util/misc";
 
 type Command0 = {
   icon?: string;
@@ -67,7 +68,7 @@ export function addEditorMenus({
           COMMANDS[cmd] = { group: gp, pos };
         } else {
           // custom -- could be submenu or dynamic based on props
-          const {name} = cmd;
+          const { name } = cmd;
           if (name == null) {
             throw Error(
               `must explicitly specify name of command described by object -- ${JSON.stringify(
@@ -89,6 +90,33 @@ export function addEditorMenus({
   // organization of the commands into groups
   addMenus(MENUS);
 
+  const cmd = (name) => {
+    let c = getCommand(name);
+    if (!c) {
+      throw Error(
+        `command "${name}" not fully defined -- getCommand returned null`,
+      );
+    }
+    if (!c.label) {
+      c = { ...c, label: capitalize(name) };
+    }
+    const { children } = c;
+    if (children != null) {
+      let childCommands;
+      if (typeof children == "function") {
+        childCommands = children;
+      } else {
+        childCommands = [] as Partial<Command>[];
+        for (const childName of children) {
+          // recursion!
+          childCommands.push(cmd(childName));
+        }
+      }
+      c = { ...c, children: childCommands };
+    }
+    return c;
+  };
+
   // the commands
   const C: { [name: string]: Command } = {};
   const editorCommands = new Set<string>();
@@ -99,7 +127,7 @@ export function addEditorMenus({
       // everthing based entirely on command spec file (commands.ts):
       C[cmdName] = {
         ...COMMANDS[name],
-        ...getCommand(name),
+        ...cmd(name),
       } as Command;
     } else {
       let childCommands;
@@ -108,7 +136,7 @@ export function addEditorMenus({
       } else {
         childCommands = [] as Partial<Command>[];
         for (const childName of children) {
-          childCommands.push(getCommand(childName));
+          childCommands.push(cmd(childName));
         }
       }
       C[cmdName] = {

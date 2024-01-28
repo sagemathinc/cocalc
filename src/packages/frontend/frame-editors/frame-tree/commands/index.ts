@@ -6,3 +6,4 @@ export type { Command, Menus } from "./types";
 import "./generic-menus";
 import "./generic-commands";
 export { addEditorMenus } from "./editor-menus";
+import "./format-commands";
