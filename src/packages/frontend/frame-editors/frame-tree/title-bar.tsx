@@ -1004,6 +1004,9 @@ export function FrameTitleBar(props: Props) {
 
       const v: (JSX.Element | undefined | null)[] = [];
       v.push(renderComputeServer());
+      if (props.title != null || !is_active) {
+        v.push(renderTitle());
+      }
       v.push(renderPage());
       v.push(renderSaveTimetravelGroup());
       v.push(renderMenus());
@@ -1382,7 +1385,6 @@ export function FrameTitleBar(props: Props) {
         id={`titlebar-${props.id}`}
         className={"cc-frame-tree-title-bar"}
       >
-        {props.title != null || !is_active ? renderTitle() : undefined}
         {renderMainMenusAndButtons()}
         {renderConnectionStatus()}
         {allButtonsPopover()}

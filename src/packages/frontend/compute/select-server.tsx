@@ -67,7 +67,6 @@ export default function SelectComputeServer({
   const [open, setOpen0] = useState<boolean>(false);
   const setOpen = (open) => {
     const now = Date.now();
-    console.log(now - lastOpenRef.current);
     if (now - lastOpenRef.current < 500) {
       return;
     }
@@ -313,7 +312,7 @@ export default function SelectComputeServer({
         disabled={loading}
         placeholder={
           <span style={{ color: "#000" }}>
-            <Icon name="servers" /> Servers
+            <Icon name="servers" /> {open ? "Compute Servers..." : undefined}
           </span>
         }
         open={open}
@@ -362,12 +361,12 @@ export default function SelectComputeServer({
         okButtonProps={{
           // @ts-ignore
           ref: okButtonRef,
-          style: {
-            background: computeServers[idNum]?.color ?? PROJECT_COLOR,
-            color: avatar_fontcolor(
-              computeServers[idNum]?.color ?? PROJECT_COLOR,
-            ),
-          },
+          style: computeServers[idNum]
+            ? {
+                background: computeServers[idNum].color,
+                color: avatar_fontcolor(computeServers[idNum].color),
+              }
+            : undefined,
         }}
         onOk={() => {
           setConfirmSwitch(false);
