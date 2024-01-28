@@ -59,7 +59,6 @@ function HeadingContent(props: {
   if (heading === 0) {
     return <span>{label}</span>;
   } else {
-    // heading+1 is "wrong" but the menu is not so large
-    return React.createElement(`h${heading + 1}`, {}, label);
+    return React.createElement(`h${heading}`, { style: { margin: 0 } }, label);
   }
 }

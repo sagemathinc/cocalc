@@ -12,7 +12,6 @@ export function addMenus(menus: Menus) {
         // it's already there
         //throw Error(`group ${group} already exists`);
         console.warn(`group ${group} already exists`);
-        continue;
       }
       GROUPS[group] = [];
       if (MENUS[name] == null) {
@@ -23,7 +22,9 @@ export function addMenus(menus: Menus) {
         }
       }
       // console.log(`adding ${group} to ${JSON.stringify(MENUS[name].groups)}`);
-      MENUS[name].groups.push(group);
+      if (!MENUS[name].groups.includes(group)) {
+        MENUS[name].groups.push(group);
+      }
     }
   }
 }
@@ -38,6 +39,9 @@ export function addCommandsToMenus(commands: { [command: string]: Command }) {
       if (v == null) {
         // throw Error(`command ${name} in unknown group '${group}'`);
         console.warn(`command ${name} in unknown group '${group}'`);
+        continue;
+      }
+      if (v.includes(name)) {
         continue;
       }
       v.push(name);
