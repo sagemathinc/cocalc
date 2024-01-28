@@ -22,7 +22,7 @@ import {
   LoadingEstimate,
 } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { filename_extension, is_different } from "@cocalc/util/misc";
+import { is_different } from "@cocalc/util/misc";
 import { chat } from "../generic/chat";
 import { FormatBar } from "./format-bar";
 import FormatError from "./format-error";
@@ -138,13 +138,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
         editor_settings &&
         editor_settings.get("extra_button_bar")
       )
-        return (
-          <FormatBar
-            actions={actions}
-            extension={filename_extension(path)}
-            exclude={format_bar_exclude}
-          />
-        );
+        return <FormatBar actions={actions} exclude={format_bar_exclude} />;
     }
 
     function render_frame_tree(): Rendered {

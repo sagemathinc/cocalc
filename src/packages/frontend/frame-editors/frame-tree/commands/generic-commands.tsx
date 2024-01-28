@@ -399,17 +399,16 @@ addCommands({
     keyboard: `${IS_MACOS ? "⌘" : "control"} + L`,
   },
   auto_indent: {
-    group: "format",
+    group: "code-format",
     label: "Auto Indent",
     title: "Automatically indent selected code",
     disabled: ({ read_only }) => read_only,
     icon: "indent",
   },
-
   format: {
-    group: "format",
-    label: "Format",
-    title: "Syntactically format the document.",
+    group: "code-format",
+    label: "Format Source Code",
+    title: "Syntactically format using a parser such as prettier.",
     icon: FORMAT_SOURCE_ICON,
   },
 

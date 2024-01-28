@@ -7,9 +7,8 @@
 The format bar.
 */
 
-import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import {  ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
-import { Icon, isIconName, Gap } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
 import FontFamilyMenu from "@cocalc/frontend/components/font-family";
 import FontSizeMenu from "@cocalc/frontend/components/font-size";

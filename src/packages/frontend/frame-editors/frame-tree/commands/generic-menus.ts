@@ -32,7 +32,7 @@ addMenus({
   format: {
     label: "Format",
     pos: 1.5,
-    groups: [],
+    groups: ['code-format'],
   },
   view: {
     label: "View",
