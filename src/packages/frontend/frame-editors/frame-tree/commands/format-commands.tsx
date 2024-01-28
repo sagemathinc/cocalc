@@ -1,5 +1,7 @@
 import { addEditorMenus } from "./editor-menus";
 import { FONT_SIZES } from "@cocalc/frontend/editors/editor-button-bar";
+import { FONT_FACES } from "@cocalc/frontend/editors/editor-button-bar";
+import ColorPicker from "@cocalc/frontend/components/color-picker";
 
 const FORMAT_SPEC = {
   equation: {
@@ -152,6 +154,40 @@ const FORMAT_MENUS = {
             ),
           };
         }),
+      },
+      {
+        icon: "font",
+        isVisible: "format_action", // todo
+        name: "font-family",
+        label: "Family",
+        children: FONT_FACES.map((family) => {
+          return {
+            name: family,
+            onClick: ({ props }) =>
+              props.actions.format_action("font_family", family),
+            label: <span style={{ fontFamily: family }}>{family}</span>,
+            icon: <span style={{ fontFamily: family }}>A</span>,
+          };
+        }),
+      },
+      {
+        icon: "colors",
+        isVisible: "format_action",
+        name: "color",
+        label: "Color",
+        children: [
+          {
+            stayOpenOnClick: true,
+            icon: "colors",
+            label: ({ props }) => (
+              <ColorPicker
+                onChange={(code) => {
+                  props.actions.format_action("color", code);
+                }}
+              />
+            ),
+          },
+        ],
       },
       {
         icon: "text",

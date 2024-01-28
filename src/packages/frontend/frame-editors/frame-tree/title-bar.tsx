@@ -504,7 +504,7 @@ export function FrameTitleBar(props: Props) {
         : getCommandChildren(cmd)?.map((x, i) =>
             commandToMenuItem({
               cmd: x,
-              key: `${key}-${i}`,
+              key: `${key}-${i}-${x.stayOpenOnClick ? STAY_OPEN_ON_CLICK : ""}`,
               noChildren,
             }),
           ),

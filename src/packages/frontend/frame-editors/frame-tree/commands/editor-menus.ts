@@ -101,6 +101,7 @@ export function addEditorMenus({
       );
     }
     if (!c.label) {
+      console.log("sub in ", name, c);
       c = { ...c, label: capitalize(name) };
     }
     const { children } = c;
@@ -124,13 +125,16 @@ export function addEditorMenus({
   const C: { [name: string]: Command } = {};
   const editorCommands = new Set<string>();
   for (const name in COMMANDS) {
+    if (name == "setcolor" || name == "unformat") {
+      console.log(name, COMMANDS[name]);
+    }
     const { children } = COMMANDS[name];
     const cmdName = `${prefix}-${name}`;
     if (children == null) {
-      // everthing based entirely on command spec file (commands.ts):
+      // everthing based entirely on spec object.
       C[cmdName] = {
-        ...COMMANDS[name],
         ...cmd(name),
+        ...COMMANDS[name],
       } as Command;
     } else {
       let childCommands;
