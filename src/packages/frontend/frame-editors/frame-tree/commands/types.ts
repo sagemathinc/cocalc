@@ -13,6 +13,16 @@ export interface Menus {
 
 export type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
 
+export type OnClick = ({
+  props,
+  event,
+  setShowAI,
+}: {
+  props?;
+  event?;
+  setShowAI?: (boolean) => void;
+}) => void;
+
 export interface Command {
   // group -- inside of a menu
   group: Group;
@@ -30,15 +40,7 @@ export interface Command {
       }) => JSX.Element);
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
-  onClick?: ({
-    props,
-    event,
-    setShowAI,
-  }: {
-    props?;
-    event?;
-    setShowAI?: (boolean) => void;
-  }) => void;
+  onClick?: OnClick;
   // isVisible: if a function, determine visibility based on that.
   //            if a string, use editor spec for given frame.
   isVisible?: string | (({ props }) => boolean);

@@ -22,14 +22,8 @@ import { Introspect } from "./introspect/introspect";
 const SNIPPET_ICON_NAME =
   require("@cocalc/frontend/assistant/common").ICON_NAME;
 import { JupyterSnippets } from "./snippets";
-import {
-  addCommands,
-  addMenus,
-} from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import type {
-  Command,
-  Menus,
-} from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { commands, AllActions } from "@cocalc/frontend/jupyter/commands";
 import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
 import KernelMenuItem from "./kernel-menu-item";
@@ -449,6 +443,7 @@ const JUPYTER_MENUS = {
           return languages;
         },
       },
+      //{ name: "refresh kernels", stayOpenOnClick: true },
       "refresh kernels",
       "change kernel",
     ],
@@ -469,73 +464,22 @@ const JUPYTER_MENUS = {
 };
 
 function initMenus() {
-  const MENUS: Menus = {};
-  const COMMANDS: {
-    [name: string]: {
-      group: string;
-      pos: number;
-      children?;
-      label?;
-      icon?;
-      onClick?;
-      disabled?;
-    };
-  } = {};
-  for (const menu in JUPYTER_MENUS) {
-    const spec = JUPYTER_MENUS[menu];
-    const groups: string[] = [];
-    for (const group in spec) {
-      if (group != "label" && group != "pos") {
-        const gp = `jupyter-${group}`;
-        groups.push(gp);
-        let pos = -1;
-        for (const cmd of spec[group]) {
-          pos += 1;
-          if (typeof cmd == "string") {
-            COMMANDS[cmd] = { group: gp, pos };
-          } else {
-            // custom -- could be submenu or dynamic based on props
-            const { name, label, children, icon, disabled } = cmd;
-            COMMANDS[name] = {
-              group: gp,
-              pos,
-              children,
-              label,
-              icon,
-              disabled,
-            };
-          }
-        }
-      }
-    }
-    MENUS[menu] = { label: spec.label, pos: spec.pos, groups };
-  }
-
-  // organization of the commands into groups
-  // console.log("add Menus", MENUS);
-  addMenus(MENUS);
-
-  // the commands
   const allActions: AllActions = {};
   const allCommands = commands(allActions);
-  const C: { [name: string]: Command } = {};
-  for (const name in COMMANDS) {
-    const { group, pos, children, label, icon, disabled } = COMMANDS[name];
-    const cmdName = `jupyter-${name}`;
-    if (children == null) {
-      // everthing based entirely on command spec file (commands.ts):
+
+  const names = addEditorMenus({
+    prefix: "jupyter",
+    editorMenus: JUPYTER_MENUS,
+    getCommand: (name) => {
       const cmd = allCommands[name];
       if (cmd == null) {
         throw Error(`invalid Jupyter command name "${name}"`);
       }
-      C[cmdName] = {
-        pos,
+      return {
         title: cmd.t,
-        label: label ?? cmd.m,
-        group,
-        icon: icon ?? cmd.i,
+        label: cmd.m,
+        icon: cmd.i,
         keyboard: cmd.k ? cmd.k.map(shortcut_to_string).join(", ") : undefined,
-        disabled,
         onClick: ({ props }) => {
           allActions.frame_actions = props.actions.frame_actions?.[props.id];
           allActions.jupyter_actions = props.actions.jupyter_actions;
@@ -543,46 +487,12 @@ function initMenus() {
           cmd.f();
         },
       };
-    } else {
-      let childCommands;
-      if (typeof children == "function") {
-        childCommands = children;
-      } else {
-        childCommands = [] as Partial<Command>[];
-        for (const childName of children) {
-          const cmd = allCommands[childName];
-          if (cmd == null) {
-            throw Error(`unknown command "${childName}"`);
-          }
-          childCommands.push({
-            title: cmd.t,
-            label: cmd.m,
-            icon: cmd.i,
-            disabled,
-            onClick: ({ props }) => {
-              allActions.frame_actions =
-                props.actions.frame_actions?.[props.id];
-              allActions.jupyter_actions = props.actions.jupyter_actions;
-              allActions.editor_actions = props.actions;
-              cmd.f();
-            },
-          });
-        }
-      }
-      C[cmdName] = {
-        pos,
-        label,
-        group,
-        icon,
-        children: childCommands,
-      };
-    }
-    jupyterCommands[cmdName] = true;
+    },
+  });
+  for (const name of names) {
+    jupyterCommands[name] = true;
   }
-  // console.log("adding commands", C);
-  addCommands(C);
 }
-
 initMenus();
 
 export const Editor = createEditor({
