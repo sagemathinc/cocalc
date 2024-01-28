@@ -179,12 +179,20 @@ const FORMAT_MENUS = {
           {
             stayOpenOnClick: true,
             icon: "colors",
+            // this is just a dumb hack and we'll use a proper modal later.
             label: ({ props }) => (
-              <ColorPicker
-                onChange={(code) => {
-                  props.actions.format_action("color", code);
+              <div
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                 }}
-              />
+              >
+                <ColorPicker
+                  onChange={(code) => {
+                    props.actions.format_action("color", code);
+                  }}
+                />
+              </div>
             ),
           },
         ],

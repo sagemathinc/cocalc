@@ -72,7 +72,7 @@ export default function ColorPicker(props: Props) {
 
   const [visible, setVisible] = useState<boolean>(!toggle);
   const [picker, setPicker] = useState<TPickers>(
-    defaultPicker ?? getLocalStoragePicker() ?? "circle"
+    defaultPicker ?? getLocalStoragePicker() ?? "circle",
   );
   const Picker = Pickers[picker];
   const v: ReactNode[] = [];
@@ -80,7 +80,7 @@ export default function ColorPicker(props: Props) {
     v.push(
       <Option key={picker} value={picker}>
         {capitalize(picker)}
-      </Option>
+      </Option>,
     );
   }
   if (!visible && toggle) {
@@ -144,11 +144,41 @@ export default function ColorPicker(props: Props) {
   );
 }
 
+export function ColorModal({
+  show,
+  setShow,
+  onChange,
+  title,
+}: {
+  show?;
+  setShow;
+  onChange?;
+  title?;
+}) {
+  return (
+    <Modal
+      transitionName=""
+      maskTransitionName=""
+      title={title ?? "Select a Color"}
+      open={show}
+      onOk={() => setShow(false)}
+      onCancel={() => setShow(false)}
+    >
+      <ColorPicker
+        onChange={(color) => {
+          onChange(color);
+          setShow(false);
+        }}
+      />
+    </Modal>
+  );
+}
+
 interface ButtonProps {
   onChange: (htmlColor: string) => void;
   title?: ReactNode;
   style?: CSSProperties;
-  type?: "default" | "link" | "text" |"primary" | "dashed";
+  type?: "default" | "link" | "text" | "primary" | "dashed";
   onClick?: () => boolean | undefined;
 }
 
@@ -157,21 +187,12 @@ export function ColorButton(props: ButtonProps) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <>
-      <Modal
-        transitionName=""
-        maskTransitionName=""
-        title={title ?? "Select a Color"}
-        open={show}
-        onOk={() => setShow(false)}
-        onCancel={() => setShow(false)}
-      >
-        <ColorPicker
-          onChange={(color) => {
-            onChange(color);
-            setShow(false);
-          }}
-        />
-      </Modal>
+      <ColorModal
+        show={show}
+        setShow={setShow}
+        title={title}
+        onChange={onChange}
+      />
       <Button
         onClick={() => {
           if (onClick?.()) return;

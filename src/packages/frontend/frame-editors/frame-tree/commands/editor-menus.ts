@@ -125,9 +125,6 @@ export function addEditorMenus({
   const C: { [name: string]: Command } = {};
   const editorCommands = new Set<string>();
   for (const name in COMMANDS) {
-    if (name == "setcolor" || name == "unformat") {
-      console.log(name, COMMANDS[name]);
-    }
     const { children } = COMMANDS[name];
     const cmdName = `${prefix}-${name}`;
     if (children == null) {
