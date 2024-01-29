@@ -18,7 +18,7 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
 import { FLYOUT_PADDING } from "./consts";
-import { LogHeader } from "./log";
+import { LogHeader } from "./log-header";
 import { ActiveHeader } from "./active-header";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";

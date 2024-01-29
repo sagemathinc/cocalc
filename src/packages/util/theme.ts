@@ -39,20 +39,7 @@ export const LIVE_DEMO_REQUEST =
 export const HELP_EMAIL = "help@cocalc.com";
 export const TWITTER_HANDLE = "cocalc_com"; // without the @
 export const BILLING_EMAIL = "billing@sagemath.com";
-export const BILLING_ADDRESS = `\
-17725 SE 123RD PL
-Renton, WA 98059-6621
-USA\
-`;
 export const BILLING_TAXID = "TAX EIN: 47-3015407";
-export const COPYRIGHT_AGENT_HTML = `\
-William Stein (Copyright Agent)<br>
-c/o SageMath, Inc.<br>
-17725 SE 123RD PL<br>
-Renton, WA 98059-6621<br>
-USA<br>
-<a href='mailto:copyright@sagemath.com'>copyright@sagemath.com</a>\
-`;
 // for conversion tracking (commercial only)
 export const gtag_id = "AW-943259268";
 export const sign_up_id = "44ZfCImosncQhP3jwQM";

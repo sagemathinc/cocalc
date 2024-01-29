@@ -46,10 +46,17 @@ import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
 import { FixedTab } from "./project/page/file-tab";
-import { FlyoutActiveMode, FlyoutLogMode } from "./project/page/flyouts/state";
+import {
+  FlyoutActiveMode,
+  FlyoutLogDeduplicate,
+  FlyoutLogMode,
+} from "./project/page/flyouts/state";
 import {
   FLYOUT_ACTIVE_DEFAULT_MODE,
+  FLYOUT_LOG_DEFAULT_DEDUP,
   FLYOUT_LOG_DEFAULT_MODE,
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
@@ -85,6 +92,8 @@ export interface ProjectStoreState {
   flyout: FixedTab | null;
   flyout_active: boolean; // how the active files
   flyout_log_mode: FlyoutLogMode;
+  flyout_log_deduplicate: FlyoutLogDeduplicate;
+  flyout_log_filter: immutable.List<FlyoutLogFilter>;
   flyout_active_mode: FlyoutActiveMode;
 
   // Project Files
@@ -262,7 +271,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
       flyout: null,
       flyout_active: false,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
+      flyout_log_deduplicate: FLYOUT_LOG_DEFAULT_DEDUP,
       flyout_active_mode: FLYOUT_ACTIVE_DEFAULT_MODE,
+      flyout_log_filter: immutable.List(FLYOUT_LOG_FILTER_DEFAULT),
 
       // Project Files
       activity: undefined,

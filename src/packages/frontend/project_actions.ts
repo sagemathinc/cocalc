@@ -50,6 +50,7 @@ import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
 import {
   FlyoutActiveMode,
+  FlyoutLogDeduplicate,
   FlyoutLogMode,
   storeFlyoutState,
 } from "./project/page/flyouts/state";
@@ -73,6 +74,10 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
+import {
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
+} from "./project/page/flyouts/utils";
 
 const { defaults, required } = misc;
 
@@ -640,6 +645,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public setFlyoutLogMode(mode: FlyoutLogMode): void {
     this.setState({ flyout_log_mode: mode });
     storeFlyoutState(this.project_id, "log", { mode });
+  }
+
+  public setFlyoutLogDeduplicate(deduplicate: FlyoutLogDeduplicate): void {
+    this.setState({ flyout_log_deduplicate: deduplicate });
+    storeFlyoutState(this.project_id, "log", { deduplicate });
+  }
+
+  public setFlyoutLogFilter(filter: FlyoutLogFilter, state: boolean): void {
+    const store = this.get_store();
+    if (store == undefined) return;
+    const current: string[] =
+      store.get("flyout_log_filter")?.toJS() ?? FLYOUT_LOG_FILTER_DEFAULT;
+
+    // depending on state, make sure the filter is either in the list or not
+    const next = (
+      state ? [...current, filter] : current.filter((f) => f !== filter)
+    ) as FlyoutLogFilter[];
+
+    this.setState({ flyout_log_filter: List(next) });
+    storeFlyoutState(this.project_id, "log", { logFilter: next });
+  }
+
+  public resetFlyoutLogFilter(): void {
+    this.setState({ flyout_log_filter: List(FLYOUT_LOG_FILTER_DEFAULT) });
+    storeFlyoutState(this.project_id, "log", {
+      logFilter: [...FLYOUT_LOG_FILTER_DEFAULT],
+    });
   }
 
   public setFlyoutActiveMode(mode: FlyoutActiveMode): void {

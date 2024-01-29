@@ -54,6 +54,7 @@ import type {
 } from "./types";
 import { isUnknownEvent } from "./types";
 import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
+import { COLORS } from "@cocalc/util/theme";
 
 const TRUNC = 90;
 
@@ -89,6 +90,7 @@ interface Props {
   backgroundStyle?: CSS;
   project_id: string;
   mode?: "full" | "flyout";
+  flyoutExtra?: boolean;
 }
 
 function TookTime({
@@ -130,6 +132,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       project_id,
       backgroundStyle,
       mode = "full",
+      flyoutExtra = false,
     } = props;
 
     const software_envs: SoftwareEnvironments | null = useTypedRedux(
@@ -549,11 +552,11 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_invite_nonuser(event: CollaboratorEvent): JSX.Element {
-      return <span>invited nonuser {event.invitee_email}</span>;
+      return <span>invited new user via {event.invitee_email}</span>;
     }
 
     function render_remove_collaborator(event: CollaboratorEvent): JSX.Element {
-      return <span>removed collaborator {event.removed_name}</span>;
+      return <span>removed user {event.removed_name}</span>;
     }
 
     function render_desc(): Rendered | Rendered[] {
@@ -676,11 +679,13 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "upgrade":
           return "arrow-circle-up";
         case "invite_user":
-          return "user";
         case "invite_nonuser":
+        case "remove_collaborator":
           return "user";
         case "software_environment":
           return SOFTWARE_ENVIRONMENT_ICON;
+        case "public_path":
+          return "share-square";
       }
 
       if (event.event.indexOf("project") !== -1) {
@@ -694,6 +699,17 @@ export const LogEntry: React.FC<Props> = React.memo(
       if (typeof event != "string" && event["duration_ms"] != null) {
         return (
           <> (time = {round1((event["duration_ms"] ?? 0) / 1000)} seconds) </>
+        );
+      }
+    }
+
+    function renderExtra() {
+      // flyout mode only: if colum is wider, add timestamp
+      if (mode === "flyout" && flyoutExtra) {
+        return (
+          <span style={{ color: COLORS.GRAY_M }}>
+            <Gap /> <TimeAgo date={props.time} />
+          </span>
         );
       }
     }
@@ -739,7 +755,8 @@ export const LogEntry: React.FC<Props> = React.memo(
               }
             >
               <div style={{ flex: "1", padding: "5px" }}>
-                {render_avatar()} <Icon name={icon()} /> {render_desc()}
+                {render_avatar()} <Icon name={icon()} /> {render_desc()}{" "}
+                {renderDuration()} {renderExtra()}
               </div>
             </Tooltip>
           </div>
