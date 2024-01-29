@@ -60,7 +60,6 @@ import {
   GROUPS,
   SEARCH_COMMANDS,
 } from "./commands";
-const FRAME_CONTROL_BUTTON_STYLE = { padding: "0 7px" } as const;
 
 const MAX_SEARCH_RESULTS = 10;
 
@@ -107,7 +106,6 @@ const MAX_TITLE_WIDTH = 20;
 const MAX_TITLE_WIDTH_INACTIVE = 40;
 
 const TITLE_STYLE: CSS = {
-  background: COL_BAR_BACKGROUND,
   margin: "7.5px 5px",
   fontSize: "10pt",
   whiteSpace: "nowrap",
@@ -335,7 +333,7 @@ export function FrameTitleBar(props: Props) {
           <div style={{ display: "flex" }}>
             {parentLabel}{" "}
             <Icon name="angle-right" style={{ margin: "0px 10px" }} />{" "}
-            {getCommandLabel(cmd)}
+            {getCommandLabel(cmd, name)}
           </div>
         );
         // recursively deal with any children (and children of children)
@@ -408,17 +406,47 @@ export function FrameTitleBar(props: Props) {
     return commandToMenuItem({ name, cmd, key: name, noChildren: false });
   }
 
-  function getCommandLabel(cmd, width = "25px") {
+  function getCommandLabel(cmd, name) {
+    const width = "20px";
+    const lbl =
+      typeof cmd.label == "function"
+        ? cmd.label({ props, helpSearch, setHelpSearch })
+        : cmd.label;
     return (
       <>
-        {typeof cmd.icon == "string" ? (
-          <Icon name={cmd.icon} style={{ width: "25px" }} />
+        {cmd.icon ? (
+          <Tooltip title={"Click icon to toggle button"} placement="left">
+            <AntdButton0
+              type="text"
+              style={{
+                width,
+                height: width,
+                display: "inline-block",
+                padding: 0,
+                marginRight: "10px",
+                background: ["save", "time_travel", "chatgpt"].includes(name)
+                  ? "#ccf"
+                  : undefined,
+              }}
+              onClick={(e) => {
+                console.log("clicked on icon", { name, cmd });
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              {typeof cmd.icon == "string" ? (
+                <Icon name={cmd.icon} style={{ width }} />
+              ) : (
+                cmd.icon
+              )}
+            </AntdButton0>
+          </Tooltip>
         ) : (
-          <div style={{ width, display: "inline-block" }}>{cmd.icon}</div>
+          <div
+            style={{ width, marginRight: "10px", display: "inline-block" }}
+          ></div>
         )}
-        {typeof cmd.label == "function"
-          ? cmd.label({ props, helpSearch, setHelpSearch })
-          : cmd.label}
+        {lbl}
       </>
     );
   }
@@ -446,7 +474,7 @@ export function FrameTitleBar(props: Props) {
       // but it isn't
       return null;
     }
-    let label = getCommandLabel(cmd);
+    let label = getCommandLabel(cmd, name);
     if (cmd.title) {
       label = (
         <Tooltip mouseEnterDelay={0.9} title={cmd.title}>
@@ -553,10 +581,7 @@ export function FrameTitleBar(props: Props) {
     }
     wrapOnClick(props1, props0);
     return (
-      <AntdBootstrapButton
-        {...props1}
-        style={button_style(props1.style)}
-      >
+      <AntdBootstrapButton {...props1} style={button_style(props1.style)}>
         {props1.children}
       </AntdBootstrapButton>
     );
@@ -591,15 +616,15 @@ export function FrameTitleBar(props: Props) {
 
   function render_x(): Rendered {
     return (
-      <StyledButton
-        style={FRAME_CONTROL_BUTTON_STYLE}
+      <AntdButton0
         title={"Close this frame"}
         key={"close"}
-        bsSize={button_size()}
+        size="small"
+        type="text"
         onClick={click_close}
       >
         <Icon name={"times"} />
-      </StyledButton>
+      </AntdButton0>
     );
   }
 
@@ -643,13 +668,12 @@ export function FrameTitleBar(props: Props) {
         style={{
           overflow: "hidden",
           display: "inline-block",
-          opacity: is_active ? undefined : 0.5,
         }}
         ref={getTourRef("control")}
       >
         <ButtonGroup
           style={{
-            padding: 0,
+            padding: "3.5px 0 0 0",
             background: is_active
               ? COL_BAR_BACKGROUND
               : COL_BAR_BACKGROUND_DARK,
@@ -670,50 +694,50 @@ export function FrameTitleBar(props: Props) {
   function render_full(): Rendered {
     if (props.is_full) {
       return (
-        <StyledButton
+        <AntdButton0
           disabled={props.is_only}
           title={"Show all frames"}
           key={"full-screen-button"}
-          bsSize={button_size()}
+          size="small"
+          type="text"
           onClick={() => {
             track("unset-full");
             props.actions.unset_frame_full();
           }}
-          bsStyle={!darkMode ? "warning" : undefined}
           style={{
-            ...FRAME_CONTROL_BUTTON_STYLE,
             color: darkMode ? "orange" : undefined,
+            background: !darkMode ? "orange" : undefined,
           }}
         >
           <Icon name={"compress"} />
-        </StyledButton>
+        </AntdButton0>
       );
     } else {
       return (
-        <StyledButton
+        <AntdButton0
           disabled={props.is_only}
-          style={FRAME_CONTROL_BUTTON_STYLE}
           key={"full-screen-button"}
           title={"Show only this frame"}
-          bsSize={button_size()}
+          size="small"
+          type="text"
           onClick={() => {
             track("set-full");
             props.actions.set_frame_full(props.id);
           }}
         >
           <Icon name={"expand"} />
-        </StyledButton>
+        </AntdButton0>
       );
     }
   }
 
   function render_split_row(): Rendered {
     return (
-      <StyledButton
+      <AntdButton0
         key={"split-row-button"}
         title={"Split frame horizontally into two rows"}
-        bsSize={button_size()}
-        style={FRAME_CONTROL_BUTTON_STYLE}
+        size="small"
+        type="text"
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
@@ -726,17 +750,17 @@ export function FrameTitleBar(props: Props) {
         }}
       >
         <Icon name="horizontal-split" />
-      </StyledButton>
+      </AntdButton0>
     );
   }
 
   function render_split_col(): Rendered {
     return (
-      <StyledButton
+      <AntdButton0
         key={"split-col-button"}
         title={"Split frame vertically into two columns"}
-        bsSize={button_size()}
-        style={FRAME_CONTROL_BUTTON_STYLE}
+        size="small"
+        type="text"
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
@@ -749,7 +773,7 @@ export function FrameTitleBar(props: Props) {
         }}
       >
         <Icon name="vertical-split" />
-      </StyledButton>
+      </AntdButton0>
     );
   }
 
@@ -990,7 +1014,14 @@ export function FrameTitleBar(props: Props) {
   function renderButtons(style?: CSS, noRefs?): Rendered {
     if (!is_active) {
       return (
-        <div style={{ textAlign: "center", width: "100%" }}>
+        <div
+          key="title"
+          style={{
+            textAlign: "center",
+            width: "100%",
+            background: COL_BAR_BACKGROUND_DARK,
+          }}
+        >
           {renderTitle()}
         </div>
       );
@@ -1026,9 +1057,9 @@ export function FrameTitleBar(props: Props) {
         v.push(renderTitle());
       }
       v.push(renderPage());
-      v.push(renderSaveTimetravelGroup());
       v.push(renderMenus());
       v.push(renderSwitchToFile());
+      v.push(renderSaveTimetravelGroup());
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -1230,6 +1261,7 @@ export function FrameTitleBar(props: Props) {
 
     const body = (
       <div
+        key="title"
         ref={getTourRef("title")}
         style={{
           ...TITLE_STYLE,
@@ -1241,7 +1273,11 @@ export function FrameTitleBar(props: Props) {
       </div>
     );
     if (title.length >= MAX_TITLE_WIDTH) {
-      return <Tooltip title={title}>{body}</Tooltip>;
+      return (
+        <Tooltip title={title} key="title">
+          {body}
+        </Tooltip>
+      );
     }
     return body;
   }
@@ -1285,6 +1321,17 @@ export function FrameTitleBar(props: Props) {
     return (
       <div style={{ position: "relative" }}>{renderCloseAndHaltConfirm()}</div>
     );
+  }
+
+  function renderButtonToolbar() {
+    // JUST A DEMO FOR NOW -- disable this
+    return null;
+    if (!is_active) {
+      return null;
+    }
+    const body = renderSaveTimetravelGroup();
+    if (!body) return null;
+    return <div style={{ height: button_height() }}>{body}</div>;
   }
 
   function renderPage() {
@@ -1412,9 +1459,10 @@ export function FrameTitleBar(props: Props) {
       >
         {renderMainMenusAndButtons()}
         {renderConnectionStatus()}
-        {allButtonsPopover()}
+        {is_active && allButtonsPopover()}
         {renderFrameControls()}
       </div>
+      {renderButtonToolbar()}
       {renderConfirmBar()}
       {hasTour && props.is_visible && props.tab_is_visible && (
         <TitleBarTour refs={tourRefs} />

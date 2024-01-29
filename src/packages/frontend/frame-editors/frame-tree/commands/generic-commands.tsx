@@ -265,7 +265,7 @@ addCommands({
 
   edit_init_script: {
     group: "config",
-    label: "Init Script",
+    label: "Initialization Script",
     title: "Edit the initialization script that is run when this starts",
     icon: "rocket",
     tour: "edit_init_script",
@@ -281,7 +281,7 @@ addCommands({
   },
 
   clear: {
-    group: "format",
+    group: "action",
     label: "Clear Frame",
     icon: <Icon unicode={0x2620} />,
     confirm: {
@@ -332,7 +332,7 @@ addCommands({
     title:
       "Kick all other users out from this document. It will close in all other browsers.",
     tour: "kick_other_users_out",
-    label: "Kick others users out",
+    label: "Kick Other Users Out",
   },
 
   halt_jupyter: {
