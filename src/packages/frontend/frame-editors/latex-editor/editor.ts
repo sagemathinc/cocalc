@@ -154,7 +154,6 @@ export const Editor = createEditor({
     SpecialChar: true,
     image: true,
     unformat: true,
-    font_dropdowns: true,
   }, // disabled until we can properly implement them!
   editor_spec: EDITOR_SPEC,
   display_name: "LaTeXEditor",

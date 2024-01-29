@@ -213,7 +213,7 @@ CodeMirror.defineExtension(
 
       switch (cmd) {
         case "font_size":
-          if (["html", "md", "mediawiki"].indexOf(mode) != -1) {
+          if (["html", "md", "mediawiki"].includes(mode)) {
             for (let i = 1; i <= 7; i++) {
               const src1 = strip(src, `<font size=${i}>`, "</font>");
               if (src1) {
@@ -247,7 +247,7 @@ CodeMirror.defineExtension(
           break;
 
         case "font_size_new":
-          if (["html", "md", "mediawiki"].indexOf(mode) != -1) {
+          if (["html", "md", "mediawiki"].includes(mode)) {
             src0 = src.toLowerCase().trim();
             if (startswith(src0, "<span style='font-size")) {
               i = src.indexOf(">");
@@ -281,7 +281,7 @@ CodeMirror.defineExtension(
           break;
 
         case "color":
-          if (["html", "md", "mediawiki"].indexOf(mode) != -1) {
+          if (["html", "md", "mediawiki"].includes(mode)) {
             src0 = src.toLowerCase().trim();
             if (startswith(src0, "<span style='color")) {
               i = src.indexOf(">");
@@ -290,11 +290,21 @@ CodeMirror.defineExtension(
             }
             src = `<span style='color:${args}'>${src}</span>`;
             done = true;
+          } else if (mode == "tex") {
+            const pre = cm.getValue().includes("\\usepackage[HTML]{xcolor}")
+              ? ""
+              : "\n\\usepackage[HTML]{xcolor}  % put this in your preamble to enable color\n";
+            src = `${pre}\\textcolor[HTML]{${
+              typeof args == "string" && args.startsWith("#")
+                ? args.slice(1)
+                : args
+            }}{${src.trim()}}`;
+            done = true;
           }
           break;
 
         case "background-color":
-          if (["html", "md", "mediawiki"].indexOf(mode) != -1) {
+          if (["html", "md", "mediawiki"].includes(mode)) {
             src0 = src.toLowerCase().trim();
             if (startswith(src0, "<span style='background")) {
               i = src.indexOf(">");
@@ -307,7 +317,7 @@ CodeMirror.defineExtension(
           break;
 
         case "font_face": // old -- still used in some old non-react editors
-          if (["html", "md", "mediawiki"].indexOf(mode) != -1) {
+          if (["html", "md", "mediawiki"].includes(mode)) {
             for (const face of FONT_FACES) {
               const src1 = strip(src, `<font face='${face}'>`, "</font>");
               if (src1) {
@@ -320,7 +330,7 @@ CodeMirror.defineExtension(
           break;
 
         case "font_family": // new -- html5 style
-          if (["html", "md", "mediawiki"].indexOf(mode) != -1) {
+          if (["html", "md", "mediawiki"].includes(mode)) {
             src0 = src.toLowerCase().trim();
             if (startswith(src0, "<span style='font-family")) {
               i = src.indexOf(">");

@@ -2,6 +2,8 @@ import { addEditorMenus } from "./editor-menus";
 import { FONT_SIZES } from "@cocalc/frontend/editors/editor-button-bar";
 import { FONT_FACES } from "@cocalc/frontend/editors/editor-button-bar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
+import { HeadingContent } from "@cocalc/frontend/components/heading-menu";
+import { range } from "lodash";
 
 const FORMAT_SPEC = {
   equation: {
@@ -152,6 +154,7 @@ const FORMAT_MENUS = {
                 {size} {size === "medium" ? "(default)" : undefined}
               </span>
             ),
+            icon: <span style={{ fontSize: size }}>A</span>,
           };
         }),
       },
@@ -167,6 +170,20 @@ const FORMAT_MENUS = {
               props.actions.format_action("font_family", family),
             label: <span style={{ fontFamily: family }}>{family}</span>,
             icon: <span style={{ fontFamily: family }}>A</span>,
+          };
+        }),
+      },
+      {
+        icon: "header",
+        isVisible: "format_action", // todo
+        name: "header",
+        label: "Heading",
+        children: range(1, 7).map((heading) => {
+          return {
+            name: `heading-${heading}`,
+            onClick: ({ props }) =>
+              props.actions.format_action(`format_heading_${heading}`),
+            label: <HeadingContent heading={heading} />,
           };
         }),
       },

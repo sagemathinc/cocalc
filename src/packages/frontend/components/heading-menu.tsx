@@ -15,11 +15,9 @@ interface Props {
   markdown?: boolean; // if it is markdown we can document the shortcuts.
 }
 
-export default function HeadingMenu(props: Props) {
-  const { onClick, style, markdown } = props;
-
+export default function HeadingMenu({ onClick, style, markdown }: Props) {
   const items = useMemo((): MenuItems => {
-    return range(7).map((heading) => {
+    return range(1, 7).map((heading) => {
       return {
         key: heading,
         onClick: () => onClick(heading),
@@ -39,11 +37,13 @@ export default function HeadingMenu(props: Props) {
   );
 }
 
-function HeadingContent(props: {
+export function HeadingContent({
+  heading,
+  markdown,
+}: {
   heading: number;
   markdown?: boolean;
 }): JSX.Element {
-  const { heading, markdown } = props;
   const hashes = markdown
     ? range(heading)
         .map(() => "#")

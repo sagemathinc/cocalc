@@ -111,7 +111,7 @@ export function DropdownMenu({
   }
 
   const handleMenuClick: MenuProps["onClick"] = (e) => {
-    if (!e.key?.includes(STAY_OPEN_ON_CLICK)) {
+    if (e.key?.includes(STAY_OPEN_ON_CLICK)) {
       setOpen(true);
     } else {
       setOpen(false);

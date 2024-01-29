@@ -60,6 +60,7 @@ import {
   GROUPS,
   SEARCH_COMMANDS,
 } from "./commands";
+const FRAME_CONTROL_BUTTON_STYLE = { padding: "0 7px" } as const;
 
 const MAX_SEARCH_RESULTS = 10;
 
@@ -103,6 +104,7 @@ const title_bar_style: CSS = {
 } as const;
 
 const MAX_TITLE_WIDTH = 20;
+const MAX_TITLE_WIDTH_INACTIVE = 40;
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND,
@@ -551,7 +553,10 @@ export function FrameTitleBar(props: Props) {
     }
     wrapOnClick(props1, props0);
     return (
-      <AntdBootstrapButton {...props1} style={button_style(props1.style)}>
+      <AntdBootstrapButton
+        {...props1}
+        style={button_style(props1.style)}
+      >
         {props1.children}
       </AntdBootstrapButton>
     );
@@ -587,6 +592,7 @@ export function FrameTitleBar(props: Props) {
   function render_x(): Rendered {
     return (
       <StyledButton
+        style={FRAME_CONTROL_BUTTON_STYLE}
         title={"Close this frame"}
         key={"close"}
         bsSize={button_size()}
@@ -674,7 +680,10 @@ export function FrameTitleBar(props: Props) {
             props.actions.unset_frame_full();
           }}
           bsStyle={!darkMode ? "warning" : undefined}
-          style={{ color: darkMode ? "orange" : undefined }}
+          style={{
+            ...FRAME_CONTROL_BUTTON_STYLE,
+            color: darkMode ? "orange" : undefined,
+          }}
         >
           <Icon name={"compress"} />
         </StyledButton>
@@ -683,6 +692,7 @@ export function FrameTitleBar(props: Props) {
       return (
         <StyledButton
           disabled={props.is_only}
+          style={FRAME_CONTROL_BUTTON_STYLE}
           key={"full-screen-button"}
           title={"Show only this frame"}
           bsSize={button_size()}
@@ -703,6 +713,7 @@ export function FrameTitleBar(props: Props) {
         key={"split-row-button"}
         title={"Split frame horizontally into two rows"}
         bsSize={button_size()}
+        style={FRAME_CONTROL_BUTTON_STYLE}
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
@@ -725,6 +736,7 @@ export function FrameTitleBar(props: Props) {
         key={"split-col-button"}
         title={"Split frame vertically into two columns"}
         bsSize={button_size()}
+        style={FRAME_CONTROL_BUTTON_STYLE}
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
@@ -976,7 +988,13 @@ export function FrameTitleBar(props: Props) {
   }
 
   function renderButtons(style?: CSS, noRefs?): Rendered {
-    if (!is_active) return;
+    if (!is_active) {
+      return (
+        <div style={{ textAlign: "center", width: "100%" }}>
+          {renderTitle()}
+        </div>
+      );
+    }
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
@@ -1004,7 +1022,7 @@ export function FrameTitleBar(props: Props) {
 
       const v: (JSX.Element | undefined | null)[] = [];
       v.push(renderComputeServer());
-      if (props.title != null || !is_active) {
+      if (props.title != null) {
         v.push(renderTitle());
       }
       v.push(renderPage());
@@ -1197,7 +1215,14 @@ export function FrameTitleBar(props: Props) {
         }
       }
     }
-    const label = <span>{trunc_middle(title, MAX_TITLE_WIDTH)}</span>;
+    const label = (
+      <span>
+        {trunc_middle(
+          title,
+          is_active ? MAX_TITLE_WIDTH : MAX_TITLE_WIDTH_INACTIVE,
+        )}
+      </span>
+    );
 
     if (props.title == null && is_active) {
       return label;
