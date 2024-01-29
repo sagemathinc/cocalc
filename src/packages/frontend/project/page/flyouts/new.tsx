@@ -36,8 +36,9 @@ import { NewFileDropdown } from "@cocalc/frontend/project/new/new-file-dropdown"
 import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
-import { separate_file_extension } from "@cocalc/util/misc";
+import { separate_file_extension, trunc_middle } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 
 function getFileExtension(filename: string): string | null {
@@ -73,6 +74,7 @@ export function NewFlyout({
   const [manual, setManual] = useState<boolean>(false);
   const [creating, setCreating] = useState<boolean>(false);
 
+  // generate a new filename on demand, depends on the selected extension, etc.
   function makeNewFilename() {
     const fullname = default_filename(ext, project_id);
     if (ext != "/") {
@@ -111,9 +113,6 @@ export function NewFlyout({
         } else if (newExt === null) {
           setExt("");
           setManualExt(true);
-        } else {
-          setExt(DEFAULT_EXT);
-          setManualExt(false);
         }
       } else {
         setExt("/");
@@ -124,7 +123,8 @@ export function NewFlyout({
     }
   }, [filename, manual]);
 
-  function newFilename(): string {
+  // used to compute the filename to create, based on the current state
+  function genNewFilename(): string {
     if (isFile) {
       if (manualExt) {
         // extension is typed in explicitly
@@ -143,24 +143,31 @@ export function NewFlyout({
         }
       }
     } else {
-      return `${filename}/`;
+      if (filename.endsWith("/")) {
+        return filename;
+      } else {
+        return `${filename}/`;
+      }
     }
   }
+  const newFilename = useMemo(
+    () => genNewFilename(),
+    [isFile, filename, ext, manualExt, manual],
+  );
 
   async function createFile() {
     if (!filename) return;
-    const newName = newFilename();
     try {
       setCreating(true);
       if (isFile) {
         await actions?.create_file({
-          name: newName,
+          name: newFilename,
           ext,
           current_path,
         });
       } else {
         await actions?.create_folder({
-          name: newName,
+          name: newFilename,
           current_path,
         });
       }
@@ -210,12 +217,22 @@ export function NewFlyout({
       createFile();
     } else {
       // if we had a "/" at the end and now we don't, remove it from the base filename
-      if (nextExt !== "/" && filename.endsWith("/")) {
-        setFilename(filename.slice(0, filename.length - 1));
+      if (nextExt !== "/") {
+        const nextName = filename.endsWith("/")
+          ? filename.slice(0, filename.length - 1)
+          : filename;
+        // if there is an extension in the filename, remove it
+        const { ext: oldExt, name } = separate_file_extension(nextName);
+        if (oldExt !== nextExt || nextExt === "") {
+          setFilename(name);
+        }
       } else if (nextExt === "/" && !filename.endsWith("/")) {
         setFilename(`${filename}/`);
       }
+      // set the new extension
       setExt(nextExt ?? "");
+      // since we pressed a file-type button, we switch back to the automatic extension regime
+      setManualExt(false);
     }
   }
 
@@ -258,6 +275,26 @@ export function NewFlyout({
     );
   }
 
+  function renderCreateFileButton() {
+    const { name, ext } = separate_file_extension(newFilename);
+    return (
+      <Button
+        type="primary"
+        disabled={creating || !filename}
+        onClick={createFile}
+        block
+      >
+        <span style={{ whiteSpaceCollapse: "preserve" } as any}>
+          <span>Create</span>{" "}
+          <span style={{ fontWeight: "bold", color: "white" }}>
+            {trunc_middle(name, 30)}
+          </span>
+          {isFile && ext ? `.${ext}` : ""}
+        </span>
+      </Button>
+    );
+  }
+
   function renderHead() {
     const padding = { padding: FLYOUT_PADDING };
     return (
@@ -288,14 +325,7 @@ export function NewFlyout({
             ...padding,
           }}
         >
-          <Button
-            style={{ flex: "1 0 auto" }}
-            type="primary"
-            disabled={creating || !filename}
-            onClick={createFile}
-          >
-            Create {isFile ? "File" : "Folder"}
-          </Button>
+          {renderCreateFileButton()}
           {creating ? (
             <ProgressEstimate seconds={5} />
           ) : (
@@ -370,10 +400,29 @@ export function NewFlyout({
     );
   }
 
+  function renderBottom(): JSX.Element {
+    return (
+      <Space
+        style={{
+          flex: "1 0 auto",
+          width: "100%",
+          overflowX: "hidden",
+          overflowY: "hidden",
+          padding: FLYOUT_PADDING,
+          borderTop: FIX_BORDER,
+        }}
+        direction="vertical"
+      >
+        {renderCreateFileButton()}
+      </Space>
+    );
+  }
+
   return (
     <>
       {renderHead()}
       {wrap(renderBody())}
+      {renderBottom()}
     </>
   );
 }
