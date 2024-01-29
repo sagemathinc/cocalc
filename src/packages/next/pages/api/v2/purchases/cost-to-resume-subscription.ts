@@ -1,6 +1,10 @@
+/*
+Cost to renew one of your subscriptions right now for the next period. Returns {cost:...}.
+*/
+
 import getAccountId from "lib/account/get-account";
-import { getShoppingCartCheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import getParams from "lib/api/get-params";
+import { costToResumeSubscription } from "@cocalc/server/purchases/resume-subscription";
 
 export default async function handle(req, res) {
   try {
@@ -16,6 +20,6 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { ignoreBalance } = getParams(req);
-  return await getShoppingCartCheckoutParams(account_id, { ignoreBalance });
+  const { subscription_id } = getParams(req);
+  return { cost: await costToResumeSubscription(subscription_id) };
 }

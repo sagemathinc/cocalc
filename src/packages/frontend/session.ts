@@ -19,6 +19,10 @@ import target from "@cocalc/frontend/client/handle-target";
 import { load_target } from "./history";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
+const log = (..._args) => {
+  // console.trace("session: ", ..._args);
+};
+
 export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);
   if (COCALC_MINIMAL) {
@@ -83,10 +87,10 @@ class SessionManager {
       const prefix = appBasePath.length > 1 ? `.${appBasePath}` : "";
       const postfix = `${webapp_client.account_id}.${this.name}`;
       this._local_storage_name = new LS.CustomKey(
-        `session${prefix}.${postfix}`
+        `session${prefix}.${postfix}`,
       );
       this._local_storage_name_closed = new LS.CustomKey(
-        `closed-session${prefix}.${postfix}`
+        `closed-session${prefix}.${postfix}`,
       );
       this._load_from_local_storage();
     }
@@ -169,6 +173,7 @@ class SessionManager {
   }
 
   restore(project_id?: string): void {
+    log("restore", project_id);
     if (project_id != null) {
       this._restore_project(project_id);
     } else {
@@ -179,6 +184,7 @@ class SessionManager {
   // Call right when you open a project.  It returns all files that should automatically
   // be opened, then removes that list from localStorage.  Returns undefined if nothing known.
   private _restore_project(project_id): void {
+    log("_restore_project");
     if (this._state_closed == null || !this._initialized) {
       return;
     }
@@ -191,15 +197,17 @@ class SessionManager {
           path,
           foreground: false,
           foreground_project: false,
-        })
+        }),
       );
     }
   }
 
   private _restore_all(): void {
     if (this._local_storage_name == null || this._state == null) {
+      log("_restore_all -- not setup yet");
       return;
     }
+    log("_restore_all -- doing it");
     try {
       this._ignore = true; // don't want to save state **while** restoring it, obviously.
       restoreSessionState(this.redux, this._state);
@@ -261,6 +269,7 @@ function getSessionState(redux: AppRedux): State[] {
 }
 
 function restoreSessionState(redux: AppRedux, state: State[]): void {
+  log("restoreSessionState", state);
   const projects = redux.getActions("projects");
   for (const openTabsInProject of state) {
     for (const project_id in openTabsInProject) {

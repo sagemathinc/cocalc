@@ -22,7 +22,7 @@ import {
   Space,
 } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
@@ -39,9 +39,9 @@ import {
   fullCost,
   discountedCost,
   getColumns,
-  ShowError as OrderError,
   RequireEmailAddress,
 } from "./checkout";
+import ShowError from "@cocalc/frontend/components/error";
 import { COLORS } from "@cocalc/util/theme";
 import vouchers, {
   CharSet,
@@ -58,6 +58,7 @@ import {
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ExplainPaymentSituation } from "./checkout";
 import AddCashVoucher from "./add-cash-voucher";
+import { StoreBalanceContext } from "../../lib/balance";
 
 interface Config {
   whenPay: WhenPay;
@@ -76,6 +77,7 @@ export default function CreateVouchers() {
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
+  const { refreshBalance } = useContext(StoreBalanceContext);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
 
@@ -142,7 +144,7 @@ export default function CreateVouchers() {
   // avoid dup, and vouchers are *barely* used.
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
   const [session, setSession] = useState<{ id: string; url: string } | null>(
-    null
+    null,
   );
   const updateSession = async () => {
     const session = await getCurrentCheckoutSession();
@@ -225,6 +227,7 @@ export default function CreateVouchers() {
       // The purchase failed.
       setOrderError(err.message);
     } finally {
+      refreshBalance();
       if (!isMounted.current) return;
       setCompletingPurchase(false);
     }
@@ -399,7 +402,7 @@ export default function CreateVouchers() {
   function nonemptyCart(items) {
     return (
       <>
-        <OrderError error={orderError} />
+        <ShowError error={orderError} setError={setOrderError} />
         <div>
           <h3 style={{ fontSize: "16pt" }}>
             <Icon name={"gift2"} style={{ marginRight: "10px" }} />
@@ -675,7 +678,7 @@ export default function CreateVouchers() {
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && <EmptyCart />}
       {items.length > 0 && nonemptyCart(items)}
-      <OrderError error={orderError} />
+      <ShowError error={orderError} setError={setOrderError} />
     </>
   );
 }

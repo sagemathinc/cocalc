@@ -117,7 +117,6 @@ interface CostsStructure {
   sub_discount: { [sub in Subscription]: number };
   online_discount: number;
   min_quote: number;
-  min_sale: number;
   custom_cost: { [key in CustomUpgrades]: number };
   custom_max: { [key in CustomUpgrades]: number };
   basic: { [key in CustomUpgrades]: number };
@@ -133,9 +132,6 @@ export const COSTS: CostsStructure = {
   // disables the discount.
   online_discount: 1,
   min_quote: MIN_QUOTE,
-  /* min_sale can now be very small; instead, we have a min on adding credit to account. We do
-     make it *something* to avoid hacks (?) with users buying licenses for a few minutes... */
-  min_sale: 0.02,
   custom_cost: CUSTOM_COST,
   custom_max: MAX,
   basic: BASIC,

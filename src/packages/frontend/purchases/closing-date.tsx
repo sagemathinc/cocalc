@@ -88,7 +88,7 @@ export default function ClosingDate({ style }: Props) {
         {" "}
         <Button disabled={loading}>
           <Icon name="calendar" />
-          Closing Date... {loading && <Spin style={{ marginLeft: "8px" }} />}
+          Closing Date {loading && <Spin style={{ marginLeft: "8px" }} />}
         </Button>
       </Popconfirm>
     </div>

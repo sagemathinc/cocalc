@@ -1,4 +1,4 @@
-import { round2 } from "@cocalc/util/misc";
+import { round2up } from "@cocalc/util/misc";
 
 export default function getChargeAmount({
   cost,
@@ -11,10 +11,10 @@ export default function getChargeAmount({
   minBalance: number;
   minPayment: number;
 }): {
-  amountDue: number,
+  amountDue: number;
   chargeAmount: number;
-  cureAmount: number,
-  minimumPaymentCharge: number,
+  cureAmount: number;
+  minimumPaymentCharge: number;
 } {
   // Figure out what the amount due is, not worrying about the minPayment (we do that below).
   let amountDue = cost;
@@ -35,10 +35,13 @@ export default function getChargeAmount({
     amountDue -= appliedCredit;
   }
 
-  const minimumPaymentCharge = amountDue > 0 ? Math.max(amountDue, minPayment) - amountDue : 0;
+  const minimumPaymentCharge =
+    amountDue > 0 ? Math.max(amountDue, minPayment) - amountDue : 0;
 
-  // amount due can never be negative
-  amountDue = Math.max(0, round2(amountDue));
+  // amount due can never be negative.
+  // We always round up though -- if the user owes us 1.053 cents and we charge 1.05, then
+  // they still owe 0.003 and the purchase fails!
+  amountDue = Math.max(0, round2up(amountDue));
 
   // amount you actually have to pay, due to our min payment requirement
   const chargeAmount = amountDue == 0 ? 0 : Math.max(amountDue, minPayment);

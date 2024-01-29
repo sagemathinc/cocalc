@@ -112,7 +112,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}
           />
-          Explain...
+          Explain
         </Button>
       </PopconfirmKeyboard>
       {error && (

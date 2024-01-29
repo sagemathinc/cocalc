@@ -22,42 +22,47 @@ between them.
 
 const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
-import { useEffect, useState } from "react";
 import {
   Alert,
   Button,
   Checkbox,
-  Row,
   Col,
   Input,
   Popconfirm,
   Radio,
+  Row,
+  Space,
 } from "antd";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useEffect, useState } from "react";
+
+import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
+  A,
   CopyToClipBoard,
   Icon,
+  Paragraph,
+  Text,
+  Title,
   VisibleMDLG,
-  A,
 } from "@cocalc/frontend/components";
-import { publicShareUrl, shareServerUrl } from "./util";
-import { License } from "./license";
-import { trunc_middle } from "@cocalc/util/misc";
-import ConfigureName from "./configure-name";
-import { unreachable } from "@cocalc/util/misc";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { useManagedLicenses } from "@cocalc/frontend/site-licenses/input";
+import SelectLicense from "@cocalc/frontend/site-licenses/select-license";
+import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import {
-  SHARE_AUTHENTICATED_ICON,
   SHARE_AUTHENTICATED_EXPLANATION,
+  SHARE_AUTHENTICATED_ICON,
   SHARE_FLAGS,
 } from "@cocalc/util/consts/ui";
-import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import SelectLicense from "@cocalc/frontend/site-licenses/select-license";
-import { useManagedLicenses } from "@cocalc/frontend/site-licenses/input";
-import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { trunc_middle, unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { ConfigureName } from "./configure-name";
+import { License } from "./license";
+import { publicShareUrl, shareServerUrl } from "./util";
 
 // https://ant.design/components/grid/
-const GUTTER: [number, number] = [16, 24];
+const GUTTER: [number, number] = [20, 30];
 
 interface PublicInfo {
   created: Date;
@@ -99,7 +104,22 @@ interface Props {
   compute_server_id?: number;
 }
 
-type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
+// ensures the custom font sizes in the text of the first row is consistent
+const FONTSIZE_TOP = "12pt";
+const ACCESS_LEVEL_OPTION_SYLE: CSS = { fontSize: FONTSIZE_TOP };
+
+const STATES = {
+  private: "Private",
+  public_listed: "Public (listed)",
+  public_unlisted: "Public (unlisted)",
+  authenticated: "Authenticated",
+} as const;
+
+type States = keyof typeof STATES;
+
+function SC({ children }) {
+  return <Text strong>{children}</Text>;
+}
 
 export default function Configure(props: Props) {
   const student = useStudentProjectFunctionality(props.project_id);
@@ -187,11 +207,11 @@ export default function Configure(props: Props) {
         style={{ padding: "30px", margin: "30px" }}
         description={
           <>
-            <h3>Publicly sharing of files is not enabled</h3>
-            <div style={{ fontSize: "12pt" }}>
+            <Title level={3}>Publicly sharing of files is not enabled</Title>
+            <Paragraph style={{ fontSize: FONTSIZE_TOP }}>
               Public sharing is not enabled. An admin of the server can enable
               this in Admin -- Site Settings -- Allow public file sharing.
-            </div>
+            </Paragraph>
           </>
         }
       />
@@ -207,22 +227,30 @@ export default function Configure(props: Props) {
         style={{ padding: "30px", margin: "30px" }}
         description={
           <>
-            <h3>
+            <Title level={3}>
               Publicly sharing of files is not enabled from this student project
-            </h3>
-            <div style={{ fontSize: "12pt" }}>
+            </Title>
+            <Paragraph style={{ fontSize: FONTSIZE_TOP }}>
               Public sharing is disabled right now for this project. This was
               set by the course instructor.
-            </div>
+            </Paragraph>
           </>
         }
       />
     );
   }
 
+  function renderFinishedButton() {
+    return (
+      <Button onClick={props.close} type="primary">
+        <Icon name="check" /> Finished
+      </Button>
+    );
+  }
+
   return (
-    <div>
-      <h3 style={{ color: "#666", textAlign: "center", marginTop: "-5px" }}>
+    <>
+      <Title level={3} style={{ color: COLORS.GRAY_M, textAlign: "center" }}>
         <a
           onClick={() => {
             redux
@@ -232,72 +260,95 @@ export default function Configure(props: Props) {
         >
           {trunc_middle(props.path, 128)}
         </a>
-      </h3>
+        <span style={{ float: "right" }}>{renderFinishedButton()}</span>
+      </Title>
+
       <Row gutter={GUTTER}>
         <Col span={12}>
           <VisibleMDLG>
-            <div style={{ color: "#444", fontSize: "15pt" }}>
-              <Icon name="user-secret" style={{ marginRight: "5px" }} /> Access
-              level
-            </div>
+            <Title level={3}>
+              <Icon name="user-secret" /> Access level:{" "}
+              {STATES[sharingOptionsState]}
+            </Title>
           </VisibleMDLG>
         </Col>
         <Col span={12}>
           <VisibleMDLG>
-            <span style={{ fontSize: "15pt" }}>
-              <Icon name="gears" style={{ marginRight: "5px" }} /> How it works
-            </span>
+            <Title level={3}>
+              <Icon name="gears" /> How it works
+            </Title>
           </VisibleMDLG>
         </Col>
       </Row>
       <Row gutter={GUTTER}>
         <Col span={12}>
           {!parent_is_public && (
-            <div style={{ fontSize: "12pt" }}>
-              <Radio.Group
-                value={sharingOptionsState}
-                onChange={handleSharingOptionsChange}
-              >
-                <Radio
-                  name="sharing_options"
-                  value="public_listed"
-                  disabled={!props.has_network_access}
+            <>
+              <Paragraph style={{ fontSize: FONTSIZE_TOP }}>
+                <Radio.Group
+                  value={sharingOptionsState}
+                  onChange={handleSharingOptionsChange}
                 >
-                  <Icon name="eye" style={{ marginRight: "5px" }} />
-                  <i>Published (listed)</i> - on the{" "}
-                  <A href={shareServerUrl()}>
-                    public search engine indexed server.{" "}
-                    {!props.has_network_access && (
-                      <b>
-                        (This project must be upgraded to have Internet access.)
-                      </b>
-                    )}
-                  </A>
-                </Radio>
-                <Radio name="sharing_options" value="public_unlisted">
-                  <Icon name="eye-slash" style={{ marginRight: "5px" }} />
-                  <i>Published (unlisted)</i> - only people with the link can
-                  view this.
-                </Radio>
-                {kucalc != KUCALC_COCALC_COM && (
-                  <>
-                    <Radio name="sharing_options" value="authenticated">
-                      <Icon
-                        name={SHARE_AUTHENTICATED_ICON}
-                        style={{ marginRight: "5px" }}
-                      />
-                      <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}.
+                  <Space direction="vertical">
+                    <Radio
+                      name="sharing_options"
+                      value="public_listed"
+                      disabled={!props.has_network_access}
+                      style={ACCESS_LEVEL_OPTION_SYLE}
+                    >
+                      <Icon name="eye" style={{ marginRight: "5px" }} />
+                      <SC>{STATES.public_listed}</SC> - on the{" "}
+                      <A href={shareServerUrl()}>
+                        public search engine indexed server.{" "}
+                        {!props.has_network_access && (
+                          <b>
+                            (This project must be upgraded to have Internet
+                            access.)
+                          </b>
+                        )}
+                      </A>
                     </Radio>
-                  </>
-                )}
 
-                <Radio name="sharing_options" value="private">
-                  <Icon name="lock" style={{ marginRight: "5px" }} />
-                  <i>Private</i> - only collaborators on this project can view
-                  this.
-                </Radio>
-              </Radio.Group>
-            </div>
+                    <Radio
+                      name="sharing_options"
+                      value="public_unlisted"
+                      style={ACCESS_LEVEL_OPTION_SYLE}
+                    >
+                      <Icon name="eye-slash" style={{ marginRight: "5px" }} />
+                      <SC>{STATES.public_unlisted}</SC> - only people with the
+                      link can view this.
+                    </Radio>
+
+                    {kucalc != KUCALC_COCALC_COM ? (
+                      <>
+                        <Radio
+                          name="sharing_options"
+                          value="authenticated"
+                          style={ACCESS_LEVEL_OPTION_SYLE}
+                        >
+                          <Icon
+                            name={SHARE_AUTHENTICATED_ICON}
+                            style={{ marginRight: "5px" }}
+                          />
+                          <SC>{STATES.authenticated}</SC> -{" "}
+                          {SHARE_AUTHENTICATED_EXPLANATION}.
+                        </Radio>
+                      </>
+                    ) : undefined}
+
+                    <Radio
+                      name="sharing_options"
+                      value="private"
+                      style={ACCESS_LEVEL_OPTION_SYLE}
+                    >
+                      <Icon name="lock" style={{ marginRight: "5px" }} />
+                      <SC>{STATES.private}</SC> - only collaborators on this
+                      project can view this.
+                    </Radio>
+                  </Space>
+                </Radio.Group>
+              </Paragraph>
+            </>
           )}
           {parent_is_public && props.public != null && (
             <Alert
@@ -315,8 +366,7 @@ export default function Configure(props: Props) {
           )}
         </Col>
         <Col span={12}>
-          {" "}
-          <div style={{ color: "#555", fontSize: "12pt" }}>
+          <Paragraph style={{ color: COLORS.GRAY_M, fontSize: FONTSIZE_TOP }}>
             You make files or directories{" "}
             <A href={server}>
               <b>
@@ -328,103 +378,122 @@ export default function Configure(props: Props) {
             within <b>about 30 seconds</b> after you explicitly edit them.
             Opening this dialog also causes an immediate update. See{" "}
             <A href={SHARE_HELP_URL}>the docs</A> for more details.
-          </div>
+          </Paragraph>
         </Col>
       </Row>
-      {sharingOptionsState != "private" && (
+      {sharingOptionsState !== "private" ? (
         <Row gutter={GUTTER}>
-          <Col span={12} style={{ color: "#666" }}>
-            <h4>
-              <Icon name="pencil" style={{ marginRight: "5px" }} /> Description
-            </h4>
-            <Input.TextArea
-              autoFocus
-              style={{ paddingTop: "5px", margin: "15px 0" }}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={parent_is_public}
-              placeholder="Describe what you are sharing.  You can change this at any time."
-              onKeyUp={props.action_key}
-              onBlur={() => {
-                props.set_public_path({ description });
-              }}
-            />
-            <h4>
-              <Icon name="users" style={{ marginRight: "5px" }} /> Copyright
-              {license ? "" : " - optional"}{" "}
-              <A href="https://choosealicense.com/">(about...)</A>
-            </h4>
-            <div style={{ marginBottom: "5px" }}>
-              <License
-                disabled={parent_is_public}
-                license={license}
-                set_license={(license) => props.set_public_path({ license })}
-              />
-            </div>
-            {sharingOptionsState == "public_unlisted" && (
-              <>
-                <h4>
-                  <Icon name="key" style={{ marginRight: "5px" }} />
-                  License Code - optional
-                </h4>
-                <div>
-                  <EnterLicenseCode
-                    licenseId={licenseId}
-                    setLicenseId={(licenseId) => {
-                      setLicenseId(licenseId);
-                      props.set_public_path({ site_license_id: licenseId });
-                    }}
+          <Col span={12} style={{ color: COLORS.GRAY_M }}>
+            <Space direction="vertical">
+              <div>
+                <Title level={4}>
+                  <Icon name="pencil" /> Description
+                </Title>
+                <Input.TextArea
+                  autoFocus
+                  style={{ paddingTop: "5px", margin: "15px 0" }}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={parent_is_public}
+                  placeholder="Describe what you are sharing.  You can change this at any time."
+                  onKeyUp={props.action_key}
+                  onBlur={() => {
+                    props.set_public_path({ description });
+                  }}
+                />
+              </div>
+              <div>
+                <Title level={4}>
+                  <Icon name="users" /> Copyright
+                  {license ? "" : " - optional"}
+                </Title>
+                <Paragraph type="secondary">
+                  You can choose a license for your shared document. Get help{" "}
+                  <A href="https://choosealicense.com/">
+                    choosing a suitable license
+                  </A>
+                  .
+                </Paragraph>
+                <Paragraph style={{ marginBottom: "5px" }}>
+                  <License
+                    disabled={parent_is_public}
+                    license={license}
+                    set_license={(license) =>
+                      props.set_public_path({ license })
+                    }
                   />
-                  <div style={{ marginTop: "5px" }}>
-                    When people edit a copy of your shared document in a new
-                    project, their project will get upgraded using{" "}
-                    <b>
-                      <i>your</i>
-                    </b>{" "}
-                    license. You can thus provide a high quality experience to
-                    the people you share this link with.
-                  </div>
-                </div>
-              </>
-            )}
-            <ConfigureJupyterApi
-              disabled={parent_is_public}
-              jupyter_api={props.public?.jupyter_api}
-              saveJupyterApi={(jupyter_api) => {
-                props.set_public_path({ jupyter_api });
-              }}
-            />
+                </Paragraph>
+                {sharingOptionsState == "public_unlisted" && (
+                  <>
+                    <Title level={4}>
+                      <Icon name="key" /> License Code - optional
+                    </Title>
+                    <Paragraph>
+                      <EnterLicenseCode
+                        licenseId={licenseId}
+                        setLicenseId={(licenseId) => {
+                          setLicenseId(licenseId);
+                          props.set_public_path({ site_license_id: licenseId });
+                        }}
+                      />
+                      <Paragraph type="secondary">
+                        When people edit a copy of your shared document in a new
+                        project, their project will get upgraded using{" "}
+                        <b>
+                          <i>your</i>
+                        </b>{" "}
+                        license. You can thus provide a high quality experience
+                        to the people you share this link with.
+                      </Paragraph>
+                    </Paragraph>
+                  </>
+                )}
+              </div>
+              <ConfigureJupyterApi
+                disabled={parent_is_public}
+                jupyter_api={props.public?.jupyter_api}
+                saveJupyterApi={(jupyter_api) => {
+                  props.set_public_path({ jupyter_api });
+                }}
+              />
+            </Space>
           </Col>
           <Col span={12}>
-            <>
-              <h4>
-                <A href={url}>
-                  <Icon name="external-link" style={{ marginRight: "5px" }} />{" "}
-                  Link
-                </A>
-              </h4>
-              <div style={{ paddingBottom: "5px" }}>
-                <A href={url}>Your share will appear here</A>
+            {/* width:100% because we want the CopyToClipBoard be wide */}
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <div style={{ width: "100%" }}>
+                <Title level={4}>
+                  <Icon name="external-link" /> Location of share
+                </Title>
+                <Paragraph>
+                  This share will be accessible here:{" "}
+                  <A href={url} style={{ fontWeight: "bold" }}>
+                    Link <Icon name="external-link" />
+                  </A>
+                </Paragraph>
+                <Paragraph style={{ display: "flex" }}>
+                  <CopyToClipBoard
+                    style={{ flex: 1, display: "flex" }}
+                    outerStyle={{ flex: 1 }}
+                    value={url}
+                    inputWidth={"100%"}
+                  />
+                </Paragraph>
               </div>
-              <CopyToClipBoard value={url} />
-            </>
-            <ConfigureName
-              project_id={props.project_id}
-              path={props.public?.path ?? props.path}
-              saveRedirect={(redirect) => {
-                props.set_public_path({ redirect });
-              }}
-              disabled={parent_is_public}
-            />
+              <ConfigureName
+                project_id={props.project_id}
+                path={props.public?.path ?? props.path}
+                saveRedirect={(redirect) => {
+                  props.set_public_path({ redirect });
+                }}
+                disabled={parent_is_public}
+              />
+            </Space>
           </Col>
         </Row>
-      )}
-      <div style={{ float: "right" }}>
-        <Button onClick={props.close} type="primary">
-          <Icon name="check" /> Finished
-        </Button>
-      </div>
-    </div>
+      ) : undefined}
+      <Paragraph style={{ float: "right" }}>{renderFinishedButton()}</Paragraph>
+    </>
   );
 }
 
@@ -436,11 +505,10 @@ function ConfigureJupyterApi({ jupyter_api, saveJupyterApi, disabled }) {
   const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
   if (!jupyterApiEnabled) return null;
   return (
-    <div style={{ marginTop: "15px" }}>
-      <h4>
-        <Icon name="jupyter" style={{ marginRight: "5px" }} />
-        Stateless Jupyter Code Evaluation
-      </h4>
+    <Paragraph style={{ marginTop: "15px" }}>
+      <Title level={4}>
+        <Icon name="jupyter" /> Stateless Jupyter Code Evaluation
+      </Title>
       <Checkbox
         disabled={disabled}
         checked={jupyterApi}
@@ -451,14 +519,14 @@ function ConfigureJupyterApi({ jupyter_api, saveJupyterApi, disabled }) {
       >
         Enable Stateless Jupyter Code Evaluation
       </Checkbox>
-      <div style={{ color: "#666" }}>
+      <Paragraph type="secondary">
         Enable stateless Jupyter code evaluation if the documents you are
         sharing containing code that can be evaluated using a heavily sandboxed
         Jupyter kernel, with no network access or access to related files. This
         can be quickly used by people without having to sign in or make a copy
         of files.
-      </div>
-    </div>
+      </Paragraph>
+    </Paragraph>
   );
 }
 
@@ -468,7 +536,7 @@ function EnterLicenseCode({ licenseId, setLicenseId }) {
   if (!adding) {
     if (licenseId) {
       return (
-        <div>
+        <Paragraph>
           <Button.Group>
             <Button
               onClick={() => setAdding(true)}
@@ -486,7 +554,7 @@ function EnterLicenseCode({ licenseId, setLicenseId }) {
             </Popconfirm>
           </Button.Group>
           <SiteLicensePublicInfo license_id={licenseId} />
-        </div>
+        </Paragraph>
       );
     }
     return (

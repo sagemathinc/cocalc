@@ -42,6 +42,7 @@ import {
   capitalize,
   copy_without,
   human_readable_size,
+  path_split,
   path_to_file,
   search_match,
   search_split,
@@ -343,6 +344,11 @@ export function FilesFlyout({
 
   // *** END HOOKS ***
 
+  function getFile(name: string): DirectoryListingEntry | undefined {
+    const basename = path_split(name).tail;
+    return fileMap[basename];
+  }
+
   if (directoryListings == null) {
     (async () => {
       await delay(0);
@@ -584,10 +590,6 @@ export function FilesFlyout({
           }
         }}
         itemStyle={fileItemStyle(age ?? 0, mask)}
-        onClose={(e: React.MouseEvent, name: string) => {
-          e.stopPropagation();
-          actions?.close_tab(path_to_file(current_path, name));
-        }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
         showCheckbox={
@@ -658,13 +660,30 @@ export function FilesFlyout({
     );
   }
 
+  function clearAllSelections(switchMode) {
+    if (switchMode) setMode("open");
+    setPrevSelected(null);
+    actions?.set_all_files_unchecked();
+  }
+
+  function selectAllFiles() {
+    actions?.set_file_list_checked(
+      directoryFiles
+        .filter((f) => f.name !== "..")
+        .map((f) => path_to_file(current_path, f.name)),
+    );
+  }
+
   return (
     <div
       ref={rootRef}
       style={{ flex: "1 0 auto", flexDirection: "column", display: "flex" }}
     >
       <FilesHeader
+        activeFile={activeFile}
+        getFile={getFile}
         activeFileSort={activeFileSort}
+        checked_files={checked_files}
         directoryFiles={directoryFiles}
         disableUploads={disableUploads}
         handleSearchChange={handleSearchChange}
@@ -675,7 +694,11 @@ export function FilesFlyout({
         setScrollIdx={setScrollIdx}
         setScrollIdxHide={setScrollIdxHide}
         setSearchState={setSearchState}
+        showFileSharingDialog={showFileSharingDialog}
         virtuosoRef={virtuosoRef}
+        modeState={[mode, setMode]}
+        clearAllSelections={clearAllSelections}
+        selectAllFiles={selectAllFiles}
       />
       {disableUploads ? (
         renderListing()
@@ -700,24 +723,15 @@ export function FilesFlyout({
         project_id={project_id}
         checked_files={checked_files}
         activeFile={activeFile}
-        directoryData={[directoryFiles, fileMap]}
+        directoryFiles={directoryFiles}
         modeState={[mode, setMode]}
         projectIsRunning={projectIsRunning}
         rootHeightPx={rootHeightPx}
-        clearAllSelections={(switchMode) => {
-          if (switchMode) setMode("open");
-          setPrevSelected(null);
-          actions?.set_all_files_unchecked();
-        }}
-        selectAllFiles={() => {
-          actions?.set_file_list_checked(
-            directoryFiles
-              .filter((f) => f.name !== "..")
-              .map((f) => path_to_file(current_path, f.name)),
-          );
-        }}
+        clearAllSelections={clearAllSelections}
+        selectAllFiles={selectAllFiles}
         open={open}
         showFileSharingDialog={showFileSharingDialog}
+        getFile={getFile}
       />
     </div>
   );

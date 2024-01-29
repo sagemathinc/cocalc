@@ -1,5 +1,5 @@
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2up } from "@cocalc/util/misc";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 export function getCost(purchaseInfo: PurchaseInfo): number {
@@ -15,5 +15,5 @@ export function getCost(purchaseInfo: PurchaseInfo): number {
 }
 
 export default function Cost({ purchaseInfo }: { purchaseInfo: PurchaseInfo }) {
-  return <>{currency(getCost(purchaseInfo))}</>;
+  return <>{currency(round2up(getCost(purchaseInfo)))}</>;
 }

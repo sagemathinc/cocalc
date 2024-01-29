@@ -20,7 +20,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   if (info.type !== "quota") {
     throw new Error(`can only compute cost for type=quota`);
   }
-  
+
   let {
     quantity,
     user,
@@ -33,7 +33,6 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_disk,
     custom_member,
     custom_uptime,
-    boost = false,
   } = info;
 
   // at this point, we assume the start/end dates are already
@@ -114,67 +113,60 @@ export function compute_cost(info: PurchaseInfo): Cost {
   // is used or the quality of hosting.
   cost_per_project_per_month += custom_disk * COSTS.custom_cost.disk;
 
-  // It's convenient in all cases to have the actual amount we will be
-  // for both monthly and yearly available (used by backend for setting up
-  // stripe products).
-  const cost_sub_month =
-    cost_per_project_per_month *
-    COSTS.user_discount[user] *
-    COSTS.sub_discount["monthly"];
-
-  const cost_sub_year =
-    cost_per_project_per_month *
-    12 *
-    COSTS.user_discount[user] *
-    COSTS.sub_discount["yearly"];
-
   // Now give the academic and subscription discounts:
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
 
-  let base_cost = cost_per_project_per_month;
+  // It's convenient in all cases to have the actual amount we will be
+  // for both monthly and yearly available (used by backend for setting up
+  // stripe products).
+  const cost_sub_month = cost_per_project_per_month;
+  const cost_sub_year = cost_per_project_per_month * 12;
 
-  // Make cost properly account for period of purchase or subscription.
+  let base_cost;
+
   if (subscription == "no") {
+    // Compute license cost for a partial period which has no subscription.
     if (start == null) {
-      throw new Error("start must be set if subscription=no");
+      throw Error("start must be set if subscription=no");
     }
     if (end == null) {
       throw Error("end must be set if subscription=no");
     }
-    // scale by factor of a month
-    const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
-    base_cost *= months;
   } else if (subscription == "yearly") {
-    base_cost *= 12;
+    // If we're computing the cost for an annual subscription, multiply the monthly subscription
+    // cost by 12.
+    base_cost = 12 * cost_per_project_per_month;
+  } else if (subscription == "monthly") {
+    base_cost = cost_per_project_per_month;
+  } else {
+    throw Error(
+      "BUG -- a subscription must be yearly or monthly or a partial period",
+    );
   }
-
-  // Just for visual clarity, if no quota boots are selected, user sees $0.00
-  const boostZeroed =
-    boost && custom_cpu === 0 && custom_ram === 0 && custom_disk === 0;
-
-  const min_sale = boostZeroed ? 0 : COSTS.min_sale;
+  if (start != null && end != null) {
+    // In all cases -- subscription or not -- if the start and end dates are
+    // explicitly set, then we compute the cost over the given period.  This
+    // does not impact cost_sub_month or cost_sub_year.
+    const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
+    base_cost = months * cost_per_project_per_month;
+  }
 
   // cost_per_unit is important for purchasing upgrades for specific intervals.
   // i.e. above the "cost" is calculated for the total number of projects,
-  // then here in "cost" the price is limited by the min_sale amount,
-  // and later in charge/stripeCreatePrice, we did divide by the number of projects again.
-  // instead: we use the limited cost_per_unit price to create a price in stripe.
-  // and hence there is no implicit discount if you purchase several projects at once.
   // note: later on you have to use round2, since this is the price with full precision.
-  const cost_per_unit = Math.max(min_sale / COSTS.online_discount, base_cost);
-
+  const cost_per_unit = base_cost;
   const cost_total = quantity * cost_per_unit;
 
   return {
     cost_per_unit,
     cost: cost_total,
-    discounted_cost: Math.max(min_sale, cost_total * COSTS.online_discount),
+    discounted_cost: cost_total * COSTS.online_discount,
     cost_per_project_per_month,
-    // attn: cost_sub* will be multiplied by the online discount in server/licenses/purchase/charge.ts
-    // regarding min_sale, see above regarding cost_per_unit
-    cost_sub_month: Math.max(min_sale / COSTS.online_discount, cost_sub_month),
-    cost_sub_year: Math.max(min_sale / COSTS.online_discount, cost_sub_year),
+    // attn: cost_sub* will be multiplied by the online discount in
+    // server/licenses/purchase/charge.ts
+    cost_sub_month,
+    cost_sub_year,
   };
 }
 

@@ -214,7 +214,7 @@ export default function Payment({ balance, update, cost }: Props) {
           {typeof session == "object" && session?.id
             ? "Finish Payment..."
             : cost
-            ? `Add at least ${currency(cost)} to your account`
+            ? `Add at least ${currency(cost)} (plus tax) to your account`
             : "Add Money..."}
         </Button>
         {typeof session == "object" && session?.id && (

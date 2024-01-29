@@ -98,6 +98,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (this.syncdoc.get_state() != "ready") {
       await once(this.syncdoc, "ready");
     }
+    this.syncdoc.on("close", () => {
+      // in our code we don't check if the state is closed, but instead
+      // that this.syncdoc is not null.
+      delete this.syncdoc;
+    });
     this.setState({
       loading: false,
       has_full_history: this.syncdoc.has_full_history(),
@@ -139,7 +144,21 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   private syncdoc_changed(): void {
     if (this.syncdoc == null) return;
-    const versions = List<Date>(this.syncdoc.all_versions());
+    if (this.syncdoc?.get_state() != "ready") {
+      return;
+    }
+    let versions;
+    try {
+      // syncdoc_changed -- can get called at any time, so have to be extra careful
+      versions = List<Date>(this.syncdoc.all_versions());
+    } catch (err) {
+      console.warn(
+        "ignoring issue with time travel due to syncdoc not being ready",
+        err,
+      );
+      this.setState({ versions: List([]) });
+      return;
+    }
     this.ensure_versions_are_stable(versions);
     this.setState({ versions });
     if (this.first_load) {
@@ -219,7 +238,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       this.set_versions(
         id,
         node.get("version0") + delta,
-        node.get("version1") + delta
+        node.get("version1") + delta,
       );
       return;
     }
@@ -315,7 +334,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     const path = await export_to_json(
       this.syncdoc,
       this.docpath,
-      this.project_id
+      this.project_id,
     );
     const actions = this.redux.getProjectActions(this.project_id);
     await actions.open_file({ path, foreground: true });

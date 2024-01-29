@@ -28,7 +28,7 @@ export type Purchase = {
 
 export async function chargeUser(
   stripe: StripeClient,
-  info: PurchaseInfo
+  info: PurchaseInfo,
 ): Promise<Purchase> {
   logger.debug("getting product_id");
   const product_id = await stripeGetProduct(info);
@@ -98,14 +98,14 @@ async function stripeCreatePriceSubscriptions({
     await conn.prices.create({
       ...common,
       unit_amount: Math.round(
-        COSTS.online_discount * info.cost.cost_sub_month * 100
+        COSTS.online_discount * info.cost.cost_sub_month * 100,
       ),
       recurring: { interval: "month" },
     });
     await conn.prices.create({
       ...common,
       unit_amount: Math.round(
-        COSTS.online_discount * info.cost.cost_sub_year * 100
+        COSTS.online_discount * info.cost.cost_sub_year * 100,
       ),
       recurring: { interval: "year" },
     });
@@ -140,7 +140,9 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     } else if (info.subscription != "no") {
       statement_descriptor += "LIC SUB";
     } else {
-      if (info.type === "disk") throw new Error("disk do not have a period");
+      if (info.type === "disk") {
+        throw new Error("disk do not have a period");
+      }
       const n = getDays(info);
       statement_descriptor += `LIC ${n}${n < 100 ? " " : ""}DAYS`;
     }
@@ -186,7 +188,7 @@ async function stripeProductExists(product_id: string): Promise<boolean> {
 async function stripePurchaseProduct(
   stripe: StripeClient,
   product_id: string,
-  info: PurchaseInfo
+  info: PurchaseInfo,
 ): Promise<Purchase> {
   const { quantity } = info;
   logger.debug("stripePurchaseProduct", product_id, quantity);
@@ -216,7 +218,7 @@ async function stripePurchaseProduct(
     if (price == null) {
       logger.debug("stripePurchaseProduct: still missing -- give up");
       throw Error(
-        `price for one-time purchase missing -- product_id="${product_id}"`
+        `price for one-time purchase missing -- product_id="${product_id}"`,
       );
     }
   }
@@ -286,7 +288,7 @@ async function stripePurchaseProduct(
         ? {}
         : {
             payment_method: info.payment_method,
-          }
+          },
     );
     logger.debug("stripePurchaseProduct -- paid = ", invoice.paid);
     if (info.type === "quota") {
@@ -297,25 +299,25 @@ async function stripePurchaseProduct(
 
     if (!invoice.paid) {
       logger.debug(
-        "stripePurchaseProduct -- invoice failed to be paid, so cancel"
+        "stripePurchaseProduct -- invoice failed to be paid, so cancel",
       );
       // We void it so user doesn't get charged later.  Of course,
       // we plan to rewrite this to keep trying and once they pay it
       // somehow, then they get their license.  But that's a TODO!
       await conn.invoices.voidInvoice(invoice_id);
       throw Error(
-        "created invoice but not able to pay it -- invoice has been voided; please try again when you have a valid payment method on file"
+        "created invoice but not able to pay it -- invoice has been voided; please try again when you have a valid payment method on file",
       );
     }
   } catch (err) {
     logger.debug(
-      "stripePurchaseProduct -- error paying invoice, so voiding it"
+      "stripePurchaseProduct -- error paying invoice, so voiding it",
     );
     await conn.invoices.voidInvoice(invoice_id);
     throw err;
   }
   logger.debug(
-    "stripePurchaseProduct -- update info about user in our database"
+    "stripePurchaseProduct -- update info about user in our database",
   );
   await stripe.update_database();
 
@@ -332,7 +334,7 @@ async function stripePurchaseProduct(
 async function stripeCreateSubscription(
   stripe: StripeClient,
   product_id: string,
-  info: PurchaseInfo
+  info: PurchaseInfo,
 ): Promise<Purchase> {
   if (info.type == "vouchers") {
     throw Error("stripeCreateSubscription can't be used to purchase vouchers");
@@ -370,7 +372,7 @@ async function stripeCreateSubscription(
     if (price == null) {
       logger.debug("stripePurchaseProduct: still missing -- give up");
       throw Error(
-        `price for subscription purchase missing -- product_id="${product_id}", subscription="${subscription}"`
+        `price for subscription purchase missing -- product_id="${product_id}", subscription="${subscription}"`,
       );
     }
   }
@@ -427,7 +429,7 @@ async function getSelfServiceDiscountCoupon(conn: Stripe): Promise<string> {
 export async function setPurchaseMetadata(
   info: PurchaseInfo,
   purchase: Purchase,
-  metadata: { account_id: string; license_id: string }
+  metadata: { account_id: string; license_id: string },
 ): Promise<void> {
   const conn = await getConn();
   switch (purchase.type) {

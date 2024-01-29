@@ -24,7 +24,7 @@ type LoadTargetFunction = (
   switchTo: boolean,
   a: boolean,
   b: boolean,
-  fragmentId?: FragmentId
+  fragmentId?: FragmentId,
 ) => void;
 
 interface Options {
@@ -35,13 +35,14 @@ interface Options {
   projectActions?: {
     load_target: LoadTargetFunction;
   };
+  doubleClick?: boolean;
 }
 
 function loadTarget(
   target: string,
   switchTo: boolean,
   fragmentId: FragmentId | undefined,
-  projectActions: { load_target: LoadTargetFunction }
+  projectActions: { load_target: LoadTargetFunction },
 ): void {
   // get rid of "?something" in "path/file.ext?something"
   const i = target.lastIndexOf("/");
@@ -70,13 +71,14 @@ function processAnchorTag(y: any, opts: Options): void {
     return; // do nothing
   }
   const { projectActions } = opts;
+  let handleClick: any = null;
   if (projectActions && isCoCalcURL(href) && href.includes("/projects/")) {
     // CASE: Link inside a specific browser tab.
     // target starts with cloud URL or is absolute, and has /projects/ in it,
     // so we open the link directly inside this browser tab.
     // WARNING: there are cases that could be wrong via this heuristic, e.g.,
     // a raw link that happens to have /projects/ in it -- deal with them someday...
-    y.click(function (e): boolean {
+    handleClick = (e) => {
       let fragmentId;
       const url = href;
       const i = url.indexOf("/projects/");
@@ -93,10 +95,10 @@ function processAnchorTag(y: any, opts: Options): void {
         decodeURI(target),
         !(e.which === 2 || e.ctrlKey || e.metaKey),
         fragmentId,
-        projectActions
+        projectActions,
       );
       return false;
-    });
+    };
   } else if (
     projectActions &&
     href.indexOf("http://") !== 0 &&
@@ -104,7 +106,7 @@ function processAnchorTag(y: any, opts: Options): void {
   ) {
     // does not start with http
     // internal link
-    y.click(function (e): boolean {
+    handleClick = (e) => {
       let fragmentId;
       let target = href;
       const v = target.split("#");
@@ -143,14 +145,24 @@ function processAnchorTag(y: any, opts: Options): void {
         target,
         !(e.which === 2 || e.ctrlKey || e.metaKey),
         fragmentId,
-        projectActions
+        projectActions,
       );
       return false;
-    });
+    };
   } else {
     // make links open in a new tab by default
     y.attr("target", "_blank");
     y.attr("rel", "noopener");
+  }
+  if (handleClick != null) {
+    if (opts.doubleClick) {
+      y.dblclick(handleClick);
+      y.click((e) => {
+        e.preventDefault();
+      });
+    } else {
+      y.click(handleClick);
+    }
   }
 }
 
@@ -164,7 +176,7 @@ function processMediaTag(
   y: any,
   tag: string,
   attr: string,
-  opts: Options
+  opts: Options,
 ): void {
   let newSrc: string | undefined = undefined;
   let src: string | undefined = y.attr(attr);

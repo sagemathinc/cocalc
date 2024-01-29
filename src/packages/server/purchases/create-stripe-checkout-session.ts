@@ -55,7 +55,7 @@ export const createStripeCheckoutSession = async (
   if (!force) {
     const { pay_as_you_go_min_payment } = await getServerSettings();
     if (!cartTotal || cartTotal < pay_as_you_go_min_payment) {
-      throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
+      throw Error(`Amount must be at least ${currency(pay_as_you_go_min_payment)}, but it is ${currency(cartTotal)}`);
     }
   } else {
     // Conform to minimum Stripe transaction amount

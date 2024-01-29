@@ -15,7 +15,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { capitalize, isValidUUID, plural } from "@cocalc/util/misc";
+import { capitalize, currency, isValidUUID, round2up } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -27,13 +27,11 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
-import { EditRunLimit } from "./run-limit";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
 import type {
   ProductDescription,
   ProductType,
 } from "@cocalc/util/db-schema/shopping-cart-items";
-import { currency } from "@cocalc/util/misc";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -306,7 +304,7 @@ function TotalCost({ items }) {
   }
   return (
     <>
-      Subtotal ({n} items): <b>{money(discounted_cost)}</b>
+      Subtotal ({n} items): <b>{money(round2up(discounted_cost))}</b>
     </>
   );
 }
@@ -439,11 +437,8 @@ function DescriptionColumnSiteLicense(props: DCProps) {
     id,
     cost,
     description,
-    updating,
-    reload,
     compact,
     project_id,
-    style,
     readOnly,
   } = props;
   if (
@@ -456,10 +451,6 @@ function DescriptionColumnSiteLicense(props: DCProps) {
     throw Error("BUG -- incorrect typing");
   }
   const router = useRouter();
-  const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
-  const [runLimit, setRunLimit] = useState<number>(
-    description.type == "quota" ? description.run_limit ?? 0 : 0,
-  );
   if (cost == null) {
     // don't crash when used on deprecated items
     return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
@@ -467,51 +458,6 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   const { input } = cost;
   if (input.type == "cash-voucher") {
     throw Error("incorrect typing");
-  }
-
-  const showRunLimitEditor =
-    description.type !== "disk" && description.type !== "vm";
-
-  function renderEditRunLimit(): JSX.Element | null {
-    if (!editRunLimit) return null;
-    return (
-      <div
-        style={{
-          border: "1px solid #eee",
-          padding: "15px",
-          margin: "15px 0",
-          background: "white",
-          ...style,
-        }}
-      >
-        <Icon
-          name="times"
-          style={{ float: "right" }}
-          onClick={() => {
-            setEditRunLimit(false);
-          }}
-        />
-        {!readOnly && (
-          <>
-            <EditRunLimit value={runLimit} onChange={setRunLimit} />
-            <Button
-              type="primary"
-              style={{ marginTop: "15px" }}
-              onClick={async () => {
-                setEditRunLimit(false);
-                await apiPost("/shopping/cart/edit", {
-                  id,
-                  description: { ...description, run_limit: runLimit },
-                });
-                await reload();
-              }}
-            >
-              Save
-            </Button>
-          </>
-        )}
-      </div>
-    );
   }
 
   function renderProjectID(): JSX.Element | null {
@@ -535,20 +481,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
       <div>
         <div>
           {describeQuotaFromInfo(input)}
-          {showRunLimitEditor && !editRunLimit && (
-            <>
-              <br />
-              <Button
-                onClick={() => setEditRunLimit(true)}
-                disabled={updating}
-                style={{ marginBottom: "5px" }}
-              >
-                {runLimit} simultaneous running {plural(runLimit, "project")}
-              </Button>
-            </>
-          )}
         </div>
-        {renderEditRunLimit()}
         {renderProjectID()}
       </div>
     );
@@ -574,21 +507,21 @@ function DescriptionColumnSiteLicense(props: DCProps) {
         </div>
       )}
       {description.description && <div>{description.description}</div>}
-      <div>
-        <b>
-          {input.subscription == "no"
-            ? describePeriod({ quota: input })
-            : capitalize(input.subscription) + " subscription"}
-        </b>
+      <div style={ DESCRIPTION_STYLE }>
+        <div style={{ marginBottom: '8px' }}>
+          <b>
+            { input.subscription == "no"
+              ? describePeriod({ quota: input })
+              : capitalize(input.subscription) + " subscription" }
+          </b>
+        </div>
+        { compact || readOnly ? describeItem({ info: input }) : editableQuota() }{ " " }
       </div>
-      <div style={DESCRIPTION_STYLE}>
-        {compact || readOnly ? describeItem({ info: input }) : editableQuota()}{" "}
-      </div>
-      {!readOnly && (
+      { !readOnly && (
         <>
           <Button
-            style={{ marginRight: "5px" }}
-            onClick={() => {
+            style={ { marginRight: "5px" } }
+            onClick={ () => {
               const page = editPage();
               router.push(`/store/${page}?id=${id}`);
             }}

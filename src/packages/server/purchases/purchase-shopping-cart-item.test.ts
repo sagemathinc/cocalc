@@ -16,6 +16,8 @@ import { getClosingDay, setClosingDay } from "./closing-date";
 import getSubscriptions from "./get-subscriptions";
 import getBalance from "./get-balance";
 import dayjs from "dayjs";
+import cancelSubscription from "./cancel-subscription";
+import resumeSubscription from "./resume-subscription";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -42,13 +44,13 @@ describe("create a subscription license and edit it and confirm the subscription
       member: true,
       period: "monthly",
       uptime: "short",
-      run_limit: 1,
+      run_limit: 3,
     },
     cost: {} as any,
   };
   item.cost = computeCost(item.description as any);
 
-  it("make a subscription for a monthly", async () => {
+  it("make a monthly subscription for a license", async () => {
     await createAccount({
       email: "",
       password: "xyz",
@@ -56,6 +58,13 @@ describe("create a subscription license and edit it and confirm the subscription
       lastName: "User",
       account_id: item.account_id,
     });
+
+    // set min balance so this all works below
+    const pool = getPool();
+    await pool.query("UPDATE accounts SET min_balance=$1 WHERE account_id=$2", [
+      -1000,
+      item.account_id,
+    ]);
     // make closing day near in the future for worse case scenario
     // and to trigger prorated cost.
     let day = new Date().getDate() + 2;
@@ -81,7 +90,102 @@ describe("create a subscription license and edit it and confirm the subscription
     // The cost of the license should be far less than the monthly subscription,
     // because of proration and setting the close day above.
     expect(Math.abs(await getBalance(item.account_id))).toBeLessThan(
-      subs[0].cost * 0.25
+      subs[0].cost * 0.25,
     );
+  });
+
+  it("cancels subscription and verifies that balance is small", async () => {
+    const subs = await getSubscriptions({ account_id: item.account_id });
+    const { id: subscription_id } = subs[0];
+    await cancelSubscription({
+      account_id: item.account_id,
+      subscription_id,
+      cancelImmediately: true,
+    });
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+  });
+
+  it("resumes subscription, then cancels it again, and verifies again that the balance is small", async () => {
+    const subs = await getSubscriptions({ account_id: item.account_id });
+    const { id: subscription_id } = subs[0];
+    await resumeSubscription({
+      account_id: item.account_id,
+      subscription_id,
+    });
+    await cancelSubscription({
+      account_id: item.account_id,
+      subscription_id,
+      cancelImmediately: true,
+    });
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+  });
+
+  it("same test but with different parameters for the subscription, e.g., business and yearly", async () => {
+    const item = {
+      account_id: uuid(),
+      id: 389,
+      added: new Date(),
+      product: "site-license",
+      description: {
+        cpu: 2,
+        ram: 3,
+        disk: 5,
+        type: "quota",
+        user: "business",
+        boost: false,
+        member: true,
+        period: "yearly",
+        uptime: "short",
+        run_limit: 500,
+      },
+      cost: {} as any,
+    };
+    item.cost = computeCost(item.description as any);
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id: item.account_id,
+    });
+
+    // set min balance so this all works below
+    const pool = getPool();
+    await pool.query("UPDATE accounts SET min_balance=$1 WHERE account_id=$2", [
+      -100000,
+      item.account_id,
+    ]);
+    // make closing day near in the future
+    let day = new Date().getDate() + 6;
+    if (day > 28) {
+      day = 1;
+    }
+    await setClosingDay(item.account_id, day);
+
+    // balance starts at 0
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+
+    const client = await getPoolClient();
+    await purchaseShoppingCartItem(item as any, client);
+    client.release();
+
+    const subs = await getSubscriptions({ account_id: item.account_id });
+    const { id: subscription_id } = subs[0];
+    await cancelSubscription({
+      account_id: item.account_id,
+      subscription_id,
+      cancelImmediately: true,
+    });
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+    await resumeSubscription({
+      account_id: item.account_id,
+      subscription_id,
+    });
+    await cancelSubscription({
+      account_id: item.account_id,
+      subscription_id,
+      cancelImmediately: true,
+    });
+    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
   });
 });

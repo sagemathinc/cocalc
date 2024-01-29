@@ -5,6 +5,7 @@ import renewSubscription from "@cocalc/server/purchases/renew-subscription";
 import cancelSubscription from "./cancel-subscription";
 import sendSubscriptionRenewalEmails from "./subscription-renewal-emails";
 import { isEmailConfigured } from "@cocalc/server/email/send-email";
+import { getPendingBalance } from "./get-balance";
 
 const logger = getLogger("purchases:maintain-subscriptions");
 
@@ -147,9 +148,10 @@ async function cancelAllPendingSubscriptions() {
   const grace = await getGracePeriodDays();
 
   const pool = getPool();
-  const { rows } = await pool.query(`
-SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time <= NOW() - interval '${grace} days' AND service = 'edit-license';
-`);
+  const { rows } = await pool.query(
+    `
+SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time <= NOW() - interval '${grace} days' AND service = 'edit-license'`,
+  );
   logger.debug(
     "cancelPendingSubscriptions -- pending subscription purchases = ",
     rows,
@@ -173,6 +175,15 @@ SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time 
 // [ ] TODO: send email when canceling a subscription/license this way
 // with instructions to restart it?
 async function cancelOnePendingSubscription({ account_id, purchase_id }) {
+  // Do NOT both canceling any user subscription if their pending payments
+  // total up to less than the pay as you go minimum (with a little slack).
+  // This is because we don't automatically collect payments in such cases.
+  // They might manually pay anyways, but we don't want to count on that.
+  const pendingBalance = await getPendingBalance(account_id);
+  const { pay_as_you_go_min_payment } = await getServerSettings();
+  if (Math.abs(pendingBalance) <= pay_as_you_go_min_payment + 1) {  // pandingBalance is actually <=0.
+    return;
+  }
   const client = await getTransactionClient();
   try {
     const x = await client.query(
@@ -188,7 +199,7 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
     await cancelSubscription({
       account_id,
       subscription_id,
-      now: true,
+      cancelImmediately: true,
       client,
     });
     await client.query("UPDATE purchases SET pending=false WHERE id=$1", [

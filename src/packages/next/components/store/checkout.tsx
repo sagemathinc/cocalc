@@ -6,9 +6,18 @@
 /*
 Checkout -- finalize purchase and pay.
 */
-import type { RadioChangeEvent } from "antd";
-import { Alert, Button, Card, Divider, Col, Row, Spin, Table, Radio } from "antd";
-import { useEffect, useState } from "react";
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  Divider,
+  Col,
+  Row,
+  Spin,
+  Table,
+} from "antd";
+import { useContext, useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
@@ -22,9 +31,11 @@ import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2up, round2down } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ProductColumn } from "./cart";
+import ShowError from "@cocalc/frontend/components/error";
+import { StoreBalanceContext } from "../../lib/balance";
 
 enum PaymentIntent {
   PAY_TOTAL,
@@ -35,12 +46,15 @@ export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
-  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(PaymentIntent.PAY_TOTAL);
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(
+    PaymentIntent.APPLY_BALANCE,
+  );
   const [totalCost, setTotalCost] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
+  const { refreshBalance } = useContext(StoreBalanceContext);
   const [session, setSession] = useState<{ id: string; url: string } | null>(
     null,
   );
@@ -50,20 +64,27 @@ export default function Checkout() {
     return session;
   };
 
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentAmount, setPaymentAmount0] = useState<number>(0);
+  const setPaymentAmount = (amount: number) => {
+    // no matter how this is set, always round it up to nearest penny.
+    setPaymentAmount0(round2up(amount));
+  };
   const [params, setParams] = useState<CheckoutParams | null>(null);
-  const updateParams = async () => {
+  const updateParams = async (intent?) => {
     try {
-      const params = await purchasesApi.getShoppingCartCheckoutParams();
-      const cost = discountedCost(params.cart);
-
+      const params = await purchasesApi.getShoppingCartCheckoutParams({
+        ignoreBalance: (intent ?? paymentIntent) == PaymentIntent.PAY_TOTAL,
+      });
+      const cost = params.total;
       setParams(params);
-      setTotalCost(cost);
+      setTotalCost(round2up(cost));
 
-      if (paymentIntent === PaymentIntent.APPLY_BALANCE) {
-        setPaymentAmount(params?.chargeAmount ?? 0);
+      if ((intent ?? paymentIntent) === PaymentIntent.APPLY_BALANCE) {
+        setPaymentAmount(params.chargeAmount ?? 0);
       } else {
-        setPaymentAmount(Math.max(cost, params?.chargeAmount ?? 0));
+        setPaymentAmount(
+          Math.max(Math.max(params.minPayment, cost), params.chargeAmount ?? 0),
+        );
       }
     } catch (err) {
       setError(`${err}`);
@@ -103,15 +124,7 @@ export default function Checkout() {
   }, []);
 
   if (error) {
-    return (
-      <Alert
-        type="error"
-        message="Error"
-        description={error}
-        closable
-        onClose={updateParams}
-      />
-    );
+    return <ShowError error={error} setError={setError} />;
   }
   async function completePurchase(ignoreBalance: boolean) {
     try {
@@ -150,6 +163,7 @@ export default function Checkout() {
       // The purchase failed.
       setError(err.message);
     } finally {
+      refreshBalance();
       if (!isMounted.current) return;
       setCompletingPurchase(false);
     }
@@ -174,16 +188,6 @@ export default function Checkout() {
   }
 
   const columns = getColumns();
-
-  const handlePaymentIntentChange = (e: RadioChangeEvent) => {
-    setPaymentIntent(e.target.value);
-
-    if (e.target.value === PaymentIntent.PAY_TOTAL) {
-      setPaymentAmount(totalCost);
-    } else if (e.target.value === PaymentIntent.APPLY_BALANCE) {
-      setPaymentAmount(params?.chargeAmount || 0);
-    }
-  };
 
   return (
     <>
@@ -240,7 +244,7 @@ export default function Checkout() {
         )}
         {params.cart.length > 0 && (
           <>
-            <ShowError error={error} />
+            <ShowError error={error} setError={setError} />
             <Card title={<>1. Review Items ({params.cart.length})</>}>
               <Table
                 showHeader={false}
@@ -255,20 +259,27 @@ export default function Checkout() {
             <div style={{ height: "30px" }} />
 
             <Card title={<>2. Place Your Order</>}>
-              <ExplainPaymentSituation
-                params={params}
-                style={{ margin: "15px 0" }}
-              />
               <Row>
                 <Col sm={12} style={{ textAlign: "center" }}>
-                  {(params.balance ?? 0) - (params.minBalance ?? 0) > 0 && (
-                    <Radio.Group
-                      value={paymentIntent}
-                      onChange={handlePaymentIntentChange}
-                      style={{ marginTop: 32 }}>
-                      <Radio.Button value={PaymentIntent.PAY_TOTAL}>Pay Total</Radio.Button>
-                      <Radio.Button value={PaymentIntent.APPLY_BALANCE}>Apply Account Balance</Radio.Button>
-                    </Radio.Group>
+                  {round2down(
+                    (params.balance ?? 0) - (params.minBalance ?? 0),
+                  ) > 0 && (
+                    <Checkbox
+                      style={{ marginTop: "38px" }}
+                      checked={paymentIntent == PaymentIntent.APPLY_BALANCE}
+                      onChange={async (e) => {
+                        let intent;
+                        if (e.target.checked) {
+                          intent = PaymentIntent.APPLY_BALANCE;
+                        } else {
+                          intent = PaymentIntent.PAY_TOTAL;
+                        }
+                        setPaymentIntent(intent);
+                        await updateParams(intent);
+                      }}
+                    >
+                      Apply Account Balance Toward Purchase
+                    </Checkbox>
                   )}
                 </Col>
                 <Col sm={12}>
@@ -279,6 +290,11 @@ export default function Checkout() {
                   </div>
                 </Col>
               </Row>
+
+              <ExplainPaymentSituation
+                params={params}
+                style={{ margin: "15px 0" }}
+              />
               <div style={{ textAlign: "center" }}>
                 <Divider />
                 <Button
@@ -291,27 +307,37 @@ export default function Checkout() {
                   style={{ marginTop: "7px", marginBottom: "15px" }}
                   size="large"
                   type="primary"
-                  onClick={() => completePurchase(paymentIntent === PaymentIntent.PAY_TOTAL)}
+                  onClick={() =>
+                    completePurchase(paymentIntent === PaymentIntent.PAY_TOTAL)
+                  }
                 >
                   <Icon name="credit-card" />{" "}
                   {completingPurchase ? (
                     <>
-                      Completing Purchase...
-                      <Spin />
+                      Completing Purchase
+                      <Spin style={{ marginLeft: "10px" }} />
                     </>
                   ) : params == null || paymentAmount == 0 ? (
                     `Complete Purchase${
                       session != null ? " (finish payment first)" : ""
                     }`
                   ) : (
-                    `Add ${currency(paymentAmount)} credit to your account...`
+                    `Add ${currency(paymentAmount)} credit to your account`
                   )}
                 </Button>
               </div>
+              {completingPurchase ||
+              params == null ||
+              paymentAmount != params.minPayment ? null : (
+                <div style={{ color: "#666", marginTop: "15px" }}>
+                  NOTE: There is a minimum transaction amount of{" "}
+                  {currency(params.minPayment)}.
+                </div>
+              )}
             </Card>
           </>
         )}
-        <ShowError error={error} />
+        <ShowError error={error} setError={setError} />
       </div>
     </>
   );
@@ -321,7 +347,7 @@ export function fullCost(items) {
   let full_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
-      full_cost += cost.cost;
+      full_cost += cost.cost_sub_first_period ?? cost.cost;
     }
   }
   return full_cost;
@@ -331,7 +357,7 @@ export function discountedCost(items) {
   let discounted_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
-      discounted_cost += cost.discounted_cost;
+      discounted_cost += cost.cost_sub_first_period ?? cost.discounted_cost;
     }
   }
   return discounted_cost;
@@ -424,8 +450,8 @@ function GetAQuote({ items }) {
   return (
     <Paragraph style={{ paddingTop: "15px" }}>
       <A onClick={() => setMore(!more)}>
-        Need to obtain a quote, invoice, modified terms, a purchase order, to
-        use PayPal or pay via wire transfer, etc.?
+        Need to obtain a quote, invoice, modified terms, a purchase order, or
+        pay via wire transfer, etc.?
       </A>
       {more && (
         <Paragraph>
@@ -557,18 +583,6 @@ export function RequireEmailAddress({ profile, reloadProfile }) {
   );
 }
 
-export function ShowError({ error }) {
-  if (!error) return null;
-  return (
-    <Alert
-      type="error"
-      message="Error"
-      description={<>{error}</>}
-      style={{ margin: "30px 0" }}
-    />
-  );
-}
-
 export function getColumns({
   noDiscount,
   voucherPeriod,
@@ -651,11 +665,10 @@ export function ExplainPaymentSituation({
   if (params == null) {
     return <Spin />;
   }
-  const { balance, minPayment, amountDue, chargeAmount, total, minBalance } =
-    params;
+  const { balance, chargeAmount, total, minBalance } = params;
   const curBalance = (
-    <div style={{ float: "right" }}>
-      Current balance: {currency(balance)}
+    <div style={{ float: "right", marginLeft: "30px", fontWeight: "bold" }}>
+      Account Balance: {currency(balance)}
       {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
     </div>
   );
@@ -666,49 +679,10 @@ export function ExplainPaymentSituation({
         showIcon
         type="info"
         style={style}
-        message={
+        description={
           <>
             {curBalance}
-            <b>No Payment Required</b>
-          </>
-        }
-        description={
-          <>
-            <i>
-              You can complete this purchase <b>without making a payment now</b>
-            </i>
-            , since your account balance is {currency(balance)}
-            {minBalance < 0 && (
-              <>
-                , and your balance is allowed to go as low as{" "}
-                {currency(minBalance)}
-              </>
-            )}
-            .
-          </>
-        }
-      />
-    );
-  }
-  if (chargeAmount == minPayment) {
-    return (
-      <Alert
-        type="info"
-        style={style}
-        message={<>{curBalance}Payment Required</>}
-        description={
-          <>
-            <i>
-              To complete this purchase,{" "}
-              <b>add at least {currency(chargeAmount)}</b> to your balance.
-            </i>{" "}
-            {chargeAmount > amountDue && (
-              <>
-                The minimum transaction amount is {currency(minPayment)}. The
-                difference will be credited to your account, and you can use it
-                toward future purchases.
-              </>
-            )}
+            Complete this purchase without adding credit to your account.
           </>
         }
       />
@@ -716,17 +690,15 @@ export function ExplainPaymentSituation({
   }
   return (
     <Alert
+      showIcon
       type="info"
       style={style}
-      message={<>{curBalance}Payment Required</>}
       description={
         <>
-          <i>
-            To complete this purchase,{" "}
-            <b>add at least {currency(chargeAmount)}</b> to your account
-            balance.
-          </i>{" "}
-          {chargeAmount > total && params.minBalance < 0 && (
+          {curBalance}
+          Complete this purchase by adding {currency(chargeAmount)} to your
+          account.{" "}
+          {chargeAmount > total && (
             <>
               Your account balance must always be at least{" "}
               {currency(params.minBalance)}.

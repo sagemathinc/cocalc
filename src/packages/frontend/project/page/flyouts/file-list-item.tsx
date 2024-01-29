@@ -150,6 +150,7 @@ interface FileListItemProps {
   showCheckbox?: boolean;
   style?: CSS;
   tooltip?: JSX.Element | string;
+  noPublish?: boolean; // for layout only – indicate that there is never a publish indicator button
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
@@ -178,6 +179,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     tooltip,
   } = props;
   const isActive = mode === "active";
+  // only in files mode, we show the publish icon
+  const showPublish = mode === "files";
   const { project_id } = useProjectContext();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
@@ -189,7 +192,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const bodyRef = useRef<HTMLDivElement>(null);
 
   function renderCloseItem(item: Item): JSX.Element | null {
-    if (!item.isopen) return null;
+    if (onClose == null || !item.isopen) return null;
+
     const { name } = item;
     return (
       <Icon
@@ -204,14 +208,14 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderPublishedIcon(): JSX.Element | undefined {
-    if (!item.is_public) return undefined;
+    if (!showPublish || !item.is_public) return undefined;
     return (
       <Tooltip title="File is published" placement="right">
         <Button
           size="small"
           type="text"
           style={BTN_STYLE}
-          icon={<Icon name="bullhorn" />}
+          icon={<Icon name="share-square" />}
           onClick={(e) => {
             e.stopPropagation();
             onPublic?.(e);
@@ -325,10 +329,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   function renderExtra(type: 1 | 2): JSX.Element | undefined {
     const currentExtra = type === 1 ? extra : extra2;
     if (currentExtra == null) return;
-    const marginRight =
-      type === 1
-        ? (item.is_public ? 0 : 20) + (item.isopen ? 0 : 18)
-        : undefined;
+    // calculate extra margin to align the columns. if there is no "onClose", no margin
+    const closeMargin = onClose != null ? (item.isopen ? 0 : 18) : 0;
+    const publishMargin = showPublish ? (item.is_public ? 0 : 20) : 0;
+    const marginRight = type === 1 ? publishMargin + closeMargin : undefined;
     const widthPx = FLYOUT_DEFAULT_WIDTH_PX * 0.33;
     // if the 2nd extra shows up, fix the width to align the columns
     const width = type === 1 && extra2 != null ? `${widthPx}px` : undefined;
@@ -482,7 +486,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       ctx.push({
         key: "public",
         label: "Item is published",
-        icon: <Icon name="bullhorn" />,
+        icon: <Icon name="share-square" />,
         onClick: () => onPublic?.(),
       });
     }

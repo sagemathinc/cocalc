@@ -20,6 +20,7 @@ import createCredit from "./create-credit";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { markTokenActionPaid } from "@cocalc/server/token-actions/make-payment";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:create-invoice");
 
@@ -41,7 +42,11 @@ export default async function createInvoice({
   logger.debug("createInvoice", { account_id, amount, description });
   const { pay_as_you_go_min_payment } = await getServerSettings();
   if (!amount || amount < pay_as_you_go_min_payment) {
-    throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
+    throw Error(
+      `Amount must be at least ${currency(
+        pay_as_you_go_min_payment,
+      )}, but it is ${currency(amount)}`,
+    );
   }
   if (!description?.trim()) {
     throw Error("description must be nontrivial");
@@ -83,14 +88,14 @@ export async function getStripeCustomerId({
   const db = getPool();
   const { rows } = await db.query(
     "SELECT stripe_customer_id FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   const stripe_customer_id = rows[0]?.stripe_customer_id;
   if (stripe_customer_id) {
     logger.debug(
       "getStripeCustomerId",
       "customer already exists",
-      stripe_customer_id
+      stripe_customer_id,
     );
     return stripe_customer_id;
   }
@@ -106,7 +111,7 @@ async function createStripeCustomer(account_id: string): Promise<string> {
   const db = getPool();
   const { rows } = await db.query(
     "SELECT email_address, first_name, last_name FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error(`no account ${account_id}`);
@@ -148,25 +153,25 @@ async function paymentAlreadyProcessed(id: string): Promise<boolean> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT COUNT(*) AS count FROM purchases WHERE invoice_id=$1",
-    [id]
+    [id],
   );
   return rows[0].count > 0;
 }
 
 export async function createCreditFromPaidStripeInvoice(
-  invoice
+  invoice,
 ): Promise<boolean> {
   if (await paymentAlreadyProcessed(invoice?.id)) {
     logger.debug(
       "createCreditFromPaidStripeInvoice -- skipping since invoice already processed.",
-      invoice?.id
+      invoice?.id,
     );
     return false;
   }
   if (!invoice?.paid) {
     logger.debug(
       "createCreditFromPaidStripeInvoice -- skipping since invoice not yet paid.",
-      invoice?.id
+      invoice?.id,
     );
     return false;
   }
@@ -184,7 +189,7 @@ export async function createCreditFromPaidStripeInvoice(
     ) {
       logger.debug(
         "createCreditFromPaidStripeInvoice -- skipping since not a service credit",
-        invoice.id
+        invoice.id,
       );
       // Some other sort of invoice, e.g, for a subscription or something else.
       // We don't handle them here.
@@ -196,7 +201,7 @@ export async function createCreditFromPaidStripeInvoice(
   if (!(await isValidAccount(account_id))) {
     logger.debug(
       "createCreditFromPaidStripeInvoice -- invalid account_id!",
-      account_id
+      account_id,
     );
     // definitely should never happen
     throw Error(`invalid account_id in metadata '${account_id}'`);
@@ -269,7 +274,7 @@ intent = {
   if (await paymentAlreadyProcessed(intent?.id)) {
     logger.debug(
       "createCreditFromPaidStripePaymentIntent -- skipping since intent already processed.",
-      intent?.id
+      intent?.id,
     );
     return;
   }
@@ -277,7 +282,7 @@ intent = {
   if (intent?.status != "succeeded") {
     logger.debug(
       "createCreditFromPaidStripePaymentIntent -- skipping since status not 'succeeded'",
-      intent?.id
+      intent?.id,
     );
     return;
   }
@@ -297,7 +302,7 @@ intent = {
   if (!(await isValidAccount(account_id))) {
     logger.debug(
       "createCreditFromPaidStripePaymentIntent -- invalid account_id!",
-      account_id
+      account_id,
     );
     // definitely should never happen
     throw Error(`invalid account_id in metadata '${account_id}'`);
@@ -307,7 +312,7 @@ intent = {
   const amount = intent.amount_received / 100;
   if (!amount) {
     logger.debug(
-      "createCreditFromPaidStripePaymentIntent -- 0 amount so skipping"
+      "createCreditFromPaidStripePaymentIntent -- 0 amount so skipping",
     );
     return;
   }

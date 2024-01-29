@@ -23,11 +23,8 @@ import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
-import Tags from "./tags";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
-
-const MIN_TAGS = 1;
 
 interface Props {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
@@ -67,8 +64,6 @@ function SignUp0({
     accountCreationInstructions,
     reCaptchaKey,
   } = useCustomize();
-  const [tags, setTags] = useState<Set<string>>(new Set());
-  const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -78,7 +73,6 @@ function SignUp0({
   const [issues, setIssues] = useState<{
     email?: string;
     password?: string;
-    terms?: string;
     error?: string;
     registrationToken?: string;
     reCaptcha?: string;
@@ -112,7 +106,6 @@ function SignUp0({
   }
 
   submittable.current = !!(
-    terms &&
     requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
     email &&
@@ -138,14 +131,13 @@ function SignUp0({
       }
 
       const result = await apiPost("/auth/sign-up", {
-        terms,
+        terms: true,
         email,
         password,
         firstName,
         lastName,
         registrationToken,
         reCaptchaToken,
-        tags: Array.from(tags),
         publicPathId,
       });
       if (result.issues && len(result.issues) > 0) {
@@ -189,8 +181,6 @@ function SignUp0({
     );
   }
 
-  const needsTags = !minimal && tags.size < MIN_TAGS;
-
   return (
     <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
@@ -211,26 +201,13 @@ function SignUp0({
       )}
 
       <div style={{ ...LOGIN_STYLE, maxWidth: "890px" }}>
-        {
-          <TermsCheckbox
-            onChange={setTerms}
-            checked={terms}
-            style={{
-              marginTop: "10px",
-              marginBottom: terms ? "10px" : undefined,
-              fontSize: "12pt",
-              color: "#666",
-            }}
-          />
-        }
-        {terms && !minimal && (
-          <Tags
-            setTags={setTags}
-            tags={tags}
-            minTags={MIN_TAGS}
-            style={{ width: "880px", maxWidth: "100%" }}
-          />
-        )}
+        <div>
+          By creating an account, you agree to the{" "}
+          <A external={true} href="/policies/terms">
+            Terms of Service
+          </A>
+          .
+        </div>
         <form>
           {issues.reCaptcha && (
             <Alert
@@ -256,7 +233,7 @@ function SignUp0({
               }
             />
           )}
-          {!needsTags && terms && requiresToken2 && (
+          {requiresToken2 && (
             <div style={LINE}>
               <p>Registration Token</p>
               <Input
@@ -267,15 +244,13 @@ function SignUp0({
               />
             </div>
           )}
-          {!needsTags && terms && (
-            <EmailOrSSO
-              email={email}
-              setEmail={setEmail}
-              signUp={signUp}
-              strategies={strategies}
-              hideSSO={requiredSSO != null}
-            />
-          )}
+          <EmailOrSSO
+            email={email}
+            setEmail={setEmail}
+            signUp={signUp}
+            strategies={strategies}
+            hideSSO={requiredSSO != null}
+          />
           <RequiredSSO strategy={requiredSSO} />
           {issues.email && (
             <Alert
@@ -292,7 +267,7 @@ function SignUp0({
               }
             />
           )}
-          {!needsTags && terms && email && requiredSSO == null && (
+          {requiredSSO == null && (
             <div style={LINE}>
               <p>Password</p>
               <Input.Password
@@ -308,39 +283,30 @@ function SignUp0({
           {issues.password && (
             <Alert style={LINE} type="error" showIcon message={issues.email} />
           )}
-          {!needsTags &&
-            terms &&
-            email &&
-            requiredSSO == null &&
-            password?.length >= 6 && (
-              <div style={LINE}>
-                <p>First name (Given name)</p>
-                <Input
-                  style={{ fontSize: "12pt" }}
-                  placeholder="First name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  onPressEnter={signUp}
-                />
-              </div>
-            )}
-          {!needsTags &&
-            terms &&
-            email &&
-            password &&
-            requiredSSO == null &&
-            firstName?.trim() && (
-              <div style={LINE}>
-                <p>Last name (Family name)</p>
-                <Input
-                  style={{ fontSize: "12pt" }}
-                  placeholder="Last name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  onPressEnter={signUp}
-                />
-              </div>
-            )}
+          {requiredSSO == null && (
+            <div style={LINE}>
+              <p>First name (Given name)</p>
+              <Input
+                style={{ fontSize: "12pt" }}
+                placeholder="First name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                onPressEnter={signUp}
+              />
+            </div>
+          )}
+          {requiredSSO == null && (
+            <div style={LINE}>
+              <p>Last name (Family name)</p>
+              <Input
+                style={{ fontSize: "12pt" }}
+                placeholder="Last name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                onPressEnter={signUp}
+              />
+            </div>
+          )}
         </form>
         <div style={LINE}>
           <Button
@@ -351,11 +317,7 @@ function SignUp0({
             style={{ width: "100%", marginTop: "15px" }}
             onClick={signUp}
           >
-            {needsTags && tags.size < 2
-              ? `Select at least ${MIN_TAGS}`
-              : !terms
-              ? "Agree to the terms"
-              : requiresToken2 && !registrationToken
+            {requiresToken2 && !registrationToken
               ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"
@@ -442,8 +404,8 @@ function EmailOrSSO(props: EmailOrSSOProps) {
 
   return (
     <div>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ color: "#444", marginTop: "20px" }}>
+      <div>
+        <p style={{ color: "#444", marginTop: "10px" }}>
           {hideSSO
             ? "Sign up using your single sign-on provider"
             : strategies.length > 0 && emailSignup

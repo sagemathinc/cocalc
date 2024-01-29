@@ -31,12 +31,13 @@ import costToEditLicense, {
 } from "@cocalc/util/purchases/cost-to-edit-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { getQuota } from "@cocalc/server/licenses/purchase/create-license";
-import { assertPurchaseAllowed } from "./is-purchase-allowed";
-import createPurchase from "./create-purchase";
 import getName from "@cocalc/server/accounts/get-name";
 import { query_projects_using_site_license } from "@cocalc/database/postgres/site-license/analytics";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import { currency } from "@cocalc/util/misc";
+import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
+import { assertPurchaseAllowed } from "./is-purchase-allowed";
+import createPurchase from "./create-purchase";
 
 const logger = getLogger("purchases:edit-license");
 
@@ -46,7 +47,8 @@ interface Options {
   changes: Changes;
   cost?: number;
   note?: string;
-  isSubscriptionRenewal?: boolean; // set to true if this is a subscription renewal.
+  // set to true if this is a subscription renewal.
+  isSubscriptionRenewal?: boolean;
   client?: PoolClient;
   // If force is true, we allow the purchase even if it exceeds any quotas.
   // Used for automatic subscription renewal. Such forced purchases are marked as
@@ -68,44 +70,25 @@ export default async function editLicense(
   } = opts;
   logger.debug("editLicense", opts);
 
-  // Get data about current license. See below.
-  const info = await getPurchaseInfo(license_id);
-  logger.debug("editLicense -- initial info = ", info);
-  if (info.type == "vouchers") {
+  const {
+    cost: changeCost,
+    info,
+    modifiedInfo,
+  } = await costToChangeLicense({
+    license_id,
+    isSubscriptionRenewal,
+    changes,
+  });
+  if (info.type == "vouchers" || modifiedInfo.type == "vouchers") {
     throw Error("editing voucher licenses is not supported");
   }
-  if (info.account_id != account_id) {
-    throw Error("only the user who the purchased a license can edit it");
-  }
-
-  if (
-    !isSubscriptionRenewal &&
-    info.subscription != null &&
-    info.subscription != "no"
-  ) {
-    if (changes.start != null || changes.end != null) {
-      throw Error(
-        "editing the start or end dates of a subscription license is not allowed",
-      );
-    }
-  }
-  if (
-    changes.start == null &&
-    changes.end != null &&
-    changes.end < info.start
-  ) {
-    // if changing end to be before start, just reset start to
-    // also equal end -- the result will of course cost 0.
-    changes = { ...changes, start: changes.end };
-  }
-
-  // account_id isn't defined in the schema for PurchaseInfo,
-  // but we do set it when making the license via a normal purchase.
-  // There are licenses without it set, e.g., manually test licenses
-  // made by admins, but those are exactly the sort of thing users
-  // should not be able to edit.
   const owner_id = (info as any).account_id;
   if (owner_id != account_id) {
+    // account_id isn't defined in the schema for PurchaseInfo,
+    // but we do set it when making the license via a normal purchase.
+    // There are licenses without it set, e.g., manually test licenses
+    // made by admins, but those are exactly the sort of thing users
+    // should not be able to edit.
     if (owner_id == null) {
       throw Error("this license does not support editing");
     } else {
@@ -115,11 +98,6 @@ export default async function editLicense(
         )}.`,
       );
     }
-  }
-
-  const { cost: changeCost, modifiedInfo } = costToEditLicense(info, changes);
-  if (modifiedInfo.type != info.type) {
-    throw Error("bug");
   }
 
   const service = "edit-license";
@@ -177,9 +155,15 @@ export default async function editLicense(
       // applies to is always >= now.  This period_start/period_end
       // is so far entirely for accounting (i.e., understanding *when*
       // a purchase is for to better compute accrued revenue).
+      if (modifiedInfo.start == null) {
+        throw Error("start of modifiedInfo must be set");
+      }
       const period_start = new Date(
         Math.max(modifiedInfo.start.valueOf(), Date.now()),
       );
+      if (modifiedInfo.end == null) {
+        throw Error("end of modifiedInfo must be set");
+      }
       const period_end = modifiedInfo.end;
 
       purchase_id = await createPurchase({
@@ -196,7 +180,8 @@ export default async function editLicense(
     }
 
     if (!isSubscriptionRenewal) {
-      // Update subscription cost, if necessary
+      // Update subscription cost, if necessary.  This is the case when the user edits the underlying license
+      // that the subscription is for. This is NOT a subscription renewal.
       await updateSubscriptionCost(
         license_id,
         info,
@@ -246,6 +231,58 @@ export default async function editLicense(
   return { cost, purchase_id };
 }
 
+export async function costToChangeLicense({
+  license_id,
+  isSubscriptionRenewal,
+  changes,
+}: {
+  license_id: string;
+  isSubscriptionRenewal?: boolean;
+  changes: Changes;
+}): Promise<{
+  info: PurchaseInfo;
+  cost: number;
+  modifiedInfo: PurchaseInfo;
+}> {
+  // Get data about current license. See below.
+  const info = await getPurchaseInfo(license_id);
+  logger.debug("costToChangeLicense", { info, isSubscriptionRenewal, changes });
+  if (info.type == "vouchers") {
+    throw Error("editing voucher licenses is not supported");
+  }
+  if (info.start == null || info.end == null) {
+    throw Error("start and end of license must be set");
+  }
+  if (
+    !isSubscriptionRenewal &&
+    info.subscription != null &&
+    info.subscription != "no"
+  ) {
+    if (changes.start != null || changes.end != null) {
+      throw Error(
+        "editing the start or end dates of a subscription license is not allowed",
+      );
+    }
+  }
+  if (
+    changes.start == null &&
+    changes.end != null &&
+    changes.end < info.start
+  ) {
+    // if changing end to be before start, just reset start to
+    // also equal end -- the result will of course cost 0.
+    changes = { ...changes, start: changes.end };
+  }
+
+  const { cost, modifiedInfo } = costToEditLicense(info, changes);
+  logger.debug("costToChangeLicense", { info, changes, cost, modifiedInfo });
+  if (modifiedInfo.type != info.type) {
+    throw Error("bug");
+  }
+
+  return { cost, info, modifiedInfo };
+}
+
 /*
 Restart except when changes *only* does the following:
 
@@ -270,7 +307,11 @@ function requiresRestart(info: PurchaseInfo, changes: Changes): boolean {
     // reducing quantity -- need to restart since license won't work for some projects
     return true;
   }
-  if (changes.start && !(info.start > now && changes.start > now)) {
+  if (
+    changes.start &&
+    info.start &&
+    !(info.start > now && changes.start > now)
+  ) {
     // changing start time in a way that isn't only in the future
     return true;
   }
@@ -354,10 +395,17 @@ async function updateSubscriptionCost(
     logger.debug("updateSubscriptionCost", license_id, "no subscription id");
     return;
   }
-  // current subscription cost for modified license.
-  // note that the start/end dates aren't used in compute_cost
-  // since subscription != 'no'.
-  const newCost = compute_cost(modifiedInfo).discounted_cost;
+  // Current subscription cost for modified license.
+  // Note that we MUST unset the start/end dates since otherwise they would
+  // be used in compute_cost!
+  if (modifiedInfo.type != "quota") {
+    throw Error("bug");
+  }
+  const newCost = compute_cost({
+    ...modifiedInfo,
+    start: null,
+    end: null,
+  }).discounted_cost;
   logger.debug(
     "updateSubscriptionCost",
     license_id,
@@ -410,27 +458,14 @@ async function getSubscriptionCostPerHour(
 ): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT current_period_start, current_period_end, cost FROM subscriptions WHERE id=$1",
+    "SELECT cost, interval FROM subscriptions WHERE id=$1",
     [subscription_id],
   );
   if (rows.length == 0) {
     // should never happen: returns 0 if no such subscription, instead of an error.
     return 0;
   }
-  const { current_period_start, current_period_end, cost } = rows[0];
-  if (
-    current_period_start == null ||
-    current_period_end == null ||
-    cost == null
-  ) {
-    return 0;
-  }
-  // How many hours in the current period
-  const hoursInPeriod =
-    (current_period_end.valueOf() - current_period_start.valueOf()) /
-    (1000 * 60 * 60);
-  // Divide cost of current period by hours in the period to get the cost per hour.
-  return cost / hoursInPeriod;
+  return rows[0].cost / hoursInInterval(rows[0].interval);
 }
 
 async function restartProjectsUsingLicense(license_id: string) {

@@ -36,7 +36,7 @@ exports.validate_client_query = function validate_client_query(
   let v = misc.keys(query);
   if (v.length !== 1) {
     return warn(
-      `must specify exactly one key in the query, but the query is empty ${JSON.stringify(
+      `must specify exactly one key in the query (the table name), but ${v.length} keys ${JSON.stringify(v)} were specified -- query=${JSON.stringify(
         query
       )}`
     );

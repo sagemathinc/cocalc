@@ -3673,7 +3673,7 @@ def input(*args, **kwds):
 
     """
     kwds['type'] = 'sage'
-    return input(*args, **kwds)
+    return salvus.raw_input(*args, **kwds)
 
 
 #####

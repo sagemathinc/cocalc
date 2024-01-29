@@ -243,7 +243,7 @@ export function PurchasesTable({
   const refreshRecords = async () => {
     await getPurchaseRecords();
     await getBalance();
-  }
+  };
 
   useEffect(() => {
     getBalance();
@@ -850,12 +850,9 @@ function Amount({ record }) {
         />
       );
     } else if (record.period_start && record.cost_so_far != null) {
+      const amount = -record.cost_so_far;
       // it's a metered pay as you go purchase
-      return (
-        <span style={getAmountStyle(record.cost_so_far)}>
-          {currency(record.cost_so_far, 2)}
-        </span>
-      );
+      return <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>;
     }
   }
   if (cost != null) {
