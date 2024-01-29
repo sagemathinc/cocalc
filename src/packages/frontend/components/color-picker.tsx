@@ -2,7 +2,7 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { Button, Modal, Select } from "antd";
+import { Button, Modal, Radio, Select } from "antd";
 import { CSSProperties, ReactNode, useState } from "react";
 import {
   BlockPicker,
@@ -59,17 +59,17 @@ interface Props {
   defaultPicker?: keyof typeof Pickers;
   toggle?: ReactNode;
   justifyContent?: "flex-start" | "flex-end" | "center";
+  radio?: boolean;
 }
-export default function ColorPicker(props: Props) {
-  const {
-    color,
-    onChange,
-    style,
-    defaultPicker,
-    toggle,
-    justifyContent = "center",
-  } = props;
-
+export default function ColorPicker({
+  color,
+  onChange,
+  style,
+  defaultPicker,
+  toggle,
+  justifyContent = "center",
+  radio,
+}: Props) {
   const [visible, setVisible] = useState<boolean>(!toggle);
   const [picker, setPicker] = useState<TPickers>(
     defaultPicker ?? getLocalStoragePicker() ?? "circle",
@@ -119,41 +119,73 @@ export default function ColorPicker(props: Props) {
         />
       </div>
       <div>
-        <div
-          style={{
-            float: "right",
-            fontSize: "12px",
-            marginTop: "20px",
-            color: COLORS.GRAY_M,
-          }}
-        >
-          Color Picker
-        </div>
-        <Select
-          value={picker}
-          style={{ width: "120px", marginTop: "10px" }}
-          onChange={(picker) => {
-            setPicker(picker);
-            set_local_storage(LS_PICKER_KEY, picker);
-          }}
-        >
-          {v}
-        </Select>
+        {radio ? (
+          <div style={{ textAlign: "center", marginTop:'15px' }}>
+            <Radio.Group
+              size="small"
+              optionType="button"
+              value={picker}
+              buttonStyle="solid"
+              options={Object.keys(Pickers).slice(0, 5)}
+              onChange={(e) => {
+                setPicker(e.target.value);
+                set_local_storage(LS_PICKER_KEY, e.target.value);
+              }}
+            />
+            <br />
+            <Radio.Group
+              size="small"
+              optionType="button"
+              value={picker}
+              buttonStyle="solid"
+              options={Object.keys(Pickers).slice(5)}
+              onChange={(e) => {
+                setPicker(e.target.value);
+                set_local_storage(LS_PICKER_KEY, e.target.value);
+              }}
+            />
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                float: "right",
+                fontSize: "12px",
+                marginTop: "20px",
+                color: COLORS.GRAY_M,
+              }}
+            >
+              Color Picker
+            </div>
+            <Select
+              value={picker}
+              style={{ width: "120px", marginTop: "10px" }}
+              onChange={(picker) => {
+                setPicker(picker);
+                set_local_storage(LS_PICKER_KEY, picker);
+              }}
+            >
+              {v}
+            </Select>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function ColorModal({
+function ColorModal({
   show,
   setShow,
   onChange,
   title,
+  radio,
 }: {
   show?;
   setShow;
   onChange?;
   title?;
+  radio?;
 }) {
   return (
     <Modal
@@ -165,6 +197,7 @@ export function ColorModal({
       onCancel={() => setShow(false)}
     >
       <ColorPicker
+        radio={radio}
         onChange={(color) => {
           onChange(color);
           setShow(false);
@@ -180,10 +213,17 @@ interface ButtonProps {
   style?: CSSProperties;
   type?: "default" | "link" | "text" | "primary" | "dashed";
   onClick?: () => boolean | undefined;
+  radio?: boolean;
 }
 
-export function ColorButton(props: ButtonProps) {
-  const { onChange, title, style, type, onClick } = props;
+export function ColorButton({
+  onChange,
+  title,
+  style,
+  type,
+  onClick,
+  radio,
+}: ButtonProps) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <>
@@ -192,6 +232,7 @@ export function ColorButton(props: ButtonProps) {
         setShow={setShow}
         title={title}
         onChange={onChange}
+        radio={radio}
       />
       <Button
         onClick={() => {

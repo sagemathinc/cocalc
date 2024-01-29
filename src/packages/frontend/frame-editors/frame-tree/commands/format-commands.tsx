@@ -178,16 +178,15 @@ const FORMAT_MENUS = {
         children: [
           {
             stayOpenOnClick: true,
-            icon: "colors",
-            // this is just a dumb hack and we'll use a proper modal later.
             label: ({ props }) => (
               <div
                 onClick={(e) => {
-                  e.preventDefault();
+                  // hack so can select a color without picker closing.
                   e.stopPropagation();
                 }}
               >
                 <ColorPicker
+                  radio
                   onChange={(code) => {
                     props.actions.format_action("color", code);
                   }}
