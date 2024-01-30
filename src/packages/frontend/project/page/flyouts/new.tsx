@@ -4,7 +4,6 @@
  */
 
 import { Button, Input, Space, Tag } from "antd";
-
 import { default_filename } from "@cocalc/frontend/account";
 import {
   React,
@@ -19,7 +18,6 @@ import {
   Icon,
   IconName,
   SelectorInput,
-  Text,
   Tip,
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
@@ -91,12 +89,6 @@ export function NewFlyout({
     }
   }, []);
 
-  useEffect(() => {
-    if (!manual) {
-      makeNewFilename();
-    }
-  }, [ext, manual, selected]);
-
   const isFile = useMemo(
     () => !(filename && filename.endsWith("/")),
     [filename],
@@ -104,14 +96,14 @@ export function NewFlyout({
 
   // if name is entered manual and contains an extension, set the ext to it
   useEffect(() => {
-    if (manual) {
+    if (manual && filename.includes(".")) {
       if (isFile) {
         const newExt = getFileExtension(filename);
-        if (newExt) {
-          setExt(newExt);
-          setManualExt(true);
-        } else if (newExt === null) {
+        if (newExt == null) {
           setExt("");
+          setManualExt(true);
+        } else {
+          setExt(newExt);
           setManualExt(true);
         }
       } else {
@@ -161,13 +153,13 @@ export function NewFlyout({
       setCreating(true);
       if (isFile) {
         await actions?.create_file({
-          name: newFilename,
-          ext,
+          name: newFilename.trim(),
+          ext: ext.trim(),
           current_path,
         });
       } else {
         await actions?.create_folder({
-          name: newFilename,
+          name: newFilename.trim(),
           current_path,
         });
       }
@@ -267,9 +259,15 @@ export function NewFlyout({
     return (
       <NewFileDropdown
         mode="flyout"
-        create_file={(ext) => ext && setExt(ext)}
+        create_file={(ext) => {
+          if (filename.includes(".")) {
+            // have explicit extension in name, but just changed it
+            // via dropdown, so better remove it from the name.
+            setFilename(separate_file_extension(filename).name);
+          }
+          setExt(ext ?? "");
+        }}
         title={title}
-        hide_down={true}
         button={false}
       />
     );
@@ -308,6 +306,7 @@ export function NewFlyout({
           />
         </Space>
         <Input
+          allowClear
           placeholder="Basename..."
           value={filename}
           onChange={onChangeHandler}
@@ -326,17 +325,7 @@ export function NewFlyout({
           }}
         >
           {renderCreateFileButton()}
-          {creating ? (
-            <ProgressEstimate seconds={5} />
-          ) : (
-            <Text type="secondary" style={{ textAlign: "center" }}>
-              {manualExt ? (
-                <>&nbsp;</>
-              ) : (
-                "(or click the file-type button twice)"
-              )}
-            </Text>
-          )}
+          {creating && <ProgressEstimate seconds={5} />}
         </div>
         {file_creation_error && renderError()}
       </Space>
@@ -363,7 +352,7 @@ export function NewFlyout({
           delayShow={DELAY_SHOW_MS}
           title="Directory"
           icon={"folder"}
-          tip="Create a subdirectory in the current directory. You can also type in a '/' character at the end of the filename to create a directory."
+          tip="Create a subdirectory in the current directory. You can also click the file type dropdown after the filename."
         >
           <NewFileButton
             name="Directory"
@@ -377,10 +366,14 @@ export function NewFlyout({
           delayShow={DELAY_SHOW_MS}
           title="No file extension"
           icon={"file"}
-          tip="Create the file without a file extension, for example a 'Makefile'. You can also type in a space character at the end of the filename to create a file without an extension."
+          tip=<>
+            Create a file without a file extension, for example a{" "}
+            <code>Makefile</code>. You can also type{" "}
+            <code>filename.[space]</code>, then backspace twice.
+          </>
         >
           <NewFileButton
-            name="No file extension"
+            name="Create file - no extension"
             on_click={selectType}
             ext=""
             size="small"
