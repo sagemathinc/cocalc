@@ -15,8 +15,7 @@ import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-//const PROJECT_COLOR = "#f6ffed";
-const PROJECT_COLOR = "#fff";
+const PROJECT_COLOR = "#feff9e";
 
 interface Option {
   position?: number;
@@ -276,44 +275,50 @@ export default function SelectComputeServer({
         options: other,
       });
     }
-    if (v.length == 1) {
-      // only option is the project
-      v.push({
-        label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
-        options: [
-          {
-            value: "create",
-            sort: "create",
-            state: "",
-            label: (
-              <div
-                onClick={() => {
-                  redux
-                    .getProjectActions(project_id)
-                    ?.set_active_tab("servers");
-                }}
-              >
-                <Icon name="plus-circle" /> New Compute Server...
-              </div>
-            ),
-          },
-        ],
-      });
-    }
+    // always have an option to create a new compute server!
+    v.push({
+      label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
+      options: [
+        {
+          value: "create",
+          sort: "create",
+          state: "",
+          label: (
+            <div
+              onClick={() => {
+                redux.getProjectActions(project_id)?.set_active_tab("servers");
+              }}
+            >
+              <Icon name="plus-circle" /> New Compute Server...
+            </div>
+          ),
+        },
+      ],
+    });
 
     return v;
   }, [computeServers]);
+  let width;
+  if (open) {
+    width = "300px";
+  } else {
+    if (value == "0" || !value) {
+      width = undefined;
+    } else {
+      width = "120px";
+    }
+  }
 
   return (
-    <>
+    <Tooltip title="Compute server where this runs">
       <Select
         allowClear
         bordered={false}
         disabled={loading}
         placeholder={
-          <span style={{ color: "#000" }}>
+          <>
             <Icon name="servers" /> {open ? "Compute Servers..." : undefined}
-          </span>
+          </>
         }
         open={open}
         onSelect={(id) => {
@@ -325,20 +330,14 @@ export default function SelectComputeServer({
           setIdNum(0);
           setConfirmSwitch(true);
         }}
-        value={value == "0" ? undefined : value}
+        suffixIcon={null}
+        value={value == "0" || value == null ? null : value}
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
           borderRight: "1px solid #ccc",
-          width:
-            !open && value == "0"
-              ? undefined
-              : open
-              ? "300px"
-              : value && value != "0"
-              ? "175px"
-              : "120px",
-          //background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
+          width,
+          background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
       />
@@ -397,6 +396,6 @@ export default function SelectComputeServer({
           </div>
         )}
       </Modal>
-    </>
+    </Tooltip>
   );
 }

@@ -818,7 +818,7 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <Tooltip key="time-travel-button" title="Show TimeTravel edit history">
+      <Tooltip key="time-travel-button" title="TimeTravel edit history">
         <AntdButton
           key={"time-travel-button"}
           style={{
@@ -859,29 +859,24 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <Tooltip
+      <LanguageModelTitleBarButton
+        showDialog={showAI}
+        setShowDialog={setShowAI}
+        project_id={props.project_id}
+        buttonRef={getTourRef("chatgpt")}
         key={"ai-button"}
-        title="Get help using an Artificial Intelligence Large Language model (e.g., ChatGPT)"
-      >
-        <LanguageModelTitleBarButton
-          showDialog={showAI}
-          setShowDialog={setShowAI}
-          project_id={props.project_id}
-          buttonRef={getTourRef("chatgpt")}
-          key={"ai-button"}
-          id={props.id}
-          actions={props.actions}
-          path={props.path}
-          buttonSize={button_size()}
-          buttonStyle={{
-            ...button_style(),
-            ...(!darkMode
-              ? { backgroundColor: "rgb(16, 163, 127)", color: "white" }
-              : undefined),
-          }}
-          visible={props.tab_is_visible && props.is_visible}
-        />
-      </Tooltip>
+        id={props.id}
+        actions={props.actions}
+        path={props.path}
+        buttonSize={button_size()}
+        buttonStyle={{
+          ...button_style(),
+          ...(!darkMode
+            ? { backgroundColor: "#e4ac00", color: "white" }
+            : undefined),
+        }}
+        visible={props.tab_is_visible && props.is_visible}
+      />
     );
   }
 
@@ -914,11 +909,12 @@ export function FrameTitleBar(props: Props) {
   }
 
   function renderSaveTimetravelGroup(): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
+    const v: JSX.Element[] = [];
+    let x;
     if ((x = render_save())) v.push(x);
     if ((x = render_timetravel())) v.push(x);
     if ((x = render_artificial_intelligence())) v.push(x);
+    if ((x = renderComputeServer())) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
       return (
@@ -1052,14 +1048,13 @@ export function FrameTitleBar(props: Props) {
       }
 
       const v: (JSX.Element | undefined | null)[] = [];
-      v.push(renderComputeServer());
+      v.push(renderSaveTimetravelGroup());
       if (props.title != null) {
         v.push(renderTitle());
       }
       v.push(renderPage());
       v.push(renderMenus());
       v.push(renderSwitchToFile());
-      v.push(renderSaveTimetravelGroup());
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -1203,6 +1198,7 @@ export function FrameTitleBar(props: Props) {
         type={type}
         project_id={props.project_id}
         path={props.path}
+        style={{ height: button_height() }}
       />
     );
   }
