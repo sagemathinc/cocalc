@@ -5,12 +5,14 @@
 
 import { Tag } from "antd";
 import { Set } from "immutable";
+
+import { React } from "@cocalc/frontend/app-framework";
 import { trunc } from "@cocalc/util/misc";
 
-import { React } from "../app-framework";
 const { CheckableTag } = Tag;
 
-export const STYLE: React.CSSProperties = {  // this is used externally for a consistent hashtag look; change carefully!
+export const STYLE: React.CSSProperties = {
+  // this is used externally for a consistent hashtag look; change carefully!
   maxHeight: "18ex",
   overflowY: "auto",
   overflowX: "hidden",
@@ -19,7 +21,7 @@ export const STYLE: React.CSSProperties = {  // this is used externally for a co
   background: "#fafafa",
   borderRadius: "5px",
   marginBottom: "15px",
-};
+} as const;
 
 interface Props {
   hashtags: string[];
@@ -27,34 +29,46 @@ interface Props {
   selected_hashtags?: Set<string>;
 }
 
-export const Hashtags: React.FC<Props> = ({
+export function Hashtags({
   hashtags,
   toggle_hashtag,
   selected_hashtags,
-}) => {
-  const HashTag: React.FC<{ tag: string }> = ({ tag }) => {
-    let checked: boolean = !!selected_hashtags?.has(tag);
-    return (
-      <CheckableTag
-        checked={checked}
-        onChange={() => {
-          toggle_hashtag(tag);
-        }}
-      >
-        {trunc(tag, 40)}
-      </CheckableTag>
-    );
-  };
-
+}: Props) {
   if (hashtags.length == 0) {
     return <></>;
   }
 
   return (
     <div style={STYLE}>
-      {hashtags.map((tag) => (
-        <HashTag tag={tag} key={tag} />
-      ))}
+      {hashtags.map((tag) => {
+        const checked: boolean = !!selected_hashtags?.has(tag);
+        return (
+          <HashTag
+            tag={tag}
+            key={tag}
+            checked={checked}
+            toggle_hashtag={toggle_hashtag}
+          />
+        );
+      })}
     </div>
+  );
+}
+
+interface HashTagProps {
+  tag: string;
+  checked: boolean;
+  toggle_hashtag: (tag: string) => void;
+}
+
+const HashTag: React.FC<HashTagProps> = ({
+  tag,
+  toggle_hashtag,
+  checked,
+}: HashTagProps) => {
+  return (
+    <CheckableTag checked={checked} onChange={() => toggle_hashtag(tag)}>
+      {trunc(tag, 40)}
+    </CheckableTag>
   );
 };

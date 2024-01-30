@@ -3,20 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon, Gap } from "../components";
-import { plural } from "@cocalc/util/misc";
 import { Button } from "antd";
-import { Alert, ButtonGroup, ButtonToolbar } from "../antd-bootstrap";
-import { webapp_client } from "../webapp-client";
-import { alert_message } from "../alerts";
+
+import { ResetProjectsConfirmation } from "@cocalc/frontend/account/upgrades/reset-projects";
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  Alert,
+  ButtonGroup,
+  ButtonToolbar,
+} from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useActions,
   useMemo,
-  useTypedRedux,
   useState,
-} from "../app-framework";
-import { ResetProjectsConfirmation } from "../account/upgrades/reset-projects";
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Gap, Icon } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { plural } from "@cocalc/util/misc";
 
 interface Props {
   visible_projects: string[];
@@ -261,7 +266,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     return visible_projects.filter(
       (project_id) =>
         project_map?.getIn([project_id, "users", account_id, "group"]) !==
-        "owner"
+        "owner",
     );
   }
 
@@ -316,7 +321,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
           visible_projects.length
         } ${plural(
           visible_projects.length,
-          "project"
+          "project",
         )} listed here (you own the other ${plural(other, "one")}).`;
       } else {
         if (v.length === 1) {
@@ -324,7 +329,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
         } else {
           desc = `You are a collaborator on ALL of the ${v.length} ${plural(
             v.length,
-            "project"
+            "project",
           )} listed here.`;
         }
       }
