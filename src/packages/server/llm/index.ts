@@ -10,6 +10,8 @@ High level summary:
 * The ChatOutput interface is what they return in any case.
 */
 
+const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
+
 import { delay } from "awaiting";
 
 import getLogger from "@cocalc/backend/logger";
@@ -207,6 +209,7 @@ async function evaluateVertexAI({
       });
     } catch (err) {
       const retry = i < maxAttempts - 1;
+      if (DEBUG_THROW_LLM_ERROR) throw err;
       log.debug(
         "Google Vertex AI API call failed",
         err,
