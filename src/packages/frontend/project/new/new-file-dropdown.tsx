@@ -38,7 +38,6 @@ export function NewFileDropdown({
     const extensions: string[] = [];
     const file_types_so_far = {};
     for (const ext of list) {
-      if (!ext) continue;
       const data = file_associations[ext];
       if (data.exclude_from_menu) continue;
       if (data.name != undefined && !file_types_so_far[data.name]) {
@@ -53,8 +52,13 @@ export function NewFileDropdown({
     const data = file_options("x." + ext);
     const text = (
       <>
-        <span style={{ textTransform: "capitalize" }}>{data.name}</span>{" "}
-        <span style={{ color: COLORS.GRAY }}>(.{ext})</span>
+        <span style={{ width: "25px", display: "inline-block" }}>
+          {data.icon && <Icon name={data.icon} />}
+        </span>
+        <span style={{ textTransform: "capitalize" }}>
+          {data.name ? data.name : "No Extension"}
+        </span>{" "}
+        {ext && <span style={{ color: COLORS.GRAY }}>(.{ext})</span>}
       </>
     );
 
@@ -90,7 +94,7 @@ export function NewFileDropdown({
     case "flyout":
       return (
         <DropdownMenu
-          title={title}
+          title={title ? title : "No Extension"}
           size="medium"
           button={button}
           items={items}

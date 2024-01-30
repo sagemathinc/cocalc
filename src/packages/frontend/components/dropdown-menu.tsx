@@ -91,7 +91,9 @@ export function DropdownMenu({
             ...STYLE,
           }}
         >
-          <span style={style}>{title}</span>
+          <span style={style}>
+            {title} {showDown && <DownOutlined />}
+          </span>
         </span>
       );
     } else {
@@ -100,7 +102,7 @@ export function DropdownMenu({
           style={{ background: open ? "#eee" : undefined, ...STYLE, ...style }}
           id={id}
         >
-          {title}
+          {title} {showDown && <DownOutlined />}
         </span>
       );
     }
