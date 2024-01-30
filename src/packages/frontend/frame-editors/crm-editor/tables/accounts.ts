@@ -26,6 +26,7 @@ register({
         purchase_closing_day: null,
         stripe_usage_subscription: null,
         email_daily_statements: null,
+        sign_up_usage_intent: null,
       },
     ],
   },

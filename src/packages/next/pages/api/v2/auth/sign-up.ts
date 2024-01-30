@@ -15,11 +15,13 @@ Sign up for a new account:
 5. Sign user in
 */
 
+import { v4 } from "uuid";
+import { Request, Response } from "express";
+
 import {
   len,
   is_valid_email_address as isValidEmailAddress,
 } from "@cocalc/util/misc";
-import { v4 } from "uuid";
 import isAccountAvailable from "@cocalc/server/auth/is-account-available";
 import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
 import createAccount from "@cocalc/server/accounts/create-account";
@@ -37,7 +39,7 @@ interface Issues {
   password?: string;
 }
 
-export default async function signUp(req, res) {
+export default async function signUp(req: Request, res: Response) {
   let {
     terms,
     email,
@@ -47,6 +49,7 @@ export default async function signUp(req, res) {
     registrationToken,
     tags,
     publicPathId,
+    signupReason,
   } = getParams(req);
 
   password = (password ?? "").trim();
@@ -163,6 +166,7 @@ export default async function signUp(req, res) {
       lastName,
       account_id,
       tags,
+      signupReason,
     });
 
     if (email) {

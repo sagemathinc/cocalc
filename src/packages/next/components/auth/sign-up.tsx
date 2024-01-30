@@ -14,6 +14,8 @@ import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   is_valid_email_address as isValidEmailAddress,
   len,
+  plural,
+  smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
 import { Strategy } from "@cocalc/util/types/sso";
 import Logo from "components/logo";
@@ -23,8 +25,13 @@ import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
+import Tags from "./tags";
+import { COLORS } from "@cocalc/util/theme";
+import { CONTACT_TAG } from "@cocalc/util/db-schema/accounts";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
+
+const MIN_TAGS = 1;
 
 interface Props {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
@@ -63,7 +70,10 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
+    onCoCalcCom,
   } = useCustomize();
+  const [tags, setTags] = useState<Set<string>>(new Set());
+  const [signupReason, setSingupReason] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -105,6 +115,8 @@ function SignUp0({
     return <Loading />;
   }
 
+  const requestContact = tags.has(CONTACT_TAG);
+
   submittable.current = !!(
     requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
@@ -112,7 +124,8 @@ function SignUp0({
     isValidEmailAddress(email) &&
     password &&
     firstName?.trim() &&
-    lastName?.trim()
+    lastName?.trim() &&
+    (!requestContact || signupReason.trim())
   );
 
   async function signUp() {
@@ -139,6 +152,8 @@ function SignUp0({
         registrationToken,
         reCaptchaToken,
         publicPathId,
+        tags: Array.from(tags),
+        signupReason,
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
@@ -181,6 +196,11 @@ function SignUp0({
     );
   }
 
+  // number of tags except for the one name "CONTACT_TAG"
+  const tagsSize = tags.size - (requestContact ? 1 : 0);
+  const needsTags = !minimal && onCoCalcCom && tagsSize < MIN_TAGS;
+  const what = "role";
+
   return (
     <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
@@ -191,7 +211,7 @@ function SignUp0({
             priority={true}
           />
           <h1>Create a {siteName} Account</h1>
-          <h2 style={{ color: "#666", marginBottom: "35px" }}>
+          <h2 style={{ color: COLORS.GRAY_M, marginBottom: "35px" }}>
             Sign up for free and get started with {siteName} today!
           </h2>
           {accountCreationInstructions && (
@@ -208,6 +228,18 @@ function SignUp0({
           </A>
           .
         </div>
+        {!minimal && onCoCalcCom && (
+          <Tags
+            setTags={setTags}
+            signupReason={signupReason}
+            setSingupReason={setSingupReason}
+            tags={tags}
+            minTags={MIN_TAGS}
+            what={what}
+            style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
+            contact={true}
+          />
+        )}
         <form>
           {issues.reCaptcha && (
             <Alert
@@ -314,13 +346,28 @@ function SignUp0({
             size="large"
             disabled={!submittable.current || signingUp}
             type="primary"
-            style={{ width: "100%", marginTop: "15px" }}
+            style={{
+              width: "100%",
+              marginTop: "15px",
+              color:
+                !submittable.current || signingUp
+                  ? COLORS.ANTD_RED_WARN
+                  : undefined,
+            }}
             onClick={signUp}
           >
-            {requiresToken2 && !registrationToken
+            {needsTags && tagsSize < MIN_TAGS
+              ? `Select at least ${smallIntegerToEnglishWord(
+                  MIN_TAGS,
+                )} ${plural(MIN_TAGS, what)}`
+              : requestContact && !signupReason.trim()
+              ? "Tell us how you intend to use CoCalc."
+              : requiresToken2 && !registrationToken
               ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"
+              : !isValidEmailAddress(email)
+              ? "Enter a valid email address above"
               : requiredSSO != null
               ? "You must sign up via SSO"
               : !password || password.length < 6
@@ -329,8 +376,6 @@ function SignUp0({
               ? "Enter your first name above"
               : !lastName?.trim()
               ? "Enter your last name above"
-              : !isValidEmailAddress(email)
-              ? "Enter a valid email address above"
               : signingUp
               ? ""
               : "Sign Up!"}
@@ -418,6 +463,7 @@ function EmailOrSSO(props: EmailOrSSOProps) {
       {renderSSO()}
       {emailSignup && (
         <p>
+          <p>Email address</p>
           <Input
             style={{ fontSize: "12pt" }}
             placeholder="Email address"
