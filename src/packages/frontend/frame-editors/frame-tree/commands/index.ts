@@ -7,3 +7,4 @@ import "./generic-menus";
 import "./generic-commands";
 export { addEditorMenus } from "./editor-menus";
 import "./format-commands";
+export { ManageCommands } from "./manage";

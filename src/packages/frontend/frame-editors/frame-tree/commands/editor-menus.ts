@@ -101,7 +101,6 @@ export function addEditorMenus({
       );
     }
     if (!c.label) {
-      console.log("sub in ", name, c);
       c = { ...c, label: capitalize(name) };
     }
     const { children } = c;

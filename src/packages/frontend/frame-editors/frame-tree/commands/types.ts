@@ -49,7 +49,7 @@ export interface Command {
   children?:
     | Partial<Command>[]
     | ((opts: { props?; frameTypeCommands? }) => Partial<Command>[]);
-  disabled?: ({ props, read_only }) => boolean;
+  disabled?: ({ props, readOnly }) => boolean;
   // not used yet
   tour?: string;
   confirm?: {

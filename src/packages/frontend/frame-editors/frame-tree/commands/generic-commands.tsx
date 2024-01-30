@@ -235,7 +235,7 @@ addCommands({
     title: "Cut selection",
     icon: "scissors",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + X`,
-    disabled: ({ read_only }) => read_only,
+    disabled: ({ readOnly }) => readOnly,
   },
   copy: {
     group: "copy",
@@ -252,7 +252,7 @@ addCommands({
     title: "Paste buffer",
     icon: "paste",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + V`,
-    disabled: ({ read_only }) => read_only,
+    disabled: ({ readOnly }) => readOnly,
     onClick: debounce(
       ({ props }) => props.editor_actions.paste(props.id, true),
       200,
@@ -389,7 +389,7 @@ addCommands({
     pos: 0,
     label: "Replace",
     icon: "replace",
-    disabled: ({ read_only }) => read_only,
+    disabled: ({ readOnly }) => readOnly,
   },
   goto_line: {
     group: "find",
@@ -402,7 +402,7 @@ addCommands({
     group: "code-format",
     label: "Auto Indent",
     title: "Automatically indent selected code",
-    disabled: ({ read_only }) => read_only,
+    disabled: ({ readOnly }) => readOnly,
     icon: "indent",
   },
   format: {
