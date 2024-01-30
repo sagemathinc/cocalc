@@ -15,7 +15,7 @@ import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-const PROJECT_COLOR = "#feff9e";
+const PROJECT_COLOR = "#f4f5c4";
 
 interface Option {
   position?: number;

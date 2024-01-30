@@ -872,7 +872,7 @@ export function FrameTitleBar(props: Props) {
         buttonStyle={{
           ...button_style(),
           ...(!darkMode
-            ? { backgroundColor: "#e4ac00", color: "white" }
+            ? { backgroundColor: "#f6bf61", color: "white" }
             : undefined),
         }}
         visible={props.tab_is_visible && props.is_visible}
