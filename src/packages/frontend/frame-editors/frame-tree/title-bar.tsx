@@ -1198,7 +1198,14 @@ export function FrameTitleBar(props: Props) {
         type={type}
         project_id={props.project_id}
         path={props.path}
-        style={{ height: button_height() }}
+        style={{
+          height: button_height(),
+          borderRight: "1px solid #d9d9d9",
+          borderTop: "1px solid #d9d9d9",
+          borderBottom: "1px solid #d9d9d9",
+          borderTopRightRadius: "5px",
+          borderBottomRightRadius: "5px",
+        }}
       />
     );
   }

@@ -210,7 +210,7 @@ export default function SelectComputeServer({
       {
         label: (
           <div style={{ fontSize: "12pt" }}>
-            <Icon name="servers" /> Where to run this{" "}
+            <Icon name="server" /> Where to run this{" "}
             {type == "terminal" ? "Terminal" : "Notebook"}
           </div>
         ),
@@ -316,9 +316,9 @@ export default function SelectComputeServer({
         bordered={false}
         disabled={loading}
         placeholder={
-          <>
-            <Icon name="servers" /> {open ? "Compute Servers..." : undefined}
-          </>
+          <span style={{ color: "#666", fontSize:'16pt' }}>
+            <Icon name="server" /> {open ? "Compute Servers..." : undefined}
+          </span>
         }
         open={open}
         onSelect={(id) => {
@@ -335,7 +335,6 @@ export default function SelectComputeServer({
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          borderRight: "1px solid #ccc",
           width,
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
