@@ -3,12 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useTypedRedux } from "../app-framework";
-import { Icon } from "../components";
 import { Modal } from "antd";
-import { Button, Row, Col } from "../antd-bootstrap";
-import { webapp_client } from "../webapp-client";
+
+import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 export const ConnectionInfo: React.FC = React.memo(() => {
   const ping = useTypedRedux("page", "ping");
@@ -108,7 +114,7 @@ const MessageInfo: React.FC = React.memo(() => {
         {info.get("enqueued")} {plural(info.get("enqueued"), "message")} queued
         to send
       </pre>
-      <div style={{ color: "#666" }}>
+      <div style={{ color: COLORS.GRAY_M }}>
         Connection icon color changes as the number of messages in flight to a
         hub increases. Usually, no action is needed, but the counts are helpful
         for diagnostic purposes. The maximum number of messages that can be sent
