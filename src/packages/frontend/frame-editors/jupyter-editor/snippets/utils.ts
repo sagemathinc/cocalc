@@ -6,7 +6,7 @@
 import { pick, merge } from "lodash";
 import { basename } from "path";
 import { unreachable, separate_file_extension } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { canonical_language } from "@cocalc/jupyter/redux/store";
 import {

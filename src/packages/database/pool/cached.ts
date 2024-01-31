@@ -22,7 +22,7 @@ fine, since this would only be a problem when they change the name
 of multiple projects.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
 import { Pool } from "pg";
 

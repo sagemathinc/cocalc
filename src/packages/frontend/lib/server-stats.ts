@@ -5,7 +5,7 @@
 
 import { join } from "path";
 import LRU from "lru-cache";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 type Stats = {

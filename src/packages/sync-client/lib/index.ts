@@ -27,7 +27,7 @@ import ProjectClient from "./project-client";
 import debug from "debug";
 import { bind_methods, isValidUUID, uuid } from "@cocalc/util/misc";
 import { project } from "@cocalc/api-client";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 interface Options {
   project_id: string;

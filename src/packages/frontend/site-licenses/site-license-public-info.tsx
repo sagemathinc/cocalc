@@ -5,7 +5,7 @@
 
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { isEqual } from "lodash";
 
 import Export from "@cocalc/frontend/purchases/export";

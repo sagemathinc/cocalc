@@ -7,7 +7,6 @@
 LaTeX Editor Actions.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { List, Map, fromJS } from "immutable";
@@ -35,6 +34,7 @@ import {
   splitlines,
   startswith,
 } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Actions as BaseActions,
   CodeEditorState,

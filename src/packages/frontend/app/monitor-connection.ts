@@ -7,14 +7,14 @@
 // state in the page store.
 
 import { delay } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
 
-import { redux } from "@cocalc/frontend/app-framework";
-import { SITE_NAME } from "@cocalc/util/theme";
-import { minutes_ago } from "@cocalc/util/misc";
-import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { alert_message } from "@cocalc/frontend/alerts";
+import { redux } from "@cocalc/frontend/app-framework";
+import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { minutes_ago } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { SITE_NAME } from "@cocalc/util/theme";
 
 const DISCONNECTED_STATE_DELAY_MS = 5000;
 const CONNECTING_STATE_DELAY_MS = 3000;
@@ -111,7 +111,7 @@ export function init_connection(): void {
       recent_disconnects.length = 0; // see https://stackoverflow.com/questions/1232040/how-do-i-empty-an-array-in-javascript
       reconnection_warning = +new Date();
       console.log(
-        `ALERT: connection unstable, notification + attempting to fix it -- ${attempt} attempts and ${num_recent_disconnects()} disconnects`
+        `ALERT: connection unstable, notification + attempting to fix it -- ${attempt} attempts and ${num_recent_disconnects()} disconnects`,
       );
       if (!recent_wakeup_from_standby()) {
         alert_message(msg);
@@ -123,7 +123,7 @@ export function init_connection(): void {
     }
 
     console.log(
-      `attempt: ${attempt} and num_recent_disconnects: ${num_recent_disconnects()}`
+      `attempt: ${attempt} and num_recent_disconnects: ${num_recent_disconnects()}`,
     );
     // NOTE: On mobile devices the websocket is disconnected every time one backgrounds
     // the application.  This normal and expected behavior, which does not indicate anything

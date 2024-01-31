@@ -7,7 +7,7 @@
 Media wiki Editor Actions
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./wiki2html";
 import { FrameTree } from "../frame-tree/types";
