@@ -12,7 +12,7 @@ import debug from "debug";
 import { once } from "@cocalc/util/async-utils";
 import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
 import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const log = debug("cocalc:compute:jupyter");
 

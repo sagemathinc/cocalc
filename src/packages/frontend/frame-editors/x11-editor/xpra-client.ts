@@ -7,7 +7,7 @@
 
 import { join } from "path";
 import { retry_until_success } from "@cocalc/util/async-utils";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConnectionStatus } from "../frame-tree/types";
 import { Client } from "./xpra/client";
 import { Surface } from "./xpra/surface";

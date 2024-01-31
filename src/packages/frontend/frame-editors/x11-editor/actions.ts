@@ -18,7 +18,7 @@ import type { Channel } from "@cocalc/comm/websocket/types";
 import { Map, Set as immutableSet, fromJS } from "immutable";
 import { project_api } from "../generic/client";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
 import { assertDefined } from "@cocalc/util/misc";
 import {

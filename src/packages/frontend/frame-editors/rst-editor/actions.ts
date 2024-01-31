@@ -7,7 +7,7 @@
 Rst Editor Actions
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { convert } from "./rst2html";

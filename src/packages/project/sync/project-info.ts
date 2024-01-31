@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { close } from "@cocalc/util/misc";
 import { SyncTable } from "@cocalc/sync/table";
 import { get_ProjectInfoServer } from "../project-info";

@@ -3,7 +3,7 @@ import type { ProjectActions } from "@cocalc/frontend/project_actions";
 import { trunc_middle, uuid } from "@cocalc/util/misc";
 import { get_directory_listing2 as get_directory_listing } from "./directory-listing";
 import { fromJS } from "immutable";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 //const log = (...args) => console.log("fetchDirectoryListing", ...args);
 const log = (..._args) => {};
