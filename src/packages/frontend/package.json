@@ -66,7 +66,6 @@
     "antd": "^5.11.3",
     "antd-img-crop": "^4.12.2",
     "async": "^2.6.3",
-    "async-await-utils": "^3.0.1",
     "audio-extensions": "^0.0.0",
     "awaiting": "^3.0.0",
     "bootbox": "^4.4.0",

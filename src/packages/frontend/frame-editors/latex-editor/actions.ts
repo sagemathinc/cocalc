@@ -22,7 +22,7 @@ import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
 import { debounce, union } from "lodash";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { fromJS, List, Map } from "immutable";
 import { once } from "@cocalc/util/async-utils";
 import { project_api } from "../generic/client";

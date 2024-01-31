@@ -7,8 +7,7 @@
 Start the Sage server and also get a new socket connection to it.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
-
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getLogger } from "@cocalc/backend/logger";
 import processKill from "@cocalc/backend/misc/process-kill";
 import { abspath } from "@cocalc/backend/misc_node";
