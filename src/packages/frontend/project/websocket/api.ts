@@ -22,7 +22,7 @@ import type {
 } from "@cocalc/util/code-formatter";
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Channel, Mesg, NbconvertParams } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 

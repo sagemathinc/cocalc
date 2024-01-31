@@ -17,7 +17,7 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { Dirent, Stats } from "node:fs";
 import { lstat, readdir, readlink, stat } from "node:fs/promises";
 import { getLogger } from "./logger";
@@ -29,7 +29,7 @@ const logger = getLogger("directory-listing");
 const HOME = process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME ?? "";
 
 const getListing = reuseInFlight(
-  async (
+  async(
     path: string, // assumed in home directory!
     hidden: boolean = false,
   ): Promise<DirectoryListingEntry[]> => {

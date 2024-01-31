@@ -15,7 +15,7 @@ import { map } from "awaiting";
 import { redux } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import { defaults, required, uuid } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export class StudentsActions {
   private course_actions: CourseActions;

@@ -6,7 +6,7 @@
 import { getLogger } from "@cocalc/project/logger";
 import * as message from "@cocalc/util/message";
 import { NamedServerName } from "@cocalc/util/types/servers";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { start } from "./control";
 
 const winston = getLogger("named-servers");
