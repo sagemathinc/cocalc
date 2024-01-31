@@ -124,7 +124,9 @@ export const COLORS = {
     OFFLINE: "rgb(255, 165, 0)",
     ONLINE: MAIN_COLORS.GRAY_M,
     DISCONNECTED: "rgb(255, 0, 0)",
-    CONNECTING: "rgb(255, 165, 0)"
+    CONNECTING: "rgb(255, 165, 0)",
+    WARNING: "#08e",
+    RECONNECTING: "#00c",
   },
 
   // The definitions below add semantic meaning by using the colors
