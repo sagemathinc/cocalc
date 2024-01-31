@@ -7,7 +7,6 @@ import { trunc_middle } from "@cocalc/util/misc";
 import { Button, Tooltip } from "antd";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
-import { DropdownMenu } from "@cocalc/frontend/components/dropdown-menu";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
@@ -283,39 +282,18 @@ export class ManageCommands {
     );
   };
 
-  button = (name: string, { style }: { style? } = {}) => {
+  button = (name: string) => {
     const cmd = this.getCommandInfo(name);
     if (cmd == null) {
       return null;
     }
-    const item = this.commandToMenuItem({
+    return this.commandToMenuItem({
       name,
       cmd,
       key: name,
       noChildren: false,
       iconOnly: true,
     });
-    if (item == null) {
-      return null;
-    }
-    const { disabled, label, key, children, onClick } = item;
-    if (children != null) {
-      return (
-        <DropdownMenu
-          showDown
-          style={style}
-          key={`button-${name}`}
-          title={label}
-          items={children}
-          button={true}
-        />
-      );
-    }
-    return (
-      <Button key={key} disabled={disabled} onClick={onClick} style={style}>
-        {label}
-      </Button>
-    );
   };
 
   menuItem = (name: string) => {

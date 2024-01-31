@@ -17,10 +17,7 @@ import {
 } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
-import {
-  Button as AntdBootstrapButton,
-  ButtonGroup,
-} from "@cocalc/frontend/antd-bootstrap";
+import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   redux,
@@ -85,7 +82,8 @@ interface EditorActions extends Actions {
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
-const COL_BAR_BACKGROUND_DARK = "#ddd";
+const COL_BAR_BACKGROUND_DARK = COL_BAR_BACKGROUND;
+//const COL_BAR_BACKGROUND_DARK = "#ddd";
 const COL_BAR_BORDER = "rgb(204,204,204)";
 
 const title_bar_style: CSS = {
@@ -103,12 +101,12 @@ const MAX_TITLE_WIDTH_INACTIVE = 40;
 
 const TITLE_STYLE: CSS = {
   margin: "7.5px 5px",
-  fontSize: "10pt",
+  fontSize: "11pt",
   whiteSpace: "nowrap",
   display: "inline-block",
   maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
   overflow: "hidden",
-  fontWeight: 550,
+  fontWeight: 500,
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -245,7 +243,8 @@ export function FrameTitleBar(props: Props) {
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const otherSettings = useRedux(["account", "other_settings"]);
-  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
+  const editorSettings = useRedux(["account", "editor_settings"]);
+  //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
@@ -278,7 +277,7 @@ export function FrameTitleBar(props: Props) {
   }
 
   const MENU_STYLE = {
-    padding: `${props.is_only || props.is_full ? "7px" : "5px"} 10px`,
+    padding: "0 10px",
   };
 
   function button_style(style?: CSS): CSS {
@@ -301,26 +300,6 @@ export function FrameTitleBar(props: Props) {
         }
       };
     }
-  }
-
-  function StyledButton(props0) {
-    let props1;
-    if (hideButtonTooltips) {
-      props1 = { ...props0 };
-      delete props1.title;
-    } else {
-      props1 = { ...props0 };
-    }
-    wrapOnClick(props1, props0);
-    return (
-      <AntdBootstrapButton {...props1} style={button_style(props1.style)}>
-        {props1.children}
-      </AntdBootstrapButton>
-    );
-  }
-
-  function Button(props) {
-    return <StyledButton {...props}>{props.children}</StyledButton>;
   }
 
   function AntdButton(props0) {
@@ -702,7 +681,7 @@ export function FrameTitleBar(props: Props) {
         key="dropdown-menus"
         style={{
           display: "inline-block",
-          paddingTop: props.is_only || props.is_full ? "7px" : "5px",
+          marginTop: props.is_only || props.is_full ? "1px" : undefined,
         }}
       >
         {v.slice(0, -1).map((x) => x.menu)}
@@ -716,15 +695,9 @@ export function FrameTitleBar(props: Props) {
   function renderButtons(style?: CSS, noRefs?): Rendered {
     if (!is_active) {
       return (
-        <div
-          key="title"
-          style={{
-            textAlign: "center",
-            width: "100%",
-            background: COL_BAR_BACKGROUND_DARK,
-          }}
-        >
-          {renderTitle()}
+        <div style={{ display: "flex", width: "100%" }}>
+          {renderSaveTimetravelGroup()}
+          <div style={{ flex: 1, textAlign: "center" }}>{renderTitle()}</div>
         </div>
       );
     }
@@ -830,14 +803,14 @@ export function FrameTitleBar(props: Props) {
               </div>
               <div>
                 {renderFrameControls()}
-
-                <Button
+                <AntdButton0
                   style={{ float: "right" }}
                   onClick={() => setShowMainButtonsPopover(false)}
                 >
                   Close
-                </Button>
+                </AntdButton0>
               </div>
+              {renderButtonBar()}
             </div>
           );
         }}
@@ -847,9 +820,10 @@ export function FrameTitleBar(props: Props) {
           ref={getTourRef("all-buttons")}
           style={{ display: "inline-block" }}
         >
-          <AntdButton
+          <AntdButton0
             type="text"
             style={{
+              fontSize: "14pt",
               padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
               background: showMainButtonsPopover ? "#eee" : undefined,
@@ -857,7 +831,7 @@ export function FrameTitleBar(props: Props) {
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
             <Icon name="ellipsis" rotate="90" />
-          </AntdButton>
+          </AntdButton0>
         </div>
       </Popover>
     );
@@ -959,7 +933,6 @@ export function FrameTitleBar(props: Props) {
         style={{
           ...TITLE_STYLE,
           margin: `${props.is_only || props.is_full ? "7px" : "5px"} 5px`,
-          color: is_active ? undefined : "#777",
         }}
       >
         {label}
@@ -990,7 +963,11 @@ export function FrameTitleBar(props: Props) {
         }}
       >
         Halt the server and close this?
-        <Button
+        <AntdButton0 onClick={() => set_close_and_halt_confirm(false)}>
+          Cancel
+        </AntdButton0>
+        <AntdButton0
+          danger
           onClick={() => {
             set_close_and_halt_confirm(false);
             props.actions.close_and_halt?.(props.id);
@@ -999,13 +976,9 @@ export function FrameTitleBar(props: Props) {
             marginLeft: "20px",
             marginRight: "5px",
           }}
-          bsStyle="danger"
         >
           <Icon name={"PoweroffOutlined"} /> Close and Halt
-        </Button>
-        <Button onClick={() => set_close_and_halt_confirm(false)}>
-          Cancel
-        </Button>
+        </AntdButton0>
       </div>
     );
   }
@@ -1019,10 +992,17 @@ export function FrameTitleBar(props: Props) {
   // TODO: this is a quick proof of concept to see
   // how it feels.
   function renderButtonBar() {
-    if (!is_active) {
+    if (!editorSettings?.get("extra_button_bar")) {
       return null;
     }
     const w = [
+      "undo",
+      "redo",
+      "build",
+      "decrease_font_size",
+      "increase_font_size",
+      "format-font",
+      "format-color",
       "jupyter-insert-cell",
       "jupyter-move-cell",
       "jupyter-run cell and select next",
@@ -1034,15 +1014,59 @@ export function FrameTitleBar(props: Props) {
       "jupyter-cell-format",
       "jupyter-nbgrader validate",
     ];
-    if (props.path.endsWith(".ipynb")) {
-      const v = w.map((name) => manageCommands.button(name));
-      return (
-        <div style={{ padding: "2px", border: "1px solid #ccc" }}>
-          <ButtonGroup>{v}</ButtonGroup>
-        </div>
-      );
+    const v: JSX.Element[] = [];
+    for (const name of w) {
+      let item;
+      try {
+        item = manageCommands.button(name);
+      } catch (err) {
+        console.warn(`no command ${name} -- ${err}`);
+        continue;
+      }
+      if (item == null) {
+        continue;
+      }
+      const { disabled, label, key, children, onClick } = item;
+      if (children != null) {
+        v.push(
+          <DropdownMenu
+            size="small"
+            key={`button-${name}`}
+            title={label}
+            items={children}
+            button={false}
+            style={{ color: "#333" }}
+          />,
+        );
+      } else {
+        v.push(
+          <AntdButton0
+            size="small"
+            type="text"
+            key={key}
+            disabled={disabled}
+            onClick={onClick}
+            style={{ color: "#333" }}
+          >
+            {label}
+          </AntdButton0>,
+        );
+      }
     }
-    return null;
+    if (v.length == 0) {
+      return null;
+    }
+    return (
+      <div
+        style={{
+          height: "29px",
+          padding: "2px",
+          borderBottom: "1px solid #ccc",
+        }}
+      >
+        <ButtonGroup>{v}</ButtonGroup>
+      </div>
+    );
   }
 
   function renderPage() {
@@ -1140,7 +1164,7 @@ export function FrameTitleBar(props: Props) {
 
   let style;
   style = copy(title_bar_style);
-  style.background = COL_BAR_BACKGROUND;
+  style.background = is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK;
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";
   } else {
@@ -1162,7 +1186,7 @@ export function FrameTitleBar(props: Props) {
   }
 
   return (
-    <>
+    <div style={{ opacity: !is_active ? 0.6 : undefined }}>
       <div
         style={style}
         id={`titlebar-${props.id}`}
@@ -1170,7 +1194,7 @@ export function FrameTitleBar(props: Props) {
       >
         {renderMainMenusAndButtons()}
         {renderConnectionStatus()}
-        {is_active && allButtonsPopover()}
+        {allButtonsPopover()}
         {renderFrameControls()}
       </div>
       {renderButtonBar()}
@@ -1178,6 +1202,6 @@ export function FrameTitleBar(props: Props) {
       {hasTour && props.is_visible && props.tab_is_visible && (
         <TitleBarTour refs={tourRefs} />
       )}
-    </>
+    </div>
   );
 }

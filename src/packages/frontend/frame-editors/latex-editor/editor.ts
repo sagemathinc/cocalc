@@ -84,7 +84,6 @@ const EDITOR_SPEC = {
     buttons: pdfjs_buttons,
     customize_buttons: { download: { label: "Download PDF" } },
     path: pdf_path,
-    style: { background: "#525659" },
     renderer: "canvas",
   } as EditorDescription,
 

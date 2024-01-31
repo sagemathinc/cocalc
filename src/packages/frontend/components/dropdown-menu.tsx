@@ -6,7 +6,6 @@
 import { DownOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu } from "antd";
 import type { DropdownProps, MenuProps } from "antd";
-import { IS_TOUCH } from "../feature";
 import { useState } from "react";
 
 export const STAY_OPEN_ON_CLICK = "stay-open-on-click";
@@ -41,13 +40,6 @@ interface Props {
   defaultOpen?: boolean;
 }
 
-const STYLE = {
-  padding: "7px 10px",
-  margin: 0,
-  cursor: "pointer",
-  borderRadius: "3px",
-} as const;
-
 export function DropdownMenu({
   button,
   disabled,
@@ -63,50 +55,24 @@ export function DropdownMenu({
 }: Props) {
   const [open, setOpen] = useState<boolean>(!!defaultOpen);
 
-  let body;
-
-  if (button && !IS_TOUCH) {
-    body = (
-      <Button style={style} disabled={disabled} id={id} size={size}>
-        {title ? (
-          <>
-            {title} {showDown && <DownOutlined />}
-          </>
-        ) : (
-          // empty title implies to only show the downward caret sign
-          <DownOutlined />
-        )}
-      </Button>
-    );
-  } else {
-    if (disabled) {
-      body = (
-        <span
-          id={id}
-          style={{
-            ...{
-              color: "#777",
-              cursor: "not-allowed",
-            },
-            ...STYLE,
-          }}
-        >
-          <span style={style}>
-            {title} {showDown && <DownOutlined />}
-          </span>
-        </span>
-      );
-    } else {
-      body = (
-        <span
-          style={{ background: open ? "#eee" : undefined, ...STYLE, ...style }}
-          id={id}
-        >
+  let body = (
+    <Button
+      style={style}
+      disabled={disabled}
+      id={id}
+      size={size}
+      type={button ? undefined : "text"}
+    >
+      {title ? (
+        <>
           {title} {showDown && <DownOutlined />}
-        </span>
-      );
-    }
-  }
+        </>
+      ) : (
+        // empty title implies to only show the downward caret sign
+        <DownOutlined />
+      )}
+    </Button>
+  );
 
   if (disabled) {
     return body;

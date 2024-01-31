@@ -200,6 +200,7 @@ const JUPYTER_MENUS = {
       },
       {
         label: "Delete Cells",
+        icon: "trash",
         name: "delete-cell",
         children: ["delete cell", "delete all blank code cells"],
       },

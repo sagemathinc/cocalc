@@ -28,11 +28,10 @@ const pdfjs_buttons = set([
 export const EDITOR_SPEC = {
   pdfjs_canvas: {
     short: "PDF.js",
-    name: "PDF.js",
+    name: "PDF Viewer",
     icon: "file-pdf",
     component: PDFJS,
     buttons: pdfjs_buttons,
-    style: { background: "#525659" },
     renderer: "canvas",
   } as EditorDescription,
 };
@@ -42,7 +41,7 @@ export const EDITOR_SPEC = {
 if (!IS_IPAD && !IS_IOS) {
   (EDITOR_SPEC as any).pdf_embed = {
     short: "PDF (native)",
-    name: "PDF - Native",
+    name: "PDF Viewer - Native",
     icon: "file-pdf",
     buttons: set(["reload", "print", "download"]),
     component: PDFEmbed,

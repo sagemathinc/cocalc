@@ -403,7 +403,7 @@ export function commands(actions: AllActions): {
 
     "insert cell above": {
       m: "Insert Cell Above",
-      i: "square",
+      i: "arrow-circle-up",
       k: [{ mode: "escape", which: 65 }],
       f: () => {
         actions.frame_actions?.insert_cell(-1);
@@ -411,7 +411,7 @@ export function commands(actions: AllActions): {
     },
 
     "insert cell below": {
-      i: "plus",
+      i: "arrow-circle-down",
       m: "Insert Cell Below",
       k: [{ mode: "escape", which: 66 }],
       f: () => {

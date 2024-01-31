@@ -77,7 +77,6 @@ const EDITOR_SPEC = {
     component: PDFJS,
     mode: "rmd",
     buttons: pdfjs_buttons,
-    style: { background: "#525659" },
     renderer: "canvas",
     path(path) {
       return derive_rmd_output_filename(path, "pdf");
@@ -105,7 +104,6 @@ const EDITOR_SPEC = {
     name: "Build Log",
     icon: "gears",
     component: BuildLog,
-    style: { background: "#525659" },
     buttons: set(["build", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
