@@ -8,12 +8,13 @@
 
 import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
-import { redux } from "../app-framework";
+
+import { redux } from "@cocalc/frontend/app-framework";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { minutes_ago } from "@cocalc/util/misc";
-import { ConnectionStatus } from "./store";
-import { alert_message } from "../alerts";
-import { webapp_client } from "../webapp-client";
+import { ConnectionStatus } from "@cocalc/frontend/app/store";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 const DISCONNECTED_STATE_DELAY_MS = 5000;
 const CONNECTING_STATE_DELAY_MS = 3000;

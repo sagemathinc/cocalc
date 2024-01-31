@@ -47,8 +47,10 @@ import SelectComputeServer from "@cocalc/frontend/compute/select-server";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS, IS_MOBILE } from "@cocalc/frontend/feature";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import userTracking from "@cocalc/frontend/user-tracking";
 import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import LanguageModel from "../chatgpt/title-bar-button";
 import { Actions } from "../code-editor/actions";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
@@ -81,9 +83,6 @@ interface EditorActions extends Actions {
   rescan_latex_directive?: () => void;
   halt_jupyter?: () => void;
 }
-
-import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { COLORS } from "@cocalc/util/theme";
 
 const { COL_BAR_BACKGROUND, COL_BAR_BACKGROUND_DARK, COL_BAR_BORDER } =
   COLORS.EDITOR;
@@ -118,13 +117,13 @@ const CONNECTION_STATUS_STYLE: CSS = {
 function connection_status_color(status: ConnectionStatus): string {
   switch (status) {
     case "disconnected":
-      return "rgb(255, 0, 0)";
+      return COLORS.CONN.DISCONNECTED;
     case "connecting":
-      return "rgb(255, 165, 0)";
+      return COLORS.CONN.CONNECTING;
     case "connected":
-      return "#666";
+      return COLORS.CONN.ONLINE;
     default:
-      return "rgb(255, 165, 0)";
+      return COLORS.CONN.CONNECTING;
   }
 }
 
