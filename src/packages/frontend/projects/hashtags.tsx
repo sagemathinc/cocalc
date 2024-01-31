@@ -61,14 +61,10 @@ interface HashTagProps {
   toggle_hashtag: (tag: string) => void;
 }
 
-const HashTag: React.FC<HashTagProps> = ({
-  tag,
-  toggle_hashtag,
-  checked,
-}: HashTagProps) => {
+function HashTag({ tag, toggle_hashtag, checked }: HashTagProps) {
   return (
     <CheckableTag checked={checked} onChange={() => toggle_hashtag(tag)}>
       {trunc(tag, 40)}
     </CheckableTag>
   );
-};
+}
