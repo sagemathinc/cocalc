@@ -33,7 +33,6 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.7",
-    "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "chokidar": "^3.5.3",
     "debug": "^4.3.2",

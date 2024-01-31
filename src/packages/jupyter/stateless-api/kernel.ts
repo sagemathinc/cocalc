@@ -5,7 +5,7 @@ import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const log = getLogger("jupyter:stateless-api:kernel");
 

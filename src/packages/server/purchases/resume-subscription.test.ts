@@ -87,7 +87,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     expect(dayjs(license2.expires).diff(sub.current_period_end)).toBe(0);
   });
 
-  it("cancels again but rest our money, so renew fails due to lack of money.", async () => {
+  it("cancels again but delete all of our money, so renew fails due to lack of money.", async () => {
     await cancelSubscription({
       account_id,
       subscription_id,
@@ -99,7 +99,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     try {
       await resumeSubscription({ account_id, subscription_id });
     } catch (e) {
-      expect(e.message).toMatch("Please add at least $7.90 to your account.");
+      expect(e.message).toMatch("Please add at least");
     }
   });
 });

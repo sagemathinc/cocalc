@@ -33,7 +33,7 @@ import type {
 import { getTargetState } from "@cocalc/util/db-schema/compute-servers";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
+
 import { callback, delay } from "awaiting";
 import * as lean_client from "lean-client-js-node";
 import { isEqual } from "lodash";
@@ -12,6 +12,7 @@ import { EventEmitter } from "node:events";
 import type { Client } from "@cocalc/project/client";
 import { once } from "@cocalc/util/async-utils";
 import { close } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 type SyncString = any;
 type LeanServer = any;

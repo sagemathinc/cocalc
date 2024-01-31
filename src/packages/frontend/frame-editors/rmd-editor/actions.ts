@@ -7,7 +7,7 @@
 R Markdown Editor Actions
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { Set } from "immutable";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";

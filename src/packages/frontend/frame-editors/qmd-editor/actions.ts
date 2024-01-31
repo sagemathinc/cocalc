@@ -8,7 +8,7 @@ Quarto Editor Actions
 */
 
 import { path_split } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Set } from "immutable";
 import { debounce } from "lodash";
 import { redux } from "../../app-framework";
