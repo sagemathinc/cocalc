@@ -76,7 +76,7 @@ export const SaveButton: FC<Props> = memo(
           style={{
             ...(type == "default"
               ? undefined
-              : { background: "#5cb85c", color: "white" }),
+              : { background: "#5cb85c", color: "#333" }),
             opacity: disabled ? 0.65 : undefined,
             whiteSpace: "nowrap",
             ...style,

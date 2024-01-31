@@ -316,7 +316,7 @@ export default function SelectComputeServer({
         bordered={false}
         disabled={loading}
         placeholder={
-          <span style={{ color: "#666", fontSize:'16pt' }}>
+          <span style={{ color: "#333", fontSize:'13pt' }}>
             <Icon name="server" /> {open ? "Compute Servers..." : undefined}
           </span>
         }

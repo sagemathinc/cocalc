@@ -523,7 +523,7 @@ export function FrameTitleBar(props: Props) {
           style={{
             ...button_style(),
             ...(!darkMode
-              ? { color: "white", background: "#5bc0de" }
+              ? { color: "#333", background: "#5bc0de" }
               : undefined),
           }}
           size={button_size()}
@@ -629,7 +629,7 @@ export function FrameTitleBar(props: Props) {
       let i = 0;
       const w: { pos?: number; item: MenuItem }[] = [];
       for (const commandName of GROUPS[group]) {
-        const item = manageCommands.command(commandName);
+        const item = manageCommands.menuItem(commandName);
         if (item != null) {
           w.push({ item, pos: COMMANDS[commandName].pos ?? 1e6 });
         }
@@ -1016,17 +1016,6 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function renderButtonToolbar() {
-    // JUST A DEMO FOR NOW -- disable this
-    return null;
-    if (!is_active) {
-      return null;
-    }
-    const body = renderSaveTimetravelGroup();
-    if (!body) return null;
-    return <div style={{ height: button_height() }}>{body}</div>;
-  }
-
   function renderPage() {
     if (
       props.page == null ||
@@ -1155,7 +1144,6 @@ export function FrameTitleBar(props: Props) {
         {is_active && allButtonsPopover()}
         {renderFrameControls()}
       </div>
-      {renderButtonToolbar()}
       {renderConfirmBar()}
       {hasTour && props.is_visible && props.tab_is_visible && (
         <TitleBarTour refs={tourRefs} />

@@ -412,7 +412,7 @@ export default function LanguageModelTitleBarButton({
           <span ref={buttonRef}>
             <AIAvatar
               size={20}
-              iconColor="white"
+              iconColor="#333"
               style={{ marginTop: "-5px" }}
               innerStyle={{}}
             />

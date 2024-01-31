@@ -1,3 +1,4 @@
-export default function ButtonBar({}) {
+export function ButtonBar({}) {
   return <div>TODO</div>;
 }
+
