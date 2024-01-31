@@ -53,16 +53,15 @@ export const DropdownMenu: React.FC<Props> = (_: Readonly<Props>) => {
     size,
     mode,
   } = _;
-
   function render_title() {
-    if (title !== "") {
+    if (title) {
       return (
         <>
           {title} {!hide_down && <DownOutlined />}
         </>
       );
     } else {
-      // emtpy string implies to only show the downward caret sign
+      // empty string or not given implies to only show the downward caret sign
       return <DownOutlined />;
     }
   }
@@ -93,7 +92,7 @@ export const DropdownMenu: React.FC<Props> = (_: Readonly<Props>) => {
       } else {
         return (
           <span style={{ ...STYLE, ...style }} id={id}>
-            {title}
+            {render_title()}
           </span>
         );
       }
