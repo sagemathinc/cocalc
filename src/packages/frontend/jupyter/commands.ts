@@ -594,8 +594,9 @@ export function commands(actions: AllActions): {
 
     "nbgrader validate": {
       i: "graduation-cap",
-      m: "Restart and Validate...",
-      menu: "Validate...",
+      t: "Restart notebook and run all cells to validate that it works.",
+      m: "Validate",
+      menu: "Validate",
       f: () => {
         if (actions.frame_actions != null) {
           actions.jupyter_actions?.nbgrader_actions.confirm_validate(

@@ -11,6 +11,7 @@ import { DropdownMenu } from "@cocalc/frontend/components/dropdown-menu";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
+const ICON_WIDTH = "20px";
 
 export class ManageCommands {
   readonly props;
@@ -228,8 +229,25 @@ export class ManageCommands {
     }
   };
 
-  getCommandLabel = (cmd: Partial<Command>, name: string) => {
-    const width = "20px";
+  private getCommandIcon = (cmd: Partial<Command>) => {
+    if (!cmd.icon) {
+      return undefined;
+    }
+    return (
+      <span
+        style={{
+          width: ICON_WIDTH,
+          height: ICON_WIDTH,
+          display: "inline-block",
+        }}
+      >
+        {typeof cmd.icon == "string" ? <Icon name={cmd.icon} /> : cmd.icon}
+      </span>
+    );
+  };
+
+  private getCommandLabel = (cmd: Partial<Command>, name: string) => {
+    const width = ICON_WIDTH;
     const lbl = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
     return (
       <>
@@ -252,11 +270,7 @@ export class ManageCommands {
                 e.stopPropagation();
               }}
             >
-              {typeof cmd.icon == "string" ? (
-                <Icon name={cmd.icon} style={{ width }} />
-              ) : (
-                cmd.icon
-              )}
+              {this.getCommandIcon(cmd)}
             </Button>
           </Tooltip>
         ) : (
@@ -269,8 +283,18 @@ export class ManageCommands {
     );
   };
 
-  button = (name: string, { style }) => {
-    const item = this.menuItem(name);
+  button = (name: string, { style }: { style? } = {}) => {
+    const cmd = this.getCommandInfo(name);
+    if (cmd == null) {
+      return null;
+    }
+    const item = this.commandToMenuItem({
+      name,
+      cmd,
+      key: name,
+      noChildren: false,
+      iconOnly: true,
+    });
     if (item == null) {
       return null;
     }
@@ -278,10 +302,12 @@ export class ManageCommands {
     if (children != null) {
       return (
         <DropdownMenu
+          showDown
           style={style}
           key={`button-${name}`}
           title={label}
           items={children}
+          button={true}
         />
       );
     }
@@ -311,11 +337,13 @@ export class ManageCommands {
     key,
     cmd,
     noChildren,
+    iconOnly,
   }: {
     name?: string;
     key: string;
     cmd: Partial<Command>;
     noChildren: boolean;
+    iconOnly?: boolean;
   }) => {
     // it's an action defined by the name of that action, so visible
     // only if that function is defined.
@@ -329,7 +357,15 @@ export class ManageCommands {
       // but it isn't
       return null;
     }
-    let label = this.getCommandLabel(cmd, name);
+    let label;
+    if (iconOnly) {
+      label = this.getCommandIcon(cmd);
+      if (label == null) {
+        label = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+      }
+    } else {
+      label = this.getCommandLabel(cmd, name);
+    }
     if (cmd.title) {
       label = (
         <Tooltip mouseEnterDelay={0.9} title={cmd.title}>
@@ -352,7 +388,7 @@ export class ManageCommands {
         this.props.actions.set_error(`${err}`);
       }
     };
-    if (cmd.keyboard) {
+    if (!iconOnly && cmd.keyboard) {
       label = (
         <div style={{ display: "flex" }}>
           {label}

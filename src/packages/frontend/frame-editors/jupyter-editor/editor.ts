@@ -27,6 +27,7 @@ import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands
 import { commands, AllActions } from "@cocalc/frontend/jupyter/commands";
 import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
 import KernelMenuItem from "./kernel-menu-item";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 
 const jupyterCommands = set([
   "about",
@@ -203,8 +204,9 @@ const JUPYTER_MENUS = {
         children: ["delete cell", "delete all blank code cells"],
       },
       {
-        name: "move",
+        name: "move-cell",
         label: "Move Cells",
+        icon: "arrow-up",
         children: ["move cell up", "move cell down"],
       },
       {
@@ -229,6 +231,7 @@ const JUPYTER_MENUS = {
       {
         name: "cell-type",
         label: "Change Cell Type",
+        icon: "code-outlined",
         children: [
           "change cell to code",
           "change cell to markdown",
@@ -295,6 +298,7 @@ const JUPYTER_MENUS = {
     ],
     "format-cells": [
       {
+        icon: FORMAT_SOURCE_ICON,
         label: "Format Cells",
         name: "cell-format",
         children: ["format cells", "format all cells"],
@@ -347,6 +351,8 @@ const JUPYTER_MENUS = {
       "confirm restart kernel and run all cells",
       "confirm restart kernel and run all cells without halting on error",
     ],
+    keys: ["tab key", "shift+tab key"],
+    nbgrader: ["nbgrader validate"],
   },
   jupyter_kernel: {
     label: "Kernel",
@@ -356,6 +362,7 @@ const JUPYTER_MENUS = {
       {
         label: "Restart Kernel",
         name: "restart",
+        icon: "reload",
         children: [
           "confirm restart kernel",
           "confirm restart kernel and clear output",

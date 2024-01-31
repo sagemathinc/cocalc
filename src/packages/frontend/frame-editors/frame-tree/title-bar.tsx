@@ -1016,6 +1016,35 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
+  // TODO: this is a quick proof of concept to see
+  // how it feels.
+  function renderButtonBar() {
+    if (!is_active) {
+      return null;
+    }
+    const w = [
+      "jupyter-insert-cell",
+      "jupyter-move-cell",
+      "jupyter-run cell and select next",
+      "jupyter-interrupt kernel",
+      "jupyter-tab key",
+      "jupyter-restart",
+      "jupyter-confirm restart kernel and run all cells",
+      "jupyter-cell-type",
+      "jupyter-cell-format",
+      "jupyter-nbgrader validate",
+    ];
+    if (props.path.endsWith(".ipynb")) {
+      const v = w.map((name) => manageCommands.button(name));
+      return (
+        <div style={{ padding: "2px", border: "1px solid #ccc" }}>
+          <ButtonGroup>{v}</ButtonGroup>
+        </div>
+      );
+    }
+    return null;
+  }
+
   function renderPage() {
     if (
       props.page == null ||
@@ -1144,6 +1173,7 @@ export function FrameTitleBar(props: Props) {
         {is_active && allButtonsPopover()}
         {renderFrameControls()}
       </div>
+      {renderButtonBar()}
       {renderConfirmBar()}
       {hasTour && props.is_visible && props.tab_is_visible && (
         <TitleBarTour refs={tourRefs} />
