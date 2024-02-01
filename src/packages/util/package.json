@@ -37,7 +37,7 @@
   "dependencies": {
     "@ant-design/colors": "^6.0.0",
     "@cocalc/util": "workspace:*",
-    "@types/debug": "^4.1.7",
+    "@types/debug": "^4.1.12",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.7",
