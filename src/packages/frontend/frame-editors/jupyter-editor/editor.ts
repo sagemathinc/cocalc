@@ -56,6 +56,18 @@ export const EDITOR_SPEC = {
     icon: "ipynb",
     component: CellNotebook,
     commands: jupyterCommands,
+    buttons: set([
+      "jupyter-insert-cell",
+      "jupyter-move-cell",
+      "jupyter-run cell and select next",
+      "jupyter-interrupt kernel",
+      "jupyter-tab key",
+      "jupyter-restart",
+      "jupyter-confirm restart kernel and run all cells",
+      "jupyter-cell-type",
+      "jupyter-cell-format",
+      "jupyter-nbgrader validate",
+    ]),
     customizeCommands: {
       guide: {
         label: "Snippets",

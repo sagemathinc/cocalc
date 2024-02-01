@@ -8,13 +8,7 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import {
-  Button as AntdButton0,
-  Input,
-  InputNumber,
-  Popover,
-  Tooltip,
-} from "antd";
+import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
@@ -287,28 +281,6 @@ export function FrameTitleBar(props: Props) {
     };
   }
 
-  function wrapOnClick(props1, props0) {
-    if (props0.onClick != null) {
-      props1.onClick = async (...args) => {
-        try {
-          await props0.onClick(...args);
-        } catch (err) {
-          console.trace(`${err}`);
-          props.actions.set_error(
-            `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
-          );
-        }
-      };
-    }
-  }
-
-  function AntdButton(props0) {
-    const props1 = { ...props0 };
-    wrapOnClick(props1, props0);
-    return <AntdButton0 {...props1} />;
-  }
-  AntdButton.Group = AntdButton0.Group;
-
   function click_close(): void {
     props.actions.close_frame(props.id);
   }
@@ -323,7 +295,7 @@ export function FrameTitleBar(props: Props) {
 
   function render_x(): Rendered {
     return (
-      <AntdButton0
+      <Button
         title={"Close this frame"}
         key={"close"}
         size="small"
@@ -331,7 +303,7 @@ export function FrameTitleBar(props: Props) {
         onClick={click_close}
       >
         <Icon name={"times"} />
-      </AntdButton0>
+      </Button>
     );
   }
 
@@ -368,7 +340,7 @@ export function FrameTitleBar(props: Props) {
   function render_full(): Rendered {
     if (props.is_full) {
       return (
-        <AntdButton0
+        <Button
           disabled={props.is_only}
           title={"Show all frames"}
           key={"full-screen-button"}
@@ -384,11 +356,11 @@ export function FrameTitleBar(props: Props) {
           }}
         >
           <Icon name={"compress"} />
-        </AntdButton0>
+        </Button>
       );
     } else {
       return (
-        <AntdButton0
+        <Button
           disabled={props.is_only}
           key={"full-screen-button"}
           title={"Show only this frame"}
@@ -400,14 +372,14 @@ export function FrameTitleBar(props: Props) {
           }}
         >
           <Icon name={"expand"} />
-        </AntdButton0>
+        </Button>
       );
     }
   }
 
   function render_split_row(): Rendered {
     return (
-      <AntdButton0
+      <Button
         key={"split-row-button"}
         title={"Split frame horizontally into two rows"}
         size="small"
@@ -424,13 +396,13 @@ export function FrameTitleBar(props: Props) {
         }}
       >
         <Icon name="horizontal-split" />
-      </AntdButton0>
+      </Button>
     );
   }
 
   function render_split_col(): Rendered {
     return (
-      <AntdButton0
+      <Button
         key={"split-col-button"}
         title={"Split frame vertically into two columns"}
         size="small"
@@ -447,7 +419,7 @@ export function FrameTitleBar(props: Props) {
         }}
       >
         <Icon name="vertical-split" />
-      </AntdButton0>
+      </Button>
     );
   }
 
@@ -493,7 +465,7 @@ export function FrameTitleBar(props: Props) {
     }
     return (
       <Tooltip key="time-travel-button" title="TimeTravel edit history">
-        <AntdButton
+        <Button
           key={"time-travel-button"}
           style={{
             ...button_style(),
@@ -503,24 +475,30 @@ export function FrameTitleBar(props: Props) {
           }}
           size={button_size()}
           onClick={(event) => {
-            track("time-travel");
-            if (props.actions.name != props.editor_actions.name) {
-              // a subframe editor -- always open time travel in a name tab.
-              props.editor_actions.time_travel({ frame: false });
-              return;
+            try {
+              track("time-travel");
+              if (props.actions.name != props.editor_actions.name) {
+                // a subframe editor -- always open time travel in a name tab.
+                props.editor_actions.time_travel({ frame: false });
+                return;
+              }
+              // If a time_travel frame type is available and the
+              // user does NOT shift+click, then open as a frame.
+              // Otherwise, it opens as a new tab.
+              const frame =
+                !event.shiftKey && props.editor_spec["time_travel"] != null;
+              props.actions.time_travel({
+                frame,
+              });
+            } catch (err) {
+              props.actions.set_error(
+                `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
+              );
             }
-            // If a time_travel frame type is available and the
-            // user does NOT shift+click, then open as a frame.
-            // Otherwise, it opens as a new tab.
-            const frame =
-              !event.shiftKey && props.editor_spec["time_travel"] != null;
-            props.actions.time_travel({
-              frame,
-            });
           }}
         >
           <Icon name="history" />
-        </AntdButton>
+        </Button>
       </Tooltip>
     );
   }
@@ -799,12 +777,12 @@ export function FrameTitleBar(props: Props) {
               </div>
               <div>
                 {renderFrameControls()}
-                <AntdButton0
+                <Button
                   style={{ float: "right" }}
                   onClick={() => setShowMainButtonsPopover(false)}
                 >
                   Close
-                </AntdButton0>
+                </Button>
               </div>
               {renderButtonBar(true)}
             </div>
@@ -816,7 +794,7 @@ export function FrameTitleBar(props: Props) {
           ref={getTourRef("all-buttons")}
           style={{ display: "inline-block" }}
         >
-          <AntdButton0
+          <Button
             type="text"
             style={{
               fontSize: "14pt",
@@ -827,7 +805,7 @@ export function FrameTitleBar(props: Props) {
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
             <Icon name="ellipsis" rotate="90" />
-          </AntdButton0>
+          </Button>
         </div>
       </Popover>
     );
@@ -959,10 +937,10 @@ export function FrameTitleBar(props: Props) {
         }}
       >
         Halt the server and close this?
-        <AntdButton0 onClick={() => set_close_and_halt_confirm(false)}>
+        <Button onClick={() => set_close_and_halt_confirm(false)}>
           Cancel
-        </AntdButton0>
-        <AntdButton0
+        </Button>
+        <Button
           danger
           onClick={() => {
             set_close_and_halt_confirm(false);
@@ -974,7 +952,7 @@ export function FrameTitleBar(props: Props) {
           }}
         >
           <Icon name={"PoweroffOutlined"} /> Close and Halt
-        </AntdButton0>
+        </Button>
       </div>
     );
   }
@@ -991,26 +969,31 @@ export function FrameTitleBar(props: Props) {
     if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
-    const w = [
-      "toggle_button_bar",
-      "undo",
-      "redo",
-      "build",
-      "decrease_font_size",
-      "increase_font_size",
-      "format-font",
-      "format-color",
-      "jupyter-insert-cell",
-      "jupyter-move-cell",
-      "jupyter-run cell and select next",
-      "jupyter-interrupt kernel",
-      "jupyter-tab key",
-      "jupyter-restart",
-      "jupyter-confirm restart kernel and run all cells",
-      "jupyter-cell-type",
-      "jupyter-cell-format",
-      "jupyter-nbgrader validate",
-    ];
+    const w = ["toggle_button_bar"];
+    const customButtons = editorSettings.getIn(["buttons", props.type]);
+    if (customButtons != null) {
+      const custom = customButtons.toJS();
+      for (const name in custom) {
+        if (custom[name]) {
+          w.push(name);
+        }
+      }
+    }
+    if (props.spec.buttons != null) {
+      for (const name in props.spec.buttons) {
+        if (props.spec.buttons[name]) {
+          w.push(name);
+        }
+      }
+    }
+    //           "undo",
+    //       "redo",
+    //       "build",
+    //       "decrease_font_size",
+    //       "increase_font_size",
+    //       "format-font",
+    //       "format-color",
+
     const v: JSX.Element[] = [];
     for (const name of w) {
       let item;
@@ -1032,21 +1015,21 @@ export function FrameTitleBar(props: Props) {
             title={label}
             items={children}
             button={false}
-            style={{ color: "#333" }}
+            style={{ color: "#333", padding: "0 3px" }}
           />,
         );
       } else {
         v.push(
-          <AntdButton0
+          <Button
             size="small"
             type="text"
             key={key}
             disabled={disabled}
             onClick={onClick}
-            style={{ color: "#333" }}
+            style={{ color: "#333", padding: "0 3px" }}
           >
             {label}
-          </AntdButton0>,
+          </Button>,
         );
       }
     }

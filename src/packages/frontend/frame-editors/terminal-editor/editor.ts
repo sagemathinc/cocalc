@@ -41,6 +41,13 @@ export const terminal = {
     "compute_server",
     /*"reload" */
   ]),
+  buttons: set([
+    "decrease_font_size",
+    "increase_font_size",
+    "clear",
+    "pause",
+    "kick_other_users_out",
+  ]),
   hide_public: true, // never show this editor option for public view
   customizeCommands: {
     guide: {

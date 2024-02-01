@@ -9,7 +9,6 @@ Spec for editing Jupyter notebooks via a frame tree.
 
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import {
@@ -20,14 +19,14 @@ import {
   Handouts,
 } from "./course-panels";
 
-const buttons = set([
+const commands = set([
   "decrease_font_size",
   "increase_font_size",
   "save",
-  "time_travel" /*,
-  "undo",
-  "redo"*/,
+  "time_travel",
 ]);
+
+const buttons = set(["decrease_font_size", "increase_font_size"]);
 
 export const EDITOR_SPEC = {
   course_students: {
@@ -35,39 +34,44 @@ export const EDITOR_SPEC = {
     name: "Students",
     icon: "users",
     component: Students,
+    commands,
     buttons,
-  } as EditorDescription,
+  },
   course_assignments: {
     short: "Assignments",
     name: "Assignments",
     icon: "share-square",
     component: Assignments,
+    commands,
     buttons,
-  } as EditorDescription,
+  },
   course_handouts: {
     short: "Handouts",
     name: "Handouts",
     icon: "copy",
     component: Handouts,
+    commands,
     buttons,
-  } as EditorDescription,
+  },
   course_configuration: {
     short: "Config",
     name: "Configuration",
     icon: "cogs",
     component: Configuration,
+    commands,
     buttons,
-  } as EditorDescription,
+  },
   course_shared_project: {
     short: "Shared",
     name: "Shared Project",
     icon: "share-square",
     component: SharedProject,
+    commands,
     buttons,
-  } as EditorDescription,
+  },
   terminal,
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,

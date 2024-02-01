@@ -481,7 +481,6 @@ export function Kernel({
       ? { display: "flex", borderLeft: `1px solid ${COLORS.GRAY}` }
       : {
           display: "flex",
-          borderLeft: `1px solid ${COLORS.GRAY}`,
           flexFlow: "column",
           marginTop: "-6px",
         };

@@ -700,7 +700,8 @@ addCommands({
         ? "eye-slash"
         : "eye",
     group: "button-bar",
-    title: "Toggle whether or not the button toolbar is displayed below the menu.",
+    title:
+      "Toggle whether or not the button toolbar is displayed below the menu.",
     label: () => (
       <>
         {redux
@@ -720,8 +721,20 @@ addCommands({
         if (
           !(await redux.getActions("page").popconfirm({
             title: "Hide the Button Toolbar",
-            description:
-              "You can show the button bar by selecting 'View --> Show button toolbar' in the menu. Toggle what buttons appear by clicking the icon next to any item in the menus.",
+            description: (
+              <div>
+                <ul>
+                  <li>
+                    Show the toolbar by selecting 'View -&gt; Show button
+                    toolbar' in the menu.
+                  </li>
+                  <li>
+                    Toggle what buttons appear in the toolbar by clicking the
+                    icon next to any item in the menu.
+                  </li>
+                </ul>
+              </div>
+            ),
             cancelText: "Cancel",
             okText: "Hide button toolbar",
           }))
