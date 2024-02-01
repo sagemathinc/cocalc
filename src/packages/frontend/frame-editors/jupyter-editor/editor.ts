@@ -325,11 +325,6 @@ const JUPYTER_MENUS = {
         ],
       },
       {
-        label: "Button Toolbar",
-        name: "button-toolbar",
-        children: ["hide toolbar", "show toolbar"],
-      },
-      {
         label: "Line Numbers",
         name: "line-numbers",
         icon: "list-ol",

@@ -810,7 +810,7 @@ export function FrameTitleBar(props: Props) {
                   Close
                 </AntdButton0>
               </div>
-              {renderButtonBar()}
+              {renderButtonBar(true)}
             </div>
           );
         }}
@@ -991,11 +991,12 @@ export function FrameTitleBar(props: Props) {
 
   // TODO: this is a quick proof of concept to see
   // how it feels.
-  function renderButtonBar() {
-    if (!editorSettings?.get("extra_button_bar")) {
+  function renderButtonBar(popup = false) {
+    if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
     const w = [
+      "toggle_button_bar",
       "undo",
       "redo",
       "build",
@@ -1059,12 +1060,11 @@ export function FrameTitleBar(props: Props) {
     return (
       <div
         style={{
-          height: "29px",
           padding: "2px",
-          borderBottom: "1px solid #ccc",
+          borderBottom: popup ? undefined : "1px solid #ccc",
         }}
       >
-        <ButtonGroup>{v}</ButtonGroup>
+        {v}
       </div>
     );
   }

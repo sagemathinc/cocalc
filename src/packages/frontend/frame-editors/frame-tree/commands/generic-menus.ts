@@ -32,12 +32,12 @@ addMenus({
   format: {
     label: "Format",
     pos: 1.5,
-    groups: ['code-format'],
+    groups: ["code-format"],
   },
   view: {
     label: "View",
     pos: 2,
-    groups: ["zoom", "frame-control", "show-frames"],
+    groups: ["zoom", "frame-control", "show-frames", "button-bar"],
   },
   go: {
     label: "Go",

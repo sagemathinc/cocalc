@@ -10,7 +10,7 @@ import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
-const ICON_WIDTH = "20px";
+const ICON_WIDTH = "24px";
 
 export class ManageCommands {
   readonly props;
@@ -229,8 +229,12 @@ export class ManageCommands {
   };
 
   private getCommandIcon = (cmd: Partial<Command>) => {
-    if (!cmd.icon) {
+    let icon = cmd.icon;
+    if (!icon) {
       return undefined;
+    }
+    if (typeof icon == "function") {
+      icon = icon(this);
     }
     return (
       <span
@@ -240,7 +244,7 @@ export class ManageCommands {
           display: "inline-block",
         }}
       >
-        {typeof cmd.icon == "string" ? <Icon name={cmd.icon} /> : cmd.icon}
+        {typeof icon == "string" ? <Icon name={icon} /> : icon}
       </span>
     );
   };
@@ -261,7 +265,7 @@ export class ManageCommands {
                 padding: 0,
                 marginRight: "10px",
                 background: ["save", "time_travel", "chatgpt"].includes(name)
-                  ? "#ccf"
+                  ? "#ddd"
                   : undefined,
               }}
               onClick={(e) => {

@@ -394,13 +394,6 @@ export function commands(actions: AllActions): {
       f: () => actions.jupyter_actions?.set_header_state(true),
     },
 
-    "hide toolbar": {
-      m: "Hide toolbar",
-      f: () => actions.jupyter_actions?.set_toolbar_state(false),
-    },
-
-    //ignore: undefined, // no clue what this means
-
     "insert cell above": {
       m: "Insert Cell Above",
       i: "arrow-circle-up",
@@ -847,11 +840,6 @@ export function commands(actions: AllActions): {
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
-    },
-
-    "show toolbar": {
-      m: "Show toolbar",
-      f: () => actions.jupyter_actions?.set_toolbar_state(true),
     },
 
     "shutdown kernel": {

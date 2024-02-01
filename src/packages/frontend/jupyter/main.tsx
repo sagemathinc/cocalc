@@ -40,7 +40,6 @@ import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-import { TopButtonbar } from "./top-buttonbar";
 import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import * as chatgpt from "./chatgpt";
@@ -125,7 +124,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   // *FATAL* error; user must edit file to fix.
   const fatal: undefined | string = useRedux([name, "fatal"]);
-  const toolbar: undefined | boolean = useRedux([name, "toolbar"]);
   // const has_unsaved_changes: undefined | boolean = useRedux([
   //   name,
   //   "has_unsaved_changes",
@@ -230,7 +228,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_kernel() {
+  function render_heading() {
     return (
       <Kernel
         is_fullscreen={is_fullscreen}
@@ -240,39 +238,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         mode={mode}
         computeServerId={computeServerId}
       />
-    );
-  }
-
-  function render_buttonbar() {
-    if (
-      actions == null ||
-      cells == null ||
-      sel_ids == null ||
-      cur_id == null ||
-      name == null
-    ) {
-      return;
-    } else {
-      return (
-        <TopButtonbar
-          project_id={project_id}
-          name={name}
-          cells={cells}
-          cur_id={cur_id}
-          sel_ids={sel_ids}
-          cell_toolbar={cell_toolbar}
-          usage={usage}
-        />
-      );
-    }
-  }
-
-  function render_heading() {
-    return (
-      <>
-        {toolbar && <div> {render_buttonbar()}</div>}
-        <div>{render_kernel()}</div>
-      </>
     );
   }
 

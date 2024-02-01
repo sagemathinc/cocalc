@@ -15,6 +15,7 @@ import openSupportTab from "@cocalc/frontend/support/open";
 import { Input } from "antd";
 import { SEARCH_COMMANDS } from "./const";
 import { addCommands } from "./commands";
+import { set_account_table } from "@cocalc/frontend/account/util";
 
 addCommands({
   "split-row": {
@@ -691,6 +692,45 @@ addCommands({
     label: "Frame Types",
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(),
+  },
+  toggle_button_bar: {
+    alwaysShow: true,
+    icon: () =>
+      redux.getStore("account").getIn(["editor_settings", "extra_button_bar"])
+        ? "eye-slash"
+        : "eye",
+    group: "button-bar",
+    title: "Toggle whether or not the button toolbar is displayed below the menu.",
+    label: () => (
+      <>
+        {redux
+          .getStore("account")
+          .getIn(["editor_settings", "extra_button_bar"])
+          ? "Hide"
+          : "Show"}{" "}
+        button toolbar
+      </>
+    ),
+    onClick: async () => {
+      const visible = redux
+        .getStore("account")
+        .getIn(["editor_settings", "extra_button_bar"]);
+      if (visible) {
+        // hiding it, so confirm
+        if (
+          !(await redux.getActions("page").popconfirm({
+            title: "Hide the Button Toolbar",
+            description:
+              "You can show the button bar by selecting 'View --> Show button toolbar' in the menu. Toggle what buttons appear by clicking the icon next to any item in the menus.",
+            cancelText: "Cancel",
+            okText: "Hide button toolbar",
+          }))
+        ) {
+          return;
+        }
+      }
+      set_account_table({ editor_settings: { extra_button_bar: !visible } });
+    },
   },
 });
 

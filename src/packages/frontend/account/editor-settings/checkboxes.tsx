@@ -10,6 +10,8 @@ import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import { Checkbox } from "../../antd-bootstrap";
 
 const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
+  extra_button_bar:
+    "customizable button bar below menu bar with shortcuts to menu items",
   line_wrapping: "wrap long lines",
   line_numbers: "show line numbers",
   jupyter_line_numbers: "show line numbers in Jupyter notebooks",
@@ -24,7 +26,6 @@ const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
   strip_trailing_whitespace: "remove whenever file is saved",
   show_trailing_whitespace: "show spaces at ends of lines",
   spaces_instead_of_tabs: "send spaces when the tab key is pressed",
-  extra_button_bar: "customizable button bar with shortcuts to menu items",
   build_on_save: "build LaTex/Rmd files whenever it is saved to disk",
   show_exec_warning: "warn that certain files are not directly executable",
   ask_jupyter_kernel: "ask which kernel to use for a new Jupyter Notebook",

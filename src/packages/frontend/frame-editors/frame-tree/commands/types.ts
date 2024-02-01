@@ -29,7 +29,7 @@ export interface Command {
   // position, for sorting
   pos?: number;
   title?: ReactNode;
-  icon?: ReactNode;
+  icon?: ReactNode | ((opts: { props? }) => ReactNode);
   label?:
     | ReactNode
     | ((opts: {
@@ -37,7 +37,7 @@ export interface Command {
         helpSearch?;
         setHelpSearch?;
         renderMenus?;
-      }) => JSX.Element);
+      }) => ReactNode);
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
   onClick?: OnClick;
