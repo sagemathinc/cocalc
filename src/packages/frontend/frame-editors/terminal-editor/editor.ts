@@ -21,7 +21,7 @@ export const terminal = {
   name: "Terminal",
   icon: "terminal",
   component: TerminalFrame,
-  buttons: set([
+  commands: set([
     "-actions", // none of this makes much sense for a terminal!
     /*"print", */
     "decrease_font_size",
@@ -42,7 +42,7 @@ export const terminal = {
     /*"reload" */
   ]),
   hide_public: true, // never show this editor option for public view
-  customize_buttons: {
+  customizeCommands: {
     guide: {
       label: "Guide",
       title:
@@ -67,7 +67,7 @@ const commands_guide = {
   name: "Guide",
   icon: "magic",
   component: CommandsGuide,
-  buttons: set(["decrease_font_size", "increase_font_size"]),
+  commands: set(["decrease_font_size", "increase_font_size"]),
 } as EditorDescription;
 
 const EDITOR_SPEC = {

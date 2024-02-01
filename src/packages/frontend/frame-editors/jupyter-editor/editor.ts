@@ -55,8 +55,8 @@ export const EDITOR_SPEC = {
     name: "Jupyter Notebook",
     icon: "ipynb",
     component: CellNotebook,
-    buttons: jupyterCommands,
-    customize_buttons: {
+    commands: jupyterCommands,
+    customizeCommands: {
       guide: {
         label: "Snippets",
         icon: SNIPPET_ICON_NAME,
@@ -75,28 +75,28 @@ export const EDITOR_SPEC = {
     name: "Snippets",
     icon: SNIPPET_ICON_NAME,
     component: JupyterSnippets,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
     name: "Slideshow (Reveal.js)",
     icon: "slides",
     component: Slideshow,
-    buttons: set(["build"]),
+    commands: set(["build"]),
   } as EditorDescription,
   jupyter_table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   introspect: {
     short: "Introspect",
     name: "Introspection",
     icon: "info",
     component: Introspect,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   terminal,
   time_travel,
@@ -105,14 +105,14 @@ export const EDITOR_SPEC = {
     name: "Raw JSON viewer",
     icon: "js-square",
     component: JSONIPynb,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   jupyter_raw: {
     short: "JSON edit",
     name: "Raw JSON editor",
     icon: "markdown",
     component: RawIPynb,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 };
 

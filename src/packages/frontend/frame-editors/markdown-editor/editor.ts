@@ -25,7 +25,7 @@ const EDITOR_SPEC = {
     name: "Editable Text",
     icon: "pencil",
     component: EditableMarkdown,
-    buttons: set([
+    commands: set([
       "format_action",
       "chatgpt",
       //"print",
@@ -53,7 +53,7 @@ const EDITOR_SPEC = {
     name: "Markdown Code",
     icon: "markdown",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
       "format_action",
       "chatgpt",
       "print",
@@ -79,7 +79,7 @@ const EDITOR_SPEC = {
     name: "Locked View",
     icon: "lock",
     component: RenderedMarkdown,
-    buttons: set([
+    commands: set([
       "chatgpt",
       "print",
       "decrease_font_size",
@@ -97,7 +97,7 @@ const EDITOR_SPEC = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   terminal,
   settings: SETTINGS_SPEC,

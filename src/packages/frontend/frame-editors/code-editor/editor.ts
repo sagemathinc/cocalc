@@ -38,7 +38,7 @@ export const cm = {
   name: "Source Code",
   icon: "code",
   component: CodemirrorEditor,
-  buttons: set([
+  commands: set([
     "print",
     "decrease_font_size",
     "increase_font_size",
@@ -57,7 +57,7 @@ export const cm = {
     "format",
     //"tour"
   ]),
-  customize_buttons: {
+  customizeCommands: {
     format: {
       isVisible: ({ props }) =>
         file_extensions[filename_extension(props.path)] != null,

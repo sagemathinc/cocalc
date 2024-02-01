@@ -14,7 +14,7 @@ import { PDFJS } from "../latex-editor/pdfjs";
 import { PDFEmbed } from "../latex-editor/pdf-embed";
 import { IS_IOS, IS_IPAD } from "../../feature";
 
-const pdfjs_buttons = set([
+const pdfjsCommands = set([
   "reload",
   "print",
   "download",
@@ -31,7 +31,7 @@ export const EDITOR_SPEC = {
     name: "PDF Viewer",
     icon: "file-pdf",
     component: PDFJS,
-    buttons: pdfjs_buttons,
+    commands: pdfjsCommands,
     renderer: "canvas",
   } as EditorDescription,
 };
@@ -43,7 +43,7 @@ if (!IS_IPAD && !IS_IOS) {
     short: "PDF (native)",
     name: "PDF Viewer - Native",
     icon: "file-pdf",
-    buttons: set(["reload", "print", "download"]),
+    commands: set(["reload", "print", "download"]),
     component: PDFEmbed,
   } as EditorDescription;
 }

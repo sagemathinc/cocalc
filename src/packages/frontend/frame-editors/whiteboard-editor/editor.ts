@@ -21,7 +21,7 @@ import Search from "./search";
 import Pages from "./pages";
 import Overview from "./overview";
 
-export const whiteboardButtons = set([
+export const whiteboardCommands = set([
   "decrease_font_size",
   "increase_font_size", // we do NOT include "set_zoom", since it's based on account font_size, but we base 100% on font size 14.
   "zoom_page_width",
@@ -46,14 +46,14 @@ export const EDITOR_SPEC = {
     name: "Whiteboard",
     icon: "file-image",
     component: Whiteboard,
-    buttons: whiteboardButtons,
+    commands: whiteboardCommands,
   } as EditorDescription,
   search: {
     short: "Search",
     name: "Search",
     icon: "search" as IconName,
     component: Search,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   },
   pages: {
     short: "Pages",
@@ -65,7 +65,7 @@ export const EDITOR_SPEC = {
     short: "Overview",
     name: "Overview",
     icon: "overview" as IconName,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
     component: Overview,
   },
   terminal,
@@ -75,14 +75,14 @@ export const EDITOR_SPEC = {
     name: "Introspection",
     icon: "info",
     component: Introspect,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
   table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 };
 

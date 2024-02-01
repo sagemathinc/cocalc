@@ -23,7 +23,7 @@ const EDITOR_SPEC = {
     name: "Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
       "format_action",
       "chtgpt",
       "print",
@@ -48,7 +48,7 @@ const EDITOR_SPEC = {
     name: "Rendered HTML (pandoc)",
     icon: "html5",
     component: IFrameHTML,
-    buttons: set([
+    commands: set([
       "print",
       "decrease_font_size",
       "increase_font_size",

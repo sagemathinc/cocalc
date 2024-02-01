@@ -47,28 +47,32 @@ export class ManageCommands {
     if (cmd?.disable && this.studentProjectFunctionality[cmd.disable]) {
       return false;
     }
-    if (this.props.spec.buttons?.[`-${name}`]) {
+    if (this.props.spec.commands?.[`-${name}`]) {
       // explicitly hidden by the spec
       return false;
     }
     if (cmd?.isVisible != null) {
       const { isVisible } = cmd;
       if (typeof isVisible == "string") {
-        return !!this.props.spec.buttons?.[isVisible];
+        return !!this.props.spec.commands?.[isVisible];
       } else {
         isVisible(this);
       }
     }
     // check editor spec for current editor:
     if (
-      !this.props.spec.buttons?.[name] &&
-      !this.props.spec.customize_buttons?.[name]
+      !this.props.spec.commands?.[name] &&
+      !this.props.spec.customizeCommands?.[name]
     ) {
       // not in the spec
       return false;
     }
 
     return true;
+  };
+
+  isExplicitlyHidden = (name: string): boolean => {
+    return !!this.props.spec.commands?.[`-${name}`];
   };
 
   matchesSearch = (cmd: Partial<Command>, name: string, search: string) => {
@@ -182,7 +186,7 @@ export class ManageCommands {
       throw Error(`unknown command '${name}'`);
     }
     const subs =
-      this.props.editor_spec[this.props.type]?.customize_buttons?.[name ?? ""];
+      this.props.editor_spec[this.props.type]?.customizeCommands?.[name ?? ""];
     if (subs != null) {
       cmd = { ...cmd, ...subs };
     }

@@ -39,10 +39,15 @@ export interface EditorDescription {
   name: string; // slightly longer description
   icon: IconName;
   component: any; // React component
-  buttons?: { [button_name: string]: true };
+
+  // commands that will be displayed in the menu (if they exist)
+  commands?: { [commandName: string]: true };
   // | ButtonFunction;
-  // customize_buttons: use this to easily override label, tooltip, or anything else about ANY button command!
-  customize_buttons?: { [button_name: string]: Partial<Command> };
+  // customizeCommands: use this to override label, tooltip, or anything
+  // else about and command, specifically for this editor frame. This gets
+  // merged in to the generic command, or added as a new command.
+  customizeCommands?: { [commandName: string]: Partial<Command> };
+
   hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
   subframe_init?: Function;
   style?: object;

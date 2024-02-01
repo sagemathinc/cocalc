@@ -16,7 +16,7 @@ import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { IFrameHTML } from "../html-editor/iframe-html";
 import { PDFJS } from "../latex-editor/pdfjs";
-import { pdfjs_buttons } from "../latex-editor/editor";
+import { pdfjsCommands } from "../latex-editor/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { BuildLog } from "./build-log";
@@ -27,7 +27,7 @@ const EDITOR_SPEC = {
     name: "Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
       "help",
       "format_action",
       "chatgpt",
@@ -58,7 +58,7 @@ const EDITOR_SPEC = {
     path(path) {
       return derive_rmd_output_filename(path, "html");
     },
-    buttons: set([
+    commands: set([
       "print",
       "save",
       "time_travel",
@@ -76,7 +76,7 @@ const EDITOR_SPEC = {
     icon: "file-pdf",
     component: PDFJS,
     mode: "rmd",
-    buttons: pdfjs_buttons,
+    commands: pdfjsCommands,
     renderer: "canvas",
     path(path) {
       return derive_rmd_output_filename(path, "pdf");
@@ -89,7 +89,7 @@ const EDITOR_SPEC = {
     icon: "eye",
     component: RenderedMarkdown,
     reload_images: true,
-    buttons: set([
+    commands: set([
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -104,7 +104,7 @@ const EDITOR_SPEC = {
     name: "Build Log",
     icon: "gears",
     component: BuildLog,
-    buttons: set(["build", "decrease_font_size", "increase_font_size"]),
+    commands: set(["build", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   terminal,

@@ -23,7 +23,7 @@ import { pdf_path } from "./util";
 import { IS_IOS, IS_IPAD } from "../../feature";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
 
-export const pdfjs_buttons = set([
+export const pdfjsCommands = set([
   "print",
   "download",
   "decrease_font_size",
@@ -40,7 +40,7 @@ const EDITOR_SPEC = {
     name: "LaTeX Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
       "format_action",
       "build",
       "force_build",
@@ -65,7 +65,7 @@ const EDITOR_SPEC = {
       "show_table_of_contents",
       "word_count",
     ]),
-    customize_buttons: {
+    customizeCommands: {
       print: {
         label: "Print LaTeX Source",
         title:
@@ -81,8 +81,8 @@ const EDITOR_SPEC = {
     name: "PDF - Preview",
     icon: "file-pdf",
     component: PDFJS,
-    buttons: pdfjs_buttons,
-    customize_buttons: { download: { label: "Download PDF" } },
+    commands: pdfjsCommands,
+    customizeCommands: { download: { label: "Download PDF" } },
     path: pdf_path,
     renderer: "canvas",
   } as EditorDescription,
@@ -92,7 +92,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set(["build", "force_build", "clean"]),
+    commands: set(["build", "force_build", "clean"]),
   } as EditorDescription,
 
   build: {
@@ -100,7 +100,7 @@ const EDITOR_SPEC = {
     name: "Build Control and Log",
     icon: "terminal",
     component: Build,
-    buttons: set([
+    commands: set([
       "build",
       "force_build",
       "clean",
@@ -116,14 +116,14 @@ const EDITOR_SPEC = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   word_count: {
     short: "Word Count",
     name: "Word Count",
     icon: "file-alt",
-    buttons: set(["word_count"]),
+    commands: set(["word_count"]),
     component: LatexWordCount,
   } as EditorDescription,
 
@@ -140,7 +140,7 @@ if (!IS_IPAD && !IS_IOS) {
     short: "PDF (native)",
     name: "PDF - Native",
     icon: "file-pdf",
-    buttons: set(["print", "save", "download"]),
+    commands: set(["print", "save", "download"]),
     component: PDFEmbed,
     path: pdf_path,
   } as EditorDescription;

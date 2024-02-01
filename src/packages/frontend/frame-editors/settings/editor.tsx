@@ -96,7 +96,7 @@ export const SETTINGS_SPEC = {
   short: "Settings",
   name: "Editor Settings",
   icon: "wrench",
-  buttons: {},
+  commands: {},
   component: Settings,
   hide_public: true,
 } as EditorDescription;

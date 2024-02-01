@@ -33,7 +33,7 @@ export const chat = {
   short: "Chat",
   name: "Chat",
   icon: "comment",
-  buttons: set([
+  commands: set([
     "decrease_font_size",
     "increase_font_size",
     "undo",

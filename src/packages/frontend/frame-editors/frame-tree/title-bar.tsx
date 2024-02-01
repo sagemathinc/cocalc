@@ -309,10 +309,6 @@ export function FrameTitleBar(props: Props) {
   }
   AntdButton.Group = AntdButton0.Group;
 
-  function isExplicitlyHidden(actionName: string): boolean {
-    return !!props.spec.buttons?.[`-${actionName}`];
-  }
-
   function click_close(): void {
     props.actions.close_frame(props.id);
   }
@@ -1073,7 +1069,7 @@ export function FrameTitleBar(props: Props) {
     if (
       props.page == null ||
       props.pages == null ||
-      isExplicitlyHidden("page")
+      manageCommands.isExplicitlyHidden("page")
     ) {
       // do not render anything unless both page and pages are set
       return;

@@ -22,7 +22,7 @@ import Pages from "../whiteboard-editor/pages";
 import Overview from "../whiteboard-editor/overview";
 import Slideshow from "./slideshow";
 
-export const slidesButtons = set([
+export const slidesCommands = set([
   "decrease_font_size",
   "increase_font_size", // we do NOT include "set_zoom", since it's based on account font_size, but we base 100% on font size 14.
   "zoom_page_width",
@@ -49,14 +49,14 @@ export const EDITOR_SPEC = {
     name: "Slides",
     icon: "slides",
     component: Slides,
-    buttons: slidesButtons,
+    commands: slidesCommands,
   } as EditorDescription,
   speaker_notes: {
     short: "Notes",
     name: "Speaker Notes",
     icon: "pencil",
     component: SpeakerNotes,
-    buttons: set([
+    commands: set([
       "decrease_font_size",
       "increase_font_size",
       "set_zoom",
@@ -68,7 +68,7 @@ export const EDITOR_SPEC = {
     name: "Search",
     icon: "search",
     component: Search,
-    buttons: set([
+    commands: set([
       "decrease_font_size",
       "increase_font_size",
       "set_zoom",
@@ -80,14 +80,14 @@ export const EDITOR_SPEC = {
     name: "Pages",
     icon: "pic-centered",
     component: Pages,
-    buttons: set(["show_slideshow", "help"]),
+    commands: set(["show_slideshow", "help"]),
   },
   overview: {
     short: "Overview",
     name: "Overview",
     icon: "overview",
     component: Overview,
-    buttons: set([
+    commands: set([
       "show_slideshow",
       "decrease_font_size",
       "increase_font_size",
@@ -102,7 +102,7 @@ export const EDITOR_SPEC = {
     name: "Introspection",
     icon: "info",
     component: Introspect,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
   table_of_contents: {
     // name = "table_of_contents" must be same name as for whiteboard, since otherwise show_table_of_contents action in whiteboard breaks.
@@ -110,7 +110,7 @@ export const EDITOR_SPEC = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set([
+    commands: set([
       "decrease_font_size",
       "increase_font_size",
       "show_slideshow",
