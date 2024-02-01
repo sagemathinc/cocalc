@@ -730,7 +730,9 @@ addCommands({
                   </li>
                   <li>
                     Toggle what buttons appear in the toolbar by clicking the
-                    icon next to any item in the menu.
+                    icon next to any top level menu item. (Submenu items are not
+                    supported, but you can add an entire submenu to the
+                    toolbar.)
                   </li>
                 </ul>
               </div>

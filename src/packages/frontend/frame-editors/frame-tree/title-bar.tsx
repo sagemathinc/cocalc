@@ -194,6 +194,7 @@ export function FrameTitleBar(props: Props) {
     throw Error("actions must have name attribute");
   }
 
+  const editorSettings = useRedux(["account", "editor_settings"]);
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should
@@ -211,6 +212,7 @@ export function FrameTitleBar(props: Props) {
         helpSearch,
         setHelpSearch,
         readOnly: read_only,
+        editorSettings,
       }),
     [
       props,
@@ -219,6 +221,7 @@ export function FrameTitleBar(props: Props) {
       setHelpSearch,
       setShowAI,
       read_only,
+      editorSettings,
     ],
   );
 
@@ -237,7 +240,6 @@ export function FrameTitleBar(props: Props) {
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const otherSettings = useRedux(["account", "other_settings"]);
-  const editorSettings = useRedux(["account", "editor_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
   const disableTourRefs = useRef<boolean>(false);
@@ -971,17 +973,21 @@ export function FrameTitleBar(props: Props) {
     }
     const w = ["toggle_button_bar"];
     const customButtons = editorSettings.getIn(["buttons", props.type]);
+    let custom;
     if (customButtons != null) {
-      const custom = customButtons.toJS();
+      custom = customButtons.toJS();
       for (const name in custom) {
         if (custom[name]) {
           w.push(name);
         }
       }
+    } else {
+      custom = {};
     }
+    const s = new Set(w);
     if (props.spec.buttons != null) {
       for (const name in props.spec.buttons) {
-        if (props.spec.buttons[name]) {
+        if (!s.has(name) && custom[name] == null && props.spec.buttons[name]) {
           w.push(name);
         }
       }

@@ -7,6 +7,7 @@ import { trunc_middle } from "@cocalc/util/misc";
 import { Button, Tooltip } from "antd";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
+import { set_account_table } from "@cocalc/frontend/account/util";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
@@ -19,6 +20,7 @@ export class ManageCommands {
   readonly helpSearch: string;
   readonly setHelpSearch;
   readonly readOnly: boolean;
+  readonly editorSettings;
 
   constructor({
     props,
@@ -27,6 +29,7 @@ export class ManageCommands {
     helpSearch,
     setHelpSearch,
     readOnly,
+    editorSettings,
   }) {
     this.props = props;
     this.studentProjectFunctionality = studentProjectFunctionality;
@@ -34,6 +37,7 @@ export class ManageCommands {
     this.helpSearch = helpSearch;
     this.setHelpSearch = setHelpSearch;
     this.readOnly = readOnly;
+    this.editorSettings = editorSettings;
   }
 
   isVisible = (name, cmd?) => {
@@ -256,35 +260,53 @@ export class ManageCommands {
   private getCommandLabel = (cmd: Partial<Command>, name: string) => {
     const width = ICON_WIDTH;
     const lbl = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+    let icon;
+    if (!name) {
+      icon = (
+        <div style={{ width, marginRight: "10px", display: "inline-block" }}>
+          {this.getCommandIcon(cmd)}
+        </div>
+      );
+    } else {
+      let buttons = this.editorSettings.get("buttons");
+      const isOnButtonBar =
+        buttons?.getIn([this.props.type, name]) ??
+        this.props.spec.buttons?.[name];
+      icon = cmd.icon ? (
+        <Tooltip title={"Click icon to toggle button"} placement="left">
+          <Button
+            type="text"
+            style={{
+              width,
+              height: width,
+              display: "inline-block",
+              padding: 0,
+              marginRight: "10px",
+              background: isOnButtonBar ? "#ddd" : undefined,
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              buttons = buttons.toJS() ?? {};
+              if (buttons[this.props.type] == null) {
+                buttons[this.props.type] = {};
+              }
+              buttons[this.props.type][name] = !isOnButtonBar;
+              set_account_table({ editor_settings: { buttons } });
+            }}
+          >
+            {this.getCommandIcon(cmd)}
+          </Button>
+        </Tooltip>
+      ) : (
+        <div
+          style={{ width, marginRight: "10px", display: "inline-block" }}
+        ></div>
+      );
+    }
     return (
       <>
-        {cmd.icon ? (
-          <Tooltip title={"Click icon to toggle button"} placement="left">
-            <Button
-              type="text"
-              style={{
-                width,
-                height: width,
-                display: "inline-block",
-                padding: 0,
-                marginRight: "10px",
-                background: ["save", "time_travel", "chatgpt"].includes(name)
-                  ? "#ddd"
-                  : undefined,
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
-              {this.getCommandIcon(cmd)}
-            </Button>
-          </Tooltip>
-        ) : (
-          <div
-            style={{ width, marginRight: "10px", display: "inline-block" }}
-          ></div>
-        )}
+        {icon}
         {lbl}
       </>
     );
