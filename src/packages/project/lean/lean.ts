@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 import { callback, delay } from "awaiting";
 import * as lean_client from "lean-client-js-node";
 import { isEqual } from "lodash";
@@ -41,7 +40,7 @@ export class Lean extends EventEmitter {
 
   constructor(client: Client) {
     super();
-    this.server = reuseInFlight(this.server);
+    this.server = reuseInFlight(this.server.bind(this));
     this.client = client;
     this.dbg = this.client.dbg("LEAN SERVER");
     this.running = {};
@@ -71,8 +70,8 @@ export class Lean extends EventEmitter {
       new lean_client.ProcessTransport(
         "lean",
         process.env.HOME ? process.env.HOME : ".", // satisfy typescript.
-        ["-M 4096"]
-      )
+        ["-M 4096"],
+      ),
     );
     this._server.error.on((err) => this.dbg("error:", err));
     this._server.allMessages.on((allMessages) => {
@@ -98,7 +97,7 @@ export class Lean extends EventEmitter {
           "messages for ",
           path,
           new_messages[path],
-          this._state.paths[path]
+          this._state.paths[path],
         );
         // length 0 is a special case needed when going from pos number of messages to none.
         if (
@@ -139,7 +138,7 @@ export class Lean extends EventEmitter {
             this.dbg(
               "server",
               path,
-              " changed while running, so running again"
+              " changed while running, so running again",
             );
             this.paths[path].on_change();
           }
@@ -191,7 +190,7 @@ export class Lean extends EventEmitter {
         this.dbg(
           "sync",
           path,
-          "skipping sync document is empty (and LEAN behaves weird in this case)"
+          "skipping sync document is empty (and LEAN behaves weird in this case)",
         );
         this.emit("sync", path, syncstring.hash_of_live_version());
         return;
@@ -256,7 +255,7 @@ export class Lean extends EventEmitter {
   async info(
     path: string,
     line: number,
-    column: number
+    column: number,
   ): Promise<lean_client.InfoResponse> {
     this.dbg("info", path, line, column);
     if (!this.paths[path]) {
@@ -270,7 +269,7 @@ export class Lean extends EventEmitter {
     path: string,
     line: number,
     column: number,
-    skipCompletions?: boolean
+    skipCompletions?: boolean,
   ): Promise<lean_client.CompleteResponse> {
     this.dbg("complete", path, line, column);
     if (!this.paths[path]) {
