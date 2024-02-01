@@ -747,6 +747,36 @@ addCommands({
       set_account_table({ editor_settings: { extra_button_bar: !visible } });
     },
   },
+  reset_button_bar: {
+    alwaysShow: true,
+    icon: "trash",
+    group: "button-bar",
+    title:
+      "Reset the button toolbar for this editor to its default state, removing any buttons you added or removed.",
+    label: () => "Reset Button Toolbar...",
+    onClick: async ({ props }) => {
+      if (
+        !(await redux.getActions("page").popconfirm({
+          title: "Reset the Button Toolbar",
+          description: (
+            <div>
+              If you reset the button toolbar the choice of commands in the
+              toolbar for this specific type of editor will revert to the
+              default state.
+            </div>
+          ),
+          cancelText: "Cancel",
+          okText: "Reset",
+        }))
+      ) {
+        return;
+      }
+      // it is a deep merge
+      set_account_table({
+        editor_settings: { buttons: { [props.type]: null } },
+      });
+    },
+  },
 });
 
 function fileAction(action) {
