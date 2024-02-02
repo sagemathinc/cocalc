@@ -754,35 +754,83 @@ addCommands({
       set_account_table({ editor_settings: { extra_button_bar: !visible } });
     },
   },
-  reset_button_bar: {
+  button_bar: {
     alwaysShow: true,
-    icon: "trash",
+    icon: "tool",
     group: "button-bar",
-    title:
-      "Reset the button toolbar for this editor to its default state, removing any buttons you added or removed.",
-    label: () => "Reset Button Toolbar...",
-    onClick: async ({ props }) => {
-      if (
-        !(await redux.getActions("page").popconfirm({
-          title: "Reset the Button Toolbar",
-          description: (
-            <div>
-              If you reset the button toolbar the choice of commands in the
-              toolbar for this specific type of editor will revert to the
-              default state.
-            </div>
-          ),
-          cancelText: "Cancel",
-          okText: "Reset",
-        }))
-      ) {
-        return;
-      }
-      // it is a deep merge
-      set_account_table({
-        editor_settings: { buttons: { [props.type]: null } },
-      });
-    },
+    label: "Button Toolbar",
+    children: [
+      {
+        name: "disable-button-toolbar",
+        icon: "trash",
+        group: "button-bar",
+        title:
+          "Disable all buttons just for this editor. This hides the button toolbar for this editor only.",
+        label: "Remove All Buttons",
+        onClick: async ({ props }) => {
+          if (
+            !(await redux.getActions("page").popconfirm({
+              title: "Remove All Buttons",
+              description: (
+                <div>
+                  If you disable all buttons just for this editor, then you
+                  won't see the button toolbar for this editor unless you enable
+                  some buttons. This does not impact any other editor.
+                </div>
+              ),
+              cancelText: "Cancel",
+              okText: "Remove All",
+            }))
+          ) {
+            return;
+          }
+          set_account_table({
+            editor_settings: { buttons: { [props.type]: null } },
+          });
+          const buttons = props.spec.buttons;
+          if (buttons == null) {
+            return;
+          }
+          const x: { [name: string]: false } = {};
+          for (const name in buttons) {
+            x[name] = false;
+          }
+          set_account_table({
+            editor_settings: { buttons: { [props.type]: x } },
+          });
+        },
+      },
+      {
+        name: "reset-button-toolbar",
+        icon: "undo",
+        group: "button-bar",
+        title:
+          "Reset the button toolbar for this editor to its default state, removing any buttons you added or removed.",
+        label: "Reset to Default",
+        onClick: async ({ props }) => {
+          if (
+            !(await redux.getActions("page").popconfirm({
+              title: "Reset Button Toolbar to Default",
+              description: (
+                <div>
+                  If you reset the button toolbar the choice of commands in the
+                  toolbar for this specific type of editor will revert to the
+                  default state.
+                </div>
+              ),
+              cancelText: "Cancel",
+              okText: "Reset",
+            }))
+          ) {
+            return;
+          }
+          // it is a deep merge
+          set_account_table({
+            editor_settings: { buttons: { [props.type]: null } },
+          });
+        },
+      },
+    ],
   },
 });
 

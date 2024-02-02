@@ -64,6 +64,7 @@ export function commands(actions: AllActions): {
 
     "cell toolbar attachments": {
       m: "Attachments toolbar",
+      i: "image",
       menu: "Attachments",
       f: () => actions.jupyter_actions?.cell_toolbar("attachments"),
     },
@@ -77,6 +78,7 @@ export function commands(actions: AllActions): {
 
     "cell toolbar metadata": {
       m: "Edit custom metadata toolbar",
+      i: "tags-outlined",
       menu: "Metadata",
       f: () => actions.jupyter_actions?.cell_toolbar("metadata"),
     },

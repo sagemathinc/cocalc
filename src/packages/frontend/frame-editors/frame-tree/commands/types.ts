@@ -13,14 +13,11 @@ export interface Menus {
 
 export type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
 
-export type OnClick = ({
-  props,
-  event,
-  setShowAI,
-}: {
+export type OnClick = (opts: {
   props?;
   event?;
   setShowAI?: (boolean) => void;
+  editorSettings?;
 }) => void;
 
 interface Options {
@@ -35,6 +32,7 @@ interface Options {
 export interface Command {
   // group -- inside of a menu
   group: Group;
+  name?: string; //not used
   // position, for sorting
   pos?: number;
   title?: ReactNode;
@@ -51,7 +49,7 @@ export interface Command {
   disable?: string;
   keyboard?: ReactNode;
   children?: Partial<Command>[] | ((opts: Options) => Partial<Command>[]);
-  disabled?: (opts:Options) => boolean;
+  disabled?: (opts: Options) => boolean;
   // not used yet
   tour?: string;
   confirm?: {
