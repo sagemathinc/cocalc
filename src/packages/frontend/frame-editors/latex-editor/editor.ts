@@ -64,6 +64,7 @@ const EDITOR_SPEC = {
       "switch_to_file",
       "show_table_of_contents",
       "word_count",
+      "-format-SpecialChar", // disable this since not properly implemented for latex.  It could be though!
     ]),
     customizeCommands: {
       print: {

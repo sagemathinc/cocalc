@@ -605,8 +605,10 @@ export function commands(actions: AllActions): {
 
     "nbgrader assign": {
       i: "graduation-cap",
-      m: "Create student version...",
+      t: "Generate the student version of this document, which strips out the extra instructor tests and cells.",
+      m: "Generate student version...",
       menu: "Generate student version...",
+      b: "Generate",
       f: () => actions.jupyter_actions?.nbgrader_actions.confirm_assign(),
     },
 

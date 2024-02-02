@@ -362,7 +362,7 @@ const JUPYTER_MENUS = {
       "confirm restart kernel and run all cells without halting on error",
     ],
     keys: ["tab key", "shift+tab key"],
-    nbgrader: ["nbgrader validate"],
+    nbgrader: ["nbgrader validate", "nbgrader assign"],
   },
   jupyter_kernel: {
     label: "Kernel",

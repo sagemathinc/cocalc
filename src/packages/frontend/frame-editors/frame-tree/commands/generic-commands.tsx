@@ -674,14 +674,14 @@ addCommands({
     title: "About this application",
     label: "About",
   },
-  quit: {
-    pos: 10,
-    group: "quit",
-    icon: "PoweroffOutlined",
-    title: "Quit this editor",
-    label: "Quit Application",
-    ...fileAction("quit"),
-  },
+  //   quit: {
+  //     pos: 10,
+  //     group: "quit",
+  //     icon: "PoweroffOutlined",
+  //     title: "Quit this editor",
+  //     label: "Quit Application",
+  //     ...fileAction("quit"),
+  //   },
   close_tab: {
     pos: 9,
     group: "quit",
