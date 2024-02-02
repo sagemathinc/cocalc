@@ -320,8 +320,8 @@ export const EXTRAS: SettingsExtras = {
     show: () => true,
   },
   zendesk_uri: {
-    name: "Zendesk Uri",
-    desc: "This is the Uri for your Zendesk server.  E.g., for `cocalc.com` it is https://sagemathcloud.zendesk.com/api/v2",
+    name: "Zendesk Subdomain",
+    desc: "This is the Subdomain of your Zendesk server.  E.g., for `cocalc.com` it is `sagemathcloud`",
     default: "",
     show: () => true,
   },

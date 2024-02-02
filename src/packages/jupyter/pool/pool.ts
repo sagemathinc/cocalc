@@ -8,7 +8,7 @@ Launching and managing Jupyter kernels in a pool for
 performance.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import json from "json-stable-stringify";
 import nodeCleanup from "node-cleanup";

@@ -49,7 +49,7 @@ const CURSOR_THROTTLE_MS = 750;
 
 type XPatch = any;
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import {
   callback2,

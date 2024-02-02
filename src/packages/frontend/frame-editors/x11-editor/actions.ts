@@ -18,7 +18,7 @@ import type { Channel } from "@cocalc/comm/websocket/types";
 import { Map, Set as immutableSet, fromJS } from "immutable";
 import { project_api } from "../generic/client";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
 import { assertDefined } from "@cocalc/util/misc";
 import {
@@ -55,7 +55,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
   async _init2(): Promise<void> {
     await this.check_capabilities();
-    this.launch = reuseInFlight(this.launch);
+    this.launch = reuseInFlight(this.launch.bind(this));
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
@@ -65,7 +65,7 @@ export class Actions extends BaseActions<X11EditorState> {
       this.set_error(
         // TODO: should retry instead (?)
         err +
-          " -- you might need to refresh your browser or close and open this file."
+          " -- you might need to refresh your browser or close and open this file.",
       );
     }
   }
@@ -88,7 +88,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
       // next, we check for specific apps
       const x11_conf = (await proj_actions.init_configuration(
-        "x11"
+        "x11",
       )) as X11Configuration;
       if (x11_conf == null) return false;
       // from here, we know that we have x11 status information
@@ -202,7 +202,7 @@ export class Actions extends BaseActions<X11EditorState> {
           .set(wid, fromJS({ wid, title, is_modal }));
         this.setState({ windows });
         this.update_x11_tabs();
-      }
+      },
     );
 
     this.client.on("window:destroy", (wid: number) => {
@@ -326,12 +326,12 @@ export class Actions extends BaseActions<X11EditorState> {
   set_focused_window_in_frame(
     id: string,
     wid: number,
-    do_not_ensure = false
+    do_not_ensure = false,
   ): void {
     const modal_wids = this.get_modal_wids();
     if (modal_wids.size > 0 && !modal_wids.has(wid)) {
       this.set_error(
-        "Close any modal tabs before switching to a non-modal tab."
+        "Close any modal tabs before switching to a non-modal tab.",
       );
       return;
     }

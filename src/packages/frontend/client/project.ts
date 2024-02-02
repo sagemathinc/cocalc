@@ -15,7 +15,7 @@ import {
   defaults,
   coerce_codomain_to_numbers,
 } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import * as message from "@cocalc/util/message";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { connection_to_project } from "../project/websocket/connect";

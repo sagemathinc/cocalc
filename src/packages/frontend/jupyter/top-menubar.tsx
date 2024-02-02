@@ -137,7 +137,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ]);
         if (ext != null) {
           const m = capitalize(
-            backend_kernel_info.getIn(["language_info", "name"], "") as any
+            backend_kernel_info.getIn(["language_info", "name"], "") as any,
           );
           script_entry = {
             name: ">nbconvert script",
@@ -344,7 +344,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
 
     function render_kernel_item(
       kernel: KernelSpec,
-      prefix = ""
+      prefix = "",
     ): MenuItems[0] | string {
       if (kernel == null) return "";
       const current = kernel.name === current_kernel;
@@ -385,8 +385,10 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         kernels_by_language.get(currentLang)?.toJS() ?? [],
         (name) => {
           const kernel = kernels_by_name.get(name);
-          return -(kernel?.getIn(["metadata", "cocalc", "priority"]) as any) ?? 0;
-        }
+          return (
+            -(kernel?.getIn(["metadata", "cocalc", "priority"]) as any) ?? 0
+          );
+        },
       );
     }
 
@@ -413,7 +415,9 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           if (byPrio.length > 1) {
             entries.push(`<Change ${capitalize(currentLang)} kernel ...`);
             for (const name of byPrio) {
-              const kernel = kernels_by_name.get(name)?.toJS() as unknown as KernelSpec;
+              const kernel = kernels_by_name
+                .get(name)
+                ?.toJS() as unknown as KernelSpec;
               if (kernel == null) continue;
               entries.push(render_kernel_item(kernel, "current"));
             }
@@ -431,13 +435,15 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       }
       const langSorted = sortBy(
         kernels_by_language.keySeq().toJS(),
-        capitalize
+        capitalize,
       );
       for (const lang of langSorted) {
-        if(lang == null) continue;
+        if (lang == null) continue;
         entries.push(`~${capitalize(lang)}...`);
         for (const name of getKernelOfLanguageByPriority(lang)) {
-          const kernel = kernels_by_name.get(name)?.toJS() as unknown as KernelSpec;
+          const kernel = kernels_by_name
+            .get(name)
+            ?.toJS() as unknown as KernelSpec;
           const e = render_kernel_item(kernel, "all");
           if (typeof e === "string") continue;
           entries.push(e);
@@ -506,7 +512,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
 
     function render_menu_item(
       key: string,
-      name1: MenuItemName | MenuItems[0]
+      name1: MenuItemName | MenuItems[0],
     ): MenuItems[0] {
       if (!name1) return MenuDivider;
       if (name1["label"] != null) {
@@ -615,6 +621,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       const items = render_menu_items(names);
       return (
         <DropdownMenu
+          hide_down={true}
           title={heading}
           key={heading}
           id={heading}
@@ -666,29 +673,30 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         MenuDivider,
         external_link(
           "Notebook help",
-          "http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb"
+          "http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb",
         ),
         external_link(
           "Jupyter in CoCalc",
-          "https://doc.cocalc.com/jupyter.html"
+          "https://doc.cocalc.com/jupyter.html",
         ),
         external_link(
           "nbgrader in CoCalc",
-          "https://doc.cocalc.com/teaching-nbgrader.html"
+          "https://doc.cocalc.com/teaching-nbgrader.html",
         ),
         external_link(
           "Custom Jupyter kernels",
-          "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
+          "https://doc.cocalc.com/howto/custom-jupyter-kernel.html",
         ),
         external_link(
           "Markdown",
-          "https://help.github.com/articles/basic-writing-and-formatting-syntax"
+          "https://help.github.com/articles/basic-writing-and-formatting-syntax",
         ),
         ...render_links(),
       ];
 
       return (
         <DropdownMenu
+          hide_down={true}
           key="help"
           id="menu-help"
           title={"Help"}
@@ -717,7 +725,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       </ButtonGroup>
     );
   },
-  should_memoize
+  should_memoize,
 );
 
 function external_link(name: string, url: string): MenuItems[0] {

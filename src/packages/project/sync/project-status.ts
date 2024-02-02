@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { close } from "@cocalc/util/misc";
 import { SyncTable } from "@cocalc/sync/table";
 import {
@@ -23,13 +23,13 @@ class ProjectStatusTable {
   constructor(
     table: SyncTable,
     logger: { debug: Function },
-    project_id: string
+    project_id: string,
   ) {
     this.status_handler = this.status_handler.bind(this);
     this.project_id = project_id;
     this.logger = logger;
     this.log("register");
-    this.publish = reuseInFlight(this.publish_impl);
+    this.publish = reuseInFlight(this.publish_impl.bind(this));
     this.table = table;
     this.table.on("closed", () => this.close());
     // initializing project status server + reacting when it has something to say
@@ -56,7 +56,7 @@ class ProjectStatusTable {
       this.log(
         `ProjectStatusTable '${
           this.state
-        }' and table is ${this.table?.get_state()}`
+        }' and table is ${this.table?.get_state()}`,
       );
     }
   }
@@ -80,12 +80,12 @@ let project_status_table: ProjectStatusTable | undefined = undefined;
 export function register_project_status_table(
   table: SyncTable,
   logger: any,
-  project_id: string
+  project_id: string,
 ): void {
   logger.debug("register_project_status_table");
   if (project_status_table != null) {
     logger.debug(
-      "register_project_status_table: cleaning up an already existing one"
+      "register_project_status_table: cleaning up an already existing one",
     );
     project_status_table.close();
   }

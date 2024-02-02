@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
 import { keys, map, sortBy, zipObject } from "lodash";
 import { promises } from "node:fs";
 import { basename } from "node:path";
@@ -13,6 +12,7 @@ import {
   SoftwareEnvNames,
 } from "@cocalc/util/consts/software-envs";
 import { hours_ago } from "@cocalc/util/relative-time";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import withCustomize from "lib/with-customize";
 import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import {
@@ -66,14 +66,14 @@ async function fetchInventory(): Promise<SoftwareEnvironments> {
     return await makeObject(
       SOFTWARE_ENV_NAMES,
       async (name) =>
-        await file2json(`${localSpec}/software-inventory-${name}.json`)
+        await file2json(`${localSpec}/software-inventory-${name}.json`),
     );
   }
   try {
     // download the files for the newest information from the server
     const ret = await makeObject(
       SOFTWARE_ENV_NAMES,
-      async (name) => await downloadInventoryJson(name)
+      async (name) => await downloadInventoryJson(name),
     );
     return ret;
   } catch (err) {
@@ -110,7 +110,7 @@ async function getSoftwareInfo(name: SoftwareEnvNames): Promise<EnvData> {
 
 async function getSoftwareInfoLang(
   name: SoftwareEnvNames,
-  lang: LanguageName
+  lang: LanguageName,
 ): Promise<{
   inventory: ComputeInventory[LanguageName];
   components: ComputeComponents[LanguageName];
@@ -172,7 +172,7 @@ function getLanguageExecutables({ lang, inventory }): string[] {
 // this is for the server side getServerSideProps function
 export async function withCustomizedAndSoftwareSpec(
   context,
-  lang: LanguageName | "executables"
+  lang: LanguageName | "executables",
 ) {
   const { name } = context.params;
 
@@ -200,7 +200,7 @@ export async function withCustomizedAndSoftwareSpec(
     // this is instant because specs are already in the cache
     const { inventory, components, timestamp } = await getSoftwareInfoLang(
       name,
-      lang
+      lang,
     );
     customize.props.inventory = inventory;
     customize.props.components = components;

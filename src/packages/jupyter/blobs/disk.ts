@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { mkdir, readFile, readdir, stat, unlink } from "node:fs/promises";

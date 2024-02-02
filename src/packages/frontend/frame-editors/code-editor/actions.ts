@@ -21,7 +21,7 @@ const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
 import type { TourProps } from "antd";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { List, Map, fromJS, Set as iSet } from "immutable";
@@ -220,7 +220,7 @@ export class Actions<
       this as unknown as Actions<CodeEditorState>,
     );
 
-    this.format = reuseInFlight(this.format);
+    this.format = reuseInFlight(this.format.bind(this));
 
     this.set_resize = debounce(this.set_resize.bind(this), 20, {
       leading: false,

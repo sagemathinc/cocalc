@@ -58,7 +58,7 @@ const _ = set_debug;
 
 import { init_syncdoc } from "./sync-doc";
 import { key, register_synctable } from "./open-synctables";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { close, deep_copy, len } from "@cocalc/util/misc";
