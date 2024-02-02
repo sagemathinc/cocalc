@@ -261,7 +261,10 @@ export class ManageCommands {
     const width = ICON_WIDTH;
     const lbl = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
     let icon;
-    if (!name) {
+    if (!name || !this.editorSettings.get("extra_button_bar")) {
+      // do not show toggleable icon if no command name (so not top level)
+      // or the button bar is completely disabled (i.e. user doesn't
+      // want it at all).
       icon = (
         <div style={{ width, marginRight: "10px", display: "inline-block" }}>
           {this.getCommandIcon(cmd)}
