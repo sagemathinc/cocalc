@@ -50,6 +50,13 @@ export const EDITOR_SPEC = {
     icon: "slides",
     component: Slides,
     commands: slidesCommands,
+    buttons: set([
+      "show_table_of_contents",
+      "show_pages",
+      "show_search",
+      "show_overview",
+      "show_slideshow",
+    ]),
   } as EditorDescription,
   speaker_notes: {
     short: "Notes",
@@ -74,6 +81,7 @@ export const EDITOR_SPEC = {
       "set_zoom",
       "show_slideshow",
     ]),
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   pages: {
     short: "Pages",
@@ -94,6 +102,7 @@ export const EDITOR_SPEC = {
       "set_zoom",
       "help",
     ]),
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   terminal,
   time_travel,
@@ -115,6 +124,7 @@ export const EDITOR_SPEC = {
       "increase_font_size",
       "show_slideshow",
     ]),
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   slideshow: {
     short: "Slideshow",

@@ -389,7 +389,7 @@ export class ManageCommands {
               color: "#666",
               marginTop: "-5px",
               // special case: button='' explicitly means no label
-              width: cmd.button === "" ? undefined : "48px",
+              width: cmd.button === "" ? undefined : "46px",
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}

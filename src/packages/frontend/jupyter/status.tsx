@@ -47,12 +47,14 @@ const KERNEL_USAGE_STYLE: CSS = {
   color: COLORS.GRAY,
   borderRight: `1px solid ${COLORS.GRAY}`,
   paddingRight: "5px",
+  display: "flex",
+  flex: 1,
 } as const;
 
 const KERNEL_USAGE_STYLE_SMALL: CSS = {
   height: "5px",
   marginBottom: "4px",
-  width: "5em",
+  width: "100%",
 } as const;
 
 const KERNEL_USAGE_STYLE_NUM: CSS = {
@@ -361,7 +363,7 @@ export function Kernel({
   function renderKernelState() {
     if (!backend_state) return <div></div>;
     return (
-      <Tooltip title={kernelState()}>
+      <Tooltip title={kernelState()} placement="bottom">
         <div
           style={{
             flex: 1,
@@ -485,8 +487,8 @@ export function Kernel({
           marginTop: "-6px",
         };
     const pstyle: CSS = {
-      margin: "2px",
-      width: "5em",
+      margin: "2px 2px 2px 15px",
+      width: "100%",
       position: "relative",
       top: "-1px",
     };
@@ -526,7 +528,7 @@ export function Kernel({
 
     return (
       <div style={style}>
-        <span style={usage_style}>
+        <div style={usage_style}>
           {is_fullscreen && "CPU "}
           <Progress
             style={pstyle}
@@ -536,8 +538,8 @@ export function Kernel({
             trailColor="white"
             strokeColor={ALERT_COLS[usage.time_alert]}
           />
-        </span>
-        <span style={usage_style}>
+        </div>
+        <div style={usage_style}>
           {is_fullscreen && "Memory "}
           <Progress
             style={pstyle}
@@ -547,7 +549,7 @@ export function Kernel({
             trailColor="white"
             strokeColor={ALERT_COLS[usage.mem_alert]}
           />
-        </span>
+        </div>
       </div>
     );
   }

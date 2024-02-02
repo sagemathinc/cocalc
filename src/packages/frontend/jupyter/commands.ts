@@ -33,6 +33,7 @@ export interface KeyboardCommand {
 export interface CommandDescription {
   m: string; // m=menu = fuller description for use in menus and commands
   f: Function; // function that implements command.
+  b?: string; // very short label; use for a button
   i?: IconName;
   k?: KeyboardCommand[]; // keyboard commands
   t?: string; // t=title = much longer description for tooltip
@@ -419,6 +420,7 @@ export function commands(actions: AllActions): {
 
     "interrupt kernel": {
       i: "stop",
+      b: "Stop",
       m: "Interrupt Kernel",
       k: [{ mode: "escape", which: 73, twice: true }],
       f: () => actions.jupyter_actions?.signal("SIGINT"),
@@ -674,6 +676,7 @@ export function commands(actions: AllActions): {
 
     "restart kernel": {
       m: "Restart kernel",
+      b: "Restart",
       f: () => actions.jupyter_actions?.restart(),
     },
 
@@ -687,6 +690,7 @@ export function commands(actions: AllActions): {
 
     "restart kernel and run all cells": {
       m: "Restart Kernel and Run All Cells",
+      b: "Run All",
       async f() {
         actions.frame_actions?.set_all_md_cells_not_editing();
         await actions.jupyter_actions?.restart();
@@ -740,6 +744,7 @@ export function commands(actions: AllActions): {
     "run cell and select next": {
       i: "step-forward",
       m: "Run Selected Cells",
+      b: "Run",
       k: [{ which: 13, shift: true }],
       f() {
         actions.frame_actions?.shift_enter_run_selected_cells();
@@ -868,7 +873,8 @@ export function commands(actions: AllActions): {
 
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
-      m: "Tab key (completion)",
+      m: "Tab Key (completion)",
+      b: "Tab",
       i: "tab",
       f: () => actions.frame_actions?.tab_key(),
     },
@@ -1013,12 +1019,14 @@ export function commands(actions: AllActions): {
     },
 
     "format cells": {
+      b: "Format",
       i: FORMAT_SOURCE_ICON,
       m: "Format Selected Cells",
       f: () => actions.frame_actions?.format_selected_cells(),
     },
 
     "format all cells": {
+      b: "Format",
       i: FORMAT_SOURCE_ICON,
       m: "Format All Cells",
       f: () => actions.frame_actions?.format_all_cells(),

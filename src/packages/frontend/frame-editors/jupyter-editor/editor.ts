@@ -58,14 +58,13 @@ export const EDITOR_SPEC = {
     commands: jupyterCommands,
     buttons: set([
       "jupyter-insert-cell",
-      "jupyter-move-cell",
       "jupyter-run cell and select next",
       "jupyter-interrupt kernel",
       "jupyter-tab key",
       "jupyter-restart",
-      "jupyter-confirm restart kernel and run all cells",
       "jupyter-cell-type",
       "jupyter-cell-format",
+      "jupyter-cell-toolbar",
       "jupyter-nbgrader validate",
     ]),
     customizeCommands: {
@@ -206,6 +205,7 @@ const JUPYTER_MENUS = {
     "insert-delete": [
       {
         label: "Insert Cell",
+        button: "Insert",
         name: "insert-cell",
         icon: "plus",
         children: ["insert cell above", "insert cell below"],
@@ -243,7 +243,7 @@ const JUPYTER_MENUS = {
     "cell-type": [
       {
         name: "cell-type",
-        label: "Change Cell Type",
+        label: "Cell Type",
         icon: "code-outlined",
         children: [
           "change cell to code",
@@ -313,6 +313,7 @@ const JUPYTER_MENUS = {
       {
         icon: FORMAT_SOURCE_ICON,
         label: "Format Cells",
+        button: "Format",
         name: "cell-format",
         children: ["format cells", "format all cells"],
       },
@@ -323,8 +324,9 @@ const JUPYTER_MENUS = {
     label: "View",
     pos: 2,
     components: [
-      "cell toolbar create_assignment",
       {
+        icon: "tool",
+        button: "Toolbars",
         label: "Cell Toolbar",
         name: "cell-toolbar",
         children: [
@@ -491,6 +493,7 @@ function initMenus() {
         throw Error(`invalid Jupyter command name "${name}"`);
       }
       return {
+        button: cmd.b,
         title: cmd.t,
         label: cmd.m,
         icon: cmd.i,
