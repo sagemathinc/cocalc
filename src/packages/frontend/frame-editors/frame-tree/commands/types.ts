@@ -23,21 +23,25 @@ export type OnClick = ({
   setShowAI?: (boolean) => void;
 }) => void;
 
+interface Options {
+  props?;
+  helpSearch?;
+  setHelpSearch?;
+  renderMenus?;
+  frameTypeCommands?;
+  readOnly?;
+}
+
 export interface Command {
   // group -- inside of a menu
   group: Group;
   // position, for sorting
   pos?: number;
   title?: ReactNode;
-  icon?: ReactNode | ((opts: { props? }) => ReactNode);
-  label?:
-    | ReactNode
-    | ((opts: {
-        props?;
-        helpSearch?;
-        setHelpSearch?;
-        renderMenus?;
-      }) => ReactNode);
+  icon?: ReactNode | ((opts: Options) => ReactNode);
+  button?: ReactNode | ((opts: Options) => ReactNode);
+  //color?: string | ((opts: Options) => string);
+  label?: ReactNode | ((opts: Options) => ReactNode);
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
   onClick?: OnClick;
@@ -46,10 +50,8 @@ export interface Command {
   isVisible?: string | (({ props }) => boolean);
   disable?: string;
   keyboard?: ReactNode;
-  children?:
-    | Partial<Command>[]
-    | ((opts: { props?; frameTypeCommands? }) => Partial<Command>[]);
-  disabled?: ({ props, readOnly }) => boolean;
+  children?: Partial<Command>[] | ((opts: Options) => Partial<Command>[]);
+  disabled?: (opts:Options) => boolean;
   // not used yet
   tour?: string;
   confirm?: {

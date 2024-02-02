@@ -273,7 +273,11 @@ export class ManageCommands {
         buttons?.getIn([this.props.type, name]) ??
         this.props.spec.buttons?.[name];
       icon = cmd.icon ? (
-        <Tooltip title={"Click icon to toggle button"} placement="left">
+        <Tooltip
+          title={"Click icon to toggle button"}
+          placement="left"
+          mouseEnterDelay={0.9}
+        >
           <Button
             type="text"
             style={{
@@ -287,7 +291,7 @@ export class ManageCommands {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              buttons = buttons.toJS() ?? {};
+              buttons = buttons?.toJS() ?? {};
               if (buttons[this.props.type] == null) {
                 buttons[this.props.type] = {};
               }
@@ -322,7 +326,7 @@ export class ManageCommands {
       cmd,
       key: name,
       noChildren: false,
-      iconOnly: true,
+      button: true,
     });
   };
 
@@ -345,13 +349,13 @@ export class ManageCommands {
     key,
     cmd,
     noChildren,
-    iconOnly,
+    button,
   }: {
     name?: string;
     key: string;
     cmd: Partial<Command>;
     noChildren: boolean;
-    iconOnly?: boolean;
+    button?: boolean;
   }) => {
     // it's an action defined by the name of that action, so visible
     // only if that function is defined.
@@ -366,17 +370,55 @@ export class ManageCommands {
       return null;
     }
     let label;
-    if (iconOnly) {
-      label = this.getCommandIcon(cmd);
-      if (label == null) {
-        label = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+    if (button) {
+      const icon = this.getCommandIcon(cmd);
+      let buttonLabel;
+      if (cmd.button != null) {
+        buttonLabel =
+          typeof cmd.button == "function" ? cmd.button(this) : cmd.button;
+      } else {
+        buttonLabel =
+          typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
       }
+      label = (
+        <>
+          {icon ?? <Icon name="square" />}
+          <div
+            style={{
+              fontSize: "10px",
+              color: "#666",
+              marginTop: "-5px",
+              // special case: button='' explicitly means no label
+              width: cmd.button === "" ? undefined : "48px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {buttonLabel}
+          </div>
+        </>
+      );
     } else {
       label = this.getCommandLabel(cmd, name);
     }
-    if (cmd.title) {
+    if (button) {
       label = (
-        <Tooltip mouseEnterDelay={0.9} title={cmd.title}>
+        <Tooltip
+          title={() => {
+            return (
+              <>
+                {this.getCommandLabel(cmd, name)}
+                {cmd.title ? <div>{cmd.title}</div> : undefined}
+              </>
+            );
+          }}
+        >
+          {label}
+        </Tooltip>
+      );
+    } else if (cmd.title) {
+      label = (
+        <Tooltip title={cmd.title} placement="right">
           {label}
         </Tooltip>
       );
@@ -396,7 +438,7 @@ export class ManageCommands {
         this.props.actions.set_error(`${err}`);
       }
     };
-    if (!iconOnly && cmd.keyboard) {
+    if (!button && cmd.keyboard) {
       label = (
         <div style={{ display: "flex" }}>
           {label}

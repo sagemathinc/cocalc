@@ -148,6 +148,7 @@ addCommands({
     icon: "search-minus",
     label: "Zoom Out",
     keyboard: "control + <",
+    button: "Smaller",
   },
   increase_font_size: {
     stayOpenOnClick: true,
@@ -157,6 +158,7 @@ addCommands({
     icon: "search-plus",
     label: "Zoom In",
     keyboard: "control + >",
+    button: "Bigger",
   },
   zoom_page_width: {
     pos: 3,
@@ -283,6 +285,7 @@ addCommands({
 
   clear: {
     group: "action",
+    button: "Clear",
     label: "Clear Frame",
     icon: <Icon unicode={0x2620} />,
     confirm: {
@@ -292,6 +295,7 @@ addCommands({
 
   pause: {
     group: "action",
+    button: "Pause",
     icon: "pause",
     label: ({ props }) => {
       if (props.is_paused) {
@@ -334,12 +338,14 @@ addCommands({
       "Kick all other users out from this document. It will close in all other browsers.",
     tour: "kick_other_users_out",
     label: "Kick Other Users Out",
+    button: "Kick",
   },
 
   halt_jupyter: {
     group: "quit",
     icon: "PoweroffOutlined",
     label: "Close and Halt...",
+    button: "Halt",
     title: "Halt the running Jupyter kernel and close this notebook.",
   },
 
@@ -694,6 +700,7 @@ addCommands({
     children: ({ frameTypeCommands }) => frameTypeCommands(),
   },
   toggle_button_bar: {
+    button: "",
     alwaysShow: true,
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "extra_button_bar"])
@@ -709,41 +716,41 @@ addCommands({
           .getIn(["editor_settings", "extra_button_bar"])
           ? "Hide"
           : "Show"}{" "}
-        button toolbar
+        Button Toolbar
       </>
     ),
     onClick: async () => {
       const visible = redux
         .getStore("account")
         .getIn(["editor_settings", "extra_button_bar"]);
-      if (visible) {
-        // hiding it, so confirm
-        if (
-          !(await redux.getActions("page").popconfirm({
-            title: "Hide the Button Toolbar",
-            description: (
-              <div>
-                <ul>
-                  <li>
-                    Show the toolbar by selecting 'View -&gt; Show button
-                    toolbar' in the menu.
-                  </li>
-                  <li>
-                    Toggle what buttons appear in the toolbar by clicking the
-                    icon next to any top level menu item. (Submenu items are not
-                    supported, but you can add an entire submenu to the
-                    toolbar.)
-                  </li>
-                </ul>
-              </div>
-            ),
-            cancelText: "Cancel",
-            okText: "Hide button toolbar",
-          }))
-        ) {
-          return;
-        }
-      }
+      //             if (visible) {
+      //         // hiding it, so confirm
+      //         if (
+      //           !(await redux.getActions("page").popconfirm({
+      //             title: "Hide the Button Toolbar",
+      //             description: (
+      //               <div>
+      //                 <ul>
+      //                   <li>
+      //                     Show the toolbar by selecting 'View -&gt; Show button
+      //                     toolbar' in the menu.
+      //                   </li>
+      //                   <li>
+      //                     Toggle what buttons appear in the toolbar by clicking the
+      //                     icon next to any top level menu item. (Submenu items are not
+      //                     supported, but you can add an entire submenu to the
+      //                     toolbar.)
+      //                   </li>
+      //                 </ul>
+      //               </div>
+      //             ),
+      //             cancelText: "Cancel",
+      //             okText: "Hide Button Toolbar",
+      //           }))
+      //         ) {
+      //           return;
+      //         }
+      //       }
       set_account_table({ editor_settings: { extra_button_bar: !visible } });
     },
   },
