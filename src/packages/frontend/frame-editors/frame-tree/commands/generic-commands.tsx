@@ -700,7 +700,7 @@ addCommands({
     children: ({ frameTypeCommands }) => frameTypeCommands(),
   },
   toggle_button_bar: {
-    button: "",
+    button: "Buttons",
     alwaysShow: true,
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "extra_button_bar"])
@@ -723,34 +723,34 @@ addCommands({
       const visible = redux
         .getStore("account")
         .getIn(["editor_settings", "extra_button_bar"]);
-      //             if (visible) {
-      //         // hiding it, so confirm
-      //         if (
-      //           !(await redux.getActions("page").popconfirm({
-      //             title: "Hide the Button Toolbar",
-      //             description: (
-      //               <div>
-      //                 <ul>
-      //                   <li>
-      //                     Show the toolbar by selecting 'View -&gt; Show button
-      //                     toolbar' in the menu.
-      //                   </li>
-      //                   <li>
-      //                     Toggle what buttons appear in the toolbar by clicking the
-      //                     icon next to any top level menu item. (Submenu items are not
-      //                     supported, but you can add an entire submenu to the
-      //                     toolbar.)
-      //                   </li>
-      //                 </ul>
-      //               </div>
-      //             ),
-      //             cancelText: "Cancel",
-      //             okText: "Hide Button Toolbar",
-      //           }))
-      //         ) {
-      //           return;
-      //         }
-      //       }
+      if (visible) {
+        // hiding it, so confirm
+        if (
+          !(await redux.getActions("page").popconfirm({
+            title: "Hide the Button Toolbar",
+            description: (
+              <div>
+                <ul>
+                  <li>
+                    Show the toolbar by selecting 'View -&gt; Show button
+                    toolbar' in the menu.
+                  </li>
+                  <li>
+                    Toggle what buttons appear in the toolbar by clicking the
+                    icon next to any top level menu item. (Submenu items are not
+                    supported, but you can add an entire submenu to the
+                    toolbar.)
+                  </li>
+                </ul>
+              </div>
+            ),
+            cancelText: "Cancel",
+            okText: "Hide Button Toolbar",
+          }))
+        ) {
+          return;
+        }
+      }
       set_account_table({ editor_settings: { extra_button_bar: !visible } });
     },
   },

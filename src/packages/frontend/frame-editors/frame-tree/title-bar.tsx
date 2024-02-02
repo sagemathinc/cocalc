@@ -567,7 +567,6 @@ export function FrameTitleBar(props: Props) {
     let x;
     if ((x = render_save())) v.push(x);
     if ((x = render_timetravel())) v.push(x);
-    if ((x = renderButtonBarToggle())) v.push(x);
     if ((x = render_artificial_intelligence())) v.push(x);
     if ((x = renderComputeServer())) v.push(x);
     if (v.length == 1) return v[0];
@@ -966,30 +965,6 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function renderButtonBarToggle() {
-    const item = manageCommands.button("toggle_button_bar");
-    if (item == null) {
-      return null;
-    }
-    const { disabled, label, key, onClick } = item;
-    return (
-      <Button
-        size="small"
-        key={key}
-        disabled={disabled}
-        onClick={onClick}
-        style={{
-          color: "#333",
-          background: "#d5e17b",
-          height: button_height(),
-          fontSize: "12pt",
-        }}
-      >
-        {label}
-      </Button>
-    );
-  }
-
   function renderButtonBarButton(name) {
     let item;
     try {
@@ -1033,7 +1008,7 @@ export function FrameTitleBar(props: Props) {
     if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
-    const w: string[] = [];
+    const w: string[] = ["toggle_button_bar"];
     const customButtons = editorSettings.getIn(["buttons", props.type]);
     let custom;
     if (customButtons != null) {
@@ -1069,7 +1044,7 @@ export function FrameTitleBar(props: Props) {
         v.push(b);
       }
     }
-    if (v.length == 0) {
+    if (v.length <= 1) {
       return null;
     }
     return (
