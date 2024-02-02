@@ -222,7 +222,7 @@ export class Actions<
       this as unknown as Actions<CodeEditorState>,
     );
 
-    this.format = reuseInFlight(this.format);
+    this.format = reuseInFlight(this.format.bind(this));
 
     this.set_resize = debounce(this.set_resize.bind(this), 20, {
       leading: false,
