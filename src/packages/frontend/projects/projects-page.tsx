@@ -21,10 +21,12 @@ import {
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
 import { COLORS } from "@cocalc/util/theme";
+import { Button, Flex, Space } from "antd";
 import { UsersViewing } from "../account/avatar/users-viewing";
+import { useMeasureDimensions } from "../hooks";
 import { NewProjectCreator } from "./create-project";
 import { Hashtags } from "./hashtags";
-import ProjectList from "./project-list";
+import ProjectList, { ProjectsList2 } from "./project-list";
 import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
@@ -32,16 +34,16 @@ import ProjectsPageTour from "./tour";
 import { get_visible_hashtags, get_visible_projects } from "./util";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
-  color: COLORS.GRAY_D,
-  fontSize: "24px",
+  color: COLORS.GRAY_M,
+  fontSize: "20px",
   fontWeight: 500,
-  marginBottom: "1ex",
 } as const;
 
 const LOADING_STYLE: React.CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
-  color: "#999999",
+  color: COLORS.GRAY_L,
+  marginTop: "min(20px, 20vh)",
 } as const;
 
 export function ProjectsPage() {
@@ -49,6 +51,10 @@ export function ProjectsPage() {
   const filtersRef = useRef<any>(null);
   const createNewRef = useRef<any>(null);
   const projectListRef = useRef<any>(null);
+  const listHeaderRef = useRef<any>(null);
+
+  const projectListHeight = useMeasureDimensions(projectListRef).height;
+  const listHeaderHeight = useMeasureDimensions(listHeaderRef).height;
 
   const actions = useActions("projects");
   const [clear_and_focus_search, set_clear_and_focus_search] =
@@ -138,25 +144,9 @@ export function ProjectsPage() {
     }
   }
 
-  return (
-    <div className={"smc-vfill"}>
-      <div style={{ minHeight: "20px" }}>
-        <ProjectsPageTour
-          style={{ float: "right", marginTop: "5px", marginRight: "5px" }}
-          searchRef={searchRef}
-          filtersRef={filtersRef}
-          createNewRef={createNewRef}
-          projectListRef={projectListRef}
-        />
-      </div>
-      <Col
-        sm={12}
-        md={12}
-        lg={10}
-        lgOffset={1}
-        className={"smc-vfill"}
-        style={{ overflowY: "auto" }}
-      >
+  function renderOld() {
+    return (
+      <>
         <Row>
           <Col md={4}>
             <div style={PROJECTS_TITLE_STYLE}>
@@ -217,6 +207,114 @@ export function ProjectsPage() {
             </div>
           </Col>
         </Row>
+      </>
+    );
+  }
+
+  function renderTourBtn(variant: "old" | "new" = "old") {
+    return (
+      <ProjectsPageTour
+        style={
+          variant === "old"
+            ? { float: "right", marginTop: "5px", marginRight: "5px" }
+            : {}
+        }
+        searchRef={searchRef}
+        filtersRef={filtersRef}
+        createNewRef={createNewRef}
+        projectListRef={projectListRef}
+        variant={variant}
+      />
+    );
+  }
+
+  function renderNewHeader() {
+    return (
+      <div ref={listHeaderRef}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            verticalAlign: "center",
+            marginBottom: "10px",
+          }}
+        >
+          <div style={PROJECTS_TITLE_STYLE}>
+            <Icon name="edit" /> Projects
+          </div>
+          <Flex vertical={false} gap={10}>
+            <UsersViewing />
+            <Space.Compact>
+              <Button
+                type="primary"
+                onClick={() => {
+                  window.alert("new project");
+                }}
+              >
+                <Icon name="plus" /> New project...
+              </Button>
+              {renderTourBtn("new")}
+            </Space.Compact>
+          </Flex>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            verticalAlign: "center",
+          }}
+        >
+          <Flex vertical={false} gap={10} justify="center">
+            <div ref={searchRef}>
+              <ProjectsSearch
+                clear_and_focus_search={clear_and_focus_search}
+                on_submit={(switch_to: boolean) => {
+                  const project_id = visible_projects[0];
+                  if (project_id != null) {
+                    actions.setState({ search: "" });
+                    actions.open_project({ project_id, switch_to });
+                  }
+                }}
+              />
+            </div>
+            <div ref={filtersRef}>
+              <ProjectsFilterButtons />
+            </div>
+          </Flex>
+          <Hashtags
+            hashtags={visible_hashtags}
+            selected_hashtags={selected_hashtags?.get(filter)}
+            toggle_hashtag={(tag) => actions.toggle_hashtag(filter, tag)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  function renderNew() {
+    return (
+      <div className="smc-vfill" ref={projectListRef}>
+        <ProjectsList2
+          visible_projects={visible_projects}
+          header={renderNewHeader()}
+          height={projectListHeight - listHeaderHeight}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={"smc-vfill"}>
+      <Col
+        sm={12}
+        md={12}
+        lg={10}
+        lgOffset={1}
+        className={"smc-vfill"}
+        style={{ overflowY: "auto", marginTop: "10px" }}
+      >
+        {renderNew()}
+        {false && renderOld()}
         <Footer />
       </Col>
     </div>

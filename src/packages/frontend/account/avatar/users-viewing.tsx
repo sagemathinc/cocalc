@@ -83,14 +83,14 @@ function useUsersViewing(
   // only so component is updated immediately whenever file use changes
   const file_use = useTypedRedux("file_use", "file_use");
   const users = useMemo(() => {
-    if (!our_account_id) return;
+    // if (!our_account_id) return;
     const nextUsers = redux.getStore("file_use")?.get_active_users({
       project_id,
       path,
       max_age_s,
     });
     // only show other users
-    delete nextUsers?.[our_account_id];
+    // delete nextUsers?.[our_account_id];
     return nextUsers;
   }, [file_use, project_id, path, max_age_s, our_account_id]);
 

@@ -254,10 +254,6 @@ export default function NewFilePage(props: Props) {
     );
   };
 
-  const showHomepage = () => {
-    actions.set_active_tab("home");
-  };
-
   //key is so autofocus works below
   return (
     <SettingBox
@@ -270,7 +266,7 @@ export default function NewFilePage(props: Props) {
           style={{ display: "inline-block", fontSize: "20px" }}
         />
       }
-      close={showHomepage}
+      close={() => actions.set_active_tab("home")}
     >
       <Modal
         onCancel={() => setCreatingFile("")}

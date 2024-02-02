@@ -4,15 +4,16 @@
  */
 
 import { debounce } from "lodash";
+
 import {
   React,
-  useEffect,
   useActions,
+  useEffect,
   usePrevious,
   useState,
   useStore,
-} from "../app-framework";
-import { SearchInput } from "../components";
+} from "@cocalc/frontend/app-framework";
+import { SearchInput } from "@cocalc/frontend/components";
 
 interface Props {
   clear_and_focus_search?: number; // when this changes, we clear and focus the search box.

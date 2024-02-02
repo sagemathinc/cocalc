@@ -7,6 +7,9 @@
 Render a single project entry, which goes in the list of projects
 */
 
+import { Avatar, List } from "antd";
+import { CSSProperties, useEffect } from "react";
+
 import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -19,23 +22,21 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { AddCollaborators } from "@cocalc/frontend/collaborators";
 import {
+  Gap,
   Icon,
   Markdown,
   Paragraph,
   ProjectState,
-  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import {
-  compute_image2basename,
   CUSTOM_IMG_PREFIX,
+  compute_image2basename,
 } from "@cocalc/frontend/custom-software/util";
 import track from "@cocalc/frontend/user-tracking";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
-import { Avatar } from "antd";
-import { CSSProperties, useEffect } from "react";
 import { ProjectUsers } from "./project-users";
 
 const image_name_style: React.CSSProperties = {
@@ -47,6 +48,21 @@ const image_name_style: React.CSSProperties = {
 interface Props {
   project_id: string;
   index?: number;
+}
+
+export function ProjectRow2({ project_id, index }: Props) {
+  return (
+    <List.Item key={index}>
+      <List.Item.Meta
+        avatar={<Icon name="edit" />}
+        title="title"
+        description="desc"
+      />
+      <div>
+        content: {project_id} {index}
+      </div>
+    </List.Item>
+  );
 }
 
 export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {

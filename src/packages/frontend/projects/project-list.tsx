@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { List } from "antd";
+import VirtualList from "rc-virtual-list";
 import { Virtuoso } from "react-virtuoso";
 
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
@@ -41,5 +43,63 @@ export default function ProjectList({ visible_projects }: Props) {
         );
       }}
     />
+  );
+}
+
+interface Props2 {
+  visible_projects: string[]; // array of project ids
+  header: React.ReactNode;
+  height: number;
+}
+
+export function ProjectsList2({ visible_projects, header, height }: Props2) {
+  const data = visible_projects.map((project_id, index) => ({
+    index,
+    project_id,
+  }));
+  data.push({ index: data.length, project_id: "" });
+
+  function renderProjectRow({ index, project_id }) {
+    return (
+      <List.Item key={index} actions={[<div>action</div>]}>
+        <List.Item.Meta
+          avatar={<div>avatar</div>}
+          title="title"
+          description="desc"
+        />
+        <div>
+          content: {project_id} {index}
+        </div>
+      </List.Item>
+    );
+  }
+
+  return (
+    <List bordered={false} style={{ outline: "1px solid red" }} header={header}>
+      <VirtualList
+        data={data}
+        height={height - 20}
+        itemHeight={100}
+        itemKey="project_id"
+      >
+        {({ project_id, index }) => {
+          if (index == visible_projects.length) {
+            return (
+              // div is needed to avoid height 0 when projects already loaded.
+              <div key={index} style={{ minHeight: "1px" }}>
+                <LoadAllProjects />
+              </div>
+            );
+          }
+
+          // should not happen
+          if (!project_id) {
+            return <div key={index} style={{ height: "1px" }}></div>;
+          }
+
+          return renderProjectRow({ index, project_id });
+        }}
+      </VirtualList>
+    </List>
   );
 }
