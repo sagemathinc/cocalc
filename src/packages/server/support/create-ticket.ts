@@ -1,9 +1,10 @@
-import type { Tickets } from "node-zendesk";
+import type { Type } from "node-zendesk/dist/types/clients/core/tickets";
+
 import { getLogger } from "@cocalc/backend/logger";
 import siteURL from "@cocalc/database/settings/site-url";
 import getName, { getNameByEmail } from "@cocalc/server/accounts/get-name";
-import getClient from "./zendesk-client";
 import { urlToUserURL } from "./util";
+import getClient from "./zendesk-client";
 
 const log = getLogger("support:create-ticket");
 
@@ -11,7 +12,7 @@ interface Options {
   email: string;
   account_id?: string;
   files?: { project_id: string; path?: string }[];
-  type?: "bug" | "question";
+  type?: Type;
   subject?: string;
   body?: string;
   url?: string;
@@ -65,8 +66,7 @@ export default async function createTicket(options: Options): Promise<string> {
       comment: { body },
       external_id: account_id,
       subject,
-      type: type as Tickets.TicketType,
-      // @ts-ignore: @types/node-zendesk is wrong:
+      type,
       requester_id: userResult.id,
     },
   };
@@ -93,7 +93,7 @@ async function toURL({
 
 async function getUser(
   email: string,
-  account_id?: string
+  account_id?: string,
 ): Promise<{
   user: { name: string; email: string; external_id: string | null };
 }> {
