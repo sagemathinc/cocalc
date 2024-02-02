@@ -796,7 +796,7 @@ addCommands({
         title:
           "Disable all buttons just for this editor. This hides the button toolbar for this editor only.",
         label: "Remove All Buttons",
-        onClick: async ({ props }) => {
+        onClick: async ({ removeAllToolbarButtons }) => {
           if (
             !(await redux.getActions("page").popconfirm({
               title: "Remove All Buttons",
@@ -813,20 +813,7 @@ addCommands({
           ) {
             return;
           }
-          set_account_table({
-            editor_settings: { buttons: { [props.type]: null } },
-          });
-          const buttons = props.spec.buttons;
-          if (buttons == null) {
-            return;
-          }
-          const x: { [name: string]: false } = {};
-          for (const name in buttons) {
-            x[name] = false;
-          }
-          set_account_table({
-            editor_settings: { buttons: { [props.type]: x } },
-          });
+          removeAllToolbarButtons();
         },
       },
       {

@@ -224,6 +224,7 @@ export function FrameTitleBar(props: Props) {
       editorSettings,
     ],
   );
+  //window.x = { manageCommands };
 
   const has_unsaved_changes: boolean = useRedux([
     props.editor_actions.name,
@@ -1008,28 +1009,7 @@ export function FrameTitleBar(props: Props) {
     if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
-    const w: string[] = ["toggle_button_bar"];
-    const customButtons = editorSettings.getIn(["buttons", props.type]);
-    let custom;
-    if (customButtons != null) {
-      custom = customButtons.toJS();
-      for (const name in custom) {
-        if (custom[name]) {
-          w.push(name);
-        }
-      }
-    } else {
-      custom = {};
-    }
-    const s = new Set(w);
-    if (props.spec.buttons != null) {
-      for (const name in props.spec.buttons) {
-        if (!s.has(name) && custom[name] == null && props.spec.buttons[name]) {
-          w.push(name);
-        }
-      }
-    }
-
+    const w = manageCommands.getToolbarButtons();
     const v: JSX.Element[] = [];
     for (const name of w) {
       const b = renderButtonBarButton(name);

@@ -3,7 +3,7 @@ import { MENUS } from "./menus";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
 import type { Command } from "./types";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { trunc_middle } from "@cocalc/util/misc";
+import { filename_extension, trunc_middle } from "@cocalc/util/misc";
 import { Button, Tooltip } from "antd";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
@@ -277,10 +277,7 @@ export class ManageCommands {
         </div>
       );
     } else {
-      let buttons = this.editorSettings.get("buttons");
-      const isOnButtonBar =
-        buttons?.getIn([this.props.type, name]) ??
-        this.props.spec.buttons?.[name];
+      const isOnButtonBar = this.isOnButtonBar(name);
       icon = cmd.icon ? (
         <Tooltip
           title={
@@ -303,12 +300,7 @@ export class ManageCommands {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              buttons = buttons?.toJS() ?? {};
-              if (buttons[this.props.type] == null) {
-                buttons[this.props.type] = {};
-              }
-              buttons[this.props.type][name] = !isOnButtonBar;
-              set_account_table({ editor_settings: { buttons } });
+              this.toggleButton(name);
             }}
           >
             {this.getCommandIcon(cmd)}
@@ -488,5 +480,88 @@ export class ManageCommands {
       key: cmd.stayOpenOnClick ? `${key}-${STAY_OPEN_ON_CLICK}` : key,
       children,
     };
+  };
+
+  // editorType = string that identifies this editor frame type for this type of file.
+  // This *should* be a little more subtle than just using the filename extension.
+  //
+  private editorType = () => {
+    return `${filename_extension(this.props.path)}-${this.props.type}`;
+  };
+
+  private isOnButtonBar = (name) => {
+    return (
+      this.editorSettings.getIn(["buttons", this.editorType(), name]) ??
+      this.props.spec.buttons?.[name]
+    );
+  };
+
+  private toggleButton = (name) => {
+    const buttons = this.editorSettings.get("buttons")?.toJS() ?? {};
+    const type = this.editorType();
+    if (buttons[type] == null) {
+      buttons[type] = {};
+    }
+    buttons[type][name] = !this.isOnButtonBar(name);
+    set_account_table({ editor_settings: { buttons } });
+  };
+
+  removeAllToolbarButtons = () => {
+    const type = this.editorType();
+    set_account_table({
+      editor_settings: { buttons: { [type]: null } },
+    });
+    const buttons = this.props.spec.buttons;
+    if (buttons == null) {
+      return;
+    }
+    const x: { [name: string]: false } = {};
+    for (const name in buttons) {
+      x[name] = false;
+    }
+    set_account_table({
+      editor_settings: { buttons: { [type]: x } },
+    });
+  };
+
+  // returns the names in order of the button toolbar buttons
+  // that should be visible
+  getToolbarButtons = (): string[] => {
+    const w: string[] = [];
+    const customButtons = this.editorSettings.getIn([
+      "buttons",
+      this.editorType(),
+    ]);
+    let custom;
+    if (customButtons != null) {
+      custom = customButtons.toJS();
+      for (const name in custom) {
+        if (custom[name]) {
+          w.push(name);
+        }
+      }
+    } else {
+      custom = {};
+    }
+    if (custom["toggle_button_bar"] == null) {
+      // special case -- include this unless it is explicitly added or removed
+      w.push("toggle_button_bar");
+    }
+    const s = new Set(w);
+    if (this.props.spec.buttons != null) {
+      // add in buttons that are the default for this specific editor.
+      for (const name in this.props.spec.buttons) {
+        if (
+          !s.has(name) &&
+          custom[name] == null &&
+          this.props.spec.buttons[name]
+        ) {
+          w.push(name);
+        }
+      }
+    }
+
+    // TODO: sort w.
+    return w;
   };
 }

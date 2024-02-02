@@ -1,5 +1,6 @@
 import { MENUS } from "./menus";
 import type { ReactNode } from "react";
+import type { ManageCommands } from "./manage";
 
 interface MenuSpec {
   label: string;
@@ -13,21 +14,7 @@ export interface Menus {
 
 export type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
 
-export type OnClick = (opts: {
-  props?;
-  event?;
-  setShowAI?: (boolean) => void;
-  editorSettings?;
-}) => void;
-
-interface Options {
-  props?;
-  helpSearch?;
-  setHelpSearch?;
-  renderMenus?;
-  frameTypeCommands?;
-  readOnly?;
-}
+export type OnClick = (opts: ManageCommands & { event? }) => void;
 
 export interface Command {
   // group -- inside of a menu
@@ -36,10 +23,10 @@ export interface Command {
   // position, for sorting
   pos?: number;
   title?: ReactNode;
-  icon?: ReactNode | ((opts: Options) => ReactNode);
-  button?: ReactNode | ((opts: Options) => ReactNode);
-  //color?: string | ((opts: Options) => string);
-  label?: ReactNode | ((opts: Options) => ReactNode);
+  icon?: ReactNode | ((opts: ManageCommands) => ReactNode);
+  button?: ReactNode | ((opts: ManageCommands) => ReactNode);
+  //color?: string | ((opts: ManageCommands) => string);
+  label?: ReactNode | ((opts: ManageCommands) => ReactNode);
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
   onClick?: OnClick;
@@ -48,8 +35,10 @@ export interface Command {
   isVisible?: string | (({ props }) => boolean);
   disable?: string;
   keyboard?: ReactNode;
-  children?: Partial<Command>[] | ((opts: Options) => Partial<Command>[]);
-  disabled?: (opts: Options) => boolean;
+  children?:
+    | Partial<Command>[]
+    | ((opts: ManageCommands) => Partial<Command>[]);
+  disabled?: (opts: ManageCommands) => boolean;
   // not used yet
   tour?: string;
   confirm?: {
