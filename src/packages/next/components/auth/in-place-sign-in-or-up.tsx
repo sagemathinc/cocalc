@@ -12,39 +12,48 @@ import SignUpAuth from "components/auth/sign-up";
 import { useRouter } from "next/router";
 import { CSSProperties, ReactNode, useState } from "react";
 
-interface Props {
+import { AUTH_WRAPPER_STYLE } from "./shared";
+
+type SelectedView = "sign-in" | "sign-up";
+
+interface InPlaceOrSignUpProps {
   title?: ReactNode;
   why?: ReactNode;
+  defaultView?: SelectedView;
   onSuccess?: () => void;
   style?: CSSProperties;
   has_site_license?: boolean;
   publicPathId?: string;
+  minimal?: boolean;
 }
 
 export default function InPlaceSignInOrUp({
-  title,
+  title="Sign in or sign up",
+  defaultView="sign-in",
   why,
   onSuccess,
   style,
   has_site_license,
   publicPathId,
-}: Props) {
+}: InPlaceOrSignUpProps) {
   const router = useRouter();
-  const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
+  const [show, setShow] = useState<SelectedView>(defaultView);
 
   return (
-    <div style={{ textAlign: "center", ...style }}>
+    <div style={{...style, ...AUTH_WRAPPER_STYLE }}>
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>
-      <a onClick={() => setShow("sign-up")}>Sign Up</a> or{" "}
-      <a onClick={() => setShow("sign-in")}>Sign In</a>
-      {why == null ? "." : <> {why}.</>}
-      <br />
-      <br />
+      {why && (
+        <div style={{ fontSize: "13px", marginTop: "8px", padding: "8px" }}>
+          Sign in or sign up {why}.
+        </div>
+      )}
       {show == "sign-up" && (
         <SignUpAuth
           minimal
+          showSignIn
+          signInAction={() => setShow("sign-in")}
           has_site_license={has_site_license}
           publicPathId={publicPathId}
           onSuccess={
@@ -60,6 +69,8 @@ export default function InPlaceSignInOrUp({
       {show == "sign-in" && (
         <SignInAuth
           minimal
+          showSignUp
+          signUpAction={() => setShow("sign-up")}
           onSuccess={
             onSuccess ??
             (() =>

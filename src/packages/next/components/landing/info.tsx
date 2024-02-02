@@ -282,7 +282,6 @@ Info.Heading = (props: HeadingProps) => {
           textAlign: "center",
           margin: "0",
           padding: "20px",
-          borderTop: `1px solid ${COLORS.GRAY_L}`,
         },
         ...style,
       }}

@@ -23,9 +23,9 @@ import {
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
-import SignIn from "./sign-in";
 import RTC from "public/features/cocalc-real-time-jupyter.png";
 import ComputeServers from "./compute-servers";
+import { LANDING_HEADER_LEVEL } from "./constants";
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
 export function CoCalcComFeatures() {
@@ -49,7 +49,8 @@ export function CoCalcComFeatures() {
   function renderCollaboration(): JSX.Element {
     return (
       <Info
-        title="Collaborative Jupyter, Terminals, LaTeX and more"
+        level={LANDING_HEADER_LEVEL}
+        title="Collaborate using your favorite tools"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
@@ -71,11 +72,10 @@ export function CoCalcComFeatures() {
         </Paragraph>
 
         <Paragraph>
-          Everyone's code runs in the same per-project environment, which solves
-          the dreaded reproducibility problem by providing consistent results,
-          synchronized file changes, and automatic revision history so that you
-          can go back in time when you need to discover what changed and when.
-          {shareServer && renderShareServer()}
+          Everyone's code runs in the same per-project environment, which provides
+          consistent results, synchronized file changes, and automatic revision
+          history so that you can go back in time when you need to discover what
+          changed and when. {shareServer && renderShareServer()}
         </Paragraph>
 
         <Paragraph>
@@ -92,6 +92,7 @@ export function CoCalcComFeatures() {
   function renderTeaching() {
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Integrated Course Management System"
         icon="graduation-cap"
         image={assignments}
@@ -141,8 +142,8 @@ export function CoCalcComFeatures() {
     if (!sandboxProjectId) return;
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title={<>The Public {siteName} Sandbox</>}
-        level={2}
         icon="share-square"
         anchor="a-sandbox"
         style={{ backgroundColor: COLORS.GRAY_LLL }}
@@ -211,6 +212,7 @@ export function CoCalcComFeatures() {
     );
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="And much more …"
         icon="wrench"
         anchor="more"
@@ -345,6 +347,7 @@ export function CoCalcComFeatures() {
 
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Solutions"
         icon="shopping-cart"
         anchor="products"
@@ -497,6 +500,7 @@ export function CoCalcComFeatures() {
     const [t1, t2] = testimonials;
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Testimonials"
         icon="comment"
         anchor="testimonials"
@@ -528,6 +532,7 @@ export function CoCalcComFeatures() {
     if (!openaiEnabled) return;
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Extensive ChatGPT Integration"
         icon="robot"
         imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
@@ -552,6 +557,7 @@ export function CoCalcComFeatures() {
 
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Many Programming Languages"
         icon="flow-chart"
         imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
@@ -582,32 +588,29 @@ export function CoCalcComFeatures() {
       {renderMore()}
       {renderTestimonials()}
       {renderAvailableProducts()}
-      <SignIn startup={siteName} hideFree={true} />
     </>
   );
 }
 
-export function Hero() {
+
+export function Hero({ siteName }) {
+  const SITE_SUMMARY = `
+    ${siteName} is a collaborative computing environment designed specifically for researchers, 
+    teachers, students, and scientists.
+  `;
+
   return (
     <Info.Heading
-      level={2}
-      textStyle={{ color: "white" }}
-      style={{
-        backgroundColor: COLORS.BLUE_D,
-        paddingBottom: "30px",
-        marginTop: "30px",
-        paddingTop: "45px",
+      level={3}
+      textStyle={{
+        padding: '10px 0'
       }}
+      style={{
+        paddingTop: "30px",
+      }}
+      description={ SITE_SUMMARY }
     >
-      Realtime collaborative{" "}
-      <A href="/features/jupyter-notebook" style={{ color: "white" }}>
-        Jupyter notebooks
-      </A>
-      ,{" "}
-      <A href="/features/latex-editor" style={{ color: "white" }}>
-        LaTeX
-      </A>
-      , Markdown, and Linux with GPU's
+      Collaborate in real time with Jupyter notebooks, LaTeX, Linux servers, and more.
     </Info.Heading>
   );
 }
