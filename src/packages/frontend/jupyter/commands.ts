@@ -160,6 +160,7 @@ export function commands(actions: AllActions): {
     },
 
     "clear cell output": {
+      i: "battery-empty",
       m: "Clear Output of Selected Cells",
       t: "Clear the output of the selected cells",
       f: () => actions.frame_actions?.clear_selected_outputs(),
@@ -172,7 +173,7 @@ export function commands(actions: AllActions): {
     },
 
     "close pager": {
-      m: "Close pager",
+      m: "Close Pager",
       k: [{ which: 27, mode: "escape" }],
       f: () => {
         actions.editor_actions?.close_introspect();
@@ -181,6 +182,7 @@ export function commands(actions: AllActions): {
 
     "confirm restart kernel": {
       m: "Restart Kernel...",
+      b: "Kernel",
       i: "reload",
       k: [{ mode: "escape", which: 48, twice: true }],
       f: () => actions.jupyter_actions?.confirm_restart(),
@@ -194,6 +196,7 @@ export function commands(actions: AllActions): {
 
     "confirm restart kernel and clear output": {
       i: "retweet",
+      b: "Clear",
       m: "Restart Kernel and Clear All Outputs...",
       menu: "Clear output...",
       f: () => actions.jupyter_actions?.restart_clear_all_output(),
@@ -201,6 +204,7 @@ export function commands(actions: AllActions): {
 
     "confirm restart kernel and run all cells": {
       m: "Restart and Run All Cells...",
+      b: "Run All",
       menu: "Run all...",
       i: "forward",
       f: () => {
@@ -226,6 +230,7 @@ export function commands(actions: AllActions): {
 
     "confirm shutdown kernel": {
       i: "PoweroffOutlined",
+      b: "Off",
       m: "Shutdown Kernel...",
       async f(): Promise<void> {
         const choice = await actions.jupyter_actions?.confirm_dialog({
@@ -287,7 +292,8 @@ export function commands(actions: AllActions): {
 
     "edit keyboard shortcuts": {
       i: "keyboard",
-      m: "Keyboard Shortcuts and Commands...",
+      b: "Commands",
+      m: "All Keyboard Shortcuts and Commands...",
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
     },
 
@@ -416,6 +422,8 @@ export function commands(actions: AllActions): {
     },
 
     "insert image": {
+      i: "image",
+      b: "Image",
       m: "Insert Images in Selected Markdown Cell...",
       f: () => actions.frame_actions?.insert_image(),
     },
@@ -694,6 +702,7 @@ export function commands(actions: AllActions): {
 
     "restart kernel and run all cells": {
       m: "Restart Kernel and Run All Cells",
+      i: "forward",
       b: "Run All",
       async f() {
         actions.frame_actions?.set_all_md_cells_not_editing();
@@ -704,6 +713,7 @@ export function commands(actions: AllActions): {
 
     "run all cells": {
       m: "Run All Cells",
+      i: "forward",
       f: () => {
         actions.frame_actions?.set_all_md_cells_not_editing();
         actions.jupyter_actions?.run_all_cells();
@@ -711,17 +721,21 @@ export function commands(actions: AllActions): {
     },
 
     "run all cells above": {
+      i: "caret-up",
       m: "Run All Above Selected Cell",
       f: () => actions.frame_actions?.run_all_above(),
     },
 
     "run all cells below": {
+      i: "caret-down",
       m: "Run Selected Cell and All Below",
       f: () => actions.frame_actions?.run_all_below(),
     },
 
     "run cell and insert below": {
+      i: "step-forward",
       m: "Run Selected Cells and Insert Below",
+      b: "Run +",
       t: "Run all cells that are currently selected. Insert a new cell after the last one.",
       k: [{ which: 13, alt: true }],
       f: () =>
@@ -732,7 +746,9 @@ export function commands(actions: AllActions): {
     // the meta has to take precedence over the alt (which is also meta automatically
     // on a mac). https://github.com/sagemathinc/cocalc/issues/7000
     "run cell": {
+      i: "play",
       m: "Run Selected Cells and Do not Advance",
+      b: "Stay",
       t: "Run all cells that are currently selected. Do not move the selection.",
       k: [
         { which: 13, ctrl: true },
@@ -752,6 +768,16 @@ export function commands(actions: AllActions): {
       k: [{ which: 13, shift: true }],
       f() {
         actions.frame_actions?.shift_enter_run_selected_cells();
+        actions.frame_actions?.scroll("cell visible");
+      },
+    },
+
+    "run current cell and select next": {
+      i: "step-forward",
+      m: "Run Current Cell",
+      b: "Run",
+      f() {
+        actions.frame_actions?.shift_enter_run_current_cell();
         actions.frame_actions?.scroll("cell visible");
       },
     },
@@ -884,8 +910,9 @@ export function commands(actions: AllActions): {
     },
 
     "shift+tab key": {
+      i: "question-circle",
       k: [{ mode: "escape", shift: true, which: 9 }],
-      m: "Shift+Tab introspection (show function docstring)",
+      m: "Shift+Tab (docstring)",
       f: () => actions.frame_actions?.shift_tab_key(),
     },
 

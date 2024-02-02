@@ -304,6 +304,21 @@ export class NotebookFrameActions {
     }
   }
 
+  public shift_enter_run_current_cell(): void {
+    this.save_input_editor();
+    const cur_id = this.store.get("cur_id");
+    this.run_cell(cur_id);
+    const cell_list = this.jupyter_actions.store.get_cell_list();
+    if (cell_list.get(cell_list.size - 1) === cur_id) {
+      const new_id = this.insert_cell(1);
+      this.set_cur_id(new_id);
+      this.set_mode("edit");
+    } else {
+      this.set_mode("escape");
+      this.move_cursor(1);
+    }
+  }
+
   public run_selected_cells(v?: string[]): void {
     this.save_input_editor();
 

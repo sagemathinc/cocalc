@@ -274,9 +274,12 @@ export class ManageCommands {
         this.props.spec.buttons?.[name];
       icon = cmd.icon ? (
         <Tooltip
-          title={"Click icon to toggle button"}
+          title={
+            isOnButtonBar
+              ? "Click icon to remove from toolbar"
+              : "Click icon to add to toolbar"
+          }
           placement="left"
-          mouseEnterDelay={0.9}
         >
           <Button
             type="text"

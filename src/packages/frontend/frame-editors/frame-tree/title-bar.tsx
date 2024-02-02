@@ -1047,13 +1047,7 @@ export function FrameTitleBar(props: Props) {
           background: "#fafafa",
         }}
       >
-        <div
-          style={{
-            margin: "-2px 0 -7px 0",
-          }}
-        >
-          {v}
-        </div>
+        <div style={{ margin: "-1px 0 -5px 0" }}>{v}</div>
       </div>
     );
   }

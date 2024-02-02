@@ -738,21 +738,21 @@ addCommands({
             description: (
               <div>
                 <ul>
-                  <li>
+                  <li key="1">
                     Everything in the button toolbar is always available in the
                     menus above.
                   </li>
-                  <li>
-                    Show the toolbar at any time by selecting 'View -&gt; Show
-                    button toolbar' in the menu.
+                  <li key="2">
+                    Show the toolbar by selecting 'View -&gt; Show Button
+                    Toolbar' in the menu.
                   </li>
-                  <li>
-                    Toggle what buttons appear in the toolbar by clicking the
-                    icon next to any top level menu item.
+                  <li key="3">
+                    Toggle buttons by clicking the icon next to any top level
+                    menu item.
                   </li>
-                  <li>
-                    Hide only this frame's toolbar by selecting 'View -&gt; Button
-                    Toolbar -&gt; Remove All Buttons'.
+                  <li key="4">
+                    Hide only this frame's toolbar: 'View -&gt; Button Toolbar
+                    -&gt; Remove All Buttons'.
                   </li>
                 </ul>
               </div>

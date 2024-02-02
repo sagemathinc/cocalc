@@ -58,9 +58,8 @@ export const EDITOR_SPEC = {
     commands: jupyterCommands,
     buttons: set([
       "jupyter-insert-cell",
-      "jupyter-run cell and select next",
+      "jupyter-run current cell and select next",
       "jupyter-interrupt kernel",
-      "jupyter-tab key",
       "jupyter-restart",
       "jupyter-cell-type",
       "jupyter-cell-format",
@@ -223,6 +222,7 @@ const JUPYTER_MENUS = {
         children: ["move cell up", "move cell down"],
       },
       {
+        icon: "horizontal-split",
         name: "split-merge-cells",
         label: "Split and Merge",
         children: [
@@ -235,6 +235,7 @@ const JUPYTER_MENUS = {
     ],
     "cell-selection": [
       {
+        icon: "menu-outlined",
         label: "Select Cells",
         name: "select",
         children: ["select all cells", "deselect all cells"],
@@ -255,6 +256,7 @@ const JUPYTER_MENUS = {
     outputs: [],
     "clear-cells": [
       {
+        icon: "battery-empty",
         name: "clear",
         label: "Clear Output",
         children: [
@@ -353,14 +355,32 @@ const JUPYTER_MENUS = {
   jupyter_run: {
     label: "Run",
     pos: 4,
-    "run-cells": ["run cell and select next"],
-    "run-cells-2": ["run cell and insert below", "run cell"],
-    "run-cells-adjacent": ["run all cells above", "run all cells below"],
-    "run-cells-all": [
-      "run all cells",
-      "confirm restart kernel and run all cells",
-      "confirm restart kernel and run all cells without halting on error",
+    "run-cells": [
+      "run current cell and select next",
+      {
+        label: "Run Selected Cells",
+        button: "Run",
+        name: "run-selected-cells",
+        icon: "play-square",
+        children: [
+          "run cell and select next",
+          "run cell and insert below",
+          "run cell",
+        ],
+      },
+      {
+        label: "Run All Cells",
+        button: "Run",
+        name: "run-all-cells",
+        icon: "forward",
+        children: [
+          "run all cells",
+          "confirm restart kernel and run all cells",
+          "confirm restart kernel and run all cells without halting on error",
+        ],
+      },
     ],
+    "run-cells-adjacent": ["run all cells above", "run all cells below"],
     keys: ["tab key", "shift+tab key"],
     nbgrader: ["nbgrader validate", "nbgrader assign"],
   },
@@ -371,6 +391,7 @@ const JUPYTER_MENUS = {
     "restart-kernel": [
       {
         label: "Restart Kernel",
+        button: "Kernel",
         name: "restart",
         icon: "reload",
         children: [
