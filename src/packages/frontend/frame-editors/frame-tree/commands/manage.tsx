@@ -200,7 +200,7 @@ export class ManageCommands {
     return cmd;
   };
 
-  frameTypeCommands = () => {
+  frameTypeCommands = (createNew: boolean) => {
     const selected_type: string = this.props.type;
     const items: Partial<Command>[] = [];
     for (const type in this.props.editor_spec) {
@@ -218,7 +218,13 @@ export class ManageCommands {
         search,
         label: selected_type == type ? <b>{label}</b> : label,
         icon: spec.icon ? spec.icon : "file",
-        onClick: () => this.props.actions.set_frame_type(this.props.id, type),
+        onClick: () => {
+          if (createNew) {
+            this.props.actions.new_frame(type);
+          } else {
+            this.props.actions.set_frame_type(this.props.id, type);
+          }
+        },
       });
     }
     return items;
@@ -407,9 +413,19 @@ export class ManageCommands {
     } else {
       label = this.getCommandLabel(cmd, name);
     }
+    const children = noChildren
+      ? undefined
+      : this.getCommandChildren(cmd)?.map((x, i) =>
+          this.commandToMenuItem({
+            cmd: x,
+            key: `${key}-${i}-${x.stayOpenOnClick ? STAY_OPEN_ON_CLICK : ""}`,
+            noChildren,
+          }),
+        );
     if (button) {
       label = (
         <Tooltip
+          placement={children != null ? "top" : "bottom"}
           title={() => {
             return (
               <>
@@ -424,7 +440,10 @@ export class ManageCommands {
       );
     } else if (cmd.title) {
       label = (
-        <Tooltip title={cmd.title} placement="right">
+        <Tooltip
+          title={cmd.title}
+          placement={children != null ? "top" : "right"}
+        >
           {label}
         </Tooltip>
       );
@@ -467,15 +486,7 @@ export class ManageCommands {
       label,
       onClick,
       key: cmd.stayOpenOnClick ? `${key}-${STAY_OPEN_ON_CLICK}` : key,
-      children: noChildren
-        ? undefined
-        : this.getCommandChildren(cmd)?.map((x, i) =>
-            this.commandToMenuItem({
-              cmd: x,
-              key: `${key}-${i}-${x.stayOpenOnClick ? STAY_OPEN_ON_CLICK : ""}`,
-              noChildren,
-            }),
-          ),
+      children,
     };
   };
 }
