@@ -7,11 +7,13 @@ import { range } from "lodash";
 
 const FORMAT_SPEC = {
   equation: {
+    button: "Math",
     label: "Inline Equation",
     title: "Insert inline LaTeX math equation.",
     icon: <span>$</span>,
   },
   display_equation: {
+    button: "Display",
     label: "Displayed Equation",
     title: "Insert display LaTeX math equation.",
     icon: <span>$$</span>,

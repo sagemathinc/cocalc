@@ -66,6 +66,7 @@ const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
     ]),
+    buttons: set(["reload", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
@@ -77,6 +78,13 @@ const EDITOR_SPEC = {
     component: PDFJS,
     mode: "rmd",
     commands: pdfjsCommands,
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+    ]),
     renderer: "canvas",
     path(path) {
       return derive_rmd_output_filename(path, "pdf");
@@ -93,10 +101,9 @@ const EDITOR_SPEC = {
       "print",
       "decrease_font_size",
       "increase_font_size",
-      "save",
-      "time_travel",
       "reload",
     ]),
+    buttons: set(["decrease_font_size", "increase_font_size", "reload"]),
   } as EditorDescription,
 
   build: {
@@ -105,6 +112,7 @@ const EDITOR_SPEC = {
     icon: "gears",
     component: BuildLog,
     commands: set(["build", "decrease_font_size", "increase_font_size"]),
+    buttons: set(["build"]),
   } as EditorDescription,
 
   terminal,

@@ -455,6 +455,7 @@ addCommands({
   },
   sync: {
     group: "show-frames",
+    button: "Sync",
     label: "Synchronize Views",
     keyboard: `${IS_MACOS ? "⌘" : "alt"} + enter`,
     title: "Synchronize the latex source view with the PDF output",
@@ -576,6 +577,12 @@ addCommands({
     title: "Download this file",
     icon: "cloud-download",
     ...fileAction("download"),
+  },
+  download_pdf: {
+    group: "export",
+    label: "Download PDF",
+    title: "Download the PDF file",
+    icon: "cloud-download",
   },
   upload: {
     pos: 10,
@@ -727,19 +734,25 @@ addCommands({
         // hiding it, so confirm
         if (
           !(await redux.getActions("page").popconfirm({
-            title: "Hide the Button Toolbar",
+            title: "Hide All Button Toolbars",
             description: (
               <div>
                 <ul>
                   <li>
-                    Show the toolbar by selecting 'View -&gt; Show button
-                    toolbar' in the menu.
+                    Everything in the button toolbar is always available in the
+                    menus above.
+                  </li>
+                  <li>
+                    Show the toolbar at any time by selecting 'View -&gt; Show
+                    button toolbar' in the menu.
                   </li>
                   <li>
                     Toggle what buttons appear in the toolbar by clicking the
-                    icon next to any top level menu item. (Submenu items are not
-                    supported, but you can add an entire submenu to the
-                    toolbar.)
+                    icon next to any top level menu item.
+                  </li>
+                  <li>
+                    Hide only this frame's toolbar by selecting 'View -&gt; Button
+                    Toolbar -&gt; Remove All Buttons'.
                   </li>
                 </ul>
               </div>

@@ -383,6 +383,7 @@ const JUPYTER_MENUS = {
     "shutdown-kernel": ["confirm shutdown kernel"],
     kernels: [
       {
+        icon: "dot-circle",
         label: ({ props }) => {
           const actions = props.actions.jupyter_actions;
           const store = actions.store;
@@ -418,11 +419,7 @@ const JUPYTER_MENUS = {
           }
           const languages: Partial<Command>[] = [];
           const addKernel = (kernelName: string) => {
-            const {
-              language = "language",
-              metadata,
-              display_name,
-            } = kernels[kernelName];
+            const { language = "language", metadata } = kernels[kernelName];
             const menuItem = {
               label: createElement(KernelMenuItem, {
                 ...kernels[kernelName],
@@ -447,7 +444,8 @@ const JUPYTER_MENUS = {
               languages.push({
                 pos: -(metadata?.cocalc?.priority ?? 0),
                 icon: languageToIcon(language),
-                title: `Select the ${display_name} Jupyter kernel for writing code in ${Language}.`,
+                // Explicitly don't use this, since it adds no value and gets in the way.
+                // title: `Select the ${display_name} Jupyter kernel for writing code in ${Language}.`,
                 label: Language,
                 children: [menuItem],
               });

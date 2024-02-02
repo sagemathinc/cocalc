@@ -41,7 +41,7 @@ export interface EditorDescription {
   component: any; // React component
 
   // commands that will be displayed in the menu (if they exist)
-  commands?: { [commandName: string]: true };
+  commands?: { [commandName: string]: boolean };
   // | ButtonFunction;
   // customizeCommands: use this to override label, tooltip, or anything
   // else about and command, specifically for this editor frame. This gets

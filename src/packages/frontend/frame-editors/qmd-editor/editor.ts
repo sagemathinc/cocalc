@@ -76,6 +76,13 @@ const EDITOR_SPEC = {
     component: PDFJS,
     mode: "rmd",
     commands: pdfjsCommands,
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+    ]),
     renderer: "canvas",
     path(path) {
       return derive_rmd_output_filename(path, "pdf");

@@ -32,6 +32,14 @@ export const EDITOR_SPEC = {
     icon: "file-pdf",
     component: PDFJS,
     commands: pdfjsCommands,
+    buttons: set([
+      "reload",
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+    ]),
     renderer: "canvas",
   } as EditorDescription,
 };

@@ -65,6 +65,17 @@ const EDITOR_SPEC = {
       "show_table_of_contents",
       "word_count",
       "-format-SpecialChar", // disable this since not properly implemented for latex.  It could be though!
+      "download_pdf",
+    ]),
+    buttons: set([
+      "sync",
+      "format-header",
+      "format-text",
+      "format-font",
+      "format-color",
+      "build",
+      "show_table_of_contents",
+      "sync",
     ]),
     customizeCommands: {
       print: {
@@ -82,8 +93,23 @@ const EDITOR_SPEC = {
     name: "PDF - Preview",
     icon: "file-pdf",
     component: PDFJS,
-    commands: pdfjsCommands,
-    customizeCommands: { download: { label: "Download PDF" } },
+    commands: {
+      ...pdfjsCommands,
+      download: false,
+      download_pdf: true,
+      build: true,
+    },
+    buttons: set([
+      "sync",
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+      "build",
+      "print",
+      "download_pdf",
+    ]),
     path: pdf_path,
     renderer: "canvas",
   } as EditorDescription,
@@ -110,6 +136,7 @@ const EDITOR_SPEC = {
       "rescan_latex_directive",
       "word_count",
     ]),
+    buttons: set(["build", "force_build", "clean"]),
   } as EditorDescription,
 
   latex_table_of_contents: {

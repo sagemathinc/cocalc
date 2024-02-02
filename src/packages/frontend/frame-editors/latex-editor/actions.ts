@@ -1418,14 +1418,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  download(id: string): void {
-    const node = this._get_frame_node(id);
-    if (!node) {
-      throw Error(`BUG - no node with id "${id}"`);
-    }
-    if (node.get("type").indexOf("pdf") === -1) {
-      throw Error("download button only implemented for pdf");
-    }
+  download_pdf(): void {
     const path: string = pdf_path(this.path);
     this.redux
       .getProjectActions(this.project_id)
