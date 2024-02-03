@@ -27,7 +27,6 @@ import Logo from "./logo";
 import {
   AlertLevel,
   BackendState,
-  NotebookMode,
   Usage,
 } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
@@ -87,7 +86,6 @@ interface KernelProps {
   is_fullscreen?: boolean;
   usage?: Usage;
   expected_cell_runtime?: number;
-  mode?: NotebookMode;
   style?: CSS;
   computeServerId?: number;
 }
@@ -96,7 +94,6 @@ export function Kernel({
   actions,
   expected_cell_runtime,
   is_fullscreen,
-  mode,
   style,
   usage,
   computeServerId,
@@ -684,9 +681,6 @@ export function Kernel({
         </div>
         {renderKernelState()}
         <div style={{ flex: 1, marginTop: "2.5px" }}>{renderUsage()}</div>
-      </div>
-      <div style={{ width: "30px" }}>
-        {mode == "edit" && <Icon name="pencil" />}
       </div>
     </div>
   );

@@ -75,7 +75,6 @@ const EDITOR_SPEC = {
       "format-color",
       "build",
       "show_table_of_contents",
-      "sync",
     ]),
     customizeCommands: {
       print: {

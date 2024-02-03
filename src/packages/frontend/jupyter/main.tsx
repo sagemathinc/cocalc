@@ -235,7 +235,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         actions={actions}
         usage={usage}
         expected_cell_runtime={expected_cell_runtime}
-        mode={mode}
         computeServerId={computeServerId}
       />
     );

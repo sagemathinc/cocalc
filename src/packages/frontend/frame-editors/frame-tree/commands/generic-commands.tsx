@@ -32,6 +32,7 @@ addCommands({
     },
     icon: "horizontal-split",
     label: "Split Down",
+    button: "Split",
   },
   "split-col": {
     group: "frame-control",
@@ -47,6 +48,7 @@ addCommands({
     },
     icon: "vertical-split",
     label: "Split Right",
+    button: "Split",
   },
   maximize: {
     group: "frame-control",
@@ -78,6 +80,7 @@ addCommands({
       props.actions.close_frame(props.id);
     },
     label: "Close Frame",
+    button: "Close",
     icon: "times",
   },
   show_table_of_contents: {
@@ -85,6 +88,7 @@ addCommands({
     title: "Show the Table of Contents",
     icon: "align-right",
     label: "Table of Contents",
+    button: "Contents",
   },
   guide: {
     group: "show-frames",
@@ -144,7 +148,7 @@ addCommands({
     stayOpenOnClick: true,
     pos: 1,
     group: "zoom",
-    title: "Decrease font size",
+    title: "Decrease Font Size",
     icon: "search-minus",
     label: "Zoom Out",
     keyboard: "control + <",
@@ -154,7 +158,7 @@ addCommands({
     stayOpenOnClick: true,
     pos: 0,
     group: "zoom",
-    title: "Increase font size",
+    title: "Increase Font Size",
     icon: "search-plus",
     label: "Zoom In",
     keyboard: "control + >",
@@ -402,6 +406,7 @@ addCommands({
     group: "find",
     pos: 3,
     label: "Goto Line",
+    button: "Line",
     icon: "bolt",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + L`,
   },
@@ -508,6 +513,7 @@ addCommands({
     title:
       "This is an editable view of the document. You can edit it directly.  Select this option to switch to a read only view.",
     label: "Switch to Readonly View",
+    button: "Lock",
     onClick: ({ props }) => {
       props.actions["readonly_view"]?.(props.id);
     },
@@ -520,6 +526,7 @@ addCommands({
     title:
       "This is a readonly view of the document.  Select this option to switch to a directly editable view.",
     label: "Switch to Editable View",
+    button: "Edit",
     onClick: ({ props }) => props.actions["edit"]?.(props.id),
   },
 
@@ -656,6 +663,7 @@ addCommands({
     group: "help-link",
     icon: "medkit",
     label: "Support Ticket",
+    button: "Support",
     title:
       "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
     onClick: () => {
@@ -695,6 +703,7 @@ addCommands({
     icon: "times-circle",
     title: "Close this editor",
     label: "Close File",
+    button: "Close",
     ...fileAction("close"),
   },
   new_frame_of_type: {
@@ -703,6 +712,7 @@ addCommands({
     group: "frame_types",
     title: "Create a new frame with an editor of the given type",
     label: "New Frame",
+    button: "Frame",
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(true),
   },
@@ -712,6 +722,7 @@ addCommands({
     group: "frame_types",
     title: "Change the type of editor to show in this frame",
     label: "Change Type",
+    button: "Type",
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(false),
   },
@@ -721,6 +732,7 @@ addCommands({
     group: "frame_types",
     title: "Reset the layout of all frames to the default",
     label: "Default Layout",
+    button: "Default",
   },
   toggle_button_bar: {
     button: "Buttons",
@@ -788,6 +800,7 @@ addCommands({
     icon: "tool",
     group: "button-bar",
     label: "Button Toolbar",
+    button: "Toolbar",
     children: [
       {
         name: "disable-button-toolbar",
@@ -823,7 +836,7 @@ addCommands({
         title:
           "Reset the button toolbar for this editor to its default state, removing any buttons you added or removed.",
         label: "Reset to Default",
-        onClick: async ({ props }) => {
+        onClick: async ({ resetToolbar }) => {
           if (
             !(await redux.getActions("page").popconfirm({
               title: "Reset Button Toolbar to Default",
@@ -840,10 +853,7 @@ addCommands({
           ) {
             return;
           }
-          // it is a deep merge
-          set_account_table({
-            editor_settings: { buttons: { [props.type]: null } },
-          });
+          resetToolbar();
         },
       },
     ],

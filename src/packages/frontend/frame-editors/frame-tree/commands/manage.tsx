@@ -1,9 +1,9 @@
 import { COMMANDS } from "./commands";
-import { MENUS } from "./menus";
+import { GROUPS, MENUS } from "./menus";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
 import type { Command } from "./types";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { filename_extension, trunc_middle } from "@cocalc/util/misc";
+import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
 import { Button, Tooltip } from "antd";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
@@ -21,6 +21,8 @@ export class ManageCommands {
   readonly setHelpSearch;
   readonly readOnly: boolean;
   readonly editorSettings;
+
+  static allCommandPositions: { [name: string]: number } | null = null;
 
   constructor({
     props,
@@ -285,7 +287,7 @@ export class ManageCommands {
               ? "Click icon to remove from toolbar"
               : "Click icon to add to toolbar"
           }
-          placement="left"
+          placement="top"
         >
           <Button
             type="text"
@@ -524,6 +526,14 @@ export class ManageCommands {
     });
   };
 
+  resetToolbar = () => {
+    const type = this.editorType();
+    // it is a deep merge:
+    set_account_table({
+      editor_settings: { buttons: { [type]: null } },
+    });
+  };
+
   // returns the names in order of the button toolbar buttons
   // that should be visible
   getToolbarButtons = (): string[] => {
@@ -562,6 +572,41 @@ export class ManageCommands {
     }
 
     // TODO: sort w.
+    const positions = this.getAllCommandPositions();
+    w.sort((a, b) => cmp(positions[a] ?? 0, positions[b] ?? 0));
     return w;
+  };
+
+  // used for sorting
+  private getAllCommandPositions = () => {
+    if (ManageCommands.allCommandPositions != null) {
+      return ManageCommands.allCommandPositions;
+    }
+    const v: { name: string; menu: number; pos: number }[] = [];
+    for (const menuName in MENUS) {
+      const { pos: menuPos, groups } = MENUS[menuName];
+      for (const group of groups) {
+        for (const commandName of GROUPS[group]) {
+          v.push({
+            name: commandName,
+            menu: menuPos,
+            pos: COMMANDS[commandName].pos ?? 1e6,
+          });
+        }
+      }
+    }
+    v.sort((x, y) => {
+      const c = cmp(x.menu, y.menu);
+      if (c) {
+        return c;
+      }
+      return cmp(x.pos, y.pos);
+    });
+    ManageCommands.allCommandPositions = {};
+    let i = 0;
+    for (const { name } of v) {
+      ManageCommands.allCommandPositions[name] = i++;
+    }
+    return ManageCommands.allCommandPositions;
   };
 }

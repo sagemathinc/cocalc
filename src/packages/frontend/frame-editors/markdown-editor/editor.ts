@@ -46,6 +46,13 @@ const EDITOR_SPEC = {
       "sync",
       "help",
     ]),
+    buttons: set([
+      "readonly_view",
+      "decrease_font_size",
+      "increase_font_size",
+      "sync",
+      "show_table_of_contents",
+    ]),
   } as EditorDescription,
   cm: {
     placeholder: "Enter markdown...",
@@ -73,6 +80,18 @@ const EDITOR_SPEC = {
       "format",
       "sync",
     ]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "sync",
+      "show_table_of_contents",
+      "format-header",
+      "format-text",
+      "format-font",
+      "format-font-family",
+      "format-font-size",
+      "format-color",
+    ]),
   } as EditorDescription,
   markdown: {
     short: "Locked",
@@ -91,6 +110,7 @@ const EDITOR_SPEC = {
       "redo",
       "edit", // change frame to editable slate
     ]),
+    buttons: set(["edit", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   markdown_table_of_contents: {
     short: "Contents",
