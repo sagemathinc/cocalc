@@ -228,18 +228,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_heading() {
-    return (
-      <Kernel
-        is_fullscreen={is_fullscreen}
-        actions={actions}
-        usage={usage}
-        expected_cell_runtime={expected_cell_runtime}
-        computeServerId={computeServerId}
-      />
-    );
-  }
-
   function render_loading(): Rendered {
     return (
       <Loading
@@ -449,7 +437,13 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         <KernelWarning name={name} actions={actions} />
         {render_error()}
         {render_modals()}
-        {render_heading()}
+        <Kernel
+          is_fullscreen={is_fullscreen}
+          actions={actions}
+          usage={usage}
+          expected_cell_runtime={expected_cell_runtime}
+          computeServerId={computeServerId}
+        />
         {render_main()}
       </div>
     </JupyterContext.Provider>

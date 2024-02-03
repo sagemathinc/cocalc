@@ -24,11 +24,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
-import {
-  AlertLevel,
-  BackendState,
-  Usage,
-} from "@cocalc/jupyter/types";
+import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 import ProgressEstimate from "../components/progress-estimate";
 
@@ -48,12 +44,6 @@ const KERNEL_USAGE_STYLE: CSS = {
   paddingRight: "5px",
   display: "flex",
   flex: 1,
-} as const;
-
-const KERNEL_USAGE_STYLE_SMALL: CSS = {
-  height: "5px",
-  marginBottom: "4px",
-  width: "100%",
 } as const;
 
 const KERNEL_USAGE_STYLE_NUM: CSS = {
@@ -83,20 +73,20 @@ const BACKEND_STATE_HUMAN = {
 
 interface KernelProps {
   actions: JupyterActions;
-  is_fullscreen?: boolean;
   usage?: Usage;
   expected_cell_runtime?: number;
   style?: CSS;
   computeServerId?: number;
+  is_fullscreen?: boolean;
 }
 
 export function Kernel({
   actions,
   expected_cell_runtime,
-  is_fullscreen,
   style,
   usage,
   computeServerId,
+  is_fullscreen,
 }: KernelProps) {
   const name = actions.name;
 
@@ -235,8 +225,8 @@ export function Kernel({
   }
 
   function render_trust() {
+    if (IS_MOBILE) return;
     if (trust) {
-      if (!is_fullscreen) return;
       return (
         <div
           style={{
@@ -370,6 +360,7 @@ export function Kernel({
             overflow: "hidden",
             textOverflow: "ellipsis",
             marginTop: "2.5px",
+            fontSize: IS_MOBILE ? "10pt" : undefined,
           }}
         >
           {kernelState()}
@@ -476,22 +467,17 @@ export function Kernel({
       return;
     }
 
-    const style: CSS = is_fullscreen
-      ? { display: "flex", borderLeft: `1px solid ${COLORS.GRAY}` }
-      : {
-          display: "flex",
-          flexFlow: "column",
-          marginTop: "-6px",
-        };
+    const style: CSS = {
+      display: "flex",
+      borderLeft: `1px solid ${COLORS.GRAY}`,
+    };
     const pstyle: CSS = {
-      margin: "2px 2px 2px 15px",
+      margin: "2px",
       width: "100%",
       position: "relative",
       top: "-1px",
     };
-    const usage_style: CSS = is_fullscreen
-      ? KERNEL_USAGE_STYLE
-      : KERNEL_USAGE_STYLE_SMALL;
+    const usage_style: CSS = KERNEL_USAGE_STYLE;
 
     if (isSpwarning) {
       // we massively overestimate: 15s for python and co, and 30s for sage and julia
@@ -526,7 +512,7 @@ export function Kernel({
     return (
       <div style={style}>
         <div style={usage_style}>
-          {is_fullscreen && "CPU "}
+          {is_fullscreen ? <span style={{ marginRight: "5px" }}>CPU</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -537,7 +523,7 @@ export function Kernel({
           />
         </div>
         <div style={usage_style}>
-          {is_fullscreen && "Memory "}
+          {is_fullscreen ? <span style={{ marginRight: "5px" }}>RAM</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -626,10 +612,6 @@ export function Kernel({
     return null;
   }
 
-  if (IS_MOBILE) {
-    return renderKernelState();
-  }
-
   const info = (
     <div
       style={{
@@ -664,23 +646,28 @@ export function Kernel({
         padding: "5px",
         backgroundColor: COLORS.GRAY_LLL,
         display: "flex",
+        borderBottom: "1px solid #ccc",
         ...style,
       }}
     >
-      <div style={{ flex: 1, display: "flex" }}>
-        <div style={{ marginRight: "10px" }}>{renderLogo()}</div>
+      <div style={{ flex: 1, display: "flex", maxWidth: "100%" }}>
+        <div>{renderLogo()}</div>
         <div
           style={{
             flex: 1,
-            fontSize: "12pt",
+            fontSize: "10pt",
             textAlign: "center",
-            marginTop: "1px",
+            marginTop: "3.5px",
           }}
         >
-          {renderTip(get_kernel_name(), body)}
+          {IS_MOBILE ? body : renderTip(get_kernel_name(), body)}
         </div>
         {renderKernelState()}
-        <div style={{ flex: 1, marginTop: "2.5px" }}>{renderUsage()}</div>
+        {!IS_MOBILE && (
+          <div style={{ flex: 1, marginTop: "2.5px" }}>
+            {renderTip(get_kernel_name(), renderUsage())}
+          </div>
+        )}
       </div>
     </div>
   );
