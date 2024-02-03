@@ -20,13 +20,15 @@ import {
 } from "./course-panels";
 
 const commands = set([
-  "decrease_font_size",
-  "increase_font_size",
+  // commented out for now since broken: See https://github.com/sagemathinc/cocalc/issues/7235
+  //"decrease_font_size",
+  //"increase_font_size",
   "save",
   "time_travel",
 ]);
 
-const buttons = set(["decrease_font_size", "increase_font_size"]);
+//const buttons = set(["decrease_font_size", "increase_font_size"]);
+const buttons = undefined;
 
 export const EDITOR_SPEC = {
   course_students: {
