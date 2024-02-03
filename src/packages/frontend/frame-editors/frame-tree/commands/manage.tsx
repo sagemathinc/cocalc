@@ -598,26 +598,35 @@ export class ManageCommands {
     if (ManageCommands.allCommandPositions != null) {
       return ManageCommands.allCommandPositions;
     }
-    const v: { name: string; menu: number; pos: number }[] = [];
+    let v: { name: string; menu: number; pos: number }[] = [];
     for (const menuName in MENUS) {
       const { pos: menuPos, groups } = MENUS[menuName];
       for (const group of groups) {
+        const w: { name: string; menu: number; pos: number }[] = [];
         for (const commandName of GROUPS[group]) {
-          v.push({
+          w.push({
             name: commandName,
             menu: menuPos,
             pos: COMMANDS[commandName].pos ?? 1e6,
           });
         }
+        w.sort((x, y) => {
+          const c = cmp(x.menu, y.menu);
+          if (c) {
+            return c;
+          }
+          return cmp(x.pos, y.pos);
+        });
+        v = v.concat(w);
       }
     }
-    v.sort((x, y) => {
-      const c = cmp(x.menu, y.menu);
-      if (c) {
-        return c;
-      }
-      return cmp(x.pos, y.pos);
-    });
+    //     v.sort((x, y) => {
+    //       const c = cmp(x.menu, y.menu);
+    //       if (c) {
+    //         return c;
+    //       }
+    //       return cmp(x.pos, y.pos);
+    //     });
     ManageCommands.allCommandPositions = {};
     let i = 0;
     for (const { name } of v) {

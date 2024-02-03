@@ -885,6 +885,16 @@ export class NotebookFrameActions {
     this.jupyter_actions.toggle_write_protection_on_cells(cell_ids);
   }
 
+  write_protect_selected_cells = (value: boolean = true) => {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.write_protect_cells(cell_ids, value);
+  };
+
+  delete_protect_selected_cells = (value: boolean = true) => {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.delete_protect_cells(cell_ids, value);
+  };
+
   public toggle_delete_protection_on_selected_cells(): void {
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_delete_protection_on_cells(cell_ids);

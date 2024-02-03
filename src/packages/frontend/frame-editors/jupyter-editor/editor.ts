@@ -267,8 +267,9 @@ const JUPYTER_MENUS = {
       },
     ],
     find: ["find and replace"],
-    "collapse-and-expand": [
+    "collapse-expand-protect": [
       {
+        icon: "compress",
         label: "Collapse",
         name: "cell-collapse",
         children: [
@@ -279,6 +280,7 @@ const JUPYTER_MENUS = {
         ],
       },
       {
+        icon: "expand-arrows",
         label: "Expand",
         name: "cell-expand",
         children: [
@@ -288,27 +290,18 @@ const JUPYTER_MENUS = {
           "show all output",
         ],
       },
-    ],
-    "cell-toggle": [
       {
-        label: "Toggle Selected Cells",
-        name: "cell-toggle",
-        children: [
-          "toggle cell output collapsed",
-          "toggle cell output scrolled",
-          "toggle hide input",
-          "toggle hide output",
-          "write protect",
-          "delete protect",
-        ],
+        icon: "lock",
+        label: "Protect",
+        name: "cell-protect",
+        children: ["write protect", "delete protect"],
       },
       {
-        label: "Toggle All Cells",
-        name: "cell-toggle-all",
-        children: [
-          "toggle all cells output collapsed",
-          "toggle all cells output scrolled",
-        ],
+        icon: "lock-open",
+        label: "Remove Protection",
+        button: "Unlock",
+        name: "cell-remove-protect",
+        children: ["remove write protect", "remove delete protect"],
       },
     ],
     "format-cells": [

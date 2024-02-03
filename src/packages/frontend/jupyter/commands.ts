@@ -424,7 +424,7 @@ export function commands(actions: AllActions): {
     "insert image": {
       i: "image",
       b: "Image",
-      m: "Insert Images in Selected Markdown Cell...",
+      m: "Insert Images in Markdown Cell",
       f: () => actions.frame_actions?.insert_image(),
     },
 
@@ -997,29 +997,32 @@ export function commands(actions: AllActions): {
 
     "write protect": {
       i: "lock",
-      m: "Toggle Edit Protection",
-      t: "Toggle whether the selected cells can be editable.",
-      f: () =>
-        actions.frame_actions?.toggle_write_protection_on_selected_cells(),
+      m: "Write Protect",
+      b: "Protect",
+      t: "Make it so selected cells cannot be edited or deleted.",
+      f: () => actions.frame_actions?.write_protect_selected_cells(true),
     },
 
     "delete protect": {
-      m: "Toggle Delete Protection",
-      t: "Toggle whether the selected cells can be deleted.",
-      f: () =>
-        actions.frame_actions?.toggle_delete_protection_on_selected_cells(),
+      i: "ban",
+      m: "Delete Protect",
+      b: "Protect",
+      t: "Make it so selected cells cannot be deleted.",
+      f: () => actions.frame_actions?.delete_protect_selected_cells(true),
     },
 
-    protect: {
-      m: "Protection -- toggle whether selected cells are editable and deletable",
-      k: [
-        { alt: true, which: 80 },
-        { meta: true, which: 80 },
-      ],
-      f: () => {
-        actions.frame_actions?.toggle_write_protection_on_selected_cells();
-        actions.frame_actions?.toggle_delete_protection_on_selected_cells();
-      },
+    "remove write protect": {
+      i: "lock-open",
+      m: "Remove Write Protect",
+      t: "Remove write protection from selected cells.",
+      f: () => actions.frame_actions?.write_protect_selected_cells(false),
+    },
+
+    "remove delete protect": {
+      i: "check-circle",
+      m: "Remove Delete Protect",
+      t: "Remove delete protection from selected cells.",
+      f: () => actions.frame_actions?.delete_protect_selected_cells(false),
     },
 
     /* NOTE:  JupyterLab sticks fricking 9 lines related to this
@@ -1096,18 +1099,21 @@ export function commands(actions: AllActions): {
     },
 
     "hide input": {
+      i: "compress",
       m: "Collapse Selected Input",
       f: () => {
         actions.frame_actions?.setExpandCollapse({ target: "source" });
       },
     },
     "hide output": {
+      i: "compress",
       m: "Collapse Selected Outputs",
       f: () => {
         actions.frame_actions?.setExpandCollapse({ target: "outputs" });
       },
     },
     "hide all input": {
+      i: "compress",
       m: "Collapse All Input",
       f: () => {
         actions.frame_actions?.setExpandCollapse({
@@ -1117,6 +1123,7 @@ export function commands(actions: AllActions): {
       },
     },
     "hide all output": {
+      i: "compress",
       m: "Collapse All Output",
       f: () => {
         actions.frame_actions?.setExpandCollapse({
@@ -1126,6 +1133,7 @@ export function commands(actions: AllActions): {
       },
     },
     "show input": {
+      i: "expand-arrows",
       m: "Expand Selected Input",
       f: () => {
         actions.frame_actions?.setExpandCollapse({
@@ -1135,6 +1143,7 @@ export function commands(actions: AllActions): {
       },
     },
     "show output": {
+      i: "expand-arrows",
       m: "Expand Selected Output",
       f: () => {
         actions.frame_actions?.setExpandCollapse({
@@ -1144,6 +1153,7 @@ export function commands(actions: AllActions): {
       },
     },
     "show all input": {
+      i: "expand-arrows",
       m: "Expand All Input",
       f: () => {
         actions.frame_actions?.setExpandCollapse({
@@ -1154,6 +1164,7 @@ export function commands(actions: AllActions): {
       },
     },
     "show all output": {
+      i: "expand-arrows",
       m: "Expand All Output",
       f: () => {
         actions.frame_actions?.setExpandCollapse({

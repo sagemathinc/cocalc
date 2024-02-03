@@ -224,7 +224,7 @@ export function FrameTitleBar(props: Props) {
       editorSettings,
     ],
   );
-  //window.x = { manageCommands };
+  // window.x = { manageCommands };
 
   const has_unsaved_changes: boolean = useRedux([
     props.editor_actions.name,
