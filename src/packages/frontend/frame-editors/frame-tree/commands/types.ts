@@ -41,9 +41,9 @@ export interface Command {
   disabled?: (opts: ManageCommands) => boolean;
   // not used yet
   tour?: string;
-  // do modal popconfirm first -- takes exactly
-  // the options to antd Popconfirm, or a function
-  // that returns Popconfirm options.
+  // do modal popconfirm first -- takes options to antd
+  // Popconfirm, or a function that returns Popconfirm options.
+  // See frontend/app/popconfirm-modal.tsx for subtleties.
   popconfirm?: any | ((opts: ManageCommands) => any);
   alwaysShow?: boolean;
   stayOpenOnClick?: boolean;
