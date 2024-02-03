@@ -734,72 +734,11 @@ addCommands({
     label: "Default Layout",
     button: "Default",
   },
-  toggle_button_bar: {
-    button: "Buttons",
-    alwaysShow: true,
-    icon: () =>
-      redux.getStore("account").getIn(["editor_settings", "extra_button_bar"])
-        ? "eye-slash"
-        : "eye",
-    group: "button-bar",
-    title:
-      "Toggle whether or not the button toolbar is displayed below the menu.",
-    label: () => (
-      <>
-        {redux
-          .getStore("account")
-          .getIn(["editor_settings", "extra_button_bar"])
-          ? "Hide"
-          : "Show"}{" "}
-        Button Toolbar
-      </>
-    ),
-    onClick: async () => {
-      const visible = redux
-        .getStore("account")
-        .getIn(["editor_settings", "extra_button_bar"]);
-      if (visible) {
-        // hiding it, so confirm
-        if (
-          !(await redux.getActions("page").popconfirm({
-            title: "Hide All Button Toolbars",
-            description: (
-              <div>
-                <ul>
-                  <li key="1">
-                    Everything in the button toolbar is always available in the
-                    menus above.
-                  </li>
-                  <li key="2">
-                    Show the toolbar by selecting 'View -&gt; Show Button
-                    Toolbar' in the menu.
-                  </li>
-                  <li key="3">
-                    Toggle buttons by clicking the icon next to any top level
-                    menu item.
-                  </li>
-                  <li key="4">
-                    Hide only this frame's toolbar: 'View -&gt; Button Toolbar
-                    -&gt; Remove All Buttons'.
-                  </li>
-                </ul>
-              </div>
-            ),
-            cancelText: "Cancel",
-            okText: "Hide Button Toolbar",
-          }))
-        ) {
-          return;
-        }
-      }
-      set_account_table({ editor_settings: { extra_button_bar: !visible } });
-    },
-  },
   button_bar: {
     alwaysShow: true,
     icon: "tool",
     group: "button-bar",
-    label: "Button Toolbar",
+    label: "Menu Toolbar",
     button: "Toolbar",
     children: [
       {
@@ -807,7 +746,7 @@ addCommands({
         icon: "trash",
         group: "button-bar",
         title:
-          "Disable all buttons just for this editor. This hides the button toolbar for this editor only.",
+          "Disable all buttons just for this editor. This hides the toolbar for this editor only.",
         label: "Remove All Buttons",
         onClick: async ({ removeAllToolbarButtons }) => {
           if (
@@ -834,12 +773,12 @@ addCommands({
         icon: "undo",
         group: "button-bar",
         title:
-          "Reset the button toolbar for this editor to its default state, removing any buttons you added or removed.",
+          "Reset the toolbar for this editor to its default state, removing any buttons you added or removed.",
         label: "Reset to Default",
         onClick: async ({ resetToolbar }) => {
           if (
             !(await redux.getActions("page").popconfirm({
-              title: "Reset Button Toolbar to Default",
+              title: "Reset Toolbar to Default",
               description: (
                 <div>
                   If you reset the button toolbar the choice of commands in the
@@ -857,6 +796,73 @@ addCommands({
         },
       },
     ],
+  },
+
+  toggle_button_bar: {
+    button: "Buttons",
+    alwaysShow: true,
+    icon: () =>
+      redux.getStore("account").getIn(["editor_settings", "extra_button_bar"])
+        ? "eye-slash"
+        : "eye",
+    group: "button-bar",
+    title:
+      "Toggle whether or not the menu toolbar is displayed for all editors.",
+    label: () => (
+      <>
+        {redux
+          .getStore("account")
+          .getIn(["editor_settings", "extra_button_bar"])
+          ? "Hide"
+          : "Show"}{" "}
+        Menu Toolbar...
+      </>
+    ),
+    onClick: async () => {
+      const visible = redux
+        .getStore("account")
+        .getIn(["editor_settings", "extra_button_bar"]);
+      if (visible) {
+        // hiding it, so confirm
+        if (
+          !(await redux.getActions("page").popconfirm({
+            title: (
+              <>
+                <Icon name="eye-slash" /> Hide Menu Toolbar For All Editors
+              </>
+            ),
+            description: (
+              <div>
+                The menu toolbar is a customizable bar of shortcuts to menu
+                items.
+                <ul>
+                  <li key="1">
+                    Everything in the menu toolbar is always available in the
+                    menus above.
+                  </li>
+                  <li key="2">
+                    Show the toolbar by selecting 'View -&gt; Show Menu Toolbar'.
+                  </li>
+                  <li key="3">
+                    Toggle buttons by clicking the icon next to any top level
+                    menu item.
+                  </li>
+                  <li key="4">
+                    Hide only this frame's toolbar: 'View -&gt; Menu Toolbar
+                    -&gt; Remove All Buttons'.
+                  </li>
+                </ul>
+              </div>
+            ),
+            cancelText: "Cancel",
+            okText: "Hide Menu Toolbar",
+          }))
+        ) {
+          return;
+        }
+      }
+      set_account_table({ editor_settings: { extra_button_bar: !visible } });
+    },
   },
 });
 

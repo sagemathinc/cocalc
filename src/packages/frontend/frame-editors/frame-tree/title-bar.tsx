@@ -1017,7 +1017,7 @@ export function FrameTitleBar(props: Props) {
         v.push(b);
       }
     }
-    if (v.length <= 1) {
+    if (v.length == 0) {
       return null;
     }
     return (

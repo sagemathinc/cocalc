@@ -553,10 +553,10 @@ export class ManageCommands {
     } else {
       custom = {};
     }
-    if (custom["toggle_button_bar"] == null) {
-      // special case -- include this unless it is explicitly added or removed
-      w.push("toggle_button_bar");
-    }
+    //     if (custom["toggle_button_bar"] == null) {
+    //       // special case -- include this unless it is explicitly added or removed
+    //       w.push("toggle_button_bar");
+    //     }
     const s = new Set(w);
     if (this.props.spec.buttons != null) {
       // add in buttons that are the default for this specific editor.
@@ -570,6 +570,10 @@ export class ManageCommands {
         }
       }
     }
+    //     if (w.length == 1 && w[0] == "toggle_button_bar") {
+    //       // special case -- don't *ONLY* show this toggle button.
+    //       return [];
+    //     }
 
     // TODO: sort w.
     const positions = this.getAllCommandPositions();
