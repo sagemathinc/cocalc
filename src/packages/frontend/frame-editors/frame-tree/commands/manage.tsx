@@ -8,6 +8,7 @@ import { Button, Tooltip } from "antd";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 import { set_account_table } from "@cocalc/frontend/account/util";
+import { redux } from "@cocalc/frontend/app-framework";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
@@ -443,6 +444,17 @@ export class ManageCommands {
       );
     }
     const onClick = async (event) => {
+      let { popconfirm } = cmd;
+      if (popconfirm != null) {
+        if (typeof popconfirm == "function") {
+          popconfirm = popconfirm(this);
+        }
+        if (popconfirm != null) {
+          if (!(await redux.getActions("page").popconfirm(popconfirm))) {
+            return;
+          }
+        }
+      }
       try {
         if (cmd.onClick != null) {
           await cmd.onClick?.({

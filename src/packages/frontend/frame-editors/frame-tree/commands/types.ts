@@ -41,13 +41,10 @@ export interface Command {
   disabled?: (opts: ManageCommands) => boolean;
   // not used yet
   tour?: string;
-  confirm?: {
-    // popconfirm first
-    title?: ReactNode;
-    description?: ReactNode;
-    okText?: string;
-    cancelText?: string;
-  };
+  // do modal popconfirm first -- takes exactly
+  // the options to antd Popconfirm, or a function
+  // that returns Popconfirm options.
+  popconfirm?: any | ((opts: ManageCommands) => any);
   alwaysShow?: boolean;
   stayOpenOnClick?: boolean;
   search?: string;

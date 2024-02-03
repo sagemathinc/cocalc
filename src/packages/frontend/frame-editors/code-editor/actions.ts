@@ -2563,7 +2563,7 @@ export class Actions<
       }
       await t.wait_for_next_render();
       await delay(1); // also wait a little bit
-      t.conn_write("reset\n");
+      t.conn_write("\nreset\n");
     } else {
       throw Error(`"clear" for type="${type}" not implemented`);
     }

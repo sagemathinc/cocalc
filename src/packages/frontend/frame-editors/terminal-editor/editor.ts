@@ -60,7 +60,7 @@ export const terminal = {
     },
     clear: {
       title: CLEAR,
-      confirm: {
+      popconfirm: {
         title: "Clear this Terminal?",
         description: CLEAR,
         okText: "Yes, clean up!",
