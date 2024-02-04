@@ -126,7 +126,6 @@ export default function Header(props: Props) {
             wrap="wrap"
             style={{
               width: "100%",
-              maxWidth: MAX_WIDTH_LANDING
             }}
           >
             <A href="/">
