@@ -19,7 +19,6 @@ import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
-import { MAX_WIDTH_LANDING } from "lib/config";
 import SubNav, { Page, SubPage } from "./sub-nav";
 
 const GAP = "4%";
@@ -126,7 +125,6 @@ export default function Header(props: Props) {
             wrap="wrap"
             style={{
               width: "100%",
-              maxWidth: MAX_WIDTH_LANDING
             }}
           >
             <A href="/">
