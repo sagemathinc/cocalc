@@ -3,10 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+
+NOTES:
+
+MOBILE: Antd's Dropdown fully supports *nested* menus, with children.
+This is great on a desktop, but is frequently completely unusable
+on mobile, where the submenu appears off the screen, and is
+hence completely unsable.  Thus on mobile we basically flatten
+then menu so it is still usable.
+
+*/
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { DownOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu } from "antd";
 import type { DropdownProps, MenuProps } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export const STAY_OPEN_ON_CLICK = "stay-open-on-click";
 
@@ -45,7 +57,7 @@ export function DropdownMenu({
   disabled,
   showDown,
   id,
-  items,
+  items: items0,
   maxHeight,
   style,
   title,
@@ -54,6 +66,9 @@ export function DropdownMenu({
   defaultOpen,
 }: Props) {
   const [open, setOpen] = useState<boolean>(!!defaultOpen);
+  const items = useMemo(() => {
+    return IS_MOBILE ? flatten(items0) : items0;
+  }, [items0]);
 
   let body = (
     <Button
@@ -121,3 +136,23 @@ export function MenuItem(props) {
 }
 
 export const MenuDivider = { type: "divider" } as const;
+
+function flatten(items) {
+  const v: typeof items = [];
+  for (const item of items) {
+    if (item.children) {
+      const x = { ...item, disabled: true };
+      delete x.children;
+      v.push(x);
+      for (const i of flatten(item.children)) {
+        v.push({
+          ...i,
+          label: <div style={{ marginLeft: "25px" }}>{i.label}</div>,
+        });
+      }
+    } else {
+      v.push(item);
+    }
+  }
+  return v;
+}

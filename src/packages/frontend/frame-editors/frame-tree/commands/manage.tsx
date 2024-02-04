@@ -9,6 +9,7 @@ import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
@@ -469,7 +470,7 @@ export class ManageCommands {
         this.props.actions.set_error(`${err}`);
       }
     };
-    if (!button && cmd.keyboard) {
+    if (!button && cmd.keyboard && !IS_MOBILE) {
       label = (
         <div style={{ display: "flex" }}>
           {label}

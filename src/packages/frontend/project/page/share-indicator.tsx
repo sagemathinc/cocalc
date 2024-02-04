@@ -52,7 +52,10 @@ export const ShareIndicator: React.FC<Props> = React.memo(
       return containing_public_path(path, paths) != null;
     }, [public_paths, path, project_id]);
 
-    if(!share_server) {
+    // don't share anything if share server disabled *or* if file
+    // isn't already published.  When not published, you can publish it
+    // via the File menu.
+    if(!share_server || !is_public) {
       return  <></>;
     }
 

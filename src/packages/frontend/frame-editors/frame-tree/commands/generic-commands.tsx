@@ -603,8 +603,10 @@ addCommands({
     pos: 10,
     group: "export",
     icon: "share-square",
-    title: "Share this file publicly or unlisted",
-    label: "Share File",
+    title:
+      "Make this file available to be easily copies by other people, either publicly or for people who know the link.",
+    button: "Publish",
+    label: "Publish File",
     ...fileAction("share"),
   },
   print: {
