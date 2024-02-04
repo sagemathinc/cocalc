@@ -611,16 +611,19 @@ export class ManageCommands {
             pos: COMMANDS[commandName].pos ?? 1e6,
           });
         }
-        w.sort((x, y) => {
-          const c = cmp(x.menu, y.menu);
-          if (c) {
-            return c;
-          }
-          return cmp(x.pos, y.pos);
-        });
+        // local sort on position in the group
+        w.sort((x, y) => cmp(x.pos, y.pos));
         v = v.concat(w);
       }
     }
+    // globally sort on the menu they are in
+    v.sort((x, y) => {
+      const c = cmp(x.menu, y.menu);
+      if (c) {
+        return c;
+      }
+      return 0;
+    });
     //     v.sort((x, y) => {
     //       const c = cmp(x.menu, y.menu);
     //       if (c) {

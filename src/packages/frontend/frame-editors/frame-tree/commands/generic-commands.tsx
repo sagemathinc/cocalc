@@ -659,9 +659,22 @@ addCommands({
     isVisible: ({ props }) =>
       redux.getStore("projects").hasLanguageModelEnabled(props.project_id),
   },
-  support: {
+  chat: {
     alwaysShow: true,
     pos: 5,
+    group: "help-link",
+    icon: "comment",
+    label: "Chat With People or AI",
+    button: "Chat",
+    title:
+      "Open chat on the side of this file for chatting with project collaborators or AI about this file.",
+    onClick: ({props}) => {
+      redux.getProjectActions(props.project_id).open_chat({ path: props.path });
+    },
+  },
+  support: {
+    alwaysShow: true,
+    pos: 6,
     group: "help-link",
     icon: "medkit",
     label: "Support Ticket",
