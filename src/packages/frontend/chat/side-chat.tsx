@@ -103,10 +103,16 @@ export default function SideChat({ project_id, path, style }: Props) {
         </div>
       )}
       <SearchInput
+        autoFocus={false}
         placeholder={"Filter messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce((search) => actions.setState({ search }), 500)}
-        style={{ margin: 0 }}
+        style={{
+          margin: 0,
+          ...(messages.size >= 2
+            ? undefined
+            : { visibility: "hidden", height: 0 }),
+        }}
       />
       <div
         className="smc-vfill"

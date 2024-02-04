@@ -99,6 +99,7 @@ function ChatButton({ project_id, path, chatState }) {
       mouseEnterDelay={0.5}
     >
       <Button
+        type="text"
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={toggleChat}
