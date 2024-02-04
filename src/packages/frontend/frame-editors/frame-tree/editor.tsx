@@ -36,6 +36,8 @@ interface FrameTreeEditorProps {
   project_id: string;
   editor_spec: any;
   tab_is_visible: boolean; // if the editor tab is active -- page/page.tsx
+  format_bar?: boolean;
+  format_bar_exclude?: SetMap;
 }
 
 const LOADING_STYLE: CSS = {

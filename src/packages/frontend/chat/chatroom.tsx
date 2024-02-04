@@ -252,13 +252,21 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_search() {
     return (
       <SearchInput
+        autoFocus={false}
         placeholder={"Filter messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce(
           (value) => actions.setState({ search: value }),
           250,
         )}
-        style={{ margin: 0, width: "100%", marginBottom: "5px" }}
+        style={{
+          margin: 0,
+          width: "100%",
+          marginBottom: "5px",
+          ...(messages.size >= 2
+            ? undefined
+            : { visibility: "hidden", height: 0 }),
+        }}
       />
     );
   }

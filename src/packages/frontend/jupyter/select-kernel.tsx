@@ -4,6 +4,7 @@
  */
 
 // help users selecting a kernel
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import type { TabsProps } from "antd";
 import {
   Alert,
@@ -313,7 +314,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         },
       ];
 
-      showComputeServersTab(items);
+      if (!IS_MOBILE) {
+        showComputeServersTab(items);
+      }
 
       return (
         <Tabs
@@ -493,6 +496,26 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       // a sage worksheet to jupyter via the "Jupyter" button.
       setTimeout(() => actions.select_kernel(name), 0);
       return true;
+    }
+
+    if (IS_MOBILE) {
+      /*
+NOTE: I tried viewing this on mobile and it is so HORRIBLE!
+Something about the CSS and Typography componnets are just truly
+a horrific disaster.  This one component though is maybe usable.
+*/
+      return (
+        <div
+          style={{
+            overflow: "auto",
+            padding: "20px 10px",
+          }}
+          className={"smc-vfill"}
+        >
+          {render_close_button()}
+          {render_select_all()}
+        </div>
+      );
     }
 
     if (checkObvious()) {

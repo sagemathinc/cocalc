@@ -12,15 +12,12 @@ import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
 
+import { open_new_tab } from "@cocalc/frontend/misc";
 import {
   delete_local_storage,
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import {
-  get_usage_info,
-  UsageInfoWS,
-} from "@cocalc/frontend/project/websocket/usage-info";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
@@ -30,7 +27,7 @@ import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
 import { from_json, merge_copy, to_json, uuid } from "@cocalc/util/misc";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import { open_popup_window } from "../misc";
+import { get_usage_info, UsageInfoWS } from "../project/websocket/usage-info";
 import { cm_options } from "./cm_options";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { parse_headings } from "./contents";
@@ -779,9 +776,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public custom_jupyter_kernel_docs(): void {
-    open_popup_window(
-      "https://doc.cocalc.com/howto/custom-jupyter-kernel.html",
-    );
+    open_new_tab("https://doc.cocalc.com/howto/custom-jupyter-kernel.html");
   }
 
   /* Wait until the syncdb is ready *and* there is at

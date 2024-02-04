@@ -57,7 +57,6 @@ export class PageActions extends Actions<PageState> {
 
     if (this.active_key_handler != null && !this.suppress_key_handlers) {
       $(window).on("keydown", this.active_key_handler);
-    } else {
     }
   }
 
@@ -231,19 +230,27 @@ export class PageActions extends Actions<PageState> {
     this.setState({ show_connection });
   }
 
+  // Suppress the activation of any new key handlers
+  disableGlobalKeyHandler = () => {
+    this.suppress_key_handlers = true;
+    this.unattach_active_key_handler();
+  };
+  // Enable whatever the current key handler should be
+  enableGlobalKeyHandler = () => {
+    this.suppress_key_handlers = false;
+    this.set_active_key_handler();
+  };
+
   // Toggles visibility of file use widget
   // Temporarily disables window key handlers until closed
   // FUTURE: Develop more general way to make key mappings
   toggle_show_file_use() {
     const currently_shown = redux.getStore("page").get("show_file_use");
     if (currently_shown) {
-      // Enable whatever the current key handler should be
-      this.suppress_key_handlers = false; // HACK: Terrible way to do this.
-      this.set_active_key_handler();
+      this.enableGlobalKeyHandler(); // HACK: Terrible way to do this.
     } else {
       // Suppress the activation of any new key handlers until file_use closes
-      this.suppress_key_handlers = true;
-      this.unattach_active_key_handler();
+      this.disableGlobalKeyHandler(); // HACK: Terrible way to do this.
     }
 
     this.setState({ show_file_use: !currently_shown });

@@ -16,7 +16,7 @@ import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { IFrameHTML } from "../html-editor/iframe-html";
 import { PDFJS } from "../latex-editor/pdfjs";
-import { pdfjs_buttons } from "../latex-editor/editor";
+import { pdfjsCommands } from "../latex-editor/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { BuildLog } from "./build-log";
@@ -27,7 +27,9 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
+      "help",
+      "format_action",
       "chatgpt",
       "print",
       "decrease_font_size",
@@ -57,7 +59,7 @@ const EDITOR_SPEC: EditorSpec = {
     path(path) {
       return derive_rmd_output_filename(path, "html");
     },
-    buttons: set([
+    commands: set([
       "print",
       "save",
       "time_travel",
@@ -65,6 +67,7 @@ const EDITOR_SPEC: EditorSpec = {
       "decrease_font_size",
       "increase_font_size",
     ]),
+    buttons: set(["reload", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
@@ -75,8 +78,14 @@ const EDITOR_SPEC: EditorSpec = {
     icon: "file-pdf",
     component: PDFJS,
     mode: "rmd",
-    buttons: pdfjs_buttons,
-    style: { background: "#525659" },
+    commands: pdfjsCommands,
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+    ]),
     renderer: "canvas",
     path(path) {
       return derive_rmd_output_filename(path, "pdf");
@@ -89,14 +98,13 @@ const EDITOR_SPEC: EditorSpec = {
     icon: "eye",
     component: RenderedMarkdown,
     reload_images: true,
-    buttons: set([
+    commands: set([
       "print",
       "decrease_font_size",
       "increase_font_size",
-      "save",
-      "time_travel",
       "reload",
     ]),
+    buttons: set(["decrease_font_size", "increase_font_size", "reload"]),
   } as EditorDescription,
 
   build: {
@@ -104,8 +112,8 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Build Log",
     icon: "gears",
     component: BuildLog,
-    style: { background: "#525659" },
-    buttons: set(["build", "decrease_font_size", "increase_font_size"]),
+    commands: set(["build", "decrease_font_size", "increase_font_size"]),
+    buttons: set(["build"]),
   } as EditorDescription,
 
   terminal,

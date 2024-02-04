@@ -7,7 +7,7 @@
 Top-level react component for editing code.
 */
 
-import { file_extensions as FORMAT } from "@cocalc/util/code-formatter";
+import { file_extensions } from "@cocalc/util/code-formatter";
 import { filename_extension, set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription, EditorSpec } from "../frame-tree/types";
@@ -38,29 +38,30 @@ export const cm = {
   name: "Source Code",
   icon: "code",
   component: CodemirrorEditor,
-  buttons: function (path: string): { [name: string]: true } {
-    const buttons: any = set([
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel",
-      "chatgpt",
-      "replace",
-      "find",
-      "goto_line",
-      "cut",
-      "paste",
-      "copy",
-      "undo",
-      "redo",
-      "terminal",
-      //"tour"
-    ]);
-    const ext = filename_extension(path);
-    // type casting to circumvent TS2345
-    buttons.format = (FORMAT as readonly string[]).includes(ext);
-    return buttons;
+  commands: set([
+    "print",
+    "decrease_font_size",
+    "increase_font_size",
+    "save",
+    "time_travel",
+    "chatgpt",
+    "replace",
+    "find",
+    "goto_line",
+    "cut",
+    "paste",
+    "copy",
+    "undo",
+    "redo",
+    "terminal",
+    "format",
+    //"tour"
+  ]),
+  customizeCommands: {
+    format: {
+      isVisible: ({ props }) =>
+        file_extensions[filename_extension(props.path)] != null,
+    },
   },
 } as EditorDescription;
 

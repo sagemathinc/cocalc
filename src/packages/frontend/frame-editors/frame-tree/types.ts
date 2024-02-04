@@ -4,8 +4,8 @@
  */
 
 import { Map } from "immutable";
-
 import { IconName } from "@cocalc/frontend/components/icon";
+import type { Command } from "./commands";
 
 export type FrameDirection = "row" | "col";
 
@@ -34,22 +34,26 @@ export type ErrorStyles = undefined | "monospace";
 export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
 // Editor spec
-
-interface ButtonCustomize {
-  text?: string; // overrides text content of the button
-  title?: string; // overrides tooltip that pops up on hover.
-}
-
-type ButtonFunction = (path: string) => { [button_name: string]: true };
-
 export interface EditorDescription {
   short: string; // short description of the editor
   name: string; // slightly longer description
   icon: IconName;
   component: any; // React component
-  buttons?: { [button_name: string]: true } | ButtonFunction;
-  // NOTE: customize is only implemented for shell button right now!
-  customize_buttons?: { [button_name: string]: ButtonCustomize };
+
+  // commands that will be displayed in the menu (if they exist)
+  commands?: { [commandName: string]: boolean };
+  // | ButtonFunction;
+  // customizeCommands: use this to override label, tooltip, or anything
+  // else about and command, specifically for this editor frame. This gets
+  // merged in to the generic command, or added as a new command.
+  customizeCommands?: { [commandName: string]: Partial<Command> };
+
+  // which commands will also appear in the button bar (if available)
+  // If a command is in a submenu, use '->' to link them together, i.e.,
+  // 'format-font -> bold' means the item named "bold" in the submenu
+  // named 'format-font'.
+  buttons?: { [commandName: string]: boolean };
+
   hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
   subframe_init?: Function;
   style?: object;
@@ -60,7 +64,6 @@ export interface EditorDescription {
   gutters?: string[]; // I think it's cm gutters
   hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
   clear_info?: { text: string; confirm: string };
-  guide_info?: { title?: string; descr?: string; icon?: IconName };
   placeholder?: string; // placeholder text to use when empty.
   format_bar?: boolean; // if true, show the format bar.
   format_bar_exclude?: SetMap

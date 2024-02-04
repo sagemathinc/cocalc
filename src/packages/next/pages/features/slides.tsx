@@ -27,7 +27,7 @@ export default function Slides({ customize }) {
         <Layout.Content>
           <Content
             landing
-            logo={<Icon name="slides" style={{ fontSize: "100px" }} />}
+            body={<Icon name="slides" style={{ fontSize: "100px" }} />}
             startup={"Slides"}
             title={
               "Online Collaborative Slides with Jupyter Code Cells and LaTeX Mathematics"

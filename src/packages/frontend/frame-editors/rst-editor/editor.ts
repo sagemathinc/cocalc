@@ -23,7 +23,8 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
+      "format_action",
       "chtgpt",
       "print",
       "decrease_font_size",
@@ -48,7 +49,7 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Rendered View (rst2html)",
     icon: "eye",
     component: IFrameHTML,
-    buttons: set([
+    commands: set([
       "print",
       "decrease_font_size",
       "increase_font_size",

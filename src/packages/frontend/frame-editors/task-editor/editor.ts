@@ -29,7 +29,7 @@ const EDITOR_SPEC: EditorSpec = {
         path: actions.path,
       });
     },
-    buttons: set([
+    commands: set([
       "decrease_font_size",
       "increase_font_size",
       "time_travel",

@@ -414,7 +414,7 @@ export class OtherSettings extends Component<Props> {
       <LabeledRow
         label={
           <>
-            <AIAvatar size={22} /> Language model
+            <AIAvatar size={22} /> Default Language Model
           </>
         }
       >

@@ -25,7 +25,8 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Editable Text",
     icon: "pencil",
     component: EditableMarkdown,
-    buttons: set([
+    commands: set([
+      "format_action",
       "chatgpt",
       // "print",
       "decrease_font_size",
@@ -45,6 +46,13 @@ const EDITOR_SPEC: EditorSpec = {
       "sync",
       "help",
     ]),
+    buttons: set([
+      "readonly_view",
+      "decrease_font_size",
+      "increase_font_size",
+      "sync",
+      "show_table_of_contents",
+    ]),
   } as EditorDescription,
   cm: {
     placeholder: "Enter markdown...",
@@ -52,7 +60,8 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Markdown Code",
     icon: "markdown",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
+      "format_action",
       "chatgpt",
       // "print",
       "decrease_font_size",
@@ -75,13 +84,25 @@ const EDITOR_SPEC: EditorSpec = {
     format_bar_exclude: {
       format_buttons: true,
     },
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "sync",
+      "show_table_of_contents",
+      "format-header",
+      "format-text",
+      "format-font",
+      "format-font-family",
+      "format-font-size",
+      "format-color",
+    ]),
   } as EditorDescription,
   markdown: {
     short: "Locked",
     name: "Locked View",
     icon: "lock",
     component: RenderedMarkdown,
-    buttons: set([
+    commands: set([
       "chatgpt",
       // "print",
       "decrease_font_size",
@@ -93,13 +114,14 @@ const EDITOR_SPEC: EditorSpec = {
       "redo",
       "edit", // change frame to editable slate
     ]),
+    buttons: set(["edit", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   markdown_table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   terminal,
   settings: SETTINGS_SPEC,

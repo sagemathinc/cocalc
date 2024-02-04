@@ -21,15 +21,15 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Grid",
     icon: "table",
     component: Grid,
-    buttons: set(["decrease_font_size", "increase_font_size", "chatgpt"]),
-  } as EditorDescription,
+    commands: set(["decrease_font_size", "increase_font_size", "chatgpt"]),
+  },
 
   cm: {
     short: "Raw",
     name: "Raw Data",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
       "chatgpt",
       "print",
       "decrease_font_size",

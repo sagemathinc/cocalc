@@ -236,3 +236,4 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
     </div>
   );
 }, shouldMemoize);
+

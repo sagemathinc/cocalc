@@ -17,8 +17,8 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Tables",
     icon: "database",
     component: TableEditor,
-    buttons: set(["save", "undo", "redo"]),
-  } as EditorDescription,
+    commands: set(["save", "undo", "redo"]),
+  },
   account: {
     short: "Users",
     name: "User Search",

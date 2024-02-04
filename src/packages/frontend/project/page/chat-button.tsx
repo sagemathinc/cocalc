@@ -3,24 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// This button is only made to work for the top-right area, next to the project editor tabs
-
 // TODO: for a frame tree it really only makes sense for this button
 // to always show the chat.  For sagews and old stuff it should hide
 // and show it.  But it's very hard to know from here which doc type
 // this is... so for now it still sort of toggles.  For now things
 // do work properly via a hack in close_chat in project_actions.
 
-import { Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
-import { useMemo } from "react";
-
-import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HiddenXS } from "@cocalc/frontend/components";
-import { Icon } from "@cocalc/frontend/components/icon";
-import track from "@cocalc/frontend/user-tracking";
 import { filename_extension } from "@cocalc/util/misc";
+import { useMemo } from "react";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import { HiddenXS } from "@cocalc/frontend/components";
+import track from "@cocalc/frontend/user-tracking";
 
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
@@ -28,18 +25,41 @@ export type ChatState =
   | "external" // chat is open and managed externally (e.g., legacy sage worksheet)
   | "pending"; // chat should be opened when the file itself is actually initialized.
 
+const CHAT_INDICATOR_STYLE: React.CSSProperties = {
+  fontSize: "15pt",
+  paddingTop: "3px",
+  cursor: "pointer",
+};
+
+const USERS_VIEWING_STYLE: React.CSSProperties = {
+  maxWidth: "120px",
+  marginRight: "5px",
+};
+
 interface Props {
   project_id: string;
   path: string;
-  compact?: boolean; // if set, label is controlled externally
   chatState?: ChatState;
 }
 
-export function ChatButton({ project_id, path, compact }: Props) {
-  const openFileInfo = useTypedRedux({ project_id }, "open_files");
-  const fileUse = useTypedRedux("file_use", "file_use");
-  const chatState = openFileInfo.getIn([path, "chatState"]) as ChatState;
+export function ChatIndicator({ project_id, path, chatState }: Props) {
+  const style: React.CSSProperties = {
+    ...CHAT_INDICATOR_STYLE,
+    ...{ display: "flex" },
+  };
+  return (
+    <div style={style}>
+      <UsersViewing
+        project_id={project_id}
+        path={path}
+        style={USERS_VIEWING_STYLE}
+      />
+      <ChatButton project_id={project_id} path={path} chatState={chatState} />
+    </div>
+  );
+}
 
+function ChatButton({ project_id, path, chatState }) {
   const toggleChat = debounce(
     () => {
       const actions = redux.getProjectActions(project_id);
@@ -54,7 +74,7 @@ export function ChatButton({ project_id, path, compact }: Props) {
     1000,
     { leading: true },
   );
-
+  const fileUse = useTypedRedux("file_use", "file_use");
   const isNewChat = useMemo(
     () =>
       !!redux.getStore("file_use")?.get_file_info(project_id, path)
@@ -65,14 +85,6 @@ export function ChatButton({ project_id, path, compact }: Props) {
   if (filename_extension(path) === "sage-chat") {
     // Special case: do not show side chat for chatrooms
     return null;
-  }
-
-  function renderLabel() {
-    const label = <span style={{ marginLeft: "5px" }}>Chat</span>;
-    if (typeof compact === "boolean") {
-      return compact ? null : label;
-    }
-    return <HiddenXS>{label}</HiddenXS>;
   }
 
   return (
@@ -87,14 +99,15 @@ export function ChatButton({ project_id, path, compact }: Props) {
       mouseEnterDelay={0.5}
     >
       <Button
-        active={!!chatState}
-        bsStyle={isNewChat ? "danger" : "default"}
+        danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={toggleChat}
         style={{ color: chatState ? "orange" : undefined }}
       >
         <Icon name="comment" />
-        {renderLabel()}
+        <HiddenXS>
+          <span style={{ marginLeft: "5px" }}>Chat</span>
+        </HiddenXS>
       </Button>
     </Tooltip>
   );

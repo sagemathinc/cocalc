@@ -6,9 +6,7 @@
 /*
 FrameTree -- a binary tree of editor frames.
 
-For the first version, these will all be codemirror editors on the same file.
-However, the next version will potentially be a mix of editors, output
-places, terminals, etc.
+This is a mix of editors, output places, terminals, etc.
 
 The frame_tree prop is:
 

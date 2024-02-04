@@ -25,7 +25,7 @@ import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";
 import { terminal } from "../terminal-editor/editor";
 
-const worksheet_buttons = set([
+const worksheetCommands = set([
   "print",
   "decrease_font_size",
   "increase_font_size",
@@ -48,14 +48,14 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Cell Worksheet",
     icon: "minus-square",
     component: CellWorksheet,
-    buttons: worksheet_buttons,
+    commands: worksheetCommands,
   } as EditorDescription,
   document: {
     short: "Document",
     name: "Document Worksheet",
     icon: "file-alt",
     component: DocumentWorksheet,
-    buttons: worksheet_buttons,
+    commands: worksheetCommands,
   } as EditorDescription,
   terminal,
   /*,
@@ -64,7 +64,7 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Printable View",
     icon: "print",
     component: Print,
-    buttons: set(["print"])
+    commands: set(["print"])
   }*/
 } as const;
 

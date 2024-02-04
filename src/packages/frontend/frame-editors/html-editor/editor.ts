@@ -23,7 +23,8 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
+      "format_action",
       "print",
       "chatgpt",
       "decrease_font_size",
@@ -48,7 +49,7 @@ const EDITOR_SPEC: EditorSpec = {
     name: "HTML IFrame",
     icon: "compass",
     component: IFrameHTML,
-    buttons: set([
+    commands: set([
       "print",
       "save",
       "time_travel",
@@ -64,7 +65,7 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Sanitized Preview",
     icon: "html5",
     component: SanitizedPreview,
-    buttons: set([
+    commands: set([
       "print",
       "decrease_font_size",
       "increase_font_size",

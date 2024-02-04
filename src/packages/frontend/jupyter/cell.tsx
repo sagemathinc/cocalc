@@ -173,7 +173,6 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         title={"Protected from deletion"}
         placement={"right"}
         size={"small"}
-        style={{ marginRight: "5px" }}
       >
         <Icon name="ban" />
       </Tip>
@@ -187,7 +186,6 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         title={"Protected from modifications"}
         placement={"right"}
         size={"small"}
-        style={{ marginRight: "5px" }}
       >
         <Icon name="lock" />
       </Tip>
@@ -229,8 +227,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       // in the condition above.
       style = {
         position: "absolute",
-        top: "2px",
-        left: "5px",
+        top: "-2px",
+        left: 0,
         whiteSpace: "nowrap",
         color: COLORS.GRAY_L,
       };

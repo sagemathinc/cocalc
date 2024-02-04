@@ -23,7 +23,7 @@ import { PDFEmbed } from "./pdf-embed";
 import { PDFJS } from "./pdfjs";
 import { pdf_path } from "./util";
 
-export const pdfjs_buttons = set([
+export const pdfjsCommands = set([
   "print",
   "download",
   "decrease_font_size",
@@ -40,8 +40,10 @@ const EDITOR_SPEC: EditorSpec = {
     name: "LaTeX Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
+      "format_action",
       "build",
+      "force_build",
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -61,7 +63,27 @@ const EDITOR_SPEC: EditorSpec = {
       "format",
       "switch_to_file",
       "show_table_of_contents",
+      "word_count",
+      "-format-SpecialChar", // disable this since not properly implemented for latex.  It could be though!
+      "download_pdf",
     ]),
+    buttons: set([
+      "sync",
+      "format-header",
+      "format-text",
+      "format-font",
+      "format-color",
+      "build",
+      "show_table_of_contents",
+    ]),
+    customizeCommands: {
+      print: {
+        label: "Print LaTeX Source",
+        title:
+          "Print the source code of this document.  Use Print from the PDF Preview frame to print the rendered document.",
+      },
+    },
+
     gutters: ["Codemirror-latex-errors"],
     format_bar: true,
     format_bar_exclude: {
@@ -69,7 +91,6 @@ const EDITOR_SPEC: EditorSpec = {
       SpecialChar: true,
       image: true,
       unformat: true,
-      font_dropdowns: true, // disabled until we can properly implement them!
     },
   } as EditorDescription,
 
@@ -78,9 +99,24 @@ const EDITOR_SPEC: EditorSpec = {
     name: "PDF - Preview",
     icon: "file-pdf",
     component: PDFJS,
-    buttons: pdfjs_buttons,
+    commands: {
+      ...pdfjsCommands,
+      download: false,
+      download_pdf: true,
+      build: true,
+    },
+    buttons: set([
+      "sync",
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+      "build",
+      "print",
+      "download_pdf",
+    ]),
     path: pdf_path,
-    style: { background: "#525659" },
     renderer: "canvas",
   } as EditorDescription,
 
@@ -89,7 +125,7 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set(["build"]),
+    commands: set(["build", "force_build", "clean"]),
   } as EditorDescription,
 
   build: {
@@ -97,14 +133,16 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Build Control and Log",
     icon: "terminal",
     component: Build,
-    buttons: set([
+    commands: set([
       "build",
       "force_build",
       "clean",
       "decrease_font_size",
       "increase_font_size",
       "rescan_latex_directive",
+      "word_count",
     ]),
+    buttons: set(["build", "force_build", "clean"]),
   } as EditorDescription,
 
   latex_table_of_contents: {
@@ -112,14 +150,14 @@ const EDITOR_SPEC: EditorSpec = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   word_count: {
     short: "Word Count",
     name: "Word Count",
     icon: "file-alt",
-    buttons: set(["word_count"]),
+    commands: set(["word_count"]),
     component: LatexWordCount,
   } as EditorDescription,
 
@@ -136,7 +174,7 @@ if (!IS_IPAD && !IS_IOS) {
     short: "PDF (native)",
     name: "PDF - Native",
     icon: "file-pdf",
-    buttons: set(["print", "save", "download"]),
+    commands: set(["print", "save", "download"]),
     component: PDFEmbed,
     path: pdf_path,
   } as EditorDescription;

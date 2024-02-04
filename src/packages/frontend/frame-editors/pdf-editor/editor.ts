@@ -14,7 +14,7 @@ import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { PDFEmbed } from "../latex-editor/pdf-embed";
 import { PDFJS } from "../latex-editor/pdfjs";
 
-const pdfjs_buttons = set([
+const pdfjsCommands = set([
   "reload",
   "print",
   "download",
@@ -28,11 +28,18 @@ const pdfjs_buttons = set([
 export const EDITOR_SPEC: EditorSpec = {
   pdfjs_canvas: {
     short: "PDF.js",
-    name: "PDF.js",
+    name: "PDF Viewer",
     icon: "file-pdf",
     component: PDFJS,
-    buttons: pdfjs_buttons,
-    style: { background: "#525659" },
+    commands: pdfjsCommands,
+    buttons: set([
+      "reload",
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+    ]),
     renderer: "canvas",
   } as EditorDescription,
 } as const;
@@ -42,9 +49,9 @@ export const EDITOR_SPEC: EditorSpec = {
 if (!IS_IPAD && !IS_IOS) {
   (EDITOR_SPEC as any).pdf_embed = {
     short: "PDF (native)",
-    name: "PDF - Native",
+    name: "PDF Viewer - Native",
     icon: "file-pdf",
-    buttons: set(["reload", "print", "download"]),
+    commands: set(["reload", "print", "download"]),
     component: PDFEmbed,
   } as EditorDescription;
 }

@@ -15,7 +15,7 @@ import { DisplayImage } from "./select-image";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-const PROJECT_COLOR = "#f6ffed";
+const PROJECT_COLOR = "#f4f5c4";
 
 interface Option {
   position?: number;
@@ -66,7 +66,6 @@ export default function SelectComputeServer({
   const [open, setOpen0] = useState<boolean>(false);
   const setOpen = (open) => {
     const now = Date.now();
-    console.log(now - lastOpenRef.current);
     if (now - lastOpenRef.current < 500) {
       return;
     }
@@ -83,9 +82,9 @@ export default function SelectComputeServer({
 
   const okButtonRef = useRef();
   useEffect(() => {
-    if (confirmSwitch && okButtonRef.current) {
+    if (confirmSwitch) {
       // @ts-ignore
-      setTimeout(() => okButtonRef.current.focus(), 1);
+      setTimeout(() => okButtonRef.current?.focus(), 1);
     }
   }, [confirmSwitch]);
 
@@ -211,7 +210,8 @@ export default function SelectComputeServer({
       {
         label: (
           <div style={{ fontSize: "12pt" }}>
-            Where to run this {type == "terminal" ? "Terminal" : "Notebook"}
+            <Icon name="server" /> Where to run this{" "}
+            {type == "terminal" ? "Terminal" : "Notebook"}
           </div>
         ),
         options: [
@@ -275,47 +275,49 @@ export default function SelectComputeServer({
         options: other,
       });
     }
-    if (v.length == 1) {
-      // only option is the project
-      v.push({
-        label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
-        options: [
-          {
-            value: "create",
-            sort: "create",
-            state: "",
-            label: (
-              <div
-                onClick={() => {
-                  redux
-                    .getProjectActions(project_id)
-                    ?.set_active_tab("servers");
-                }}
-              >
-                <Icon name="plus-circle" /> New Compute Server...
-              </div>
-            ),
-          },
-        ],
-      });
-    }
+    // always have an option to create a new compute server!
+    v.push({
+      label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
+      options: [
+        {
+          value: "create",
+          sort: "create",
+          state: "",
+          label: (
+            <div
+              onClick={() => {
+                redux.getProjectActions(project_id)?.set_active_tab("servers");
+              }}
+            >
+              <Icon name="plus-circle" /> New Compute Server...
+            </div>
+          ),
+        },
+      ],
+    });
 
     return v;
   }, [computeServers]);
+  let width;
+  if (open) {
+    width = "300px";
+  } else {
+    if (value == "0" || !value) {
+      width = undefined;
+    } else {
+      width = "120px";
+    }
+  }
 
   return (
-    <>
+    <Tooltip title="Compute server where this runs">
       <Select
         allowClear
         bordered={false}
         disabled={loading}
         placeholder={
-          <span style={{ color: "#666" }}>
-            <Icon
-              style={{ marginRight: "5px", color: "#666" }}
-              name="servers"
-            />{" "}
-            Server...
+          <span style={{ color: "#333", fontSize: "13pt" }}>
+            <Icon name="server" /> {open ? "Compute Servers..." : undefined}
           </span>
         }
         open={open}
@@ -328,11 +330,12 @@ export default function SelectComputeServer({
           setIdNum(0);
           setConfirmSwitch(true);
         }}
-        value={value == "0" ? undefined : value}
+        suffixIcon={null}
+        value={value == "0" || value == null ? null : value}
         onDropdownVisibleChange={setOpen}
         style={{
           ...style,
-          width: open ? "300px" : value && value != "0" ? "175px" : "120px",
+          width,
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
         }}
         options={options}
@@ -341,7 +344,7 @@ export default function SelectComputeServer({
         keyboard
         title={
           idNum == 0 ? (
-            <>Run in this Project?</>
+            <>Run in this Project</>
           ) : (
             <>Run on the compute server "{computeServers[idNum]?.title}"?</>
           )
@@ -356,12 +359,12 @@ export default function SelectComputeServer({
         okButtonProps={{
           // @ts-ignore
           ref: okButtonRef,
-          style: {
-            background: computeServers[idNum]?.color ?? PROJECT_COLOR,
-            color: avatar_fontcolor(
-              computeServers[idNum]?.color ?? PROJECT_COLOR,
-            ),
-          },
+          style: computeServers[idNum]
+            ? {
+                background: computeServers[idNum].color,
+                color: avatar_fontcolor(computeServers[idNum].color),
+              }
+            : undefined,
         }}
         onOk={() => {
           setConfirmSwitch(false);
@@ -392,6 +395,6 @@ export default function SelectComputeServer({
           </div>
         )}
       </Modal>
-    </>
+    </Tooltip>
   );
 }

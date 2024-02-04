@@ -60,7 +60,7 @@ function evt_to_shortcut(evt: any, mode: NotebookMode): string {
 export function create_key_handler(
   jupyter_actions: JupyterActions,
   frame_actions: NotebookFrameActions,
-  editor_actions: JupyterEditorActions
+  editor_actions: JupyterEditorActions,
 ): (e: any) => void {
   if (
     jupyter_actions == null ||
@@ -92,11 +92,11 @@ export function create_key_handler(
     }
   }
 
-  const object = commands(
+  const object = commands({
     jupyter_actions,
-    { current: frame_actions },
-    editor_actions
-  );
+    frame_actions,
+    editor_actions,
+  });
   for (const name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {

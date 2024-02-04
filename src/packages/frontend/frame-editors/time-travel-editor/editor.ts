@@ -26,7 +26,7 @@ export const time_travel = {
   name: "TimeTravel",
   icon: "history",
   component: TimeTravel,
-  buttons: set([
+  commands: set([
     "decrease_font_size",
     "increase_font_size",
     "set_zoom",

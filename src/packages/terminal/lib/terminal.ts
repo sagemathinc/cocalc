@@ -165,9 +165,9 @@ export class Terminal {
       this.handleDataFromTerminal(EXIT_MESSAGE);
       delete this.localPty;
     });
-    if (command == "/bin/bash") {
-      localPty.write("\nreset;history -d $(history 1)\n");
-    }
+    //     if (command == "/bin/bash") {
+    //       localPty.write("\nreset;history -d $(history 1)\n");
+    //     }
     this.state = "ready";
     return localPty;
   };
