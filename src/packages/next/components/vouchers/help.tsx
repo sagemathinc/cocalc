@@ -17,7 +17,7 @@ export default function Help() {
         }}
       >
         <p>
-          When a voucher code is redeeemed,{" "}
+          When a voucher code is redeemed,{" "}
           <A href="/settings/purchases" external>
             money
           </A>{" "}

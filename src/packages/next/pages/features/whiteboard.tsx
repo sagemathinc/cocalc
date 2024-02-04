@@ -29,7 +29,7 @@ export default function Whiteboard({ customize }) {
         <Layout.Content>
           <Content
             landing
-            logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
+            body={<Icon name="layout" style={{ fontSize: "100px" }} />}
             startup={"Whiteboard"}
             title={
               "Online Collaborative Whiteboard with Jupyter Code Cells and LaTeX Mathematics"
