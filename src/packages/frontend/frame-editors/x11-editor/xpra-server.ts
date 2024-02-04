@@ -42,11 +42,11 @@ export class XpraServer {
       console.warn("xpra: Failed to get hostname.");
     }
     this.display = opts.display;
-    this.start = reuseInFlight(this.start);
-    this.stop = reuseInFlight(this.stop);
-    this.get_port = reuseInFlight(this.get_port);
-    this.get_hostname = reuseInFlight(this.get_hostname);
-    this.pgrep = reuseInFlight(this.pgrep);
+    this.start = reuseInFlight(this.start.bind(this));
+    this.stop = reuseInFlight(this.stop.bind(this));
+    this.get_port = reuseInFlight(this.get_port.bind(this));
+    this.get_hostname = reuseInFlight(this.get_hostname.bind(this));
+    this.pgrep = reuseInFlight(this.pgrep.bind(this));
   }
 
   destroy(): void {

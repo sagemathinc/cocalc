@@ -78,7 +78,7 @@ const Header = () => {
       placement="bottom"
       tip="Drag and drop files from your computer into the box below to upload them into your project."
     >
-      <h4 style={{ color: "#666" }}>Drag and drop files</h4>
+      <h4 style={{ color: "#666" }}>Drag and drop files from your computer</h4>
     </Tip>
   );
 };

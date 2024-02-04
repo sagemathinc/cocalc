@@ -40,7 +40,7 @@ export default function Sage({ customize }) {
           <Content
             landing
             startup={component}
-            logo={sageLogo}
+            body={sageLogo}
             title={
               <>
                 Use <A href="https://www.sagemath.org/">SageMath</A> Online

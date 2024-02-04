@@ -9,7 +9,7 @@ import {
   UncommittedChanges,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 
 interface Props {
   has_unsaved_changes?: boolean;
@@ -68,28 +68,29 @@ export const SaveButton: FC<Props> = memo(
     // slightly depending on which icon we are showing.
     // whiteSpace:"nowrap" due to https://github.com/sagemathinc/cocalc/issues/4434
     return (
-      <Button
-        title={"Save file to disk"}
-        size={size}
-        disabled={disabled}
-        onClick={onClick}
-        style={{
-          ...(type == "default"
-            ? undefined
-            : { background: "#5cb85c", color: "white" }),
-          opacity: disabled ? 0.65 : undefined,
-          whiteSpace: "nowrap",
-          ...style,
-        }}
-      >
-        <Icon name={icon} style={{ display: "inline-block" }} />
-        {!no_labels && <VisibleMDLG>{label}</VisibleMDLG>}
-        <UncommittedChanges
-          has_uncommitted_changes={has_uncommitted_changes}
-          show_uncommitted_changes={show_uncommitted_changes}
-          set_show_uncommitted_changes={set_show_uncommitted_changes}
-        />
-      </Button>
+      <Tooltip title="Save to disk">
+        <Button
+          size={size}
+          disabled={disabled}
+          onClick={onClick}
+          style={{
+            ...(type == "default"
+              ? undefined
+              : { background: "#5cb85c", color: "#333" }),
+            opacity: disabled ? 0.65 : undefined,
+            whiteSpace: "nowrap",
+            ...style,
+          }}
+        >
+          <Icon name={icon} style={{ display: "inline-block" }} />
+          {!no_labels && <VisibleMDLG>{label}</VisibleMDLG>}
+          <UncommittedChanges
+            has_uncommitted_changes={has_uncommitted_changes}
+            show_uncommitted_changes={show_uncommitted_changes}
+            set_show_uncommitted_changes={set_show_uncommitted_changes}
+          />
+        </Button>
+      </Tooltip>
     );
   },
 );

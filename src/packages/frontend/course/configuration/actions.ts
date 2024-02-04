@@ -30,7 +30,7 @@ export class ConfigurationActions {
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
     this.push_missing_handouts_and_assignments = reuseInFlight(
-      this.push_missing_handouts_and_assignments,
+      this.push_missing_handouts_and_assignments.bind(this),
     );
   }
 

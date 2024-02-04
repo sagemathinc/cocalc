@@ -392,7 +392,7 @@ export default function CreateVouchers() {
           <A href="/redeem">redeem a voucher for shopping cart items</A>, the
           corresponding licenses start at the redemption date, and last for the
           same number of days as your shopping cart item. You can also browse
-          all <A href="/vouchers/redeemed">vouchers you have redeeemed</A>.
+          all <A href="/vouchers/redeemed">vouchers you have redeemed</A>.
         </p>
       </div>
     );

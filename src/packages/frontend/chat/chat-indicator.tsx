@@ -99,10 +99,11 @@ function ChatButton({ project_id, path, chatState }) {
       mouseEnterDelay={0.5}
     >
       <Button
+        type="text"
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={toggleChat}
-        style={{ color: chatState ? "orange" : undefined }}
+        style={{ color: chatState ? "orange" : "#333" }}
       >
         <Icon name="comment" />
         <HiddenXS>

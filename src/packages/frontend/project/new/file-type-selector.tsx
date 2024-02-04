@@ -60,7 +60,6 @@ export function FileTypeSelector({
   const isFlyout = mode === "flyout";
   const btnSize = isFlyout ? "small" : "large";
 
-
   // col width of Antd's 24 grid system
   const base = 6;
   const md = isFlyout ? 24 : base;
@@ -100,6 +99,7 @@ export function FileTypeSelector({
           />
           {renderSageWS()}
           {renderLaTeX()}
+          {renderRMD()}
         </Row>
       </>
     );
@@ -463,8 +463,6 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
-
-          {renderRMD()}
         </Row>
       </>
     );

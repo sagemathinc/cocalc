@@ -7,15 +7,16 @@
 Actions specific to manipulating the students in a course
 */
 
+import { map } from "awaiting";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { callback2 } from "@cocalc/util/async-utils";
+import { defaults, required, uuid } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions } from "../actions";
 import { CourseStore, StudentRecord } from "../store";
 import { SyncDBRecordStudent } from "../types";
-import { callback2 } from "@cocalc/util/async-utils";
-import { map } from "awaiting";
-import { redux } from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
-import { defaults, required, uuid } from "@cocalc/util/misc";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export class StudentsActions {
   private course_actions: CourseActions;
@@ -23,7 +24,7 @@ export class StudentsActions {
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
     this.push_missing_handouts_and_assignments = reuseInFlight(
-      this.push_missing_handouts_and_assignments
+      this.push_missing_handouts_and_assignments.bind(this),
     );
   }
 
@@ -34,7 +35,7 @@ export class StudentsActions {
   }
 
   public async add_students(
-    students: { account_id?: string; email_address?: string }[]
+    students: { account_id?: string; email_address?: string }[],
   ): Promise<void> {
     // students = array of objects that may have an account_id or email_address field set
     // New student_id's will be constructed randomly for each student
@@ -73,7 +74,7 @@ export class StudentsActions {
     } catch (err) {
       if (this.course_actions.is_closed()) return;
       this.course_actions.set_error(
-        `error creating student projects -- ${err}`
+        `error creating student projects -- ${err}`,
       );
     } finally {
       if (this.course_actions.is_closed()) return;
@@ -174,7 +175,7 @@ export class StudentsActions {
 
   public async set_internal_student_info(
     student_id: string,
-    info: { first_name: string; last_name: string; email_address?: string }
+    info: { first_name: string; last_name: string; email_address?: string },
   ): Promise<void> {
     const { student } = this.course_actions.resolve({ student_id });
     if (student == null) return;
@@ -210,7 +211,7 @@ export class StudentsActions {
   this student that have been pushed to at least one student so far.
   */
   public async push_missing_handouts_and_assignments(
-    student_id: string
+    student_id: string,
   ): Promise<void> {
     const { student, store } = this.course_actions.resolve({ student_id });
     if (student == null) {
@@ -229,7 +230,7 @@ export class StudentsActions {
           await this.course_actions.assignments.copy_assignment(
             "assigned",
             assignment_id,
-            student_id
+            student_id,
           );
           if (this.course_actions.is_closed()) return;
         }
@@ -239,7 +240,7 @@ export class StudentsActions {
           await this.course_actions.handouts.copy_handout_to_student(
             handout_id,
             student_id,
-            true
+            true,
           );
           if (this.course_actions.is_closed()) return;
         }

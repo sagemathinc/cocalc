@@ -1359,6 +1359,42 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true, save);
   }
 
+  set_metadata_on_cells = (
+    cell_ids: string[],
+    key: string,
+    value,
+    save: boolean = true,
+  ) => {
+    for (const id of cell_ids) {
+      this.set_cell_metadata({
+        id,
+        metadata: { [key]: value },
+        merge: true,
+        save: false,
+        bypass_edit_protection: true,
+      });
+    }
+    if (save) {
+      this.save_asap();
+    }
+  };
+
+  public write_protect_cells(
+    cell_ids: string[],
+    protect: boolean,
+    save: boolean = true,
+  ) {
+    this.set_metadata_on_cells(cell_ids, "editable", !protect, save);
+  }
+
+  public delete_protect_cells(
+    cell_ids: string[],
+    protect: boolean,
+    save: boolean = true,
+  ) {
+    this.set_metadata_on_cells(cell_ids, "deletable", !protect, save);
+  }
+
   // this prevents any cell from being deleted, either directly, or indirectly via a "merge"
   // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
   public toggle_delete_protection_on_cells(
@@ -1389,7 +1425,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
           ),
         },
         merge: true,
-        save,
+        save: false,
         bypass_edit_protection: true,
       });
     }

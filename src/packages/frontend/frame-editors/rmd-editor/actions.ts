@@ -22,6 +22,15 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
+import { open_new_tab } from "@cocalc/frontend/misc";
+const HELP_URL = "https://doc.cocalc.com/frame-editor.html#edit-rmd";
+
+const MINIMAL = `# Title
+
+\`\`\`{r}
+summary(c(1,2,3))
+\`\`\`
+`;
 
 const custom_pdf_error_message: string = `
 To create a PDF document from R Markdown, you specify the \`pdf_document\` output format in the
@@ -52,12 +61,16 @@ export class Actions extends MarkdownActions {
 
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
-    if (!this.is_public) {
-      // one extra thing after markdown.
-      this._syncstring.once("ready", this._init_rmd_converter.bind(this));
-      this._check_produced_files();
-      this.setState({ custom_pdf_error_message });
-    }
+    // one extra thing after markdown.
+    this._syncstring.once("ready", () => {
+      this._init_rmd_converter();
+    });
+    this._check_produced_files();
+    this.setState({ custom_pdf_error_message });
+    this._syncstring.on(
+      "change",
+      debounce(this.ensureNonempty.bind(this), 1500),
+    );
   }
 
   private do_implicit_builds(): boolean {
@@ -241,4 +254,15 @@ export class Actions extends MarkdownActions {
 
   // Never delete trailing whitespace for markdown files.
   delete_trailing_whitespace(): void {}
+
+  help(): void {
+    open_new_tab(HELP_URL);
+  }
+
+  private ensureNonempty() {
+    if (this.store && !this.store.get("value")?.trim()) {
+      this.set_value(MINIMAL);
+      this.build();
+    }
+  }
 }

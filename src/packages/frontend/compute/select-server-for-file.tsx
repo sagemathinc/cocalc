@@ -20,6 +20,7 @@ interface Props {
   actions?;
   size?;
   type: string;
+  noLabel?;
 }
 
 export default function SelectComputeServerForFile({
@@ -30,6 +31,7 @@ export default function SelectComputeServerForFile({
   size,
   style,
   type,
+  noLabel,
 }: Props) {
   const getPath = (path) => {
     if (actions != null && type == "terminal") {
@@ -120,6 +122,7 @@ export default function SelectComputeServerForFile({
           setIdNum(value ?? 0);
           setConfirmSwitch(true);
         }}
+        noLabel={noLabel}
       />
       <Modal
         keyboard

@@ -308,7 +308,6 @@ export default function Configure(props: Props) {
                         )}
                       </A>
                     </Radio>
-
                     <Radio
                       name="sharing_options"
                       value="public_unlisted"

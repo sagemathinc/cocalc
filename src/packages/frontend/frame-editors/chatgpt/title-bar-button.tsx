@@ -11,7 +11,6 @@ to do the work.
 
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
-
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   Icon,
@@ -122,20 +121,24 @@ interface Props {
   path: string;
   buttonRef;
   project_id: string;
+  showDialog: boolean;
+  setShowDialog: (boolean) => void;
+  noLabel?: boolean;
 }
 
-export default function LanguageModelTitleBarButtonDialog({
+export default function LanguageModelTitleBarButton({
   id,
   actions,
   buttonSize,
   buttonStyle,
-  labels,
   visible,
   path,
   buttonRef,
   project_id,
+  showDialog,
+  setShowDialog,
+  noLabel,
 }: Props) {
-  const [showDialog, setShowDialog] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [custom, setCustom] = useState<string>("");
   const frameType = actions._get_frame_type(id);
@@ -403,27 +406,32 @@ export default function LanguageModelTitleBarButtonDialog({
         );
       }}
     >
-      <Button
-        style={buttonStyle}
-        size={buttonSize}
-        onClick={() => {
-          setError("");
-          setShowDialog(!showDialog);
-          actions.blur();
-        }}
-      >
-        <span ref={buttonRef}>
-          <Tooltip title="Get assistance from a language model">
+      <Tooltip title="Artificial Intelligence assistance">
+        <Button
+          style={buttonStyle}
+          size={buttonSize}
+          onClick={() => {
+            setError("");
+            setShowDialog(!showDialog);
+            actions.blur();
+          }}
+        >
+          <span ref={buttonRef}>
             <AIAvatar
               size={20}
-              iconColor="white"
+              iconColor="#333"
               style={{ marginTop: "-5px" }}
-              innerStyle={{}}
-            />{" "}
-          </Tooltip>
-          <VisibleMDLG>{labels ? "Assist..." : undefined}</VisibleMDLG>
-        </span>
-      </Button>
+            />
+            {noLabel ? (
+              ""
+            ) : (
+              <VisibleMDLG>
+                <span style={{ marginLeft: "5px" }}>Assistant</span>
+              </VisibleMDLG>
+            )}
+          </span>
+        </Button>
+      </Tooltip>
     </Popover>
   );
 }

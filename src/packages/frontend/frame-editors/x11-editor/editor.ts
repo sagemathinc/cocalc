@@ -19,7 +19,7 @@ export const x11 = {
   name: "X11",
   icon: "window-restore",
   component: X11,
-  buttons: set([
+  commands: set([
     "decrease_font_size",
     "increase_font_size",
     "set_zoom",
@@ -37,7 +37,7 @@ export const launcher = {
   name: "Applications",
   icon: "server",
   component: Launcher,
-  buttons: set([]),
+  commands: set([]),
 } as EditorDescription;
 
 const EDITOR_SPEC = {

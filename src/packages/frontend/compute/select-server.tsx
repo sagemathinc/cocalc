@@ -7,13 +7,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Spin, Tooltip } from "antd";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-export const PROJECT_COLOR = "#4474c0";
+export const PROJECT_COLOR = "#f4f5c4";
 
 interface Option {
   position?: number;
@@ -31,6 +31,7 @@ interface Props {
   disabled?: boolean;
   size?;
   style?: CSSProperties;
+  noLabel?: boolean;
 }
 
 export default function SelectServer({
@@ -40,6 +41,7 @@ export default function SelectServer({
   disabled,
   size,
   style,
+  noLabel,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
   const [value, setValue1] = useState<number | null | undefined>(
@@ -74,10 +76,72 @@ export default function SelectServer({
     setOpen0(open);
   };
 
-  const computeServers = useTypedRedux(
-    { project_id },
-    "compute_servers",
-  )?.toJS();
+  const computeServers =
+    useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
+  const computeServerAssociations = useMemo(() => {
+    return webapp_client.project_client.computeServers(project_id);
+  }, [project_id]);
+  const [value, setValue] = useState<string | null>(null);
+
+  const okButtonRef = useRef();
+  useEffect(() => {
+    if (confirmSwitch) {
+      // @ts-ignore
+      setTimeout(() => okButtonRef.current?.focus(), 1);
+    }
+  }, [confirmSwitch]);
+
+  useEffect(() => {
+    const handleChange = async () => {
+      try {
+        let p = getPath(path);
+        if (p == null) {
+          // have to wait for terminal state to be initialized, which
+          // happens in next render loop:
+          await delay(1);
+          p = getPath(path);
+          if (p == null) {
+            // still nothing -- that's weird
+            return;
+          }
+        }
+        const id = await computeServerAssociations.getServerIdForPath(p);
+        if (type == "jupyter_cell_notebook" && actions != null) {
+          actions.jupyter_actions.setState({ requestedComputeServerId: id });
+          if (
+            actions.jupyter_actions.store?.get("kernel_error") &&
+            id != actions.jupyter_actions.getComputeServerId()
+          ) {
+            // show a warning about the kernel being killed isn't useful and
+            // is just redundant when actively switching.
+            actions.jupyter_actions.setState({ kernel_error: "" });
+          }
+        } else if (type == "terminal") {
+          const terminalRequestedComputeServerIds =
+            actions.store.get("terminalRequestedComputeServerIds")?.toJS() ??
+            {};
+          terminalRequestedComputeServerIds[p] = id;
+          actions.setState({ terminalRequestedComputeServerIds });
+        }
+        setValue(id == null ? null : `${id}`);
+      } catch (err) {
+        console.warn(err);
+      }
+    };
+    computeServerAssociations.on("change", handleChange);
+    (async () => {
+      try {
+        setLoading(true);
+        await handleChange();
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      computeServerAssociations.removeListener("change", handleChange);
+    };
+  }, [project_id, path, type]);
 
   const options = useMemo(() => {
     if (computeServers == null) return [];
@@ -213,70 +277,132 @@ export default function SelectServer({
         options: other,
       });
     }
-    if (v.length == 1) {
-      // only option is the project
-      v.push({
-        label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
-        options: [
-          {
-            value: "create",
-            sort: "create",
-            state: "",
-            label: (
-              <div
-                onClick={() => {
-                  const actions = redux.getProjectActions(project_id);
-                  if (actions != null) {
-                    actions.setState({ create_compute_server: true });
-                    actions.set_active_tab("servers", {
-                      change_history: true,
-                    });
-                  }
-                }}
-              >
-                <Icon name="plus-circle" /> New Compute Server...
-              </div>
-            ),
-          },
-        ],
-      });
-    }
+    // always have an option to create a new compute server!
+    v.push({
+      label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
+      options: [
+        {
+          value: "create",
+          sort: "create",
+          state: "",
+          label: (
+            <div
+              onClick={() => {
+                redux.getProjectActions(project_id)?.set_active_tab("servers");
+              }}
+            >
+              <Icon name="plus-circle" /> New Compute Server...
+            </div>
+          ),
+        },
+      ],
+    });
 
     return v;
   }, [computeServers]);
+  let width;
+  if (open) {
+    width = "300px";
+  } else {
+    if (value == "0" || !value) {
+      width = undefined;
+    } else {
+      width = "120px";
+    }
+  }
 
   if (computeServers == null) {
     return <Spin delay={1000} />;
   }
 
   return (
-    <Select
-      disabled={disabled}
-      allowClear
-      size={size}
-      bordered={false}
-      placeholder={
-        <span style={{ color: "#666" }}>
-          <Icon style={{ marginRight: "5px", color: "#666" }} name="servers" />{" "}
-          Server...
-        </span>
-      }
-      open={open}
-      onSelect={(id) => {
-        if (id == "create") return;
-        setValue(Number(id ?? "0"));
-      }}
-      onClear={() => {
-        setValue(undefined);
-      }}
-      value={value != null ? `${value}` : undefined}
-      onDropdownVisibleChange={setOpen}
-      style={{
-        width: getWidth(open, value, size),
-        ...style,
-      }}
-      options={options}
-    />
+    <Tooltip title="Compute server where this runs">
+      <Select
+        disabled={disabled}
+        allowClear
+        size={size}
+        bordered={false}
+        placeholder={
+          <span style={{ color: "#666" }}>
+            <Icon
+              style={{ marginRight: "5px", color: "#666" }}
+              name="servers"
+            />{" "}
+            Server...
+          </span>
+        }
+        open={open}
+        onSelect={(id) => {
+          if (id == "create") return;
+          setValue(Number(id ?? "0"));
+        }}
+        onClear={() => {
+          setValue(undefined);
+        }}
+        value={value != null ? `${value}` : undefined}
+        onDropdownVisibleChange={setOpen}
+        style={{
+          width: getWidth(open, value, size),
+          ...style,
+        }}
+        options={options}
+      />
+      <Modal
+        keyboard
+        title={
+          idNum == 0 ? (
+            <>Run in this Project</>
+          ) : (
+            <>Run on the compute server "{computeServers[idNum]?.title}"?</>
+          )
+        }
+        open={confirmSwitch}
+        onCancel={() => setConfirmSwitch(false)}
+        okText={
+          idNum == 0
+            ? "Run in Project"
+            : `Run on ${computeServers[idNum]?.title}`
+        }
+        okButtonProps={{
+          // @ts-ignore
+          ref: okButtonRef,
+          style: computeServers[idNum]
+            ? {
+                background: computeServers[idNum].color,
+                color: avatar_fontcolor(computeServers[idNum].color),
+              }
+            : undefined,
+        }}
+        onOk={() => {
+          setConfirmSwitch(false);
+          if (idNum) {
+            setValue(`${idNum}`);
+            computeServerAssociations.connectComputeServerToPath({
+              id: idNum,
+              path: getPath(path),
+            });
+          } else {
+            setValue(null);
+            computeServerAssociations.disconnectComputeServer({
+              path: getPath(path),
+            });
+          }
+        }}
+      >
+        {idNum == 0 ? (
+          <div>
+            Do you want to run this in the project? Variables and other state
+            will be lost.
+          </div>
+        ) : (
+          <div>
+            Do you want to run this on the compute server "
+            {computeServers[idNum]?.title}"? Variables and other state will be
+            lost.
+          </div>
+        )}
+      </Modal>
+    </Tooltip>
   );
 }
 

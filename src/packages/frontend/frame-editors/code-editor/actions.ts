@@ -220,7 +220,7 @@ export class Actions<
       this as unknown as Actions<CodeEditorState>,
     );
 
-    this.format = reuseInFlight(this.format);
+    this.format = reuseInFlight(this.format.bind(this));
 
     this.set_resize = debounce(this.set_resize.bind(this), 20, {
       leading: false,
@@ -2563,7 +2563,7 @@ export class Actions<
       }
       await t.wait_for_next_render();
       await delay(1); // also wait a little bit
-      t.conn_write("reset\n");
+      t.conn_write("\nreset\n");
     } else {
       throw Error(`"clear" for type="${type}" not implemented`);
     }
