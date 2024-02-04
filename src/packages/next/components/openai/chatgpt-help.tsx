@@ -39,6 +39,7 @@ export default function ChatGPTHelp({
   const [output, setOutput] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [showSignUp, setShowSignUp] = useState<boolean>(false);
   const router = useRouter();
 
   const counterRef = useRef<number>(0);
@@ -96,11 +97,11 @@ export default function ChatGPTHelp({
         >
           <Input.TextArea
             value={input}
-            maxLength={account?.account_id == null ? 10 : 2000}
+            maxLength={2000}
             onChange={(e) => setInput(e.target.value)}
             size={size}
             autoSize={{ minRows: focus ? 2 : 1, maxRows: 5 }}
-            disabled={state == "wait"}
+            disabled={state == "wait" || account?.account_id == null}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
             placeholder={
@@ -113,11 +114,18 @@ export default function ChatGPTHelp({
               }
             }}
           />
-          {input.trim() && account?.account_id == null && (
+          {account?.account_id == null && (
+            <div style={{marginTop: "8px"}}>
+              <a onClick={() => setShowSignUp(true)}>
+                Sign in or sign up
+              </a> to use ChatGPT.
+            </div>
+          )}
+          {showSignUp && (
             <InPlaceSignInOrUp
               title="ChatGPT"
-              why={"to use ChatGPT on " + siteName}
               onSuccess={() => {
+                setShowSignUp(false);
                 router.reload();
               }}
             />
@@ -130,7 +138,6 @@ export default function ChatGPTHelp({
             marginBottom: "5px",
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
           }}
         >
           <Button

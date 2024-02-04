@@ -157,11 +157,14 @@ export default function Created({ customize }) {
           >
             {profile == null && <Loading />}
             {profile != null && !profile.account_id && (
-              <Card style={{ textAlign: "center" }}>
-                <Icon name="gift2" style={{ fontSize: "75px" }} />
+              <Card>
+                <div style={{ fontSize: "75px", textAlign: "center" }}>
+                  <Icon name="gift2"/>
+                </div>
                 <InPlaceSignInOrUp
-                  why="to see your vouchers"
-                  style={{ fontSize: "14pt", width: "450px" }}
+                  title="Created Vouchers"
+                  why="to see vouchers you've created"
+                  style={{ width: "450px" }}
                   onSuccess={() => {
                     router.reload();
                   }}

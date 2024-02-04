@@ -36,7 +36,7 @@ export default function Linux({ customize }) {
           <Content
             landing
             startup={"Linux"}
-            logo={logo}
+            body={logo}
             title={"Online Linux Environment"}
             subtitle={
               "Learn Linux and Bash Scripting without messing up your own computer."

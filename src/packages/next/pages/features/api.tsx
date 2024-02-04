@@ -31,7 +31,7 @@ export default function API({ customize }) {
             landing
             startup={siteName}
             title={title}
-            logo={<Icon name="api" style={{ fontSize: "60px" }} />}
+            body={<Icon name="api" style={{ fontSize: "60px" }} />}
             subtitle={
               <>
                 Programmatically control CoCalc from your own server. Embed
