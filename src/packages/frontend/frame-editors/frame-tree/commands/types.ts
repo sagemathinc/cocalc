@@ -45,6 +45,9 @@ export interface Command {
   // Popconfirm, or a function that returns Popconfirm options.
   // See frontend/app/popconfirm-modal.tsx for subtleties.
   popconfirm?: any | ((opts: ManageCommands) => any);
+  // if true, never show this on mobile
+  neverVisibleOnMobile?: boolean;
+  // if true, always show this (unless neverVisibleOnMobile set, obviously).
   alwaysShow?: boolean;
   stayOpenOnClick?: boolean;
   search?: string;

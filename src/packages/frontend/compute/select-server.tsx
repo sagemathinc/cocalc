@@ -8,7 +8,7 @@ import { Modal, Select, Tooltip } from "antd";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { cmp } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
@@ -33,6 +33,7 @@ interface Props {
   style?: CSSProperties;
   actions?;
   type: "terminal" | "jupyter_cell_notebook";
+  noLabel?: boolean;
 }
 
 export default function SelectComputeServer({
@@ -42,6 +43,7 @@ export default function SelectComputeServer({
   actions,
   style,
   type,
+  noLabel,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
   const getPath = (path) => {
@@ -316,8 +318,9 @@ export default function SelectComputeServer({
         bordered={false}
         disabled={loading}
         placeholder={
-          <span style={{ color: "#333", fontSize: "13pt" }}>
-            <Icon name="server" /> {open ? "Compute Servers..." : undefined}
+          <span style={{ color: "#333" }}>
+            <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
+            {!noLabel || open ? <VisibleMDLG>Servers</VisibleMDLG> : undefined}
           </span>
         }
         open={open}

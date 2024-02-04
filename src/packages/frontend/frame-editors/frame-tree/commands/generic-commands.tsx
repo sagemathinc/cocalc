@@ -9,7 +9,6 @@ import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { IS_MACOS } from "@cocalc/frontend/feature";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
 import userTracking from "@cocalc/frontend/user-tracking";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { Input } from "antd";
@@ -492,7 +491,7 @@ addCommands({
     label: "Take the Tour",
     title: "Take a guided tour of the user interface for this editor.",
     icon: "map",
-    isVisible: () => !IS_MOBILE,
+    neverVisibleOnMobile: true,
     onClick: ({ props }) => {
       userTracking("tour", { name: `frame-${props.type}` });
       props.actions.set_frame_full(props.id);
@@ -668,7 +667,7 @@ addCommands({
     button: "Chat",
     title:
       "Open chat on the side of this file for chatting with project collaborators or AI about this file.",
-    onClick: ({props}) => {
+    onClick: ({ props }) => {
       redux.getProjectActions(props.project_id).open_chat({ path: props.path });
     },
   },
