@@ -53,7 +53,7 @@ import type {
   Images,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getImages, getGoogleCloudImages } from "@cocalc/frontend/compute/api";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'

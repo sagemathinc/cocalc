@@ -867,8 +867,6 @@ export function FrameTitleBar(props: Props) {
         actions={props.actions}
         frame_id={props.id}
         key="compute-server-selector"
-        actions={props.actions}
-        frame_id={props.id}
         type={type}
         project_id={props.project_id}
         path={props.path}
