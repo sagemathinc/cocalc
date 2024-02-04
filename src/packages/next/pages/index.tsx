@@ -99,6 +99,7 @@ export default function Home(props: Props) {
     return (
       <InPlaceSignInOrUp
         title={`Get started with ${siteName}`}
+        defaultView="sign-up"
       />
     );
   }
@@ -113,21 +114,26 @@ function imageAlternative() {
         <Paragraph>
           <iframe
             style={{
-              marginTop: "20px",
-                maxWidth: "100%",
-                boxShadow: "2px 2px 4px rgb(0 0 0 / 25%), 0 2px 4px rgb(0 0 0 / 22%)",
-                borderRadius: "3px",
-              }}
-              width="672"
-              height="378"
-              src="https://www.youtube.com/embed/ygVWdH4RKIQ"
-              title="YouTube video player"
-              frameBorder={0}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </Paragraph>
-        </div>
+              marginTop: "36px",
+              maxWidth: "100%",
+              boxShadow: "2px 2px 4px rgb(0 0 0 / 25%), 0 2px 4px rgb(0 0 0 / 22%)",
+              borderRadius: "3px",
+            }}
+            width="672"
+            height="378"
+            src="https://www.youtube.com/embed/ygVWdH4RKIQ"
+            title="YouTube video player"
+            frameBorder={0}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </Paragraph>
+        {siteDescription && (
+          <h4 style={{ color: COLORS.GRAY_D, marginTop: "12px" }}>
+            {siteDescription} with {siteName}
+          </h4>
+        )}
+      </div>
       );
     } else {
       return indexInfo;

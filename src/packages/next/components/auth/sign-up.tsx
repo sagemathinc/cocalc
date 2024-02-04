@@ -188,20 +188,15 @@ function SignUp0({
       <>
         <div>
           Already have an account? {
-          signInAction
-            ? <a onClick={signInAction}>Sign In</a>
-            : <A href="/auth/sign-in">Sign In</A>
-        }
+            signInAction
+              ? <a onClick={signInAction}>Sign In</a>
+              : <A href="/auth/sign-in">Sign In</A>
+          } {anonymousSignup && (
+            <>
+              or <A href="/auth/try"> try {siteName} without creating an account. </A>
+            </>
+          )}
         </div>
-        {anonymousSignup && (
-          <div style={{ marginTop: "15px" }}>
-            Don't want to provide any information?
-            <br/>
-            <A href="/auth/try">
-              Try {siteName} without creating an account.
-            </A>
-          </div>
-        )}
       </>
     );
   }

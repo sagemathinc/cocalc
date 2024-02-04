@@ -195,7 +195,7 @@ export default function Content(props: Props) {
       <Row
         gutter={[20, 30]}
         style={{
-          padding: "12px 0",
+          paddingTop: "12px",
           maxWidth: MAX_WIDTH_LANDING,
           marginTop: "0",
           marginBottom: "0",
@@ -219,9 +219,14 @@ export default function Content(props: Props) {
             {renderLogo()}
             {renderTitle()}
             {subtitle && renderSubtitleTop()}
-            <Title level={4} style={{ color: COLORS.GRAY }}>
-              {description}
-            </Title>
+            {description && (
+              <Title
+                level={4}
+                style={{ color: COLORS.GRAY }}
+              >
+                {description}
+              </Title>
+            )}
           </Space>
         </Col>
         <Col sm={14} xs={24}>

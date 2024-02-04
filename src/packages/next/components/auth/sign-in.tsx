@@ -91,20 +91,15 @@ function SignIn0(props: SignInProps) {
       <>
         <div>
           New to {siteName}? {
-          signUpAction
-            ? <a onClick={signUpAction}>Sign Up</a>
-            : <A href="/auth/sign-up">Sign Up</A>
-        }
+            signUpAction
+              ? <a onClick={signUpAction}>Sign Up</a>
+              : <A href="/auth/sign-up">Sign Up</A>
+          } {anonymousSignup && (
+            <>
+              or <A href="/auth/try"> try {siteName} without creating an account. </A>
+            </>
+          )}
         </div>
-        {anonymousSignup && (
-          <div style={{ marginTop: "15px" }}>
-            Don't want to provide any information?
-            <br/>
-            <A href="/auth/try">
-              Try {siteName} without creating an account.
-            </A>
-          </div>
-        )}
       </>
     );
   }

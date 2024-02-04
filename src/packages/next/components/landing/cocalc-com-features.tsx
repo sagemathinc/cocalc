@@ -594,23 +594,14 @@ export function CoCalcComFeatures() {
 
 
 export function Hero({ siteName }) {
-  const SITE_SUMMARY = `
-    ${siteName} is a collaborative computing environment designed specifically for researchers, 
-    teachers, students, and scientists.
-  `;
-
   return (
     <Info.Heading
       level={3}
-      textStyle={{
-        padding: '10px 0'
-      }}
       style={{
         paddingTop: "30px",
       }}
-      description={ SITE_SUMMARY }
     >
-      Collaborate in real time with Jupyter notebooks, LaTeX, Linux servers, and more.
+      Collaborate with {siteName} in real time on Jupyter notebooks, LaTeX, Linux servers, and more.
     </Info.Heading>
   );
 }

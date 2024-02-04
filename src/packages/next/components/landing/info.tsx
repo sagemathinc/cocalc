@@ -297,11 +297,17 @@ Info.Heading = (props: HeadingProps) => {
       >
         {children}
       </Title>
-      <Paragraph
-        style={{ fontSize: "13pt", color: COLORS.GRAY_D, ...textStyle }}
-      >
-        {description}
-      </Paragraph>
+      {description && (
+        <Paragraph
+          style={{
+            fontSize: "13pt",
+            color: COLORS.GRAY_D,
+            ...textStyle,
+          }}
+        >
+          {description}
+        </Paragraph>
+      )}
     </div>
   );
 };
