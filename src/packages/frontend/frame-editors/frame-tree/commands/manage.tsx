@@ -64,7 +64,7 @@ export class ManageCommands {
       if (typeof isVisible == "string") {
         return !!this.props.spec.commands?.[isVisible];
       } else {
-        isVisible(this);
+        return isVisible(this);
       }
     }
     // check editor spec for current editor:
