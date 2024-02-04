@@ -91,7 +91,7 @@ export function commands(actions: AllActions): {
     },
 
     "cell toolbar slideshow": {
-      i: "graduation-cap",
+      i: "slides",
       m: "Slideshow toolbar",
       menu: "Slideshow",
       f: () => actions.jupyter_actions?.cell_toolbar("slideshow"),
