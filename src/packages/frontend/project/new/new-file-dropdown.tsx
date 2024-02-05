@@ -23,6 +23,7 @@ interface Props {
   title?: string;
   showDown?: boolean;
   button?: boolean;
+  cacheKey?: string;
 }
 
 export function NewFileDropdown({
@@ -31,6 +32,7 @@ export function NewFileDropdown({
   title = "More file types...",
   showDown = true,
   button = true,
+  cacheKey = ""
 }: Props) {
   // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
   const items = React.useMemo((): MenuItems => {
@@ -46,7 +48,7 @@ export function NewFileDropdown({
       }
     }
     return extensions.map(dropdown_item);
-  }, keys(file_associations));
+  }, [...keys(file_associations), cacheKey]);
 
   function dropdown_item(ext: string) {
     const data = file_options("x." + ext);
@@ -83,11 +85,7 @@ export function NewFileDropdown({
               </span>
             </Button>
 
-            <DropdownMenu
-              size="large"
-              button={button}
-              items={items}
-            />
+            <DropdownMenu size="large" button={button} items={items} />
           </Button.Group>
         </span>
       );
