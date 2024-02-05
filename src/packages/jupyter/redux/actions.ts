@@ -486,7 +486,17 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         throw Error(`no cell with id ${id}`);
       }
       if (cell.get("cell_type", "code") == "code") {
-        this._set({ type: "cell", id, [property]: !cell.get(property) }, false);
+        this._set(
+          {
+            type: "cell",
+            id,
+            [property]: !cell.get(
+              property,
+              property == "scrolled" ? true : false, // default scrolled to true
+            ),
+          },
+          false,
+        );
       }
     }
     this._sync();

@@ -44,7 +44,7 @@ export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
     }
 
     return (
-      <Tooltip title="Toggle whether large output is scrolled. Double click to hide.">
+      <Tooltip title="Click to toggle whether large output is scrolled. Double click to hide.">
         <Button
           type="text"
           style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
