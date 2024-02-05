@@ -365,7 +365,7 @@ export function NewFlyout({
           delayShow={DELAY_SHOW_MS}
           title="Directory"
           icon={"folder"}
-          tip="Create a subdirectory in the current directory. You can also click the file type dropdown after the filename."
+          tip="Switch to creating a subdirectory in the current directory instead of a file."
         >
           <NewFileButton
             name="Directory"

@@ -52,6 +52,10 @@ export class ManageCommands {
     if (cmd?.alwaysShow) {
       return true;
     }
+    if (cmd?.neverVisibleOnMobile && IS_MOBILE) {
+      // never show on mobile
+      return false;
+    }
     if (cmd?.disable && this.studentProjectFunctionality[cmd.disable]) {
       return false;
     }

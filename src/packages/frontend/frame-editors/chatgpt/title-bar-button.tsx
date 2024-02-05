@@ -12,7 +12,12 @@ to do the work.
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { Icon, IconName, Title } from "@cocalc/frontend/components";
+import {
+  Icon,
+  IconName,
+  Title,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -118,6 +123,7 @@ interface Props {
   project_id: string;
   showDialog: boolean;
   setShowDialog: (boolean) => void;
+  noLabel?: boolean;
 }
 
 export default function LanguageModelTitleBarButton({
@@ -131,6 +137,7 @@ export default function LanguageModelTitleBarButton({
   project_id,
   showDialog,
   setShowDialog,
+  noLabel,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [custom, setCustom] = useState<string>("");
@@ -414,8 +421,14 @@ export default function LanguageModelTitleBarButton({
               size={20}
               iconColor="#333"
               style={{ marginTop: "-5px" }}
-              innerStyle={{}}
             />
+            {noLabel ? (
+              ""
+            ) : (
+              <VisibleMDLG>
+                <span style={{ marginLeft: "5px" }}>Assistant</span>
+              </VisibleMDLG>
+            )}
           </span>
         </Button>
       </Tooltip>

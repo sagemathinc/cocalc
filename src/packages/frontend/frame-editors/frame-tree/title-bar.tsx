@@ -25,6 +25,7 @@ import {
   MenuItems,
   r_join,
   Gap,
+  VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { DropdownMenu } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -462,7 +463,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function render_timetravel(): Rendered {
+  function renderTimeTravel(noLabel): Rendered {
     if (!manageCommands.isVisible("time_travel")) {
       return;
     }
@@ -501,12 +502,17 @@ export function FrameTitleBar(props: Props) {
           }}
         >
           <Icon name="history" />
+          {noLabel ? undefined : (
+            <VisibleMDLG>
+              <span style={{ marginLeft: "5px" }}>TimeTravel</span>
+            </VisibleMDLG>
+          )}
         </Button>
       </Tooltip>
     );
   }
 
-  function render_artificial_intelligence(): Rendered {
+  function renderAssistant(noLabel): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
@@ -527,15 +533,16 @@ export function FrameTitleBar(props: Props) {
         buttonStyle={{
           ...button_style(),
           ...(!darkMode
-            ? { backgroundColor: "#f6bf61", color: "white" }
+            ? { backgroundColor: "#f6bf61", color: "#333" }
             : undefined),
         }}
         visible={props.tab_is_visible && props.is_visible}
+        noLabel={noLabel}
       />
     );
   }
 
-  function render_save(): Rendered {
+  function renderSaveButton(noLabel): Rendered {
     if (!manageCommands.isVisible("save")) {
       return;
     }
@@ -551,7 +558,7 @@ export function FrameTitleBar(props: Props) {
         read_only={read_only}
         is_public={is_public}
         is_saving={is_saving}
-        no_labels={true}
+        no_labels={noLabel}
         size={button_size()}
         style={button_style()}
         onClick={() => {
@@ -564,12 +571,13 @@ export function FrameTitleBar(props: Props) {
   }
 
   function renderSaveTimetravelGroup(): Rendered {
+    const noLabel = IS_MOBILE || !(props.is_only || props.is_full);
     const v: JSX.Element[] = [];
     let x;
-    if ((x = render_save())) v.push(x);
-    if ((x = render_timetravel())) v.push(x);
-    if ((x = render_artificial_intelligence())) v.push(x);
-    if ((x = renderComputeServer())) v.push(x);
+    if ((x = renderSaveButton(noLabel))) v.push(x);
+    if ((x = renderTimeTravel(noLabel))) v.push(x);
+    if ((x = renderAssistant(noLabel))) v.push(x);
+    if ((x = renderComputeServer(noLabel))) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
       return (
@@ -841,7 +849,7 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function renderComputeServer() {
+  function renderComputeServer(noLabel) {
     if (
       !manageCommands.isVisible("compute_server") ||
       !computeServersEnabled()
@@ -869,6 +877,7 @@ export function FrameTitleBar(props: Props) {
           borderTopRightRadius: "5px",
           borderBottomRightRadius: "5px",
         }}
+        noLabel={noLabel}
       />
     );
   }
