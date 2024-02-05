@@ -27,7 +27,7 @@ import { chat } from "../generic/chat";
 import FormatError from "./format-error";
 import { FrameTree } from "./frame-tree";
 import StatusBar from "./status-bar";
-import { EditorSpec, ErrorStyles } from "./types";
+import { EditorSpec, ErrorStyles, SetMap } from "./types";
 
 interface FrameTreeEditorProps {
   name: string;

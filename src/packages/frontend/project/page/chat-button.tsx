@@ -9,15 +9,15 @@
 // this is... so for now it still sort of toggles.  For now things
 // do work properly via a hack in close_chat in project_actions.
 
+import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { HiddenXS } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import track from "@cocalc/frontend/user-tracking";
+import { filename_extension } from "@cocalc/util/misc";
 import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
-import { filename_extension } from "@cocalc/util/misc";
 import { useMemo } from "react";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
-import { HiddenXS } from "@cocalc/frontend/components";
-import track from "@cocalc/frontend/user-tracking";
 
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
@@ -40,9 +40,15 @@ interface Props {
   project_id: string;
   path: string;
   chatState?: ChatState;
+  compact?: boolean;
 }
 
-export function ChatIndicator({ project_id, path, chatState }: Props) {
+export function ChatIndicator({
+  project_id,
+  path,
+  chatState,
+  compact = false,
+}: Props) {
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
@@ -54,12 +60,17 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
         path={path}
         style={USERS_VIEWING_STYLE}
       />
-      <ChatButton project_id={project_id} path={path} chatState={chatState} />
+      <ChatButton
+        project_id={project_id}
+        path={path}
+        chatState={chatState}
+        compact={compact}
+      />
     </div>
   );
 }
 
-function ChatButton({ project_id, path, chatState }) {
+export function ChatButton({ project_id, path, chatState, compact }) {
   const toggleChat = debounce(
     () => {
       const actions = redux.getProjectActions(project_id);
@@ -75,12 +86,21 @@ function ChatButton({ project_id, path, chatState }) {
     { leading: true },
   );
   const fileUse = useTypedRedux("file_use", "file_use");
+
   const isNewChat = useMemo(
     () =>
       !!redux.getStore("file_use")?.get_file_info(project_id, path)
         ?.is_unseenchat,
     [fileUse, project_id, path],
   );
+
+  function renderLabel() {
+    const label = <span style={{ marginLeft: "5px" }}>Chat</span>;
+    if (typeof compact === "boolean") {
+      return compact ? null : label;
+    }
+    return <HiddenXS>{label}</HiddenXS>;
+  }
 
   if (filename_extension(path) === "sage-chat") {
     // Special case: do not show side chat for chatrooms
@@ -105,9 +125,7 @@ function ChatButton({ project_id, path, chatState }) {
         style={{ color: chatState ? "orange" : undefined }}
       >
         <Icon name="comment" />
-        <HiddenXS>
-          <span style={{ marginLeft: "5px" }}>Chat</span>
-        </HiddenXS>
+        {renderLabel()}
       </Button>
     </Tooltip>
   );

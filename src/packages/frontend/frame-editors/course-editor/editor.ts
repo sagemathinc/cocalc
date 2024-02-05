@@ -31,9 +31,6 @@ const commands = set([
 //const buttons = set(["decrease_font_size", "increase_font_size"]);
 const buttons = undefined;
 
-//const buttons = set(["decrease_font_size", "increase_font_size"]);
-const buttons = undefined;
-
 export const EDITOR_SPEC: EditorSpec = {
   course_students: {
     short: "Students",

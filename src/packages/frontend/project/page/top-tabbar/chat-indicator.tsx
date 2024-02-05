@@ -29,7 +29,12 @@ export function ChatIndicatorTab({
         path={path}
         style={{ maxWidth: "120px" }}
       />
-      <ChatButton project_id={project_id} path={path} compact={compact} />
+      <ChatButton
+        project_id={project_id}
+        path={path}
+        compact={compact}
+        chatState={"internal"}
+      />
     </>
   );
 }
