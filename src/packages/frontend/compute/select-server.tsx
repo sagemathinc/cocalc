@@ -13,7 +13,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-export const PROJECT_COLOR = "#4474c0";
+export const PROJECT_COLOR = "#f4f5c4";
 
 interface Option {
   position?: number;
@@ -90,13 +90,47 @@ export default function SelectServer({
       const { color, title, state, configuration, position, account_id } =
         server;
       const { icon } = STATE_INFO[state ?? "off"] ?? {};
+      let body;
+      if (open) {
+        body = (
+          <div style={{ display: "flex" }}>
+            <div
+              style={{
+                textOverflow: "ellipsis",
+                overflow: "hidden",
+              }}
+            >
+              {title}
+            </div>
+            <div style={{ flex: 1, minWidth: "5px" }} />
+            <div>Id: {id}</div>
+          </div>
+        );
+      } else if (!noLabel) {
+        body = (
+          <div
+            style={{
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              display: "flex",
+            }}
+          >
+            <VisibleMDLG>
+              {title}
+              <div style={{ flex: 1, minWidth: "5px" }} />
+              <div>Id: {id}</div>
+            </VisibleMDLG>
+          </div>
+        );
+      } else {
+        body = <div>Id: {id}</div>;
+      }
       const label = (
         <div
           style={{
-            backgroundColor: color,
+            backgroundColor: value != Number(id) ? color : undefined,
             color: avatar_fontcolor(color),
             overflow: "hidden",
-            padding: "0 5px",
             borderRadius: "3px",
           }}
         >
@@ -108,11 +142,7 @@ export default function SelectServer({
                 </div>
               </Tooltip>
             )}
-            <div style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              {title}
-            </div>
-            <div style={{ flex: 1, minWidth: "5px" }} />
-            <div>Id: {id}</div>
+            {body}
           </div>
           {value != Number(id) && (
             <div style={{ marginLeft: "20px" }}>
@@ -261,7 +291,7 @@ export default function SelectServer({
         placeholder={
           <span style={{ color: "#333" }}>
             <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
-            {!noLabel || open ? <VisibleMDLG>Servers</VisibleMDLG> : undefined}
+            {!noLabel || open ? <VisibleMDLG>Server</VisibleMDLG> : undefined}
           </span>
         }
         open={open}
@@ -272,22 +302,26 @@ export default function SelectServer({
         onClear={() => {
           setValue(undefined);
         }}
-        value={value != null ? `${value}` : undefined}
+        value={value == "0" || value == null ? null : `${value}`}
         onDropdownVisibleChange={setOpen}
         style={{
           width: getWidth(open, value, size),
+          background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
           ...style,
         }}
         options={options}
+        suffixIcon={null}
       />
     </Tooltip>
   );
 }
 
 function getWidth(open, value, size) {
-  if (size == "small") {
-    return open ? "250px" : value ? "130px" : "120px";
-  } else {
-    return open ? "300px" : value ? "175px" : "120px";
+  if (!open && (value == "0" || !value)) {
+    return undefined;
   }
+  if (open) {
+    return "300px";
+  }
+  return "120px";
 }

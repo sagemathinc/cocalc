@@ -687,17 +687,13 @@ export function FrameTitleBar(props: Props) {
       );
     }
     if (!(props.is_only || props.is_full)) {
-      // When in split view, we let the buttonbar flow around and hide, so that
-      // extra buttons are cleanly not visible when frame is thin.
       style = {
         display: "flex",
-        maxHeight: "30px",
         ...style,
       };
     } else {
       style = {
         display: "flex",
-        maxHeight: "34px",
         marginLeft: "2px",
         ...style,
       };
@@ -872,6 +868,7 @@ export function FrameTitleBar(props: Props) {
         path={props.path}
         style={{
           height: button_height(),
+          overflow: "hidden",
           borderRight: "1px solid #d9d9d9",
           borderTop: "1px solid #d9d9d9",
           borderBottom: "1px solid #d9d9d9",

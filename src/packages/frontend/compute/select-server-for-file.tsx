@@ -131,7 +131,7 @@ export default function SelectComputeServerForFile({
             <>Open in this Project?</>
           ) : (
             <>
-              Open on the compute server <b>{computeServers[idNum]?.title}</b>?
+              Open on <b>{computeServers[idNum]?.title}</b>?
             </>
           )
         }
@@ -142,7 +142,7 @@ export default function SelectComputeServerForFile({
             "Open in Project"
           ) : (
             <>
-              Open on compute server <b>{computeServers[idNum]?.title}</b>
+              Open on <b>{computeServers[idNum]?.title}</b>
             </>
           )
         }
