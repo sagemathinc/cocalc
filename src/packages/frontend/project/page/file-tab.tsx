@@ -18,12 +18,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  HiddenXSSM,
-  Icon,
-  IconName,
-  r_join,
-} from "@cocalc/frontend/components";
+import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import {
@@ -168,6 +163,7 @@ interface Props0 {
   iconStyle?: CSSProperties;
   isFixedTab?: boolean;
   flyout?: FixedTab;
+  condensed?: boolean;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -187,6 +183,7 @@ export function FileTab(props: Readonly<Props>) {
     label: label_prop,
     isFixedTab,
     flyout = null,
+    condensed = false,
   } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
@@ -321,9 +318,12 @@ export function FileTab(props: Readonly<Props>) {
     }
   }
 
-  const icon_style: CSSProperties = has_activity
-    ? { ...props.iconStyle, color: "orange" }
-    : { color: COLORS.FILE_ICON, ...props.iconStyle };
+  // how to read: default color -> style for component -> override color if there is activity
+  const icon_style: CSSProperties = {
+    color: COLORS.FILE_ICON,
+    ...props.iconStyle,
+    ...(has_activity ? { color: "orange" } : undefined),
+  };
 
   if (label == null) {
     if (name != null) {
@@ -365,14 +365,13 @@ export function FileTab(props: Readonly<Props>) {
 
   const btnLeft = (
     <>
-      <div>
-        <Icon style={{ ...icon_style }} name={icon} />
-      </div>
+      <Icon style={{ display: "inline-block", ...icon_style }} name={icon} />
       <DisplayedLabel
         path={path}
         label={label}
         inline={!isFixedTab}
         project_id={project_id}
+        condensed={condensed}
       />
       {tags}
     </>
@@ -483,20 +482,24 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label, inline = true, project_id }) {
+function DisplayedLabel({ path, label, inline = true, project_id, condensed }) {
   if (path == null) {
     // a fixed tab (not an actual file)
     const E = inline ? "span" : "div";
+    const style: CSS = {
+      fontSize: condensed ? "10px" : "12px",
+      textAlign: "center",
+    };
     return (
-      <HiddenXSSM>
-        <E style={{ fontSize: "9pt", textAlign: "center" }}>{label}</E>
+      <>
+        <E style={style}>{label}</E>
         {label == FIXED_PROJECT_TABS.upgrades.label && (
           <PayAsYouGoCost project_id={project_id} />
         )}
         {label == FIXED_PROJECT_TABS.servers.label && (
           <ComputeServerSpendRate project_id={project_id} />
         )}
-      </HiddenXSSM>
+      </>
     );
   }
 
