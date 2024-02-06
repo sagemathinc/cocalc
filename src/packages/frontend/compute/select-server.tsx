@@ -32,6 +32,7 @@ interface Props {
   size?;
   style?: CSSProperties;
   noLabel?: boolean;
+  title?: ReactNode;
 }
 
 export default function SelectServer({
@@ -42,6 +43,7 @@ export default function SelectServer({
   size,
   style,
   noLabel,
+  title,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
   const [value, setValue1] = useState<number | null | undefined>(
@@ -253,7 +255,7 @@ export default function SelectServer({
   }
 
   return (
-    <Tooltip title="Compute server where this runs">
+    <Tooltip title={title ?? "Compute server where this runs"}>
       <Select
         disabled={disabled}
         allowClear

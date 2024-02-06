@@ -846,18 +846,10 @@ export function FrameTitleBar(props: Props) {
   }
 
   function renderComputeServer(noLabel) {
-    if (
-      !manageCommands.isVisible("compute_server") ||
-      !computeServersEnabled() ||
-      excludeFromComputeServer(props.path)
-    ) {
+    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
       return null;
     }
     const { type } = props;
-    if (type != "terminal" && type != "jupyter_cell_notebook") {
-      // ONLY terminal and jupyter are supported
-      return null;
-    }
     return (
       <SelectComputeServerForFile
         actions={props.actions}

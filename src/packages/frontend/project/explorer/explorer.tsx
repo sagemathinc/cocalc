@@ -567,7 +567,7 @@ const Explorer0 = rclass(
           <SelectComputeServerForFileExplorer
             project_id={this.props.project_id}
             key="compute-server"
-            style={{ marginLeft: "-11px" }}
+            style={{ marginRight: "5px", borderRadius: "5px" }}
           />
           {!IS_MOBILE && (
             <div

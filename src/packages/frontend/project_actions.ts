@@ -1370,15 +1370,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
-    compute_server_id =
-      compute_server_id ?? store.get("compute_server_id") ?? 0;
+    compute_server_id = this.getComputeServerId(compute_server_id);
     const listings = store.get_listings(compute_server_id);
     try {
       const files = await listings.getListingDirectly(
         path,
         trigger_start_project,
       );
-
       const directory_listings = store.get("directory_listings");
       let listing = directory_listings.get(compute_server_id) ?? Map();
       listing = listing.set(path, files);
@@ -2293,10 +2291,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status });
     try {
       const api = await this.api();
-      const compute_server_id =
-        opts.compute_server_id ??
-        this.get_store()?.get("compute_server_id") ??
-        0;
+      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
       await api.rename_file(opts.src, opts.dest, compute_server_id);
       this.log({
         event: "file_action",
@@ -2336,7 +2331,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (
       !(await ensure_project_running(
         this.project_id,
-        `move ${opts.src.join(", ")}`,
+        "move " + opts.src.join(", "),
       ))
     ) {
       return;
@@ -2350,10 +2345,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let error: any = undefined;
     try {
       const api = await this.api();
-      const compute_server_id =
-        opts.compute_server_id ??
-        this.get_store()?.get("compute_server_id") ??
-        0;
+      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
       await api.move_files(opts.src, opts.dest, compute_server_id);
       this.log({
         event: "file_action",
@@ -2529,12 +2521,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     name: string;
     current_path?: string;
     switch_over?: boolean;
+    compute_server_id?: number;
   }): Promise<void> {
     let p;
     opts = defaults(opts, {
       name: required,
       current_path: undefined,
       switch_over: true, // Whether or not to switch to the new folder
+      compute_server_id: undefined,
     });
     if (
       !(await ensure_project_running(
@@ -2544,7 +2538,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ) {
       return;
     }
-    let { name, current_path, switch_over } = opts;
+    let { compute_server_id, name } = opts;
+    const { current_path, switch_over } = opts;
+    compute_server_id = this.getComputeServerId(compute_server_id);
     this.setState({ file_creation_error: undefined });
     if (name[name.length - 1] === "/") {
       name = name.slice(0, -1);
@@ -2556,14 +2552,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     try {
-      await this.ensure_directory_exists(p);
+      await this.ensure_directory_exists(p, compute_server_id);
     } catch (err) {
       this.setState({
         file_creation_error: `Error creating directory '${p}' -- ${err}`,
       });
       return;
     }
-    this.fetch_directory_listing({ path: p });
+    this.fetch_directory_listing({ path: p, compute_server_id });
     if (switch_over) {
       this.open_directory(p);
     }
@@ -2576,6 +2572,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ext?: string;
     current_path?: string;
     switch_over?: boolean;
+    compute_server_id?: number;
   }) {
     let p;
     opts = defaults(opts, {
@@ -2583,8 +2580,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ext: undefined,
       current_path: undefined,
       switch_over: true, // Whether or not to switch to the new file
+      compute_server_id: undefined,
     });
-
+    const compute_server_id = this.getComputeServerId(opts.compute_server_id);
     this.setState({ file_creation_error: undefined }); // clear any create file display state
     let { name } = opts;
     if ((name === ".." || name === ".") && opts.ext == null) {
@@ -2602,6 +2600,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.create_folder({
           name,
           current_path: opts.current_path,
+          compute_server_id,
         });
         return;
       } else {
@@ -2644,6 +2643,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: 10,
       args: [p],
       err_on_exit: true,
+      compute_server_id,
+      filesystem: true,
       cb: (err, output) => {
         if (!err) {
           this.log({ event: "file_action", action: "created", files: [p] });
@@ -3275,11 +3276,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.hide_file(misc.tab_to_path(a));
   }
 
-  async ensure_directory_exists(path: string): Promise<void> {
+  async ensure_directory_exists(
+    path: string,
+    compute_server_id?: number,
+  ): Promise<void> {
+    compute_server_id = this.getComputeServerId(compute_server_id);
     await webapp_client.exec({
       project_id: this.project_id,
       command: "mkdir",
       args: ["-p", path],
+      compute_server_id,
+      filesystem: true,
     });
     // WARNING: If we don't do this sync, the
     // create_folder/open_directory code gets messed up
@@ -3290,6 +3297,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     await webapp_client.exec({
       project_id: this.project_id,
       command: "sync",
+      compute_server_id,
+      filesystem: true,
     });
   }
 
@@ -3355,4 +3364,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       just_closed_files: List([]),
     });
   }
+  private getComputeServerId = (id?: number): number => {
+    const store = this.get_store();
+    return id ?? store?.get("compute_server_id") ?? 0;
+  };
 }
