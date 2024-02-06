@@ -42,6 +42,7 @@ export class ManageCommands {
     this.setHelpSearch = setHelpSearch;
     this.readOnly = readOnly;
     this.editorSettings = editorSettings;
+    //window.x = { manage: this };
   }
 
   isVisible = (name, cmd?) => {

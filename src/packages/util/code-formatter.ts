@@ -83,7 +83,7 @@ export type Tool =
   | "zig"
   | "DOES_NOT_EXIST"; // use this for testing;
 
-// the set of file extensions where we want to have formatting support
+//  the file extensions where we want to have formatting support
 export const file_extensions = [
   "bib",
   "c",
@@ -115,6 +115,8 @@ export const file_extensions = [
   "yml",
   "zig",
 ] as const;
+
+export const fileExtensionsSet = new Set(file_extensions);
 
 // convert to type
 export type Exts = (typeof file_extensions)[number];

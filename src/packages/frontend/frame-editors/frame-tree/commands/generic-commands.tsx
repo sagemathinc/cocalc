@@ -412,6 +412,7 @@ addCommands({
   auto_indent: {
     group: "code-format",
     label: "Auto Indent",
+    button: "Indent",
     title: "Automatically indent selected code",
     disabled: ({ readOnly }) => readOnly,
     icon: "indent",
@@ -419,8 +420,10 @@ addCommands({
   format: {
     group: "code-format",
     label: "Format Source Code",
+    button: "Format",
     title: "Syntactically format using a parser such as prettier.",
     icon: FORMAT_SOURCE_ICON,
+    keyboard: `${IS_MACOS ? "⌘" : "control"} + shift + F`,
   },
 
   build: {

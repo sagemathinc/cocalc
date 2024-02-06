@@ -147,6 +147,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       frameActions.current?.select_cell_range(id);
       return;
     }
+    frameActions.current?.set_mode("escape");
     frameActions.current?.set_cur_id(id);
     frameActions.current?.unselect_all_cells();
   }
@@ -169,11 +170,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   function render_not_deletable(): Rendered {
     if (is_deletable()) return;
     return (
-      <Tip
-        title={"Protected from deletion"}
-        placement={"right"}
-        size={"small"}
-      >
+      <Tip title={"Protected from deletion"} placement={"right"} size={"small"}>
         <Icon name="ban" />
       </Tip>
     );
