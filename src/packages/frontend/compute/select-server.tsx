@@ -90,41 +90,6 @@ export default function SelectServer({
       const { color, title, state, configuration, position, account_id } =
         server;
       const { icon } = STATE_INFO[state ?? "off"] ?? {};
-      let body;
-      if (open) {
-        body = (
-          <div style={{ display: "flex" }}>
-            <div
-              style={{
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-              }}
-            >
-              {title}
-            </div>
-            <div style={{ flex: 1, minWidth: "5px" }} />
-            <div>Id: {id}</div>
-          </div>
-        );
-      } else if (!noLabel) {
-        body = (
-          <div
-            style={{
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              display: "flex",
-            }}
-          >
-            <VisibleMDLG>
-              {title}
-              <div style={{ flex: 1, minWidth: "5px" }} />
-              <div>Id: {id}</div>
-            </VisibleMDLG>
-          </div>
-        );
-      } else {
-        body = <div>Id: {id}</div>;
-      }
       const label = (
         <div
           style={{
@@ -142,7 +107,13 @@ export default function SelectServer({
                 </div>
               </Tooltip>
             )}
-            {body}
+            {(open || !noLabel) && (
+              <div style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                {title}
+              </div>
+            )}
+            {(open || !noLabel) && <div style={{ flex: 1, minWidth: "5px" }} />}
+            <div style={{ marginRight: "15px" }}>Id: {id}</div>
           </div>
           {value != Number(id) && (
             <div style={{ marginLeft: "20px" }}>
@@ -302,10 +273,10 @@ export default function SelectServer({
         onClear={() => {
           setValue(undefined);
         }}
-        value={value == "0" || value == null ? null : `${value}`}
+        value={value == 0 || value == null ? null : `${value}`}
         onDropdownVisibleChange={setOpen}
         style={{
-          width: getWidth(open, value, size),
+          width: getWidth(open, value, noLabel),
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
           ...style,
         }}
@@ -316,12 +287,12 @@ export default function SelectServer({
   );
 }
 
-function getWidth(open, value, size) {
-  if (!open && (value == "0" || !value)) {
+function getWidth(open, value, noLabel) {
+  if (!open && (noLabel || value == "0" || !value)) {
     return undefined;
   }
   if (open) {
     return "300px";
   }
-  return "120px";
+  return "150px";
 }
