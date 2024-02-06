@@ -13,7 +13,7 @@ import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-import { file_extensions } from "@cocalc/util/code-formatter";
+import { fileExtensionsSet } from "@cocalc/util/code-formatter";
 
 export const SHELLS = {
   erl: "erl",
@@ -55,12 +55,14 @@ export const cm = {
     "redo",
     "terminal",
     "format",
+    "auto_indent",
     //"tour"
   ]),
   customizeCommands: {
     format: {
-      isVisible: ({ props }) =>
-        file_extensions[filename_extension(props.path)] != null,
+      isVisible: ({ props }) => {
+        return fileExtensionsSet.has(filename_extension(props.path) as any);
+      },
     },
   },
 } as EditorDescription;
