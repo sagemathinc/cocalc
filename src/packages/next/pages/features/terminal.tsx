@@ -39,7 +39,7 @@ export default function Terminal({ customize }) {
           <Content
             landing
             startup={component}
-            body={logo}
+            logo={logo}
             title={title}
             subtitle={"A Linux Terminal that can't mess up your own computer."}
             subtitleBelow={true}

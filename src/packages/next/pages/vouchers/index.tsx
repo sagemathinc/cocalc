@@ -41,13 +41,6 @@ export default function Overview({ customize }) {
               </div>
             </div>
             <OverviewRow>
-              <Product
-                href={"/store/vouchers"}
-                icon="shopping-cart"
-                title="Buy Vouchers"
-              >
-                Create voucher codes that you can share, resell, or use later.
-              </Product>
               <Product icon="gift2" title="Redeem a Voucher" href="/redeem">
                 Redeem a voucher code to add{" "}
                 <A href="/settings/purchases">money</A> or{" "}
@@ -67,6 +60,13 @@ export default function Overview({ customize }) {
                 title="Your Vouchers"
               >
                 Browse all vouchers you have created and see their status.
+              </Product>
+              <Product
+                href={"/store/vouchers"}
+                icon="shopping-cart"
+                title="Create New Vouchers"
+              >
+                Create voucher codes that you can share, resell, or use later.
               </Product>
             </OverviewRow>
             {profile?.is_admin && (

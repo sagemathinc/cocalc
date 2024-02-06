@@ -56,7 +56,7 @@ export default function AI({ customize }) {
           <Content
             landing
             startup={component}
-            body={<AIAvatar size={128} />}
+            logo={<AIAvatar size={128} />}
             title={title}
             subtitleBelow={true}
             subtitle={

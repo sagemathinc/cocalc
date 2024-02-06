@@ -21,7 +21,7 @@ export default function Home({ customize }) {
     <Customize value={customize}>
       <Head title={`Sign in to ${siteName}`} />
       <Layout>
-        <Header page="sign-in" />
+        <Header page="sign-in" subPage="sign-in" />
         <Layout.Content style={{ backgroundColor: "white" }}>
           <SignIn onSuccess={() => router.push("/")} />
           <Footer />

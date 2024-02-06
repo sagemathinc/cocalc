@@ -167,7 +167,7 @@ export default function Teaching({ customize }) {
             landing
             startup={"CoCalc"}
             aboveImage={<></>}
-            body={logo}
+            logo={logo}
             title={"Teach scientific software online using Jupyter Notebooks"}
             subtitle={
               <>

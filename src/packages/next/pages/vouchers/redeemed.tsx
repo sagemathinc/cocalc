@@ -115,14 +115,11 @@ export default function Redeemed({ customize }) {
           >
             {profile == null && <Loading />}
             {profile != null && !profile.account_id && (
-              <Card>
-                <div style={{ fontSize: "75px", textAlign: "center" }}>
-                  <Icon name="gift2"/>
-                </div>
+              <Card style={{ textAlign: "center" }}>
+                <Icon name="gift2" style={{ fontSize: "75px" }} />
                 <InPlaceSignInOrUp
-                  title="Redeemed Vouchers"
-                  why="to see vouchers you've redeemed"
-                  style={{ width: "450px" }}
+                  why="to see Vouchers you Redeemed"
+                  style={{ fontSize: "14pt", width: "450px" }}
                   onSuccess={() => {
                     router.reload();
                   }}
