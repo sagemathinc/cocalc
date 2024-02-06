@@ -40,6 +40,9 @@ export interface OpenFileOpts {
   change_history?: boolean;
   // opened via an explicit click
   explicit?: boolean;
+  // if specified, open the file on the specified compute server; if not given,
+  // opens it on whatever compute server it is currently set to open on.
+  compute_server_id?: number;
 }
 
 export async function open_file(
@@ -66,6 +69,7 @@ export async function open_file(
     new_browser_window: false,
     change_history: true,
     explicit: false,
+    compute_server_id: undefined,
   });
   opts.path = normalize(opts.path);
 
@@ -271,10 +275,10 @@ export async function open_file(
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
-
+console.log(opts);
   if (opts.explicit) {
     try {
-      await setComputeServer(actions, opts.path);
+      await setComputeServer(actions, opts.path, opts.compute_server_id);
     } catch (err) {
       actions.open_files.delete(opts.path);
       alert_message({
@@ -459,29 +463,25 @@ function get_side_chat_state(
   }
 }
 
-async function setComputeServer(actions, path: string) {
+async function setComputeServer(
+  actions,
+  path: string,
+  compute_server_id?: number,
+) {
+  const selectedComputeServerId = actions.getComputeServerId(compute_server_id);
   const computeServerAssociations = webapp_client.project_client.computeServers(
     actions.project_id,
   );
-  const id = await computeServerAssociations.getServerIdForPath(path);
-  if (id != null) {
-    // server id already set, so do not change it
-    return id;
-  }
-  const store = actions.get_store();
-  if (store == null) return;
-  const selectedComputeServerId = store.get("compute_server_id");
-  if (!selectedComputeServerId) {
-    // currently on main project, so no need to set anything
+  // this is what is currently configured:
+  const currentId =
+    (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
+  if (currentId == selectedComputeServerId) {
+    // no need to set anything since we have what we want already
     return;
   }
-  // opening on compute server and server id not set, so we explicitly
-  // open on the compute server
-  if (id != selectedComputeServerId) {
-    computeServerAssociations.connectComputeServerToPath({
-      id: selectedComputeServerId,
-      path,
-    });
-  }
-  return selectedComputeServerId;
+  // Explicitly set the compute server id to what we want.
+  computeServerAssociations.connectComputeServerToPath({
+    id: selectedComputeServerId,
+    path,
+  });
 }

@@ -2662,6 +2662,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         } else if (opts.switch_over) {
           this.open_file({
             path: p,
+            // so opens on current compute server, and because switch_over is only something
+            // we do when user is explicitly opening the file
+            explicit: true,
           });
         } else {
           this.fetch_directory_listing();
@@ -3364,7 +3367,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       just_closed_files: List([]),
     });
   }
-  private getComputeServerId = (id?: number): number => {
+  getComputeServerId = (id?: number): number => {
     const store = this.get_store();
     return id ?? store?.get("compute_server_id") ?? 0;
   };
