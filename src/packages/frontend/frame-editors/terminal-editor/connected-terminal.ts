@@ -125,7 +125,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
     // This is the one and only place number is used.
     // It's very important though.
-    this.term_path = aux_file(`${this.path}-${number}${cmd}`, "term");
+    this.term_path = termPath({ path: this.path, number, cmd });
     this.id = id;
 
     this.terminal = new XTerminal(this.get_xtermjs_options());
@@ -857,4 +857,16 @@ function handleLink(_: MouseEvent, uri: string): void {
   const e = $(`<div><a href='${uri}'>x</a></div>`);
   e.process_smc_links();
   e.find("a").click();
+}
+
+export function termPath({
+  path,
+  number,
+  cmd,
+}: {
+  path: string;
+  number: number;
+  cmd?: string;
+}) {
+  return aux_file(`${path}-${number}${cmd ?? ""}`, "term");
 }

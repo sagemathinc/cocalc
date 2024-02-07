@@ -25,6 +25,7 @@ import { ensure_project_running } from "./project-start-warning";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { local_storage } from "../editor-local-storage";
 import { remove } from "../project-file";
+import { termPath } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
 
 export interface OpenFileOpts {
   path: string;
@@ -275,10 +276,13 @@ export async function open_file(
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
-console.log(opts);
   if (opts.explicit) {
+    let path = opts.path;
+    if (path.endsWith(".term")) {
+      path = termPath({ path, cmd: "", number: 0 });
+    }
     try {
-      await setComputeServer(actions, opts.path, opts.compute_server_id);
+      await setComputeServer(actions, path, opts.compute_server_id);
     } catch (err) {
       actions.open_files.delete(opts.path);
       alert_message({
