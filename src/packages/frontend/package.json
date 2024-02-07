@@ -72,7 +72,7 @@
     "bootstrap": "=3.4.1",
     "bootstrap-colorpicker": "^2.5.3",
     "cat-names": "^3.1.0",
-    "chai": "^4.2.0",
+    "chai": "^4.4.1",
     "cheerio": "^1.0.0-rc.10",
     "codemirror": "^5.65.3",
     "color-map": "^2.0.6",

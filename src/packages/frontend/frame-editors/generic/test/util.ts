@@ -11,7 +11,7 @@ import { expect as expect0 } from "chai";
 export const expect = expect0;
 (window as any).expect = expect;
 
-import { redux as redux0 } from "../../../app-framework";
+import { redux as redux0 } from "@cocalc/frontend/app-framework";
 export const redux = redux0;
 
 // hardcode for now... until we see how this is going to work.
