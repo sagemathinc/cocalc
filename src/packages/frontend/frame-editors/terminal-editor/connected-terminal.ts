@@ -19,7 +19,7 @@ import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
 import { WebglAddon } from "xterm-addon-webgl";
 import "xterm/css/xterm.css";
-
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
@@ -644,13 +644,16 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private use_subframe(path: string): boolean {
     const this_path_ext = filename_extension(this.actions.path);
     if (this_path_ext == "term") {
-      // This is a .term tab, so always open the path in a new editor tab (not in the frame tre).
+      // This is a .term tab, so always open the path in a new editor
+      // tab (not in the frame tree).
       return false;
     }
     const ext = filename_extension(path);
     const a = file_associations[ext];
-    // Latex editor -- open tex files in same frame:
-    if (this_path_ext == "tex" && a?.editor == "latex") return true;
+    // Latex editor -- ALWAYS open tex files in same frame:
+    if (this_path_ext == "tex" && a?.editor == "latex") {
+      return true;
+    }
     // Open file in this tab of it can be edited as code, or no editor
     // so text is the fallback.
     if (a == null || a.editor == "codemirror") {
@@ -659,13 +662,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return false;
   }
 
-  open_paths(paths: Path[]): void {
+  private open_paths = async (paths: Path[]) => {
     if (!this.is_visible) {
       return;
     }
     const project_actions: ProjectActions = this.actions._get_project_actions();
     let i = 0;
     let foreground = false;
+    const compute_server_id = await this.getComputeServerId();
     for (const x of paths) {
       i += 1;
       if (i === paths.length) {
@@ -674,16 +678,22 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (x.file != null) {
         const path = x.file;
         if (this.use_subframe(path)) {
-          this.actions.open_code_editor_frame(path);
+          this.actions.open_code_editor_frame({ path, compute_server_id });
         } else {
-          project_actions.open_file({ path, foreground });
+          project_actions.open_file({
+            path,
+            foreground,
+            compute_server_id,
+            explicit: true,
+          });
         }
       }
       if (x.directory != null && foreground) {
+        project_actions.setComputeServerId(compute_server_id);
         project_actions.open_directory(x.directory);
       }
     }
-  }
+  };
 
   _close_path(path: string): void {
     const project_actions = this.actions._get_project_actions();
@@ -833,6 +843,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.scrollToTop();
     this.terminal.scrollToBottom();
   }
+
+  getComputeServerId = async (): Promise<number> => {
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    return (
+      (await computeServerAssociations.getServerIdForPath(this.term_path)) ?? 0
+    );
+  };
 }
 
 async function touch_path(project_id: string, path: string): Promise<void> {

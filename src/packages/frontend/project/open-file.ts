@@ -19,7 +19,7 @@ import { ProjectActions } from "../project_actions";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { redux } from "../app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { webapp_client } from "../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
@@ -276,13 +276,16 @@ export async function open_file(
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
-  if (opts.explicit) {
+  if (opts.explicit && !alreadyOpened) {
     let path = opts.path;
     if (path.endsWith(".term")) {
       path = termPath({ path, cmd: "", number: 0 });
     }
     try {
-      await setComputeServer(actions, path, opts.compute_server_id);
+      await actions.setComputeServerIdForFile({
+        path,
+        compute_server_id: opts.compute_server_id,
+      });
     } catch (err) {
       actions.open_files.delete(opts.path);
       alert_message({
@@ -465,27 +468,4 @@ function get_side_chat_state(
   if (filename_extension(opts.path) === "sage-chat") {
     opts.chat = false;
   }
-}
-
-async function setComputeServer(
-  actions,
-  path: string,
-  compute_server_id?: number,
-) {
-  const selectedComputeServerId = actions.getComputeServerId(compute_server_id);
-  const computeServerAssociations = webapp_client.project_client.computeServers(
-    actions.project_id,
-  );
-  // this is what is currently configured:
-  const currentId =
-    (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
-  if (currentId == selectedComputeServerId) {
-    // no need to set anything since we have what we want already
-    return;
-  }
-  // Explicitly set the compute server id to what we want.
-  computeServerAssociations.connectComputeServerToPath({
-    id: selectedComputeServerId,
-    path,
-  });
 }

@@ -144,9 +144,18 @@ export function TerminalFlyout({
       _get_project_actions() {
         return actions ?? redux.getProjectActions(project_id);
       },
-      open_code_editor_frame(path: string) {
+      open_code_editor_frame(opts: {
+        path: string;
+        dir?;
+        first?: boolean;
+        pos?: number;
+        compute_server_id?: number;
+      }) {
         // we just open the file
-        actions?.open_file({ path });
+        actions?.open_file({
+          path: opts.path,
+          compute_server_id: opts.compute_server_id,
+        });
       },
     };
   }

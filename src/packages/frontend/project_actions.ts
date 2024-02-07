@@ -1347,6 +1347,30 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   };
 
+  setComputeServerIdForFile = async ({
+    path,
+    compute_server_id,
+  }: {
+    path: string;
+    compute_server_id?: number;
+  }) => {
+    const selectedComputeServerId = this.getComputeServerId(compute_server_id);
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    // this is what is currently configured:
+    const currentId =
+      (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
+    if (currentId == selectedComputeServerId) {
+      // no need to set anything since we have what we want already
+      return;
+    }
+    // Explicitly set the compute server id to what we want.
+    computeServerAssociations.connectComputeServerToPath({
+      id: selectedComputeServerId,
+      path,
+    });
+  };
+
   set_file_search(search): void {
     this.setState({
       file_search: search,
