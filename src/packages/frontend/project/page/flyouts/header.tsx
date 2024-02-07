@@ -205,7 +205,7 @@ function SearchHeader() {
   return (
     <div
       style={{
-        flex: "0 0 auto",
+        flex: "1 0 auto",
         display: "flex",
         whiteSpace: "nowrap",
         overflow: "hidden",
