@@ -28,10 +28,7 @@ export default async function createTicket(options: Options): Promise<string> {
   const client = await getClient();
 
   const { account_id, email, files, type, subject, url, info } = options;
-  const user = await getUser(email, account_id);
-
-  // create corresponding zendesk user, or get current user if already created.
-  const userResult = await client.users.createOrUpdate(user);
+  const name = await getUserName(email, account_id);
 
   let { body } = options;
 
@@ -67,7 +64,7 @@ export default async function createTicket(options: Options): Promise<string> {
       external_id: account_id,
       subject,
       type,
-      requester_id: userResult.id,
+      requester: { name, email },
     },
   };
 
@@ -91,12 +88,10 @@ async function toURL({
   return s + encodeURI(`/files/${path}`);
 }
 
-async function getUser(
+async function getUserName(
   email: string,
   account_id?: string,
-): Promise<{
-  user: { name: string; email: string; external_id: string | null };
-}> {
+): Promise<string> {
   let name: string | undefined = undefined;
   if (account_id) {
     name = await getName(account_id);
@@ -109,7 +104,5 @@ async function getUser(
   if (!name?.trim()) {
     name = email;
   }
-  return {
-    user: { name, email, external_id: account_id ?? null },
-  };
+  return name;
 }
