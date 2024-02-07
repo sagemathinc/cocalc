@@ -113,6 +113,11 @@ const info = {
   run: { label: "Run CoCalc" },
 } as const;
 
+const sign_in = {
+  "sign-in": { label: "Sign In", href: "/auth/sign-in" },
+  "password-reset": { label: "Password Reset", href: "/auth/password-reset" },
+} as const;
+
 const support = {
   index: {},
   community: { label: "Community" },
@@ -133,7 +138,7 @@ const PAGES = {
   share: {},
   info,
   "sign-up": {},
-  "sign-in": {},
+  "sign-in": sign_in,
   try: {},
   support,
   news,
@@ -147,6 +152,7 @@ export type SubPage =
   | keyof typeof pricing
   | keyof typeof policies
   | keyof typeof info
+  | keyof typeof sign_in
   | keyof typeof support;
 
 interface Props {

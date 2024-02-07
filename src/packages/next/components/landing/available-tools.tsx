@@ -16,7 +16,6 @@ import linuxLogo from "public/features/linux-logo.svg";
 import sticker from "public/features/sage-sticker-1x1_inch-small.png";
 import Info from "./info";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
-import { LANDING_HEADER_LEVEL } from "./constants";
 
 interface Props {
   style?: React.CSSProperties;
@@ -27,7 +26,6 @@ export function AvailableTools(props: Props) {
 
   return (
     <Info
-      level={LANDING_HEADER_LEVEL}
       title="Jupyter, SageMath, LateX, and Linux"
       icon="wrench"
       anchor="available-tools"

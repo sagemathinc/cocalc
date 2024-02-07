@@ -36,7 +36,7 @@ export default function Octave({ customize }) {
           <Content
             landing
             startup={"Octave"}
-            body={logo}
+            logo={logo}
             title={title}
             subtitle={
               <>

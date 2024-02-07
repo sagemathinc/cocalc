@@ -18,7 +18,7 @@ export default function PasswordReset({ passwordResetId, customize }) {
     <Customize value={customize}>
       <Head title={"Password Reset"} />
       <Layout>
-        <Header page="sign-in" />
+        <Header page="sign-in" subPage="password-reset" />
         <Layout.Content style={{ backgroundColor: "white" }}>
           <RedeemPasswordReset passwordResetId={passwordResetId} />
           <Footer />

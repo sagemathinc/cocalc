@@ -43,7 +43,7 @@ export default function LatexEditor({ customize }) {
           <Content
             landing
             startup={<LaTeX />}
-            body={Logo}
+            logo={Logo}
             title={"Online LaTeX Editor"}
             subtitle={
               <>
