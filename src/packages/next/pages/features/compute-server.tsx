@@ -36,7 +36,7 @@ export default function ComputeServer({ customize }) {
           <Content
             landing
             startup={component}
-            body={<Icon name={logo} style={{ fontSize: "128px" }} />}
+            logo={<Icon name={logo} style={{ fontSize: "128px" }} />}
             title={title}
             subtitleBelow={true}
             subtitle={

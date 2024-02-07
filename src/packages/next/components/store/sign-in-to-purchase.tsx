@@ -4,7 +4,7 @@
  */
 
 import { Alert } from "antd";
-import A from "components/misc/A";
+import { StoreInplaceSignInOrUp } from "./store-inplace-signup";
 
 interface SignInToPurchaseProps {
   noAccount?: boolean;
@@ -20,8 +20,8 @@ export const SignInToPurchase: React.FC<SignInToPurchaseProps> = (
   function body() {
     return (
       <div>
-        Feel free to explore pricing, but you must be <A href="/auth/sign-in" external>signed in</A>
-        {" "} with a regular account in order to purchase a license.
+        Feel free to explore pricing, but you have to be signed in with a
+        regular account in order to be able to purchase a license.
       </div>
     );
   }
@@ -32,6 +32,7 @@ export const SignInToPurchase: React.FC<SignInToPurchaseProps> = (
       showIcon
       type="warning"
       message={body()}
+      description={<StoreInplaceSignInOrUp />}
       style={{ marginBottom: "20px" }}
     />
   );

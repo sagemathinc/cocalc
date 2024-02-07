@@ -4,11 +4,10 @@
  */
 
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { Flex, Typography } from "antd";
+import { Typography } from "antd";
 import { MAX_WIDTH } from "lib/config";
 import { AddToCartButton } from "./add-box";
 import { describeItem, DisplayCost } from "./site-license-cost";
-// import { NAVBAR_HEIGHT_PX } from "../landing/header";
 const { Text } = Typography;
 
 const INNER_STYLE: React.CSSProperties = {
@@ -78,19 +77,18 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
   // inside the "Content", i.e. the form itself, such that everything
   // alignes nicely.
   return (
-    <Flex
+    <div
       style={{
-        minHeight: "30px",
+        height: "30px",
         display: "flex", // we want to align the content at the bottom
         backgroundColor: "white",
         position: "fixed",
         textAlign: "right",
-        // top: `${NAVBAR_HEIGHT_PX}px`,
         top: 0,
         left: 0,
         right: 0,
         zIndex: 1000,
-        padding: "8px",
+        padding: "10px",
         boxShadow: "0 4px 4px rgba(0,0,0,0.2)",
         overflow: "hidden",
       }}
@@ -102,11 +100,11 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
           marginRight: "auto",
           alignSelf: "center",
           flex: 1,
-          // whiteSpace: "nowrap",
+          whiteSpace: "nowrap",
         }}
       >
         {renderInfoBarContent()}
       </div>
-    </Flex>
+    </div>
   );
 };

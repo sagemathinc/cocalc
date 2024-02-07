@@ -33,7 +33,6 @@ export function VerticalFixedTabs() {
     active_project_tab: activeTab,
     actions,
   } = useProjectContext();
-  const account_settings = useActions("account");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
   const other_settings = useTypedRedux("account", "other_settings");
   const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
@@ -113,80 +112,18 @@ export function VerticalFixedTabs() {
         key={name}
         project_id={project_id}
         name={name as FixedTab}
-        label={condensed ? "" : undefined}
         isFixedTab={true}
         iconStyle={{
-          fontSize: "24px",
+          fontSize: condensed ? "18px" : "24px",
           margin: "0",
           padding: "5px 0px",
           ...color,
         }}
         flyout={name}
+        condensed={condensed}
       />
     );
     if (tab != null) items.push(tab);
-  }
-
-  function renderLayoutSelector() {
-    const title = "Vertical bar layout";
-
-    const items: NonNullable<MenuProps["items"]> = Object.entries(
-      VBAR_OPTIONS,
-    ).map(([key, label]) => ({
-      key,
-      onClick: () => {
-        account_settings.set_other_settings(VBAR_KEY, key);
-        track("flyout", {
-          aspect: "layout",
-          value: key,
-          how: "button",
-          project_id,
-        });
-      },
-      label: (
-        <>
-          <Icon
-            name="check"
-            style={key === vbar ? undefined : { visibility: "hidden" }}
-          />{" "}
-          {label}
-        </>
-      ),
-    }));
-
-    items.unshift({ key: "delim-top", type: "divider" });
-    items.unshift({
-      key: "title",
-      label: (
-        <>
-          <Icon name="layout" /> {title}{" "}
-        </>
-      ),
-    });
-
-    items.push({ key: "delimiter", type: "divider" });
-    items.push({
-      key: "info",
-      label: (
-        <>
-          <Icon name="question-circle" /> More info
-        </>
-      ),
-      onClick: () => {
-        Modal.info({
-          title: title,
-          content: VBAR_EXPLANATION,
-        });
-      },
-    });
-
-    return (
-      <div style={{ textAlign: "center" }}>
-        <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
-          <Button icon={<Icon name="layout" />} block type="text" />
-        </Dropdown>
-      </div>
-    );
   }
 
   function renderToggleSidebar() {
@@ -224,8 +161,73 @@ export function VerticalFixedTabs() {
       {items}
       {/* moves the layout selector to the bottom */}
       <div ref={gap} style={{ flex: 1 }}></div>
-      {renderLayoutSelector()}
+      <LayoutSelector vbar={vbar} />
       {renderToggleSidebar()}
+    </div>
+  );
+}
+
+function LayoutSelector({ vbar }) {
+  const { project_id } = useProjectContext();
+  const account_settings = useActions("account");
+
+  const title = "Vertical bar layout";
+
+  const items: NonNullable<MenuProps["items"]> = Object.entries(
+    VBAR_OPTIONS,
+  ).map(([key, label]) => ({
+    key,
+    onClick: () => {
+      account_settings.set_other_settings(VBAR_KEY, key);
+      track("flyout", {
+        aspect: "layout",
+        value: key,
+        how: "button",
+        project_id,
+      });
+    },
+    label: (
+      <>
+        <Icon
+          name="check"
+          style={key === vbar ? undefined : { visibility: "hidden" }}
+        />{" "}
+        {label}
+      </>
+    ),
+  }));
+
+  items.unshift({ key: "delim-top", type: "divider" });
+  items.unshift({
+    key: "title",
+    label: (
+      <>
+        <Icon name="layout" /> {title}{" "}
+      </>
+    ),
+  });
+
+  items.push({ key: "delimiter", type: "divider" });
+  items.push({
+    key: "info",
+    label: (
+      <>
+        <Icon name="question-circle" /> More info
+      </>
+    ),
+    onClick: () => {
+      Modal.info({
+        title: title,
+        content: VBAR_EXPLANATION,
+      });
+    },
+  });
+
+  return (
+    <div style={{ textAlign: "center" }}>
+      <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
+        <Button icon={<Icon name="layout" />} style={{ margin: "5px" }} />
+      </Dropdown>
     </div>
   );
 }

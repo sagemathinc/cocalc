@@ -49,7 +49,7 @@ export default function R({ customize }) {
           <Content
             landing
             startup={component}
-            body={logo}
+            logo={logo}
             title={title}
             subtitle={
               <>
