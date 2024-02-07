@@ -153,6 +153,12 @@ export class PageActions extends Actions<PageState> {
     }
 
     switch (key) {
+      case "home":
+        if (change_history) {
+          set_url("/home");
+        }
+        set_window_title("Home");
+        return;
       case "projects":
         if (change_history) {
           set_url("/projects");

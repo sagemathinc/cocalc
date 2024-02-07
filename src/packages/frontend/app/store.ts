@@ -8,6 +8,7 @@ import target from "@cocalc/frontend/client/handle-target";
 import { parse_target } from "../history";
 
 export type TopTab =
+  | "home"
   | "about" // the "/help" page
   | "account"
   | "admin"
