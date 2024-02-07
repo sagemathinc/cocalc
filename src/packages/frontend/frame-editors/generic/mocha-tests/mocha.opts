@@ -1,4 +1,0 @@
---require coffeescript/register
---require ts-node/register
---reporter spec
---recursive
