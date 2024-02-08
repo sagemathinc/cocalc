@@ -315,6 +315,14 @@ class SyncFS {
         return await getListing(data.path, data.hidden, this.mount);
 
       case "exec":
+        if (data.opts.command == "cc-new-file") {
+          // so we don't have to depend on having our cc-new-file script
+          // installed.  We just don't support templates on compute server.
+          for (const path of data.opts.args ?? []) {
+            await writeFile(join(this.mount, path), "");
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        }
         return await executeCode({ ...data.opts, home: this.mount });
 
       case "delete_files":

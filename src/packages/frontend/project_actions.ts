@@ -2674,12 +2674,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.log({ event: "file_action", action: "created", files: [p] });
         }
         if (err) {
-          let stdout = "";
-          let stderr = "";
-          if (output) {
-            stdout = output.stdout || "";
-            stderr = output.stderr || "";
-          }
+          const stdout = output?.stdout ?? "";
+          const stderr = output?.stderr ?? "";;
           this.setState({
             file_creation_error: `${stdout} ${stderr} ${err}`,
           });
