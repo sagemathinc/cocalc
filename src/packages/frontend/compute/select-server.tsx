@@ -255,7 +255,14 @@ export default function SelectServer({
   }
 
   return (
-    <Tooltip title={title ?? "Compute server where this runs"}>
+    <Tooltip
+      title={
+        title ??
+        `This is open ${
+          !value ? "in your project" : `on compute server ${value}`
+        }.`
+      }
+    >
       <Select
         disabled={disabled}
         allowClear
@@ -263,7 +270,10 @@ export default function SelectServer({
         bordered={false}
         placeholder={
           <span style={{ color: "#333" }}>
-            <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
+            <Icon
+              name="server"
+              style={{ fontSize: "13pt", marginTop: "10px" }}
+            />{" "}
             {!noLabel || open ? <VisibleMDLG>Project</VisibleMDLG> : undefined}
           </span>
         }

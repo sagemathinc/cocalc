@@ -11,11 +11,12 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import SelectServer, { PROJECT_COLOR } from "./select-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 
 interface Props {
   project_id: string;
   path: string;
-  frame_id: string;
+  frame_id?: string;
   style?: CSSProperties;
   actions?;
   size?;
@@ -35,14 +36,20 @@ export default function SelectComputeServerForFile({
 }: Props) {
   const getPath = (path) => {
     if (actions != null && type == "terminal") {
+      if (frame_id == null) {
+        throw Error("frame_id is required for terminal");
+      }
       return actions.terminals.get(frame_id)?.term_path;
+    }
+    if (type == "chat") {
+      return chatFile(path);
     }
     return path;
   };
   const [confirmSwitch, setConfirmSwitch] = useState<boolean>(false);
   const [idNum, setIdNum] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
-  const lastValueRef = useRef<number>(0);
+  const lastValueRef = useRef<number | undefined>(0);
 
   const computeServers =
     useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
@@ -141,8 +148,8 @@ export default function SelectComputeServerForFile({
         open={confirmSwitch}
         onCancel={() => {
           setConfirmSwitch(false);
-          setIdNum(lastValueRef.current);
-          setValue(lastValueRef.current);
+          setIdNum(lastValueRef.current ?? 0);
+          setValue(lastValueRef.current ?? 0);
         }}
         okText={
           idNum == 0 ? (

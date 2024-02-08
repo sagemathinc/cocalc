@@ -13,7 +13,7 @@ import { ChatRoom } from "./chatroom";
 import { ChatStore } from "./store";
 
 // it is fine to call this more than once.
-export function init(project_id: string, path: string): string {
+export function initChat(project_id: string, path: string): string {
   const name = redux_name(project_id, path);
   if (redux.getActions(name) != null) {
     return name; // already initialized
@@ -32,7 +32,8 @@ export function init(project_id: string, path: string): string {
     project_id,
     path,
     primary_keys: ["date", "sender_id", "event"],
-    string_cols: ["input"], // used only for drafts, since store lots of versions as user types
+    // used only for drafts, since store lots of versions as user types:
+    string_cols: ["input"],
   });
 
   syncdb.once("error", (err) => {
@@ -46,10 +47,10 @@ export function init(project_id: string, path: string): string {
     actions.init_from_syncdb();
     syncdb.on("change", actions.syncdb_change.bind(actions));
     syncdb.on("has-uncommitted-changes", (val) =>
-      actions.setState({ has_uncommitted_changes: val })
+      actions.setState({ has_uncommitted_changes: val }),
     );
     syncdb.on("has-unsaved-changes", (val) =>
-      actions.setState({ has_unsaved_changes: val })
+      actions.setState({ has_unsaved_changes: val }),
     );
     redux.getProjectActions(project_id)?.log_opened_time(path);
   });
@@ -76,7 +77,8 @@ export function remove(path: string, redux, project_id: string): string {
 register_file_editor({
   ext: "sage-chat",
   icon: "comment",
-  init: (path, _redux, project_id) => init(project_id ?? "", path), // this has a weird call signature, for historical reasons.
+  // init has a weird call signature, for historical reasons.
+  init: (path, _redux, project_id) => initChat(project_id ?? "", path),
   component: ChatRoom,
   remove,
 });

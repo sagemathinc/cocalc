@@ -11,9 +11,9 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
-
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
-import { init as initChat } from "@cocalc/frontend/chat/register";
+import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
@@ -1086,7 +1086,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat({ path, width = 0.7 }: { path: string; width?: number }): void {
+  open_chat = async ({
+    path,
+    width = 0.7,
+  }: {
+    path: string;
+    width?: number;
+  }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
@@ -1103,13 +1109,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "internal");
     } else {
       // First create the chat actions:
-      initChat(this.project_id, misc.meta_file(path, "chat"));
+      await initChat(this.project_id, misc.meta_file(path, "chat"));
       // Only then set state to say that the chat is opened!
       // Otherwise when the opened chat is rendered actions is
       // randomly not defined, and things break.
       this.set_chat_state(path, "external");
     }
-  }
+  };
 
   // Close side chat for the given file, assuming the file itself is open
   // NOTE: for frame tree if there are no chat frames, this instead opens
@@ -1346,6 +1352,38 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       `${compute_server_id}`,
     );
   };
+
+  // sets the side chat compute server id properly for the given path.
+  setSideChatComputeServerId = async (path) => {
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    const sidePath = chatFile(path);
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
+    if (currentId != null) {
+      // already set
+      return;
+    }
+    const id = await computeServerAssociations.getServerIdForPath(path);
+    if (!id) {
+      // nothing to set -- default is fine
+      return;
+    }
+    // set it
+    computeServerAssociations.connectComputeServerToPath({
+      id,
+      path: sidePath,
+    });
+  };
+
+  //   getComputeServerIdForFile = async ({
+  //     path,
+  //     compute_server_id,
+  //   }: {}): Promise<number | undefined> => {
+  //     const computeServerAssociations =
+  //       webapp_client.project_client.computeServers(this.project_id);
+  //     return await computeServerAssociations.getServerIdForPath(path);
+  //   };
 
   setComputeServerIdForFile = async ({
     path,
@@ -2675,7 +2713,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         if (err) {
           const stdout = output?.stdout ?? "";
-          const stderr = output?.stderr ?? "";;
+          const stderr = output?.stderr ?? "";
           this.setState({
             file_creation_error: `${stdout} ${stderr} ${err}`,
           });
