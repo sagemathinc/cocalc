@@ -39,7 +39,7 @@ export default function init(server: Server, basePath: string): Router {
     primus.writeAndWait({event:'foo'}, (response) => console.log("got", response))
     See: https://github.com/swissmanu/primus-responder
   */
-  primus.plugin("responder", require("primus-responder"));
+  primus.plugin("responder", require("@cocalc/primus-responder"));
 
   init_websocket_api(primus);
 

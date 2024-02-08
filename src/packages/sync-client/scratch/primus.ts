@@ -21,7 +21,7 @@ undefined
 import Primus from "primus";
 import http from "http";
 import { join } from "path";
-import * as responder from "primus-responder";
+import * as responder from "@cocalc/primus-responder";
 import * as multiplex from "@cocalc/primus-multiplex";
 
 export function server() {
