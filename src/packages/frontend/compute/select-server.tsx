@@ -264,7 +264,7 @@ export default function SelectServer({
         placeholder={
           <span style={{ color: "#333" }}>
             <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
-            {!noLabel || open ? <VisibleMDLG>Server</VisibleMDLG> : undefined}
+            {!noLabel || open ? <VisibleMDLG>Project</VisibleMDLG> : undefined}
           </span>
         }
         open={open}

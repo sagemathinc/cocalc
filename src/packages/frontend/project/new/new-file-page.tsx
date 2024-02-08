@@ -34,6 +34,7 @@ import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   project_id: string;
@@ -41,6 +42,7 @@ interface Props {
 
 export default function NewFilePage(props: Props) {
   const { project_id } = props;
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const actions = useActions({ project_id });
   const availableFeatures = useAvailableFeatures(project_id);
   const [extensionWarning, setExtensionWarning] = useState<boolean>(false);
@@ -263,12 +265,20 @@ export default function NewFilePage(props: Props) {
     <SettingBox
       show_header
       icon={"plus-circle"}
-      title={"Create or Upload New File or Folder"}
+      title={<>Create or Upload New File or Folder</>}
       subtitle={
-        <PathNavigator
-          project_id={project_id}
-          style={{ display: "inline-block", fontSize: "20px" }}
-        />
+        <div>
+          <PathNavigator
+            project_id={project_id}
+            style={{ display: "inline-block", fontSize: "20px" }}
+          />
+          {!!compute_server_id && (
+            <h4 style={{ display: "inline-block", fontSize: "20px" }}>
+              {" on "}
+              <ComputeServer id={compute_server_id} />
+            </h4>
+          )}
+        </div>
       }
       close={showFiles}
     >

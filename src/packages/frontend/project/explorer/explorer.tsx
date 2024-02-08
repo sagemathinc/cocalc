@@ -763,7 +763,7 @@ const Explorer0 = rclass(
               <div
                 style={{
                   flex: "1 0 auto",
-                  marginRight: "10px",
+                  marginRight: "5px",
                   minWidth: "20em",
                 }}
               >

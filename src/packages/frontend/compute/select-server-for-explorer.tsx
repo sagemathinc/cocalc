@@ -21,9 +21,15 @@ export default function SelectComputeServerForFileExplorer({
 
   return (
     <SelectServer
-      title={
-        "Showing files on this compute server or the project.  When you open a file, it will open here."
-      }
+      title={`Showing files ${
+        compute_server_id
+          ? `on compute server ${compute_server_id}`
+          : "in the project"
+      }.  When you create or open a file, it will by default open ${
+        compute_server_id
+          ? `on compute server ${compute_server_id}`
+          : "in the project"
+      }.`}
       size={size}
       project_id={project_id}
       style={style}
