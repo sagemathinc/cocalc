@@ -1,4 +1,4 @@
-import { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useInterval } from "react-interval-hook";
 import { debounce } from "lodash";
 import {
@@ -21,6 +21,7 @@ interface Props {
   path: string;
   sendChat?: (string) => void;
   style?: CSSProperties;
+  label?: ReactNode;
 }
 
 export default function VideoChatButton({
@@ -28,6 +29,7 @@ export default function VideoChatButton({
   path,
   sendChat,
   style: style0,
+  label,
 }: Props) {
   // to know if somebody else has video chat opened for this file
   // @ts-ignore
@@ -54,17 +56,17 @@ export default function VideoChatButton({
           sendChat(
             `${
               video_chat.current.get_user_name() ?? "User"
-            } joined [the video chat](${video_chat.current.url()}).`
+            } joined [the video chat](${video_chat.current.url()}).`,
           );
         }
       }
     },
     750,
-    { leading: true }
+    { leading: true },
   );
 
   function render_num_chatting(
-    num_users_chatting: number
+    num_users_chatting: number,
   ): JSX.Element | undefined {
     if (num_users_chatting > 0) {
       return (
@@ -117,7 +119,7 @@ export default function VideoChatButton({
       {num_users_chatting > 0 && (
         <span style={{ marginLeft: "5px" }}>{num_users_chatting}</span>
       )}
-      <span style={{ marginLeft: "5px" }}>Video Chat</span>
+      <span style={{ marginLeft: "5px" }}>{label ?? "Video Chat"}</span>
     </>
   );
 

@@ -5,10 +5,9 @@
 
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-import { Button as AntdButton } from "antd";
-
+import { Button } from "antd";
 import {
-  Button,
+  Button as OldButton,
   ButtonGroup,
   Col,
   Row,
@@ -37,6 +36,8 @@ import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
+import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -156,7 +157,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   function render_timetravel_button(): JSX.Element {
     return (
-      <Button onClick={show_timetravel} bsStyle="info">
+      <OldButton onClick={show_timetravel} bsStyle="info">
         <Tip
           title="TimeTravel"
           tip={<span>Browse all versions of this chatroom.</span>}
@@ -164,7 +165,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         >
           <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
         </Tip>
-      </Button>
+      </OldButton>
     );
   }
 
@@ -180,7 +181,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           }
           placement="left"
         >
-          <Icon name="arrow-down" /> <VisibleMDLG>Newest</VisibleMDLG>
+          <Icon name="arrow-down" /> <VisibleMDLG>New</VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -218,10 +219,11 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     return (
       <VisibleMDLG>
         <Button
+          title={"Export to Markdown"}
           onClick={() => actions.export_to_markdown()}
           style={{ marginLeft: "5px" }}
         >
-          <Icon name="external-link" /> Export
+          <Icon name="external-link" />
         </Button>
       </VisibleMDLG>
     );
@@ -238,6 +240,29 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     );
   }
 
+  function render_compute_server_button() {
+    if (!computeServersEnabled()) {
+      return null;
+    }
+
+    return (
+      <SelectComputeServerForFile
+        actions={actions}
+        key="compute-server-selector"
+        type={"sage-chat"}
+        project_id={project_id}
+        path={path}
+        style={{
+          height: "32px",
+          overflow: "hidden",
+          borderTopRightRadius: "5px",
+          borderBottomRightRadius: "5px",
+        }}
+        noLabel={true}
+      />
+    );
+  }
+
   function render_video_chat_button() {
     if (project_id == null || path == null) return;
     return (
@@ -245,6 +270,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         project_id={project_id}
         path={path}
         sendChat={(value) => actions.send_chat({ input: value })}
+        label={"Video"}
       />
     );
   }
@@ -278,6 +304,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           <ButtonGroup>
             {render_save_button()}
             {render_timetravel_button()}
+            {render_compute_server_button()}
           </ButtonGroup>
           <ButtonGroup style={{ marginLeft: "5px" }}>
             {render_video_chat_button()}
@@ -291,11 +318,11 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           {actions.syncdb != null && (
             <VisibleMDLG>
               <ButtonGroup style={{ marginLeft: "5px" }}>
-                <Button onClick={() => actions.syncdb?.undo()}>
-                  <Icon name="undo" /> Undo
+                <Button onClick={() => actions.syncdb?.undo()} title="Undo">
+                  <Icon name="undo" />
                 </Button>
-                <Button onClick={() => actions.syncdb?.redo()}>
-                  <Icon name="redo" /> Redo
+                <Button onClick={() => actions.syncdb?.redo()} title="Redo">
+                  <Icon name="redo" />
                 </Button>
               </ButtonGroup>
             </VisibleMDLG>
@@ -304,8 +331,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             <Button
               onClick={() => actions.help()}
               style={{ marginLeft: "5px" }}
+              title="Documentation"
             >
-              <Icon name="question-circle" /> Help
+              <Icon name="question-circle" />
             </Button>
           )}
         </Col>
@@ -366,22 +394,22 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <div style={{ flex: 1 }} />
-            <AntdButton
+            <Button
               onClick={on_send_button_click}
               disabled={input.trim() === "" || is_uploading}
               type="primary"
               style={{ height: "47.5px" }}
             >
               <Icon name="paper-plane" /> Send
-            </AntdButton>
+            </Button>
             <div style={{ height: "5px" }} />
-            <AntdButton
+            <Button
               onClick={() => actions.set_is_preview(true)}
               style={{ height: "47.5px" }}
               disabled={is_preview}
             >
               Preview
-            </AntdButton>
+            </Button>
           </div>
         </div>
       </div>

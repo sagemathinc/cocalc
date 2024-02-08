@@ -42,6 +42,7 @@ export default function SelectComputeServerForFile({
   const [confirmSwitch, setConfirmSwitch] = useState<boolean>(false);
   const [idNum, setIdNum] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+  const lastValueRef = useRef<number>(0);
 
   const computeServers =
     useTypedRedux({ project_id }, "compute_servers")?.toJS() ?? [];
@@ -118,8 +119,10 @@ export default function SelectComputeServerForFile({
         project_id={project_id}
         style={style}
         value={value}
-        setValue={(value) => {
-          setIdNum(value ?? 0);
+        setValue={(newValue) => {
+          setIdNum(newValue ?? 0);
+          lastValueRef.current = value;
+          setValue(newValue);
           setConfirmSwitch(true);
         }}
         noLabel={noLabel}
@@ -136,7 +139,11 @@ export default function SelectComputeServerForFile({
           )
         }
         open={confirmSwitch}
-        onCancel={() => setConfirmSwitch(false)}
+        onCancel={() => {
+          setConfirmSwitch(false);
+          setIdNum(lastValueRef.current);
+          setValue(lastValueRef.current);
+        }}
         okText={
           idNum == 0 ? (
             "Open in Project"
