@@ -298,7 +298,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     const dir = cwd.startsWith("/") ? cwd : cwd === "" ? "~" : `~/${cwd}`;
     return (
       <Descriptions size="small" bordered column={1}>
-        <Descriptions.Item label="Directory">
+        <Descriptions.Item label="Folder">
           <code>{dir}</code>
         </Descriptions.Item>
         <Descriptions.Item label="Content">
@@ -315,7 +315,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
         <Descriptions.Item label="File 2">
           <SelectFile list={filenames} selected={fn2} select={set_fn2} />
         </Descriptions.Item>
-        <Descriptions.Item label="Directory">
+        <Descriptions.Item label="Folder">
           <SelectFile list={directorynames} selected={dir1} select={set_dir1} />
         </Descriptions.Item>
 
@@ -459,7 +459,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           {render_file_commands()}
         </Panel>
         <Panel
-          header="Directory commands"
+          header="Folder commands"
           extra={<FolderOpenOutlined />}
           key="directory-commands"
         >

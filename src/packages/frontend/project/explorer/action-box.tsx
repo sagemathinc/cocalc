@@ -508,7 +508,7 @@ export const ActionBox = rclass<ReactProps>(
                   : this.state.move_destination}
               </h4>
               <DirectorySelector
-                title="Select Move Destination Directory"
+                title="Select Move Destination Folder"
                 key="move_destination"
                 onSelect={(move_destination: string) =>
                   this.setState({ move_destination })

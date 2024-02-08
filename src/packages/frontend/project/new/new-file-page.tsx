@@ -263,7 +263,7 @@ export default function NewFilePage(props: Props) {
     <SettingBox
       show_header
       icon={"plus-circle"}
-      title={"Create or Upload New File or Directory"}
+      title={"Create or Upload New File or Folder"}
       subtitle={
         <PathNavigator
           project_id={project_id}
