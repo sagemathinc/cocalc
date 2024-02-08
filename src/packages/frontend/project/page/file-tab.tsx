@@ -367,7 +367,13 @@ export function FileTab(props: Readonly<Props>) {
 
   const btnLeft = (
     <>
-      <Icon style={{ display: "inline-block", ...icon_style }} name={icon} />
+      <Icon
+        style={{
+          display: condensed ? "inline-block" : undefined,
+          ...icon_style,
+        }}
+        name={icon}
+      />
       <DisplayedLabel
         path={path}
         label={label}

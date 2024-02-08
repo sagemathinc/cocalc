@@ -89,12 +89,12 @@ export default function ExplorerTour({
       ),
     },
     {
-      title: "Current Directory",
+      title: "Current Folder",
       description: (
         <>
-          The current directory is displayed here. The directory listing below
+          The current folder is displayed here. The directory listing below
           is of this directory. There are breadcrumbs, so you can easily click
-          to visit recent directories further down the tree.
+          to visit recent folders further down the tree.
         </>
       ),
       target: currentDirectoryRef.current,

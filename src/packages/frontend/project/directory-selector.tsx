@@ -27,7 +27,7 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
-const NEW_DIRECTORY = "New Directory";
+const NEW_FOLDER = "New Folder";
 
 const ICON_STYLE = {
   cursor: "pointer",
@@ -150,7 +150,7 @@ export default function DirectorySelector({
               onClick={onClose}
             />
           )}
-          {title ?? "Select Directory"}
+          {title ?? "Select Folder"}
         </>
       }
       style={{
@@ -238,7 +238,7 @@ function SelectablePath({
           tail
         ) : (
           <>
-            <Icon name="home" style={{ marginRight: "5px" }} /> Home Directory
+            <Icon name="home" style={{ marginRight: "5px" }} /> Home Folder
           </>
         )}
       </>
@@ -402,7 +402,7 @@ function Subdirs(props) {
     for (const x of v) {
       if (x?.isdir) {
         if (x.name.startsWith(".") && !showHidden) continue;
-        if (x.name.startsWith(NEW_DIRECTORY)) {
+        if (x.name.startsWith(NEW_FOLDER)) {
           newPaths.push(x.name);
         } else {
           paths.push(x.name);
@@ -436,7 +436,7 @@ function CreateDirectory({ project_id, path, directoryListings }) {
       style={{ cursor: "pointer", color: "#666" }}
       key={"...-create-dir"}
       onClick={async () => {
-        let target = path + (path != "" ? "/" : "") + NEW_DIRECTORY;
+        let target = path + (path != "" ? "/" : "") + NEW_FOLDER;
         if (await pathExists(project_id, target, directoryListings)) {
           let i: number = 1;
           while (
@@ -464,7 +464,7 @@ function CreateDirectory({ project_id, path, directoryListings }) {
       >
         <Button size="small" type="text" style={{ color: "#666" }}>
           <Icon name="plus" style={{ marginRight: "5px" }} /> Create{" "}
-          {NEW_DIRECTORY}
+          {NEW_FOLDER}
         </Button>
       </Tooltip>
     </div>

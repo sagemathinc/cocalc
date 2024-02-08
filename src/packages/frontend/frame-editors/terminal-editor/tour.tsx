@@ -82,11 +82,11 @@ export default function getTour(refs) {
 
   step({
     target: "title",
-    title: "Current Directory",
+    title: "Current Folder",
     description: (
       <>
-        The current working directory is displayed here. If it is truncated,
-        mouse over it to see the full directory.
+        The name of the current working folder is displayed here. If it is
+        truncated, mouse over it to see the full folder name.
       </>
     ),
   });

@@ -72,7 +72,6 @@
     "bootstrap": "=3.4.1",
     "bootstrap-colorpicker": "^2.5.3",
     "cat-names": "^3.1.0",
-    "chai": "^4.2.0",
     "cheerio": "^1.0.0-rc.10",
     "codemirror": "^5.65.3",
     "color-map": "^2.0.6",
@@ -178,7 +177,6 @@
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.11",
     "@types/codemirror": "^5.60.5",
     "@types/jquery": "^3.5.5",
     "@types/katex": "^0.16.0",
