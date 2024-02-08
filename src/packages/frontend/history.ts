@@ -32,7 +32,7 @@ The URI schema handled by the single page app is as follows:
         https://cocalc.com/projects/project-id/settings
      Log:
         https://cocalc.com/projects/project-id/log
-     Directory listing (must have slash at end):
+     Folder listing (must have slash at end):
        https://cocalc.com/projects/project-id/files/path/to/dir/
      Open file:
        https://cocalc.com/projects/project-id/files/path/to/file
