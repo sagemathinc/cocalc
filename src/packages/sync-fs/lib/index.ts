@@ -28,6 +28,7 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -319,7 +320,9 @@ class SyncFS {
           // so we don't have to depend on having our cc-new-file script
           // installed.  We just don't support templates on compute server.
           for (const path of data.opts.args ?? []) {
-            await writeFile(join(this.mount, path), "");
+            const target = join(this.mount, path);
+            await ensureContainingDirectoryExists(target);
+            await writeFile(target, "");
           }
           return { status: 0, stdout: "", stderr: "" };
         }
