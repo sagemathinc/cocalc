@@ -50,6 +50,7 @@ import {
   ManageCommands,
 } from "./commands";
 const MAX_SEARCH_RESULTS = 10;
+import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -1027,6 +1028,24 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
+  function renderComputeServerDocStatus() {
+    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
+      return null;
+    }
+    const { type } = props;
+    if (type == "terminal" || type == "jupyter_cell_notebook") {
+      // these are handled in a more sophisticated way due to compute
+      // in their own editor.
+      return null;
+    }
+    return (
+      <StandaloneComputeServerDocStatus
+        project_id={props.project_id}
+        path={props.path}
+      />
+    );
+  }
+
   function renderPage() {
     if (
       props.page == null ||
@@ -1144,22 +1163,25 @@ export function FrameTitleBar(props: Props) {
   }
 
   return (
-    <div style={{ opacity: !is_active ? 0.6 : undefined }}>
-      <div
-        style={style}
-        id={`titlebar-${props.id}`}
-        className={"cc-frame-tree-title-bar"}
-      >
-        {renderMainMenusAndButtons()}
-        {renderConnectionStatus()}
-        {allButtonsPopover()}
-        {renderFrameControls()}
+    <>
+      <div style={{ opacity: !is_active ? 0.6 : undefined }}>
+        <div
+          style={style}
+          id={`titlebar-${props.id}`}
+          className={"cc-frame-tree-title-bar"}
+        >
+          {renderMainMenusAndButtons()}
+          {renderConnectionStatus()}
+          {allButtonsPopover()}
+          {renderFrameControls()}
+        </div>
+        {renderButtonBar()}
+        {renderConfirmBar()}
+        {hasTour && props.is_visible && props.tab_is_visible && (
+          <TitleBarTour refs={tourRefs} />
+        )}
       </div>
-      {renderButtonBar()}
-      {renderConfirmBar()}
-      {hasTour && props.is_visible && props.tab_is_visible && (
-        <TitleBarTour refs={tourRefs} />
-      )}
-    </div>
+      {renderComputeServerDocStatus()}
+    </>
   );
 }
