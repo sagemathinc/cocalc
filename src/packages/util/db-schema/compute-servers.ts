@@ -305,8 +305,8 @@ export const GOOGLE_CLOUD_DEFAULTS = {
     cloud: "google-cloud",
     region: "us-east5",
     zone: "us-east5-a",
-    machineType: "n2d-standard-4",
-    spot: true,
+    machineType: "n2d-highmem-2",
+    spot: false,
     diskSizeGb: 10,
     diskType: "pd-balanced",
     externalIp: true,
@@ -314,7 +314,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   },
   gpu: {
     image: "pytorch",
-    spot: true,
+    spot: false,
     region: "asia-northeast1",
     cloud: "google-cloud",
     zone: "asia-northeast1-a",
@@ -328,7 +328,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   },
   gpu2: {
     image: "pytorch",
-    spot: true,
+    spot: false,
     zone: "us-central1-b",
     cloud: "google-cloud",
     region: "us-central1",
@@ -371,7 +371,7 @@ const CLOUDS: {
     label: "Google Cloud Platform",
     image:
       "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
-    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.gpu2,
+    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.cpu,
   },
   lambda: {
     name: "lambda-cloud",
