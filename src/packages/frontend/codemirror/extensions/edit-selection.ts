@@ -12,6 +12,7 @@ import {
   commands as EDIT_COMMANDS,
 } from "../../editors/editor-button-bar";
 import { markdown_to_html } from "../../markdown";
+import { ai_gen_formula } from "./ai-formula";
 
 /*
 Apply an edit to the selected text in an editor; works with one or more
@@ -28,11 +29,13 @@ CodeMirror.defineExtension(
     cmd: string;
     args?: string | number;
     mode?: string;
+    project_id?: string;
   }): Promise<void> {
     opts = defaults(opts, {
       cmd: required,
       args: undefined,
       mode: undefined,
+      project_id: undefined,
     });
     // @ts-ignore
     const cm = this;
@@ -53,7 +56,7 @@ CodeMirror.defineExtension(
     const default_mode = opts.mode ?? cm.get_edit_mode();
     const canonical_mode = (name) => sagews_canonical_mode(name, default_mode);
 
-    const { args, cmd } = opts;
+    const { args, cmd, project_id } = opts;
 
     // FUTURE: will have to make this more sophisticated, so it can
     // deal with nesting, spans, etc.
@@ -363,6 +366,13 @@ CodeMirror.defineExtension(
             done = true;
           }
           break;
+
+        case "ai_formula":
+          if (project_id != null) {
+            src = await ai_gen_formula({ mode, text: src, project_id });
+          }
+          done = true;
+          break;
       }
 
       if (!done) {
@@ -373,7 +383,7 @@ CodeMirror.defineExtension(
         }
 
         // TODO: should we show an alert or something??
-        console.warn("not implemented");
+        console.warn(`not implemented. cmd='${cmd}' mode='${mode1}'`);
         continue;
       }
 
