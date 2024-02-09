@@ -1,9 +1,13 @@
-import { addEditorMenus } from "./editor-menus";
-import { FONT_SIZES } from "@cocalc/frontend/editors/editor-button-bar";
-import { FONT_FACES } from "@cocalc/frontend/editors/editor-button-bar";
+import { range } from "lodash";
+
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { HeadingContent } from "@cocalc/frontend/components/heading-menu";
-import { range } from "lodash";
+import {
+  FONT_FACES,
+  FONT_SIZES,
+} from "@cocalc/frontend/editors/editor-button-bar";
+import { addEditorMenus } from "./editor-menus";
 
 const FORMAT_SPEC = {
   equation: {
@@ -17,6 +21,12 @@ const FORMAT_SPEC = {
     label: "Displayed Equation",
     title: "Insert display LaTeX math equation.",
     icon: <span>$$</span>,
+  },
+  ai_formula: {
+    button: "Formula",
+    label: "AI Generated Formula",
+    title: "Insert AI generated formula.",
+    icon: <AIAvatar size={16} />,
   },
   bold: { icon: "bold", title: "Make selected text bold" },
   italic: { icon: "italic", title: "Make selected text italics" },
@@ -110,7 +120,7 @@ const FORMAT_MENUS = {
   insert: {
     label: "Insert",
     pos: 1.3,
-    math: ["equation", "display_equation"],
+    math: ["equation", "display_equation", "ai_formula"],
     lists: ["insertunorderedlist", "insertorderedlist"],
     objects: [
       "table",
