@@ -1412,9 +1412,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const target = selectedComputeServerId
         ? `on Compute Server ${selectedComputeServerId}`
         : "in the Project";
-      const source = selectedComputeServerId
-        ? "in the Project"
-        : `on Compute Server ${selectedComputeServerId}`;
+      const source = currentId
+        ? `on Compute Server ${currentId}`
+        : "in the Project";
       const consequence = path.endsWith(".term")
         ? "If there is a running terminal session it will be terminated."
         : "If the kernel is currently running it will be stopped.";
