@@ -8,7 +8,6 @@ import * as immutable from "immutable";
 import React from "react";
 import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
 import * as underscore from "underscore";
-
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   TypedMap,
@@ -26,7 +25,6 @@ import {
   Loading,
   Paragraph,
   SettingBox,
-  VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
@@ -559,7 +557,7 @@ const Explorer0 = rclass(
         <div
           style={{
             display: "flex",
-            flexFlow: "row wrap",
+            flexFlow: IS_MOBILE ? undefined : "row wrap",
             justifyContent: "space-between",
             alignItems: "stretch",
           }}
@@ -569,13 +567,30 @@ const Explorer0 = rclass(
             key="compute-server"
             style={{ marginRight: "5px", borderRadius: "5px" }}
           />
+          <div
+            ref={this.currentDirectoryRef}
+            className="cc-project-files-path-nav"
+          >
+            <PathNavigator project_id={this.props.project_id} />
+          </div>
+          {!IS_MOBILE && (
+            <div
+              style={{
+                flex: "0 1 auto",
+                margin: "0 10px",
+                marginBottom: "15px",
+              }}
+              className="cc-project-files-create-dropdown"
+            >
+              {this.render_new_file()}
+            </div>
+          )}
           {!IS_MOBILE && (
             <div
               ref={this.searchBarRef}
               style={{
                 flex: "1 0 20%",
-                marginRight: "10px",
-                minWidth: "20em",
+                minWidth: "15em",
               }}
             >
               <SearchBar
@@ -601,22 +616,6 @@ const Explorer0 = rclass(
               />
             </div>
           )}
-          <div
-            style={{
-              flex: "0 1 auto",
-              marginRight: "10px",
-              marginBottom: "15px",
-            }}
-            className="cc-project-files-create-dropdown"
-          >
-            {this.render_new_file()}
-          </div>
-          <div
-            ref={this.currentDirectoryRef}
-            className="cc-project-files-path-nav"
-          >
-            <PathNavigator project_id={this.props.project_id} />
-          </div>
           <>
             <div
               style={{
@@ -627,7 +626,7 @@ const Explorer0 = rclass(
             >
               <UsersViewing project_id={this.props.project_id} />
             </div>
-            <VisibleMDLG>
+            {!IS_MOBILE && (
               <div
                 ref={this.miniterminalRef}
                 style={{ flex: "1 0 auto", marginBottom: "15px" }}
@@ -639,7 +638,7 @@ const Explorer0 = rclass(
                   show_close_x={true}
                 />
               </div>
-            </VisibleMDLG>
+            )}
           </>
         </div>
       );
