@@ -406,32 +406,26 @@ export default function LanguageModelTitleBarButton({
         );
       }}
     >
-      <Tooltip title="Artificial Intelligence assistance">
-        <Button
-          style={buttonStyle}
-          size={buttonSize}
-          onClick={() => {
-            setError("");
-            setShowDialog(!showDialog);
-            actions.blur();
-          }}
-        >
-          <span ref={buttonRef}>
-            <AIAvatar
-              size={20}
-              iconColor="#333"
-              style={{ marginTop: "-5px" }}
-            />
-            {noLabel ? (
-              ""
-            ) : (
-              <VisibleMDLG>
-                <span style={{ marginLeft: "5px" }}>Assistant</span>
-              </VisibleMDLG>
-            )}
-          </span>
-        </Button>
-      </Tooltip>
+      <Button
+        style={buttonStyle}
+        size={buttonSize}
+        onClick={() => {
+          setError("");
+          setShowDialog(!showDialog);
+          actions.blur();
+        }}
+      >
+        <span ref={buttonRef}>
+          <AIAvatar size={20} iconColor="#333" style={{ marginTop: "-5px" }} />
+          {noLabel ? (
+            ""
+          ) : (
+            <VisibleMDLG>
+              <span style={{ marginLeft: "5px" }}>Assistant</span>
+            </VisibleMDLG>
+          )}
+        </span>
+      </Button>
     </Popover>
   );
 }

@@ -285,6 +285,7 @@ export async function open_file(
       await actions.setComputeServerIdForFile({
         path,
         compute_server_id: opts.compute_server_id,
+        confirm: true,
       });
     } catch (err) {
       actions.open_files.delete(opts.path);

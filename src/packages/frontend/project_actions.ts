@@ -1385,13 +1385,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //     return await computeServerAssociations.getServerIdForPath(path);
   //   };
 
+  // in case of confirmation, returns true on success or false if user says "no"
   setComputeServerIdForFile = async ({
     path,
     compute_server_id,
+    confirm,
   }: {
     path: string;
     compute_server_id?: number;
-  }) => {
+    confirm?: boolean;
+  }): Promise<boolean> => {
     const selectedComputeServerId = this.getComputeServerId(compute_server_id);
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
@@ -1400,13 +1403,38 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
     if (currentId == selectedComputeServerId) {
       // no need to set anything since we have what we want already
-      return;
+      return true;
+    }
+    if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
+      // (currently only jupyter and terminals, which are the only supported
+      // file types with backend state)
+      const what = path.endsWith(".term") ? "Terminal" : "Jupyter Notebook";
+      const target = selectedComputeServerId
+        ? `on Compute Server ${selectedComputeServerId}`
+        : "in the Project";
+      const source = selectedComputeServerId
+        ? "in the Project"
+        : `on Compute Server ${selectedComputeServerId}`;
+      const consequence = path.endsWith(".term")
+        ? "If there is a running terminal session it will be terminated."
+        : "If the kernel is currently running it will be stopped.";
+      if (
+        !(await redux.getActions("page").popconfirm({
+          title: `Run ${what} ${target}?`,
+          cancelText: `Run ${source}`,
+          okText: `Run ${target}`,
+          description: `Do you want to run the ${what} '${path}' ${target} instead of ${source}, where it was last used?  ${consequence}`,
+        }))
+      ) {
+        return false;
+      }
     }
     // Explicitly set the compute server id to what we want.
     computeServerAssociations.connectComputeServerToPath({
       id: selectedComputeServerId,
       path,
     });
+    return true;
   };
 
   set_file_search(search): void {

@@ -256,6 +256,7 @@ export default function SelectServer({
 
   return (
     <Tooltip
+      mouseEnterDelay={0.9}
       title={
         title ??
         `This is open ${
@@ -270,10 +271,7 @@ export default function SelectServer({
         bordered={false}
         placeholder={
           <span style={{ color: "#333" }}>
-            <Icon
-              name="server"
-              style={{ fontSize: "13pt", marginTop: "10px" }}
-            />{" "}
+            <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
             {!noLabel || open ? <VisibleMDLG>Project</VisibleMDLG> : undefined}
           </span>
         }

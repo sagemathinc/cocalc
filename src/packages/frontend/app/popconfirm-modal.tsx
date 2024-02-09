@@ -1,7 +1,7 @@
 /*
 Easily show a global popconfirm modal at any point in cocalc by doing
 
-   await redux.getActions("page").popconfirm(...opn, title, cancelText, okText, description )
+   await redux.getActions("page").popconfirm(...open, title, cancelText, okText, description )
 
 It will return true on OK and false on Cancel.
 

@@ -468,47 +468,43 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <Tooltip key="time-travel-button" title="TimeTravel edit history">
-        <Button
-          key={"time-travel-button"}
-          style={{
-            ...button_style(),
-            ...(!darkMode
-              ? { color: "#333", background: "#5bc0de" }
-              : undefined),
-          }}
-          size={button_size()}
-          onClick={(event) => {
-            try {
-              track("time-travel");
-              if (props.actions.name != props.editor_actions.name) {
-                // a subframe editor -- always open time travel in a name tab.
-                props.editor_actions.time_travel({ frame: false });
-                return;
-              }
-              // If a time_travel frame type is available and the
-              // user does NOT shift+click, then open as a frame.
-              // Otherwise, it opens as a new tab.
-              const frame =
-                !event.shiftKey && props.editor_spec["time_travel"] != null;
-              props.actions.time_travel({
-                frame,
-              });
-            } catch (err) {
-              props.actions.set_error(
-                `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
-              );
+      <Button
+        key={"time-travel-button"}
+        style={{
+          ...button_style(),
+          ...(!darkMode ? { color: "#333", background: "#5bc0de" } : undefined),
+        }}
+        size={button_size()}
+        onClick={(event) => {
+          try {
+            track("time-travel");
+            if (props.actions.name != props.editor_actions.name) {
+              // a subframe editor -- always open time travel in a name tab.
+              props.editor_actions.time_travel({ frame: false });
+              return;
             }
-          }}
-        >
-          <Icon name="history" />
-          {noLabel ? undefined : (
-            <VisibleMDLG>
-              <span style={{ marginLeft: "5px" }}>TimeTravel</span>
-            </VisibleMDLG>
-          )}
-        </Button>
-      </Tooltip>
+            // If a time_travel frame type is available and the
+            // user does NOT shift+click, then open as a frame.
+            // Otherwise, it opens as a new tab.
+            const frame =
+              !event.shiftKey && props.editor_spec["time_travel"] != null;
+            props.actions.time_travel({
+              frame,
+            });
+          } catch (err) {
+            props.actions.set_error(
+              `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
+            );
+          }
+        }}
+      >
+        <Icon name="history" />
+        {noLabel ? undefined : (
+          <VisibleMDLG>
+            <span style={{ marginLeft: "5px" }}>TimeTravel</span>
+          </VisibleMDLG>
+        )}
+      </Button>
     );
   }
 
