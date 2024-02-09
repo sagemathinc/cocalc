@@ -7,13 +7,14 @@
 Manages rendering a single page using either SVG or Canvas
 */
 
-import CanvasPage from "./pdfjs-canvas-page";
 import type {
   PDFAnnotationData,
-  PDFPageProxy,
   PDFDocumentProxy,
-} from "pdfjs-dist/webpack";
+  PDFPageProxy,
+} from "pdfjs-dist/webpack.mjs";
+
 import { SyncHighlight } from "./pdfjs-annotation";
+import CanvasPage from "./pdfjs-canvas-page";
 
 export const PAGE_GAP: number = 8;
 export const BG_COL = "#525659";
@@ -38,7 +39,7 @@ export default function Page({
   syncHighlight,
 }: PageProps) {
   async function clickAnnotation(
-    annotation0: PDFAnnotationData
+    annotation0: PDFAnnotationData,
   ): Promise<void> {
     // NOTE: We have to do this cast because the @types for pdfjs are incomplete and wrong.
     const annotation: any = annotation0 as any; // TODO
