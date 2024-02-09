@@ -926,11 +926,6 @@ export function commands(actions: AllActions): {
       f: () => actions.jupyter_actions?.toggle_all_outputs("collapsed"),
     },
 
-    "toggle all cells output scrolled": {
-      m: "Toggle Scrolled Output of All Cells",
-      f: () => actions.jupyter_actions?.toggle_all_outputs("scrolled"),
-    },
-
     "toggle all line numbers": {
       i: "list-ol",
       m: "Toggle Line Numbers of All Cells",
@@ -952,9 +947,57 @@ export function commands(actions: AllActions): {
     },
 
     "toggle cell output scrolled": {
-      m: "Toggle Scrolled Output",
+      m: "Toggle Scrolled Output of Selected Cells",
       k: [{ mode: "escape", which: 79, shift: true }],
       f: () => actions.frame_actions?.toggle_selected_outputs("scrolled"),
+    },
+
+    "toggle all cells output scrolled": {
+      m: "Toggle Scrolled Output of All Cells",
+      f: () => actions.jupyter_actions?.toggle_all_outputs("scrolled"),
+    },
+
+    "set cell output scrolled": {
+      i: "sliders",
+      t: "Set the output of all selected cells to have a max height and be scrollable, so they don't use up too much vertical space. This is the default for new cells.",
+      m: "Scroll Selected Outputs",
+      f: () =>
+        actions.frame_actions?.setScrolled({
+          all: false,
+          scrolled: true,
+        }),
+    },
+    "set all cell output scrolled": {
+      i: "sliders",
+      m: "Scroll All Output",
+      t: "Set the output of all cells to have a max height and be scrollable, so they don't use up too much vertical space. This is the default for new cells.",
+
+      f: () =>
+        actions.frame_actions?.setScrolled({
+          all: true,
+          scrolled: true,
+        }),
+    },
+
+    "unset cell output scrolled": {
+      i: "sliders",
+      t: "Set the output of all selected cells to NOT have a max height and scroll, so you do not have to scroll to see all output.",
+      m: "Unscroll Selected Outputs",
+      f: () =>
+        actions.frame_actions?.setScrolled({
+          all: false,
+          scrolled: false,
+        }),
+    },
+    "unset all cell output scrolled": {
+      i: "sliders",
+      t: "Set the output of all cells to NOT have a max height and scroll, so you do not have to scroll to see all output.",
+      m: "Unscroll All Outputs",
+      f: () =>
+        actions.frame_actions?.setScrolled({
+          all: true,
+          scrolled: false,
+        }),
     },
 
     "toggle header": {
