@@ -1996,7 +1996,7 @@ export class Actions<
       // format bar only makes sense when some cm is there...
       return;
     }
-    await cm.edit_selection({ cmd, args });
+    await cm.edit_selection({ cmd, args, project_id: this.project_id });
     if (this._state !== "closed") {
       cm.focus();
       this.set_syncstring_to_codemirror();
