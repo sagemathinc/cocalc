@@ -1297,17 +1297,15 @@ function Image(props) {
   );
 }
 
-// Putting L4 and A100 at top, since they are most
-// interesting, then T4 since very affordable.
 // We do NOT include the P4, P100, V100 or K80, which are older
 // and for which our base image and drivers don't work.
 // If for some reason we need them, we will have to switch to
 // different base drivers or have even more images
 const ACCELERATOR_TYPES = [
+  "nvidia-tesla-t4",
   "nvidia-l4",
   "nvidia-tesla-a100",
   "nvidia-a100-80gb",
-  "nvidia-tesla-t4",
   // "nvidia-tesla-v100",
   //"nvidia-tesla-p100",
   //"nvidia-tesla-p4",

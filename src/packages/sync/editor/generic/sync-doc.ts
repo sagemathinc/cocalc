@@ -232,7 +232,8 @@ export class SyncDoc extends EventEmitter {
   private sync_is_disabled: boolean = false;
   private delay_sync_timer: any;
 
-  private computeServerManagerDoc?: SyncDoc;
+  // static because we want exactly one across all docs!
+  private static computeServerManagerDoc?: SyncDoc;
 
   constructor(opts: SyncOpts) {
     super();
@@ -341,12 +342,12 @@ export class SyncDoc extends EventEmitter {
   }
 
   // True if this client is responsible for managing
-  // the statement of this document with respect to
-  // the filesystem.  By default, this is the project,
-  // but it could be something else.  It's important
-  // that whatever algorithm determines this, is
+  // the state of this document with respect to
+  // the filesystem.  By default, the project is responsible,
+  // but it could be something else (e.g., a compute server!).  It's
+  // important that whatever algorithm determines this, it is
   // a function of state that is eventually consistent.
-  // IMPORTANT: whether or not this is the file server can
+  // IMPORTANT: whether or not we are the file server can
   // change over time, so if you call isFileServer and
   // set something up (e.g., autosave or a watcher), based
   // on the result, you need to clear it when the state
@@ -355,7 +356,9 @@ export class SyncDoc extends EventEmitter {
     const log = this.dbg("isFileServer");
     if (this.client.is_browser()) {
       // browser is never the file server (yet), and doesn't need to do
-      // anything related to watching for changes in state
+      // anything related to watching for changes in state.
+      // Someday via webassembly or browsers making users files availabl,
+      // etc., we will have this. Not today.
       return false;
     }
     const computeServerManagerDoc = this.getComputeServerManagerDoc();
@@ -365,6 +368,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     const state = computeServerManagerDoc.get_state();
+    log("compute server manager doc state: ", state);
     if (state == "closed") {
       log("compute server manager is closed");
       // something really messed up
@@ -372,11 +376,17 @@ export class SyncDoc extends EventEmitter {
     }
     if (state != "ready") {
       try {
-        log("waiting for compute server manager doc to be ready");
+        log(
+          "waiting for compute server manager doc to be ready; current state=",
+          state,
+        );
         await once(computeServerManagerDoc, "ready", 15000);
         log("compute server manager is ready");
       } catch (err) {
-        log("WARNING -- failed to initialize computeServerManagerDoc", err);
+        log(
+          "WARNING -- failed to initialize computeServerManagerDoc -- err=",
+          err,
+        );
         return this.client.is_project();
       }
     }
@@ -401,35 +411,38 @@ export class SyncDoc extends EventEmitter {
 
   private getComputeServerManagerDoc = () => {
     if (this.path == COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path) {
-      // don't want to destroy the universe!
+      // don't want to recursively explode!
       return null;
     }
-    if (this.computeServerManagerDoc == null) {
+    if (SyncDoc.computeServerManagerDoc == null) {
       if (this.client.is_project()) {
         // @ts-ignore: TODO!
-        this.computeServerManagerDoc = this.client.syncdoc({
+        SyncDoc.computeServerManagerDoc = this.client.syncdoc({
           path: COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path,
         });
       } else {
         // @ts-ignore: TODO!
-        this.computeServerManagerDoc = this.client.sync_client.sync_db({
+        SyncDoc.computeServerManagerDoc = this.client.sync_client.sync_db({
           project_id: this.project_id,
           ...COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
         });
       }
-      if (this.computeServerManagerDoc != null && !this.client.is_browser()) {
+      if (
+        SyncDoc.computeServerManagerDoc != null &&
+        !this.client.is_browser()
+      ) {
         // start watching for state changes
-        this.computeServerManagerDoc.on(
+        SyncDoc.computeServerManagerDoc.on(
           "change",
           this.handleComputeServerManagerChange,
         );
       }
     }
-    return this.computeServerManagerDoc;
+    return SyncDoc.computeServerManagerDoc;
   };
 
   private handleComputeServerManagerChange = async (keys) => {
-    if (this.computeServerManagerDoc == null) {
+    if (SyncDoc.computeServerManagerDoc == null) {
       return;
     }
     let relevant = false;
@@ -443,7 +456,7 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     const fileServerId =
-      this.computeServerManagerDoc.get_one({ path: this.path })?.get("id") ?? 0;
+      SyncDoc.computeServerManagerDoc.get_one({ path: this.path })?.get("id") ?? 0;
     const ourId = this.client.is_project()
       ? 0
       : decodeUUIDtoNum(this.client.client_id());
@@ -1027,7 +1040,7 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
-    this.computeServerManagerDoc?.removeListener(
+    SyncDoc.computeServerManagerDoc?.removeListener(
       "change",
       this.handleComputeServerManagerChange,
     );

@@ -179,7 +179,7 @@ class Manager {
   };
 
   private initSyncDB = async () => {
-    console.log("MANAGER", "initSyncDB -- calling it");
+    console.log("MANAGER", "initSyncDB -- calling it", SYNCDB_PARAMS);
     this.sync_db = this.client.sync_client.sync_db({
       project_id: this.project_id,
       ...SYNCDB_PARAMS,
