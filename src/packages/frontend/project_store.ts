@@ -189,12 +189,14 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // much while making this optimization.
   public init_table: (table_name: string) => void;
 
-  // TODO what's a and b ?
-  constructor(a, b) {
-    super(a, b);
+  //  name = 'project-[project-id]' = name of the store
+  //  redux = global redux object
+  constructor(name: string, _redux) {
+    super(name, _redux);
+    this.project_id = name.slice("project-".length);
+    this.computeServerIdLocalStorageKey = `project-compute-server-id-${this.project_id}`;
     this._projects_store_change = this._projects_store_change.bind(this);
     this.setup_selectors();
-    this.computeServerIdLocalStorageKey = `project-compute-server-id-${this.project_id}`;
   }
 
   _init = (): void => {
@@ -259,9 +261,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const other_settings = redux.getStore("account")?.get("other_settings");
     let compute_server_id;
     try {
-      compute_server_id = parseInt(
-        (get_local_storage(this.computeServerIdLocalStorageKey) as any) ?? "0",
-      );
+      const key = this.computeServerIdLocalStorageKey;
+      const value = get_local_storage(key);
+      compute_server_id = parseInt((value as any) ?? "0");
     } catch (_) {
       compute_server_id = 0;
     }

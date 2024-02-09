@@ -260,7 +260,7 @@ class MiniTerminal0 extends React.Component<Props, State> {
             this.execute_command();
           }}
         >
-          <Space.Compact style={{ width: WIDTH }}>
+          <Space.Compact style={{ width: WIDTH, float: "right" }}>
             <Input
               allowClear
               type="text"
