@@ -24,6 +24,7 @@ declare module "codemirror" {
       cmd: string;
       args?: any;
       mode?: string;
+      project_id?: string;
       cb?: Function; // called after done; if there is a dialog, this could be a while.
     }): void;
   }
