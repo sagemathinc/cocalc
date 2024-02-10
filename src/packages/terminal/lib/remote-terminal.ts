@@ -17,10 +17,12 @@ import getLogger from "@cocalc/backend/logger";
 import { spawn } from "node-pty";
 import type { Options, IPty } from "./types";
 import type { Channel } from "@cocalc/comm/websocket/types";
-import { readlink, realpath } from "node:fs/promises";
+import { readlink, realpath, writeFile } from "node:fs/promises";
 import { EventEmitter } from "events";
 import { getRemotePtyChannelName } from "./util";
 import { REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS } from "./terminal";
+import { throttle } from "lodash";
+import { join } from "path";
 
 // NOTE:  shorter than terminal.ts. This is like "2000 lines."
 const MAX_HISTORY_LENGTH = 100 * 2000;
@@ -54,7 +56,6 @@ export class RemoteTerminal extends EventEmitter {
     this.computeServerId = computeServerId;
     this.path = path;
     this.websocket = websocket;
-    // offline and online and that's it!
     this.cwd = cwd;
     this.env = env;
     logger.debug("create ", { cwd });
@@ -209,29 +210,46 @@ export class RemoteTerminal extends EventEmitter {
         logger.debug("terminal data -- truncating");
         this.history = this.history.slice(n - MAX_HISTORY_LENGTH / 2);
       }
+      this.saveHistoryToDisk();
     });
 
     // set the prompt to show the remote hostname explicitly,
     // then clear the screen.
     if (command == "/bin/bash") {
       this.localPty.write('PS1="(\\h) \\w$ ";reset;history -d $(history 1)\n');
+      // alternative -- this.localPty.write('PS1="(\\h) \\w$ "\n');
     }
 
     return this.localPty;
+  };
+
+  private getHome = () => {
+    return this.env?.["HOME"] ?? process.env.HOME ?? "/home/user";
   };
 
   private sendCurrentWorkingDirectoryLocalPty = async () => {
     if (this.localPty == null) {
       return;
     }
-    // we reply with the current working directory of the underlying terminal process,
-    // which is why we use readlink and proc below.
-    // ** TODO: process.env.HOME probably doesn't make any sense here.. not sure?! **
+    // we reply with the current working directory of the underlying
+    // terminal process, which is why we use readlink and proc below.
     const pid = this.localPty.pid;
-    const home = await realpath(process.env.HOME ?? "/home/user");
+    const home = await realpath(this.getHome());
     const cwd = await readlink(`/proc/${pid}/cwd`);
     const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
     logger.debug("terminal cwd sent back", { path });
     this.conn.write({ cmd: "cwd", payload: path });
   };
+
+  private saveHistoryToDisk = throttle(async () => {
+    const target = join(this.getHome(), this.path);
+    try {
+      await writeFile(target, this.history);
+    } catch (err) {
+      logger.debug(
+        `WARNING: failed to save terminal history to '${target}'`,
+        err,
+      );
+    }
+  }, 15000);
 }

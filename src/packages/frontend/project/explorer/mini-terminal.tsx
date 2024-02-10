@@ -47,6 +47,7 @@ export const output_style_miniterm: React.CSSProperties = {
   maxHeight: "450px",
   overflow: "auto",
   right: 0,
+  marginTop: "36px",
   marginRight: "5px",
   borderRadius: "5px",
   width: WIDTH,
