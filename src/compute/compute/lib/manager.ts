@@ -179,17 +179,12 @@ class Manager {
   };
 
   private initSyncDB = async () => {
-    console.log("MANAGER", "initSyncDB -- calling it", SYNCDB_PARAMS);
     this.sync_db = this.client.sync_client.sync_db({
       project_id: this.project_id,
       ...SYNCDB_PARAMS,
     });
     this.sync_db.on("change", this.handleSyncdbChange);
     this.sync_db.on("error", async (err) => {
-      console.log(
-        "MANAGER",
-        "initSyncDB -- ERROR; calling initSyncDB again after a delay!",
-      );
       this.sync_db.close();
       // This could MAYBE possibly very rarely happen if you click to restart a project, then immediately
       // close the browser tab, then try to connect compute server to it and there's a broken socket,
