@@ -15,6 +15,7 @@ import { Input } from "antd";
 import { SEARCH_COMMANDS } from "./const";
 import { addCommands } from "./commands";
 import { set_account_table } from "@cocalc/frontend/account/util";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 
 addCommands({
   "split-row": {
@@ -653,7 +654,7 @@ addCommands({
   chatgpt: {
     pos: 1,
     group: "show-frames",
-    icon: "robot",
+    icon: <AIAvatar size={16} />,
     title:
       "Ask an Artificial Intelligence Assistant (e.g., ChatGPT) for help on what you're doing.",
     label: "AI Assistant",

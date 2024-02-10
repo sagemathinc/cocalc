@@ -12,6 +12,7 @@ import SelectServer, { PROJECT_COLOR } from "./select-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   project_id: string;
@@ -118,6 +119,14 @@ export default function SelectComputeServerForFile({
     };
   }, [project_id, path, type]);
 
+  const params = confirmSwitch
+    ? modalParams({
+        current: lastValueRef.current ?? 0,
+        target: idNum,
+        path: getPath(path) ?? ".term", // only term null
+      })
+    : { description: "" };
+
   return (
     <>
       <SelectServer
@@ -136,30 +145,13 @@ export default function SelectComputeServerForFile({
       />
       <Modal
         keyboard
-        title={
-          idNum == 0 ? (
-            <>Open in this Project?</>
-          ) : (
-            <>
-              Open on <b>{computeServers[idNum]?.title}</b>?
-            </>
-          )
-        }
+        {...params}
         open={confirmSwitch}
         onCancel={() => {
           setConfirmSwitch(false);
           setIdNum(lastValueRef.current ?? 0);
           setValue(lastValueRef.current ?? 0);
         }}
-        okText={
-          idNum == 0 ? (
-            "Open in Project"
-          ) : (
-            <>
-              Open on <b>{computeServers[idNum]?.title}</b>
-            </>
-          )
-        }
         okButtonProps={{
           // @ts-ignore
           ref: okButtonRef,
@@ -194,19 +186,53 @@ export default function SelectComputeServerForFile({
           }
         }}
       >
-        {idNum == 0 ? (
-          <div>
-            Do you want to run this in the project? Variables and other state
-            will be lost.
-          </div>
-        ) : (
-          <div>
-            Do you want to run this on the compute server "
-            {computeServers[idNum]?.title}"? Variables and other state will be
-            lost.
-          </div>
-        )}
+        {params.description}
       </Modal>
     </>
   );
+}
+
+export function modalParams({ current, target, path }) {
+  let what;
+  let consequence = "";
+  if (path.endsWith(".term")) {
+    what = "Run Terminal";
+    consequence =
+      "If there is a running terminal session it will be terminated.";
+  } else if (path.endsWith(".ipynb")) {
+    what = "Run Notebook";
+    consequence = "If a kernel is currently running it will be stopped.";
+  } else {
+    what = "Open File";
+  }
+  const targetDesc = (
+    <>
+      on <ComputeServer id={target} titleOnly />
+    </>
+  );
+  const sourceDesc = (
+    <>
+      on <ComputeServer id={current} titleOnly />
+    </>
+  );
+
+  return {
+    title: (
+      <>
+        {what} {targetDesc}?
+      </>
+    ),
+    cancelText: <>Cancel</>,
+    okText: (
+      <>
+        {what} {targetDesc}?
+      </>
+    ),
+    description: (
+      <>
+        Do you want to {what} '{path}' {targetDesc} instead of {sourceDesc}?{" "}
+        {consequence}
+      </>
+    ),
+  };
 }

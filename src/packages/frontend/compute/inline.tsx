@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import getTitle from "./get-title";
 import { Spin, Tooltip } from "antd";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { PROJECT_COLOR } from "./select-server";
 
 interface Props {
   id: number;
@@ -48,7 +49,7 @@ export default function ComputeServer({
       return;
     }
     if (!id) {
-      setServer({ title: "The Project", color: "#666" });
+      setServer({ title: "The Project", color: PROJECT_COLOR });
       return;
     }
     (async () => {

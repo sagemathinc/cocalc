@@ -39,6 +39,7 @@ import { project_websocket, touch, touch_project } from "../generic/client";
 import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 
 declare const $: any;
 
@@ -271,6 +272,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     try {
       this.set_connection_status("connecting");
+
+      await this.configureComputeServerId();
       const ws = await project_websocket(this.project_id);
       if (this.state === "closed") {
         return;
@@ -850,6 +853,41 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return (
       (await computeServerAssociations.getServerIdForPath(this.term_path)) ?? 0
     );
+  };
+
+  // This is called when connecting to in some cases give the user the option
+  // to run the terminal on a different compute server if the compute server
+  // is not set for this terminal frame and:
+  //   - the ambient path has the compute server set to a positive number
+  //   - or the current default compute server (what's selected in the file explorer) is positive.
+  private configureComputeServerId = async () => {
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    const cur = await computeServerAssociations.getServerIdForPath(
+      this.term_path,
+    );
+    if (cur != null) {
+      // nothing to do -- it's already explicitly set.
+      return;
+    }
+    const id = await computeServerAssociations.getServerIdForPath(this.path);
+    if (!id) {
+      // the ambient path is on the project, so nothing to do
+      return;
+    }
+    if (
+      await redux
+        .getActions("page")
+        .popconfirm(
+          modalParams({ current: 0, target: id, path: this.term_path }),
+        )
+    ) {
+      // yes, switch it
+      computeServerAssociations.connectComputeServerToPath({
+        id,
+        path: this.term_path,
+      });
+    }
   };
 }
 

@@ -80,6 +80,7 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 
 const { defaults, required } = misc;
 
@@ -1406,25 +1407,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return true;
     }
     if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
-      // (currently only jupyter and terminals, which are the only supported
-      // file types with backend state)
-      const what = path.endsWith(".term") ? "Terminal" : "Jupyter Notebook";
-      const target = selectedComputeServerId
-        ? `on Compute Server ${selectedComputeServerId}`
-        : "in the Project";
-      const source = currentId
-        ? `on Compute Server ${currentId}`
-        : "in the Project";
-      const consequence = path.endsWith(".term")
-        ? "If there is a running terminal session it will be terminated."
-        : "If the kernel is currently running it will be stopped.";
+      // (currently we only confirm this jupyter and terminals, which are
+      // the only supported file types with backend state).
       if (
-        !(await redux.getActions("page").popconfirm({
-          title: `Run ${what} ${target}?`,
-          cancelText: `Run ${source}`,
-          okText: `Run ${target}`,
-          description: `Do you want to run the ${what} '${path}' ${target} instead of ${source}, where it was last used?  ${consequence}`,
-        }))
+        !(await redux
+          .getActions("page")
+          .popconfirm(
+            modalParams({
+              current: currentId,
+              target: selectedComputeServerId,
+              path,
+            }),
+          ))
       ) {
         return false;
       }
