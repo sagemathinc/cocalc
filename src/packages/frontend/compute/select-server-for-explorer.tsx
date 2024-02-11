@@ -10,12 +10,14 @@ interface Props {
   project_id: string;
   style?: CSSProperties;
   size?;
+  noLabel?: boolean;
 }
 
 export default function SelectComputeServerForFileExplorer({
   project_id,
   style,
   size,
+  noLabel,
 }: Props) {
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
@@ -34,6 +36,7 @@ export default function SelectComputeServerForFileExplorer({
       project_id={project_id}
       style={style}
       value={compute_server_id}
+      noLabel={noLabel}
       setValue={(compute_server_id) => {
         const actions = redux.getProjectActions(project_id);
         actions.setComputeServerId(compute_server_id ?? 0);

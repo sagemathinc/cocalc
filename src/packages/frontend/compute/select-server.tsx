@@ -286,7 +286,7 @@ export default function SelectServer({
         value={value == 0 || value == null ? null : `${value}`}
         onDropdownVisibleChange={setOpen}
         style={{
-          width: getWidth(open, value, noLabel),
+          width: getWidth(open, value, noLabel, size),
           background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
           ...style,
         }}
@@ -297,12 +297,12 @@ export default function SelectServer({
   );
 }
 
-function getWidth(open, value, noLabel) {
+function getWidth(open, value, noLabel, size) {
   if (!open && (noLabel || value == "0" || !value)) {
     return undefined;
   }
   if (open) {
     return "300px";
   }
-  return "150px";
+  return size == "small" ? "100px" : "150px";
 }
