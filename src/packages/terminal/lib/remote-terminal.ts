@@ -23,6 +23,7 @@ import { getRemotePtyChannelName } from "./util";
 import { REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS } from "./terminal";
 import { throttle } from "lodash";
 import { join } from "path";
+import { delay } from "awaiting";
 
 // NOTE:  shorter than terminal.ts. This is like "2000 lines."
 const MAX_HISTORY_LENGTH = 100 * 2000;
@@ -60,20 +61,55 @@ export class RemoteTerminal extends EventEmitter {
     this.env = env;
     logger.debug("create ", { cwd });
     this.connect();
-    this.healthChecks();
+    this.waitUntilHealthy();
   }
 
-  private healthChecks = () => {
-    this.healthCheckInterval = setInterval(() => {
-      if (
-        Date.now() - this.lastData >=
-          REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000 &&
-        this.websocket.state == "online"
-      ) {
-        logger.debug("websocket online but no heartbeat so reconnecting");
-        this.reconnect();
+  // Why we do this initially is subtle.  Basically right when the user opens
+  // a terminal, the project maybe hasn't set up anything, so there is no
+  // channel to connect to.  The project then configures things, but it doesn't,
+  // initially see this remote server, which already tried to connect to a channel
+  // that I guess didn't exist.  So we check if we got any response at all, and if
+  // not we try again, with exponential backoff up to 10s.   Once we connect
+  // and get a response, we switch to about 10s heartbeat checking as usual.
+  // There is probably a different approach to solve this problem, depending on
+  // better understanding the async nature of channels, but this does work well.
+  // Not doing this led to a situation where it always initially took 10.5s
+  // to connect, which sucks!
+  private waitUntilHealthy = async () => {
+    if (testMode) return;
+    let d = 250;
+    while (this.state != "closed") {
+      if (this.isHealthy()) {
+        this.initRegularHealthChecks();
+        return;
       }
-    }, REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000);
+      d = Math.min(10000, d * 1.25);
+      await delay(d);
+    }
+  };
+
+  private isHealthy = () => {
+    if (this.state == "closed") {
+      return true;
+    }
+    if (
+      Date.now() - this.lastData >=
+        REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000 &&
+      this.websocket.state == "online"
+    ) {
+      logger.debug("websocket online but no heartbeat so reconnecting");
+      this.reconnect();
+      return false;
+    }
+    return true;
+  };
+
+  private initRegularHealthChecks = () => {
+    if (testMode) return;
+    this.healthCheckInterval = setInterval(
+      this.isHealthy,
+      REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000,
+    );
   };
 
   private reconnect = () => {
@@ -88,27 +124,31 @@ export class RemoteTerminal extends EventEmitter {
       return;
     }
     const name = getRemotePtyChannelName(this.path);
-    logger.debug("connect: channel=", name);
+    logger.debug(this.path, "connect: channel=", name);
     this.conn = this.websocket.channel(name);
-    if (this.computeServerId != null) {
-      logger.debug("connect: sending id", this.computeServerId);
-      this.conn.write({ cmd: "setComputeServerId", id: this.computeServerId });
-    }
     this.conn.on("data", async (data) => {
-      // logger.debug("channel: data", data);
+      logger.debug(this.path, "channel: data", data);
       try {
         await this.handleData(data);
       } catch (err) {
-        logger.debug("error handling data -- ", err);
+        logger.debug(this.path, "error handling data -- ", err);
       }
     });
     this.conn.on("end", async () => {
-      logger.debug("channel: end");
+      logger.debug(this.path, "channel: end");
     });
     this.conn.on("close", async () => {
-      logger.debug("channel: close");
+      logger.debug(this.path, "channel: close");
       this.reconnect();
     });
+    if (this.computeServerId != null) {
+      logger.debug(
+        this.path,
+        "connect: sending computeServerId =",
+        this.computeServerId,
+      );
+      this.conn.write({ cmd: "setComputeServerId", id: this.computeServerId });
+    }
   };
 
   close = () => {
@@ -252,4 +292,9 @@ export class RemoteTerminal extends EventEmitter {
       );
     }
   }, 15000);
+}
+
+let testMode = false;
+export function enableTestMode() {
+  testMode = true;
 }

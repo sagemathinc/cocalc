@@ -222,7 +222,7 @@ export function modalParams({ current, target, path }) {
         {what} {targetDesc}?
       </>
     ),
-    cancelText: <>Cancel</>,
+    cancelText: <>Stay {sourceDesc}?</>,
     okText: (
       <>
         {what} {targetDesc}?
