@@ -22,8 +22,8 @@ function of the id, so the client_id is stable and easy to identify.
 */
 
 const COMPUTER_SERVER_UUID_END = "0000-4000-8000-000000000000";
-export function isEncodedNumUUID(uuid: string): boolean {
-  return uuid.endsWith(COMPUTER_SERVER_UUID_END);
+export function isEncodedNumUUID(uuid: string | undefined): boolean {
+  return !!uuid?.endsWith(COMPUTER_SERVER_UUID_END);
 }
 
 export function encodeIntToUUID(num: number | string): string {

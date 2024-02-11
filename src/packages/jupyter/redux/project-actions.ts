@@ -1175,6 +1175,10 @@ export class JupyterActions extends JupyterActions0 {
 
   save_ipynb_file = async () => {
     const dbg = this.dbg("save_ipynb_file");
+    if (!this.isCellRunner()) {
+      dbg("not cell runner, so NOT saving ipynb file to disk");
+      return;
+    }
     dbg("saving to file");
 
     // Check first if file was deleted, in which case instead of saving to disk,
