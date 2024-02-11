@@ -127,7 +127,8 @@ export class RemoteTerminal extends EventEmitter {
     logger.debug(this.path, "connect: channel=", name);
     this.conn = this.websocket.channel(name);
     this.conn.on("data", async (data) => {
-      logger.debug(this.path, "channel: data", data);
+      // DO NOT LOG EXCEPT FOR VERY LOW LEVEL TEMPORARY DEBUGGING!
+      // logger.debug(this.path, "channel: data", data);
       try {
         await this.handleData(data);
       } catch (err) {

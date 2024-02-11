@@ -102,9 +102,14 @@ class RemoteJupyter {
     this.log("registerWithProject: syncdb ready");
     // Register to handle websocket api requests from frontend
     // clients to the project jupyter instance.
-    await this.syncdb.sendMessageToProject({
-      event: "register-to-handle-api",
-    });
+    try {
+      await this.syncdb.sendMessageToProject({
+        event: "register-to-handle-api",
+      });
+    } catch (err) {
+      this.log("WARNING: failed to register -- ", err);
+      return;
+    }
     this.log("registerWithProject: sent register-to-handle-api");
 
     // Periodically update cursor to indicate that we would like

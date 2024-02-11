@@ -67,6 +67,7 @@ import {
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
+  auxFileToOriginal,
   ISO_to_Date,
   assertDefined,
   close,
@@ -392,8 +393,9 @@ export class SyncDoc extends EventEmitter {
     }
 
     // id of who the user *wants* to be the file server.
+    const path = this.getFileServerPath();
     const fileServerId =
-      computeServerManagerDoc.get_one({ path: this.path })?.get("id") ?? 0;
+      computeServerManagerDoc.get_one({ path })?.get("id") ?? 0;
     if (this.client.is_project()) {
       log(
         "we are project, so we are fileserver if fileServerId=0 and it is ",
@@ -408,6 +410,16 @@ export class SyncDoc extends EventEmitter {
     log("we are compute server and ", { fileServerId, computeServerId });
     return fileServerId == computeServerId;
   });
+
+  private getFileServerPath = () => {
+    // id of who the user *wants* to be the file server.
+    this.path;
+    if (this.path?.endsWith(".sage-jupyter2")) {
+      // treating jupyter as a weird special case here.
+      return auxFileToOriginal(this.path);
+    }
+    return this.path;
+  };
 
   private getComputeServerManagerDoc = () => {
     if (this.path == COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path) {
@@ -455,8 +467,9 @@ export class SyncDoc extends EventEmitter {
     if (!relevant) {
       return;
     }
+    const path = this.getFileServerPath();
     const fileServerId =
-      SyncDoc.computeServerManagerDoc.get_one({ path: this.path })?.get("id") ?? 0;
+      SyncDoc.computeServerManagerDoc.get_one({ path })?.get("id") ?? 0;
     const ourId = this.client.is_project()
       ? 0
       : decodeUUIDtoNum(this.client.client_id());
