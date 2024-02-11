@@ -12,6 +12,7 @@ interface Props {
   disabled?: boolean;
   state?: State;
   style?: CSSProperties;
+  id?: number;
 }
 
 export default function ExcludeFromSync({
@@ -20,6 +21,7 @@ export default function ExcludeFromSync({
   disabled,
   state = "deprovisioned",
   style,
+  id,
 }: Props) {
   const [value, setValue] = useState<readonly string[] | undefined>(
     configuration.excludeFromSync,
@@ -54,9 +56,16 @@ export default function ExcludeFromSync({
         want to <b>be mounted over the network</b>. Files in these directories
         are stored in <code>/data</code> on the compute server's disk only,
         which is <b>very fast</b>. Also, if you include <code>~</code> or{" "}
-        <code>.</code>{" "}
-        in the list below, then the sync process is temporarily disabled, though
-        your HOME directory is still mounted over the network.
+        <code>.</code> in the list below, then the sync process is temporarily
+        disabled, though your HOME directory is still mounted over the network.
+        {id == null && (
+          <>
+            {" "}
+            The directory <code>compute-server-[id]</code> is included by
+            default, and <code>[id]</code> in any path is replaced by the
+            numerical id of the compute server.
+          </>
+        )}
       </Tooltip>
       <Select
         value={value}
@@ -68,7 +77,7 @@ export default function ExcludeFromSync({
         }
         tokenSeparators={["/", " ", "|"]}
         mode="tags"
-        style={{ width: "100%", marginTop: "5px" }}
+        style={{ width: "100%", marginTop: "10px" }}
         placeholder="Type a directory name then hit enter..."
         onChange={(value) => {
           setValue(value);

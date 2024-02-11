@@ -53,7 +53,7 @@ export async function setServerTitle(opts: { id: number; title: string }) {
 // server must be off
 export async function setServerConfiguration(opts: {
   id: number;
-  configuration: string;
+  configuration;
 }) {
   return await api("compute/set-server-configuration", opts);
 }

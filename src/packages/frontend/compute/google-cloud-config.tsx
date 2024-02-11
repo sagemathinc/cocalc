@@ -374,6 +374,7 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <BootDisk
+          id={id}
           disabled={loading}
           setConfig={setConfig}
           configuration={configuration}
