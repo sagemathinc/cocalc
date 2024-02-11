@@ -50,7 +50,7 @@ export const output_style_miniterm: React.CSSProperties = {
   marginTop: "36px",
   marginRight: "5px",
   borderRadius: "5px",
-  width: WIDTH,
+  width: "100%",
 } as const;
 
 const BAD_COMMANDS = {
@@ -213,20 +213,21 @@ class MiniTerminal0 extends React.Component<Props, State> {
   render_close_x() {
     if (!this.props.show_close_x) return;
     return (
-      <a
-        onClick={(e) => {
-          e.preventDefault();
+      <Button
+        type="text"
+        onClick={() => {
           this.setState({ stdout: "", error: "" });
         }}
-        href=""
         style={{
-          float: "right",
+          position: "absolute",
+          right: 0,
+          top: 0,
           color: "#666",
-          fontSize: "8pt",
+          fontSize: "10pt",
         }}
       >
         <Icon name="times" />
-      </a>
+      </Button>
     );
   }
 
