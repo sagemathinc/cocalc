@@ -276,7 +276,7 @@ export async function open_file(
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
-  if (opts.explicit && !alreadyOpened) {
+  if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
     let path = opts.path;
     if (path.endsWith(".term")) {
       path = termPath({ path, cmd: "", number: 0 });

@@ -1410,15 +1410,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // (currently we only confirm this jupyter and terminals, which are
       // the only supported file types with backend state).
       if (
-        !(await redux
-          .getActions("page")
-          .popconfirm(
-            modalParams({
-              current: currentId,
-              target: selectedComputeServerId,
-              path,
-            }),
-          ))
+        !(await redux.getActions("page").popconfirm(
+          modalParams({
+            current: currentId,
+            target: selectedComputeServerId,
+            path,
+          }),
+        ))
       ) {
         return false;
       }
@@ -3062,7 +3060,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  search() {
+  search = () => {
     let cmd, ins;
     const store = this.get_store();
     if (store == undefined) {
@@ -3142,6 +3140,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: cmd,
     });
 
+    const compute_server_id = this.getComputeServerId();
     webapp_client.exec({
       project_id: this.project_id,
       command: cmd + " | cut -c 1-256", // truncate horizontal line length (imagine a binary file that is one very long line)
@@ -3149,12 +3148,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       max_output,
       bash: true,
       err_on_exit: true,
+      compute_server_id,
+      filesystem: true,
       path: store.get("current_path"),
       cb: (err, output) => {
         this.process_search_results(err, output, max_results, max_output, cmd);
       },
     });
-  }
+  };
 
   set_file_listing_scroll(scroll_top) {
     this.setState({ file_listing_scroll_top: scroll_top });

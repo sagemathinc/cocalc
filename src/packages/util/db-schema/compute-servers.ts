@@ -299,6 +299,8 @@ export function getMinDiskSizeGb({
 // if a random default folder is excluded!
 const DEFAULT_EXCLUDE_FROM_SYNC = [] as const;
 
+const GCLOUD_SPOT_DEFAULT = false;
+
 export const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {
     image: "python",
@@ -306,7 +308,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
     region: "us-east5",
     zone: "us-east5-a",
     machineType: "n2d-highmem-2",
-    spot: false,
+    spot: GCLOUD_SPOT_DEFAULT,
     diskSizeGb: 10,
     diskType: "pd-balanced",
     externalIp: true,
@@ -314,7 +316,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   },
   gpu: {
     image: "pytorch",
-    spot: false,
+    spot: GCLOUD_SPOT_DEFAULT,
     region: "asia-northeast1",
     cloud: "google-cloud",
     zone: "asia-northeast1-a",
@@ -328,7 +330,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
   },
   gpu2: {
     image: "pytorch",
-    spot: false,
+    spot: GCLOUD_SPOT_DEFAULT,
     zone: "us-central1-b",
     cloud: "google-cloud",
     region: "us-central1",
