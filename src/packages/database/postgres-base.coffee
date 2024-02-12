@@ -64,6 +64,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             host            : data.pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
             database        : data.pgdatabase
             user            : data.pguser
+            ssl             : data.pgssl
             debug           : exports.DEBUG
             connect         : true
             password        : undefined
@@ -96,6 +97,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_concurrent_heavily_loaded = opts.concurrent_heavily_loaded
         @_user = opts.user
         @_database = opts.database
+        @_ssl = opts.ssl
         @_password = opts.password ? dbPassword()
         @_init_metrics()
 
@@ -265,6 +267,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         port             : @_port
                         password         : @_password
                         database         : @_database
+                        ssl              : @_ssl
                         statement_timeout: DEFAULT_STATEMENT_TIMEOUT_MS # we set a statement_timeout, to avoid queries locking up PG
                     if @_notification?
                         client.on('notification', @_notification)
@@ -847,12 +850,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
         args = ['--user', @_user, '--host', @_host.split(',')[0], '--port', @_port, '--list', '--tuples-only']
+        sslEnv = data.sslConfigToPsqlEnv(@_ssl)
         dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
             args    : args
-            env     :
-                PGPASSWORD : @_password
+            env     : Object.assign sslEnv,
+                  PGPASSWORD : @_password
             cb      : (err, output) =>
                 if err
                     cb(err)
