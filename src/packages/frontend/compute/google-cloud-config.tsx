@@ -256,6 +256,22 @@ export default function GoogleCloudConfiguration({
 
   const data = [
     {
+      key: "provisioning",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/instances/spot">
+          <Icon name="external-link" /> Provisioning
+        </A>
+      ),
+      value: (
+        <Provisioning
+          disabled={loading || disabled}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+    {
       key: "gpu",
       label: (
         <A href="https://cloud.google.com/compute/docs/gpus">
@@ -341,23 +357,6 @@ export default function GoogleCloudConfiguration({
           disabled={
             loading || disabled || (state ?? "deprovisioned") != "deprovisioned"
           }
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-
-    {
-      key: "provisioning",
-      label: (
-        <A href="https://cloud.google.com/compute/docs/instances/spot">
-          <Icon name="external-link" /> Provisioning
-        </A>
-      ),
-      value: (
-        <Provisioning
-          disabled={loading || disabled}
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -727,6 +726,11 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         Standard VM's stay running until you stop them, whereas spot VM's are up
         to 91% off, but{" "}
         <b>will automatically stop when there is a surge in demand.</b>
+        They might also not be available in a given region, so you may have to
+        try different regions.{" "}
+        {configuration.acceleratorType && (
+          <> Spot GPU's are in high demand.</>
+        )}
       </div>
     </div>
   );
