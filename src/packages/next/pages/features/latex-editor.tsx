@@ -19,7 +19,7 @@ import LaTeX from "components/landing/latex";
 import Pitch from "components/landing/pitch";
 import Publishing from "components/landing/publishing";
 import SignIn from "components/landing/sign-in";
-import { Paragraph, Title } from "components/misc";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -28,10 +28,12 @@ import LatexEditorImage from "public/features/cocalc-latex-editor-2019.png";
 import Sidechat from "public/features/cocalc-latex-side-chat-v2.png";
 import Pythontex from "public/features/cocalc-pythontex.png";
 import Sagetex from "public/features/cocalc-sagetex.png";
+import AIFormula from "public/features/latex-ai-formula.png";
 import CustomCommand from "public/features/latex-custom-command-02.png";
 import Knitr from "public/features/latex-editor-rnw-01.png";
 import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
 import Logo from "public/features/latex-logo.svg";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 
 export default function LatexEditor({ customize }) {
   return (
@@ -83,6 +85,13 @@ export default function LatexEditor({ customize }) {
                     <li>
                       periodically <a href="#a-backups">backups</a> all your
                       files,
+                    </li>
+                    <li>
+                      an{" "}
+                      <strong>
+                        <a href="#a-ai-formula">AI-powered formula assistant</a>
+                      </strong>{" "}
+                      typsets formulas for you
                     </li>
                     <li>
                       <strong>
@@ -159,51 +168,52 @@ export default function LatexEditor({ customize }) {
 
           <SignIn startup={<LaTeX />} />
 
+          <Collaboration image={LatexCollab} />
+
           <Info
-            anchor="a-environments"
-            icon="tex-file"
-            title={
-              <>
-                Managed <LaTeX /> environments
-              </>
-            }
-            image={CustomCommand}
-            alt="Menu showing the different LaTeX engines in CoCalc"
+            anchor="a-ai-formula"
+            icon="robot"
+            title="AI-powered formula assistant"
+            image={AIFormula}
+            alt="Generate LaTeX formulas based on a human readable descriptions via AI"
           >
             <Paragraph>
-              CoCalc makes sure that your desired <LaTeX /> engine is available
-              and ready to use. You can choose between{" "}
+              CoCalc's extensive integation with various AI language models
+              helps you typesetting formulas.
+            </Paragraph>
+            <Paragraph>
+              You enter a description of your desired formula and{" "}
               <strong>
-                <A href="http://www.tug.org/applications/pdftex/">PDF Latex</A>
+                a language model of your choice transforms it into a proper
+                LaTeX formula
               </strong>
-              ,{" "}
-              <strong>
-                <A href="http://xetex.sourceforge.net/">XeLaTeX</A>
-              </strong>{" "}
-              or{" "}
-              <strong>
-                <A href="http://www.luatex.org/">LuaTeX</A>
-              </strong>
-              .
+              . The descriptions can come in various ways:
+              <Descriptions
+                layout="vertical"
+                bordered
+                column={1}
+                size={"small"}
+              >
+                <Descriptions.Item label="Natural language description">
+                  <Text code>drake equation</Text>
+                </Descriptions.Item>
+
+                <Descriptions.Item label="simple algebraic notation">
+                  <Text code>(a+b)^2 = a^2 + 2 a b + b^2</Text>
+                </Descriptions.Item>
+
+                <Descriptions.Item label="Or a combination of both">
+                  <Text code>
+                    integral from 0 to infinity of (1+sin(x))/x^2 dx
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
             </Paragraph>
             <Paragraph>
-              Many packages and utilities like{" "}
-              <A href="https://sourceforge.net/projects/pgf/">PGF and TikZ</A>{" "}
-              are pre-installed.
-            </Paragraph>
-            <Paragraph>
-              Behind the scenes,{" "}
-              <A href="http://mg.readthedocs.io/latexmk.html">LatexMK</A> is
-              configured to manage the compilation process.
-            </Paragraph>
-            <Paragraph>
-              It is also possible to{" "}
-              <strong>fully customize the compilation command</strong>, so you
-              can bring your own shell script or even use a Makefile!
+              Once you got a result you like, click on "Insert" the formula is
+              in your document.
             </Paragraph>
           </Info>
-
-          <Collaboration image={LatexCollab} />
 
           <Info
             anchor="a-computational"
@@ -425,6 +435,50 @@ export default function LatexEditor({ customize }) {
               Under the hood, CoCalc uses{" "}
               <A href="https://github.com/jlaurens/synctex">SyncTeX</A>{" "}
               seamlessly.
+            </Paragraph>
+          </Info>
+
+          <Info
+            anchor="a-environments"
+            icon="tex-file"
+            title={
+              <>
+                Managed <LaTeX /> environments
+              </>
+            }
+            image={CustomCommand}
+            alt="Menu showing the different LaTeX engines in CoCalc"
+          >
+            <Paragraph>
+              CoCalc makes sure that your desired <LaTeX /> engine is available
+              and ready to use. You can choose between{" "}
+              <strong>
+                <A href="http://www.tug.org/applications/pdftex/">PDF Latex</A>
+              </strong>
+              ,{" "}
+              <strong>
+                <A href="http://xetex.sourceforge.net/">XeLaTeX</A>
+              </strong>{" "}
+              or{" "}
+              <strong>
+                <A href="http://www.luatex.org/">LuaTeX</A>
+              </strong>
+              .
+            </Paragraph>
+            <Paragraph>
+              Many packages and utilities like{" "}
+              <A href="https://sourceforge.net/projects/pgf/">PGF and TikZ</A>{" "}
+              are pre-installed.
+            </Paragraph>
+            <Paragraph>
+              Behind the scenes,{" "}
+              <A href="http://mg.readthedocs.io/latexmk.html">LatexMK</A> is
+              configured to manage the compilation process.
+            </Paragraph>
+            <Paragraph>
+              It is also possible to{" "}
+              <strong>fully customize the compilation command</strong>, so you
+              can bring your own shell script or even use a Makefile!
             </Paragraph>
           </Info>
 
