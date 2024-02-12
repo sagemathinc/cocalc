@@ -4,7 +4,7 @@
  */
 
 import React, { useContext } from 'react';
-import { Menu, MenuProps, Flex, Typography } from "antd";
+import { Menu, MenuProps, Typography, Flex } from "antd";
 import { useRouter } from "next/router";
 
 import { currency } from "@cocalc/util/misc";
@@ -19,20 +19,27 @@ const styles: { [k: string]: React.CSSProperties } = {
   menuBookend: {
     height: "100%",
     whiteSpace: "nowrap",
+    flexGrow: 1,
+    textAlign: "end"
   },
   menu: {
     width: "100%",
     height: "100%",
-    border: 0
+    border: 0,
   },
-  menuContainer: {
+  menuRoot: {
     marginBottom: "24px",
-    whiteSpace: "nowrap",
     alignItems: "center",
     border: 0,
     borderBottom: "1px solid rgba(5, 5, 5, 0.06)",
     boxShadow: "none",
-  }
+  },
+  menuContainer: {
+    alignItems: "center",
+    whiteSpace: "nowrap",
+    maxWidth: "100%",
+    flexGrow: 1,
+  },
 };
 
 export interface ConfigMenuProps {
@@ -43,8 +50,9 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
   const router = useRouter();
   const { balance } = useContext(StoreBalanceContext);
 
-  const handleMenuItemSelect: MenuProps['onSelect'] = ({ keyPath }) => {
-    router.push(`/store/${keyPath[0]}`, undefined, {
+  const handleMenuItemSelect: MenuProps["onSelect"] = ({ keyPath }) => {
+    const url = keyPath[0] === "vouchers" ? "/vouchers" : `/store/${keyPath[0]}`;
+    router.push(url, undefined, {
       scroll: false,
     });
   }
@@ -78,15 +86,17 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
   ];
 
   return (
-    <Flex gap="middle" justify="space-between" style={styles.menuContainer}>
-      <Text strong style={styles.menuBookend}>Store</Text>
-      <Menu
-        mode="horizontal"
-        selectedKeys={main ? [main] : undefined}
-        style={styles.menu}
-        onSelect={handleMenuItemSelect}
-        items={items}
-      />
+    <Flex gap="middle" justify="space-between" style={styles.menuRoot} wrap="wrap">
+      <Flex style={styles.menuContainer} align="center">
+        <Text strong>Store</Text>
+        <Menu
+          mode="horizontal"
+          selectedKeys={main ? [main] : undefined}
+          style={styles.menu}
+          onSelect={handleMenuItemSelect}
+          items={items}
+        />
+      </Flex>
       <Text strong style={styles.menuBookend}>
         {balance !== undefined ? `Balance: ${currency(balance)}` : null}
       </Text>

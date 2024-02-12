@@ -282,7 +282,6 @@ Info.Heading = (props: HeadingProps) => {
           textAlign: "center",
           margin: "0",
           padding: "20px",
-          borderTop: `1px solid ${COLORS.GRAY_L}`,
         },
         ...style,
       }}
@@ -298,11 +297,17 @@ Info.Heading = (props: HeadingProps) => {
       >
         {children}
       </Title>
-      <Paragraph
-        style={{ fontSize: "13pt", color: COLORS.GRAY_D, ...textStyle }}
-      >
-        {description}
-      </Paragraph>
+      {description && (
+        <Paragraph
+          style={{
+            fontSize: "13pt",
+            color: COLORS.GRAY_D,
+            ...textStyle,
+          }}
+        >
+          {description}
+        </Paragraph>
+      )}
     </div>
   );
 };
