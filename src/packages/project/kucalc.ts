@@ -12,8 +12,6 @@ import { readFile as readFileAsync } from "node:fs/promises";
 // Prometheus client setup -- https://github.com/siimon/prom-client
 import prom_client from "prom-client";
 
-import request from "request";
-
 import { execute_code } from "@cocalc/backend/misc_node";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { startswith } from "@cocalc/util/misc";
@@ -155,7 +153,7 @@ async function cgroup_stats(status) {
   async function getMemory() {
     const data = await readFileAsync(
       "/sys/fs/cgroup/memory/memory.stat",
-      "utf8"
+      "utf8",
     );
 
     const stats: {
@@ -176,7 +174,7 @@ async function cgroup_stats(status) {
   async function getCPU() {
     const data = await readFileAsync(
       "/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage",
-      "utf8"
+      "utf8",
     );
 
     try {
@@ -189,7 +187,7 @@ async function cgroup_stats(status) {
   async function getOOM() {
     const data = await readFileAsync(
       "/sys/fs/cgroup/memory/memory.oom_control",
-      "utf8"
+      "utf8",
     );
 
     try {
@@ -234,50 +232,6 @@ async function disk_usage(path): Promise<number> {
       },
     });
   });
-}
-
-// Every 60s, check if we can reach google's internal network -- in kucalc on GCE, this must be blocked.
-// If we receive some information, exit with status code 99.
-export function init_gce_firewall_test(logger, interval_ms = 60 * 1000) {
-  if (1 == 1) return; // temporarily disabled
-  if (!IN_KUCALC) {
-    logger?.warn("not running firewall test -- not in kucalc");
-    return;
-  }
-  const URI = "http://metadata.google.internal/computeMetadata/v1/";
-  const test_firewall = function () {
-    logger?.log("test_firewall");
-    return request(
-      {
-        timeout: 3000,
-        headers: {
-          "Metadata-Flavor": "Google",
-        },
-        uri: URI,
-        method: "GET",
-      },
-      function (err, res, body) {
-        if (err?.code === "ETIMEDOUT") {
-          return logger?.log("test_firewall: timeout -> no action");
-        } else {
-          logger?.warn("test_firewall", res);
-          logger?.warn("test_firewall", body);
-          if (res != null || body != null) {
-            logger?.warn(
-              "test_firewall: request went through and got a response -> exiting with code 99"
-            );
-            return process.exit(99);
-          } else {
-            return logger?.warn(
-              "test_firewall: request went through with no response -> no action"
-            );
-          }
-        }
-      }
-    );
-  };
-  test_firewall();
-  setInterval(test_firewall, interval_ms);
 }
 
 export function prometheus_metrics(project_id): string {

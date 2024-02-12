@@ -56,7 +56,6 @@
     "prettier": "^3.0.2",
     "primus": "^8.0.7",
     "prom-client": "^13.0.0",
-    "request": "^2.88.0",
     "serve-index": "^1.9.1",
     "temp": "^0.9.4",
     "tmp": "0.0.33",
