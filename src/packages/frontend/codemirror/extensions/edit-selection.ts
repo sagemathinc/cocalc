@@ -5,13 +5,13 @@
 
 import * as CodeMirror from "codemirror";
 
-import { defaults, required, startswith } from "@cocalc/util/misc";
-import { sagews_canonical_mode, open_new_tab } from "../../misc";
 import {
-  FONT_FACES,
   commands as EDIT_COMMANDS,
-} from "../../editors/editor-button-bar";
-import { markdown_to_html } from "../../markdown";
+  FONT_FACES,
+} from "@cocalc/frontend/editors/editor-button-bar";
+import { markdown_to_html } from "@cocalc/frontend/markdown";
+import { open_new_tab, sagews_canonical_mode } from "@cocalc/frontend/misc";
+import { defaults, required, startswith } from "@cocalc/util/misc";
 import { ai_gen_formula } from "./ai-formula";
 
 /*
