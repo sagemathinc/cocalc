@@ -8,10 +8,11 @@ Synctable that uses the project websocket rather than the database.
 */
 
 import { delay } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
-import { synctable_no_database, SyncTable } from "@cocalc/sync/table";
+
+import { SyncTable, synctable_no_database } from "@cocalc/sync/table";
 import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { assertDefined } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { AppClient } from "./types";
 
 // Always wait at least this long between connect attempts.  This
@@ -221,7 +222,11 @@ class SyncTableChannel extends EventEmitter {
     }
     if (mesg.error != null) {
       const { alert_message } = this.client;
-      const message = `Error opening file -- ${mesg.error} -- wait, restart your project or refresh your browser`;
+      const message = `Error opening file -- ${
+        mesg.error
+      } -- wait, restart your project or refresh your browser. Query=${JSON.stringify(
+        this.query,
+      )}`;
       if (alert_message != null) {
         alert_message({ type: "info", message, timeout: 10 });
       } else {

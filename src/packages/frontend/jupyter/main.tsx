@@ -20,10 +20,11 @@ import {
 
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
-
+import { Button, Tooltip } from "antd";
 // React components that implement parts of the Jupyter notebook.
 import { ErrorDisplay } from "@cocalc/frontend/components";
 import { Loading } from "@cocalc/frontend/components/loading";
+import { A } from "@cocalc/frontend/components/A";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
@@ -40,13 +41,11 @@ import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-import { TopButtonbar } from "./top-buttonbar";
-import { TopMenubar } from "./top-menubar";
 import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import * as chatgpt from "./chatgpt";
 import KernelWarning from "./kernel-warning";
-import ComputeServerDocStatus from "@cocalc/frontend/compute/doc-status";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -126,7 +125,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   // *FATAL* error; user must edit file to fix.
   const fatal: undefined | string = useRedux([name, "fatal"]);
-  const toolbar: undefined | boolean = useRedux([name, "toolbar"]);
   // const has_unsaved_changes: undefined | boolean = useRedux([
   //   name,
   //   "has_unsaved_changes",
@@ -227,68 +225,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       <div>
         <h2 style={{ marginLeft: "10px" }}>Fatal Error loading ipynb file</h2>
         <ErrorDisplay error={fatal} style={{ margin: "1ex" }} />
-      </div>
-    );
-  }
-
-  function render_kernel() {
-    return (
-      <Kernel
-        is_fullscreen={is_fullscreen}
-        actions={actions}
-        usage={usage}
-        expected_cell_runtime={expected_cell_runtime}
-        mode={mode}
-        computeServerId={computeServerId}
-      />
-    );
-  }
-
-  function render_menubar() {
-    if (actions == null || cells == null || sel_ids == null || cur_id == null) {
-      return;
-    } else {
-      return (
-        <TopMenubar
-          actions={actions}
-          name={name}
-          cells={cells}
-          cur_id={cur_id}
-        />
-      );
-    }
-  }
-
-  function render_buttonbar() {
-    if (
-      actions == null ||
-      cells == null ||
-      sel_ids == null ||
-      cur_id == null ||
-      name == null
-    ) {
-      return;
-    } else {
-      return (
-        <TopButtonbar
-          project_id={project_id}
-          name={name}
-          cells={cells}
-          cur_id={cur_id}
-          sel_ids={sel_ids}
-          cell_toolbar={cell_toolbar}
-          usage={usage}
-        />
-      );
-    }
-  }
-
-  function render_heading() {
-    return (
-      <div>
-        {render_kernel()}
-        {render_menubar()}
-        {toolbar ? render_buttonbar() : undefined}
       </div>
     );
   }
@@ -502,7 +438,44 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         <KernelWarning name={name} actions={actions} />
         {render_error()}
         {render_modals()}
-        {render_heading()}
+        <Kernel
+          is_fullscreen={is_fullscreen}
+          actions={actions}
+          usage={usage}
+          expected_cell_runtime={expected_cell_runtime}
+          computeServerId={computeServerId}
+        />
+        {cell_toolbar == "create_assignment" && (
+          <div
+            style={{
+              paddingLeft: "30px",
+              marginBottom: "5px",
+              borderBottom: "1px solid #ddd",
+            }}
+          >
+            Toolbar:{" "}
+            <A href="https://doc.cocalc.com/teaching-nbgrader.html">
+              Create Assignment Using NBGrader
+            </A>
+            <Tooltip title="Generate the student version of this document, which strips out the extra instructor tests and cells.">
+              <Button
+                style={{ margin: "5px 15px" }}
+                onClick={() => {
+                  props.actions.nbgrader_actions.confirm_assign();
+                }}
+              >
+                NBGrader: Export Student Version...
+              </Button>
+            </Tooltip>
+            <Button
+              onClick={() => {
+                props.actions.cell_toolbar();
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        )}
         {render_main()}
       </div>
     </JupyterContext.Provider>

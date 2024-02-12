@@ -3,10 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, Radio } from "antd";
+import { Alert, Button, Flex, Input, Space, Tooltip } from "antd";
+import immutable from "immutable";
 import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   redux,
@@ -18,9 +21,8 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, IconName, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
 import {
   EventRecordMap,
@@ -38,54 +40,22 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
-import { FIXED_PROJECT_TABS } from "../file-tab";
-import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
+import {
+  FLYOUT_EXTRA2_WIDTH_PX,
+  FLYOUT_EXTRA_WIDTH_PX,
+  FLYOUT_PADDING,
+} from "./consts";
 import { FileListItem, fileItemStyle } from "./file-list-item";
-import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
+import {
+  FlyoutLogDeduplicate,
+  FlyoutLogMode,
+  getFlyoutLogFilter,
+} from "./state";
 
 interface OpenedFile {
   filename: string;
   time: Date;
   account_id: string;
-}
-
-export function LogHeader(): JSX.Element {
-  const { project_id } = useProjectContext();
-
-  const [mode, setModeState] = useState<FlyoutLogMode>(
-    getFlyoutLogMode(project_id),
-  );
-
-  function setMode(mode: FlyoutLogMode) {
-    if (isFlyoutLogMode(mode)) {
-      setModeState(mode);
-    } else {
-      console.warn(`Invalid flyout log mode: ${mode}`);
-    }
-  }
-
-  // any mode change triggers an action to compute it
-  const actions = useActions({ project_id });
-  useEffect(() => actions?.setFlyoutLogMode(mode), [mode]);
-
-  function renderToggle() {
-    return (
-      <Radio.Group
-        value={mode}
-        onChange={(val) => setMode(val.target.value)}
-        size="small"
-      >
-        <Radio.Button value="files">Files</Radio.Button>
-        <Radio.Button value="history">Activity</Radio.Button>
-      </Radio.Group>
-    );
-  }
-
-  return (
-    <div style={{ flex: 1, fontWeight: "bold" }}>
-      <Icon name={FIXED_PROJECT_TABS.log.icon} /> Recent {renderToggle()}
-    </div>
-  );
 }
 
 export function getTime(a): number {
@@ -96,7 +66,12 @@ export function getTime(a): number {
   }
 }
 
-function deriveFiles(project_log, searchTerm: string, max: number) {
+function deriveFiles(
+  project_log,
+  searchTerm: string,
+  max: number,
+  deduplicate: boolean,
+) {
   const dedupe: string[] = [];
   const searchWords = search_split(searchTerm);
 
@@ -109,6 +84,9 @@ function deriveFiles(project_log, searchTerm: string, max: number) {
     )
     .sort((a, b) => getTime(b) - getTime(a))
     .filter((entry: EventRecordMap) => {
+      // pick all files if not deduplicated
+      if (!deduplicate) return true;
+      // otherwise, we check if the filename already appeared in the sorted list
       const fn = entry.getIn(["event", "filename"]);
       if (dedupe.includes(fn)) return false;
       dedupe.push(fn);
@@ -130,18 +108,104 @@ function deriveFiles(project_log, searchTerm: string, max: number) {
     .toJS() as any;
 }
 
-function deriveHistory(project_log, searchTerm: string, max: number) {
+// TOOD: refactor project/history/types.ts and add type tests to clean this up
+
+const PROJECT_EVENTS = [
+  "project_start_requested",
+  "project_stop_requested",
+  "project_restart_requested",
+  "project_stopped",
+  "project_started",
+  "start_project",
+  "upgrade",
+  "license",
+  "pay-as-you-go-upgrade",
+  "delete_project",
+  "undelete_project",
+  "hide_project",
+  "unhide_project",
+  "software_environment",
+] as const;
+
+function isProjectEvent(event: string, entry: EventRecordMap): boolean {
+  if (PROJECT_EVENTS.includes(event as any)) {
+    return true;
+  }
+  if (event === "set") {
+    const attrs = ["title", "description", "image", "name"];
+    for (const attr of attrs) {
+      if (typeof entry.getIn(["event", attr]) === "string") return true;
+    }
+  }
+  return false;
+}
+
+function isFileEvent(event: string, entry: EventRecordMap): boolean {
+  if (event === "open") {
+    if (typeof entry.getIn(["event", "filename"]) === "string") {
+      return true;
+    }
+  }
+  return false;
+}
+
+const USER_EVENTS = [
+  "invite_user",
+  "invite_nonuser",
+  "remove_collaborator",
+] as const;
+
+function isUserEvent(event: string): boolean {
+  if (USER_EVENTS.includes(event as any)) {
+    return true;
+  }
+  return false;
+}
+
+function deriveHistory(
+  project_log,
+  searchTerm: string,
+  max: number,
+  filter: {
+    showOpenFiles: boolean;
+    showFileActions: boolean;
+    showProject: boolean;
+    showShare: boolean;
+    showUser: boolean;
+    showOther: boolean;
+  },
+) {
+  const {
+    showOpenFiles,
+    showFileActions,
+    showProject,
+    showShare,
+    showUser,
+    showOther,
+  } = filter;
   const searchWords = search_split(searchTerm);
 
   return project_log
     .valueSeq()
-    .filter(
-      (entry: EventRecordMap) =>
-        !(
-          entry.getIn(["event", "filename"]) &&
-          entry.getIn(["event", "event"]) === "open"
-        ),
-    )
+    .filter((entry: EventRecordMap) => {
+      const event = entry.getIn(["event", "event"]);
+      if (isFileEvent(event, entry)) {
+        return showOpenFiles;
+      }
+      if (event === "file_action") {
+        return showFileActions;
+      }
+      if (isProjectEvent(event, entry)) {
+        return showProject;
+      }
+      if (event === "public_path") {
+        return showShare;
+      }
+      if (isUserEvent(event)) {
+        return showUser;
+      }
+      return showOther;
+    })
     .filter((entry: EventRecordMap) => {
       if (searchTerm === "") return true;
       const searchStr = to_search_string(entry.toJS());
@@ -167,6 +231,17 @@ export function LogFlyout({
 }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
+  const logFilter = useTypedRedux({ project_id }, "flyout_log_filter");
+  const showOpenFiles = logFilter.contains("open");
+  const showFileActions = logFilter.contains("files");
+  const showProject = logFilter.contains("project");
+  const showOther = logFilter.contains("other");
+  const showUser = logFilter.contains("user");
+  const showShare = logFilter.contains("share");
+  const deduplicate: FlyoutLogDeduplicate = useTypedRedux(
+    { project_id },
+    "flyout_log_deduplicate",
+  );
   const project_log = useTypedRedux({ project_id }, "project_log");
   const project_log_all = useTypedRedux({ project_id }, "project_log_all");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
@@ -183,6 +258,13 @@ export function LogFlyout({
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
   const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
 
+  // restore the logFilter from local storage (mode is similar, restored in the LogHeader)
+  useEffect(() => {
+    const next = getFlyoutLogFilter(project_id);
+    if (next == null) return; // nothing stored in local storage, hence just keeping the default
+    actions?.setState({ flyout_log_filter: immutable.List(next) });
+  }, []);
+
   const activePath = useMemo(() => {
     return tab_to_path(activeTab);
   }, [activeTab]);
@@ -193,18 +275,27 @@ export function LogFlyout({
 
     switch (mode) {
       case "files":
-        return deriveFiles(log, search, max);
+        return deriveFiles(log, search, max, deduplicate);
       case "history":
-        return deriveHistory(log, search, max);
+        return deriveHistory(log, search, max, {
+          showOpenFiles,
+          showFileActions,
+          showProject,
+          showShare,
+          showUser,
+          showOther,
+        });
       default:
         unreachable(mode);
     }
-  }, [project_log, project_log_all, search, max, mode]);
+  }, [project_log, project_log_all, search, max, mode, deduplicate, logFilter]);
 
-  const showExtra = useMemo(
-    () => flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
-    [flyoutWidth],
-  );
+  const [showExtra, showExtra2] = useMemo(() => {
+    return [
+      flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
+      flyoutWidth > FLYOUT_EXTRA2_WIDTH_PX,
+    ];
+  }, [flyoutWidth]);
 
   // trigger a search state change, only once and with a debounce
   const setSearchState = debounce(
@@ -236,6 +327,18 @@ export function LogFlyout({
     return <TimeAgo date={entry.time} />;
   }
 
+  function renderFileItemExtra2(entry: OpenedFile) {
+    if (!showExtra2) return null;
+    const { account_id } = entry;
+    if (!account_id) return;
+    return (
+      <>
+        <Avatar account_id={account_id} size={24} />{" "}
+        <User account_id={entry.account_id} user_map={user_map} />
+      </>
+    );
+  }
+
   function renderFileItem(index: number, entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
@@ -248,6 +351,7 @@ export function LogFlyout({
         mode="log"
         item={{ name: path, isopen: isOpened, isactive: isActive }}
         extra={renderFileItemExtra(entry)}
+        extra2={renderFileItemExtra2(entry)}
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
         selected={!scollIdxHide && index === scrollIdx}
@@ -258,10 +362,6 @@ export function LogFlyout({
             how: "click-on-log-file-flyout",
           });
           handleFileEntryClick(e, path, project_id);
-        }}
-        onClose={(e: React.MouseEvent, path: string) => {
-          e.stopPropagation();
-          actions?.close_tab(path);
         }}
         onMouseDown={(e: React.MouseEvent) => {
           if (e.button === 1) {
@@ -289,6 +389,7 @@ export function LogFlyout({
     return (
       <LogEntry
         mode="flyout"
+        flyoutExtra={showExtra}
         id={entry.id}
         time={entry.time}
         project_id={project_id}
@@ -391,28 +492,190 @@ export function LogFlyout({
             actions?.project_log_load_all();
           }}
         >
-          Show all log entries...
+          Load older log entries...
         </Button>
       </div>
     );
   }
 
+  function renderDedup() {
+    if (mode === "history") return null;
+    const icon: IconName = deduplicate ? "file" : "copy";
+    return (
+      <BSButton
+        active={!deduplicate}
+        bsSize="xsmall"
+        title={
+          <>
+            If enabled, the list contains duplicate entries. By default, only
+            the most recent open file activity is shown.
+          </>
+        }
+        onClick={(e) => {
+          e.stopPropagation();
+          actions?.setFlyoutLogDeduplicate(!deduplicate);
+        }}
+      >
+        <Icon name={icon} /> Show all
+      </BSButton>
+    );
+  }
+
+  function renderFilter() {
+    if (mode === "files") return null;
+    return (
+      <>
+        <Space.Compact>
+          <BSButton
+            active={false}
+            bsSize="xsmall"
+            onClick={() => actions?.resetFlyoutLogFilter()}
+            title={
+              "Toggle the filter buttons on the right to show/hide specific groups of events. Click this button to reset the filter."
+            }
+          >
+            Show:
+          </BSButton>
+          <BSButton
+            active={showOpenFiles}
+            bsSize="xsmall"
+            onClick={() => {
+              actions?.setFlyoutLogFilter("open", !showOpenFiles);
+            }}
+            title={"Show file open events"}
+          >
+            <Icon name="edit" />
+          </BSButton>
+          <BSButton
+            active={showFileActions}
+            bsSize="xsmall"
+            onClick={() => {
+              actions?.setFlyoutLogFilter("files", !showFileActions);
+            }}
+            title={"Show file action events"}
+          >
+            <Icon name="files" />
+          </BSButton>
+          <BSButton
+            active={showProject}
+            bsSize="xsmall"
+            onClick={() => {
+              actions?.setFlyoutLogFilter("project", !showProject);
+            }}
+            title={"Show project events"}
+          >
+            <Icon name="edit" />
+          </BSButton>
+          <BSButton
+            active={showShare}
+            bsSize="xsmall"
+            onClick={() => {
+              actions?.setFlyoutLogFilter("share", !showShare);
+            }}
+            title={"Show sharing files events"}
+          >
+            <Icon name="share-square" />
+          </BSButton>
+          <BSButton
+            active={showUser}
+            bsSize="xsmall"
+            onClick={() => {
+              actions?.setFlyoutLogFilter("user", !showUser);
+            }}
+            title={"Show user events"}
+          >
+            <Icon name="users" />
+          </BSButton>
+          <BSButton
+            active={showOther}
+            bsSize="xsmall"
+            onClick={() => {
+              actions?.setFlyoutLogFilter("other", !showOther);
+            }}
+            title={"Show other events"}
+          >
+            <Icon name="solution" />
+          </BSButton>
+        </Space.Compact>
+      </>
+    );
+  }
+
+  function activeFilterWarning() {
+    if (mode !== "history") return null;
+    if (logFilter.size > 0) return null;
+
+    return (
+      <Alert
+        type="info"
+        banner
+        showIcon={false}
+        style={{ padding: FLYOUT_PADDING, margin: 0 }}
+        description={
+          <>
+            <Tooltip title="Reset filter" placement="bottom">
+              <Button
+                size="small"
+                type="text"
+                style={{ float: "right", color: COLORS.GRAY_M }}
+                onClick={() => actions?.resetFlyoutLogFilter()}
+                icon={<Icon name="close-circle-filled" />}
+              >
+                Reset
+              </Button>
+            </Tooltip>
+            All activies are filtered!
+          </>
+        }
+      />
+    );
+  }
+
+  function renderControls() {
+    switch (mode) {
+      case "files":
+        return renderDedup();
+      case "history":
+        return renderFilter();
+      default:
+        unreachable(mode);
+    }
+  }
+
   return (
     <>
-      <Input
-        placeholder="Search..."
-        style={{ flex: "1", marginRight: "10px" }}
-        size="small"
-        value={searchTerm}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          handleOnChange(e.target.value);
+      <Space
+        direction="vertical"
+        style={{
+          flex: "0 0 auto",
+          borderBottom: FIX_BORDER,
         }}
-        onKeyDown={onKeyDownHandler}
-        onFocus={() => setScrollIdxHide(false)}
-        onBlur={() => setScrollIdxHide(true)}
-        allowClear
-        prefix={<Icon name="search" />}
-      />
+      >
+        <Flex
+          justify="space-between"
+          align="center"
+          gap="middle"
+          style={{ marginRight: FLYOUT_PADDING }}
+          wrap="wrap"
+        >
+          <Input
+            placeholder="Search..."
+            size="small"
+            value={searchTerm}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              handleOnChange(e.target.value);
+            }}
+            onKeyDown={onKeyDownHandler}
+            onFocus={() => setScrollIdxHide(false)}
+            onBlur={() => setScrollIdxHide(true)}
+            allowClear
+            prefix={<Icon name="search" />}
+            style={{ minWidth: "5em", flex: "1" }}
+          />
+          {renderControls()}
+        </Flex>
+        {activeFilterWarning()}
+      </Space>
       {wrap(list(), { marginTop: "10px" })}
     </>
   );

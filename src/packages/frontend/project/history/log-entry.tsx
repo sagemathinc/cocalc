@@ -5,7 +5,6 @@
 
 import { Tooltip } from "antd";
 import React from "react";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -54,6 +53,8 @@ import type {
 } from "./types";
 import { isUnknownEvent } from "./types";
 import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
+import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
+import { COLORS } from "@cocalc/util/theme";
 
 const TRUNC = 90;
 
@@ -89,6 +90,7 @@ interface Props {
   backgroundStyle?: CSS;
   project_id: string;
   mode?: "full" | "flyout";
+  flyoutExtra?: boolean;
 }
 
 function TookTime({
@@ -130,6 +132,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       project_id,
       backgroundStyle,
       mode = "full",
+      flyoutExtra = false,
     } = props;
 
     const software_envs: SoftwareEnvironments | null = useTypedRedux(
@@ -333,12 +336,19 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_file_action(e: FileActionEvent): JSX.Element {
+      const computeServer = e.compute_server_id ? (
+        <ComputeServerTag
+          id={e.compute_server_id}
+          style={{ float: "right", maxWidth: "125px" }}
+        />
+      ) : undefined;
       switch (e.action) {
         case "deleted":
           return (
             <span>
               deleted {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
+              {computeServer}
             </span>
           );
         case "downloaded":
@@ -346,6 +356,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               downloaded {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
+              {computeServer}
             </span>
           );
         case "moved":
@@ -353,6 +364,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               moved {multi_file_links(e, false)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
+              {computeServer}
             </span>
           );
         case "renamed":
@@ -360,6 +372,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               renamed {file_link(e.src, false, 0)} to{" "}
               {file_link(e.dest, true, 1)}
+              {computeServer}
             </span>
           );
         case "copied":
@@ -367,6 +380,28 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               copied {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
+              {computeServer}
+              {e.src_compute_server_id != null &&
+                e.src_compute_server_id != e.dest_compute_server_id && (
+                  <span style={{ float: "right" }}>
+                    <ComputeServerTag
+                      id={e.src_compute_server_id}
+                      style={{ maxWidth: "125px" }}
+                    />
+                    <Icon
+                      name="arrow-right"
+                      style={{
+                        top: "-5px",
+                        position: "relative",
+                        marginRight: "5px",
+                      }}
+                    />
+                    <ComputeServerTag
+                      id={e.dest_compute_server_id ?? 0}
+                      style={{ maxWidth: "125px" }}
+                    />
+                  </span>
+                )}
             </span>
           );
         case "shared":
@@ -374,12 +409,21 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               shared {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
+              {computeServer}
             </span>
           );
         case "uploaded":
-          return <span>uploaded {file_link(e.file, true, 0)}</span>;
+          return (
+            <span>
+              uploaded {file_link(e.file, true, 0)} {computeServer}
+            </span>
+          );
         case "created":
-          return <span>created {multi_file_links(e)}</span>;
+          return (
+            <span>
+              created {multi_file_links(e)} {computeServer}
+            </span>
+          );
       }
     }
 
@@ -549,11 +593,11 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_invite_nonuser(event: CollaboratorEvent): JSX.Element {
-      return <span>invited nonuser {event.invitee_email}</span>;
+      return <span>invited new user via {event.invitee_email}</span>;
     }
 
     function render_remove_collaborator(event: CollaboratorEvent): JSX.Element {
-      return <span>removed collaborator {event.removed_name}</span>;
+      return <span>removed user {event.removed_name}</span>;
     }
 
     function render_desc(): Rendered | Rendered[] {
@@ -676,11 +720,13 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "upgrade":
           return "arrow-circle-up";
         case "invite_user":
-          return "user";
         case "invite_nonuser":
+        case "remove_collaborator":
           return "user";
         case "software_environment":
           return SOFTWARE_ENVIRONMENT_ICON;
+        case "public_path":
+          return "share-square";
       }
 
       if (event.event.indexOf("project") !== -1) {
@@ -694,6 +740,17 @@ export const LogEntry: React.FC<Props> = React.memo(
       if (typeof event != "string" && event["duration_ms"] != null) {
         return (
           <> (time = {round1((event["duration_ms"] ?? 0) / 1000)} seconds) </>
+        );
+      }
+    }
+
+    function renderExtra() {
+      // flyout mode only: if colum is wider, add timestamp
+      if (mode === "flyout" && flyoutExtra) {
+        return (
+          <span style={{ color: COLORS.GRAY_M }}>
+            <Gap /> <TimeAgo date={props.time} />
+          </span>
         );
       }
     }
@@ -739,7 +796,8 @@ export const LogEntry: React.FC<Props> = React.memo(
               }
             >
               <div style={{ flex: "1", padding: "5px" }}>
-                {render_avatar()} <Icon name={icon()} /> {render_desc()}
+                {render_avatar()} <Icon name={icon()} /> {render_desc()}{" "}
+                {renderDuration()} {renderExtra()}
               </div>
             </Tooltip>
           </div>

@@ -46,11 +46,19 @@ import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
 import { FixedTab } from "./project/page/file-tab";
-import { FlyoutActiveMode, FlyoutLogMode } from "./project/page/flyouts/state";
+import {
+  FlyoutActiveMode,
+  FlyoutLogDeduplicate,
+  FlyoutLogMode,
+} from "./project/page/flyouts/state";
 import {
   FLYOUT_ACTIVE_DEFAULT_MODE,
+  FLYOUT_LOG_DEFAULT_DEDUP,
   FLYOUT_LOG_DEFAULT_MODE,
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
+import { get_local_storage } from "@cocalc/frontend/misc";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -69,7 +77,9 @@ export interface ProjectStoreState {
   open_files_order: immutable.List<string>;
   just_closed_files: immutable.List<string>;
   public_paths?: immutable.Map<string, immutable.Map<string, any>>;
-  directory_listings: immutable.Map<string, any>;
+
+  // directory_listings is a map from compute_server_id to {path:[listing for that path on the compute server]}
+  directory_listings: immutable.Map<number, any>;
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
@@ -84,6 +94,8 @@ export interface ProjectStoreState {
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
+  flyout_log_deduplicate: FlyoutLogDeduplicate;
+  flyout_log_filter: immutable.List<FlyoutLogFilter>;
   flyout_active_mode: FlyoutActiveMode;
 
   // Project Files
@@ -158,12 +170,17 @@ export interface ProjectStoreState {
 
   compute_servers?;
   create_compute_server?: boolean;
+
+  // Default compute server id to use when browsing and
+  // working with files.
+  compute_server_id: number;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
-  private listings: Listings | undefined;
+  private listings: { [compute_server_id: number]: Listings } = {};
+  public readonly computeServerIdLocalStorageKey: string;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -172,9 +189,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // much while making this optimization.
   public init_table: (table_name: string) => void;
 
-  // TODO what's a and b ?
-  constructor(a, b) {
-    super(a, b);
+  //  name = 'project-[project-id]' = name of the store
+  //  redux = global redux object
+  constructor(name: string, _redux) {
+    super(name, _redux);
+    this.project_id = name.slice("project-".length);
+    this.computeServerIdLocalStorageKey = `project-compute-server-id-${this.project_id}`;
     this._projects_store_change = this._projects_store_change.bind(this);
     this.setup_selectors();
   }
@@ -202,8 +222,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
     }
-    if (this.listings != null) {
-      this.listings.close();
+    for (const id in this.listings) {
+      this.listings[id].close();
+      delete this.listings[id];
     }
   };
 
@@ -238,6 +259,14 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
   getInitialState = (): ProjectStoreState => {
     const other_settings = redux.getStore("account")?.get("other_settings");
+    let compute_server_id;
+    try {
+      const key = this.computeServerIdLocalStorageKey;
+      const value = get_local_storage(key);
+      compute_server_id = parseInt((value as any) ?? "0");
+    } catch (_) {
+      compute_server_id = 0;
+    }
     return {
       // Shared
       current_path: "",
@@ -260,7 +289,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
       num_ghost_file_tabs: 0,
       flyout: null,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
+      flyout_log_deduplicate: FLYOUT_LOG_DEFAULT_DEDUP,
       flyout_active_mode: FLYOUT_ACTIVE_DEFAULT_MODE,
+      flyout_log_filter: immutable.List(FLYOUT_LOG_FILTER_DEFAULT),
 
       // Project Files
       activity: undefined,
@@ -291,6 +322,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
 
       other_settings: undefined,
+
+      compute_server_id,
     };
   };
 
@@ -327,12 +360,15 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "other_settings",
         "show_hidden",
         "show_masked",
+        "compute_server_id",
       ] as const,
       fn: () => {
         const search_escape_char = "/";
-        const listingStored = this.get("directory_listings").get(
+        const listingStored = this.getIn([
+          "directory_listings",
+          this.get("compute_server_id"),
           this.get("current_path"),
-        );
+        ]);
         if (typeof listingStored === "string") {
           if (
             listingStored.indexOf("ECONNREFUSED") !== -1 ||
@@ -573,54 +609,63 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
   }
 
-  private async close_deleted_files(paths: string[]): Promise<void> {
-    for (const path of paths) {
-      if (this.listings == null) return; // won't happen
-      const deleted = await this.listings.getDeleted(path);
-      if (deleted != null) {
-        for (let filename of deleted) {
-          if (path != "") {
-            filename = path + "/" + filename;
-          }
-          this.close_deleted_file(filename);
-        }
-      }
-    }
-  }
-
-  public get_listings(): Listings {
-    if (this.listings == null) {
-      this.listings = listings(this.project_id);
-      this.listings.on("deleted", this.close_deleted_files.bind(this));
-      this.listings.on("change", async (paths) => {
-        let directory_listings = this.get("directory_listings");
+  public get_listings(compute_server_id: number | null = null): Listings {
+    const computeServerId = compute_server_id ?? this.get("compute_server_id");
+    if (this.listings[computeServerId] == null) {
+      const listingsTable = listings(this.project_id, computeServerId);
+      this.listings[computeServerId] = listingsTable;
+      listingsTable.watch(this.get("current_path") ?? "", true);
+      listingsTable.on("deleted", async (paths) => {
         for (const path of paths) {
-          if (this.listings == null) return; // won't happen
+          if (this.listings[0] == null) return; // shouldn't happen
+          const deleted = await listingsTable.getDeleted(path);
+          if (deleted != null) {
+            for (let filename of deleted) {
+              if (path != "") {
+                filename = path + "/" + filename;
+              }
+              this.close_deleted_file(filename);
+            }
+          }
+        }
+      });
+      listingsTable.on("change", async (paths) => {
+        let directory_listings_for_server =
+          this.getIn(["directory_listings", computeServerId]) ??
+          immutable.Map();
+        for (const path of paths) {
           let files;
-          if (this.listings.getMissing(path)) {
+          if (listingsTable.getMissing(path)) {
             try {
               files = immutable.fromJS(
-                await this.listings.getListingDirectly(path),
+                await listingsTable.getListingDirectly(path),
               );
             } catch (err) {
               console.warn(
                 `WARNING: problem getting directory listing ${err}; falling back`,
               );
-              files = await this.listings.getForStore(path);
+              files = await listingsTable.getForStore(path);
             }
           } else {
-            files = await this.listings.getForStore(path);
+            files = await listingsTable.getForStore(path);
           }
-          directory_listings = directory_listings.set(path, files);
+          directory_listings_for_server = directory_listings_for_server.set(
+            path,
+            files,
+          );
         }
         const actions = redux.getProjectActions(this.project_id);
+        const directory_listings = this.get("directory_listings").set(
+          computeServerId,
+          directory_listings_for_server,
+        );
         actions.setState({ directory_listings });
       });
     }
-    if (this.listings == null) {
+    if (this.listings[computeServerId] == null) {
       throw Error("bug");
     }
-    return this.listings;
+    return this.listings[computeServerId];
   }
 }
 

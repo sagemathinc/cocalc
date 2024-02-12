@@ -15,6 +15,7 @@ import {
   Rendered,
   TypedMap,
   usePrevious,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
@@ -116,6 +117,8 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     })();
   }, [current_path, isRunning]);
 
+  const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
+
   function render_row(
     name,
     size,
@@ -153,6 +156,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         actions={actions}
         no_select={shift_is_down}
         link_target={link_target}
+        computeServerId={computeServerId}
       />
     );
   }

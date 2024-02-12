@@ -18,8 +18,9 @@ const log = logger.debug;
 
 export { getListingsTable };
 
-export function registerListingsTable(table, project_id): void {
+export function registerListingsTable(table, query): void {
   log("registerListingsTables");
+  log("registerListingsTables: query=", query);
   const onDeletePath = async (path) => {
     // Also we need to close *all* syncdocs that are going to be deleted,
     // and wait until closing is done before we return.
@@ -29,14 +30,26 @@ export function registerListingsTable(table, project_id): void {
   const createWatcher = (path: string, debounceMs: number) =>
     new Watcher(path, debounceMs);
 
-  registerListingsTable0({
-    table,
-    project_id,
-    compute_server_id: 0,
-    onDeletePath,
-    getListing,
-    createWatcher,
-    existsSync,
-    getLogger,
-  });
+  const { project_id, compute_server_id } = query.listings[0];
+
+  if (compute_server_id == 0) {
+    log(
+      "registerListingsTables -- actually registering since compute_server_id=0",
+    );
+    registerListingsTable0({
+      table,
+      project_id,
+      compute_server_id,
+      onDeletePath,
+      getListing,
+      createWatcher,
+      existsSync,
+      getLogger,
+    });
+  } else {
+    log(
+      "registerListingsTables -- NOT implemented since compute_server_id=",
+      compute_server_id,
+    );
+  }
 }

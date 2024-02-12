@@ -139,6 +139,7 @@ export const Description: React.FC<Props> = React.memo(
             right: "25px",
             bottom: 0,
             background: "white",
+            zIndex: 1,
           }}
         >
           {render_edit_button()}

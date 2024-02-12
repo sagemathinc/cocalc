@@ -36,7 +36,7 @@ interface Props {
   mode?: "flyout" | "full";
   selectedExt?: string;
   filename: string;
-  makeNewFilename?: () => void;
+  makeNewFilename?: (ext: string) => void;
 }
 
 // Use Rows and Cols to append more buttons to this class.
@@ -59,7 +59,6 @@ export function FileTypeSelector({
 
   const isFlyout = mode === "flyout";
   const btnSize = isFlyout ? "small" : "large";
-
 
   // col width of Antd's 24 grid system
   const base = 6;
@@ -96,10 +95,11 @@ export function FileTypeSelector({
             btnActive={btnActive}
             grid={[sm, md]}
             filename={filename}
-            makeNewFilename={makeNewFilename}
+            makeNewFilename={() => makeNewFilename?.("ipynb")}
           />
           {renderSageWS()}
           {renderLaTeX()}
+          {renderRMD()}
         </Row>
       </>
     );
@@ -178,7 +178,7 @@ export function FileTypeSelector({
   }
 
   function renderServers() {
-    if (disabledFeatures?.servers) return;
+    if (disabledFeatures?.servers || mode === "flyout") return;
 
     return (
       <>
@@ -463,8 +463,6 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
-
-          {renderRMD()}
         </Row>
       </>
     );

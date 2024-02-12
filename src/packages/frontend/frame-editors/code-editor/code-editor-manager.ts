@@ -7,7 +7,7 @@
 Manage a collection of code editors of various files in frame trees...
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import { close, filename_extension } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";

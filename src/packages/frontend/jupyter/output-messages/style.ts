@@ -38,7 +38,7 @@ export const OUTPUT_STYLE: CSSProperties = {
 
 export const OUTPUT_STYLE_SCROLLED: CSSProperties = {
   ...OUTPUT_STYLE,
-  maxHeight: "40vh",
+  maxHeight: "24em",
 };
 
 export const INPUT_STYLE: CSSProperties = {

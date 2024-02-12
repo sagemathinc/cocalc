@@ -4,7 +4,7 @@
  */
 
 import { useRedux, useActions } from "../../app-framework";
-import { Button, Panel } from "../../antd-bootstrap";
+import { Button, Card } from "antd";
 import { A, ErrorDisplay, Icon, Loading } from "../../components";
 import { ArchiveActions } from "./actions";
 
@@ -20,7 +20,7 @@ export const Archive: React.FC<{ project_id: string; path: string }> = ({
   const extract_output: string | undefined = useRedux(
     ["extract_output"],
     project_id,
-    path
+    path,
   );
 
   const actions: ArchiveActions = useActions(project_id, path);
@@ -66,25 +66,22 @@ export const Archive: React.FC<{ project_id: string; path: string }> = ({
   }
 
   if (contents == null && error == null) {
-    return <Loading />;
+    return <Loading theme="medium" />;
   }
 
   return (
-    <Panel
-      header={
-        <span>
+    <Card
+      title={
+        <div>
           <Icon name="file-zip" /> {path}
-        </span>
+        </div>
       }
       style={{ overflow: "auto" }}
     >
       <Button
         disabled={!!error || loading}
-        bsSize="large"
-        bsStyle="success"
-        onClick={() =>
-          actions.extractArchiveFiles(project_id, path, type, contents)
-        }
+        type="primary"
+        onClick={() => actions.extractArchiveFiles(type, contents)}
       >
         {render_button_icon()} Extract Files...
       </Button>
@@ -96,6 +93,6 @@ export const Archive: React.FC<{ project_id: string; path: string }> = ({
       )}
       {render_error()}
       <pre>{contents}</pre>
-    </Panel>
+    </Card>
   );
 };

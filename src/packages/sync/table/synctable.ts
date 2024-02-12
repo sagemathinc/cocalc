@@ -54,7 +54,7 @@ function is_fatal(err: string): boolean {
   return err.indexOf("FATAL") != -1;
 }
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import { Changefeed } from "./changefeed";
 import { parse_query, to_key } from "./util";

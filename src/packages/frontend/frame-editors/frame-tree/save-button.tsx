@@ -69,14 +69,13 @@ export const SaveButton: FC<Props> = memo(
     // whiteSpace:"nowrap" due to https://github.com/sagemathinc/cocalc/issues/4434
     return (
       <Button
-        title={"Save file to disk"}
         size={size}
         disabled={disabled}
         onClick={onClick}
         style={{
           ...(type == "default"
             ? undefined
-            : { background: "#5cb85c", color: "white" }),
+            : { background: "#5cb85c", color: "#333" }),
           opacity: disabled ? 0.65 : undefined,
           whiteSpace: "nowrap",
           ...style,

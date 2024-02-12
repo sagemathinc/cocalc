@@ -8,7 +8,7 @@ to this target or the target project isn't running.
 
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import { NamedServerName } from "@cocalc/util/types/servers";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
 import getLogger from "../logger";
 import { database } from "../servers/database";

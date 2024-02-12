@@ -104,7 +104,7 @@ function useReduxProjectStore(path: string[], project_id: string) {
   const [value, set_value] = React.useState(() =>
     redux
       .getProjectStore(project_id)
-      .getIn(path as [string, string, string, string, string])
+      .getIn(path as [string, string, string, string, string]),
   );
 
   useDeepCompareEffect(() => {
@@ -140,13 +140,14 @@ function useReduxProjectStore(path: string[], project_id: string) {
 function useReduxEditorStore(
   path: string[],
   project_id: string,
-  filename: string
+  filename: string,
 ) {
-  const [value, set_value] = React.useState(() =>
-    // the editor itself might not be defined hence the ?. below:
-    redux
-      .getEditorStore(project_id, filename)
-      ?.getIn(path as [string, string, string, string, string])
+  const [value, set_value] = React.useState(
+    () =>
+      // the editor itself might not be defined hence the ?. below:
+      redux
+        .getEditorStore(project_id, filename)
+        ?.getIn(path as [string, string, string, string, string]),
   );
 
   useDeepCompareEffect(() => {
@@ -213,17 +214,17 @@ export interface StoreStates {
 
 export function useTypedRedux<
   T extends keyof StoreStates,
-  S extends keyof StoreStates[T]
+  S extends keyof StoreStates[T],
 >(store: T, field: S): StoreStates[T][S];
 
 export function useTypedRedux<S extends keyof ProjectStoreState>(
   project_id: { project_id: string },
-  field: S
+  field: S,
 ): ProjectStoreState[S];
 
 export function useTypedRedux(
   a: keyof StoreStates | { project_id: string },
-  field: string
+  field: string,
 ) {
   if (typeof a == "string") {
     return useRedux(a, field);
@@ -239,7 +240,7 @@ export function useEditorRedux<State>(editor: {
     return useReduxEditorStore(
       [field as string],
       editor.project_id,
-      editor.path
+      editor.path,
     ) as any;
   }
   return f;
@@ -273,13 +274,13 @@ export function useEditorRedux(
 export function useRedux(
   path: string | string[],
   project_id?: string,
-  filename?: string
+  filename?: string,
 ) {
   if (typeof path == "string") {
     // good typed version!! -- path specifies store
     if (typeof project_id != "string" || typeof filename != "undefined") {
       throw Error(
-        "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified"
+        "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified",
       );
     }
     if (is_valid_uuid_string(path)) {
@@ -329,7 +330,7 @@ export interface ActionsTypes {
 
 export function useActions(name: "account"): types.AccountActions;
 export function useActions(
-  name: "admin-site-licenses"
+  name: "admin-site-licenses",
 ): types.SiteLicensesActions;
 export function useActions(name: "admin-users"): types.AdminUsersActions;
 export function useActions(name: "billing"): types.BillingActions;
@@ -339,6 +340,7 @@ export function useActions(name: "page"): types.PageActions;
 export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "users"): types.UsersActions;
 export function useActions(name: "news"): types.NewsActions;
+export function useActions(name: "customize"): types.CustomizeActions;
 
 // If it is none of the explicitly named ones... it's a project or just some general actions.
 // That said *always* use {project_id} as below to get the actions for a project, so you

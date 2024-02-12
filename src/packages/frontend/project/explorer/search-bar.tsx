@@ -12,6 +12,7 @@ import { output_style_searchbox } from "./mini-terminal";
 import { webapp_client } from "../../webapp-client";
 import { Alert } from "react-bootstrap";
 import { path_to_file } from "@cocalc/util/misc";
+import { redux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   project_id: string; // Added by miniterm functionality
@@ -62,6 +63,9 @@ export const SearchBar = React.memo((props: Props) => {
     if (cmd == null) return;
     const { input, id } = cmd;
     const input0 = input + '\necho $HOME "`pwd`"';
+    const compute_server_id = redux
+      .getProjectStore(project_id)
+      ?.get("compute_server_id");
     webapp_client.exec({
       project_id,
       command: input0,
@@ -70,6 +74,8 @@ export const SearchBar = React.memo((props: Props) => {
       bash: true,
       path: current_path,
       err_on_exit: false,
+      compute_server_id,
+      filesystem: true,
       cb(err, output) {
         if (id !== _id.current) {
           // computation was canceled -- ignore result.
@@ -83,6 +89,8 @@ export const SearchBar = React.memo((props: Props) => {
             // Find the current path
             // after the command is executed, and strip
             // the output of "pwd" from the output:
+            // NOTE: for compute servers which can in theory use a totally different HOME, this won't work.
+            // However, by default on cocalc.com they use the same HOME, so it should work.
             let s = output.stdout.trim();
             let i = s.lastIndexOf("\n");
             if (i === -1) {
@@ -207,7 +215,7 @@ export const SearchBar = React.memo((props: Props) => {
     if (current_path == null) {
       return;
     }
-    if (value[0] === TERM_MODE_CHAR) {
+    if (value.startsWith(TERM_MODE_CHAR)) {
       const command = value.slice(1, value.length);
       execute_command(command);
     } else if (selected_file) {

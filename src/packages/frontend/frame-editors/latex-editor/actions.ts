@@ -22,7 +22,7 @@ import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
 import { debounce, union } from "lodash";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { fromJS, List, Map } from "immutable";
 import { once } from "@cocalc/util/async-utils";
 import { project_api } from "../generic/client";
@@ -245,7 +245,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   public async rescan_latex_directive(): Promise<void> {
-    await this.init_build_directive(true);
+    // make this false since this is only called when user explicitly requests it, so it
+    // should scan for all options.
+    await this.init_build_directive(false);
   }
 
   /**
@@ -716,7 +718,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (this.store.get("knitr_error")) return;
     }
     // update word count asynchronously
-    const run_word_count = this.word_count(time, force);
+    let run_word_count: any = null;
+    if (this._has_frame_of_type("word_count")) {
+      run_word_count = this.word_count(time, force);
+    }
     // update_pdf=false, because it is defered until the end
     await this.run_latex(time, force, false);
     // ... and then patch the synctex file to align the source line numberings
@@ -752,8 +757,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.update_pdf(time, force);
     }
 
-    // and finally, wait for word count to finish -- to make clear the whole operation is done
-    await run_word_count;
+    if (run_word_count != null) {
+      // and finally, wait for word count to finish -- to make clear the whole operation is done
+      await run_word_count;
+    }
   }
 
   async run_knitr(time: number, force: boolean): Promise<void> {
@@ -1353,9 +1360,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async word_count(time: number, force: boolean): Promise<void> {
     // only run word count if at least one such panel exists
-    if (!this._has_frame_of_type("word_count")) {
-      return;
-    }
+    this.show_recently_focused_frame_of_type("word_count");
 
     try {
       const timestamp = this.make_timestamp(time, force);
@@ -1413,14 +1418,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  download(id: string): void {
-    const node = this._get_frame_node(id);
-    if (!node) {
-      throw Error(`BUG - no node with id "${id}"`);
-    }
-    if (node.get("type").indexOf("pdf") === -1) {
-      throw Error("download button only implemented for pdf");
-    }
+  download_pdf(): void {
     const path: string = pdf_path(this.path);
     this.redux
       .getProjectActions(this.project_id)

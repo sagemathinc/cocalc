@@ -58,7 +58,7 @@ const _ = set_debug;
 
 import { init_syncdoc } from "./sync-doc";
 import { key, register_synctable } from "./open-synctables";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { close, deep_copy, len } from "@cocalc/util/misc";
@@ -552,10 +552,7 @@ async function synctable_channel0(
     });
     await synctable_channels[name].init();
     if (query?.listings != null) {
-      registerListingsTable(
-        synctable_channels[name].get_synctable(),
-        client.client_id(),
-      );
+      registerListingsTable(synctable_channels[name].get_synctable(), query);
     } else if (query?.project_info != null) {
       register_project_info_table(
         synctable_channels[name].get_synctable(),

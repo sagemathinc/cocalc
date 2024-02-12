@@ -8,7 +8,7 @@ import {
   ButtonGroup,
   ButtonToolbar,
 } from "@cocalc/frontend/antd-bootstrap";
-import { HiddenSM, Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
+import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Available } from "@cocalc/frontend/project_configuration";
@@ -101,9 +101,9 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     return (
       <Button bsSize="small" onClick={handle_backup}>
         <Icon name="life-saver" />{" "}
-        <span style={{ fontSize: 12 }} className="hidden-sm">
-          Backups
-        </span>
+        <VisibleLG>
+          <span style={{ fontSize: 12 }}>Backups</span>
+        </VisibleLG>
       </Button>
     );
   }
@@ -119,7 +119,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     if (kucalc !== "yes") return;
     return (
       <Button bsSize={"small"} onClick={handle_library_click}>
-        <Icon name="book" /> <HiddenSM>Library</HiddenSM>
+        <Icon name="book" /> <VisibleLG>Library</VisibleLG>
       </Button>
     );
   }
@@ -169,7 +169,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     }
     return (
       <Button bsSize="small" className="upload-button">
-        <Icon name="upload" /> <HiddenSM>Upload</HiddenSM>
+        <Icon name="upload" /> <VisibleLG>Upload</VisibleLG>
       </Button>
     );
   }

@@ -58,6 +58,8 @@ import { EventEmitter } from "events";
 export interface ProjectClient extends EventEmitter {
   server_time: () => Date;
   is_project: () => boolean;
+  is_browser: () => boolean;
+  is_compute_server: () => boolean;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
   dbg: (desc: string) => Function;
@@ -93,7 +95,7 @@ export interface ProjectClient extends EventEmitter {
     id?: string,
   ) => Promise<SyncTable>;
 
-  // account_id or project_id
+  // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
 
   is_deleted: (

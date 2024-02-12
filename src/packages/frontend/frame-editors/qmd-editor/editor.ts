@@ -12,7 +12,7 @@ import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { IFrameHTML } from "../html-editor/iframe-html";
-import { pdfjs_buttons } from "../latex-editor/editor";
+import { pdfjsCommands } from "../latex-editor/editor";
 import { PDFJS } from "../latex-editor/pdfjs";
 import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { derive_rmd_output_filename } from "../rmd-editor/utils";
@@ -27,7 +27,8 @@ const EDITOR_SPEC = {
     name: "Source Code",
     icon: "code",
     component: CodemirrorEditor,
-    buttons: set([
+    commands: set([
+      "format_action",
       "chatgpt",
       "print",
       "decrease_font_size",
@@ -56,7 +57,7 @@ const EDITOR_SPEC = {
     path(path) {
       return derive_rmd_output_filename(path, "html");
     },
-    buttons: set([
+    commands: set([
       "print",
       "save",
       "time_travel",
@@ -74,8 +75,14 @@ const EDITOR_SPEC = {
     icon: "file-pdf",
     component: PDFJS,
     mode: "rmd",
-    buttons: pdfjs_buttons,
-    style: { background: "#525659" },
+    commands: pdfjsCommands,
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "zoom_page_width",
+      "zoom_page_height",
+      "set_zoom",
+    ]),
     renderer: "canvas",
     path(path) {
       return derive_rmd_output_filename(path, "pdf");
@@ -88,7 +95,7 @@ const EDITOR_SPEC = {
     icon: "eye",
     component: RenderedMarkdown,
     reload_images: true,
-    buttons: set([
+    commands: set([
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -103,8 +110,7 @@ const EDITOR_SPEC = {
     name: "Build Log",
     icon: "gears",
     component: BuildLog,
-    style: { background: "#525659" },
-    buttons: set(["build", "decrease_font_size", "increase_font_size"]),
+    commands: set(["build", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   terminal,

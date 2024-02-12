@@ -28,13 +28,12 @@ import type {
   Cloud,
   ComputeServer,
   Configuration,
-  ImageName,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getTargetState } from "@cocalc/util/db-schema/compute-servers";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";
@@ -628,39 +627,49 @@ async function getStartupParams(id: number): Promise<{
   project_id: string;
   gpu?: boolean;
   arch: Architecture;
-  image: ImageName;
+  image: string;
   exclude_from_sync: string;
   auth_token: string;
 }> {
   const server = await getServerNoCheck(id);
+  const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
   const exclude_from_sync = excludeFromSync.join("|");
+  let x;
   switch (server.cloud) {
     case "google-cloud":
-      return {
+      x = {
         ...(await googleCloud.getStartupParams(server)),
         exclude_from_sync,
         auth_token,
       };
+      break;
     case "onprem":
-      const { configuration } = server;
       if (configuration.cloud != "onprem") {
         throw Error("inconsistent configuration -- must be onprem");
       }
-      return {
+      x = {
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
         image: configuration.image ?? "python",
+
         exclude_from_sync,
         auth_token,
       };
+      break;
     default:
       throw Error(
         `getStartupParams for '${server.cloud}' not currently implemented`,
       );
   }
+  return {
+    tag: configuration.tag,
+    tag_cocalc: configuration.tag_cocalc,
+    tag_filesystem: configuration.tag_filesystem,
+    ...x,
+  };
 }
 
 export async function getHostname(id: number): Promise<string> {
@@ -711,4 +720,22 @@ export async function getDeprovisionScript({
     compute_server_id: id,
     api_key,
   });
+}
+
+// Set the tested status of the image that the given server is using.
+// This is currently only meaningful on Google cloud.
+// This is something that only admins should use.
+export async function setImageTested(opts: {
+  id: number;
+  account_id: string;
+  tested: boolean;
+}) {
+  const server = await getServer(opts);
+  switch (server.cloud) {
+    case "google-cloud":
+      await googleCloud.setImageTested(server, opts.tested);
+      return;
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
 }

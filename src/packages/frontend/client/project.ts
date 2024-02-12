@@ -15,7 +15,7 @@ import {
   defaults,
   coerce_codomain_to_numbers,
 } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import * as message from "@cocalc/util/message";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { connection_to_project } from "../project/websocket/connect";
@@ -39,6 +39,8 @@ import computeServers from "@cocalc/frontend/compute/manager";
 
 export interface ExecOpts {
   project_id: string;
+  compute_server_id?: number; // if true, run on the compute server (if available)
+  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
   path?: string;
   command: string;
   args?: string[];
@@ -192,7 +194,7 @@ export class ProjectClient {
   }
 
   /*
-    Execute code in a given project.
+    Execute code in a given project or associated compute server.
 
     Aggregate option -- use like this:
 
@@ -209,6 +211,8 @@ export class ProjectClient {
   public async exec(opts: ExecOpts): Promise<ExecOutput> {
     opts = defaults(opts, {
       project_id: required,
+      compute_server_id: undefined,
+      filesystem: undefined,
       path: "",
       command: required,
       args: [],
@@ -272,6 +276,7 @@ export class ProjectClient {
   public async directory_listing(opts: {
     project_id: string;
     path: string;
+    compute_server_id: number;
     timeout?: number;
     hidden?: boolean;
   }): Promise<{ files: DirectoryListingEntry[] }> {
@@ -281,6 +286,7 @@ export class ProjectClient {
       opts.path,
       opts.hidden,
       opts.timeout * 1000,
+      opts.compute_server_id,
     );
     return { files: listing };
   }
@@ -544,7 +550,14 @@ export class ProjectClient {
     return (await this.call(message.api_keys(opts2))).response;
   }
 
-  public computeServers(project_id) {
+  computeServers = (project_id) => {
     return computeServers(project_id);
-  }
+  };
+
+  getServerIdForPath = async ({
+    project_id,
+    path,
+  }): Promise<number | undefined> => {
+    return await computeServers(project_id)?.getServerIdForPath(path);
+  };
 }

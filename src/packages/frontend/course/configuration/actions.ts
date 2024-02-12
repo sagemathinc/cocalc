@@ -15,7 +15,7 @@ import {
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { store as projects_store } from "@cocalc/frontend/projects/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions, primary_key } from "../actions";
 import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
@@ -30,7 +30,7 @@ export class ConfigurationActions {
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
     this.push_missing_handouts_and_assignments = reuseInFlight(
-      this.push_missing_handouts_and_assignments,
+      this.push_missing_handouts_and_assignments.bind(this),
     );
   }
 

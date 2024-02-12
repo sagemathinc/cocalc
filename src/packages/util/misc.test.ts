@@ -4,6 +4,7 @@
  */
 
 import * as misc from "./misc";
+import seedrandom from "seedrandom";
 
 describe("academic domain", () => {
   const ia = misc.isAcademic;
@@ -190,5 +191,43 @@ describe("test code for displaying numbers as currency with 2 or sometimes 3 dec
 
   it("always includes at least 2 decimals", () => {
     expect(currency(10)).toBe("$10.00");
+  });
+});
+
+describe("test round2up and round2down for various inputs", () => {
+  const { round2up, round2down } = misc;
+  it("round2up tests -- uses the decimal representation (not internal binary))", () => {
+    // see https://github.com/sagemathinc/cocalc/issues/7220
+    expect(round2up(20.01)).toBe(20.01);
+    expect(round2up(20.011)).toBe(20.02);
+    expect(round2up(20.01999)).toBe(20.02);
+    expect(round2up(4.73)).toBe(4.73);
+    expect(round2up(4.731)).toBe(4.74);
+    expect(round2up(4.736)).toBe(4.74);
+  });
+
+  it("round2down tests -- uses the decimal representation (not internal binary))", () => {
+    // see https://github.com/sagemathinc/cocalc/issues/7220
+    expect(round2down(20.01)).toBe(20.01);
+    expect(round2down(20.011)).toBe(20.01);
+    expect(round2down(20.019)).toBe(20.01);
+    expect(round2down(4.73)).toBe(4.73);
+    expect(round2down(4.731)).toBe(4.73);
+    expect(round2down(4.736)).toBe(4.73);
+  });
+
+  it("a random test of 1000 cases", () => {
+    let seed = "my-seed";
+    let rng = seedrandom(seed);
+
+    for (let i = 0; i < 1000; i++) {
+      let randomNum = rng(); // Returns a number between 0 and 1
+      // Perform your tests with randomNum
+      // For example:
+      expect(round2up(randomNum)).toBeGreaterThanOrEqual(randomNum);
+      expect(round2up(randomNum)).toBeLessThan(randomNum + 0.01);
+      expect(round2down(randomNum)).toBeLessThanOrEqual(randomNum);
+      expect(round2down(randomNum)).toBeGreaterThan(randomNum - 0.01);
+    }
   });
 });

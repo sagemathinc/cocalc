@@ -20,7 +20,7 @@ and things just grow badly (user has tons of docs open).
 const MAX_PAGES = 1000;
 
 import LRU from "lru-cache";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { versions } from "@cocalc/cdn";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import "pdfjs-dist/webpack";

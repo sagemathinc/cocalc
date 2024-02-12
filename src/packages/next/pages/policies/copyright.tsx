@@ -111,21 +111,8 @@ export default function Copyright({ customize }) {
               </ol>
               <p></p>Deliver this Notice, with all items completed, to SageMath,
               Inc.'s Designated Copyright Agent via email to{" "}
-              <A href="mailto:copyright@sagemath.com">copyright@sagemath.com</A>{" "}
-              or physical letter to:
-              <br />
-              <br />
-              <p>
-                William Stein (Copyright Agent)
-                <br /> c/o SageMath, Inc.
-                <br /> 17725 SE 123RD PL
-                <br /> Renton, WA 98059-6621
-                <br /> USA
-                <br />{" "}
-                <A href="mailto:copyright@sagemath.com">
-                  copyright@sagemath.com
-                </A>
-              </p>
+              <A href="mailto:copyright@sagemath.com">copyright@sagemath.com</A>
+              .
             </div>
           </div>
           <Footer />

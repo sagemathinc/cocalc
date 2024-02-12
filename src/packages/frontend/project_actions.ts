@@ -11,9 +11,9 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
-
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
-import { init as initChat } from "@cocalc/frontend/chat/register";
+import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
@@ -30,6 +30,7 @@ import { alert_message } from "./alerts";
 import { Actions, project_redux_name, redux } from "./app-framework";
 import { IconName } from "./components";
 import { local_storage } from "./editor-local-storage";
+import { set_local_storage } from "@cocalc/frontend/misc";
 import { get_editor } from "./editors/react-wrapper";
 import { query as client_query, exec } from "./frame-editors/generic/client";
 import { set_url } from "./history";
@@ -50,6 +51,7 @@ import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
 import {
   FlyoutActiveMode,
+  FlyoutLogDeduplicate,
   FlyoutLogMode,
   storeFlyoutState,
 } from "./project/page/flyouts/state";
@@ -74,6 +76,11 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
+import {
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
+} from "./project/page/flyouts/utils";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 
 const { defaults, required } = misc;
 
@@ -628,6 +635,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     storeFlyoutState(this.project_id, "log", { mode });
   }
 
+  public setFlyoutLogDeduplicate(deduplicate: FlyoutLogDeduplicate): void {
+    this.setState({ flyout_log_deduplicate: deduplicate });
+    storeFlyoutState(this.project_id, "log", { deduplicate });
+  }
+
+  public setFlyoutLogFilter(filter: FlyoutLogFilter, state: boolean): void {
+    const store = this.get_store();
+    if (store == undefined) return;
+    const current: string[] =
+      store.get("flyout_log_filter")?.toJS() ?? FLYOUT_LOG_FILTER_DEFAULT;
+
+    // depending on state, make sure the filter is either in the list or not
+    const next = (
+      state ? [...current, filter] : current.filter((f) => f !== filter)
+    ) as FlyoutLogFilter[];
+
+    this.setState({ flyout_log_filter: List(next) });
+    storeFlyoutState(this.project_id, "log", { logFilter: next });
+  }
+
+  public resetFlyoutLogFilter(): void {
+    this.setState({ flyout_log_filter: List(FLYOUT_LOG_FILTER_DEFAULT) });
+    storeFlyoutState(this.project_id, "log", {
+      logFilter: [...FLYOUT_LOG_FILTER_DEFAULT],
+    });
+  }
+
   public setFlyoutActiveMode(mode: FlyoutActiveMode): void {
     this.setState({ flyout_active_mode: mode });
     storeFlyoutState(this.project_id, "active", { active: mode });
@@ -1053,7 +1087,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat({ path, width = 0.7 }: { path: string; width?: number }): void {
+  open_chat = async ({
+    path,
+    width = 0.7,
+  }: {
+    path: string;
+    width?: number;
+  }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
@@ -1070,13 +1110,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "internal");
     } else {
       // First create the chat actions:
-      initChat(this.project_id, misc.meta_file(path, "chat"));
+      await initChat(this.project_id, misc.meta_file(path, "chat"));
       // Only then set state to say that the chat is opened!
       // Otherwise when the opened chat is rendered actions is
       // randomly not defined, and things break.
       this.set_chat_state(path, "external");
     }
-  }
+  };
 
   // Close side chat for the given file, assuming the file itself is open
   // NOTE: for frame tree if there are no chat frames, this instead opens
@@ -1258,17 +1298,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // ONLY updates current path
   // Does not push to URL, browser history, or add to analytics
   // Use internally or for updating current path in background
-  set_current_path(path: string = ""): void {
+  set_current_path = (path: string = ""): void => {
     path = normalize(path);
     if (Number.isNaN(path as any)) {
-      // SMELL: Track from history.coffee
       path = "";
     }
     if (typeof path !== "string") {
-      (window as any).cpath_args = arguments;
-      throw Error(
-        "Current path should be a string. Received arguments are available in window.cpath_args",
-      );
+      throw Error("Current path should be a string");
     }
     // Set the current path for this project. path is either a string or array of segments.
     const store = this.get_store();
@@ -1295,7 +1331,103 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
 
     this.fetch_directory_listing();
-  }
+  };
+
+  setComputeServerId = (compute_server_id: number) => {
+    if (compute_server_id == null) {
+      throw Error("bug");
+    }
+    const store = this.get_store();
+    if (store == null) return;
+    if (store.get("compute_server_id") == compute_server_id) {
+      // already set
+      return;
+    }
+    this.setState({
+      compute_server_id,
+      checked_files: store.get("checked_files").clear(), // always clear on compute_server_id change
+    });
+    this.fetch_directory_listing({ compute_server_id });
+    set_local_storage(
+      store.computeServerIdLocalStorageKey,
+      `${compute_server_id}`,
+    );
+  };
+
+  // sets the side chat compute server id properly for the given path.
+  setSideChatComputeServerId = async (path) => {
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    const sidePath = chatFile(path);
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
+    if (currentId != null) {
+      // already set
+      return;
+    }
+    const id = await computeServerAssociations.getServerIdForPath(path);
+    if (!id) {
+      // nothing to set -- default is fine
+      return;
+    }
+    // set it
+    computeServerAssociations.connectComputeServerToPath({
+      id,
+      path: sidePath,
+    });
+  };
+
+  //   getComputeServerIdForFile = async ({
+  //     path,
+  //     compute_server_id,
+  //   }: {}): Promise<number | undefined> => {
+  //     const computeServerAssociations =
+  //       webapp_client.project_client.computeServers(this.project_id);
+  //     return await computeServerAssociations.getServerIdForPath(path);
+  //   };
+
+  // in case of confirmation, returns true on success or false if user says "no"
+  setComputeServerIdForFile = async ({
+    path,
+    compute_server_id,
+    confirm,
+  }: {
+    path: string;
+    compute_server_id?: number;
+    confirm?: boolean;
+  }): Promise<boolean> => {
+    const selectedComputeServerId = this.getComputeServerId(compute_server_id);
+    const computeServerAssociations =
+      webapp_client.project_client.computeServers(this.project_id);
+    // this is what is currently configured:
+    const currentId =
+      (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
+    if (currentId == selectedComputeServerId) {
+      // no need to set anything since we have what we want already
+      return true;
+    }
+    if (confirm && (path.endsWith(".term") || path.endsWith(".ipynb"))) {
+      // (currently we only confirm this jupyter and terminals, which are
+      // the only supported file types with backend state).
+      if (
+        !(await redux.getActions("page").popconfirm(
+          modalParams({
+            current: currentId,
+            target: selectedComputeServerId,
+            path,
+          }),
+        ))
+      ) {
+        return false;
+      }
+    }
+    // Explicitly set the compute server id to what we want.
+    computeServerAssociations.connectComputeServerToPath({
+      id: selectedComputeServerId,
+      path,
+    });
+    return true;
+  };
 
   set_file_search(search): void {
     this.setState({
@@ -1316,19 +1448,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public async fetch_directory_listing_directly(
     path: string,
     trigger_start_project?: boolean,
+    compute_server_id?: number,
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
-    const listings = store.get_listings();
+    compute_server_id = this.getComputeServerId(compute_server_id);
+    const listings = store.get_listings(compute_server_id);
     try {
       const files = await listings.getListingDirectly(
         path,
         trigger_start_project,
       );
-      const directory_listings = store
-        .get("directory_listings")
-        .set(path, fromJS(files));
-      this.setState({ directory_listings });
+      const directory_listings = store.get("directory_listings");
+      let listing = directory_listings.get(compute_server_id) ?? Map();
+      listing = listing.set(path, files);
+      this.setState({
+        directory_listings: directory_listings.set(compute_server_id, listing),
+      });
     } catch (err) {
       console.warn(`Unable to fetch all files -- "${err}"`);
     }
@@ -1516,10 +1652,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // anything about files (highly unlikely).  Unfortunately (for this), our
     // directory listings are stored as (immutable) lists, so we have to make
     // a map out of them.
-    const listing =
-      store.get("directory_listings") != null
-        ? store.get("directory_listings").get(store.get("current_path"))
-        : undefined;
+    const compute_server_id = store.get("compute_server_id");
+    const listing = store.getIn([
+      "directory_listings",
+      compute_server_id,
+      store.get("current_path"),
+    ]);
+
     if (typeof listing === "string") {
       // must be an error
       return undefined; // simple fallback
@@ -1580,9 +1719,55 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: required,
       action: required,
     });
+    this.set_all_files_unchecked();
+    if (opts.action == "new" || opts.action == "create") {
+      // special case because it isn't a normal "file action panel",
+      // but it is convenient to still support this.
+      if (this.get_store()?.get("flyout") != "new") {
+        this.toggleFlyout("new");
+      }
+      this.setState({
+        default_filename: default_filename(
+          misc.filename_extension(opts.path),
+          this.project_id,
+        ),
+      });
+      return;
+    }
+    if (opts.action == "upload") {
+      this.set_active_tab("files");
+      setTimeout(() => {
+        // NOTE: I'm not proud of this, but right now our upload functionality
+        // is based on not-very-react-ish library...
+        $(".upload-button").click();
+      }, 100);
+      return;
+    }
+    if (opts.action == "open") {
+      if (this.get_store()?.get("flyout") != "files") {
+        this.toggleFlyout("files");
+      }
+      return;
+    }
+    if (opts.action == "open_recent") {
+      if (this.get_store()?.get("flyout") != "log") {
+        this.toggleFlyout("log");
+      }
+      return;
+    }
+
     const path_splitted = misc.path_split(opts.path);
     this.open_directory(path_splitted.head);
-    this.set_all_files_unchecked();
+
+    if (opts.action == "quit") {
+      // TODO: for jupyter and terminal at least, should also do more!
+      this.close_tab(opts.path);
+      return;
+    }
+    if (opts.action == "close") {
+      this.close_tab(opts.path);
+      return;
+    }
     this.set_file_checked(opts.path, true);
     this.set_file_action(opts.action, () => path_splitted.tail);
   }
@@ -1619,7 +1804,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _finish_exec(id, cb?) {
     // returns a function that takes the err and output and
     // does the right activity logging stuff.
-    return (err, output) => {
+    return (err?, output?) => {
       this.fetch_directory_listing();
       if (err) {
         this.set_activity({ id, error: err });
@@ -1670,6 +1855,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id),
+      compute_server_id: this.get_store()?.get("compute_server_id"),
+      filesystem: true,
     });
   }
 
@@ -1983,12 +2170,26 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ library_is_copying: status });
   }
 
-  copy_paths(opts) {
+  copy_paths = async (opts: {
+    src: string[];
+    dest: string;
+    id?: string;
+    only_contents?: boolean;
+    // defaults to the currently selected compute server
+    src_compute_server_id?: number;
+    // defaults to the currently selected compute server
+    dest_compute_server_id?: number;
+    // NOTE: right now src_compute_server_id and dest_compute_server_id
+    // must be the same or one of them must be 0.  We don't implement
+    // copying directly from one compute server to another *yet*.
+  }) => {
     opts = defaults(opts, {
       src: required, // Should be an array of source paths
       dest: required,
       id: undefined,
       only_contents: false,
+      src_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
+      dest_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
     }); // true for duplicating files
 
     const with_slashes = opts.src.map(this._convert_to_displayed_path);
@@ -1999,6 +2200,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       files: with_slashes.slice(0, 3),
       count: opts.src.length > 3 ? opts.src.length : undefined,
       dest: opts.dest + (opts.only_contents ? "" : "/"),
+      ...(opts.src_compute_server_id != opts.dest_compute_server_id
+        ? {
+            src_compute_server_id: opts.src_compute_server_id,
+            dest_compute_server_id: opts.dest_compute_server_id,
+          }
+        : opts.src_compute_server_id
+        ? { compute_server_id: opts.src_compute_server_id }
+        : undefined),
     });
 
     if (opts.only_contents) {
@@ -2023,6 +2232,46 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       )} to ${opts.dest}`,
     });
 
+    if (opts.src_compute_server_id != opts.dest_compute_server_id) {
+      // Copying from/to a compute server from/to a project.  This uses
+      // an api, which behind the scenes uses lz4 compression and tar
+      // proxied via a websocket, but no use of rsync or ssh.
+
+      // do it.
+      try {
+        const api = await this.api();
+        if (opts.src_compute_server_id) {
+          // from compute server to project
+          await api.copyFromComputeServerToProject({
+            compute_server_id: opts.src_compute_server_id,
+            paths: opts.src,
+            dest: opts.dest,
+            timeout: 60 * 15,
+          });
+        } else if (opts.dest_compute_server_id) {
+          // from project to compute server
+          await api.copyFromProjectToComputeServer({
+            compute_server_id: opts.dest_compute_server_id,
+            paths: opts.src,
+            dest: opts.dest,
+            timeout: 60 * 15,
+          });
+        } else {
+          // Not implemented between two distinct compute servers yet.
+          throw Error(
+            "copying directly between compute servers is not yet implemented",
+          );
+        }
+        this._finish_exec(id)();
+      } catch (err) {
+        this._finish_exec(id)(`${err}`);
+      }
+
+      return;
+    }
+
+    // Copying directly on project or on compute server. This just uses local rsync (no network).
+
     let args = ["-rltgoDxH"];
 
     // We ensure the target copy is writable if *any* source path starts is inside of .snapshots.
@@ -2044,9 +2293,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: 120, // how long rsync runs on client
       err_on_exit: true,
       path: ".",
+      compute_server_id: opts.src_compute_server_id,
+      filesystem: true,
       cb: this._finish_exec(id),
     });
-  }
+  };
 
   copy_paths_between_projects(opts) {
     opts = defaults(opts, {
@@ -2105,7 +2356,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
   }
 
-  public async rename_file(opts: { src: string; dest: string }): Promise<void> {
+  public async rename_file(opts: {
+    src: string;
+    dest: string;
+    compute_server_id?: number;
+  }): Promise<void> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
@@ -2118,12 +2373,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status });
     try {
       const api = await this.api();
-      await api.rename_file(opts.src, opts.dest);
+      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
+      await api.rename_file(opts.src, opts.dest, compute_server_id);
       this.log({
         event: "file_action",
         action: "renamed",
         src: opts.src,
         dest: opts.dest + ((await this.isdir(opts.dest)) ? "/" : ""),
+        compute_server_id,
       });
     } catch (err) {
       error = err;
@@ -2151,11 +2408,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public async move_files(opts: {
     src: string[];
     dest: string;
+    compute_server_id?: number;
   }): Promise<void> {
     if (
       !(await ensure_project_running(
         this.project_id,
-        `move ${opts.src.join(", ")}`,
+        "move " + opts.src.join(", "),
       ))
     ) {
       return;
@@ -2169,12 +2427,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let error: any = undefined;
     try {
       const api = await this.api();
-      await api.move_files(opts.src, opts.dest);
+      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
+      await api.move_files(opts.src, opts.dest, compute_server_id);
       this.log({
         event: "file_action",
         action: "moved",
         files: opts.src,
         dest: opts.dest + "/" /* target is assumed to be a directory */,
+        compute_server_id,
       });
     } catch (err) {
       error = err;
@@ -2198,9 +2458,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return false;
   }
 
-  public async delete_files(opts: { paths: string[] }): Promise<void> {
+  public async delete_files(opts: {
+    paths: string[];
+    compute_server_id?: number;
+  }): Promise<void> {
     let mesg;
-    opts = defaults(opts, { paths: required });
+    opts = defaults(opts, {
+      paths: required,
+      compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
+    });
     if (opts.paths.length === 0) {
       return;
     }
@@ -2232,8 +2498,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
-      await delete_files(this.project_id, opts.paths);
-      this.log({ event: "file_action", action: "deleted", files: opts.paths });
+      await delete_files(this.project_id, opts.paths, opts.compute_server_id);
+      this.log({
+        event: "file_action",
+        action: "deleted",
+        files: opts.paths,
+        compute_server_id: opts.compute_server_id,
+      });
       this.set_activity({
         id,
         status: `Successfully deleted ${mesg}.`,
@@ -2332,12 +2603,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     name: string;
     current_path?: string;
     switch_over?: boolean;
+    compute_server_id?: number;
   }): Promise<void> {
     let p;
     opts = defaults(opts, {
       name: required,
       current_path: undefined,
       switch_over: true, // Whether or not to switch to the new folder
+      compute_server_id: undefined,
     });
     if (
       !(await ensure_project_running(
@@ -2347,7 +2620,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ) {
       return;
     }
-    let { name, current_path, switch_over } = opts;
+    let { compute_server_id, name } = opts;
+    const { current_path, switch_over } = opts;
+    compute_server_id = this.getComputeServerId(compute_server_id);
     this.setState({ file_creation_error: undefined });
     if (name[name.length - 1] === "/") {
       name = name.slice(0, -1);
@@ -2359,14 +2634,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     try {
-      await this.ensure_directory_exists(p);
+      await this.ensure_directory_exists(p, compute_server_id);
     } catch (err) {
       this.setState({
         file_creation_error: `Error creating directory '${p}' -- ${err}`,
       });
       return;
     }
-    this.fetch_directory_listing({ path: p });
+    this.fetch_directory_listing({ path: p, compute_server_id });
     if (switch_over) {
       this.open_directory(p);
     }
@@ -2379,6 +2654,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ext?: string;
     current_path?: string;
     switch_over?: boolean;
+    compute_server_id?: number;
   }) {
     let p;
     opts = defaults(opts, {
@@ -2386,8 +2662,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ext: undefined,
       current_path: undefined,
       switch_over: true, // Whether or not to switch to the new file
+      compute_server_id: undefined,
     });
-
+    const compute_server_id = this.getComputeServerId(opts.compute_server_id);
     this.setState({ file_creation_error: undefined }); // clear any create file display state
     let { name } = opts;
     if ((name === ".." || name === ".") && opts.ext == null) {
@@ -2405,6 +2682,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.create_folder({
           name,
           current_path: opts.current_path,
+          compute_server_id,
         });
         return;
       } else {
@@ -2447,23 +2725,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: 10,
       args: [p],
       err_on_exit: true,
+      compute_server_id,
+      filesystem: true,
       cb: (err, output) => {
         if (!err) {
           this.log({ event: "file_action", action: "created", files: [p] });
         }
         if (err) {
-          let stdout = "";
-          let stderr = "";
-          if (output) {
-            stdout = output.stdout || "";
-            stderr = output.stderr || "";
-          }
+          const stdout = output?.stdout ?? "";
+          const stderr = output?.stderr ?? "";
           this.setState({
             file_creation_error: `${stdout} ${stderr} ${err}`,
           });
         } else if (opts.switch_over) {
           this.open_file({
             path: p,
+            // so opens on current compute server, and because switch_over is only something
+            // we do when user is explicitly opening the file
+            explicit: true,
           });
         } else {
           this.fetch_directory_listing();
@@ -2781,7 +3060,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  search() {
+  search = () => {
     let cmd, ins;
     const store = this.get_store();
     if (store == undefined) {
@@ -2861,6 +3140,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: cmd,
     });
 
+    const compute_server_id = this.getComputeServerId();
     webapp_client.exec({
       project_id: this.project_id,
       command: cmd + " | cut -c 1-256", // truncate horizontal line length (imagine a binary file that is one very long line)
@@ -2868,12 +3148,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       max_output,
       bash: true,
       err_on_exit: true,
+      compute_server_id,
+      filesystem: true,
       path: store.get("current_path"),
       cb: (err, output) => {
         this.process_search_results(err, output, max_results, max_output, cmd);
       },
     });
-  }
+  };
 
   set_file_listing_scroll(scroll_top) {
     this.setState({ file_listing_scroll_top: scroll_top });
@@ -3078,11 +3360,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.hide_file(misc.tab_to_path(a));
   }
 
-  async ensure_directory_exists(path: string): Promise<void> {
+  async ensure_directory_exists(
+    path: string,
+    compute_server_id?: number,
+  ): Promise<void> {
+    compute_server_id = this.getComputeServerId(compute_server_id);
     await webapp_client.exec({
       project_id: this.project_id,
       command: "mkdir",
       args: ["-p", path],
+      compute_server_id,
+      filesystem: true,
     });
     // WARNING: If we don't do this sync, the
     // create_folder/open_directory code gets messed up
@@ -3093,6 +3381,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     await webapp_client.exec({
       project_id: this.project_id,
       command: "sync",
+      compute_server_id,
+      filesystem: true,
     });
   }
 
@@ -3158,4 +3448,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       just_closed_files: List([]),
     });
   }
+  getComputeServerId = (id?: number): number => {
+    const store = this.get_store();
+    return id ?? store?.get("compute_server_id") ?? 0;
+  };
 }
