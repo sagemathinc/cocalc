@@ -160,14 +160,13 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     const help = (
       <HelpIcon title="Usage">
         <Paragraph>
-          You can either enter the description in various ways:
+          You can enter the description of your desired formula in various ways:
           <ul>
             <li>
-              a natural language description like{" "}
-              <Text code>drake equation</Text>,
+              natural language: <Text code>drake equation</Text>,
             </li>
             <li>
-              or simple algebraic notation like{" "}
+              simple algebraic notation:{" "}
               <Text code>(a+b)^2 = a^2 + 2 a b + b^2</Text>,
             </li>
             <li>
@@ -176,13 +175,21 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
               .
             </li>
           </ul>
-          By clicking the "Insert button", the generated LaTeX formula will be
-          inserted at the current cursor position.
+        </Paragraph>
+        <Paragraph>
+          If the formula is not quite right, click "Geneate" once again, try a
+          different language model, or adjust the description. Of course, you
+          can also edit it as usual after you have inserted it.
+        </Paragraph>
+        <Paragraph>
+          Once you're happy, click the "Insert formula" button and the generated
+          LaTeX formula will be inserted at the current cursor position.
         </Paragraph>
         <Paragraph>
           Prior to opening this dialog, you can even select a portion of your
-          text – this will be used as your description and the AI language model
-          will be queried immediately.
+          text. This will be used as your description and the AI language model
+          will be queried immediately. Inserting the formula will then replace
+          the selected text.
         </Paragraph>
       </HelpIcon>
     );

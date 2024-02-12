@@ -33,7 +33,6 @@ import CustomCommand from "public/features/latex-custom-command-02.png";
 import Knitr from "public/features/latex-editor-rnw-01.png";
 import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
 import Logo from "public/features/latex-logo.svg";
-import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 
 export default function LatexEditor({ customize }) {
   return (
