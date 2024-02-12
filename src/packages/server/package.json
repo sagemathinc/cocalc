@@ -85,7 +85,7 @@
     "ms": "2.1.2",
     "node-zendesk": "^5.0.10",
     "nodemailer": "^6.9.9",
-    "openai": "^3.2.1",
+    "openai": "^4.27.0",
     "parse-domain": "^5.0.0",
     "passport": "^0.6.0",
     "passport-activedirectory": "^1.0.4",
