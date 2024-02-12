@@ -17,8 +17,8 @@ import { show_react_modal } from "@cocalc/frontend/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { unreachable } from "@cocalc/util/misc";
 import { isFreeModel } from "@cocalc/util/db-schema/openai";
+import track from "@cocalc/frontend/user-tracking";
 
-// TODO: markdown md
 type Mode = "tex" | "md";
 
 interface Opts {
@@ -110,10 +110,12 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     try {
       setError(undefined);
       setGenerating(true);
+      const tag = `generate-formula`;
+      track("chatgpt", { project_id, tag, mode, type: "generate", model });
       const tex = await webapp_client.openai_client.chatgpt({
         input: getPrompt(),
         project_id,
-        tag: `generate-formula-${mode}`,
+        tag,
         model,
         system: null,
       });
