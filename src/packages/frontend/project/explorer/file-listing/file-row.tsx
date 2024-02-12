@@ -48,6 +48,8 @@ interface Props {
   actions: ProjectActions;
   no_select: boolean;
   link_target?: string;
+  // if given, include a little 'server' tag in this color, and tooltip etc using id
+  computeServerId?: number;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
@@ -200,6 +202,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       props.actions.open_file({
         path,
         foreground,
+        explicit:true,
       });
       if (foreground) {
         props.actions.set_file_search("");

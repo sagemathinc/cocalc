@@ -27,7 +27,7 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
-const NEW_DIRECTORY = "New Directory";
+const NEW_FOLDER = "New Folder";
 
 const ICON_STYLE = {
   cursor: "pointer",
@@ -38,6 +38,7 @@ interface Props {
   style?: CSSProperties;
   bodyStyle?: CSSProperties;
   project_id?: string;
+  compute_server_id?: number;
   startingPath?: string;
   isExcluded?: (path: string) => boolean; // grey out directories that return true.  Relative to home directory.
   onSelect?: (path: string) => void; // called when user chooses a directory; only when multi is false.
@@ -52,6 +53,7 @@ export default function DirectorySelector({
   style,
   bodyStyle,
   project_id,
+  compute_server_id,
   startingPath,
   isExcluded,
   onSelect,
@@ -63,7 +65,15 @@ export default function DirectorySelector({
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
   if (project_id == null) project_id = frameContext.project_id;
-  const directoryListings = useTypedRedux({ project_id }, "directory_listings");
+  const fallbackComputeServerId = useTypedRedux(
+    { project_id },
+    "compute_server_id",
+  );
+  const computeServerId = compute_server_id ?? fallbackComputeServerId;
+  const directoryListings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  )?.get(computeServerId);
   const isMountedRef = useIsMountedRef();
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     const expandedPaths: string[] = [""];
@@ -117,7 +127,9 @@ export default function DirectorySelector({
     (async () => {
       while (state.loop && isMountedRef.current) {
         // Component is mounted, so call watch on all expanded paths.
-        const listings = redux.getProjectStore(project_id).get_listings();
+        const listings = redux
+          .getProjectStore(project_id)
+          .get_listings(computeServerId);
         for (const path of expandedPaths) {
           listings.watch(path);
         }
@@ -127,8 +139,9 @@ export default function DirectorySelector({
     return () => {
       state.loop = false;
     };
-  }, [project_id, expandedPaths]);
+  }, [project_id, expandedPaths, computeServerId]);
 
+  let body;
   if (directoryListings == null) {
     (async () => {
       await delay(0);
@@ -137,8 +150,46 @@ export default function DirectorySelector({
       // directory selector before even opening the project.
       redux.getProjectStore(project_id);
     })();
-    return <Loading />;
+    body = <Loading theme="medium" />;
+  } else {
+    body = (
+      <>
+        <SelectablePath
+          project_id={project_id}
+          path={""}
+          tail={""}
+          isSelected={selectedPaths.has("")}
+          computeServerId={computeServerId}
+          toggleSelection={toggleSelection}
+          isExcluded={isExcluded?.("")}
+          expand={() => {}}
+        />
+        <Subdirs
+          style={{ marginLeft: "2em" }}
+          selectedPaths={selectedPaths}
+          toggleSelection={toggleSelection}
+          isExcluded={isExcluded}
+          expandedPaths={expandedPaths}
+          setExpandedPaths={setExpandedPaths}
+          directoryListings={directoryListings}
+          showHidden={showHidden}
+          project_id={project_id}
+          path={""}
+          computeServerId={computeServerId}
+        />
+        <Checkbox
+          style={{ fontWeight: "400", marginTop: "15px" }}
+          checked={showHidden}
+          onChange={() => {
+            setShowHidden(!showHidden);
+          }}
+        >
+          Show hidden
+        </Checkbox>
+      </>
+    );
   }
+
   return (
     <Card
       title={
@@ -150,7 +201,7 @@ export default function DirectorySelector({
               onClick={onClose}
             />
           )}
-          {title ?? "Select Directory"}
+          {title ?? "Select Folder"}
         </>
       }
       style={{
@@ -165,36 +216,7 @@ export default function DirectorySelector({
         ...bodyStyle,
       }}
     >
-      <SelectablePath
-        project_id={project_id}
-        path={""}
-        tail={""}
-        isSelected={selectedPaths.has("")}
-        toggleSelection={toggleSelection}
-        isExcluded={isExcluded?.("")}
-        expand={() => {}}
-      />
-      <Subdirs
-        style={{ marginLeft: "2em" }}
-        selectedPaths={selectedPaths}
-        toggleSelection={toggleSelection}
-        isExcluded={isExcluded}
-        expandedPaths={expandedPaths}
-        setExpandedPaths={setExpandedPaths}
-        directoryListings={directoryListings}
-        showHidden={showHidden}
-        project_id={project_id}
-        path={""}
-      />
-      <Checkbox
-        style={{ fontWeight: "400", marginTop: "15px" }}
-        checked={showHidden}
-        onChange={() => {
-          setShowHidden(!showHidden);
-        }}
-      >
-        Show hidden
-      </Checkbox>
+      {body}
     </Card>
   );
 }
@@ -204,6 +226,7 @@ function SelectablePath({
   path,
   tail,
   isSelected,
+  computeServerId,
   toggleSelection,
   isExcluded,
   expand,
@@ -221,6 +244,8 @@ function SelectablePath({
           project_id,
           path: path_split(path).head,
           args: [tail, editedTail],
+          compute_server_id: computeServerId,
+          filesystem: true,
         });
         setEditedTail(null);
       } catch (err) {
@@ -238,7 +263,7 @@ function SelectablePath({
           tail
         ) : (
           <>
-            <Icon name="home" style={{ marginRight: "5px" }} /> Home Directory
+            <Icon name="home" style={{ marginRight: "5px" }} /> Home Folder
           </>
         )}
       </>
@@ -327,6 +352,7 @@ function Directory(props) {
     isExcluded,
     expandedPaths,
     setExpandedPaths,
+    computeServerId,
   } = props;
   const isExpanded = expandedPaths.has(path);
   const { tail } = path_split(path);
@@ -342,6 +368,7 @@ function Directory(props) {
       expand={() => {
         setExpandedPaths(new Set(expandedPaths.add(path)));
       }}
+      computeServerId={computeServerId}
     />
   );
 
@@ -383,7 +410,14 @@ function Directory(props) {
 }
 
 function Subdirs(props) {
-  const { directoryListings, path, project_id, showHidden, style } = props;
+  const {
+    computeServerId,
+    directoryListings,
+    path,
+    project_id,
+    showHidden,
+    style,
+  } = props;
   const x = directoryListings?.get(path);
   const v = x?.toJS?.();
   if (v == null) {
@@ -402,7 +436,7 @@ function Subdirs(props) {
     for (const x of v) {
       if (x?.isdir) {
         if (x.name.startsWith(".") && !showHidden) continue;
-        if (x.name.startsWith(NEW_DIRECTORY)) {
+        if (x.name.startsWith(NEW_FOLDER)) {
           newPaths.push(x.name);
         } else {
           paths.push(x.name);
@@ -419,6 +453,7 @@ function Subdirs(props) {
         key="\\createdirectory\\"
         project_id={project_id}
         path={path}
+        computeServerId={computeServerId}
         directoryListings={directoryListings}
       />,
     );
@@ -430,17 +465,34 @@ function Subdirs(props) {
   }
 }
 
-function CreateDirectory({ project_id, path, directoryListings }) {
+function CreateDirectory({
+  computeServerId,
+  project_id,
+  path,
+  directoryListings,
+}) {
   return (
     <div
       style={{ cursor: "pointer", color: "#666" }}
       key={"...-create-dir"}
       onClick={async () => {
-        let target = path + (path != "" ? "/" : "") + NEW_DIRECTORY;
-        if (await pathExists(project_id, target, directoryListings)) {
+        let target = path + (path != "" ? "/" : "") + NEW_FOLDER;
+        if (
+          await pathExists(
+            project_id,
+            target,
+            directoryListings,
+            computeServerId,
+          )
+        ) {
           let i: number = 1;
           while (
-            await pathExists(project_id, target + ` (${i})`, directoryListings)
+            await pathExists(
+              project_id,
+              target + ` (${i})`,
+              directoryListings,
+              computeServerId,
+            )
           ) {
             i += 1;
           }
@@ -451,6 +503,8 @@ function CreateDirectory({ project_id, path, directoryListings }) {
             command: "mkdir",
             args: ["-p", target],
             project_id,
+            compute_server_id: computeServerId,
+            filesystem: true,
           });
         } catch (err) {
           alert_message({ type: "error", message: err.toString() });
@@ -464,7 +518,7 @@ function CreateDirectory({ project_id, path, directoryListings }) {
       >
         <Button size="small" type="text" style={{ color: "#666" }}>
           <Icon name="plus" style={{ marginRight: "5px" }} /> Create{" "}
-          {NEW_DIRECTORY}
+          {NEW_FOLDER}
         </Button>
       </Tooltip>
     </div>
@@ -475,6 +529,7 @@ async function pathExists(
   project_id: string,
   path: string,
   directoryListings,
+  computeServerId,
 ): Promise<boolean> {
   const { head, tail } = path_split(path);
   let known = directoryListings?.get(head);
@@ -482,6 +537,7 @@ async function pathExists(
     const actions = redux.getProjectActions(project_id);
     await actions.fetch_directory_listing({
       path: head,
+      compute_server_id: computeServerId,
     });
   }
   known = directoryListings?.get(head);

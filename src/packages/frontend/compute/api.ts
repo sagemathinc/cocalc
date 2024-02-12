@@ -3,6 +3,8 @@ import type {
   Action,
   Configuration,
   Cloud,
+  Images,
+  GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -51,7 +53,7 @@ export async function setServerTitle(opts: { id: number; title: string }) {
 // server must be off
 export async function setServerConfiguration(opts: {
   id: number;
-  configuration: string;
+  configuration;
 }) {
   return await api("compute/set-server-configuration", opts);
 }
@@ -119,4 +121,85 @@ export async function setDetailedState(opts: {
   progress?: number;
 }) {
   return await api("compute/set-detailed-state", opts);
+}
+
+// We cache images for 5 minutes.
+const IMAGES_TTL = 5 * 60 * 1000;
+
+const imagesCache: {
+  [cloud: string]: { timestamp: number; images: Images | null };
+} = {};
+
+function cacheHas(cloud: string) {
+  const x = imagesCache[cloud];
+  if (x == null) {
+    return false;
+  }
+  if (Math.abs(x.timestamp - Date.now()) <= IMAGES_TTL) {
+    return true;
+  }
+  return false;
+}
+
+function cacheGet(cloud) {
+  return imagesCache[cloud]?.images;
+}
+
+function cacheSet(cloud, images) {
+  imagesCache[cloud] = { images, timestamp: Date.now() };
+}
+
+async function getImagesFor({
+  cloud,
+  endpoint,
+  reload,
+}: {
+  cloud: string;
+  endpoint: string;
+  // reload -- if true, reloads data from external resource; only admins can do this.
+  reload?: boolean;
+}): Promise<any> {
+  if (!reload && cacheHas(cloud)) {
+    return cacheGet(cloud);
+  }
+  try {
+    const images = await api(endpoint, reload ? { ttl: 0 } : undefined);
+    cacheSet(cloud, images);
+    return images;
+  } catch (err) {
+    const images = cacheGet(cloud);
+    if (images != null) {
+      console.warn(
+        "ERROR getting updated compute server images -- using cached data",
+        err,
+      );
+      return images;
+    }
+    throw err;
+  }
+}
+
+export async function getImages(reload?: boolean): Promise<Images> {
+  return await getImagesFor({
+    cloud: "",
+    endpoint: "compute/get-images",
+    reload,
+  });
+}
+
+export async function getGoogleCloudImages(
+  reload?: boolean,
+): Promise<GoogleCloudImages> {
+  return await getImagesFor({
+    cloud: "google",
+    endpoint: "compute/get-images-google",
+    reload,
+  });
+}
+
+export async function setImageTested(opts: {
+  id: number; // server id
+  tested: boolean;
+}) {
+  return await api("compute/set-image-tested", opts);
 }

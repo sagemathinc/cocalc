@@ -329,7 +329,14 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
         rules={[{ required: true, message: "Please select a type" }]}
         extra={
           showExplanations && (
-            <>Select if you want to get a Dedicate Disk or a Virtual Machine.</>
+            <div style={{ marginTop: "5px" }}>
+              Select if you want to get a Dedicate Disk or a Virtual Machine.
+              NOTE: Dedicated disks are deprecated -- create a{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>{" "}
+              instead.
+            </div>
           )
         }
       >
@@ -342,7 +349,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
             setType(e.target.value);
           }}
         >
-          <Radio.Button key={"disk"} value={"disk"}>
+          <Radio.Button key={"disk"} value={"disk"} disabled>
             Disk
           </Radio.Button>
           <Radio.Button key={"vm"} value={"vm"}>

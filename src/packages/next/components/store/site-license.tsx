@@ -107,10 +107,8 @@ export default function SiteLicense(props: Props) {
           </Paragraph>
           <Paragraph>
             You might also be interested in a{" "}
-            <A href="/store/boost">license boost</A>,{" "}
-            <A href="/store/dedicated">dedicated VM</A>, or{" "}
-            <A href="/store/dedicated">dedicated disk</A>. It is also possible
-            to{" "}
+            <A href="/store/boost">license boost</A> or{" "}
+            <A href="/store/dedicated">dedicated VM</A>. It is also possible to{" "}
             <A href="https://doc.cocalc.com/vouchers.html">create vouchers</A>{" "}
             for resale or distribution.
           </Paragraph>

@@ -68,6 +68,14 @@ class ClientNoChangefeed extends EventEmitter {
     return this.client.is_project();
   }
 
+  public is_browser(): boolean {
+    return this.client.is_browser();
+  }
+
+  public is_compute_server(): boolean {
+    return this.client.is_compute_server();
+  }
+
   public async touch_project(project_id: string): Promise<void> {
     await this.client.touch_project(project_id);
   }

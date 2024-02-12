@@ -25,11 +25,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 
-export default function ComputeServerTransition({
-  project_id,
-  id,
-  requestedId,
-}) {
+export function ComputeServerDocStatus({ project_id, id, requestedId }) {
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -334,3 +330,4 @@ function getProgress(
 function isRecent(expire = 0) {
   return Date.now() - expire < 60 * 1000;
 }
+

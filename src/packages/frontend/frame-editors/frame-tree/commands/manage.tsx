@@ -116,7 +116,7 @@ export class ManageCommands {
           <div style={{ display: "flex" }}>
             {parentLabel}{" "}
             <Icon name="angle-right" style={{ margin: "0px 10px" }} />{" "}
-            {this.getCommandLabel(cmd, name)}
+            {this.getCommandLabel(cmd, name, true)}
           </div>
         );
         // recursively deal with any children (and children of children)
@@ -272,9 +272,20 @@ export class ManageCommands {
     );
   };
 
-  private getCommandLabel = (cmd: Partial<Command>, name: string) => {
+  private getCommandLabel = (
+    cmd: Partial<Command>,
+    name: string,
+    tip: boolean,
+  ) => {
     const width = ICON_WIDTH;
-    const lbl = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+    let lbl = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+    if (tip && cmd.title) {
+      lbl = (
+        <Tooltip mouseEnterDelay={0.9} title={cmd.title} placement={"left"}>
+          {lbl}
+        </Tooltip>
+      );
+    }
     let icon;
     if (!name || !this.editorSettings.get("extra_button_bar")) {
       // do not show toggleable icon if no command name (so not top level)
@@ -412,7 +423,7 @@ export class ManageCommands {
         </>
       );
     } else {
-      label = this.getCommandLabel(cmd, name);
+      label = this.getCommandLabel(cmd, name, true);
     }
     const children = noChildren
       ? undefined
@@ -430,20 +441,11 @@ export class ManageCommands {
           title={() => {
             return (
               <>
-                {this.getCommandLabel(cmd, name)}
+                {this.getCommandLabel(cmd, name, false)}
                 {cmd.title ? <div>{cmd.title}</div> : undefined}
               </>
             );
           }}
-        >
-          {label}
-        </Tooltip>
-      );
-    } else if (cmd.title) {
-      label = (
-        <Tooltip
-          title={cmd.title}
-          placement={children != null ? "top" : "right"}
         >
           {label}
         </Tooltip>

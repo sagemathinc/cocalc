@@ -7,6 +7,9 @@ import {
   waitForPidToChange,
 } from "./support";
 import { getChannelName } from "./util";
+import { enableTestMode } from "./remote-terminal";
+
+enableTestMode();
 
 describe("very basic test of creating a terminal and changing shell", () => {
   let terminal;

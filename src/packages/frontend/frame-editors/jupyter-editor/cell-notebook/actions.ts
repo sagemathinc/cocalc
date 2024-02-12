@@ -1062,6 +1062,27 @@ export class NotebookFrameActions {
     this.scroll("cell visible");
   }
 
+  setScrolled = ({ all, scrolled }: { all: boolean; scrolled: boolean }) => {
+    const ids = all
+      ? this.jupyter_actions.store.get_cell_list().toJS()
+      : Object.keys(this.store.get_selected_cell_ids());
+    const cells = this.jupyter_actions.store.get("cells");
+    for (const id of ids) {
+      const cell = cells.get(id);
+      if (cell?.get("cell_type", "code") == "code") {
+        this.jupyter_actions._set(
+          {
+            type: "cell",
+            id,
+            scrolled,
+          },
+          false,
+        );
+      }
+    }
+    this.jupyter_actions.syncdb.commit();
+  };
+
   setExpandCollapse = ({
     target,
     expanded,
@@ -1083,5 +1104,6 @@ export class NotebookFrameActions {
         false,
       );
     }
+    this.jupyter_actions.syncdb.commit();
   };
 }

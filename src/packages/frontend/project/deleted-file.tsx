@@ -51,7 +51,9 @@ export default function DeletedFile({ project_id, path, onOpen }: Props) {
           redux.getProjectActions(project_id).close_tab(path);
         }}
       >
-        After you open {path}, use TimeTravel to get past versions.
+        {!path?.endsWith(".term") && (
+          <> After you open {path}, use TimeTravel to get past versions.</>
+        )}
       </Modal>
     </div>
   );

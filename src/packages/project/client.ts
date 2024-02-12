@@ -201,6 +201,14 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return true;
   }
 
+  public is_browser(): boolean {
+    return false;
+  }
+
+  public is_compute_server(): boolean {
+    return false;
+  }
+
   // false since this client is not a user
   public is_user(): boolean {
     return false;
@@ -402,7 +410,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     options?: { [key: string]: any }[]; // options to the query, e.g., [{limit:5}] )
     changes?: boolean; // whether or not to create a changefeed
     //standby: boolean; // **IGNORED**
-    timeout: number; // how long to wait for initial result
+    timeout: number; // how long in *seconds* wait for initial result from hub database call
     cb: CB<any, string>;
   }) {
     if (options != null && !misc.is_array(options)) {
@@ -625,7 +633,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   public async set_deleted(
     filename: string,
-    _project_id: string,
+    _project_id?: string,
   ): Promise<void> {
     // project_id is ignored
     const listings = getListingsTable();

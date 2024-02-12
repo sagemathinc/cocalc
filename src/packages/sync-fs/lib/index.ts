@@ -14,7 +14,7 @@ import {
 } from "fs/promises";
 import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
-import { execa, mtimeDirTree, remove } from "./util";
+import { execa, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
@@ -23,6 +23,12 @@ import { apiCall } from "@cocalc/api-client";
 import mkdirp from "mkdirp";
 import { throttle } from "lodash";
 import { trunc_middle } from "@cocalc/util/misc";
+import getListing from "@cocalc/backend/get-listing";
+import { executeCode } from "@cocalc/backend/execute-code";
+import { delete_files } from "@cocalc/backend/files/delete-files";
+import { move_files } from "@cocalc/backend/files/move-files";
+import { rename_file } from "@cocalc/backend/files/rename-file";
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -53,6 +59,7 @@ interface Options {
   tar: { send; get };
   compression?: "lz4"; // default 'lz4'
   data?: string; // absolute path to data directory (default: /data)
+  role;
 }
 
 const UNIONFS = ".unionfs-fuse";
@@ -105,6 +112,7 @@ class SyncFS {
     tar,
     compression = "lz4",
     data = "/data",
+    role,
   }: Options) {
     this.lower = lower;
     this.upper = upper;
@@ -125,6 +133,7 @@ class SyncFS {
     this.client = new SyncClient({
       project_id: this.project_id,
       client_id: encodeIntToUUID(this.compute_server_id),
+      role,
     });
     this.state = "ready";
     this.error_txt = join(this.scratch, "error.txt");
@@ -186,7 +195,7 @@ class SyncFS {
     } catch (err) {
       log("unmountExcludes fail -- ", err);
     }
-    this.websocket?.removeListener("data", this.handleSyncRequest);
+    this.websocket?.removeListener("data", this.handleApiRequest);
     this.websocket?.removeListener("state", this.registerToSync);
   };
 
@@ -198,7 +207,7 @@ class SyncFS {
     this.websocket = await this.client.project_client.websocket(
       this.project_id,
     );
-    this.websocket.on("data", this.handleSyncRequest);
+    this.websocket.on("data", this.handleApiRequest);
     log("initSyncRequestHandler: installed handler");
     this.registerToSync();
     // We use *both* a period interval and websocket state change,
@@ -230,10 +239,36 @@ class SyncFS {
     }
   };
 
-  private handleSyncRequest = async (data) => {
+  private handleApiRequest = async (data) => {
+    try {
+      log("handleApiRequest:", { data });
+      const resp = await this.doApiRequest(data);
+      log("handleApiRequest: ", { resp });
+      if (data.id && this.websocket != null) {
+        this.websocket.write({
+          id: data.id,
+          resp,
+        });
+      }
+    } catch (err) {
+      // console.trace(err);
+      const error = `${err}`;
+      if (data.id && this.websocket != null) {
+        log("handleApiRequest: returning error", { event: data?.event, error });
+        this.websocket.write({
+          id: data.id,
+          error,
+        });
+      } else {
+        log("handleApiRequest: ignoring error", { event: data?.event, error });
+      }
+    }
+  };
+
+  private doApiRequest = async (data) => {
+    log("doApiRequest", { data });
     switch (data?.event) {
-      case "compute_server_sync_request": {
-        log("handleSyncRequest: compute_server_sync_request");
+      case "compute_server_sync_request":
         try {
           if (this.state == "sync") {
             // already in progress
@@ -242,40 +277,77 @@ class SyncFS {
           if (!this.syncIsDisabled()) {
             await this.sync();
           }
-          log("handleSyncRequest: sync worked");
+          log("doApiRequest: sync worked");
         } catch (err) {
-          log("handleSyncRequest: sync failed", err);
+          log("doApiRequest: sync failed", err);
+        }
+        return;
+
+      case "copy_from_project_to_compute_server":
+      case "copy_from_compute_server_to_project": {
+        const extractArgs = ["-x"];
+        extractArgs.push("-C");
+        extractArgs.push(data.dest ? data.dest : ".");
+        const HOME = this.mount;
+        for (const { prefix, paths } of parseCommonPrefixes(data.paths)) {
+          const createArgs = ["-c", "-C", prefix, ...paths];
+          log({ extractArgs, createArgs });
+          if (data.event == "copy_from_project_to_compute_server") {
+            await this.tar.get({
+              createArgs,
+              extractArgs,
+              HOME,
+            });
+          } else if (data.event == "copy_from_compute_server_to_project") {
+            await this.tar.send({
+              createArgs,
+              extractArgs,
+              HOME,
+            });
+          } else {
+            // impossible
+            throw Error(`bug -- invalid event ${data.event}`);
+          }
         }
         return;
       }
 
-      case "copy_from_project_to_compute_server":
-      case "copy_from_compute_server_to_project": {
-        log("handleSyncRequest: ", data);
-        const createArgs = ["-c", ...data.paths];
-        const extractArgs = ["-x"];
-        try {
-          if (data.event == "copy_from_project_to_compute_server") {
-            await this.tar.get({ createArgs, extractArgs, HOME: this.mount });
-          } else {
-            await this.tar.send({ createArgs, extractArgs, HOME: this.mount });
+      case "listing":
+        return await getListing(data.path, data.hidden, this.mount);
+
+      case "exec":
+        if (data.opts.command == "cc-new-file") {
+          // so we don't have to depend on having our cc-new-file script
+          // installed.  We just don't support templates on compute server.
+          for (const path of data.opts.args ?? []) {
+            const target = join(this.mount, path);
+            await ensureContainingDirectoryExists(target);
+            await writeFile(target, "");
           }
-          if (data.id) {
-            this.websocket?.write({ id: data.id, event: "success" });
-          }
-          log("handleSyncRequest: copy SUCCESS");
-        } catch (err) {
-          if (data.id) {
-            this.websocket?.write({
-              id: data.id,
-              event: "error",
-              error: err.message,
-            });
-          }
-          log("handleSyncRequest: copy FAILED", err);
+          return { status: 0, stdout: "", stderr: "" };
         }
-        return;
-      }
+        return await executeCode({ ...data.opts, home: this.mount });
+
+      case "delete_files":
+        return await delete_files(data.paths, this.mount);
+
+      case "move_files":
+        return await move_files(
+          data.paths,
+          data.dest,
+          (path) => this.client.set_deleted(path),
+          this.mount,
+        );
+      case "rename_file":
+        return await rename_file(
+          data.src,
+          data.dest,
+          (path) => this.client.set_deleted(path),
+          this.mount,
+        );
+
+      default:
+        throw Error(`unknown event '${data?.event}'`);
     }
   };
 

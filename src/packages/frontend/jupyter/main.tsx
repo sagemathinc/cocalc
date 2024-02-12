@@ -45,7 +45,7 @@ import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import * as chatgpt from "./chatgpt";
 import KernelWarning from "./kernel-warning";
-import ComputeServerDocStatus from "@cocalc/frontend/compute/doc-status";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
