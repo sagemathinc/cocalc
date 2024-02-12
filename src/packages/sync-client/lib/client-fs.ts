@@ -1,9 +1,10 @@
 import type { ClientFs as ClientFsType } from "@cocalc/sync/client/types";
-import Client from "./index";
+import Client, { Role } from "./index";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { join } from "node:path";
 import { readFile, writeFile, stat as statFileAsync } from "node:fs/promises";
 import { exists, stat } from "fs";
+import fs from "node:fs";
 import type { CB } from "@cocalc/util/types/callback";
 import { Watcher } from "@cocalc/backend/watcher";
 import getLogger from "@cocalc/backend/logger";
@@ -20,17 +21,20 @@ export class ClientFs extends Client implements ClientFsType {
   file_size_async = this.filesystemClient.file_size_async;
   file_stat_async = this.filesystemClient.file_stat_async;
   watch_file = this.filesystemClient.watch_file;
+  path_access = this.filesystemClient.path_access;
 
   constructor({
     project_id,
     client_id,
     home,
+    role,
   }: {
     project_id: string;
     client_id?: string;
     home?: string;
+    role: Role;
   }) {
-    super({ project_id, client_id });
+    super({ project_id, client_id, role });
     this.filesystemClient.setHome(home ?? process.env.HOME ?? "/home/user");
   }
 }
@@ -222,5 +226,20 @@ export class FileSystemClient {
   is_deleted = (_path: string, _project_id: string) => {
     // not implemented yet in general
     return undefined;
+  };
+
+  set_deleted = (_path: string, _project_id?: string) => {
+    // TODO: this should edit the listings
+  };
+
+  path_access = (opts: { path: string; mode: string; cb: CB }) => {
+    // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
+    // cb(err); err = if any access fails; err=undefined if all access is OK
+    const path = join(this.home, opts.path);
+    let access = 0;
+    for (let s of opts.mode) {
+      access |= fs[s.toUpperCase() + "_OK"];
+    }
+    fs.access(path, access, opts.cb);
   };
 }

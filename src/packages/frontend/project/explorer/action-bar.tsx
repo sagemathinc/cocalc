@@ -9,7 +9,7 @@ import { HiddenSM, Icon, Gap } from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { ProjectActions } from "@cocalc/frontend/project_store";
-
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import {
   Button,
   ButtonGroup,
@@ -48,7 +48,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     "hidden" | "check" | "clear"
   >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
-    props.actions.project_id
+    props.actions.project_id,
   );
   if (student_project_functionality.disableActions) {
     return <div></div>;
@@ -82,12 +82,12 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     if (props.checked_files.size === 0) {
       const files_on_page = props.listing.slice(
         props.page_size * props.page_number,
-        props.page_size * (props.page_number + 1)
+        props.page_size * (props.page_number + 1),
       );
       props.actions.set_file_list_checked(
         files_on_page.map((file) =>
-          misc.path_to_file(props.current_path ?? "", file.name)
-        )
+          misc.path_to_file(props.current_path ?? "", file.name),
+        ),
       );
       if (props.listing.length > props.page_size) {
         // if there are more items than one page, show a button to select everything
@@ -130,8 +130,8 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   function do_select_entire_directory(): void {
     props.actions.set_file_list_checked(
       props.listing.map((file) =>
-        misc.path_to_file(props.current_path ?? "", file.name)
-      )
+        misc.path_to_file(props.current_path ?? "", file.name),
+      ),
     );
   }
 
@@ -175,7 +175,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
         <div style={style}>
           <span>{`${checked} of ${total} ${misc.plural(
             total,
-            "item"
+            "item",
           )} selected`}</span>
           <Gap />
           {render_select_entire_directory()}
@@ -275,7 +275,9 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       return render_action_buttons();
     }
   }
-
+  if (props.checked_files.size === 0 && IS_MOBILE) {
+    return null;
+  }
   return (
     <div style={{ flex: "1 0 auto" }}>
       <div style={{ flex: "1 0 auto" }}>

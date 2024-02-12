@@ -141,7 +141,8 @@ export class Actions extends MarkdownActions {
     if (project_store == undefined) {
       return;
     }
-    const dir_listings = project_store.get("directory_listings");
+    // TODO: change the 0 to the compute server when/if we ever support RMD on a compute server (which we don't)
+    const dir_listings = project_store.getIn(["directory_listings", 0]);
     if (dir_listings == undefined) {
       return;
     }

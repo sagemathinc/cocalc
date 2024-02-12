@@ -552,10 +552,7 @@ async function synctable_channel0(
     });
     await synctable_channels[name].init();
     if (query?.listings != null) {
-      registerListingsTable(
-        synctable_channels[name].get_synctable(),
-        client.client_id(),
-      );
+      registerListingsTable(synctable_channels[name].get_synctable(), query);
     } else if (query?.project_info != null) {
       register_project_info_table(
         synctable_channels[name].get_synctable(),

@@ -16,6 +16,7 @@ import { throttle } from "lodash";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { isEqual } from "lodash";
 import type { Spark } from "primus";
+import { join } from "path";
 
 const logger = getLogger("terminal:terminal");
 
@@ -256,10 +257,14 @@ export class Terminal {
   };
 
   private saveHistoryToDisk = throttle(async () => {
+    const target = join(this.getHome(), this.path);
     try {
-      await writeFile(this.path, this.history);
+      await writeFile(target, this.history);
     } catch (err) {
-      logger.debug("WARNING: failed to save terminal history to disk", err);
+      logger.debug(
+        `WARNING: failed to save terminal history to '${target}'`,
+        err,
+      );
     }
   }, 15000);
 
@@ -274,7 +279,6 @@ export class Terminal {
     //logger.debug("terminal: term --> browsers", data);
     this.handleBackendMessages(data);
     this.history += data;
-    this.saveHistoryToDisk();
     const n = this.history.length;
     if (n >= MAX_HISTORY_LENGTH) {
       logger.debug("terminal data -- truncating");
@@ -300,6 +304,7 @@ export class Terminal {
         this.truncating = 0;
       }
     }
+    this.saveHistoryToDisk();
     if (!this.truncating) {
       this.channel.write(data);
     }
@@ -448,6 +453,10 @@ export class Terminal {
     }
   };
 
+  private getHome = () => {
+    return process.env.HOME ?? "/home/user";
+  };
+
   private sendCurrentWorkingDirectoryLocalPty = async (spark: Spark) => {
     if (this.localPty == null) {
       return;
@@ -457,7 +466,7 @@ export class Terminal {
     const pid = this.localPty.pid;
     // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
     // home included a symlink, hence the "startsWith" below didn't remove the home dir.
-    const home = await realpath(process.env.HOME ?? "/home/user");
+    const home = await realpath(this.getHome());
     const cwd = await readlink(`/proc/${pid}/cwd`);
     // try to send back a relative path, because the webapp does not
     // understand absolute paths
@@ -665,13 +674,15 @@ export class Terminal {
           // already switched back to local
           return;
         }
-        switch (data.cmd) {
-          case "setComputeServerId":
-            this.setComputeServerId(data.id);
-            break;
-          case "exit": {
-            this.handleDataFromTerminal(EXIT_MESSAGE);
-            break;
+        if (typeof data == "object") {
+          switch (data.cmd) {
+            case "setComputeServerId":
+              this.setComputeServerId(data.id);
+              break;
+            case "exit": {
+              this.handleDataFromTerminal(EXIT_MESSAGE);
+              break;
+            }
           }
         }
       }

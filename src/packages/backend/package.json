@@ -36,9 +36,11 @@
     "awaiting": "^3.0.0",
     "chokidar": "^3.5.3",
     "debug": "^4.3.2",
+    "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "password-hash": "^1.2.2",
+    "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
     "underscore": "^1.12.1"

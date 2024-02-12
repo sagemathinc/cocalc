@@ -1,9 +1,6 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import type {
-  Architecture,
-  ImageName,
-} from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
+import type { Architecture } from "@cocalc/util/db-schema/compute-servers";
+import { getImages, Images } from "@cocalc/server/compute/images";
 import {
   installDocker,
   installNode,
@@ -32,6 +29,9 @@ async function getApiServer() {
 
 export default async function startupScript({
   image = "python",
+  tag,
+  tag_filesystem,
+  tag_cocalc,
   compute_server_id,
   api_key,
   project_id,
@@ -42,7 +42,10 @@ export default async function startupScript({
   auth_token,
   installUser: doInstallUser,
 }: {
-  image?: ImageName;
+  image?: string; // compute image
+  tag?: string; // compute docker image tag
+  tag_filesystem?: string; // filesystem docker image tag
+  tag_cocalc?: string; // @cocalc/compute-server npm package tag
   compute_server_id: number;
   api_key: string;
   project_id: string;
@@ -63,6 +66,7 @@ export default async function startupScript({
   image = imageDeprecation(image);
 
   const apiServer = await getApiServer();
+  const IMAGES = await getImages();
 
   return `
 #!/bin/bash
@@ -114,7 +118,7 @@ if [ $? -ne 0 ]; then
 fi
 
 setState install install-cocalc '' 60 70
-${installCoCalc(arch)}
+${installCoCalc({ arch, IMAGES, tag: tag_cocalc })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
@@ -133,6 +137,9 @@ setState vm start '' 60 60
 ${runCoCalcCompute({
   gpu,
   image,
+  tag,
+  tag_filesystem,
+  IMAGES,
 })}
 
 exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
@@ -199,8 +206,19 @@ ${compute(opts)}
 `;
 }
 
-function filesystem({}) {
-  const image = `sagemathinc/filesystem`;
+function filesystem({
+  IMAGES,
+  tag_filesystem,
+}: {
+  IMAGES: Images;
+  tag_filesystem?: string;
+}) {
+  const tag = getTag({
+    image: "filesystem",
+    IMAGES,
+    tag: tag_filesystem,
+  });
+  const docker = IMAGES["filesystem"].package;
 
   return `
 # Docker container that mounts the filesystem(s)
@@ -227,30 +245,27 @@ fi
 mkdir -p /data
 chown user:user /data
 
-docker start filesystem >/dev/null 2>&1
+docker stop filesystem >/dev/null 2>&1
+docker rm filesystem >/dev/null 2>&1
+
+setState filesystem run '' 45 25
+
+docker run \
+ -d \
+ --name=filesystem \
+ --privileged \
+ --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
+ --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
+ --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+ -v /cocalc:/cocalc \
+ ${docker}:${tag}
 
 if [ $? -ne 0 ]; then
-  setState filesystem run '' 45 25
-
-  docker run \
-   -d \
-   --name=filesystem \
-   --privileged \
-   --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
-   --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
-   --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
-   -v /cocalc:/cocalc \
-   ${image}
-  if [ $? -ne 0 ]; then
-     setState filesystem error "problem creating filesystem Docker container"
-     exit 1
-  fi
-  setState filesystem running '' 45 80
-
-else
-
-  setState filesystem running '' 45 80
+   setState filesystem error "problem creating filesystem Docker container"
+   exit 1
 fi
+
+setState filesystem running '' 45 80
  `;
 }
 
@@ -278,9 +293,19 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function compute({ image, gpu }) {
-  const docker = IMAGES[image]?.docker ?? `sagemathinc/${image}`;
-  const tag = getTag(image);
+function compute({
+  image,
+  tag,
+  gpu,
+  IMAGES,
+}: {
+  image: string;
+  tag?: string;
+  gpu?: boolean;
+  IMAGES: Images;
+}) {
+  const docker = IMAGES[image]?.package ?? `sagemathinc/${image}`;
+  tag = getTag({ image, IMAGES, tag });
 
   // Start a container that connects to the project
   // and manages providing terminals and jupyter kernels
@@ -344,14 +369,44 @@ function setState {
   `;
 }
 
-// For now we just get the newest tag, since there
-// is only one so far.  TODO!
-export function getTag(image): string {
+/*
+If tag is given and available just returns that tag.
+If tag is given but not available or not tag is given,
+returns the newest tested tag, unless no tags are tested,
+in which case we just return the newest tag.
+Returns 'latest' in case nothing is available.
+*/
+
+export function getTag({
+  image,
+  IMAGES,
+  tag,
+}: {
+  image: string;
+  IMAGES: Images;
+  tag?: string;
+}): string {
   image = imageDeprecation(image);
-  const { versions } = IMAGES[image] ?? {};
+  let { versions } = IMAGES[image] ?? {};
   if (versions == null || versions.length == 0) {
     return "latest";
   }
+  if (tag) {
+    for (const x of versions) {
+      if (x?.tag == tag) {
+        // tag is available
+        return tag;
+      }
+    }
+  }
+  // tag is not available or not tag given, so
+  // try to return newest (latested in array, not
+  // actually sorting by tag) tested version.
+  const tested = versions.filter((x) => x.tested);
+  if (tested.length > 0) {
+    return tested[tested.length - 1]?.tag ?? "latest";
+  }
+  // just return non-tested newest sine nothing is tested.
   const version = versions[versions.length - 1];
   return version.tag ?? "latest";
 }

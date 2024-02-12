@@ -1,6 +1,6 @@
 import { dynamicImport } from "tsimportlib";
 import { readdir, rm } from "fs/promises";
-import { join } from "path";
+import { dirname, join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { createEncoderStream } from "lz4";
 import { Readable } from "stream";
@@ -179,4 +179,54 @@ export async function writeFileLz4(path: string, contents: string) {
     output.on("error", reject);
   });
   await waitForFinish;
+}
+
+/*
+Given an array paths of relative paths (relative to my HOME directory),
+the function parseCommonPrefixes outputs an array of objects
+
+{prefix:string; paths:string[]}
+
+where prefix is a common path prefix of all the paths, and paths is what
+is after that prefix.  Thus if the output is x, then
+
+join(x[0].prefix, x[0].paths[0]), join(x[0].prefix, x[0].paths[1]), ..., join(x[x.length-1].prefix, x[x.length-1].paths[0]), ...
+
+is exactly the original input string[] paths.
+*/
+
+export function parseCommonPrefixes(
+  paths: string[],
+): { prefix: string; paths: string[] }[] {
+  // This function will slice the sorted path list into groups of paths having
+  // the same prefix, create an object that contains the prefix and the rest of the
+  // path for each group, and collect these objects into the result array. The rest
+  // of the path is created by slicing the common prefix from the absolute path and
+  // prepending '.' to get the relative path.
+
+  // sort the paths to group common prefixes
+  const sortedPaths = paths.slice().sort();
+  const result: { prefix: string; paths: string[] }[] = [];
+
+  let i = 0;
+  while (i < sortedPaths.length) {
+    const commonPrefix = dirname(sortedPaths[i]);
+    let j = i + 1;
+
+    // count the same prefixes
+    while (j < sortedPaths.length && dirname(sortedPaths[j]) == commonPrefix) {
+      j++;
+    }
+
+    // slice the paths with the same prefix and remove the prefix
+    const subPaths = sortedPaths
+      .slice(i, j)
+      .map((p) => "." + p.slice(commonPrefix.length));
+
+    result.push({ prefix: commonPrefix, paths: subPaths });
+
+    i = j;
+  }
+
+  return result;
 }

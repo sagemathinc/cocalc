@@ -4,7 +4,6 @@
  */
 
 import { useEffect } from "react";
-
 import {
   Button,
   ButtonToolbar,
@@ -25,6 +24,7 @@ import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { FileSpec } from "../file-associations";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   project_id: string;
@@ -38,6 +38,7 @@ export default function AskNewFilename({ project_id }: Props) {
   const new_filename = useTypedRedux({ project_id }, "new_filename");
   const rfn = other_settings.get(NEW_FILENAMES);
   const selected = rfn ?? DEFAULT_NEW_FILENAMES;
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   useEffect(() => {
     shuffle();
@@ -109,8 +110,14 @@ export default function AskNewFilename({ project_id }: Props) {
         <ControlLabel>
           Enter name for new {filename()}{" "}
           {ext_selection == "/" ? "folder" : "file"}
+          {!!compute_server_id && (
+            <>
+              , which will be created on{" "}
+              <ComputeServer id={compute_server_id} />
+            </>
+          )}
         </ControlLabel>
-        <Form>
+        <Form style={{ marginTop: "5px" }}>
           <SearchInput
             autoFocus={!IS_TOUCH}
             autoSelect={!IS_TOUCH}
@@ -148,7 +155,11 @@ export default function AskNewFilename({ project_id }: Props) {
                 >
                   <Icon name={"plus-circle"} /> Create
                 </Button>
-                <Button className={"pull-right"} onClick={cancel}>
+                <Button
+                  className={"pull-right"}
+                  onClick={cancel}
+                  style={{ marginRight: "5px" }}
+                >
                   Cancel
                 </Button>
               </ButtonToolbar>

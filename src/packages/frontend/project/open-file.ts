@@ -18,14 +18,14 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import { ProjectActions } from "../project_actions";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { redux } from "../app-framework";
-import { alert_message } from "../alerts";
-import { webapp_client } from "../webapp-client";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { local_storage } from "../editor-local-storage";
 import { remove } from "../project-file";
-
+import { termPath } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
 
 export interface OpenFileOpts {
   path: string;
@@ -39,11 +39,16 @@ export interface OpenFileOpts {
   ignore_kiosk?: boolean;
   new_browser_window?: boolean;
   change_history?: boolean;
+  // opened via an explicit click
+  explicit?: boolean;
+  // if specified, open the file on the specified compute server; if not given,
+  // opens it on whatever compute server it is currently set to open on.
+  compute_server_id?: number;
 }
 
 export async function open_file(
   actions: ProjectActions,
-  opts: OpenFileOpts
+  opts: OpenFileOpts,
 ): Promise<void> {
   // console.log(opts);
 
@@ -64,6 +69,8 @@ export async function open_file(
     ignore_kiosk: false,
     new_browser_window: false,
     change_history: true,
+    explicit: false,
+    compute_server_id: undefined,
   });
   opts.path = normalize(opts.path);
 
@@ -134,7 +141,7 @@ export async function open_file(
   if (
     !(await ensure_project_running(
       actions.project_id,
-      `open the file '${opts.path}'`
+      `open the file '${opts.path}'`,
     ))
   ) {
     if (!actions.open_files) return; // closed
@@ -269,6 +276,27 @@ export async function open_file(
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
+  if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
+    let path = opts.path;
+    if (path.endsWith(".term")) {
+      path = termPath({ path, cmd: "", number: 0 });
+    }
+    try {
+      await actions.setComputeServerIdForFile({
+        path,
+        compute_server_id: opts.compute_server_id,
+        confirm: true,
+      });
+    } catch (err) {
+      actions.open_files.delete(opts.path);
+      alert_message({
+        type: "error",
+        message: `${err}`,
+        timeout: 20,
+      });
+      return;
+    }
+  }
 
   if (opts.foreground) {
     actions.foreground_project(opts.change_history);
@@ -327,7 +355,7 @@ async function open_sagenb_worksheet(opts: {
   try {
     const path: string = await convert_sagenb_worksheet(
       opts.project_id,
-      opts.path
+      opts.path,
     );
     await open_file(actions, {
       path,
@@ -345,7 +373,7 @@ async function open_sagenb_worksheet(opts: {
 
 async function convert_sagenb_worksheet(
   project_id: string,
-  filename: string
+  filename: string,
 ): Promise<string> {
   const ext = filename_extension(filename);
   if (ext != "sws") {
@@ -426,7 +454,7 @@ function get_side_chat_state(
     path: string;
     chat?: boolean;
     chat_width?: number;
-  }
+  },
 ): void {
   // grab chat state from local storage
   if (local_storage != null) {

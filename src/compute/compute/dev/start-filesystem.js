@@ -39,6 +39,10 @@ async function main() {
   }
 
   console.log("Mounting project", process.env.PROJECT_ID, "at", PROJECT_HOME);
+  const exclude = [".*"].concat(
+    EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
+  );
+  console.log("exclude = ", exclude);
   try {
     exports.fs = await mountProject({
       project_id: process.env.PROJECT_ID,
@@ -46,9 +50,7 @@ async function main() {
       options: { mountOptions: { allowOther: true, nonEmpty: true } },
       unionfs,
       readTrackingFile: process.env.READ_TRACKING_FILE,
-      exclude: [".*"].concat(
-        EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
-      ),
+      exclude,
       metadataFile: process.env.METADATA_FILE,
       syncIntervalMin: 60 * 5,
       syncIntervalMax: 60 * 15,

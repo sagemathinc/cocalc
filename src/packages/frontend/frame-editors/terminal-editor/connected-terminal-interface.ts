@@ -31,7 +31,13 @@ export interface ConnectedTerminalInterface {
   close_frame(id: string): void;
 
   _get_project_actions(): ProjectActions;
-  open_code_editor_frame(path: string);
+  open_code_editor_frame(opts: {
+    path: string;
+    dir?;
+    first?: boolean;
+    pos?: number;
+    compute_server_id?: number;
+  });
 
   store?;
   setState?;

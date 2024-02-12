@@ -10,6 +10,9 @@ import { redux } from "../app-framework";
 import * as prom_client from "../prom-client";
 import { dirname } from "path";
 
+//const log = (...args) => console.log("directory-listing", ...args);
+const log = (..._args) => {};
+
 let prom_get_dir_listing_h;
 if (prom_client.enabled) {
   prom_get_dir_listing_h = prom_client.new_histogram(
@@ -29,9 +32,13 @@ interface ListingOpts {
   max_time_s: number;
   group: string;
   trigger_start_project?: boolean;
+  compute_server_id: number;
 }
 
+// This makes an api call directly to the project to get a directory listing.
+
 export async function get_directory_listing(opts: ListingOpts) {
+  log("get_directory_listing", opts);
   let prom_dir_listing_start, prom_labels;
   if (prom_client.enabled) {
     prom_dir_listing_start = server_time();
@@ -74,6 +81,7 @@ export async function get_directory_listing(opts: ListingOpts) {
         project_id: opts.project_id,
         path: opts.path,
         hidden: opts.hidden,
+        compute_server_id: opts.compute_server_id,
         timeout,
       });
     } catch (err) {
@@ -141,16 +149,22 @@ export async function get_directory_listing(opts: ListingOpts) {
 import { Listings } from "./websocket/listings";
 
 export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
+  log("get_directory_listing2", opts);
   const start = Date.now();
   const store = redux.getProjectStore(opts.project_id);
-  const listings: Listings = await store.get_listings();
+  const compute_server_id =
+    opts.compute_server_id ?? store.get("compute_server_id");
+  const listings: Listings = await store.get_listings(compute_server_id);
   listings.watch(opts.path);
   if (opts.path) {
     listings.watch(dirname(opts.path));
   }
   while (Date.now() - start < opts.max_time_s * 1000) {
     if (listings.getMissing(opts.path)) {
-      if (store.getIn(["directory_listings", opts.path]) != null) {
+      if (
+        store.getIn(["directory_listings", compute_server_id, opts.path]) !=
+        null
+      ) {
         // just update an already loaded listing:
         try {
           const files = await listings.getListingDirectly(
@@ -170,6 +184,7 @@ export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
           ?.fetch_directory_listing_directly(
             opts.path,
             opts.trigger_start_project,
+            compute_server_id,
           );
       }
     }
