@@ -39,7 +39,6 @@ export default function ChatGPTHelp({
   const [output, setOutput] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [showSignUp, setShowSignUp] = useState<boolean>(false);
   const router = useRouter();
 
   const counterRef = useRef<number>(0);
@@ -115,17 +114,10 @@ export default function ChatGPTHelp({
             }}
           />
           {account?.account_id == null && (
-            <div style={{marginTop: "8px"}}>
-              <a onClick={() => setShowSignUp(true)}>
-                Sign in or sign up
-              </a> to use ChatGPT.
-            </div>
-          )}
-          {showSignUp && (
             <InPlaceSignInOrUp
               title="ChatGPT"
+              why="to use ChatGPT"
               onSuccess={() => {
-                setShowSignUp(false);
                 router.reload();
               }}
             />

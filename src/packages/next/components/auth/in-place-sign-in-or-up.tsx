@@ -14,7 +14,7 @@ import { CSSProperties, ReactNode, useState } from "react";
 
 import { AUTH_WRAPPER_STYLE } from "./shared";
 
-type SelectedView = "sign-in" | "sign-up";
+type SelectedView = "sign-in" | "sign-up" | "compact";
 
 interface InPlaceOrSignUpProps {
   title?: ReactNode;
@@ -29,7 +29,7 @@ interface InPlaceOrSignUpProps {
 
 export default function InPlaceSignInOrUp({
   title="Sign in or sign up",
-  defaultView="sign-in",
+  defaultView="compact",
   why,
   onSuccess,
   style,
@@ -44,16 +44,14 @@ export default function InPlaceSignInOrUp({
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>
-      {why && (
-        <div style={{ fontSize: "13px", marginTop: "8px", padding: "8px" }}>
-          Sign in or sign up {why}.
-        </div>
-      )}
-      {show == "sign-up" && (
+      <div style={{ fontSize: "13px", marginTop: "8px", padding: "8px" }}>
+        <a onClick={() => setShow("sign-in")}>Sign in</a> {" or "}
+        <a onClick={() => setShow("sign-up")}>sign up</a>
+        {why ? ` ${why}` : ''}.
+      </div>
+      {show === "sign-up" && (
         <SignUpAuth
           minimal
-          showSignIn
-          signInAction={() => setShow("sign-in")}
           has_site_license={has_site_license}
           publicPathId={publicPathId}
           onSuccess={
@@ -66,11 +64,9 @@ export default function InPlaceSignInOrUp({
           }
         />
       )}
-      {show == "sign-in" && (
+      {show === "sign-in" && (
         <SignInAuth
           minimal
-          showSignUp
-          signUpAction={() => setShow("sign-up")}
           onSuccess={
             onSuccess ??
             (() =>

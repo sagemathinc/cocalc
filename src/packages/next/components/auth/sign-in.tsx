@@ -87,21 +87,31 @@ function SignIn0(props: SignInProps) {
   }
 
   function renderFooter() {
-    return (!minimal || showSignUp) && (
-      <>
+    if (!minimal) {
+      return;
+    }
+
+    if (showSignUp) {
+      return (
         <div>
           New to {siteName}? {
-            signUpAction
-              ? <a onClick={signUpAction}>Sign Up</a>
-              : <A href="/auth/sign-up">Sign Up</A>
-          } {anonymousSignup && (
-            <>
-              or <A href="/auth/try"> try {siteName} without creating an account. </A>
-            </>
-          )}
+          signUpAction
+            ? <a onClick={signUpAction}>Sign Up</a>
+            : <A href="/auth/sign-up">Sign Up</A>
+        } {anonymousSignup && (
+          <>
+            or <A href="/auth/try"> try {siteName} without creating an account. </A>
+          </>
+        )}
         </div>
-      </>
-    );
+      );
+    } else {
+      return (
+        <>
+          You can also <A href="/auth/try"> try {siteName} without creating an account. </A>
+        </>
+      );
+    }
   }
 
   function renderError() {

@@ -51,8 +51,7 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
   const { balance } = useContext(StoreBalanceContext);
 
   const handleMenuItemSelect: MenuProps["onSelect"] = ({ keyPath }) => {
-    const url = keyPath[0] === "vouchers" ? "/vouchers" : `/store/${keyPath[0]}`;
-    router.push(url, undefined, {
+    router.push(`/store/${keyPath[0]}`, undefined, {
       scroll: false,
     });
   }
