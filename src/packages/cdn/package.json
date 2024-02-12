@@ -12,7 +12,7 @@
     "codemirror": "^5.65.3",
     "katex": "^0.16.4",
     "mathjax": "^2.7.9",
-    "pdfjs-dist": "^3.2.146"
+    "pdfjs-dist": "^4.0.379"
   },
   "scripts": {
     "clean": "rm -rf build node_modules dist",

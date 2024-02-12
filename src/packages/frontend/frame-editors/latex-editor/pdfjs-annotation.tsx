@@ -13,10 +13,11 @@ We do NOT render any other annotations (e.g., notes, etc.), as would be produced
 like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-files-generated-by-pdflatex
 */
 
-import { useRef, useState, useEffect } from "react";
-import { useIsMountedRef } from "@cocalc/frontend/app-framework";
-import type { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
 import { Util } from "pdfjs-dist";
+import type { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack.mjs";
+import { useEffect, useRef, useState } from "react";
+
+import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 
 const HIGHLIGHT_HEIGHT: number = 30;
 
@@ -151,7 +152,7 @@ export default function AnnotationLayer({
   function render_sync_highlight(
     scale: number,
     width: number,
-    y: number
+    y: number,
   ): JSX.Element {
     return (
       <div
