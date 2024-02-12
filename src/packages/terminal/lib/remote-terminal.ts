@@ -76,7 +76,6 @@ export class RemoteTerminal extends EventEmitter {
   // Not doing this led to a situation where it always initially took 10.5s
   // to connect, which sucks!
   private waitUntilHealthy = async () => {
-    if (testMode) return;
     let d = 250;
     while (this.state != "closed") {
       if (this.isHealthy()) {
@@ -105,7 +104,6 @@ export class RemoteTerminal extends EventEmitter {
   };
 
   private initRegularHealthChecks = () => {
-    if (testMode) return;
     this.healthCheckInterval = setInterval(
       this.isHealthy,
       REMOTE_TERMINAL_HEARTBEAT_INTERVAL_MS + 3000,
@@ -295,7 +293,3 @@ export class RemoteTerminal extends EventEmitter {
   }, 15000);
 }
 
-let testMode = false;
-export function enableTestMode() {
-  testMode = true;
-}
