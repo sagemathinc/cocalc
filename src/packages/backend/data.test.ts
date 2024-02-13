@@ -251,7 +251,7 @@ describe("#sslConfigToPsqlEnv", () => {
     // Arrange
     //
     const expected: PsqlSSLEnvConfig = {
-      PGSSLMODE: "verify-ca",
+      PGSSLMODE: "verify-full",
       PGSSLROOTCERT: "system",
     };
 
@@ -268,7 +268,7 @@ describe("#sslConfigToPsqlEnv", () => {
     // Arrange
     //
     const expected: PsqlSSLEnvConfig = {
-      PGSSLMODE: "verify-ca",
+      PGSSLMODE: "verify-full",
       PGSSLROOTCERT: TestString.SSL_CA_FILE,
     };
 
@@ -287,7 +287,7 @@ describe("#sslConfigToPsqlEnv", () => {
     // Arrange
     //
     const expected: PsqlSSLEnvConfig = {
-      PGSSLMODE: "verify-ca",
+      PGSSLMODE: "verify-full",
       PGSSLROOTCERT: "system",
       PGSSLCERT: TestString.SSL_CLIENT_CERT_FILE,
     };
@@ -307,7 +307,7 @@ describe("#sslConfigToPsqlEnv", () => {
     // Arrange
     //
     const expected: PsqlSSLEnvConfig = {
-      PGSSLMODE: "verify-ca",
+      PGSSLMODE: "verify-full",
       PGSSLROOTCERT: "system",
       PGSSLKEY: TestString.SSL_CLIENT_KEY_FILE,
     };

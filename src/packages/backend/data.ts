@@ -56,8 +56,14 @@ interface CoCalcSSLEnvConfig extends Dict<string> {
 // See https://www.postgresql.org/docs/current/libpq-envars.html for more information.
 //
 export interface PsqlSSLEnvConfig {
-  PGSSLMODE?: 'verify-ca' | 'require';
-  PGSSLROOTCERT?: 'system' | string; // this typing is redundant but included for clarity.
+  // We could also add "verify-ca" here, but it's probably best to assume that we'd like the
+  // most secure option out of the box. The differences between "verify-ca" and "verify-full"
+  // can be found here: https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-CLIENTCERT
+  //
+  PGSSLMODE?: "verify-full" | "require";
+  // This typing is redundant but included for clarity.
+  //
+  PGSSLROOTCERT?: "system" | string;
   PGSSLCERT?: string;
   PGSSLKEY?: string;
 }
@@ -121,14 +127,14 @@ export const sslConfigToPsqlEnv = (config: SSLConfig): PsqlSSLEnvConfig => {
     return {};
   } else if (config === true) {
     return {
-      PGSSLMODE: 'require',
+      PGSSLMODE: "require",
     };
   }
 
   // If SSL config is anything other than a boolean, require CA validation
   //
   const psqlArgs: PsqlSSLEnvConfig = {
-    PGSSLMODE: 'verify-ca',
+    PGSSLMODE: "verify-full",
   };
 
   // Server CA. Uses CA file when provided and system certs otherwise.
@@ -136,7 +142,7 @@ export const sslConfigToPsqlEnv = (config: SSLConfig): PsqlSSLEnvConfig => {
   if (config.caFile) {
     psqlArgs.PGSSLROOTCERT = `${config.caFile}`;
   } else {
-    psqlArgs.PGSSLROOTCERT = 'system';
+    psqlArgs.PGSSLROOTCERT = "system";
   }
 
   // Client cert
