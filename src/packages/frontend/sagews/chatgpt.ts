@@ -1,6 +1,7 @@
 import { MARKERS } from "@cocalc/util/sagews";
 import { redux } from "@cocalc/frontend/app-framework";
 import { getHelp } from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 
 export function isEnabled(project_id: string): boolean {
   return redux.getStore("projects").hasLanguageModelEnabled(project_id, "help-me-fix");
@@ -18,6 +19,7 @@ export function helpMeFix({
   const j = val.lastIndexOf(MARKERS.cell, i);
   const k = val.lastIndexOf(MARKERS.output, i);
   const input = val.slice(j + 1, k).trim();
+  const [model, setModel] = useLanguageModelSetting();
   getHelp({
     project_id,
     path,
@@ -29,6 +31,6 @@ export function helpMeFix({
     extraFileInfo: "SageMath Worksheet",
     redux,
     prioritizeLastInput: true,
-    model: "gpt-3.5-turbo",
+    model: model,
   });
 }
