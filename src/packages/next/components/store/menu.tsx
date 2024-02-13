@@ -8,7 +8,9 @@ import { Menu, MenuProps, Typography, Flex } from "antd";
 import { useRouter } from "next/router";
 
 import { currency } from "@cocalc/util/misc";
+import { COLORS } from '@cocalc/util/theme';
 import { Icon } from "@cocalc/frontend/components/icon";
+
 import { StoreBalanceContext } from "../../lib/balance";
 
 const { Text } = Typography;
@@ -87,7 +89,18 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
   return (
     <Flex gap="middle" justify="space-between" style={styles.menuRoot} wrap="wrap">
       <Flex style={styles.menuContainer} align="center">
-        <Text strong>Store</Text>
+        <strong>
+          <a
+            onClick={() => {
+              router.push('/store', undefined, {
+                scroll: false,
+              });
+            }}
+            style={{ color: COLORS.GRAY_D, marginRight: "12px" }}
+          >
+            Store
+          </a>
+        </strong>
         <Menu
           mode="horizontal"
           selectedKeys={main ? [main] : undefined}

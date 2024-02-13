@@ -14,6 +14,7 @@ import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
 import Image from "./image";
+import SignIn from "./sign-in";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -65,6 +66,7 @@ export default function Content(props: Props) {
     imageAlternative,
     landing = false, // for all pages on /landing/* – makes the splash content background at the top blue-ish
     body,
+    startup,
     style,
     subtitle,
     subtitleBelow = false,
@@ -214,7 +216,7 @@ export default function Content(props: Props) {
           <Space
             size="large"
             direction="vertical"
-            style={{ width: "100%" }}
+            style={{ textAlign: "center", width: "100%" }}
           >
             {renderLogo()}
             {renderTitle()}
@@ -235,6 +237,9 @@ export default function Content(props: Props) {
           {renderBelowImage()}
         </Col>
         {subtitle && renderSubtitleBelow()}
+        <Col lg={24}>
+          <SignIn startup={startup ?? title} hideFree={true} />
+        </Col>
       </Row>
     </div>
   );

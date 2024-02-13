@@ -359,7 +359,7 @@ export function CoCalcComFeatures() {
             <Tool
               icon="server"
               href={urlProducts}
-              title="Online Service with GPU's"
+              title="Online Service with GPUs"
               alt="Online Service"
               textStyle={{ color: toolCol }}
             >
@@ -391,7 +391,7 @@ export function CoCalcComFeatures() {
                 <A style={link} href={"https://doc.cocalc.com/paygo.html"}>
                   pay-as-you-go
                 </A>{" "}
-                and use GPU's and HPC resources via{" "}
+                and use GPUs and HPC resources via{" "}
                 <A
                   style={link}
                   href={"https://doc.cocalc.com/compute_server.html"}
@@ -592,16 +592,27 @@ export function CoCalcComFeatures() {
   );
 }
 
-
-export function Hero({ siteName }) {
+export function Hero() {
   return (
     <Info.Heading
-      level={3}
+      level={2}
+      textStyle={{ color: "white" }}
       style={{
+        backgroundColor: COLORS.BLUE_D,
+        paddingBottom: "30px",
+        marginTop: "30px",
         paddingTop: "30px",
       }}
     >
-      Collaborate with {siteName} in real time on Jupyter notebooks, LaTeX, Linux servers, and more.
+      Realtime collaborative{" "}
+      <A href="/features/jupyter-notebook" style={{ color: "white" }}>
+        Jupyter notebooks
+      </A>
+      ,{" "}
+      <A href="/features/latex-editor" style={{ color: "white" }}>
+        LaTeX
+      </A>
+      , Markdown, and Linux with GPUs
     </Info.Heading>
   );
 }
