@@ -257,8 +257,6 @@ export default function getConfig({ middleware }: Options = {}) {
       fallback: {
         stream: require.resolve("stream-browserify"),
         path: require.resolve("path-browserify"),
-        crypto:
-          require.resolve("crypto-browserify") /* for @phosphor/widgets */,
         util: require.resolve("util/"),
         assert: require.resolve("assert/"),
       },

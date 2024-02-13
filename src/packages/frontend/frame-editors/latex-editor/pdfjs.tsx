@@ -10,7 +10,9 @@ const HIGHLIGHT_TIME_S: number = 6;
 import { Alert } from "antd";
 import { delay } from "awaiting";
 import type { Set as iSet } from "immutable";
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack.mjs";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import {
   redux,
@@ -24,8 +26,6 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { EditorState } from "../frame-tree/types";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";
