@@ -1,10 +1,12 @@
-import { MARKERS } from "@cocalc/util/sagews";
 import { redux } from "@cocalc/frontend/app-framework";
 import { getHelp } from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
-import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { getValidLanguageModelName } from "@cocalc/util/db-schema/openai";
+import { MARKERS } from "@cocalc/util/sagews";
 
 export function isEnabled(project_id: string): boolean {
-  return redux.getStore("projects").hasLanguageModelEnabled(project_id, "help-me-fix");
+  return redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id, "help-me-fix");
 }
 export function helpMeFix({
   codemirror,
@@ -19,7 +21,12 @@ export function helpMeFix({
   const j = val.lastIndexOf(MARKERS.cell, i);
   const k = val.lastIndexOf(MARKERS.output, i);
   const input = val.slice(j + 1, k).trim();
-  const [model, setModel] = useLanguageModelSetting();
+  // use the currently set language model from the account store
+  // https://github.com/sagemathinc/cocalc/pull/7278
+  const other_settings = redux.getStore("account").get("other_settings");
+  const model = getValidLanguageModelName(
+    other_settings?.get("language_model"),
+  );
   getHelp({
     project_id,
     path,
@@ -31,6 +38,6 @@ export function helpMeFix({
     extraFileInfo: "SageMath Worksheet",
     redux,
     prioritizeLastInput: true,
-    model: model,
+    model,
   });
 }
