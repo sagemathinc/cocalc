@@ -100,11 +100,8 @@ export async function callChatGPTAPI({
         if (gather == null) {
           throw Error("bug");
         }
-        // completion.data.on("data", gather.process.bind(gather));
-        // // collect up the results and return result.
-        // const x = await once(gather, "done");
-        // return x[0];
 
+        // collect up the results and return result.
         return await gather.process(completion);
       }
     } catch (err) {
