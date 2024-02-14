@@ -12,7 +12,6 @@ import { AuthenticateOptions, Strategy as PassportStrategy } from "passport";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Strategy as GithubStrategy } from "passport-github2";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { Strategy as SAMLStrategyOld } from "passport-saml";
 
 import { PostgreSQL } from "@cocalc/database/postgres/types";
 import type {
@@ -45,7 +44,6 @@ export class TwitterWrapper extends TwitterStrategy {
 export type PassportStrategyConstructorType =
   | typeof PassportStrategy
   | typeof SAMLStrategyNew
-  | typeof SAMLStrategyOld
   | typeof TwitterWrapper
   | typeof FacebookStrategy
   | typeof GithubStrategy

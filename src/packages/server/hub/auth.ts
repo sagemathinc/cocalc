@@ -52,10 +52,7 @@ import base_path from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/backend/logger";
 import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import {
-  getExtraStrategyConstructor,
-  getSAMLVariant,
-} from "@cocalc/server/auth/sso/extra-strategies";
+import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
@@ -423,13 +420,11 @@ export class PassportManager {
         const cachedMS = ms("8 hours");
         // Upgrading from SAML 3 to node-saml version 4 needs some extra config options.
         // They're not backwards compatible, so we need to check which version we're using!
-        const samlv4 = getSAMLVariant() === "new" || type === "saml-v4";
-        const patch = samlv4
-          ? {
-              audience: false, // Starting with version 4, this must be set (a string) or false.
-              wantAuthnResponseSigned: false, // if not disabled, got an error with Google's Workspace SAML
-            }
-          : undefined;
+        // 2024-02: we only have v4 now, so these addiitonal default values are always set.
+        const patch = {
+          audience: false, // Starting with version 4, this must be set (a string) or false.
+          wantAuthnResponseSigned: false, // if not disabled, got an error with Google's Workspace SAML
+        };
         return {
           acceptedClockSkewMs: ms("5 minutes"),
           cacheProvider: getPassportCache(name, cachedMS),
