@@ -6,7 +6,6 @@
 import { CloseX2, Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "../context";
 import { PathNavigator } from "../explorer/path-navigator";
-
 const SIZE = "20px";
 
 export function ProjectSearchHeader() {

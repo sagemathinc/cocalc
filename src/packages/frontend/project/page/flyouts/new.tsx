@@ -40,6 +40,7 @@ import { separate_file_extension, trunc_middle } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 
 function getFileExtension(filename: string): string | null {
   if (filename.endsWith(".")) {
@@ -71,6 +72,7 @@ export function NewFlyout({
     { project_id },
     "file_creation_error",
   );
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   // the controlled value in the filename/basename input box
   const [filename, setFilename] = useState<string>("");
@@ -359,6 +361,11 @@ export function NewFlyout({
             className={"cc-project-flyout-path-navigator"}
           />
         </Space>
+        {!!compute_server_id && (
+          <div style={padding}>
+            on <ComputeServer id={compute_server_id} />
+          </div>
+        )}
         <Input
           allowClear
           placeholder="Filename (optional)"

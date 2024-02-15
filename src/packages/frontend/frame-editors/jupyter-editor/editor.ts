@@ -293,8 +293,10 @@ const JUPYTER_MENUS = {
         children: [
           "hide input",
           "hide output",
+          "set cell output scrolled",
           "hide all input",
           "hide all output",
+          "set all cell output scrolled",
         ],
       },
       {
@@ -304,8 +306,10 @@ const JUPYTER_MENUS = {
         children: [
           "show input",
           "show output",
+          "unset cell output scrolled",
           "show all input",
           "show all output",
+          "unset all cell output scrolled",
         ],
       },
       {

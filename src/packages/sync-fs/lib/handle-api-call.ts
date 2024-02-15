@@ -284,33 +284,104 @@ export async function handleSyncFsRequestCall({ compute_server_id }) {
   }
 }
 
+function callComputeServerApi(
+  compute_server_id,
+  mesg,
+  timeoutMs = 30000,
+): Promise<any> {
+  const spark = sparks[compute_server_id];
+  if (spark == null) {
+    log("callComputeServerApi: no connection");
+    throw Error(
+      `no connection to compute server ${compute_server_id} -- please start it`,
+    );
+  }
+  return new Promise((resolve, reject) => {
+    const id = Math.random();
+    spark.write({ ...mesg, id });
+
+    const handler = (data) => {
+      if (data?.id == id) {
+        spark.removeListener("data", handler);
+        clearTimeout(timeout);
+        if (data.error) {
+          reject(Error(data.error));
+        } else {
+          resolve(data.resp);
+        }
+      }
+    };
+    spark.addListener("data", handler);
+
+    const timeout = setTimeout(() => {
+      spark.removeListener("data", handler);
+      reject(Error(`timeout -- ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+}
+
 export async function handleCopy(opts: {
   event: string;
   compute_server_id: number;
   paths: string[];
+  dest?: string;
   timeout?: number;
 }) {
   log("handleCopy: ", opts);
-  const spark = sparks[opts.compute_server_id];
-  if (spark == null) {
-    log("handleCopy: no connection");
-    throw Error(`no connection to compute server ${opts.compute_server_id}`);
-  }
-  const id = Math.random();
-  spark.write({ ...opts, id });
-  // wait for a response with this id
-  const handler = (data) => {
-    if (data?.id == id) {
-      spark.removeListener("data", handler);
-      clearTimeout(timeout);
-      return data;
-    }
-  };
-  spark.addListener("data", handler);
-  const timeout = setTimeout(() => {
-    spark.removeListener("data", handler);
-    throw Error(
-      `timeout - failed to copy files within ${opts.timeout ?? 30000}ms`,
-    );
-  }, opts.timeout ?? 30000);
+  const mesg = { event: opts.event, paths: opts.paths, dest: opts.dest };
+  return await callComputeServerApi(
+    opts.compute_server_id,
+    mesg,
+    (opts.timeout ?? 30) * 1000,
+  );
+}
+
+export async function handleSyncFsGetListing({
+  path,
+  hidden,
+  compute_server_id,
+}) {
+  log("handleSyncFsGetListing: ", { path, hidden, compute_server_id });
+  const mesg = { event: "listing", path, hidden };
+  return await callComputeServerApi(compute_server_id, mesg, 15000);
+}
+
+export async function handleComputeServerFilesystemExec(opts) {
+  const { compute_server_id } = opts;
+  log("handleSyncFsGetListing: ", opts);
+  const mesg = { event: "exec", opts };
+  return await callComputeServerApi(
+    compute_server_id,
+    mesg,
+    (opts.timeout ?? 10) * 1000,
+  );
+}
+
+export async function handleComputeServerDeleteFiles({
+  compute_server_id,
+  paths,
+}) {
+  log("handleComputeServerDeleteFiles: ", { compute_server_id, paths });
+  const mesg = { event: "delete_files", paths };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}
+
+export async function handleComputeServerRenameFile({
+  compute_server_id,
+  src,
+  dest,
+}) {
+  log("handleComputeServerRenameFile: ", { compute_server_id, src, dest });
+  const mesg = { event: "rename_file", src, dest };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}
+
+export async function handleComputeServerMoveFiles({
+  compute_server_id,
+  paths,
+  dest,
+}) {
+  log("handleComputeServerMoveFiles: ", { compute_server_id, paths, dest });
+  const mesg = { event: "move_files", paths, dest };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
 }

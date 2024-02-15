@@ -142,6 +142,9 @@ export interface FileSpec {
   };
   name: string;
   exclude_from_menu?: boolean;
+
+  // opening this file type on a compute server is not supported yet
+  exclude_from_compute_server?: boolean;
 }
 
 export const file_associations: { [ext: string]: FileSpec } = {};
@@ -199,6 +202,7 @@ file_associations["tex"] = {
   icon: "tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
   name: "LaTeX",
+  exclude_from_compute_server: true,
 };
 
 file_associations["latex"] = file_associations["tex"];
@@ -264,6 +268,7 @@ file_associations["lean"] = {
   icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "lean" },
   name: "lean",
+  exclude_from_compute_server: true,
 };
 
 file_associations["md"] = file_associations["markdown"] = {
@@ -286,6 +291,7 @@ file_associations["rmd"] = {
     spellcheck: true,
   },
   name: "RMarkdown",
+  exclude_from_compute_server: true,
 };
 
 file_associations["qmd"] = {
@@ -297,12 +303,14 @@ file_associations["qmd"] = {
     spellcheck: true,
   },
   name: "Quarto",
+  exclude_from_compute_server: true,
 };
 
 file_associations["rst"] = {
   icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "rst", spellcheck: true },
   name: "ReST",
+  exclude_from_compute_server: true,
 };
 
 file_associations["java"] = {
@@ -374,6 +382,7 @@ file_associations["x11"] = {
   icon: "window-restore",
   opts: {},
   name: "Linux Graphical X11 Desktop",
+  exclude_from_compute_server: true,
 };
 
 file_associations["ipynb"] = {
@@ -403,13 +412,13 @@ for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
 }
 
 export const IMAGE_EXTS = Object.freeze(
-  imageExtensions
+  imageExtensions,
 ) as ReadonlyArray<string>;
 export const VIDEO_EXTS = Object.freeze(
-  videoExtensions
+  videoExtensions,
 ) as ReadonlyArray<string>;
 export const AUDIO_EXTS = Object.freeze(
-  audioExtensions
+  audioExtensions,
 ) as ReadonlyArray<string>;
 
 file_associations["pdf"] = {
@@ -433,6 +442,7 @@ file_associations["course"] = {
   icon: "graduation-cap",
   opts: {},
   name: "course",
+  exclude_from_compute_server: true,
 };
 
 file_associations["board"] = {
@@ -440,6 +450,7 @@ file_associations["board"] = {
   icon: "layout",
   opts: {},
   name: "whiteboard",
+  exclude_from_compute_server: true,
 };
 
 file_associations["slides"] = {
@@ -447,6 +458,7 @@ file_associations["slides"] = {
   icon: "slides",
   opts: {},
   name: "Slides",
+  exclude_from_compute_server: true,
 };
 
 file_associations["sage-chat"] = {
@@ -535,4 +547,11 @@ file_associations["sagews"] = {
   opts: { mode: "sagews" },
   name: "sagews",
   exclude_from_menu: true,
+  exclude_from_compute_server: true,
 };
+
+export function excludeFromComputeServer(path: string): boolean {
+  const ext = filename_extension(path);
+  const x = file_associations[ext];
+  return !!x?.exclude_from_compute_server;
+}

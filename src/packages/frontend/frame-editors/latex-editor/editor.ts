@@ -68,6 +68,7 @@ const EDITOR_SPEC: EditorSpec = {
       "download_pdf",
     ]),
     buttons: set([
+      "format-ai_formula",
       "sync",
       "format-header",
       "format-text",

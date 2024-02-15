@@ -33,11 +33,18 @@ interface Props {
 async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
   try {
     let mime = "";
+    const compute_server_id =
+      (await webapp_client.project_client.getServerIdForPath({
+        project_id,
+        path,
+      })) ?? 0;
     const { stdout: mime_raw, exit_code: exit_code1 } =
       await webapp_client.project_client.exec({
         project_id,
         command: "file",
         args: ["-b", "--mime-type", path],
+        compute_server_id,
+        filesystem: true,
       });
     if (exit_code1 != 0) {
       set_err(`Error: exit_code1 = ${exit_code1}`);
@@ -62,7 +69,12 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
         };
 
     const { stdout: raw, exit_code: exit_code2 } =
-      await webapp_client.project_client.exec({ project_id, ...content_cmd });
+      await webapp_client.project_client.exec({
+        project_id,
+        ...content_cmd,
+        compute_server_id,
+        filesystem: true,
+      });
     if (exit_code2 != 0) {
       set_err(`Error: exit_code2 = ${exit_code2}`);
     } else {

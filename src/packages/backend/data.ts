@@ -10,6 +10,8 @@ In particular, nothing here can be impacted by command line flags
 or content of a database.
 */
 
+import Dict = NodeJS.Dict;
+
 const DEFINITION = `CoCalc Environment Variables:
 - root -- if COCALC_ROOT is set then it; otherwise use [cocalc-source]/src/.
 - data -- if the environment variable DATA is set, use that.  Otherwise, use {root}/data
@@ -23,6 +25,9 @@ const DEFINITION = `CoCalc Environment Variables:
 `;
 
 import { join, resolve } from "path";
+import { ConnectionOptions } from "node:tls";
+import { readFileSync } from "fs";
+import { isEmpty } from "lodash";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -33,11 +38,134 @@ function determineRootFromPath(): string {
   return root;
 }
 
+// Each field value in this interface is to be treated as though it originated from a raw
+// environment variable. These environment variables are used to configure CoCalc's SSL connection
+// to the database.
+//
+interface CoCalcSSLEnvConfig extends Dict<string> {
+  SMC_DB_SSL?: string;
+  SMC_DB_SSL_CA_FILE?: string;
+  SMC_DB_SSL_CLIENT_CERT_FILE?: string;
+  SMC_DB_SSL_CLIENT_KEY_FILE?: string;
+  SMC_DB_SSL_CLIENT_KEY_PASSPHRASE?:string;
+}
+
+// This interface is used to specify environment variables to be passed to the "psql" command for
+// SSL configuration.
+//
+// See https://www.postgresql.org/docs/current/libpq-envars.html for more information.
+//
+export interface PsqlSSLEnvConfig {
+  // We could also add "verify-ca" here, but it's probably best to assume that we'd like the
+  // most secure option out of the box. The differences between "verify-ca" and "verify-full"
+  // can be found here: https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-CLIENTCERT
+  //
+  PGSSLMODE?: "verify-full" | "require";
+  // This typing is redundant but included for clarity.
+  //
+  PGSSLROOTCERT?: "system" | string;
+  PGSSLCERT?: string;
+  PGSSLKEY?: string;
+}
+
+// A full list of property types and SSL config options can be found here:
+//
+// http://nodejs.org/api/tls.html#tls_tls_connect_options_callback
+//
+// We extend the existing ConnectionOptions interface to include certificate file paths, since these
+// are used when connecting to Postgres outside of Node (e.g., for raw psql queries).
+//
+export type SSLConfig = ConnectionOptions & {
+  caFile?: string;
+  clientCertFile?: string;
+  clientKeyFile?: string;
+} | boolean | undefined;
+
+/**
+ * Converts an environment-variable-driven SSLEnvConfig into a superset of the SSL context expected
+ * by node when generating SSL connections.
+ *
+ * @param env
+ */
+export const sslConfigFromCoCalcEnv = (env: CoCalcSSLEnvConfig = process.env): SSLConfig => {
+  const sslConfig: SSLConfig = {};
+
+  if (env.SMC_DB_SSL_CA_FILE) {
+    sslConfig.caFile = env.SMC_DB_SSL_CA_FILE;
+    sslConfig.ca = readFileSync(env.SMC_DB_SSL_CA_FILE);
+  }
+
+  if (env.SMC_DB_SSL_CLIENT_CERT_FILE) {
+    sslConfig.clientCertFile = env.SMC_DB_SSL_CLIENT_CERT_FILE;
+    sslConfig.cert = readFileSync(env.SMC_DB_SSL_CLIENT_CERT_FILE);
+  }
+
+  if (env.SMC_DB_SSL_CLIENT_KEY_FILE) {
+    sslConfig.clientKeyFile = env.SMC_DB_SSL_CLIENT_KEY_FILE
+    sslConfig.key = readFileSync(env.SMC_DB_SSL_CLIENT_KEY_FILE);
+  }
+
+  if (env.SMC_DB_SSL_CLIENT_KEY_PASSPHRASE) {
+    sslConfig.passphrase = env.SMC_DB_SSL_CLIENT_KEY_PASSPHRASE;
+  }
+
+  return isEmpty(sslConfig) ? (env.SMC_DB_SSL?.toLowerCase() === "true") : sslConfig;
+}
+
+/**
+ * Converts a provided SSLConfig object into (a subset of) its corresponding `psql` environment
+ * variables. See
+ *
+ * http://nodejs.org/api/tls.html#tls_tls_connect_options_callback
+ *
+ * for more information about these options.
+ *
+ * @param config
+ */
+export const sslConfigToPsqlEnv = (config: SSLConfig): PsqlSSLEnvConfig => {
+  if (!config) {
+    return {};
+  } else if (config === true) {
+    return {
+      PGSSLMODE: "require",
+    };
+  }
+
+  // If SSL config is anything other than a boolean, require CA validation
+  //
+  const psqlArgs: PsqlSSLEnvConfig = {
+    PGSSLMODE: "verify-full",
+  };
+
+  // Server CA. Uses CA file when provided and system certs otherwise.
+  //
+  if (config.caFile) {
+    psqlArgs.PGSSLROOTCERT = `${config.caFile}`;
+  } else {
+    psqlArgs.PGSSLROOTCERT = "system";
+  }
+
+  // Client cert
+  //
+  if (config.clientCertFile) {
+    psqlArgs.PGSSLCERT = `${config.clientCertFile}`;
+  }
+
+  // Client key
+  //
+  if (config.clientKeyFile) {
+    psqlArgs.PGSSLKEY = `${config.clientKeyFile}`;
+  }
+
+  return psqlArgs;
+}
+
 export const root: string = process.env.COCALC_ROOT ?? determineRootFromPath();
 export const data: string = process.env.DATA ?? join(root, "data");
 export const pguser: string = process.env.PGUSER ?? "smc";
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");
+export const pgssl = sslConfigFromCoCalcEnv();
 export const pgdatabase: string =
   process.env.SMC_DB ?? process.env.PGDATABASE ?? "smc";
 export const projects: string =

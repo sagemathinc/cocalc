@@ -41,6 +41,7 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 
 const RESULTS_WELL_STYLE: React.CSSProperties = {
   backgroundColor: "white",
@@ -100,6 +101,10 @@ export function ProjectSearchBody({
           ) : undefined}
         </Col>
         <Col sm={10} offset={2} style={{ fontSize: "16px" }}>
+          <SelectComputeServerForFileExplorer
+            project_id={project_id}
+            style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
+          />
           <Checkbox
             disabled={neural_search}
             checked={subdirectories}
@@ -164,6 +169,10 @@ export function ProjectSearchBody({
           neural={neural_search}
           git={!neural_search && git_grep}
           small={true}
+        />
+        <SelectComputeServerForFileExplorer
+          project_id={project_id}
+          style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
         />
         <Checkbox
           disabled={neural_search}
@@ -516,6 +525,7 @@ function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
         Results of searching in {output_path()} for "{most_recent_search}"
         <Gap />
         <Button
+          type={"text"}
           onClick={() =>
             actions?.setState({
               info_visible: !info_visible,
@@ -573,6 +583,10 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
     if (window.getSelection()?.toString()) {
       return;
     }
+    if (actions == null) {
+      // should never happen -- typescript wants this.
+      return;
+    }
 
     let chat;
     let path = path_to_file(most_recent_path, filename);
@@ -584,11 +598,13 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
     } else {
       chat = false;
     }
-    await actions?.open_file({
+    await actions.open_file({
       path,
       foreground: should_open_in_foreground(e),
       fragmentId: fragment_id ?? { line: line_number ?? 0 },
       chat,
+      explicit: true,
+      compute_server_id: actions.getComputeServerId(),
     });
   }
 

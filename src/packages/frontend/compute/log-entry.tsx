@@ -3,6 +3,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { Icon } from "@cocalc/frontend/components";
+import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 
 export default function LogEntry({
   project_id,
@@ -19,11 +20,19 @@ export default function LogEntry({
     return null;
   }
   const cs = hideTitle ? <></> : <>Compute Server "{title}" - </>;
+  const tag = (
+    <ComputeServerTag
+      id={event.server_id}
+      style={{ float: "right", maxWidth: "125px" }}
+    />
+  );
+
   switch (event.action) {
     case "error":
       return (
         <>
           {cs} <Error error={event.error} />
+          {tag}
         </>
       );
     case "state":
@@ -37,6 +46,7 @@ export default function LogEntry({
             <Icon name={icon} /> {capitalize(event.state)}
           </span>{" "}
           {cs}
+          {tag}
         </>
       );
     case "configuration":
@@ -45,12 +55,14 @@ export default function LogEntry({
           {cs} Configuration{" "}
           {plural(Object.keys(event.changes).length, "change")} -{" "}
           {changeString(event.changes)}
+          {tag}
         </>
       );
     default:
       return (
         <>
           {cs} {JSON.stringify(event)}
+          {tag}
         </>
       );
   }

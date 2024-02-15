@@ -182,6 +182,7 @@ export async function mountProject({
       }
 
       syncfs = syncFS({
+        role: "compute_server",
         lower: unionfs.lower,
         upper: unionfs.upper,
         mount: path,

@@ -117,6 +117,11 @@ export class Actions extends MarkdownActions {
     this.is_building = true;
     try {
       const actions = this.redux.getEditorActions(this.project_id, this.path);
+      if (actions == null) {
+        // opening/close a newly created file can trigger build when actions aren't
+        // ready yet.  https://github.com/sagemathinc/cocalc/issues/7249
+        return;
+      }
       await (actions as BaseActions<CodeEditorState>).save(false);
       await this.run_rmd_converter(Date.now());
     } finally {
@@ -136,7 +141,8 @@ export class Actions extends MarkdownActions {
     if (project_store == undefined) {
       return;
     }
-    const dir_listings = project_store.get("directory_listings");
+    // TODO: change the 0 to the compute server when/if we ever support RMD on a compute server (which we don't)
+    const dir_listings = project_store.getIn(["directory_listings", 0]);
     if (dir_listings == undefined) {
       return;
     }

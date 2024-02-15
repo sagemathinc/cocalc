@@ -38,8 +38,9 @@ import LanguageModelTitleBarButton from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import SelectComputeServer from "@cocalc/frontend/compute/select-server";
+import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import {
   APPLICATION_MENU,
   COMMANDS,
@@ -48,8 +49,8 @@ import {
   SEARCH_COMMANDS,
   ManageCommands,
 } from "./commands";
-
 const MAX_SEARCH_RESULTS = 10;
+import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -468,47 +469,43 @@ export function FrameTitleBar(props: Props) {
       return;
     }
     return (
-      <Tooltip key="time-travel-button" title="TimeTravel edit history">
-        <Button
-          key={"time-travel-button"}
-          style={{
-            ...button_style(),
-            ...(!darkMode
-              ? { color: "#333", background: "#5bc0de" }
-              : undefined),
-          }}
-          size={button_size()}
-          onClick={(event) => {
-            try {
-              track("time-travel");
-              if (props.actions.name != props.editor_actions.name) {
-                // a subframe editor -- always open time travel in a name tab.
-                props.editor_actions.time_travel({ frame: false });
-                return;
-              }
-              // If a time_travel frame type is available and the
-              // user does NOT shift+click, then open as a frame.
-              // Otherwise, it opens as a new tab.
-              const frame =
-                !event.shiftKey && props.editor_spec["time_travel"] != null;
-              props.actions.time_travel({
-                frame,
-              });
-            } catch (err) {
-              props.actions.set_error(
-                `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
-              );
+      <Button
+        key={"time-travel-button"}
+        style={{
+          ...button_style(),
+          ...(!darkMode ? { color: "#333", background: "#5bc0de" } : undefined),
+        }}
+        size={button_size()}
+        onClick={(event) => {
+          try {
+            track("time-travel");
+            if (props.actions.name != props.editor_actions.name) {
+              // a subframe editor -- always open time travel in a name tab.
+              props.editor_actions.time_travel({ frame: false });
+              return;
             }
-          }}
-        >
-          <Icon name="history" />
-          {noLabel ? undefined : (
-            <VisibleMDLG>
-              <span style={{ marginLeft: "5px" }}>TimeTravel</span>
-            </VisibleMDLG>
-          )}
-        </Button>
-      </Tooltip>
+            // If a time_travel frame type is available and the
+            // user does NOT shift+click, then open as a frame.
+            // Otherwise, it opens as a new tab.
+            const frame =
+              !event.shiftKey && props.editor_spec["time_travel"] != null;
+            props.actions.time_travel({
+              frame,
+            });
+          } catch (err) {
+            props.actions.set_error(
+              `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
+            );
+          }
+        }}
+      >
+        <Icon name="history" />
+        {noLabel ? undefined : (
+          <VisibleMDLG>
+            <span style={{ marginLeft: "5px" }}>TimeTravel</span>
+          </VisibleMDLG>
+        )}
+      </Button>
     );
   }
 
@@ -687,17 +684,13 @@ export function FrameTitleBar(props: Props) {
       );
     }
     if (!(props.is_only || props.is_full)) {
-      // When in split view, we let the buttonbar flow around and hide, so that
-      // extra buttons are cleanly not visible when frame is thin.
       style = {
         display: "flex",
-        maxHeight: "30px",
         ...style,
       };
     } else {
       style = {
         display: "flex",
-        maxHeight: "34px",
         marginLeft: "2px",
         ...style,
       };
@@ -850,27 +843,21 @@ export function FrameTitleBar(props: Props) {
   }
 
   function renderComputeServer(noLabel) {
-    if (
-      !manageCommands.isVisible("compute_server") ||
-      !computeServersEnabled()
-    ) {
+    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
       return null;
     }
     const { type } = props;
-    if (type != "terminal" && type != "jupyter_cell_notebook") {
-      // ONLY terminal and jupyter are supported
-      return null;
-    }
     return (
-      <SelectComputeServer
-        key="compute-server-selector"
+      <SelectComputeServerForFile
         actions={props.actions}
         frame_id={props.id}
+        key="compute-server-selector"
         type={type}
         project_id={props.project_id}
         path={props.path}
         style={{
           height: button_height(),
+          overflow: "hidden",
           borderRight: "1px solid #d9d9d9",
           borderTop: "1px solid #d9d9d9",
           borderBottom: "1px solid #d9d9d9",
@@ -1041,6 +1028,24 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
+  function renderComputeServerDocStatus() {
+    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
+      return null;
+    }
+    const { type } = props;
+    if (type == "terminal" || type == "jupyter_cell_notebook") {
+      // these are handled in a more sophisticated way due to compute
+      // in their own editor.
+      return null;
+    }
+    return (
+      <StandaloneComputeServerDocStatus
+        project_id={props.project_id}
+        path={props.path}
+      />
+    );
+  }
+
   function renderPage() {
     if (
       props.page == null ||
@@ -1158,22 +1163,25 @@ export function FrameTitleBar(props: Props) {
   }
 
   return (
-    <div style={{ opacity: !is_active ? 0.6 : undefined }}>
-      <div
-        style={style}
-        id={`titlebar-${props.id}`}
-        className={"cc-frame-tree-title-bar"}
-      >
-        {renderMainMenusAndButtons()}
-        {renderConnectionStatus()}
-        {allButtonsPopover()}
-        {renderFrameControls()}
+    <>
+      <div style={{ opacity: !is_active ? 0.6 : undefined }}>
+        <div
+          style={style}
+          id={`titlebar-${props.id}`}
+          className={"cc-frame-tree-title-bar"}
+        >
+          {renderMainMenusAndButtons()}
+          {renderConnectionStatus()}
+          {allButtonsPopover()}
+          {renderFrameControls()}
+        </div>
+        {renderButtonBar()}
+        {renderConfirmBar()}
+        {hasTour && props.is_visible && props.tab_is_visible && (
+          <TitleBarTour refs={tourRefs} />
+        )}
       </div>
-      {renderButtonBar()}
-      {renderConfirmBar()}
-      {hasTour && props.is_visible && props.tab_is_visible && (
-        <TitleBarTour refs={tourRefs} />
-      )}
-    </div>
+      {renderComputeServerDocStatus()}
+    </>
   );
 }

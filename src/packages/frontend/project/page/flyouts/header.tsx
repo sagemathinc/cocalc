@@ -20,6 +20,7 @@ import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
 import { ActiveHeader } from "./active-header";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -152,12 +153,24 @@ export function FlyoutHeader(_: Readonly<Props>) {
     switch (flyout) {
       case "files":
         return (
-          <PathNavigator
-            style={{ flex: 1 }}
-            mode={"flyout"}
-            project_id={project_id}
-            className={"cc-project-flyout-path-navigator"}
-          />
+          <>
+            <SelectComputeServerForFileExplorer
+              size="small"
+              project_id={project_id}
+              key="compute-server"
+              noLabel={true}
+              style={{
+                borderRadius: "5px",
+                marginRight: "5px",
+              }}
+            />
+            <PathNavigator
+              style={{ flex: 1 }}
+              mode={"flyout"}
+              project_id={project_id}
+              className={"cc-project-flyout-path-navigator"}
+            />
+          </>
         );
       case "log":
         return <LogHeader />;

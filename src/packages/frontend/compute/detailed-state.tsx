@@ -159,7 +159,12 @@ function State({
     <div style={{ borderBottom: "1px solid #ddd" }}>
       <div style={{ display: "flex" }}>
         <Tooltip title={SPEC[name]?.tip}>
-          <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
+          <div
+            style={{
+              flex: 1,
+              color: expired ? "#aaa" : undefined,
+            }}
+          >
             {name != "compute" && name != "filesystem-sync" && (
               <>
                 <Icon
@@ -190,6 +195,7 @@ function State({
                 flex: 1,
                 textAlign: "center",
                 height: "30px",
+                overflow: "auto",
               }}
             >
               {/* only show time when at least a minute in past to avoid annoying flicker */}

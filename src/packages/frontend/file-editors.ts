@@ -151,7 +151,7 @@ function get_ed(
     altExt[key(project_id, path)] ??
     filename_extension_notilde(path).toLowerCase();
 
-  // TODO: temporary hack because we have two kinds of ipynb editors.  This will go away.
+  // TODO: hack because we have two kinds of ipynb editors.  This will probably never go away.
   if (
     project_id != null &&
     ext == "ipynb" &&

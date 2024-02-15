@@ -14,13 +14,6 @@ This can be used both on the frontend and the backend.
 // four support messages *per year* about this...
 const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 
-// This is relevant for compute servers. It's how long until we give up
-// on the compute server if it doesn't actively update its cursor state.
-// Note that in most cases the compute server will explicitly delete its
-// cursor on termination so switching is instant. This is a "just in case",
-// so things aren't broken forever, e.g., in case of a crash.
-export const COMPUTE_THRESH_MS = 15 * 1000;
-
 declare const localStorage: any;
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -48,8 +41,6 @@ import {
 } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
-import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
-import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
 import { once } from "@cocalc/util/async-utils";
 
 const { close, required, defaults } = misc;
@@ -126,7 +117,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       });
     }
 
-    this.is_compute_server = !!client.is_compute_server;
+    this.is_compute_server = client.is_compute_server();
 
     let directory: any;
     const split_path = misc.path_split(path);
@@ -2709,38 +2700,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   // Return id of ACTIVE remote compute server, if one is connected, or 0
-  // if none is connected.  We always take the smallest id of the remote
-  // compute servers, in case there is more than one, so exactly one of them
-  // takes control.
+  // if none is connected.
   getComputeServerId = (): number => {
-    // This info is in the "cursors" table instead of the document itself
-    // to avoid wasting space in the database longterm.  Basically a remote
-    // Jupyter client that can provide compute announces this by reporting it's
-    // cursor to look a certain way.
-    const cursors = this.syncdb.get_cursors({
-      maxAge: COMPUTE_THRESH_MS,
-      // don't exclude self since getComputeServerId called from the compute
-      // server also to know if it is the chosen one.
-      excludeSelf: false,
-    });
-    const dbg = this.dbg("getComputeServerId");
-    dbg("num cursors = ", cursors.size);
-    let minId = Infinity;
-    // NOTE: similar code is in frontend/jupyter/cursor-manager.ts
-    for (const [client_id, cursor] of cursors) {
-      if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
-        try {
-          minId = Math.min(minId, decodeUUIDtoNum(client_id));
-        } catch (err) {
-          // this should never happen unless a client were being malicious.
-          dbg(
-            "WARNING -- client_id should encode server id, but is",
-            client_id,
-          );
-        }
-      }
-    }
-    return isFinite(minId) ? minId : 0;
+    return this.syncdb.getComputeServerId();
   };
 
   protected isCellRunner = (): boolean => {

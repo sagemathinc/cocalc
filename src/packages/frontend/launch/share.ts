@@ -125,7 +125,7 @@ export class ShareLauncher {
 
     // What is our relationship to this public_path?
     const relationship: Relationship = await this.get_relationship_to_share(
-      info.project_id
+      info.project_id,
     );
 
     //console.log("relationship = ", relationship);
@@ -170,7 +170,7 @@ export class ShareLauncher {
   }
 
   private async get_relationship_to_share(
-    project_id: string
+    project_id: string,
   ): Promise<Relationship> {
     const account_store = redux.getStore("account");
     if (account_store == null) {
@@ -178,7 +178,7 @@ export class ShareLauncher {
     }
     if (!account_store.get("is_logged_in")) {
       throw Error(
-        "user must be signed in before share launch action is performed"
+        "user must be signed in before share launch action is performed",
       );
     }
     if (account_store.get("is_anonymous")) {
@@ -274,7 +274,7 @@ export class ShareLauncher {
   }
 
   private async open_share_in_the_anonymous_project(
-    max_time_s: number = 30
+    max_time_s: number = 30,
   ): Promise<void> {
     // We wait until the anonymous user exists and then create a project
     // (default project creation is intercepted in client/anonymous-setup)
@@ -291,7 +291,7 @@ export class ShareLauncher {
       await this.create_and_setup_project(ANON_PROJECT_TITLE);
     } catch {
       throw Error(
-        `unable to get anonymous user after waiting ${max_time_s} seconds -- something is wrong`
+        `unable to get anonymous user after waiting ${max_time_s} seconds -- something is wrong`,
       );
     }
   }
@@ -299,7 +299,7 @@ export class ShareLauncher {
   private async open_share_in_project(
     project_id: string,
     path: string,
-    target_project_id: string
+    target_project_id: string,
   ): Promise<void> {
     // Open the project itself.
     const projects_actions = redux.getActions("projects");
@@ -338,9 +338,10 @@ export class ShareLauncher {
     await actions.set_current_path(containing_path);
     const store = redux.getProjectStore(target_project_id);
     await callback2(store.wait.bind(store), {
-      until: () => store.getIn(["directory_listings", containing_path]) != null,
+      until: () =>
+        store.getIn(["directory_listings", 0, containing_path]) != null,
     });
-    const listing = store.getIn(["directory_listings", containing_path]);
+    const listing = store.getIn(["directory_listings", 0, containing_path]);
     let isdir: boolean = false;
     for (const x of listing) {
       if (x.get("name") == filename) {

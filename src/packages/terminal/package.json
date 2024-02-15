@@ -29,13 +29,13 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/comm": "workspace:*",
     "@cocalc/primus-multiplex": "^1.1.0",
+    "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/util": "workspace:*",
     "awaiting": "^3.0.0",
     "debug": "^4.3.2",
     "lodash": "^4.17.21",
     "node-pty": "^1.0.0",
-    "primus": "^8.0.7",
-    "primus-responder": "^1.0.4"
+    "primus": "^8.0.7"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/terminal",
   "repository": {

@@ -19,7 +19,7 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Terminal } from "./connected-terminal";
 import { background_color } from "./themes";
-import ComputeServerDocStatus from "@cocalc/frontend/compute/doc-status";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import useResizeObserver from "use-resize-observer";
 
