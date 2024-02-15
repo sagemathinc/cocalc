@@ -446,6 +446,7 @@ export default function SiteSettings({ close }) {
             />
             {[
               "openai",
+              "gemini",
               "jupyter",
               "email",
               "logo",
@@ -456,7 +457,7 @@ export default function SiteSettings({ close }) {
               "github",
               "pay as you go",
               "compute servers",
-            ].map((name) => (
+            ].sort().map((name) => (
               <CheckableTag
                 key={name}
                 style={{ cursor: "pointer" }}
