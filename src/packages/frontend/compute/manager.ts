@@ -32,6 +32,8 @@ export class ComputeServersManager extends EventEmitter {
     this.sync_db.on("change", () => {
       this.emit("change");
     });
+    // It's reasonable to have many clients, e.g., one for each open file
+    this.setMaxListeners(100);
     log("created", this.project_id);
   }
 
