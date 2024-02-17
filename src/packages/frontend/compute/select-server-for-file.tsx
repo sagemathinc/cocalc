@@ -206,14 +206,14 @@ export function modalParams({ current, target, path }) {
     what = "Open File";
   }
   const targetDesc = (
-    <>
-      on <ComputeServer id={target} titleOnly />
-    </>
+    <span key="target-desc">
+      on <ComputeServer key="target-name" id={target} titleOnly />
+    </span>
   );
   const sourceDesc = (
-    <>
-      on <ComputeServer id={current} titleOnly />
-    </>
+    <span key="source-desc">
+      on <ComputeServer key="source-name" id={current} titleOnly />
+    </span>
   );
 
   return {
