@@ -1211,7 +1211,20 @@ export class JupyterActions extends JupyterActions0 {
     }
     dbg("going to try to save: getting ipynb object...");
     const blob_store = this.jupyter_kernel.get_blob_store();
-    const ipynb = await this.store.get_ipynb(blob_store);
+    let ipynb = this.store.get_ipynb(blob_store);
+    if (this.store.get("kernel")) {
+      // if a kernel is set, check that it was sufficiently known that
+      // we can fill in data about it -- see https://github.com/sagemathinc/cocalc/issues/7286
+      if (ipynb?.metadata?.kernelspec?.name == null) {
+        dbg("kernelspec not known -- try loading kernels again");
+        await this.fetch_jupyter_kernels();
+        // and again grab the ipynb
+        ipynb = this.store.get_ipynb(blob_store);
+        if (ipynb?.metadata?.kernelspec?.name == null) {
+          dbg("kernelspec STILL not known: metadata will be incomplete");
+        }
+      }
+    }
     dbg("got ipynb object");
     // We use json_stable (and indent 1) to be more diff friendly to user,
     // and more consistent with official Jupyter.
