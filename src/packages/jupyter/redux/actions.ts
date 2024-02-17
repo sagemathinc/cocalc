@@ -273,7 +273,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   protected close_client_only(): void {
-    throw Error("must define in derived client class");
+    // no-op: this can be defined in a derived class. E.g., in the frontend, it removes
+    // an account_change listener.
   }
 
   public is_closed(): boolean {
