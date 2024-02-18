@@ -174,8 +174,8 @@ export const EXTRAS: SettingsExtras = {
     show: openai_enabled,
   },
   google_vertexai_key: {
-    name: "Google GenerativeAI Key",
-    desc: "Create a [Generative AI Key](https://makersuite.google.com/app/apikey) in the Google AI Studio and paste the content.",
+    name: "Google Gemini Generative AI API Key",
+    desc: "Create an [API Key](https://aistudio.google.com/app/apikey) in [Google's AI Studio](https://aistudio.google.com/) and paste the content here.",
     default: "",
     password: true,
     show: vertexai_enabled,

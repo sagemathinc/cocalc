@@ -55,6 +55,12 @@ export function getValidLanguageModelName(
   return model as LanguageModel;
 }
 
+export interface OpenAIMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+export type OpenAIMessages = OpenAIMessage[];
+
 export type LanguageService =
   | "openai-gpt-3.5-turbo"
   | "openai-gpt-3.5-turbo-16k"
@@ -121,11 +127,15 @@ export function model2vendor(model: LanguageModel): Vendor {
   }
 }
 
-export const MODELS = [
+const MODELS_OPENAI = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
   "gpt-4",
   "gpt-4-32k",
+] as const;
+
+export const MODELS = [
+  ...MODELS_OPENAI,
   "text-embedding-ada-002",
   "text-bison-001",
   "chat-bison-001",
@@ -134,6 +144,8 @@ export const MODELS = [
 ] as const;
 
 export type Model = (typeof MODELS)[number];
+
+export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
 
 // Map from psuedo account_id to what should be displayed to user.
 // This is used in various places in the frontend.

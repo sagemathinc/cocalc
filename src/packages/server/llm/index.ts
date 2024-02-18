@@ -21,6 +21,7 @@ import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
+  OpenAIMessages,
   getLLMCost,
   isFreeModel,
   isValidModel,
@@ -58,6 +59,38 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
   }
 }
 
+async function evaluteCall({
+  system,
+  history,
+  input,
+  client,
+  model,
+  maxTokens,
+  stream,
+}) {
+  if (client instanceof VertexAIClient) {
+    return await evaluateVertexAI({
+      system,
+      history,
+      input,
+      client,
+      maxTokens,
+      model,
+      stream,
+    });
+  }
+
+  return await evaluateOpenAI({
+    system,
+    history,
+    input,
+    client,
+    model,
+    maxTokens,
+    stream,
+  });
+}
+
 async function evaluateImpl({
   input,
   system,
@@ -91,25 +124,15 @@ async function evaluateImpl({
   const client = await getClient(model);
 
   const { output, total_tokens, prompt_tokens, completion_tokens } =
-    client instanceof VertexAIClient
-      ? await evaluateVertexAI({
-          system,
-          history,
-          input,
-          client,
-          maxTokens,
-          model,
-          stream,
-        })
-      : await evaluateOpenAI({
-          system,
-          history,
-          input,
-          client,
-          model,
-          maxTokens,
-          stream,
-        });
+    await evaluteCall({
+      system,
+      history,
+      input,
+      client,
+      model,
+      maxTokens,
+      stream,
+    });
 
   log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
@@ -237,8 +260,7 @@ async function evaluateOpenAI({
   maxTokens,
   stream,
 }): Promise<ChatOutput> {
-  const messages: { role: "system" | "user" | "assistant"; content: string }[] =
-    [];
+  const messages: OpenAIMessages = [];
   if (system) {
     messages.push({ role: "system", content: system });
   }

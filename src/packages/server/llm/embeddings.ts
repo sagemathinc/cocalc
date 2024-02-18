@@ -1,7 +1,7 @@
 import { sha1, uuidsha1 } from "@cocalc/backend/sha1";
-import getClient from "./client";
-import * as qdrant from "@cocalc/database/qdrant";
 import { getClient as getDB } from "@cocalc/database/pool";
+import * as qdrant from "@cocalc/database/qdrant";
+import getClient from "./client";
 import checkForAbuse from "./embeddings-abuse";
 import { VertexAIClient } from "./vertex-ai-client";
 
@@ -201,15 +201,17 @@ async function createEmbeddings(
   if (openai instanceof VertexAIClient) {
     throw Error("VertexAI not supported");
   }
-  const response = await openai.createEmbedding({
+  const response = await openai.embeddings.create({
     model: "text-embedding-ada-002",
     input,
   });
-  const vectors = response.data.data.map((x) => x.embedding);
+
+  const vectors = response.data.map((x) => x.embedding);
+
   // log this
   await db.query(
     `INSERT INTO openai_embedding_log (time,account_id,tokens) VALUES(NOW(),$1,$2)`,
-    [account_id, response.data.usage.total_tokens],
+    [account_id, response.usage.total_tokens],
   );
   return vectors;
 }
