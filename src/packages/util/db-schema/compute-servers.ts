@@ -299,7 +299,7 @@ export function getMinDiskSizeGb({
 // if a random default folder is excluded!
 const DEFAULT_EXCLUDE_FROM_SYNC = [] as const;
 
-const GCLOUD_SPOT_DEFAULT = false;
+const GCLOUD_SPOT_DEFAULT = true;
 
 export const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {
@@ -373,7 +373,7 @@ const CLOUDS: {
     label: "Google Cloud Platform",
     image:
       "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
-    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.gpu2,
+    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.cpu,
   },
   lambda: {
     name: "lambda-cloud",
