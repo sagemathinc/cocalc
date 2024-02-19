@@ -96,11 +96,11 @@ export default function ChatGPTHelp({
         >
           <Input.TextArea
             value={input}
-            maxLength={account?.account_id == null ? 10 : 2000}
+            maxLength={2000}
             onChange={(e) => setInput(e.target.value)}
             size={size}
             autoSize={{ minRows: focus ? 2 : 1, maxRows: 5 }}
-            disabled={state == "wait"}
+            disabled={state == "wait" || account?.account_id == null}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
             placeholder={
@@ -113,10 +113,10 @@ export default function ChatGPTHelp({
               }
             }}
           />
-          {input.trim() && account?.account_id == null && (
+          {account?.account_id == null && (
             <InPlaceSignInOrUp
               title="ChatGPT"
-              why={"to use ChatGPT on " + siteName}
+              why="to use ChatGPT"
               onSuccess={() => {
                 router.reload();
               }}
@@ -130,7 +130,6 @@ export default function ChatGPTHelp({
             marginBottom: "5px",
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
           }}
         >
           <Button

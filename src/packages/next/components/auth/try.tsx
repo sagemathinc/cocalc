@@ -7,7 +7,7 @@
 Create an anonymous account.
 */
 
-import { Alert, Button } from "antd";
+import { Button } from "antd";
 import { useState } from "react";
 import {
   GoogleReCaptchaProvider,
@@ -15,12 +15,12 @@ import {
 } from "react-google-recaptcha-v3";
 
 import { len } from "@cocalc/util/misc";
-import Logo from "components/logo";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import api from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import { LOGIN_STYLE } from "./shared";
+
+import AuthPageContainer from "./fragments/auth-page-container";
 
 interface Props {
   minimal?: boolean;
@@ -86,25 +86,27 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
     }
   }
 
-  const style: React.CSSProperties = {
-    margin: "30px",
-    ...(state == "done" && { minHeight: "50vh" }),
-  };
+  function renderFooter() {
+    return !minimal && (
+      <>
+        <div>
+          Already have an account? <A href="/auth/sign-in">Sign In</A>
+        </div>
+        <div style={{ marginTop: "15px" }}>
+          Need an account? <A href="/auth/sign-up">Sign Up</A>
+        </div>
+      </>
+    );
+  }
 
   return (
-    <div style={style}>
-      {!minimal && (
-        <div style={{ textAlign: "center", marginBottom: "15px" }}>
-          <Logo
-            type="icon"
-            style={{ width: "100px", height: "100px", marginBottom: "15px" }}
-          />
-          <h1>Use {siteName} Anonymously</h1>
-        </div>
-      )}
-
-      <div style={LOGIN_STYLE}>
-        {error && <Alert type="error" message={error} showIcon />}
+    <AuthPageContainer
+      error={error}
+      footer={renderFooter()}
+      minimal={minimal}
+      title={`Use ${siteName} Anonymously`}
+    >
+      <div style={{ margin: "10px 0" }}>
         Use {siteName} <b>without</b>{" "}
         <A href="/auth/sign-up" external={!!minimal}>
           creating an account
@@ -125,21 +127,6 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
           )}
         </Button>
       </div>
-      {!minimal && (
-        <div
-          style={{
-            ...LOGIN_STYLE,
-            backgroundColor: "white",
-            margin: "30px auto",
-            padding: "15px",
-          }}
-        >
-          Already have an account? <A href="/auth/sign-in">Sign In</A>
-          <div style={{ marginTop: "15px" }}>
-            Need an account? <A href="/auth/sign-up">Sign Up</A>
-          </div>
-        </div>
-      )}
-    </div>
+    </AuthPageContainer>
   );
 }

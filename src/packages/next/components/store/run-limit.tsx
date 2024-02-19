@@ -46,7 +46,7 @@ export function RunLimit({
   return (
     <>
       <Divider plain>
-        Maximum number of simultaneously upgraded projects
+        Simultaneous Project Upgrades
       </Divider>
       <Form.Item
         label="Run Limit"

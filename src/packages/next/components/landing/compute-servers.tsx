@@ -13,6 +13,7 @@ import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import { useCustomize } from "lib/customize";
 import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
+import { LANDING_HEADER_LEVEL } from "./constants";
 
 export default function ComputeServers() {
   const { computeServersEnabled, siteName } = useCustomize();
@@ -23,6 +24,7 @@ export default function ComputeServers() {
   }
   return (
     <Info
+      level={LANDING_HEADER_LEVEL}
       title={
         <>
           Dedicated Compute Servers with GPU support{" "}

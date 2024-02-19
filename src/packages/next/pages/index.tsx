@@ -92,9 +92,6 @@ export default function Home(props: Props) {
         <Paragraph style={{ fontSize: "11pt", margin: "15px 0" }}>
           {isCommercial && account && !account.is_anonymous && (
             <>
-              <A href="/store" style={TOP_LINK_STYLE}>
-                Store
-              </A>{" "}
               <a
                 href={join(basePath, "settings/licenses")}
                 style={TOP_LINK_STYLE}
@@ -207,7 +204,7 @@ export default function Home(props: Props) {
           {topAccountLinks()}
           <Content
             style={{ minHeight: "30vh" }}
-            logo={logo()}
+            body={logo()}
             title={onCoCalcCom ? "" : siteName}
             subtitle={siteDescription}
             description={contentDescription()}
