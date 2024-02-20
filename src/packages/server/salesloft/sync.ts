@@ -15,16 +15,17 @@ We include or update the following information about each person:
 THESE ARE NOT used at all yet, since they must be configured from the web interface as explained here:
 https://help.salesloft.com/s/article/Person-Field-Configuration#Add_Custom_Person_Field
 
-- custom_fields:
+The following are the custom_fields that we actually use:
   - cocalc_account_id: the cocalc account_id
   - cocalc_created: date when cocalc account was created (UTC timestamp)
   - cocalc_last_active: date when cocalc account was last active (UTC timestamp)
   - stripe_customer_id: if they interacted with our payment system, they will have a stripe id
   - cocalc_tags: if they entered tags when creating their account
   - cocalc_notes: if we typed in notes about them via our CRM
-
-Later, we will also try to provide more interesting information.  But this should be something
-to get started.
+  - cocalc_purchase_timestamp: the most recent timestamp where we updated information about their spend, based on daily statements
+  - cocalc_balance: their balance at cocalc_purchase_timestamp, from the most recent daily statement
+  - cocalc_last_month_spend: amount they spent during the last 30 days, according to daily statements only
+  - cocalc_last_year_spend: the total amount they have spent during the last year, according to daily statements
 
 RATE LIMITS:
 
