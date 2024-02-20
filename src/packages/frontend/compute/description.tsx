@@ -76,7 +76,7 @@ function RuntimeInfo({ configuration, data }) {
           }
           placement="left"
         >
-          <div style={{ flex: 1, display: "flex" }}>
+          <div style={{ flex: 0.7, display: "flex" }}>
             <CopyToClipBoard value={data?.externalIp} size="small" />
           </div>
         </Tooltip>
@@ -90,9 +90,15 @@ function RuntimeInfo({ configuration, data }) {
             authToken={configuration.authToken}
           />
         )}
+        {configuration.authToken && (
+          <div style={{ display: "flex", marginLeft: "15px" }}>
+            Token:{" "}
+            <CopyToClipBoard size="small" value={configuration.authToken} />
+          </div>
+        )}
       </div>
       {data?.lastStartTimestamp && (
-        <div style={{ flex: 1, textAlign: "center" }}>
+        <div style={{ flex: 0.7, textAlign: "center" }}>
           Started: <TimeAgo date={data?.lastStartTimestamp} />
         </div>
       )}
