@@ -7,10 +7,60 @@ based on daily statements (and monthly for last year) from our database only.
 */
 
 import getPool from "@cocalc/database/pool";
+import { update } from "./people";
+import { sync } from "./sync";
+import getLogger from "@cocalc/backend/logger";
 
-export async function updateMoney(account_id: string) {
-  const data = await getMoneyData(account_id);
-  console.log(data);
+const log = getLogger("salesloft:mony");
+
+export async function updateMoney(cutoff: string = "2 days") {
+  const pool = getPool("long");
+  // get most recent daily statement
+  const { rows } = await pool.query(
+    `SELECT DISTINCT statements.account_id AS account_id, accounts.salesloft_id AS salesloft_id FROM statements, accounts WHERE
+        statements.time >= now() - interval '${cutoff}'
+        AND statements.account_id=accounts.account_id
+        AND statements.interval='day'`,
+  );
+  log.debug(
+    "updateMoney ",
+    { cutoff },
+    " got this many users with new statements: ",
+    rows.length,
+  );
+
+  const account_ids: string[] = [];
+  for (const { account_id, salesloft_id } of rows) {
+    if (salesloft_id == null) {
+      account_ids.push(account_id);
+    }
+  }
+  let salesloft_ids: { [account_id: string]: number } = {};
+  if (account_ids.length > 0) {
+    log.debug(
+      "updateMoney: adding ",
+      account_ids.length,
+      " users to salesloft",
+    );
+    // add missing users to salesloft
+    ({ salesloft_ids } = await sync(account_ids));
+
+    log.debug("got ", salesloft_ids);
+  }
+
+  for (const { account_id, salesloft_id } of rows) {
+    const id = salesloft_id ?? salesloft_ids[account_id];
+    if (id == null) {
+      log.debug(
+        "not computing money data for this user since they have no salesloft id",
+        account_id,
+      );
+      continue;
+    }
+    const data = await getMoneyData(account_id);
+    log.debug("updateMoney: ", { salesloft_id: id, account_id, data });
+    await update(id, data);
+  }
 }
 
 // just get all daily statements for a given user during the last year.

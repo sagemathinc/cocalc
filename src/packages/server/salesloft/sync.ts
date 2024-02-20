@@ -57,35 +57,41 @@ const log = logger.debug.bind(logger);
 export async function sync(
   account_ids: string[],
   delayMs: number = 1000, // wait this long after handling each account_id
-  maxDelayMs: number = 1000 * 60 * 15 // exponential backoff up to this long.
-): Promise<{ update: number; create: number }> {
+  maxDelayMs: number = 1000 * 60 * 15, // exponential backoff up to this long.
+): Promise<{
+  update: number;
+  create: number;
+  salesloft_ids: { [account_id: string]: number };
+}> {
   const cocalc = getPool("long");
+  const salesloft_ids: { [account_id: string]: number } = {};
 
   log(
     "get all data we will need from cocalc's database about ",
     account_ids.length,
-    "accounts"
+    "accounts",
   );
   const { rows } = await cocalc.query(
     "SELECT account_id AS cocalc_account_id, salesloft_id, created AS cocalc_created, last_active AS cocalc_last_active, stripe_customer_id, tags AS cocalc_tags, notes AS cocalc_notes, email_address, first_name, last_name FROM accounts WHERE account_id=ANY($1) AND email_address IS NOT NULL",
-    [account_ids]
+    [account_ids],
   );
   log("got ", rows.length, " records with an email address");
 
-  const stats = { update: 0, create: 0 };
+  const stats = { update: 0, create: 0, salesloft_ids };
   let currentDelayMs = 2 * delayMs;
   for (const row of rows) {
     log("considering ", row.email_address);
     try {
-      await syncOne({ row, stats, cocalc });
+      const id = await syncOne({ row, stats, cocalc });
+      salesloft_ids[row.cocalc_account_id] = id;
       currentDelayMs = 2 * delayMs; // success - reset this
     } catch (err) {
       log(`Failed to sync ${row.email_address}`, err);
       log(
-        "We do not retry since, e.g., some errors are fatal, e.g., invalid email addresses."
+        "We do not retry since, e.g., some errors are fatal, e.g., invalid email addresses.",
       );
       log(
-        `We do wait ${currentDelayMs}ms in case this is due to rate limits or other issues...`
+        `We do wait ${currentDelayMs}ms in case this is due to rate limits or other issues...`,
       );
       await delay(currentDelayMs);
       // exponential delay
@@ -97,17 +103,18 @@ export async function sync(
   return stats;
 }
 
-async function syncOne({ row, stats, cocalc }) {
+async function syncOne({ row, stats, cocalc }): Promise<number> {
   const data = toSalesloft(row);
   if (row.salesloft_id) {
     log(
       "already exists in salesloft with salesloft_id = ",
       row.salesloft_id,
-      "so updating..."
+      "so updating...",
     );
     // person already exists in salesloft, so update it
     await update(row.salesloft_id, data);
     stats.update += 1;
+    return row.salesloft_id;
   } else {
     log("does not exists in salesloft yet...");
     // They *might* exist for some reason, even though we haven't explicitly linked them.
@@ -129,12 +136,13 @@ async function syncOne({ row, stats, cocalc }) {
       "Link this cocalc account ",
       row.cocalc_account_id,
       "to this salesloft account",
-      salesloft_id
+      salesloft_id,
     );
     await cocalc.query(
       "UPDATE accounts SET salesloft_id=$1 WHERE account_id=$2",
-      [salesloft_id, row.cocalc_account_id]
+      [salesloft_id, row.cocalc_account_id],
     );
+    return salesloft_id;
   }
 }
 
@@ -169,44 +177,44 @@ function toSalesloft({
 
 export async function addNewUsers(
   howLongAgo: string = "1 day",
-  delayMs: number = 1000
+  delayMs: number = 1000,
 ) {
   return await sync(
     await getAccountIds(
-      `created IS NOT NULL AND created >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+      `created IS NOT NULL AND created >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`,
     ),
-    delayMs
+    delayMs,
   );
 }
 
 export async function addActiveUsers(
   howLongAgo: string = "1 day",
-  delayMs: number = 1000
+  delayMs: number = 1000,
 ) {
   return await sync(
     await getAccountIds(
-      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`,
     ),
-    delayMs
+    delayMs,
   );
 }
 
 export async function updateActiveUsers(
   howLongAgo: string = "1 day",
-  delayMs: number = 1000
+  delayMs: number = 1000,
 ) {
   return await sync(
     await getAccountIds(
-      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NOT NULL`
+      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NOT NULL`,
     ),
-    delayMs
+    delayMs,
   );
 }
 
 async function getAccountIds(condition: string): Promise<string[]> {
   const db = getPool("long");
   const { rows } = await db.query(
-    `SELECT account_id FROM accounts WHERE ${condition}`
+    `SELECT account_id FROM accounts WHERE ${condition}`,
   );
   return rows.map(({ account_id }) => account_id);
 }
