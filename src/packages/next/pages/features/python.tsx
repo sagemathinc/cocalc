@@ -44,7 +44,7 @@ export default function Octave({ customize }) {
           <Content
             landing
             startup={component}
-            logo={PythonLogo}
+            body={PythonLogo}
             title={title}
             subtitle={
               <>

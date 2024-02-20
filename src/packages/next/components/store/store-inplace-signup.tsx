@@ -11,8 +11,8 @@ export const StoreInplaceSignInOrUp = () => {
 
   return (
     <InPlaceSignInOrUp
-      title="Account Configuration"
-      why="to shop in the store"
+      title="Store"
+      why="to make store purchases"
       onSuccess={() => {
         router.reload();
       }}

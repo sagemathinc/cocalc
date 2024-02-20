@@ -38,8 +38,8 @@ export default function IntegerSlider({
 
   return (
     <>
-      <Row>
-        <Col span={12}>
+      <Row justify="space-between">
+        <Col xs={24} sm={12} flex="auto">
           <Slider
             disabled={disabled}
             style={{ width: "100%" }}
@@ -54,7 +54,7 @@ export default function IntegerSlider({
             step={step}
           />
         </Col>
-        <Col span={12}>
+        <Col xs={24} sm={12} md={8}>
           <InputNumber
             min={min}
             max={maxText ?? max}
