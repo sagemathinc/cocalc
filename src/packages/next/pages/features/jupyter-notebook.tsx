@@ -119,7 +119,7 @@ export default function JupyterNotebook({ customize }) {
           <Content
             landing
             startup={"Jupyter"}
-            logo={JupyterLogo}
+            body={JupyterLogo}
             title={"Online Jupyter Notebooks"}
             subtitle={
               "CoCalc's own collaborative, fully compatible and supercharged notebooks."

@@ -86,11 +86,14 @@ export default function Redeem({ customize, id }: Props) {
           >
             {profile == null && <Loading />}
             {profile != null && !profile.account_id && !signedIn && (
-              <Card style={{ textAlign: "center" }}>
-                <Icon name="gift2" style={{ fontSize: "75px" }} />
+              <Card>
+                <div style={{ fontSize: "75px", textAlign: "center" }} >
+                  <Icon name="gift2"/>
+                </div>
                 <InPlaceSignInOrUp
-                  why="to Redeem a Voucher"
-                  style={{ fontSize: "14pt", width: "450px" }}
+                  title="Redeem Voucher"
+                  why="to redeem a voucher"
+                  style={{ width: "450px" }}
                   onSuccess={() => {
                     router.push("/redeem");
                     setSignedIn(true);
