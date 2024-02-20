@@ -88,8 +88,8 @@ type FixedTabs = {
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   active: {
-    label: "Active",
-    flyoutTitle: "Active Files",
+    label: "Tabs",
+    flyoutTitle: "File Tabs",
     icon: "edit",
     flyout: ActiveFlyout,
     noAnonymous: false,

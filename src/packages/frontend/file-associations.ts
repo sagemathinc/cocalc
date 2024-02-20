@@ -183,8 +183,10 @@ for (const ext in codemirror_associations) {
 file_associations["mojo"] = file_associations["🔥"] = {
   editor: "codemirror",
   icon: "fire",
-  opts: { mode: "text/x-mojo" }, // this is a custom type, similar to cython
-  name: "text/x-mojo",
+  // Use "mojo" not "text/x-mojo" because the official Mojo jupyter
+  // kernel has "codemirror_mode": {"name": "mojo" }
+  opts: { mode: "mojo" }, // this is a custom type, similar to cython
+  name: "mojo",
   exclude_from_menu: true,
 };
 

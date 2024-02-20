@@ -273,7 +273,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   protected close_client_only(): void {
-    throw Error("must define in derived client class");
+    // no-op: this can be defined in a derived class. E.g., in the frontend, it removes
+    // an account_change listener.
   }
 
   public is_closed(): boolean {
@@ -326,9 +327,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     };
     try {
       await retry_until_success({
-        max_time: 1000 * 60 * 5,
-        start_delay: 250,
-        max_delay: 10000,
+        max_time: 1000 * 15, // up to 15 seconds
+        start_delay: 500,
+        max_delay: 5000,
         f,
         desc: "jupyter:fetch_jupyter_kernels",
       });

@@ -225,7 +225,7 @@ Describe how you will grade the task here.
 const MC_QUESTION = `
 ## Question 7
 
-What's whats the answer to life the universe and *everything*?
+What is the answer to life the universe and *everything*?
 
 * (A) $\\pi$
 * (B) 42
