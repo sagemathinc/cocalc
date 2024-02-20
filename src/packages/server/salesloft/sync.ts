@@ -25,7 +25,7 @@ The following are the custom_fields that we actually use:
   - cocalc_purchase_timestamp: the most recent timestamp where we updated information about their spend, based on daily statements
   - cocalc_balance: their balance at cocalc_purchase_timestamp, from the most recent daily statement
   - cocalc_last_month_spend: amount they spent during the last 30 days, according to daily statements only
-  - cocalc_last_year_spend: the total amount they have spent during the last year, according to daily statements
+  - cocalc_last_year_spend: the total amount they have spent during the last year, according to monthly statements
 
 RATE LIMITS:
 
