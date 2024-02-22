@@ -46,6 +46,7 @@
     "@google-cloud/monitoring": "^4.0.0",
     "@google/generative-ai": "^0.1.3",
     "@isaacs/ttlcache": "^1.2.1",
+    "@langchain/community": "^0.0.32",
     "@node-saml/passport-saml": "^4.0.4",
     "@passport-js/passport-twitter": "^1.0.8",
     "@passport-next/passport-google-oauth2": "^1.0.0",

@@ -5,6 +5,7 @@ import { unreachable } from "@cocalc/util/misc";
 import AIAvatar from "./ai-avatar";
 import GoogleGeminiLogo from "./google-gemini-avatar";
 import GooglePalmLogo from "./google-palm-avatar";
+import OllamaAvatar from "./ollama-avatar";
 import OpenAIAvatar from "./openai-avatar";
 
 export function LanguageModelVendorAvatar(
@@ -40,6 +41,9 @@ export function LanguageModelVendorAvatar(
             return fallback();
         }
       }
+      case "ollama":
+        return <OllamaAvatar size={size} style={style} />;
+
       default:
         unreachable(vendor);
         return fallback();

@@ -72,7 +72,7 @@ export type LanguageService =
   | "google-embedding-gecko-001"
   | "google-gemini-pro";
 
-const LANGUAGE_MODEL_VENDORS = ["openai", "google"] as const;
+const LANGUAGE_MODEL_VENDORS = ["openai", "google", "ollama"] as const;
 export type Vendor = (typeof LANGUAGE_MODEL_VENDORS)[number];
 
 // used e.g. for checking "account-id={string}" and other things like that
@@ -122,6 +122,8 @@ export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 export function model2vendor(model: LanguageModel): Vendor {
   if (model.startsWith("gpt-")) {
     return "openai";
+  } else if (model.startsWith("ollama-")) {
+    return "ollama";
   } else {
     return "google";
   }
@@ -193,6 +195,8 @@ export function getVendorStatusCheckMD(vendor: Vendor): string {
       return `OpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
     case "google":
       return `Google [status](https://status.cloud.google.com) and [downdetector](https://downdetector.com/status/google-cloud).`;
+    case "ollama":
+      return `No status information for Ollama available – you have to check with the particular backend for the model.`;
     default:
       unreachable(vendor);
   }
@@ -266,8 +270,10 @@ const LLM_COST: { [name in LanguageModel]: Cost } = {
   },
 } as const;
 
-export function isValidModel(model?: Model) {
-  return model != null && LLM_COST[model ?? ""] != null;
+export function isValidModel(model?: string): boolean {
+  if (model == null) return false;
+  if (model.startsWith("ollama-")) return true;
+  return LLM_COST[model ?? ""] != null;
 }
 
 export function getMaxTokens(model?: Model): number {

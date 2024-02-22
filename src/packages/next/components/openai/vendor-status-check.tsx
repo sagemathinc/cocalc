@@ -21,6 +21,14 @@ export function VendorStatusCheck({ vendor }: { vendor: Vendor }): JSX.Element {
           .
         </>
       );
+    case "ollama":
+      return (
+        <>
+          This Ollama based API endpoint does not have a status page. If you are
+          experiencing issues you have to check with the API service directly or
+          try again later.
+        </>
+      );
     default:
       unreachable(vendor);
   }

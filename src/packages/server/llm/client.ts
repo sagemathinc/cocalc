@@ -11,12 +11,13 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/openai";
 import { unreachable } from "@cocalc/util/misc";
 import { VertexAIClient } from "./vertex-ai-client";
+import { Ollama } from "@langchain/community/llms/ollama";
 
 const log = getLogger("llm:client");
 
 const clientCache: { [key: string]: OpenAI | VertexAIClient } = {};
 
-export default async function getClient(
+export async function getClient(
   model?: LanguageModel,
 ): Promise<OpenAI | VertexAIClient> {
   const vendor = model == null ? "openai" : model2vendor(model);
@@ -56,8 +57,40 @@ export default async function getClient(
       clientCache[key] = vai;
       return vai;
 
+    case "ollama":
+      throw new Error("Use the getOllama function instead");
+
     default:
       unreachable(vendor);
       throw new Error(`unknown vendor: ${vendor}`);
   }
+}
+
+const ollamaCache: { [key: string]: Ollama } = {};
+
+export async function getOllama(model: string) {
+  // model is the unique key in the ServerSettings.ollama_configuration mapping
+  if (ollamaCache[model]) {
+    return ollamaCache[model];
+  }
+
+  const settings = await getServerSettings();
+  const config = settings.ollama_configuration?.[model];
+  if (!config) {
+    throw new Error(
+      `Ollama model ${model} not configured – you have to create an entry {${model}: {url: "https://...", ...}} in the "Ollama Configuration" entry of the server settings`,
+    );
+  }
+
+  const baseUrl = config.url;
+
+  if (!baseUrl) {
+    throw new Error(`The url of the Ollama model ${model} is not configured`);
+  }
+
+  const keepAlive = config.keepAlive ?? -1;
+
+  const client = new Ollama({ baseUrl, model, keepAlive });
+  ollamaCache[model] = client;
+  return client;
 }

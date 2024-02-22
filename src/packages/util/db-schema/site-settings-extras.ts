@@ -67,8 +67,9 @@ const pii_retention_display = (retention: string) => {
 const openai_enabled = (conf: SiteSettings) => to_bool(conf.openai_enabled);
 const vertexai_enabled = (conf: SiteSettings) =>
   to_bool(conf.google_vertexai_enabled);
+const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
-  openai_enabled(conf) || vertexai_enabled(conf);
+  openai_enabled(conf) || vertexai_enabled(conf) || ollama_enabled(conf);
 
 const compute_servers_enabled = (conf: SiteSettings) =>
   to_bool(conf.compute_servers_enabled);
@@ -104,6 +105,7 @@ export type SiteSettingsExtrasKeys =
   | "openai_section"
   | "openai_api_key"
   | "google_vertexai_key"
+  | "ollama_configuration"
   | "qdrant_section"
   | "qdrant_api_key"
   | "qdrant_cluster_url"
@@ -179,6 +181,15 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: vertexai_enabled,
+  },
+  ollama_configuration: {
+    name: "Ollama Configuration",
+    desc: "This is the configuration for the Ollama LLM API endpoints.",
+    default: "",
+    multiline: 5,
+    show: ollama_enabled,
+    to_val: from_json,
+    valid: parsableJson,
   },
   qdrant_section: {
     name: "Qdrant Configuration",

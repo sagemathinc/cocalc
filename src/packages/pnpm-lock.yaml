@@ -1339,6 +1339,9 @@ importers:
       '@isaacs/ttlcache':
         specifier: ^1.2.1
         version: 1.2.1
+      '@langchain/community':
+        specifier: ^0.0.32
+        version: 0.0.32(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
       '@node-saml/passport-saml':
         specifier: ^4.0.4
         version: 4.0.4
@@ -3979,6 +3982,307 @@ packages:
       - crypto
     dev: false
 
+  /@langchain/community@0.0.32(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21):
+    resolution: {integrity: sha512-jN4BxGKAmLbA87hqXH5Mx1IRMMVOgcn1TY1MLOVyBcBa12EvHFx8suogtXgA2ekfc8U8nIryVb1ftSupwUBv/A==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@aws-crypto/sha256-js': ^5.0.0
+      '@aws-sdk/client-bedrock-agent-runtime': ^3.485.0
+      '@aws-sdk/client-bedrock-runtime': ^3.422.0
+      '@aws-sdk/client-dynamodb': ^3.310.0
+      '@aws-sdk/client-kendra': ^3.352.0
+      '@aws-sdk/client-lambda': ^3.310.0
+      '@aws-sdk/client-sagemaker-runtime': ^3.310.0
+      '@aws-sdk/client-sfn': ^3.310.0
+      '@aws-sdk/credential-provider-node': ^3.388.0
+      '@azure/search-documents': ^12.0.0
+      '@clickhouse/client': ^0.2.5
+      '@cloudflare/ai': '*'
+      '@datastax/astra-db-ts': ^0.1.4
+      '@elastic/elasticsearch': ^8.4.0
+      '@getmetal/metal-sdk': '*'
+      '@getzep/zep-js': ^0.9.0
+      '@gomomento/sdk': ^1.51.1
+      '@gomomento/sdk-core': ^1.51.1
+      '@google-ai/generativelanguage': ^0.2.1
+      '@gradientai/nodejs-sdk': ^1.2.0
+      '@huggingface/inference': ^2.6.4
+      '@mozilla/readability': '*'
+      '@opensearch-project/opensearch': '*'
+      '@pinecone-database/pinecone': '*'
+      '@planetscale/database': ^1.8.0
+      '@qdrant/js-client-rest': ^1.2.0
+      '@raycast/api': ^1.55.2
+      '@rockset/client': ^0.9.1
+      '@smithy/eventstream-codec': ^2.0.5
+      '@smithy/protocol-http': ^3.0.6
+      '@smithy/signature-v4': ^2.0.10
+      '@smithy/util-utf8': ^2.0.0
+      '@supabase/postgrest-js': ^1.1.1
+      '@supabase/supabase-js': ^2.10.0
+      '@tensorflow-models/universal-sentence-encoder': '*'
+      '@tensorflow/tfjs-converter': '*'
+      '@tensorflow/tfjs-core': '*'
+      '@upstash/redis': ^1.20.6
+      '@upstash/vector': ^1.0.2
+      '@vercel/kv': ^0.2.3
+      '@vercel/postgres': ^0.5.0
+      '@writerai/writer-sdk': ^0.40.2
+      '@xata.io/client': ^0.28.0
+      '@xenova/transformers': ^2.5.4
+      '@zilliz/milvus2-sdk-node': '>=2.2.7'
+      better-sqlite3: ^9.4.0
+      cassandra-driver: ^4.7.2
+      chromadb: '*'
+      closevector-common: 0.1.3
+      closevector-node: 0.1.6
+      closevector-web: 0.1.6
+      cohere-ai: '*'
+      convex: ^1.3.1
+      discord.js: ^14.14.1
+      dria: ^0.0.3
+      faiss-node: ^0.5.1
+      firebase-admin: ^11.9.0 || ^12.0.0
+      google-auth-library: ^8.9.0
+      googleapis: ^126.0.1
+      hnswlib-node: ^1.4.2
+      html-to-text: ^9.0.5
+      ioredis: ^5.3.2
+      jsdom: '*'
+      llmonitor: ^0.5.9
+      lodash: ^4.17.21
+      lunary: ^0.6.11
+      mongodb: '>=5.2.0'
+      mysql2: ^3.3.3
+      neo4j-driver: '*'
+      node-llama-cpp: '*'
+      pg: ^8.11.0
+      pg-copy-streams: ^6.0.5
+      pickleparser: ^0.2.1
+      portkey-ai: ^0.1.11
+      redis: '*'
+      replicate: ^0.18.0
+      typeorm: ^0.3.12
+      typesense: ^1.5.3
+      usearch: ^1.1.1
+      vectordb: ^0.1.4
+      voy-search: 0.6.2
+      weaviate-ts-client: '*'
+      web-auth-library: ^1.0.3
+      ws: ^8.14.2
+    peerDependenciesMeta:
+      '@aws-crypto/sha256-js':
+        optional: true
+      '@aws-sdk/client-bedrock-agent-runtime':
+        optional: true
+      '@aws-sdk/client-bedrock-runtime':
+        optional: true
+      '@aws-sdk/client-dynamodb':
+        optional: true
+      '@aws-sdk/client-kendra':
+        optional: true
+      '@aws-sdk/client-lambda':
+        optional: true
+      '@aws-sdk/client-sagemaker-runtime':
+        optional: true
+      '@aws-sdk/client-sfn':
+        optional: true
+      '@aws-sdk/credential-provider-node':
+        optional: true
+      '@azure/search-documents':
+        optional: true
+      '@clickhouse/client':
+        optional: true
+      '@cloudflare/ai':
+        optional: true
+      '@datastax/astra-db-ts':
+        optional: true
+      '@elastic/elasticsearch':
+        optional: true
+      '@getmetal/metal-sdk':
+        optional: true
+      '@getzep/zep-js':
+        optional: true
+      '@gomomento/sdk':
+        optional: true
+      '@gomomento/sdk-core':
+        optional: true
+      '@google-ai/generativelanguage':
+        optional: true
+      '@gradientai/nodejs-sdk':
+        optional: true
+      '@huggingface/inference':
+        optional: true
+      '@mozilla/readability':
+        optional: true
+      '@opensearch-project/opensearch':
+        optional: true
+      '@pinecone-database/pinecone':
+        optional: true
+      '@planetscale/database':
+        optional: true
+      '@qdrant/js-client-rest':
+        optional: true
+      '@raycast/api':
+        optional: true
+      '@rockset/client':
+        optional: true
+      '@smithy/eventstream-codec':
+        optional: true
+      '@smithy/protocol-http':
+        optional: true
+      '@smithy/signature-v4':
+        optional: true
+      '@smithy/util-utf8':
+        optional: true
+      '@supabase/postgrest-js':
+        optional: true
+      '@supabase/supabase-js':
+        optional: true
+      '@tensorflow-models/universal-sentence-encoder':
+        optional: true
+      '@tensorflow/tfjs-converter':
+        optional: true
+      '@tensorflow/tfjs-core':
+        optional: true
+      '@upstash/redis':
+        optional: true
+      '@upstash/vector':
+        optional: true
+      '@vercel/kv':
+        optional: true
+      '@vercel/postgres':
+        optional: true
+      '@writerai/writer-sdk':
+        optional: true
+      '@xata.io/client':
+        optional: true
+      '@xenova/transformers':
+        optional: true
+      '@zilliz/milvus2-sdk-node':
+        optional: true
+      better-sqlite3:
+        optional: true
+      cassandra-driver:
+        optional: true
+      chromadb:
+        optional: true
+      closevector-common:
+        optional: true
+      closevector-node:
+        optional: true
+      closevector-web:
+        optional: true
+      cohere-ai:
+        optional: true
+      convex:
+        optional: true
+      discord.js:
+        optional: true
+      dria:
+        optional: true
+      faiss-node:
+        optional: true
+      firebase-admin:
+        optional: true
+      google-auth-library:
+        optional: true
+      googleapis:
+        optional: true
+      hnswlib-node:
+        optional: true
+      html-to-text:
+        optional: true
+      ioredis:
+        optional: true
+      jsdom:
+        optional: true
+      llmonitor:
+        optional: true
+      lodash:
+        optional: true
+      lunary:
+        optional: true
+      mongodb:
+        optional: true
+      mysql2:
+        optional: true
+      neo4j-driver:
+        optional: true
+      node-llama-cpp:
+        optional: true
+      pg:
+        optional: true
+      pg-copy-streams:
+        optional: true
+      pickleparser:
+        optional: true
+      portkey-ai:
+        optional: true
+      redis:
+        optional: true
+      replicate:
+        optional: true
+      typeorm:
+        optional: true
+      typesense:
+        optional: true
+      usearch:
+        optional: true
+      vectordb:
+        optional: true
+      voy-search:
+        optional: true
+      weaviate-ts-client:
+        optional: true
+      web-auth-library:
+        optional: true
+      ws:
+        optional: true
+    dependencies:
+      '@google-ai/generativelanguage': 1.1.0(encoding@0.1.13)
+      '@langchain/core': 0.1.32
+      '@langchain/openai': 0.0.14(encoding@0.1.13)
+      flat: 5.0.2
+      google-auth-library: 9.4.1(encoding@0.1.13)
+      langsmith: 0.1.3
+      lodash: 4.17.21
+      uuid: 9.0.1
+      zod: 3.22.4
+    transitivePeerDependencies:
+      - encoding
+    dev: false
+
+  /@langchain/core@0.1.32:
+    resolution: {integrity: sha512-7b8wBQMej2QxaDDS0fCQa3/zrA2raTh1RBe2h1som7QxFpWJkHSxwVwdvGUotX9SopmsY99TK54sK0amfDvBBA==}
+    engines: {node: '>=18'}
+    dependencies:
+      ansi-styles: 5.2.0
+      camelcase: 6.3.0
+      decamelize: 1.2.0
+      js-tiktoken: 1.0.10
+      langsmith: 0.1.3
+      ml-distance: 4.0.1
+      p-queue: 6.6.2
+      p-retry: 4.6.2
+      uuid: 9.0.1
+      zod: 3.22.4
+      zod-to-json-schema: 3.22.4(zod@3.22.4)
+    dev: false
+
+  /@langchain/openai@0.0.14(encoding@0.1.13):
+    resolution: {integrity: sha512-co6nRylPrLGY/C3JYxhHt6cxLq07P086O7K3QaZH7SFFErIN9wSzJonpvhZR07DEUq6eK6wKgh2ORxA/NcjSRQ==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@langchain/core': 0.1.32
+      js-tiktoken: 1.0.10
+      openai: 4.27.0(encoding@0.1.13)
+      zod: 3.22.4
+      zod-to-json-schema: 3.22.4(zod@3.22.4)
+    transitivePeerDependencies:
+      - encoding
+    dev: false
+
   /@lumino/algorithm@1.9.2:
     resolution: {integrity: sha512-Z06lp/yuhz8CtIir3PNTGnuk7909eXt4ukJsCzChsGuot2l5Fbs96RJ/FOHgwCedaX74CtxPjXHXoszFbUA+4A==}
     dev: false
@@ -5498,6 +5802,10 @@ packages:
       '@types/node': 18.18.13
     dev: false
 
+  /@types/retry@0.12.0:
+    resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
+    dev: false
+
   /@types/sanitize-html@2.8.0:
     resolution: {integrity: sha512-Uih6caOm3DsBYnVGOYn0A9NoTNe1c4aPStmHC/YA2JrpP9kx//jzaRcIklFvSpvVQEcpl/ZCr4DgISSf/YxTvg==}
     dependencies:
@@ -5551,6 +5859,10 @@ packages:
 
   /@types/uuid@8.3.4:
     resolution: {integrity: sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==}
+
+  /@types/uuid@9.0.8:
+    resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
+    dev: false
 
   /@types/xml-crypto@1.4.3:
     resolution: {integrity: sha512-pnvKYb7vUsUIMc+C6JM/j779YWQgOMcwjnqHJ9cdaWXwWEBE1hAqthzeszRx62V5RWMvS+XS9w9tXMOYyUc8zg==}
@@ -6143,7 +6455,6 @@ packages:
   /ansi-styles@5.2.0:
     resolution: {integrity: sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==}
     engines: {node: '>=10'}
-    dev: true
 
   /ansi-styles@6.2.1:
     resolution: {integrity: sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug==}
@@ -6751,6 +7062,10 @@ packages:
     resolution: {integrity: sha512-H0ea4Fd3lS1+sTEB2TgcLoK21lLhwEJzlQv3IN47pJS976Gx4zoWe0ak3q+uYh60ppQxg9F16Ri4tS1sfD4+jA==}
     dev: false
 
+  /binary-search@1.3.6:
+    resolution: {integrity: sha512-nbE1WxOTTrUWIfsfZ4aHGYu5DOuNkbxGokjV6Z2kxfJK3uaAb8zNK1muzOeipoLHZjInT4Br88BHpzevc681xA==}
+    dev: false
+
   /bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
     dependencies:
@@ -7018,7 +7333,6 @@ packages:
   /camelcase@6.3.0:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
     engines: {node: '>=10'}
-    dev: true
 
   /caniuse-lite@1.0.30001564:
     resolution: {integrity: sha512-DqAOf+rhof+6GVx1y+xzbFPeOumfQnhYzVnZD6LAXijR77yPtm9mfOcqOnT3mpnJiZVT+kwLAFnRlZcIz+c6bg==}
@@ -7488,7 +7802,6 @@ packages:
   /commander@10.0.1:
     resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
     engines: {node: '>=14'}
-    dev: true
 
   /commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -7698,7 +8011,6 @@ packages:
       loose-envify: 1.4.0
       object-assign: 4.1.1
     dev: false
-    bundledDependencies: false
 
   /create-server@1.0.2:
     resolution: {integrity: sha512-hie+Kyero+jxt6dwKhLKtN23qSNiMn8mNIEjTjwzaZwH2y4tr4nYloeFrpadqV+ZqV9jQ15t3AKotaK8dOo45w==}
@@ -9408,7 +9720,6 @@ packages:
   /flat@5.0.2:
     resolution: {integrity: sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==}
     hasBin: true
-    dev: true
 
   /flatted@3.2.7:
     resolution: {integrity: sha512-5nqDSxl8nn5BSNxyR3n4I6eDmbolI6WT+QqR547RwxQapgjQBmtktdP+HTBb/a/zLsbzERTONyUB5pefh5TtjQ==}
@@ -10724,6 +11035,10 @@ packages:
     dependencies:
       is-alphabetical: 2.0.1
       is-decimal: 2.0.1
+    dev: false
+
+  /is-any-array@2.0.1:
+    resolution: {integrity: sha512-UtilS7hLRu++wb/WBAw9bNuP1Eg04Ivn1vERJck8zJthEvXCBEBpGR/33u/xLKWEQf95803oalHrVDptcAvFdQ==}
     dev: false
 
   /is-arguments@1.1.1:
@@ -12238,6 +12553,12 @@ packages:
     resolution: {integrity: sha512-HvdH2LzI/EAZcUwA8+0nKNtWHqS+ZmijLA30RwZA0bo7ToCckjK5MkGhjED9KoRcXO6BaGI3I9UIzSA1FKFPOQ==}
     dev: false
 
+  /js-tiktoken@1.0.10:
+    resolution: {integrity: sha512-ZoSxbGjvGyMT13x6ACo9ebhDha/0FHdKA+OsQcMOWcm1Zs7r90Rhk5lhERLzji+3rA7EKpXCgwXcM5fF3DMpdA==}
+    dependencies:
+      base64-js: 1.5.1
+    dev: false
+
   /js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -12507,6 +12828,17 @@ packages:
 
   /langs@2.0.0:
     resolution: {integrity: sha512-v4pxOBEQVN1WBTfB1crhTtxzNLZU9HPWgadlwzWKISJtt6Ku/CnpBrwVy+jFv8StjxsPfwPFzO0CMwdZLJ0/BA==}
+    dev: false
+
+  /langsmith@0.1.3:
+    resolution: {integrity: sha512-kQMS3QySeU0Qt9A71d9trUXbeKn33HfxpRc7hRjSB967zcdTAngh66NcqYqBflD3nOL4FK6LKmvfb3vbNDEoPg==}
+    hasBin: true
+    dependencies:
+      '@types/uuid': 9.0.8
+      commander: 10.0.1
+      p-queue: 6.6.2
+      p-retry: 4.6.2
+      uuid: 9.0.1
     dev: false
 
   /ldap-filter@0.3.3:
@@ -13186,6 +13518,37 @@ packages:
     resolution: {integrity: sha512-bauHShmaxVQiEvlrAPWxSPn8spSL8gDVRl11r8vLT4r/KdnknLqtqwQbToZ2Oa8sJkExYY1z6/d+X7pNiqo4yg==}
     dev: true
 
+  /ml-array-mean@1.1.6:
+    resolution: {integrity: sha512-MIdf7Zc8HznwIisyiJGRH9tRigg3Yf4FldW8DxKxpCCv/g5CafTw0RRu51nojVEOXuCQC7DRVVu5c7XXO/5joQ==}
+    dependencies:
+      ml-array-sum: 1.1.6
+    dev: false
+
+  /ml-array-sum@1.1.6:
+    resolution: {integrity: sha512-29mAh2GwH7ZmiRnup4UyibQZB9+ZLyMShvt4cH4eTK+cL2oEMIZFnSyB3SS8MlsTh6q/w/yh48KmqLxmovN4Dw==}
+    dependencies:
+      is-any-array: 2.0.1
+    dev: false
+
+  /ml-distance-euclidean@2.0.0:
+    resolution: {integrity: sha512-yC9/2o8QF0A3m/0IXqCTXCzz2pNEzvmcE/9HFKOZGnTjatvBbsn4lWYJkxENkA4Ug2fnYl7PXQxnPi21sgMy/Q==}
+    dev: false
+
+  /ml-distance@4.0.1:
+    resolution: {integrity: sha512-feZ5ziXs01zhyFUUUeZV5hwc0f5JW0Sh0ckU1koZe/wdVkJdGxcP06KNQuF0WBTj8FttQUzcvQcpcrOp/XrlEw==}
+    dependencies:
+      ml-array-mean: 1.1.6
+      ml-distance-euclidean: 2.0.0
+      ml-tree-similarity: 1.0.0
+    dev: false
+
+  /ml-tree-similarity@1.0.0:
+    resolution: {integrity: sha512-XJUyYqjSuUQkNQHMscr6tcjldsOoAekxADTplt40QKfwW6nd++1wHWV9AArl0Zvw/TIHgNaZZNvr8QGvE8wLRg==}
+    dependencies:
+      binary-search: 1.3.6
+      num-sort: 2.1.0
+    dev: false
+
   /mocha@10.2.0:
     resolution: {integrity: sha512-IDY7fl/BecMwFHzoqF2sg/SHHANeBoMMXFlS9r0OXKDssYE1M5O43wUY/9BVPeIvfH2zmEbBfseqN9gBQZzXkg==}
     engines: {node: '>= 14.0.0'}
@@ -13693,6 +14056,11 @@ packages:
     dependencies:
       boolbase: 1.0.0
 
+  /num-sort@2.1.0:
+    resolution: {integrity: sha512-1MQz1Ed8z2yckoBeSfkQHHO9K1yDRxxtotKSJ9yvcTUUxSvfvzEq5GwBrjjHEpMlq/k5gvXdmJ1SbYxWtpNoVg==}
+    engines: {node: '>=8'}
+    dev: false
+
   /number-is-integer@1.0.1:
     resolution: {integrity: sha512-Dq3iuiFBkrbmuQjGFFF3zckXNCQoSD37/SdSbgcBailUx6knDvDwb5CympBgcoWHy36sfS12u74MHYkXyHq6bg==}
     engines: {node: '>=0.10.0'}
@@ -13943,6 +14311,11 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: false
 
+  /p-finally@1.0.0:
+    resolution: {integrity: sha512-LICb2p9CB7FS+0eR1oqWnHhp0FljGLZCWBE9aix0Uye9W8LTQPwMTYVGWQWIw9RdQiDg4+epXQODwIYJtSJaow==}
+    engines: {node: '>=4'}
+    dev: false
+
   /p-limit@2.3.0:
     resolution: {integrity: sha512-//88mFWSJx8lxCzwdAABTJL2MyWB12+eIY7MDL2SqLmAkeKU9qxRvWuSyTjm3FUmpBEMuFfckAIqEaVGUDxb6w==}
     engines: {node: '>=6'}
@@ -13979,6 +14352,29 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       aggregate-error: 3.1.0
+
+  /p-queue@6.6.2:
+    resolution: {integrity: sha512-RwFpb72c/BhQLEXIZ5K2e+AhgNVmIejGlTgiB9MzZ0e93GRvqZ7uSi0dvRF7/XIXDeNkra2fNHBxTyPDGySpjQ==}
+    engines: {node: '>=8'}
+    dependencies:
+      eventemitter3: 4.0.7
+      p-timeout: 3.2.0
+    dev: false
+
+  /p-retry@4.6.2:
+    resolution: {integrity: sha512-312Id396EbJdvRONlngUx0NydfrIQ5lsYu0znKVUzVvArzEIt08V1qhtyESbGVd1FGX7UKtiFp5uwKZdM8wIuQ==}
+    engines: {node: '>=8'}
+    dependencies:
+      '@types/retry': 0.12.0
+      retry: 0.13.1
+    dev: false
+
+  /p-timeout@3.2.0:
+    resolution: {integrity: sha512-rhIwUycgwwKcP9yTOOFK/AKsAopjjCakVqLHePO3CC6Mir1Z99xT+R63jZxAT5lFZLa2inS5h+ZS2GvR99/FBg==}
+    engines: {node: '>=8'}
+    dependencies:
+      p-finally: 1.0.0
+    dev: false
 
   /p-try@2.2.0:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
@@ -16300,6 +16696,11 @@ packages:
       extend: 3.0.2
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /retry@0.13.1:
+    resolution: {integrity: sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg==}
+    engines: {node: '>= 4'}
     dev: false
 
   /reusify@1.0.4:
@@ -19079,8 +19480,20 @@ packages:
     resolution: {integrity: sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w==}
     dev: false
 
+  /zod-to-json-schema@3.22.4(zod@3.22.4):
+    resolution: {integrity: sha512-2Ed5dJ+n/O3cU383xSY28cuVi0BCQhF8nYqWU5paEpl7fVdqdAmiLdqLyfblbNdfOFwFfi/mqU4O1pwc60iBhQ==}
+    peerDependencies:
+      zod: ^3.22.4
+    dependencies:
+      zod: 3.22.4
+    dev: false
+
   /zod@3.21.4:
     resolution: {integrity: sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==}
+    dev: false
+
+  /zod@3.22.4:
+    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
     dev: false
 
   /zwitch@2.0.4:

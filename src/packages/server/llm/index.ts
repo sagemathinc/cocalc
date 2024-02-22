@@ -31,9 +31,10 @@ import {
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { callChatGPTAPI } from "./call-chatgpt";
-import getClient from "./client";
+import { getClient } from "./client";
 import { saveResponse } from "./save-response";
 import { VertexAIClient } from "./vertex-ai-client";
+import { evaluateOllama } from "./ollama";
 
 const log = getLogger("llm");
 
@@ -59,38 +60,6 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
   }
 }
 
-async function evaluteCall({
-  system,
-  history,
-  input,
-  client,
-  model,
-  maxTokens,
-  stream,
-}) {
-  if (client instanceof VertexAIClient) {
-    return await evaluateVertexAI({
-      system,
-      history,
-      input,
-      client,
-      maxTokens,
-      model,
-      stream,
-    });
-  }
-
-  return await evaluateOpenAI({
-    system,
-    history,
-    input,
-    client,
-    model,
-    maxTokens,
-    stream,
-  });
-}
-
 async function evaluateImpl({
   input,
   system,
@@ -104,7 +73,7 @@ async function evaluateImpl({
   stream,
   maxTokens,
 }: ChatOptions): Promise<string> {
-  log.debug("evaluate", {
+  log.debug("evaluateImpl", {
     input,
     history,
     system,
@@ -124,15 +93,28 @@ async function evaluateImpl({
   const client = await getClient(model);
 
   const { output, total_tokens, prompt_tokens, completion_tokens } =
-    await evaluteCall({
-      system,
-      history,
-      input,
-      client,
-      model,
-      maxTokens,
-      stream,
-    });
+    await (async () => {
+      if (model.startsWith("ollama-")) {
+        return await evaluateOllama({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
+      } else {
+        return await evaluteCall({
+          system,
+          history,
+          input,
+          client,
+          model,
+          maxTokens,
+          stream,
+        });
+      }
+    })();
 
   log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
@@ -190,6 +172,38 @@ async function evaluateImpl({
   });
 
   return output;
+}
+
+async function evaluteCall({
+  system,
+  history,
+  input,
+  client,
+  model,
+  maxTokens,
+  stream,
+}) {
+  if (client instanceof VertexAIClient) {
+    return await evaluateVertexAI({
+      system,
+      history,
+      input,
+      client,
+      maxTokens,
+      model,
+      stream,
+    });
+  }
+
+  return await evaluateOpenAI({
+    system,
+    history,
+    input,
+    client,
+    model,
+    maxTokens,
+    stream,
+  });
 }
 
 interface EvalVertexAIProps {
