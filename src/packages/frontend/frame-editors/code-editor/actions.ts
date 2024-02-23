@@ -64,8 +64,8 @@ import {
   len,
   uuid,
 } from "@cocalc/util/misc";
-import languageModelCreateChat, { Options } from "../chatgpt/create-chat";
-import type { Scope as LanguageModelScope } from "../chatgpt/types";
+import languageModelCreateChat, { Options } from "../llm/create-chat";
+import type { Scope as LanguageModelScope } from "../llm/types";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";

@@ -7,7 +7,7 @@ import { ChatOutput } from "@cocalc/util/types/llm";
 import { Stream } from "openai/streaming";
 import { totalNumTokens } from "./chatgpt-numtokens";
 
-const log = getLogger("llm:call-chatgpt");
+const log = getLogger("llm:call-llm");
 
 interface CallChatGPTOpts {
   openai: OpenAI;

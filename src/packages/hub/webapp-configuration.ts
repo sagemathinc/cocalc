@@ -11,25 +11,29 @@
 
 import { delay } from "awaiting";
 import debug from "debug";
+import { isEmpty } from "lodash";
+import LRU from "lru-cache";
 
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { get_passport_manager, PassportManager } from "@cocalc/server/hub/auth";
 import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { SoftwareEnvConfig } from "@cocalc/util/sanitize-software-envs";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
+import { OllamaPublic } from "@cocalc/util/types/llm";
 import { parseDomain, ParseResultType } from "parse-domain";
-import { get_passport_manager, PassportManager } from "@cocalc/server/hub/auth";
-import getServerSettings from "./servers/server-settings";
+import getServerSettings, {
+  ServerSettingsDynamic,
+} from "./servers/server-settings";
 import { have_active_registration_tokens } from "./utils";
 
 const L = debug("hub:webapp-config");
 
-import LRU from "lru-cache";
 const CACHE = new LRU({ max: 1000, ttl: 60 * 1000 }); // 1 minutes
 
 export function clear_cache(): void {
-  CACHE.reset();
+  CACHE.clear();
 }
 
 type Theme = { [key: string]: string | boolean };
@@ -40,6 +44,7 @@ interface Config {
   registration: any;
   strategies: object;
   software: SoftwareEnvConfig | null;
+  ollama: { [key: string]: OllamaPublic };
 }
 
 async function get_passport_manager_async(): Promise<PassportManager> {
@@ -53,7 +58,7 @@ async function get_passport_manager_async(): Promise<PassportManager> {
       return pp_manager;
     } else {
       L(
-        `WARNING: Passport Manager not available yet -- trying again in ${ms}ms`
+        `WARNING: Passport Manager not available yet -- trying again in ${ms}ms`,
       );
       await delay(ms);
       ms = Math.min(10000, 1.3 * ms);
@@ -63,7 +68,7 @@ async function get_passport_manager_async(): Promise<PassportManager> {
 
 export class WebappConfiguration {
   private readonly db: PostgreSQL;
-  private data?: any;
+  private data?: ServerSettingsDynamic;
 
   constructor({ db }) {
     this.db = db;
@@ -168,14 +173,43 @@ export class WebappConfiguration {
     return strategies as object;
   }
 
+  // derives the public ollama model configuration from the private one
+  private get_ollama_public(): { [key: string]: OllamaPublic } {
+    if (this.data == null) {
+      throw new Error("server settings not yet initialized");
+    }
+    const ollama = this.data.all.ollama_configuration;
+    if (isEmpty(ollama)) return {};
+
+    const public_ollama = {};
+    for (const key in ollama) {
+      const conf = ollama[key];
+      const cocalc = conf.cocalc ?? {};
+      const model = conf.model ?? key;
+      public_ollama[key] = {
+        key,
+        model,
+        display: cocalc.display ?? `Ollama ${model}`,
+        icon: cocalc.icon, // fallback is the Ollama icon, frontend does that
+      };
+    }
+    return public_ollama;
+  }
+
   private async get_config({ country, host }): Promise<Config> {
-    const [configuration, registration, software] = await Promise.all([
+    while (this.data == null) {
+      L.debug("waiting for server settings to be initialized");
+      await delay(100);
+    }
+
+    const [configuration, registration, software, ollama] = await Promise.all([
       this.get_configuration({ host, country }),
       have_active_registration_tokens(this.db),
       getSoftwareEnvironments("webapp"),
+      this.get_ollama_public(),
     ]);
     const strategies = await this.get_strategies();
-    return { configuration, registration, strategies, software };
+    return { configuration, registration, strategies, software, ollama };
   }
 
   // it returns a shallow copy, hence you can modify/add keys in the returned map!

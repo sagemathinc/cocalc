@@ -30,7 +30,7 @@ import {
 } from "@cocalc/util/db-schema/openai";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
-import { callChatGPTAPI } from "./call-chatgpt";
+import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
 import { saveResponse } from "./save-response";
 import { VertexAIClient } from "./vertex-ai-client";

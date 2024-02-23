@@ -1,23 +1,28 @@
 import { Button, Divider, Input, Modal, Space } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useEffect,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   HelpIcon,
   Markdown,
   Paragraph,
-  Title,
   Text,
+  Title,
 } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import ModelSwitch, {
   modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+} from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { show_react_modal } from "@cocalc/frontend/misc";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { unreachable } from "@cocalc/util/misc";
-import { isFreeModel } from "@cocalc/util/db-schema/openai";
 import track from "@cocalc/frontend/user-tracking";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { isFreeModel, isLanguageModel } from "@cocalc/util/db-schema/openai";
+import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";
 
@@ -47,6 +52,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
   const [formula, setFormula] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  const ollama = useTypedRedux("customize", "ollama");
 
   const enabled = redux
     .getStore("projects")
@@ -134,12 +140,23 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     }
   }, [text]);
 
+  function renderModel2Name(): string {
+    if (isLanguageModel(model)) {
+      return modelToName(model);
+    }
+    const om = ollama?.get(model);
+    if (om) {
+      return om.get("title") ?? `Ollama ${model}`;
+    }
+    return model;
+  }
+
   function renderTitle() {
     return (
       <>
         <Title level={4}>
           <LanguageModelVendorAvatar model={model} /> Generate LaTeX Formula
-          using {modelToName(model)}
+          using {renderModel2Name()}
         </Title>
         {enabled ? (
           <>

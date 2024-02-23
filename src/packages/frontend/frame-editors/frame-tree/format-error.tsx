@@ -1,11 +1,12 @@
 // A dismissable error message that appears when formatting code.
 
-import { useMemo } from "react";
 import { Alert, Button } from "antd";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+import { useMemo } from "react";
+
 import { file_associations } from "@cocalc/frontend/file-associations";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 
 interface Props {
   formatError: string;
@@ -14,10 +15,13 @@ interface Props {
 
 export default function FormatError({ formatError, formatInput }: Props) {
   const { actions } = useFrameContext();
-  const language = useMemo(() => actions?.languageModelGetLanguage(), [actions]);
+  const language = useMemo(
+    () => actions?.languageModelGetLanguage(),
+    [actions],
+  );
   const mode = useMemo(
     () => file_associations[language]?.opts?.mode ?? language,
-    [language]
+    [language],
   );
 
   if (actions == null) return null;

@@ -9,31 +9,31 @@
 
 // You can use markdown in the descriptions below and it is rendered properly!
 
+import { isValidUUID } from "@cocalc/util/misc";
 import {
   Config,
+  SiteSettings,
+  displayJson,
+  from_json,
   is_email_enabled,
-  only_for_smtp,
-  only_for_sendgrid,
-  only_for_password_reset_smtp,
-  to_bool,
-  only_booleans,
-  to_int,
-  only_nonneg_int,
-  toFloat,
   onlyNonnegFloat,
   onlyPosFloat,
-  only_pos_int,
-  only_commercial,
+  only_booleans,
   only_cocalc_com,
-  from_json,
+  only_commercial,
+  only_for_password_reset_smtp,
+  only_for_sendgrid,
+  only_for_smtp,
+  only_nonneg_int,
+  only_pos_int,
   parsableJson,
-  displayJson,
+  toFloat,
+  to_bool,
+  to_int,
   to_trimmed_str,
-  SiteSettings,
 } from "./site-defaults";
-import { isValidUUID } from "@cocalc/util/misc";
 
-import { is_valid_email_address, expire_time } from "@cocalc/util/misc";
+import { expire_time, is_valid_email_address } from "@cocalc/util/misc";
 
 export const pii_retention_parse = (retention: string): number | false => {
   if (retention == "never" || retention == null) return false;
@@ -83,6 +83,80 @@ const neural_search_enabled = (conf: SiteSettings) =>
 
 const jupyter_api_enabled = (conf: SiteSettings) =>
   to_bool(conf.jupyter_api_enabled);
+
+function ollama_valid(value: string): boolean {
+  if (!parsableJson(value)) {
+    return false;
+  }
+  const obj = from_json(value);
+  if (typeof obj !== "object") {
+    return false;
+  }
+  for (const key in obj) {
+    const val = obj[key] as any;
+    if (typeof val !== "object") {
+      return false;
+    }
+    if (typeof val.baseUrl !== "string") {
+      return false;
+    }
+    if (val.model && typeof val.model !== "string") {
+      return false;
+    }
+    const c = val.cocalc;
+    if (c != null) {
+      if (typeof c !== "object") {
+        return false;
+      }
+      if (c.display && typeof c.display !== "string") {
+        return false;
+      }
+      if (c.enabled && typeof c.enabled !== "boolean") {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function ollama_display(value: string): string {
+  if (!parsableJson(value)) {
+    return "Ollama JSON not parseable. Must be {[key : string] : {model: string, baseUrL: string, cocalc: {display: string, ...}, ...}";
+  }
+  const obj = from_json(value);
+  if (typeof obj !== "object") {
+    return "Ollama JSON must be an object";
+  }
+  const ret: string[] = [];
+  for (const key in obj) {
+    const val = obj[key] as any;
+    if (typeof val !== "object") {
+      return `Ollama config ${key} must be an object`;
+    }
+    if (typeof val.baseUrl !== "string") {
+      return `Ollama config ${key} baseUrl field must be a string`;
+    }
+    if (val.model && typeof val.model !== "string") {
+      return `Ollama config ${key} model field must be a string`;
+    }
+    const c = val.cocalc;
+    if (c != null) {
+      if (typeof c !== "object") {
+        return `Ollama config ${key} cocalc field must be an object`;
+      }
+      if (c.display && typeof c.display !== "string") {
+        return `Ollama config ${key} cocalc.display field must be a string`;
+      }
+      if (c.enabled && typeof c.enabled !== "boolean") {
+        return `Ollama config ${key} cocalc.enabled field must be a boolean`;
+      }
+    }
+    ret.push(
+      `Olama ${key} at ${val.baseUrl} named ${c?.display ?? val.model ?? key}`,
+    );
+  }
+  return `[${ret.join(", ")}]`;
+}
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
@@ -189,7 +263,8 @@ export const EXTRAS: SettingsExtras = {
     multiline: 5,
     show: ollama_enabled,
     to_val: from_json,
-    valid: parsableJson,
+    valid: ollama_valid,
+    to_display: ollama_display,
   },
   qdrant_section: {
     name: "Qdrant Configuration",

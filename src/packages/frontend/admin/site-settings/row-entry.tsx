@@ -120,7 +120,8 @@ export function RowEntry({
               {displayed_val != null && (
                 <span>
                   {" "}
-                  Interpreted as <code>{displayed_val}</code>.{" "}
+                  {valid ? "Interpreted as" : "Invalid:"}{" "}
+                  <code>{displayed_val}</code>.{" "}
                 </span>
               )}
               {valid != null && Array.isArray(valid) && (

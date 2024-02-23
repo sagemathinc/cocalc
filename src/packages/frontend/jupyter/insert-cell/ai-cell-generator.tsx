@@ -9,10 +9,10 @@ import { Paragraph } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import ModelSwitch, {
   modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+} from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";

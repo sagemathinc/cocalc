@@ -34,7 +34,7 @@ import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import LanguageModelTitleBarButton from "../chatgpt/title-bar-button";
+import LanguageModelTitleBarButton from "../llm/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
 import TitleBarTour from "./title-bar-tour";
 import { IS_MOBILE } from "@cocalc/frontend/feature";

@@ -1,6 +1,6 @@
 import { Radio, Tooltip } from "antd";
 
-import { CSS, redux } from "@cocalc/frontend/app-framework";
+import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
@@ -8,14 +8,15 @@ import {
   USER_SELECTABLE_LANGUAGE_MODELS,
   isFreeModel,
   model2service,
+  toOllamaModel,
 } from "@cocalc/util/db-schema/openai";
 
 export { DEFAULT_MODEL };
 export type { LanguageModel };
 
 interface Props {
-  model: LanguageModel;
-  setModel: (model: LanguageModel) => void;
+  model: LanguageModel | string;
+  setModel: (model: LanguageModel | string) => void;
   size?;
   style?: CSS;
   project_id: string;
@@ -45,6 +46,12 @@ export default function ModelSwitch({
     undefined,
     "google",
   );
+  const showOllama = projectsStore.hasLanguageModelEnabled(
+    project_id,
+    undefined,
+    "ollama",
+  );
+  const ollama = useTypedRedux("customize", "ollama");
 
   function renderLLMButton(btnModel: LanguageModel, title: string) {
     if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel)) return;
@@ -98,6 +105,21 @@ export default function ModelSwitch({
     );
   }
 
+  function renderOllama() {
+    if (!showOllama || !ollama) return null;
+
+    return Object.entries(ollama.toJS()).map(([key, config]) => {
+      const title = config.display ?? `Ollama: ${key}`;
+      return (
+        <Tooltip key={key} title={`Ollama: ${title}`}>
+          <Radio.Button value={toOllamaModel(key)}>{title}</Radio.Button>
+        </Tooltip>
+      );
+    });
+  }
+
+  console.log("model", model);
+
   // all models selectable here must be in util/db-schema/openai::USER_SELECTABLE_LANGUAGE_MODELS
   return (
     <Radio.Group
@@ -112,6 +134,7 @@ export default function ModelSwitch({
     >
       {renderOpenAI()}
       {renderGoogle()}
+      {renderOllama()}
     </Radio.Group>
   );
 }

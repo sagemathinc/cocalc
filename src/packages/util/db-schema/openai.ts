@@ -43,16 +43,30 @@ export function isLanguageModel(model?: string): model is LanguageModel {
 
 export function getValidLanguageModelName(
   model: string | undefined,
-  filter: { google: boolean; openai: boolean } = { google: true, openai: true },
-): LanguageModel {
-  const dftl = filter.openai === true ? DEFAULT_MODEL : "chat-bison-001";
+  filter: { google: boolean; openai: boolean; ollama: boolean } = {
+    google: true,
+    openai: true,
+    ollama: false,
+  },
+  ollama: string[] = [], // keys of ollama models
+): LanguageModel | string {
+  const dftl =
+    filter.openai === true
+      ? DEFAULT_MODEL
+      : filter.ollama && ollama?.length > 0
+      ? toOllamaModel(ollama[0])
+      : "chat-bison-001";
+  console.log("getValidLanguageModelName", model, filter, ollama, dftl);
   if (model == null) {
     return dftl;
   }
-  if (!LANGUAGE_MODELS.includes(model as LanguageModel)) {
-    return dftl;
+  if (LANGUAGE_MODELS.includes(model as LanguageModel)) {
+    return model;
   }
-  return model as LanguageModel;
+  if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
+    return model;
+  }
+  return dftl;
 }
 
 export interface OpenAIMessage {
@@ -129,6 +143,18 @@ export function model2vendor(model: LanguageModel): Vendor {
   }
 }
 
+export function toOllamaModel(model: string) {
+  return `ollama-${model}`;
+}
+
+export function fromOllamaModel(model: string) {
+  return model.replace(/^ollama-/, "");
+}
+
+export function isOllamaLLM(model: string) {
+  return model.startsWith("ollama-");
+}
+
 const MODELS_OPENAI = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
@@ -166,13 +192,14 @@ export const LLM_USERNAMES = {
   "gemini-pro": "Gemini Pro",
 } as const;
 
-export function isFreeModel(model: Model) {
+export function isFreeModel(model: string) {
+  if (!LANGUAGE_MODELS.includes(model as LanguageModel)) return false;
   return (
-    model == "gpt-3.5-turbo" ||
-    model == "text-bison-001" ||
-    model == "chat-bison-001" ||
-    model == "embedding-gecko-001" ||
-    model == "gemini-pro"
+    (model as Model) == "gpt-3.5-turbo" ||
+    (model as Model) == "text-bison-001" ||
+    (model as Model) == "chat-bison-001" ||
+    (model as Model) == "embedding-gecko-001" ||
+    (model as Model) == "gemini-pro"
   );
 }
 

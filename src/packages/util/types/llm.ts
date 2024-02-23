@@ -30,3 +30,10 @@ export interface ChatOptions {
   stream?: (output?: string) => void;
   maxTokens?: number;
 }
+
+export interface OllamaPublic {
+  key: string; // the key in the dict
+  model: string;
+  display: string;
+  icon: string;
+}

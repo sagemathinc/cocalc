@@ -5,13 +5,15 @@ You do not have to worry too much about throwing an exception, because they're c
 */
 
 import OpenAI from "openai";
+import jsonStable from "json-stable-stringify";
+import { Ollama } from "@langchain/community/llms/ollama";
+import * as _ from "lodash";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/openai";
 import { unreachable } from "@cocalc/util/misc";
 import { VertexAIClient } from "./vertex-ai-client";
-import { Ollama } from "@langchain/community/llms/ollama";
 
 const log = getLogger("llm:client");
 
@@ -68,29 +70,59 @@ export async function getClient(
 
 const ollamaCache: { [key: string]: Ollama } = {};
 
+/**
+ * The idea here is: the ollama config contains all available endpoints and their configuration.
+ * The "model" is the unique key in the ollama_configuration mapping, it was prefixed by "ollama-".
+ * For the actual Ollama client instantitation, we pick the model parameter from the config or just use the unique model name as a fallback.
+ * In particular, this means you can query the same Ollama model with differnet parameters, or even have several ollama servers running.
+ * All other config parameters are passed to the Ollama constructor (e.g. topK, temperature, etc.).
+ */
 export async function getOllama(model: string) {
-  // model is the unique key in the ServerSettings.ollama_configuration mapping
-  if (ollamaCache[model]) {
-    return ollamaCache[model];
+  if (model.startsWith("ollama-")) {
+    throw new Error(
+      `At this point, the model name should no longer have the "ollama-" prefix`,
+    );
   }
 
   const settings = await getServerSettings();
   const config = settings.ollama_configuration?.[model];
   if (!config) {
     throw new Error(
-      `Ollama model ${model} not configured – you have to create an entry {${model}: {url: "https://...", ...}} in the "Ollama Configuration" entry of the server settings`,
+      `Ollama model ${model} not configured – you have to create an entry {${model}: {baseUrl: "https://...", ...}} in the "Ollama Configuration" entry of the server settings!`,
     );
   }
 
-  const baseUrl = config.url;
+  // the key is a hash of the model name and the specific config – such that changes in the config will invalidate the cache
+  const key = `${model}:${jsonStable(config)}`;
+
+  // model is the unique key in the ServerSettings.ollama_configuration mapping
+  if (ollamaCache[key]) {
+    log.debug(`Using cached Ollama client for model ${model}`);
+    return ollamaCache[key];
+  }
+
+  const baseUrl = config.baseUrl;
 
   if (!baseUrl) {
-    throw new Error(`The url of the Ollama model ${model} is not configured`);
+    throw new Error(
+      `The "baseUrl" field of the Ollama model ${model} is not configured`,
+    );
   }
 
   const keepAlive = config.keepAlive ?? -1;
 
-  const client = new Ollama({ baseUrl, model, keepAlive });
-  ollamaCache[model] = client;
+  // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
+  const other = _.omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
+  const ollamaConfig = {
+    baseUrl,
+    model: config.model ?? model,
+    keepAlive,
+    ...other,
+  };
+
+  log.debug("Instantiating Ollama client with config", ollamaConfig);
+
+  const client = new Ollama(ollamaConfig);
+  ollamaCache[key] = client;
   return client;
 }

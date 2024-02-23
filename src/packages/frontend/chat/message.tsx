@@ -17,7 +17,7 @@ import {
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import { modelToName } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import { modelToName } from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";

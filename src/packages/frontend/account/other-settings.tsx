@@ -378,28 +378,21 @@ export class OtherSettings extends Component<Props> {
 
   render_language_model(): Rendered {
     const projectsStore = redux.getStore("projects");
-    const haveOpenAI = projectsStore.hasLanguageModelEnabled(
-      undefined,
-      undefined,
-      "openai",
-    );
-    const haveGoogle = projectsStore.hasLanguageModelEnabled(
-      undefined,
-      undefined,
-      "google",
-    );
+    const enabled = projectsStore.llmEnabledSummary();
+    const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
 
     const defaultModel = getValidLanguageModelName(
       this.props.other_settings.get(SETTINGS_LANGUAGE_MODEL_KEY),
-      { openai: haveOpenAI, google: haveGoogle },
+      enabled,
+      Object.keys(ollama),
     );
 
     const options: { value: string; display: JSX.Element }[] = [];
 
     for (const key of USER_SELECTABLE_LANGUAGE_MODELS) {
       const vendor = model2vendor(key);
-      if (vendor === "google" && !haveGoogle) continue;
-      if (vendor === "openai" && !haveOpenAI) continue;
+      if (vendor === "google" && !enabled.google) continue;
+      if (vendor === "openai" && !enabled.openai) continue;
 
       const txt = isFreeModel(key) ? " (free)" : "";
       const display = (
@@ -408,6 +401,18 @@ export class OtherSettings extends Component<Props> {
         </>
       );
       options.push({ value: key, display });
+    }
+
+    if (enabled.ollama) {
+      for (const key in ollama) {
+        const title = ollama[key].display ?? key;
+        const display = (
+          <>
+            <strong>{title}</strong> (Ollama)
+          </>
+        );
+        options.push({ value: key, display });
+      }
     }
 
     return (
@@ -470,9 +475,9 @@ export class OtherSettings extends Component<Props> {
                 redux.getStore("projects").clearOpenAICache();
               }}
             >
-              <strong>Disable all AI integrations</strong>, e.g.,
-              code generation or explanation buttons in Jupyter, @chatgpt
-              mentions, etc.
+              <strong>Disable all AI integrations</strong>, e.g., code
+              generation or explanation buttons in Jupyter, @chatgpt mentions,
+              etc.
             </Checkbox>
           )}
           {this.render_language_model()}

@@ -734,10 +734,22 @@ export class ProjectsStore extends Store<ProjectsState> {
     openAICache.clear();
   }
 
+  public llmEnabledSummary(project_id: string = "global", tag?: string) {
+    const haveOpenAI = this.hasLanguageModelEnabled(project_id, tag, "openai");
+    const haveGoogle = this.hasLanguageModelEnabled(project_id, tag, "google");
+    const haveOllama = this.hasLanguageModelEnabled(project_id, tag, "ollama");
+
+    return {
+      openai: haveOpenAI,
+      google: haveGoogle,
+      ollama: haveOllama,
+    };
+  }
+
   hasLanguageModelEnabled(
     project_id: string = "global",
     tag?: string,
-    vendor: "openai" | "google" | "any" = "any",
+    vendor: "openai" | "google" | "ollama" | "any" = "any",
   ): boolean {
     // cache answer for a few seconds, in case this gets called a lot:
 
@@ -769,17 +781,19 @@ export class ProjectsStore extends Store<ProjectsState> {
   private _hasLanguageModelEnabled(
     project_id: string | "global" = "global",
     courseLimited?: boolean,
-    vendor: "openai" | "google" | "any" = "any",
+    vendor: "openai" | "google" | "ollama" | "any" = "any",
   ): boolean {
     const customize = redux.getStore("customize");
     const haveOpenAI = customize.get("openai_enabled");
     const haveGoogle = customize.get("google_vertexai_enabled");
+    const haveOllama = customize.get("ollama_enabled");
 
-    if (!haveOpenAI && !haveGoogle) return false; // the vendor == "any" case
+    if (!haveOpenAI && !haveGoogle && !haveOllama) return false; // the vendor == "any" case
     if (vendor === "openai" && !haveOpenAI) return false;
     if (vendor === "google" && !haveGoogle) return false;
+    if (vendor === "ollama" && !haveOllama) return false;
 
-    // this customization accounts for disabling any language model vendor
+    // this customization parameter accounts for disabling **any** language model vendor
     const openai_disabled = redux
       .getStore("account")
       .getIn(["other_settings", "openai_disabled"]);

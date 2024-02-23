@@ -12,12 +12,12 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import ModelSwitch, {
   LanguageModel,
   modelToMention,
   modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+} from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { ProjectsStore } from "@cocalc/frontend/projects/store";
 import type { JupyterActions } from "../browser-actions";
 

@@ -34,11 +34,11 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import ModelSwitch, {
-  modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import ModelSwitch, {
+  modelToName,
+} from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { StartButton } from "@cocalc/frontend/project/start-button";
