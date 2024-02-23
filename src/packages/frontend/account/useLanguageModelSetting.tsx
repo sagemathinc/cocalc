@@ -5,7 +5,7 @@ import {
   fromOllamaModel,
   getValidLanguageModelName,
   isOllamaLLM,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 
 export const SETTINGS_LANGUAGE_MODEL_KEY = "language_model";
 

@@ -50,7 +50,7 @@ import { once } from "@cocalc/util/async-utils";
 import {
   getVendorStatusCheckMD,
   model2vendor,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ensure_project_running } from "../../project-start-warning";

@@ -140,7 +140,7 @@ async function getExplanation({
   actions: JupyterActions;
   project_id: string;
   path: string;
-  model: LanguageModel;
+  model: LanguageModel | string;
 }) {
   const message = createMessage({ id, actions, model, open: false });
   if (!message) {

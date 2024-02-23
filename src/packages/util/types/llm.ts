@@ -1,4 +1,4 @@
-import { LanguageModel } from "@cocalc/util/db-schema/openai";
+import { LanguageModel } from "@cocalc/util/db-schema/llm";
 
 export type History = {
   role: "assistant" | "user" | "system";

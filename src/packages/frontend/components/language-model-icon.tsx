@@ -1,6 +1,5 @@
-import { isLanguageModel, model2vendor } from "@cocalc/util/db-schema/openai";
-
 import { CSS } from "@cocalc/frontend/app-framework";
+import { isLanguageModel, model2vendor } from "@cocalc/util/db-schema/llm";
 import { unreachable } from "@cocalc/util/misc";
 import AIAvatar from "./ai-avatar";
 import GoogleGeminiLogo from "./google-gemini-avatar";

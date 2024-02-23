@@ -4,14 +4,14 @@ Get the client for the given LanguageModel.
 You do not have to worry too much about throwing an exception, because they're caught in ./index::evaluate
 */
 
-import OpenAI from "openai";
-import jsonStable from "json-stable-stringify";
 import { Ollama } from "@langchain/community/llms/ollama";
+import jsonStable from "json-stable-stringify";
 import * as _ from "lodash";
+import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/openai";
+import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/llm";
 import { unreachable } from "@cocalc/util/misc";
 import { VertexAIClient } from "./vertex-ai-client";
 

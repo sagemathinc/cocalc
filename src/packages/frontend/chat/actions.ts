@@ -22,7 +22,7 @@ import {
   model2vendor,
   type LanguageModel,
   LANGUAGE_MODEL_PREFIXES,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";

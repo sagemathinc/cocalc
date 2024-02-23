@@ -6,10 +6,12 @@ import {
   LLM_USERNAMES,
   LanguageModel,
   USER_SELECTABLE_LANGUAGE_MODELS,
+  fromOllamaModel,
   isFreeModel,
+  isOllamaLLM,
   model2service,
   toOllamaModel,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 
 export { DEFAULT_MODEL };
 export type { LanguageModel };
@@ -139,11 +141,18 @@ export default function ModelSwitch({
   );
 }
 
-export function modelToName(model: LanguageModel): string {
+export function modelToName(model: LanguageModel | string): string {
+  if (isOllamaLLM(model)) {
+    const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
+    const om = ollama[fromOllamaModel(model)];
+    if (om) {
+      return om.display ?? `Ollama ${model}`;
+    }
+  }
   return LLM_USERNAMES[model] ?? model;
 }
 
-export function modelToMention(model: LanguageModel): string {
+export function modelToMention(model: LanguageModel | string): string {
   return `<span class="user-mention" account-id=${model2service(
     model,
   )} >@${modelToName(model)}</span>`;

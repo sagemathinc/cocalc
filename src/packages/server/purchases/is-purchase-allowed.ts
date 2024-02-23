@@ -5,7 +5,7 @@ import {
   getMaxCost,
   isLanguageModelService,
   service2model,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { currency, round2up, round2down } from "@cocalc/util/misc";

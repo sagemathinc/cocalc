@@ -27,9 +27,10 @@ import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allo
 import {
   isFreeModel,
   LanguageModel,
+  LanguageService,
   model2service,
   MODELS,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {
@@ -73,7 +74,7 @@ export async function checkForAbuse({
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
-      service: model2service(model),
+      service: model2service(model) as LanguageService,
     });
     // We always allow usage of for pay models, since the user is paying for
     // them.  Only free models need to be throttled.
@@ -113,7 +114,7 @@ export async function checkForAbuse({
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
-      service: model2service(model),
+      service: model2service(model) as LanguageService,
     });
   }
 }

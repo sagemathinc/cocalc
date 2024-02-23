@@ -21,7 +21,7 @@ import ModelSwitch, {
 import { show_react_modal } from "@cocalc/frontend/misc";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { isFreeModel, isLanguageModel } from "@cocalc/util/db-schema/openai";
+import { isFreeModel, isLanguageModel } from "@cocalc/util/db-schema/llm";
 import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";

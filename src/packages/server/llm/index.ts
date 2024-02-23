@@ -21,13 +21,14 @@ import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
+  LanguageService,
   OpenAIMessages,
   getLLMCost,
   isFreeModel,
   isValidModel,
   model2service,
   model2vendor,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { callChatGPTAPI } from "./call-llm";
@@ -136,9 +137,9 @@ async function evaluateImpl({
           account_id,
           project_id,
           cost,
-          service: model2service(model),
+          service: model2service(model) as LanguageService,
           description: {
-            type: model2service(model),
+            type: model2service(model) as LanguageService,
             prompt_tokens,
             completion_tokens,
           },

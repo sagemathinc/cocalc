@@ -20,7 +20,7 @@ import {
   LanguageModel,
   getVendorStatusCheckMD,
   model2vendor,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { insertCell } from "./util";
@@ -168,7 +168,7 @@ interface QueryLanguageModelProps {
   actions: JupyterActions;
   frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
   id: string;
-  model: LanguageModel;
+  model: LanguageModel | string;
   path: string;
   position: "above" | "below";
   project_id: string;
@@ -316,7 +316,7 @@ interface GetInputProps {
   actions: JupyterActions;
   frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
   id: string;
-  model: LanguageModel;
+  model: LanguageModel | string;
   position: "above" | "below";
   prompt: string;
 }

@@ -5,7 +5,7 @@
  */
 
 import getLogger from "@cocalc/backend/logger";
-import { LanguageModel } from "@cocalc/util/db-schema/openai";
+import { LanguageModel } from "@cocalc/util/db-schema/llm";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
 import {
   DiscussServiceClient,

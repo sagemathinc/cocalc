@@ -12,7 +12,7 @@ import {
   LLM_USERNAMES,
   USER_SELECTABLE_LANGUAGE_MODELS,
   model2service,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { Item } from "./complete";
 

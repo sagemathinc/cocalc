@@ -1,4 +1,4 @@
-import { Vendor } from "@cocalc/util/db-schema/openai";
+import { Vendor } from "@cocalc/util/db-schema/llm";
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 
