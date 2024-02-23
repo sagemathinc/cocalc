@@ -120,8 +120,6 @@ export default function ModelSwitch({
     });
   }
 
-  console.log("model", model);
-
   // all models selectable here must be in util/db-schema/openai::USER_SELECTABLE_LANGUAGE_MODELS
   return (
     <Radio.Group

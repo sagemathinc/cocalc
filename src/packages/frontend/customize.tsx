@@ -259,10 +259,9 @@ async function init_customize() {
 
 init_customize();
 
-function process_ollama(ollama) {
-  if (ollama) {
-    actions.setState({ ollama: fromJS(ollama) });
-  }
+function process_ollama(ollama?) {
+  if (!ollama) return;
+  actions.setState({ ollama: fromJS(ollama) });
 }
 
 function process_kucalc(obj) {

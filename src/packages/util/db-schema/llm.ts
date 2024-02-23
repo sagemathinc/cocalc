@@ -146,11 +146,17 @@ export function model2vendor(model: LanguageModel | string): Vendor {
 }
 
 export function toOllamaModel(model: string) {
+  if (isOllamaLLM(model)) {
+    throw new Error(`already an ollama model: ${model}`);
+  }
   return `ollama-${model}`;
 }
 
 export function fromOllamaModel(model: string) {
-  return model.replace(/^ollama-/, "");
+  if (!isOllamaLLM(model)) {
+    throw new Error(`not an ollama model: ${model}`);
+  }
+  return model.slice("ollama-".length);
 }
 
 export function isOllamaLLM(model: string) {
@@ -306,7 +312,7 @@ const LLM_COST: { [name in LanguageModel]: Cost } = {
 
 export function isValidModel(model?: string): boolean {
   if (model == null) return false;
-  if (model.startsWith("ollama-")) return true;
+  if (isOllamaLLM(model)) return true;
   return LLM_COST[model ?? ""] != null;
 }
 

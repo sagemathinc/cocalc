@@ -11,7 +11,11 @@ import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { LanguageModel, model2vendor } from "@cocalc/util/db-schema/llm";
+import {
+  LanguageModel,
+  isOllamaLLM,
+  model2vendor,
+} from "@cocalc/util/db-schema/llm";
 import { unreachable } from "@cocalc/util/misc";
 import { VertexAIClient } from "./vertex-ai-client";
 
@@ -78,9 +82,9 @@ const ollamaCache: { [key: string]: Ollama } = {};
  * All other config parameters are passed to the Ollama constructor (e.g. topK, temperature, etc.).
  */
 export async function getOllama(model: string) {
-  if (model.startsWith("ollama-")) {
+  if (isOllamaLLM(model)) {
     throw new Error(
-      `At this point, the model name should no longer have the "ollama-" prefix`,
+      `At this point, the model name should be one of Ollama, but it was ${model}`,
     );
   }
 
@@ -90,6 +94,10 @@ export async function getOllama(model: string) {
     throw new Error(
       `Ollama model ${model} not configured – you have to create an entry {${model}: {baseUrl: "https://...", ...}} in the "Ollama Configuration" entry of the server settings!`,
     );
+  }
+
+  if (config.cocalc?.disabled) {
+    throw new Error(`Ollama model ${model} is disabled`);
   }
 
   // the key is a hash of the model name and the specific config – such that changes in the config will invalidate the cache
@@ -109,7 +117,7 @@ export async function getOllama(model: string) {
     );
   }
 
-  const keepAlive = config.keepAlive ?? -1;
+  const keepAlive: string = config.keepAlive ?? "24h";
 
   // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
   const other = _.omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);

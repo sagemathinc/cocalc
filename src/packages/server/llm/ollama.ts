@@ -1,6 +1,15 @@
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
+import { RunnableWithMessageHistory } from "@langchain/core/runnables";
+import { ChatMessageHistory } from "langchain/stores/message/in_memory";
+
 import getLogger from "@cocalc/backend/logger";
+import { fromOllamaModel, isOllamaLLM } from "@cocalc/util/db-schema/llm";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
 import { getOllama } from "./client";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 const log = getLogger("llm:ollama");
 
@@ -17,10 +26,10 @@ interface OllamaOpts {
 export async function evaluateOllama(
   opts: Readonly<OllamaOpts>,
 ): Promise<ChatOutput> {
-  if (!opts.model.startsWith("ollama-")) {
+  if (!isOllamaLLM(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }
-  const model = opts.model.slice("ollama-".length);
+  const model = fromOllamaModel(opts.model);
   const { system, history, input, maxTokens, stream } = opts;
   log.debug("evaluateOllama", {
     input,
@@ -33,7 +42,56 @@ export async function evaluateOllama(
 
   const ollama = await getOllama(model);
 
-  const chunks = await ollama.stream(input);
+  const msgs: ["ai" | "human", string][] = [];
+
+  if (history) {
+    let nextRole: "model" | "user" = "user";
+    for (const { content } of history) {
+      if (nextRole === "user") {
+        msgs.push(["human", content]);
+      } else {
+        msgs.push(["ai", content]);
+      }
+      nextRole = nextRole === "user" ? "model" : "user";
+    }
+  }
+
+  const prompt = ChatPromptTemplate.fromMessages([
+    ["system", system ?? ""],
+    new MessagesPlaceholder("chat_history"),
+    ["human", "{input}"],
+  ]);
+
+  const chain = prompt.pipe(ollama);
+
+  const chainWithHistory = new RunnableWithMessageHistory({
+    runnable: chain,
+    inputMessagesKey: "input",
+    historyMessagesKey: "chat_history",
+    getMessageHistory: async (_) => {
+      const chatHistory = new ChatMessageHistory();
+      // await history.addMessage(new HumanMessage("be brief"));
+      // await history.addMessage(new AIMessage("ok"));
+      if (history) {
+        let nextRole: "model" | "user" = "user";
+        for (const { content } of history) {
+          if (nextRole === "user") {
+            await chatHistory.addMessage(new HumanMessage(content));
+          } else {
+            await chatHistory.addMessage(new AIMessage(content));
+          }
+          nextRole = nextRole === "user" ? "model" : "user";
+        }
+      }
+
+      return chatHistory;
+    },
+  });
+
+  const chunks = await chainWithHistory.stream(
+    { input },
+    { configurable: { sessionId: "ignored" } },
+  );
 
   let output = "";
   for await (const chunk of chunks) {

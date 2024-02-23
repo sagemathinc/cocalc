@@ -185,6 +185,7 @@ export class WebappConfiguration {
     for (const key in ollama) {
       const conf = ollama[key];
       const cocalc = conf.cocalc ?? {};
+      if (cocalc.disabled) continue;
       const model = conf.model ?? key;
       public_ollama[key] = {
         key,

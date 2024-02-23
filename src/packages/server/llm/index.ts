@@ -25,6 +25,7 @@ import {
   OpenAIMessages,
   getLLMCost,
   isFreeModel,
+  isOllamaLLM,
   isValidModel,
   model2service,
   model2vendor,
@@ -33,9 +34,9 @@ import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
+import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
 import { VertexAIClient } from "./vertex-ai-client";
-import { evaluateOllama } from "./ollama";
 
 const log = getLogger("llm");
 
@@ -91,11 +92,9 @@ async function evaluateImpl({
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
 
-  const client = await getClient(model);
-
   const { output, total_tokens, prompt_tokens, completion_tokens } =
     await (async () => {
-      if (model.startsWith("ollama-")) {
+      if (isOllamaLLM(model)) {
         return await evaluateOllama({
           system,
           history,
@@ -109,7 +108,6 @@ async function evaluateImpl({
           system,
           history,
           input,
-          client,
           model,
           maxTokens,
           stream,
@@ -179,11 +177,12 @@ async function evaluteCall({
   system,
   history,
   input,
-  client,
   model,
   maxTokens,
   stream,
 }) {
+  const client = await getClient(model);
+
   if (client instanceof VertexAIClient) {
     return await evaluateVertexAI({
       system,

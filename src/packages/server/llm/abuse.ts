@@ -26,6 +26,7 @@ import getPool from "@cocalc/database/pool";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
   isFreeModel,
+  isOllamaLLM,
   LanguageModel,
   LanguageService,
   model2service,
@@ -66,7 +67,8 @@ export async function checkForAbuse({
     // at least some amount of tracking.
     throw Error("at least one of account_id or analytics_cookie must be set");
   }
-  if (!MODELS.includes(model)) {
+
+  if (!MODELS.includes(model) && !isOllamaLLM(model)) {
     throw Error(`invalid model "${model}"`);
   }
 
