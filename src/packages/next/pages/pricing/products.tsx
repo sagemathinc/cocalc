@@ -106,8 +106,8 @@ function Body({ siteName }): JSX.Element {
         <Icon name="servers" /> Compute Servers
       </Title>
       <Paragraph>
-        You can use Jupyter notebooks and terminals with access to GPU's,
-        hundreds of CPU's, and thousands of GB of RAM by creating{" "}
+        You can use Jupyter notebooks and terminals with access to GPUs,
+        hundreds of CPUs, and thousands of GB of RAM by creating{" "}
         <A href="https://doc.cocalc.com/compute_server.html">compute servers</A>{" "}
         associated to a project.
       </Paragraph>

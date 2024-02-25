@@ -574,7 +574,7 @@ export const TAGS: Tag[] = [
     color: "red",
   },
   {
-    label: "AI / GPU's",
+    label: "AI / GPUs",
     tag: "gpu",
     color: "volcano",
     icon: "gpu",

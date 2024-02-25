@@ -180,7 +180,7 @@ export function computeAcceleratorCost({ configuration, priceData }) {
   if (!configuration.acceleratorType) {
     return 0;
   }
-  // we have 1 or more GPU's:
+  // we have 1 or more GPUs:
   const acceleratorCount = configuration.acceleratorCount ?? 1;
   // sometimes google has "tesla-" in the name, sometimes they don't,
   // but our pricing data doesn't.
