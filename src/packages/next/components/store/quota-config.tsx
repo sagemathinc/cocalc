@@ -117,9 +117,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           showExplanations ? (
             <>
               <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
-                Google cloud vCPU's.
+                Google Cloud vCPUs.
               </A>{" "}
-              To keep prices low, these vCPU's may be shared with other
+              To keep prices low, these vCPUs may be shared with other
               projects, though member hosting very significantly reduces
               competition for CPUs. We also offer{" "}
               <A href={"/store/dedicated?type=vm"}>

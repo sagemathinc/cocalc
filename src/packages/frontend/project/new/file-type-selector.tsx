@@ -194,10 +194,10 @@ export function FileTypeSelector({
                 title={"Create a Compute Server"}
                 placement="left"
                 icon={"servers"}
-                tip={"Affordable GPU's and high end dedicate virtual machines."}
+                tip={"Affordable GPUs and high-end dedicated virtual machines."}
               >
                 <NewFileButton
-                  name={"Compute Server: GPU's and VM's"}
+                  name={"Compute Server: GPUs and VM's"}
                   icon="servers"
                   on_click={() => {
                     projectActions?.setState({ create_compute_server: true });

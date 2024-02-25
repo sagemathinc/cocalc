@@ -271,10 +271,10 @@ const BASE_QUOTAS: RQuota = {
   member_host: false,
   privileged: false, // for elevated docker privileges (FUSE mounting, later more)
   memory_request: 0, // will hold guaranteed RAM in MB
-  cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
+  cpu_request: 0, // will hold guaranteed min number of vCPUs as a float from 0 to infinity.
   disk_quota: DEFAULT_QUOTAS.disk_quota,
   memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
-  cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
+  cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPUs
   idle_timeout: DEFAULT_QUOTAS.mintime, // minimum uptime
   always_running: false, // if true, a service restarts the project if it isn't running
   dedicated_vm: false,

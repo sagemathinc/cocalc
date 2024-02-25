@@ -157,7 +157,7 @@ export default function GoogleCloudConfiguration({
     const gpu = configuration.acceleratorType
       ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
           configuration.acceleratorType,
-        )} ${plural(configuration.acceleratorCount ?? 1, "GPU", "GPU's")}, `
+        )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
       : "";
     // short summary
     return (
@@ -998,13 +998,13 @@ function RamAndCpu({
   if (inline) {
     return (
       <span style={style}>
-        {vcpu} {plural(vcpu, "vCPU", "vCPU's")}, {memory} GB RAM
+        {vcpu} {plural(vcpu, "vCPU")}, {memory} GB RAM
       </span>
     );
   }
   return (
     <div style={{ color: "#666", ...style }}>
-      <b>{plural(vcpu, "vCPU", "vCPU's")}: </b>
+      <b>{plural(vcpu, "vCPU")}: </b>
       <div
         style={{ width: "65px", textAlign: "left", display: "inline-block" }}
       >
@@ -1435,7 +1435,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
           <div style={{ color: "#666", marginTop: "10px" }}>
             You have selected {acceleratorCount} dedicated{" "}
             <b>{displayAcceleratorType(acceleratorType)}</b>{" "}
-            {plural(acceleratorCount, "GPU", "GPU's")}, with a total of{" "}
+            {plural(acceleratorCount, "GPU")}, with a total of{" "}
             <b>
               {priceData.accelerators[acceleratorType].memory *
                 acceleratorCount}
@@ -1444,7 +1444,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
             .{" "}
             {acceleratorCount > 1 && (
               <>
-                The {acceleratorCount} GPU's will be available on the same
+                The {acceleratorCount} GPUs will be available on the same
                 server.
               </>
             )}
@@ -1616,7 +1616,7 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
   // Ensure the region/zone is consistent with accelerator type
   const prices = data[configuration.spot ? "spot" : "prices"];
   if (prices[configuration.zone] == null) {
-    // there are no GPU's in the selected zone of the selected type.
+    // there are no GPUs in the selected zone of the selected type.
     // If you just explicitly changed the GPU type, then we fix this by changing the zone.
     if (changes["acceleratorType"] != null) {
       // fix the region and zone

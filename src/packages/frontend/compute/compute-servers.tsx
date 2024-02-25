@@ -41,7 +41,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
         Do you need{" "}
         <strong>
           <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/ollama.md">
-            affordable GPU's
+            affordable GPUs
           </A>
         </strong>
         , <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
@@ -66,8 +66,8 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             Linux server,
           </li>
           <li>
-            <Icon name="server" /> Dedicated GPU's, hundreds of very fast
-            vCPU's, and thousands of GB of RAM
+            <Icon name="server" /> Dedicated GPUs, hundreds of very fast
+            vCPUs, and thousands of GB of RAM
           </li>
           <li>
             <Icon name="mathematica" /> <Icon name="matlab" />{" "}
