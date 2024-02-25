@@ -229,6 +229,7 @@ export default function Content(props: Props) {
                 {description}
               </Title>
             )}
+            <SignIn startup={startup ?? title} hideFree={true} />
           </Space>
         </Col>
         <Col sm={14} xs={24}>
@@ -237,9 +238,6 @@ export default function Content(props: Props) {
           {renderBelowImage()}
         </Col>
         {subtitle && renderSubtitleBelow()}
-        <Col lg={24}>
-          <SignIn startup={startup ?? title} hideFree={true} />
-        </Col>
       </Row>
     </div>
   );
