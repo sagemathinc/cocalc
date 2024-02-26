@@ -7,25 +7,26 @@ The cocalc ASM group numbers are at
 https://app.sendgrid.com/suppressions/advanced_suppression_manager
 */
 
-import getPool from "@cocalc/database/pool";
 import sgMail from "@sendgrid/mail";
-import type { Message } from "./message";
-import getHelpEmail from "./help";
-import appendFooter from "./footer";
+
+import getPool from "@cocalc/database/pool";
 import { SENDGRID_TEMPLATE_ID } from "@cocalc/util/theme";
+import appendFooter from "./footer";
+import getHelpEmail from "./help";
+import type { Message } from "./message";
 
 // Init throws error if we can't initialize Sendgrid right now.
 // It also updates the key if it changes in at most one minute (?).
 let initialized = 0;
 export async function getSendgrid(): Promise<any> {
-  const now = new Date().valueOf();
+  const now = Date.now();
   if (now - initialized < 1000 * 30) {
     // initialized recently
     return sgMail;
   }
   const pool = getPool("long");
   const { rows } = await pool.query(
-    "SELECT value FROM server_settings WHERE name='sendgrid_key'"
+    "SELECT value FROM server_settings WHERE name='sendgrid_key'",
   );
   if (rows.length == 0 || !rows[0]?.value) {
     if (initialized) {
@@ -35,7 +36,7 @@ export async function getSendgrid(): Promise<any> {
     throw Error("no sendgrid key");
   }
   sgMail.setApiKey(rows[0].value);
-  initialized = new Date().valueOf();
+  initialized = Date.now();
   return sgMail;
 }
 
