@@ -68,10 +68,13 @@ export class ExportActions {
     const assignments = store.get_sorted_assignments();
     // CSV definition: http://edoceo.com/utilitas/csv-file-format
     // i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
-    const timestamp = webapp_client.server_time().toISOString();
-    let content = `# Course '${store.getIn(["settings", "title"])}'\n`;
-    content += `# exported ${timestamp}\n`;
-    content += "Name,Id,Email,";
+    // We had these nice comments, but actually CSV has no official
+    // support for comments, and this breaks some parsers, e.g.,
+    //   https://github.com/sagemathinc/cocalc/issues/7138
+    // const timestamp = webapp_client.server_time().toISOString();
+    //     let content = `# Course '${store.getIn(["settings", "title"])}'\n`;
+    //     content += `# exported ${timestamp}\n`;
+    let content = "Name,Id,Email,";
     content +=
       (() => {
         const result: any[] = [];
@@ -95,7 +98,7 @@ export class ExportActions {
         for (const assignment of assignments) {
           let grade = store.get_grade(
             assignment.get("assignment_id"),
-            student.get("student_id")
+            student.get("student_id"),
           );
           grade = grade != null ? grade : "";
           grade = this.sanitize_csv_entry(grade);
@@ -109,7 +112,7 @@ export class ExportActions {
         for (const assignment of assignments) {
           let comment = store.get_comments(
             assignment.get("assignment_id"),
-            student.get("student_id")
+            student.get("student_id"),
           );
           comment = comment != null ? comment : "";
           comment = this.sanitize_csv_entry(comment);
@@ -118,7 +121,7 @@ export class ExportActions {
         return result3;
       })().join(",");
       const name = `\"${this.sanitize_csv_entry(
-        store.get_student_name(student.get("student_id"))
+        store.get_student_name(student.get("student_id")),
       )}\"`;
       const email = `\"${
         (left2 = store.get_student_email(student.get("student_id"))) != null
@@ -182,7 +185,7 @@ export class ExportActions {
     const obj = this.export_grades();
     this.write_file(
       this.path("json", "grades"),
-      JSON.stringify(obj, undefined, 2)
+      JSON.stringify(obj, undefined, 2),
     );
   }
 
@@ -208,27 +211,27 @@ export class ExportActions {
         const target_json = this.path(
           "json",
           "file-use-times/assignment/" +
-            replace_all(assignment.get("path"), "/", "-")
+            replace_all(assignment.get("path"), "/", "-"),
         );
         await this.course_actions.assignments.export_file_use_times(
           assignment_or_handout_id,
-          target_json
+          target_json,
         );
         this.open_file(target_json);
       } else if (handout != null) {
         const target_json = this.path(
           "json",
           "file-use-times/handouts/" +
-            replace_all(handout.get("path"), "/", "-")
+            replace_all(handout.get("path"), "/", "-"),
         );
         await this.course_actions.handouts.export_file_use_times(
           assignment_or_handout_id,
-          target_json
+          target_json,
         );
         this.open_file(target_json);
       } else {
         throw Error(
-          `Unknown handout or assignment "${assignment_or_handout_id}"`
+          `Unknown handout or assignment "${assignment_or_handout_id}"`,
         );
       }
     } catch (err) {
