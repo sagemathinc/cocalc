@@ -181,14 +181,13 @@ export class WebappConfiguration {
     const ollama = this.data.all.ollama_configuration;
     if (isEmpty(ollama)) return {};
 
-    const public_ollama = {};
+    const public_ollama: { [key: string]: OllamaPublic } = {};
     for (const key in ollama) {
       const conf = ollama[key];
       const cocalc = conf.cocalc ?? {};
       if (cocalc.disabled) continue;
       const model = conf.model ?? key;
       public_ollama[key] = {
-        key,
         model,
         display: cocalc.display ?? `Ollama ${model}`,
         icon: cocalc.icon, // fallback is the Ollama icon, frontend does that

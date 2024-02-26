@@ -32,8 +32,7 @@ export interface ChatOptions {
 }
 
 export interface OllamaPublic {
-  key: string; // the key in the dict
   model: string;
   display: string;
-  icon: string;
+  icon?: string; // fallback to OllamaAvatar
 }

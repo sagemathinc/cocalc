@@ -181,12 +181,6 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
-      chatGPT={redux
-        .getStore("projects")
-        .hasLanguageModelEnabled(project_id, undefined, "openai")}
-      vertexAI={redux
-        .getStore("projects")
-        .hasLanguageModelEnabled(project_id, undefined, "google")}
     />
   );
 }
@@ -194,7 +188,7 @@ export default function ChatInput({
 function getPlaceholder(project_id, placeholder?: string): string {
   if (placeholder != null) return placeholder;
   if (redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
-    return "Type a new message (use @chatgpt for ChatGPT)...";
+    return "Type a new message (mention a LLM via @chatgpt, @gemini, …)...";
   }
   return "Type a new message...";
 }

@@ -7,11 +7,16 @@ import { Context, createContext, useContext, useMemo, useState } from "react";
 
 import {
   ProjectActions,
+  redux,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { UserGroup } from "@cocalc/frontend/projects/store";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+} from "@cocalc/util/db-schema/site-defaults";
 import { useProject } from "./page/common";
 import {
   init as INIT_PROJECT_STATE,
@@ -20,10 +25,6 @@ import {
 import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
-import {
-  KUCALC_COCALC_COM,
-  KUCALC_DISABLED,
-} from "@cocalc/util/db-schema/site-defaults";
 
 export interface ProjectContextState {
   actions?: ProjectActions;
@@ -38,6 +39,11 @@ export interface ProjectContextState {
   flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
   onCoCalcCom: boolean;
   onCoCalcDocker: boolean;
+  enabledLLMs: {
+    openai: boolean;
+    google: boolean;
+    ollama: boolean;
+  };
 }
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -54,6 +60,11 @@ export const ProjectContext: Context<ProjectContextState> =
     flipTabs: [0, () => {}],
     onCoCalcCom: true,
     onCoCalcDocker: false,
+    enabledLLMs: {
+      openai: false,
+      google: false,
+      ollama: false,
+    },
   });
 
 export function useProjectContext() {
@@ -90,6 +101,15 @@ export function useProjectContextProvider(
   const onCoCalcCom = kucalc === KUCALC_COCALC_COM;
   const onCoCalcDocker = kucalc === KUCALC_DISABLED;
 
+  const haveOpenAI = useTypedRedux("customize", "openai_enabled");
+  const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
+  const haveOllama = useTypedRedux("customize", "ollama_enabled");
+
+  const enabledLLMs = useMemo(() => {
+    const projectsStore = redux.getStore("projects");
+    return projectsStore.whichLLMareEnabled(project_id);
+  }, [haveOpenAI, haveGoogle, haveOllama]);
+
   return {
     actions,
     active_project_tab,
@@ -103,5 +123,6 @@ export function useProjectContextProvider(
     flipTabs,
     onCoCalcCom,
     onCoCalcDocker,
+    enabledLLMs,
   };
 }

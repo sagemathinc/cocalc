@@ -138,7 +138,7 @@ export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 export function model2vendor(model: LanguageModel | string): Vendor {
   if (model.startsWith("gpt-")) {
     return "openai";
-  } else if (model.startsWith("ollama-")) {
+  } else if (isOllamaLLM(model)) {
     return "ollama";
   } else {
     return "google";

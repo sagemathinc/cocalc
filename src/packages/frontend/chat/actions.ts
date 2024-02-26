@@ -735,8 +735,8 @@ function getReplyToRoot(message, messages): Date | undefined {
   return date ? new Date(date) : undefined;
 }
 
+// We strip out any cased version of the string @chatgpt and also all mentions.
 function stripMentions(value: string): string {
-  // We strip out any cased version of the string @chatgpt and also all mentions.
   for (const name of ["@chatgpt4", "@chatgpt", "@palm"]) {
     while (true) {
       const i = value.toLowerCase().indexOf(name);

@@ -3,61 +3,104 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { isEmpty } from "lodash";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { redux } from "@cocalc/frontend/app-framework";
+import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import GooglePalmLogo from "@cocalc/frontend/components/google-palm-avatar";
+import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   LLM_USERNAMES,
   USER_SELECTABLE_LANGUAGE_MODELS,
   model2service,
+  toOllamaModel,
 } from "@cocalc/util/db-schema/llm";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
+import { OllamaPublic } from "@cocalc/util/types/llm";
 import { Item } from "./complete";
 
-export function mentionableUsers(
-  project_id: string,
-  search: string | undefined,
-  chatGPT: boolean | undefined,
-  vertexAI: boolean | undefined,
-): Item[] {
+export function useMentionableUsers(): (search: string | undefined) => Item[] {
+  const { project_id, enabledLLMs } = useProjectContext();
+
+  const ollama = useTypedRedux("customize", "ollama");
+
+  return useMemo(() => {
+    return (search: string | undefined) => {
+      return mentionableUsers({
+        search,
+        project_id,
+        enabledLLMs,
+        ollama: ollama?.toJS() ?? {},
+      });
+    };
+  }, [project_id, JSON.stringify(enabledLLMs), ollama]);
+}
+
+interface Props {
+  search: string | undefined;
+  project_id: string;
+  ollama: { [key: string]: OllamaPublic };
+  enabledLLMs: {
+    openai: boolean;
+    google: boolean;
+    ollama: boolean;
+  };
+}
+
+function mentionableUsers({
+  search,
+  project_id,
+  enabledLLMs,
+  ollama,
+}: Props): Item[] {
   const users = redux
     .getStore("projects")
     .getIn(["project_map", project_id, "users"]);
+
   const last_active = redux
     .getStore("projects")
     .getIn(["project_map", project_id, "last_active"]);
+
   if (users == null || last_active == null) return []; // e.g., for an admin
+
   const my_account_id = redux.getStore("account").get("account_id");
-  const project_users: {
-    account_id: string;
-    last_active: Date | undefined;
-  }[] = [];
-  for (const [account_id] of users) {
-    project_users.push({
-      account_id,
-      last_active: last_active.get(account_id),
+
+  function getProjectUsers() {
+    const project_users: {
+      account_id: string;
+      last_active: Date | undefined;
+    }[] = [];
+    for (const [account_id] of users) {
+      project_users.push({
+        account_id,
+        last_active: last_active.get(account_id),
+      });
+    }
+    project_users.sort((a, b) => {
+      // always push self to bottom...
+      if (a.account_id == my_account_id) {
+        return 1;
+      }
+      if (b.account_id == my_account_id) {
+        return -1;
+      }
+      if (a == null || b == null) return cmp(a.account_id, b.account_id);
+      if (a == null && b != null) return 1;
+      if (a != null && b == null) return -1;
+      return timestamp_cmp(a, b, "last_active");
     });
+    return project_users;
   }
-  project_users.sort((a, b) => {
-    // always push self to bottom...
-    if (a.account_id == my_account_id) {
-      return 1;
-    }
-    if (b.account_id == my_account_id) {
-      return -1;
-    }
-    if (a == null || b == null) return cmp(a.account_id, b.account_id);
-    if (a == null && b != null) return 1;
-    if (a != null && b == null) return -1;
-    return timestamp_cmp(a, b, "last_active");
-  });
+
+  const project_users = getProjectUsers();
 
   const users_store = redux.getStore("users");
   const v: Item[] = [];
 
-  if (chatGPT) {
+  if (enabledLLMs.openai) {
     if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-3.5-turbo")) {
       if (!search || "chatgpt3".includes(search)) {
         v.push({
@@ -103,8 +146,9 @@ export function mentionableUsers(
     }
   }
 
-  if (vertexAI) {
+  if (enabledLLMs.google) {
     if (USER_SELECTABLE_LANGUAGE_MODELS.includes("chat-bison-001")) {
+      // ATTN: palm is no longer supported, but have to keep this to avoid breaking old chats.
       if (!search || "palm".includes(search)) {
         v.push({
           value: model2service("chat-bison-001"),
@@ -128,6 +172,23 @@ export function mentionableUsers(
             </span>
           ),
           search: "gemini",
+        });
+      }
+    }
+  }
+
+  if (enabledLLMs.ollama && !isEmpty(ollama)) {
+    for (const [key, conf] of Object.entries(ollama)) {
+      if (!search || key.includes(search) || conf.display.includes(search)) {
+        const value = toOllamaModel(key);
+        v.push({
+          value,
+          label: (
+            <span>
+              <OllamaAvatar size={24} /> {conf.display}
+            </span>
+          ),
+          search: value,
         });
       }
     }

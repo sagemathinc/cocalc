@@ -6,28 +6,24 @@ import {
   getValidLanguageModelName,
   isOllamaLLM,
 } from "@cocalc/util/db-schema/llm";
+import { useProjectContext } from "../project/context";
 
 export const SETTINGS_LANGUAGE_MODEL_KEY = "language_model";
 
+// ATTN: requires the project context
 export function useLanguageModelSetting(): [
   LanguageModel | string,
   (llm: LanguageModel | string) => void,
 ] {
   const other_settings = useTypedRedux("account", "other_settings");
   const ollama = useTypedRedux("customize", "ollama");
-  const haveOpenAI = useTypedRedux("customize", "openai_enabled");
-  const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
-  const haveOllama = useTypedRedux("customize", "ollama_enabled");
 
-  const filter = useMemo(() => {
-    const projectsStore = redux.getStore("projects");
-    return projectsStore.llmEnabledSummary();
-  }, [haveOpenAI, haveGoogle, haveOllama]);
+  const { enabledLLMs } = useProjectContext();
 
   const llm = useMemo(() => {
     return getValidLanguageModelName(
       other_settings?.get("language_model"),
-      filter,
+      enabledLLMs,
       Object.keys(ollama?.toJS() ?? {}),
     );
   }, [other_settings]);

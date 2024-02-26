@@ -27,7 +27,7 @@ export function helpMeFix({
   const other_settings = redux.getStore("account").get("other_settings");
 
   const projectsStore = redux.getStore("projects");
-  const enabled = projectsStore.llmEnabledSummary();
+  const enabled = projectsStore.whichLLMareEnabled();
   const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
 
   const model = getValidLanguageModelName(

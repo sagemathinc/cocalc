@@ -111,10 +111,10 @@ export default function ModelSwitch({
     if (!showOllama || !ollama) return null;
 
     return Object.entries(ollama.toJS()).map(([key, config]) => {
-      const title = config.display ?? `Ollama: ${key}`;
+      const { display } = config;
       return (
-        <Tooltip key={key} title={`Ollama: ${title}`}>
-          <Radio.Button value={toOllamaModel(key)}>{title}</Radio.Button>
+        <Tooltip key={key} title={`${display} (Ollama)`}>
+          <Radio.Button value={toOllamaModel(key)}>{display}</Radio.Button>
         </Tooltip>
       );
     });

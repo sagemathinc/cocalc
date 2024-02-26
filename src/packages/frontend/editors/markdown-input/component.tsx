@@ -11,6 +11,21 @@ Markdown editor
 // rather than a directory for each file.
 const AUX_FILE_EXT = "upload";
 
+import * as CodeMirror from "codemirror";
+import { debounce, isEqual } from "lodash";
+import { join } from "path";
+import {
+  CSSProperties,
+  MutableRefObject,
+  ReactNode,
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   ReactDOM,
@@ -31,22 +46,8 @@ import {
   trunc,
   trunc_middle,
 } from "@cocalc/util/misc";
-import * as CodeMirror from "codemirror";
-import { debounce, isEqual } from "lodash";
-import { join } from "path";
-import {
-  CSSProperties,
-  MutableRefObject,
-  ReactNode,
-  RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 import { Complete, Item } from "./complete";
-import { mentionableUsers } from "./mentionable-users";
+import { useMentionableUsers } from "./mentionable-users";
 import { submit_mentions } from "./mentions";
 import { EditorFunctions } from "./multimode";
 
@@ -57,13 +58,13 @@ import "@cocalc/frontend/codemirror/init";
 
 export const BLURED_STYLE: CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
-};
+} as const;
 
 export const FOCUSED_STYLE: CSSProperties = {
   outline: "none !important",
   boxShadow: "0px 0px 5px  #719ECE",
   border: "1px solid #719ECE",
-};
+} as const;
 
 const PADDING_TOP = 6;
 
@@ -81,8 +82,6 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
-  chatGPT?: boolean;
-  vertexAI?: boolean;
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
@@ -129,8 +128,6 @@ export function MarkdownInput(props: Props) {
     onUploadStart,
     onUploadEnd,
     enableMentions,
-    chatGPT,
-    vertexAI,
     submitMentionsRef,
     style,
     onChange,
@@ -199,6 +196,8 @@ export function MarkdownInput(props: Props) {
     change: EventHandlerFunction;
     from: { line: number; ch: number };
   }>();
+
+  const mentionableUsers = useMentionableUsers();
 
   const focus = useCallback(() => {
     if (isFocusedRef.current) return; // already focused
@@ -781,7 +780,7 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(project_id, undefined, chatGPT, vertexAI);
+    const v = mentionableUsers(undefined);
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;

@@ -734,7 +734,8 @@ export class ProjectsStore extends Store<ProjectsState> {
     openAICache.clear();
   }
 
-  public llmEnabledSummary(project_id: string = "global", tag?: string) {
+  // ATTN: the useLanguageModelSetting hook computes this dynamically, with dependencies
+  public whichLLMareEnabled(project_id: string = "global", tag?: string) {
     const haveOpenAI = this.hasLanguageModelEnabled(project_id, tag, "openai");
     const haveGoogle = this.hasLanguageModelEnabled(project_id, tag, "google");
     const haveOllama = this.hasLanguageModelEnabled(project_id, tag, "ollama");

@@ -378,7 +378,7 @@ export class OtherSettings extends Component<Props> {
 
   render_language_model(): Rendered {
     const projectsStore = redux.getStore("projects");
-    const enabled = projectsStore.llmEnabledSummary();
+    const enabled = projectsStore.whichLLMareEnabled();
     const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
 
     const defaultModel = getValidLanguageModelName(
