@@ -59,9 +59,8 @@ export function CoCalcComFeatures() {
         belowWide={true}
       >
         <Paragraph>
-          With {siteName}, you can easily collaborate with colleagues,
-          students, and friends to edit computational documents. We support
-          {" "}
+          With {siteName}, you can easily collaborate with colleagues, students,
+          and friends to edit computational documents. We support{" "}
           <A href={"/features/jupyter-notebook"}>
             <strong>Jupyter Notebooks</strong>
           </A>
@@ -72,18 +71,16 @@ export function CoCalcComFeatures() {
         </Paragraph>
 
         <Paragraph>
-          Everyone's code runs in the same per-project environment, which provides
-          consistent results, synchronized file changes, and automatic revision
-          history so that you can go back in time when you need to discover what
-          changed and when. {shareServer && renderShareServer()}
+          Everyone's code runs in the same per-project environment, which
+          provides consistent results, synchronized file changes, and automatic
+          revision history so that you can go back in time when you need to
+          discover what changed and when. {renderShareServer()}
         </Paragraph>
 
         <Paragraph>
           Forget the frustration of sending files back and forth between your
-          collaborators, wasting time reviewing changes, and merging documents. {" "}
-          <A href={"/auth/sign-up"}>
-            Get started with {siteName} today.
-          </A>
+          collaborators, wasting time reviewing changes, and merging documents.{" "}
+          <A href={"/auth/sign-up"}>Get started with {siteName} today.</A>
         </Paragraph>
       </Info>
     );
@@ -162,12 +159,9 @@ export function CoCalcComFeatures() {
 
     return (
       <>
-        { " " }You can even publish your { siteName } creations to share with
-        anyone via the built-in { " " }
-        <A href={ join(basePath, "/share")}>
-          share server
-        </A>
-        .
+        {" "}
+        You can even publish your {siteName} creations to share with anyone via
+        the built-in <A href={"/share/public_paths/page/1"}>share server</A>.
       </>
     );
   }
