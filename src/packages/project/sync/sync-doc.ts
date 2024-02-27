@@ -163,6 +163,11 @@ export function get_syncdoc(path: string): SyncDoc | undefined {
   return syncDocs.get(path);
 }
 
+export function getSyncDocFromSyncTable(synctable: SyncTable) {
+  const { opts } = get_type_and_opts(synctable);
+  return get_syncdoc(opts.path);
+}
+
 async function init_syncdoc_async(
   client: Client,
   synctable: SyncTable,

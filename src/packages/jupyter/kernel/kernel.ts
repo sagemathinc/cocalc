@@ -152,6 +152,13 @@ export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
   );
 }
 
+export async function getJupyterRedux(syncdb: SyncDB) {
+  const project_id = syncdb.project_id;
+  const path = original_path(syncdb.get_path());
+  const name = redux_name(project_id, path);
+  return { actions: redux.getActions(name), store: redux.getStore(name) };
+}
+
 // Remove the store/actions for a given Jupyter notebook,
 // and also close the kernel if it is running.
 export async function removeJupyterRedux(
