@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { useFrameContext } from "@cocalc/frontend/app-framework";
+import { redux, useFrameContext } from "@cocalc/frontend/app-framework";
 import { Paragraph } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
@@ -44,9 +44,12 @@ export default function AIGenerateCodeCell({
   setShowChatGPT,
   showChatGPT,
 }: AIGenerateCodeCellProps) {
-  const [model, setModel] = useLanguageModelSetting();
-  const [querying, setQuerying] = useState<boolean>(false);
   const { project_id, path } = useFrameContext();
+
+  const projectsStore = redux.getStore("projects");
+  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
+  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
+  const [querying, setQuerying] = useState<boolean>(false);
   const [prompt, setPrompt] = useState<string>("");
   const input = useMemo(() => {
     if (!showChatGPT) return "";
@@ -70,7 +73,6 @@ export default function AIGenerateCodeCell({
           cell using{" "}
           <ModelSwitch
             project_id={project_id}
-            size="small"
             model={model}
             setModel={setModel}
           />

@@ -191,6 +191,7 @@ export class WebappConfiguration {
         model,
         display: cocalc.display ?? `Ollama ${model}`,
         icon: cocalc.icon, // fallback is the Ollama icon, frontend does that
+        desc: cocalc.desc ?? "",
       };
     }
     return public_ollama;

@@ -1,4 +1,5 @@
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { EnabledLLMs } from "@cocalc/frontend/project/context";
 import {
   LanguageModel,
   USER_SELECTABLE_LANGUAGE_MODELS,
@@ -6,19 +7,16 @@ import {
   getValidLanguageModelName,
   isOllamaLLM,
 } from "@cocalc/util/db-schema/llm";
-import { useProjectContext } from "../project/context";
 
 export const SETTINGS_LANGUAGE_MODEL_KEY = "language_model";
 
-// ATTN: requires the project context
-export function useLanguageModelSetting(): [
-  LanguageModel | string,
-  (llm: LanguageModel | string) => void,
-] {
+// ATTN: it is tempting to use the `useProjectContext` hook here, but it is not possible
+// The "AI Formula" dialog is outside the project context (unfortunately)
+export function useLanguageModelSetting(
+  enabledLLMs: EnabledLLMs,
+): [LanguageModel | string, (llm: LanguageModel | string) => void] {
   const other_settings = useTypedRedux("account", "other_settings");
   const ollama = useTypedRedux("customize", "ollama");
-
-  const { enabledLLMs } = useProjectContext();
 
   const llm = useMemo(() => {
     return getValidLanguageModelName(

@@ -1,12 +1,7 @@
 import { Button, Divider, Input, Modal, Space } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import {
-  redux,
-  useEffect,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
 import {
   HelpIcon,
   Markdown,
@@ -14,14 +9,13 @@ import {
   Text,
   Title,
 } from "@cocalc/frontend/components";
-import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
-import ModelSwitch, {
-  modelToName,
-} from "@cocalc/frontend/frame-editors/llm/model-switch";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { LLMModelName } from "@cocalc/frontend/components/llm-name";
+import ModelSwitch from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { show_react_modal } from "@cocalc/frontend/misc";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { isFreeModel, isLanguageModel } from "@cocalc/util/db-schema/llm";
+import { isFreeModel } from "@cocalc/util/db-schema/llm";
 import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";
@@ -47,12 +41,13 @@ interface Props extends Opts {
 }
 
 function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
-  const [model, setModel] = useLanguageModelSetting();
+  const projectsStore = redux.getStore("projects");
+  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
+  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
   const [input, setInput] = useState<string>(text);
   const [formula, setFormula] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const ollama = useTypedRedux("customize", "ollama");
 
   const enabled = redux
     .getStore("projects")
@@ -140,30 +135,18 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     }
   }, [text]);
 
-  function renderModel2Name(): string {
-    if (isLanguageModel(model)) {
-      return modelToName(model);
-    }
-    const om = ollama?.get(model);
-    if (om) {
-      return om.get("title") ?? `Ollama ${model}`;
-    }
-    return model;
-  }
-
   function renderTitle() {
     return (
       <>
         <Title level={4}>
-          <LanguageModelVendorAvatar model={model} /> Generate LaTeX Formula
-          using {renderModel2Name()}
+          <AIAvatar size={24} /> Generate LaTeX Formula using{" "}
+          <LLMModelName model={model} />
         </Title>
         {enabled ? (
           <>
             Select language model:{" "}
             <ModelSwitch
               project_id={project_id}
-              size="small"
               model={model}
               setModel={setModel}
             />
@@ -213,7 +196,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <Paragraph style={{ marginBottom: 0 }}>
-          Use the selected AI language model to generate a LaTeX formula from a
+          The selected AI language model will generate a LaTeX formula the
           description. {help}
         </Paragraph>
         <Space.Compact style={{ width: "100%" }}>

@@ -51,7 +51,9 @@ export default function HelpMeFix({
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  const [model, setModel] = useLanguageModelSetting();
+  const projectsStore = redux.getStore("projects");
+  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
+  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
   if (
     redux == null ||
     !(redux.getStore("projects") as ProjectsStore).hasLanguageModelEnabled(
@@ -69,7 +71,6 @@ export default function HelpMeFix({
           <>
             Get Help from{" "}
             <ModelSwitch
-              size="small"
               model={model}
               setModel={setModel}
               project_id={project_id}

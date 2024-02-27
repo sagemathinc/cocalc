@@ -6,6 +6,7 @@ import { Alert, Button } from "antd";
 import { CSSProperties, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { redux } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -31,7 +32,9 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   const { project_id, path } = useFrameContext();
   const [gettingExplanation, setGettingExplanation] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [model, setModel] = useLanguageModelSetting();
+  const projectsStore = redux.getStore("projects");
+  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
+  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
 
   if (
     actions == null ||
@@ -49,7 +52,6 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
           <b>
             Get explanation of this code from{" "}
             <ModelSwitch
-              size="small"
               model={model}
               setModel={setModel}
               project_id={project_id}

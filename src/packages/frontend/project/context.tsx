@@ -26,6 +26,11 @@ import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
 
+export interface EnabledLLMs {
+  openai: boolean;
+  google: boolean;
+  ollama: boolean;
+}
 export interface ProjectContextState {
   actions?: ProjectActions;
   active_project_tab?: string;
@@ -39,11 +44,7 @@ export interface ProjectContextState {
   flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
   onCoCalcCom: boolean;
   onCoCalcDocker: boolean;
-  enabledLLMs: {
-    openai: boolean;
-    google: boolean;
-    ollama: boolean;
-  };
+  enabledLLMs: EnabledLLMs;
 }
 
 export const ProjectContext: Context<ProjectContextState> =

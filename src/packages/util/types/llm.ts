@@ -33,6 +33,7 @@ export interface ChatOptions {
 
 export interface OllamaPublic {
   model: string;
-  display: string;
+  display: string; // name of the model
+  desc?: string; // additional description
   icon?: string; // fallback to OllamaAvatar
 }

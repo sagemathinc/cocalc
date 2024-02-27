@@ -11,7 +11,9 @@ to do the work.
 
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { redux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -156,7 +158,10 @@ export default function LanguageModelTitleBarButton({
   const scopeRef = useRef<any>(null);
   const contextRef = useRef<any>(null);
   const submitRef = useRef<any>(null);
-  const [model, setModel] = useLanguageModelSetting();
+
+  const projectsStore = redux.getStore("projects");
+  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
+  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
 
   useEffect(() => {
     if (showDialog) {
@@ -275,7 +280,6 @@ export default function LanguageModelTitleBarButton({
           Switch model:{" "}
           <ModelSwitch
             project_id={project_id}
-            size="small"
             model={model}
             setModel={setModel}
           />

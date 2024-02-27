@@ -1,6 +1,9 @@
-import { Radio, Tooltip } from "antd";
+import type { SelectProps } from "antd";
+import { Select, Tag, Tooltip } from "antd";
+import type { ConfigProviderProps } from "antd/lib/config-provider";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
@@ -12,14 +15,17 @@ import {
   model2service,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm";
+import type { OllamaPublic } from "@cocalc/util/types/llm";
 
 export { DEFAULT_MODEL };
 export type { LanguageModel };
 
+type SizeType = ConfigProviderProps["componentSize"];
+
 interface Props {
   model: LanguageModel | string;
   setModel: (model: LanguageModel | string) => void;
-  size?;
+  size?: SizeType;
   style?: CSS;
   project_id: string;
 }
@@ -32,7 +38,7 @@ export default function ModelSwitch({
   style,
   model,
   setModel,
-  size,
+  size = "middle",
   project_id,
 }: Props) {
   // ATTN: you cannot use useProjectContext because this component is used outside a project context
@@ -55,87 +61,125 @@ export default function ModelSwitch({
   );
   const ollama = useTypedRedux("customize", "ollama");
 
-  function renderLLMButton(btnModel: LanguageModel, title: string) {
-    if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel)) return;
-    const prefix = isFreeModel(btnModel) ? "FREE" : "NOT FREE";
-    return (
-      <Tooltip title={`${prefix}: ${title}`}>
-        <Radio.Button value={btnModel}>
-          {modelToName(btnModel)}
-          {btnModel === model
-            ? !isFreeModel(btnModel)
-              ? " (not free)"
-              : " (free)"
-            : undefined}
-        </Radio.Button>
-      </Tooltip>
+  function getPrice(btnModel): JSX.Element {
+    return isFreeModel(btnModel) ? (
+      <Tag color="success">free</Tag>
+    ) : (
+      <Tag color="error">paid</Tag>
     );
   }
 
-  function renderOpenAI() {
-    if (!showOpenAI) return null;
-    return (
+  function makeLLMOption(
+    ret: NonNullable<SelectProps["options"]>,
+    btnModel: LanguageModel,
+    title: string,
+  ) {
+    if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel)) return;
+
+    const display = (
       <>
-        {renderLLMButton(
-          "gpt-3.5-turbo",
-          "OpenAI's fastest model, great for most everyday tasks (4k token context)",
-        )}
-        {renderLLMButton(
-          "gpt-3.5-turbo-16k",
-          `Same as ${modelToName(
-            "gpt-3.5-turbo",
-          )} but with much larger context size (16k token context)`,
-        )}
-        {renderLLMButton(
-          "gpt-4",
-          "OpenAI's most capable model, great for tasks that require creativity and advanced reasoning (8k token context)",
-        )}
+        <strong>{modelToName(btnModel)}</strong> {getPrice(btnModel)}
       </>
     );
+    const text = (
+      <>
+        <strong>{display}</strong>: {title}
+      </>
+    );
+    ret.push({
+      value: btnModel,
+      display,
+      label: (
+        <Tooltip title={text}>
+          <LanguageModelVendorAvatar model={btnModel} /> {text}
+        </Tooltip>
+      ),
+    });
   }
 
-  function renderGoogle() {
+  function appendOpenAI(ret: NonNullable<SelectProps["options"]>) {
+    if (!showOpenAI) return null;
+
+    makeLLMOption(
+      ret,
+      "gpt-3.5-turbo",
+      "OpenAI's fastest model, great for most everyday tasks (4k token context)",
+    );
+    makeLLMOption(
+      ret,
+      "gpt-3.5-turbo-16k",
+      `Same as ${modelToName(
+        "gpt-3.5-turbo",
+      )} but with much larger context size (16k token context)`,
+    );
+    makeLLMOption(
+      ret,
+      "gpt-4",
+      "OpenAI's most capable model, great for tasks that require creativity and advanced reasoning (8k token context)",
+    );
+  }
+
+  function appendGoogle(ret: NonNullable<SelectProps["options"]>) {
     if (!showGoogle) return null;
 
     return (
       <>
-        {renderLLMButton(
+        {makeLLMOption(
+          ret,
           GOOGLE_GEMINI,
-          `Google's Gemini Pro Generative AI model ('${GOOGLE_GEMINI}', 30k token context)`,
+          `Google's Gemini Pro Generative AI model (30k token context)`,
         )}
       </>
     );
   }
 
-  function renderOllama() {
+  function appendOllama(ret: NonNullable<SelectProps["options"]>) {
     if (!showOllama || !ollama) return null;
 
-    return Object.entries(ollama.toJS()).map(([key, config]) => {
-      const { display } = config;
-      return (
-        <Tooltip key={key} title={`${display} (Ollama)`}>
-          <Radio.Button value={toOllamaModel(key)}>{display}</Radio.Button>
-        </Tooltip>
+    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+      const { display, desc } = config;
+      const ollamaModel = toOllamaModel(key);
+      const text = (
+        <>
+          <strong>{display}</strong> {getPrice(ollamaModel)}: {desc ?? "Ollama"}
+        </>
       );
-    });
+      ret.push({
+        value: ollamaModel,
+        display: (
+          <>
+            <strong>{modelToName(ollamaModel)}</strong> {getPrice(ollamaModel)}
+          </>
+        ),
+        label: (
+          <Tooltip title={text}>
+            <LanguageModelVendorAvatar model={ollamaModel} /> {text}
+          </Tooltip>
+        ),
+      });
+    }
   }
 
-  // all models selectable here must be in util/db-schema/openai::USER_SELECTABLE_LANGUAGE_MODELS
+  function getOptions(): SelectProps["options"] {
+    const ret: NonNullable<SelectProps["options"]> = [];
+    appendOpenAI(ret);
+    appendGoogle(ret);
+    appendOllama(ret);
+    return ret;
+  }
+
+  // all models selectable here must be in util/db-schema/openai::USER_SELECTABLE_LANGUAGE_MODELS + the custom ones from the ollama configuration
   return (
-    <Radio.Group
-      style={style}
+    <Select
+      dropdownStyle={style}
       size={size}
       value={model}
-      optionType="button"
-      buttonStyle="solid"
-      onChange={({ target: { value } }) => {
-        setModel(value);
-      }}
-    >
-      {renderOpenAI()}
-      {renderGoogle()}
-      {renderOllama()}
-    </Radio.Group>
+      onChange={setModel}
+      style={{ width: 300 }}
+      optionLabelProp={"display"}
+      popupMatchSelectWidth={false}
+      options={getOptions()}
+    />
   );
 }
 

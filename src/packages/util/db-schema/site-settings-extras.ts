@@ -34,6 +34,7 @@ import {
 } from "./site-defaults";
 
 import { expire_time, is_valid_email_address } from "@cocalc/util/misc";
+import { isEmpty } from "lodash";
 
 export const pii_retention_parse = (retention: string): number | false => {
   if (retention == "never" || retention == null) return false;
@@ -85,7 +86,7 @@ const jupyter_api_enabled = (conf: SiteSettings) =>
   to_bool(conf.jupyter_api_enabled);
 
 function ollama_valid(value: string): boolean {
-  if (!parsableJson(value)) {
+  if (isEmpty(value) || !parsableJson(value)) {
     return false;
   }
   const obj = from_json(value);
@@ -111,6 +112,9 @@ function ollama_valid(value: string): boolean {
       if (c.display && typeof c.display !== "string") {
         return false;
       }
+      if (c.desc && typeof c.desc !== "string") {
+        return false;
+      }
       if (c.enabled && typeof c.enabled !== "boolean") {
         return false;
       }
@@ -120,8 +124,13 @@ function ollama_valid(value: string): boolean {
 }
 
 function ollama_display(value: string): string {
+  const structure =
+    "Must be {[key : string] : {model: string, baseUrL: string, cocalc?: {display?: string, desc?: string, ...}, ...}";
+  if (isEmpty(value)) {
+    return `Empty. ${structure}`;
+  }
   if (!parsableJson(value)) {
-    return "Ollama JSON not parseable. Must be {[key : string] : {model: string, baseUrL: string, cocalc: {display: string, ...}, ...}";
+    return `Ollama JSON not parseable. ${structure}`;
   }
   const obj = from_json(value);
   if (typeof obj !== "object") {
@@ -142,10 +151,13 @@ function ollama_display(value: string): string {
     const c = val.cocalc;
     if (c != null) {
       if (typeof c !== "object") {
-        return `Ollama config ${key} cocalc field must be an object`;
+        return `Ollama config ${key} cocalc field must be an object: {display?: string, desc?: string, enabled?: boolean, ...}`;
       }
       if (c.display && typeof c.display !== "string") {
         return `Ollama config ${key} cocalc.display field must be a string`;
+      }
+      if (c.desc && typeof c.desc !== "string") {
+        return `Ollama config ${key} cocalc.desc field must be a (markdown) string`;
       }
       if (c.enabled && typeof c.enabled !== "boolean") {
         return `Ollama config ${key} cocalc.enabled field must be a boolean`;
