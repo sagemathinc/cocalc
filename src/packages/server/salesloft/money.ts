@@ -79,10 +79,12 @@ export async function getMoneyData(account_id: string): Promise<{
   if (x.rows.length == 0) {
     // no statements ever
     return {
-      cocalc_balance: 0,
-      cocalc_purchase_timestamp: "0000-00-00T00:00:00.000Z",
-      cocalc_last_month_spend: 0,
-      cocalc_last_year_spend: 0,
+      custom_fields: {
+        cocalc_balance: 0,
+        cocalc_purchase_timestamp: "0000-00-00T00:00:00.000Z",
+        cocalc_last_month_spend: 0,
+        cocalc_last_year_spend: 0,
+      },
     };
   }
   const cocalc_balance = x.rows[0].balance;
