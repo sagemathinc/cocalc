@@ -134,11 +134,6 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "prettier_string": // deprecated
     case "formatter_string":
       return await run_formatter_string(data.path, data.str, data.options, log);
-    case "jupyter":
-      // DEPRECATED: The "jupyter" endpoint is only here for browser client
-      // backward compatibility.   Can be safely deleted soon, but not immediately
-      // to make the release easier
-      return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       if (data.opts?.compute_server_id) {
         if (data.opts.filesystem) {
@@ -221,8 +216,6 @@ async function listing(
     return await handleSyncFsGetListing({ path, hidden, compute_server_id });
   }
 }
-
-import { handleApiRequest as jupyter } from "@cocalc/jupyter/kernel/websocket-api";
 
 // Execute code
 import { executeCode } from "@cocalc/backend/execute-code";
