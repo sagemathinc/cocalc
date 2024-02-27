@@ -21,11 +21,6 @@ silently swallowed in persistent mode...
 // and https://github.com/sagemathinc/cocalc/issues/5823
 // and https://github.com/sagemathinc/cocalc/issues/5617
 
-// Setting this to 0 to optimize resource usage and because opening files
-// is fast, and also on the current tab gets opened on refresh anyways.
-
-const CLOSE_DELAY_MS = 0;
-
 // This is a hard upper bound on the number of browser sessions that could
 // have the same file open at once.  We put some limit on it, to at least
 // limit problems from bugs which crash projects (since each connection uses
@@ -56,7 +51,7 @@ import {
 // @ts-ignore -- typescript nonsense.
 const _ = set_debug;
 
-import { init_syncdoc } from "./sync-doc";
+import { init_syncdoc, getSyncDocFromSyncTable } from "./sync-doc";
 import { key, register_synctable } from "./open-synctables";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
@@ -68,6 +63,7 @@ import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
 import type { MergeType } from "@cocalc/sync/table/synctable";
 import Client from "@cocalc/sync-client";
+import { getJupyterRedux } from "@cocalc/jupyter/kernel";
 
 type Query = { [key: string]: any };
 
@@ -373,7 +369,7 @@ class SyncTableChannel {
       }
     }
 
-    this.check_if_should_close();
+    this.check_if_should_save_or_close();
   }
 
   private send_synctable_to_browser(spark: Spark): void {
@@ -389,18 +385,20 @@ class SyncTableChannel {
     this.channel.write(x);
   }
 
-  /* Check if we should close, e.g., due to no connected clients. */
-  private check_if_should_close(): void {
-    if (this.closed || this.persistent) {
-      // don't bother if either already closed, or the persistent option is set.
+  /* This is called when a user disconnects. This always triggers a save to
+    disk.  It may also trigger closing the file in some cases. */
+  private async check_if_should_save_or_close() {
+    if (this.closed) {
+      // don't bother if either already closed
       return;
     }
-    const { n } = this.num_connections;
-    if (n === 0) {
-      this.log("check_if_should_close -- ", n, " -- do a save and maybe close");
-      this.save_and_close_if_possible();
-    } else {
-      this.log("check_if_should_close -- ", n, " -- do not close");
+    this.log("check_if_should_save_or_close: save to disk if possible");
+    await this.save_if_possible();
+    const { n } = this.num_connections ?? {};
+    this.log("check_if_should_save_or_close", { n });
+    if (!this.persistent && n === 0) {
+      this.log("check_if_should_save_or_close: close if possible");
+      await this.close_if_possible();
     }
   }
 
@@ -450,33 +448,57 @@ class SyncTableChannel {
     this.channel.write(x);
   }
 
-  private async save_and_close_if_possible(): Promise<void> {
+  private async save_if_possible(): Promise<void> {
     if (this.closed || this.closing) {
       return; // closing or already closed
     }
-    this.log("save_and_close_if_possible: no connections, so saving...");
+    this.log("save_if_possible: saves changes to database");
     await this.synctable.save();
+    if (this.synctable.table === "syncstrings") {
+      this.log("save_if_possible: also fetch syncdoc");
+      const syncdoc = getSyncDocFromSyncTable(this.synctable);
+      if (syncdoc != null) {
+        const path = syncdoc.get_path();
+        this.log("save_if_possible: saving syncdoc to disk", { path });
+        if (path.endsWith(".sage-jupyter2")) {
+          // treat jupyter notebooks in a special way, since they have
+          // an aux .ipynb file that the syncdoc doesn't know about. In
+          // this case we save the ipynb to disk, not just the hidden
+          // syncdb file.
+          const { actions } = await getJupyterRedux(syncdoc);
+          if (actions == null) {
+            this.log("save_if_possible: jupyter -- actions is null");
+          } else {
+            if (!actions.isCellRunner()) {
+              this.log("save_if_possible: jupyter -- not cell runner");
+              return;
+            }
+            this.log("save_if_possible: jupyter -- saving to ipynb");
+            await actions.save_ipynb_file();
+          }
+        }
+        await syncdoc.save_to_disk();
+      } else {
+        this.log("save_if_possible: no syncdoc");
+      }
+    }
+  }
+
+  private async close_if_possible(): Promise<void> {
+    if (this.closed || this.closing) {
+      return; // closing or already closed
+    }
     const { n, changed } = this.num_connections;
     const delay = Date.now() - changed.valueOf();
     this.log(
-      `save_and_close_if_possible: after save there are ${n} connections and delay=${delay}`,
+      `close_if_possible: there are ${n} connections and delay=${delay}`,
     );
     if (n === 0) {
-      if (delay < CLOSE_DELAY_MS) {
-        this.log(`save_and_close_if_possible: wait a bit then try again`);
-        setTimeout(
-          this.check_if_should_close.bind(this),
-          1000 + CLOSE_DELAY_MS - delay,
-        );
-      } else {
-        this.log(
-          `save_and_close_if_possible: close this SyncTableChannel atomically`,
-        );
-        // actually close
-        this.close();
-      }
+      this.log(`close_if_possible: close this SyncTableChannel atomically`);
+      // actually close
+      this.close();
     } else {
-      this.log(`save_and_close_if_possible: NOT closing this SyncTableChannel`);
+      this.log(`close_if_possible: NOT closing this SyncTableChannel`);
     }
   }
 

@@ -59,7 +59,7 @@ export async function updateMoney(cutoff: string = "2 days") {
     }
     const data = await getMoneyData(account_id);
     log.debug("updateMoney: ", { salesloft_id: id, account_id, data });
-    await update(id, data);
+    await update(id, { custom_fields: data });
   }
 }
 
