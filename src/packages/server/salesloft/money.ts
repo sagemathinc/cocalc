@@ -59,7 +59,7 @@ export async function updateMoney(cutoff: string = "2 days") {
     }
     const data = await getMoneyData(account_id);
     log.debug("updateMoney: ", { salesloft_id: id, account_id, data });
-    await update(id, data);
+    await update(id, { custom_fields: data });
   }
 }
 
@@ -79,12 +79,10 @@ export async function getMoneyData(account_id: string): Promise<{
   if (x.rows.length == 0) {
     // no statements ever
     return {
-      custom_fields: {
-        cocalc_balance: 0,
-        cocalc_purchase_timestamp: "0000-00-00T00:00:00.000Z",
-        cocalc_last_month_spend: 0,
-        cocalc_last_year_spend: 0,
-      },
+      cocalc_balance: 0,
+      cocalc_purchase_timestamp: "0000-00-00T00:00:00.000Z",
+      cocalc_last_month_spend: 0,
+      cocalc_last_year_spend: 0,
     };
   }
   const cocalc_balance = x.rows[0].balance;
