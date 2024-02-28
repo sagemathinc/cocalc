@@ -26,7 +26,19 @@ import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-export function ComputeServerDocStatus({ project_id, id, requestedId }) {
+interface Props {
+  project_id: string;
+  id: number;
+  requestedId: number;
+  noSync?: boolean;
+}
+
+export function ComputeServerDocStatus({
+  project_id,
+  id,
+  requestedId,
+  noSync,
+}: Props) {
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -74,31 +86,6 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
             : undefined,
       }}
     >
-      <Tooltip title={`${requestedServer.get("title")} (Id: ${requestedId})`}>
-        <Button
-          size="small"
-          style={{
-            marginTop: "-1px",
-            marginRight: "1px",
-            background: requestedServer.get("color"),
-            color: avatar_fontcolor(requestedServer.get("color")),
-            maxWidth: "20%",
-          }}
-          onClick={() => {
-            setShowDetails(showDetails === true ? false : true);
-          }}
-        >
-          <span
-            style={{
-              width: "100%",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {requestedServer.get("title")} (Id: {requestedId})
-          </span>
-        </Button>
-      </Tooltip>
       <Tooltip
         mouseEnterDelay={0.9}
         title={
@@ -112,25 +99,22 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
           onClick={() => {
             setShowDetails(showDetails === true ? false : true);
           }}
-          style={{ display: "flex", flex: 1 }}
+          style={{
+            height: "23px",
+            cursor: "pointer",
+            padding: "2px 5px",
+            background: requestedServer.get("color"),
+            color: avatar_fontcolor(requestedServer.get("color")),
+            width: "100%",
+            overflow: "hidden",
+            textAlign: "center",
+          }}
         >
-          <div style={{ marginRight: "5px", flex: 1 }}>
-            <Inline
-              computeServer={requestedServer}
-              colorOnly
-              id={requestedId}
-              style={{
-                borderRadius: "5px",
-                height: "22px",
-                cursor: "pointer",
-                width: `${progress}%`,
-              }}
-              colorLabel={progress < 100 ? `${progress}%` : ""}
-            />
-          </div>
+          {progress < 100 ? `${progress}% - ` : ""}
+          {requestedServer.get("title")} (Id: {requestedId})
         </div>
       </Tooltip>
-      {progress == 100 && (
+      {progress == 100 && !noSync && (
         <SyncButton
           disabled={excludeFromSync}
           style={{
@@ -173,7 +157,10 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
   }
 
   return (
-    <div className="smc-vfill" style={{ flex: 100 }}>
+    <div
+      className="smc-vfill"
+      style={{ flex: 100, minHeight: "250px", background: "white" }}
+    >
       <div>{topBar(progress)}</div>
       <div
         className="smc-vfill"

@@ -53,6 +53,7 @@ import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -122,6 +123,7 @@ interface ReduxProps {
   file_listing_scroll_top?: number;
   show_custom_software_reset?: boolean;
   explorerTour?: boolean;
+  compute_server_id: number;
 }
 
 interface State {
@@ -197,6 +199,7 @@ const Explorer0 = rclass(
           file_listing_scroll_top: rtypes.number,
           show_custom_software_reset: rtypes.bool,
           explorerTour: rtypes.bool,
+          compute_server_id: rtypes.number,
         },
       };
     };
@@ -562,16 +565,35 @@ const Explorer0 = rclass(
             alignItems: "stretch",
           }}
         >
-          <SelectComputeServerForFileExplorer
-            project_id={this.props.project_id}
-            key="compute-server"
-            style={{ marginRight: "5px", borderRadius: "5px" }}
-          />
-          <div
-            ref={this.currentDirectoryRef}
-            className="cc-project-files-path-nav"
-          >
-            <PathNavigator project_id={this.props.project_id} />
+          <div>
+            <div style={{ display: "flex" }}>
+              <SelectComputeServerForFileExplorer
+                project_id={this.props.project_id}
+                key="compute-server"
+                style={{ marginRight: "5px", borderRadius: "5px" }}
+              />
+              <div
+                ref={this.currentDirectoryRef}
+                className="cc-project-files-path-nav"
+              >
+                <PathNavigator project_id={this.props.project_id} />
+              </div>
+            </div>
+            {!!this.props.compute_server_id && (
+              <div
+                style={{
+                  fontSize: "10pt",
+                  marginTop: "-10px",
+                  marginBottom: "5px",
+                }}
+              >
+                <ComputeServerDocStatus
+                  id={this.props.compute_server_id}
+                  requestedId={this.props.compute_server_id}
+                  project_id={this.props.project_id}
+                />
+              </div>
+            )}
           </div>
           {!IS_MOBILE && (
             <div

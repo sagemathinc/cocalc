@@ -260,7 +260,7 @@ export default function SelectServer({
       title={
         title ??
         `This is open ${
-          !value ? "in your project" : `on compute server ${value}`
+          !value ? "on the default shared resources" : `on compute server ${value}`
         }.`
       }
     >
