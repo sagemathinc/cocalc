@@ -61,6 +61,7 @@ export default function HomePageButton({ project_id, active, width }) {
         actions?.set_active_tab("files");
         actions?.set_current_path("");
         actions?.setFlyoutExpanded("files", false, false);
+        actions?.set_file_search("");
 
         track("switch_to_fixed_tab", {
           how: "click-on-tab",
