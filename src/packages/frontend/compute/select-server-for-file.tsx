@@ -139,7 +139,9 @@ export default function SelectComputeServerForFile({
           setIdNum(newValue ?? 0);
           lastValueRef.current = value;
           setValue(newValue);
-          setConfirmSwitch(true);
+          if (value != newValue) {
+            setConfirmSwitch(true);
+          }
         }}
         noLabel={noLabel}
       />
