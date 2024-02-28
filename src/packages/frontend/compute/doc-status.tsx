@@ -24,6 +24,7 @@ import ComputeServer from "./compute-server";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 export function ComputeServerDocStatus({ project_id, id, requestedId }) {
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
@@ -70,29 +71,34 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
         borderBottom:
           requestedServer != null && !showDetails
             ? "1px solid #ccc"
-            : /*? `1px solid ${requestedServer?.get("color")}` */
-              undefined,
-        height: "23px",
+            : undefined,
       }}
     >
-      {progress == 100 && (
-        <SyncButton
-          disabled={excludeFromSync}
-          style={{ marginTop: "-1px", marginLeft: "1px", marginRight: "5px" }}
+      <Tooltip title={`${requestedServer.get("title")} (Id: ${requestedId})`}>
+        <Button
           size="small"
-          compute_server_id={id}
-          project_id={project_id}
-          time={syncState?.get("time")}
-          syncing={
-            requestedServer?.get("state") == "running" &&
-            !syncState?.get("extra") &&
-            (syncState?.get("progress") ?? 100) <
-              80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
-          }
+          style={{
+            marginTop: "-1px",
+            marginRight: "1px",
+            background: requestedServer.get("color"),
+            color: avatar_fontcolor(requestedServer.get("color")),
+            maxWidth: "20%",
+          }}
+          onClick={() => {
+            setShowDetails(showDetails === true ? false : true);
+          }}
         >
-          Sync Files
-        </SyncButton>
-      )}
+          <span
+            style={{
+              width: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {requestedServer.get("title")} (Id: {requestedId})
+          </span>
+        </Button>
+      </Tooltip>
       <Tooltip
         mouseEnterDelay={0.9}
         title={
@@ -122,14 +128,30 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
               colorLabel={progress < 100 ? `${progress}%` : ""}
             />
           </div>
-          <Button
-            size="small"
-            style={{ marginTop: "-1px", marginRight: "1px", color: "#666" }}
-          >
-            <Icon name="servers" /> <Inline prompt id={requestedId} />
-          </Button>
         </div>
       </Tooltip>
+      {progress == 100 && (
+        <SyncButton
+          disabled={excludeFromSync}
+          style={{
+            marginTop: "-1px",
+            marginLeft: "-3px",
+            float: "right",
+          }}
+          size="small"
+          compute_server_id={id}
+          project_id={project_id}
+          time={syncState?.get("time")}
+          syncing={
+            requestedServer?.get("state") == "running" &&
+            !syncState?.get("extra") &&
+            (syncState?.get("progress") ?? 100) <
+              80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
+          }
+        >
+          Sync Files
+        </SyncButton>
+      )}
     </div>
   );
 
@@ -330,4 +352,3 @@ function getProgress(
 function isRecent(expire = 0) {
   return Date.now() - expire < 60 * 1000;
 }
-

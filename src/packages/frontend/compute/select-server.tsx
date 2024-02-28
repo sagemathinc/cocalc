@@ -218,34 +218,32 @@ export default function SelectServer({
         options: other,
       });
     }
-    if (v.length == 1) {
-      // only option is the project
-      v.push({
-        label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
-        options: [
-          {
-            value: "create",
-            sort: "create",
-            state: "",
-            label: (
-              <div
-                onClick={() => {
-                  const actions = redux.getProjectActions(project_id);
-                  if (actions != null) {
-                    actions.setState({ create_compute_server: true });
-                    actions.set_active_tab("servers", {
-                      change_history: true,
-                    });
-                  }
-                }}
-              >
-                <Icon name="plus-circle" /> New Compute Server...
-              </div>
-            ),
-          },
-        ],
-      });
-    }
+    // only option is the project
+    v.push({
+      label: <div style={{ fontSize: "12pt" }}>Create Compute Server</div>,
+      options: [
+        {
+          value: "create",
+          sort: "create",
+          state: "",
+          label: (
+            <div
+              onClick={() => {
+                const actions = redux.getProjectActions(project_id);
+                if (actions != null) {
+                  actions.setState({ create_compute_server: true });
+                  actions.set_active_tab("servers", {
+                    change_history: true,
+                  });
+                }
+              }}
+            >
+              <Icon name="plus-circle" /> New Compute Server...
+            </div>
+          ),
+        },
+      ],
+    });
 
     return v;
   }, [computeServers]);
