@@ -38,7 +38,7 @@ export default function X11({ customize }) {
           <Content
             landing
             startup={component}
-            logo={x11Logo}
+            body={x11Logo}
             title={title}
             subtitleBelow={true}
             subtitle={

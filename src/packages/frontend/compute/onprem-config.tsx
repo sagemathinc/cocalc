@@ -3,7 +3,7 @@ import type {
   OnPremCloudConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { ON_PREM_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
-import { Divider, Select, Spin, Checkbox } from "antd";
+import { Checkbox, Divider, Select, Spin } from "antd";
 import { setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
@@ -153,6 +153,7 @@ function Image(props) {
         style={{ width: SELECTOR_WIDTH }}
         {...props}
         gpu={!!props.configuration.gpu}
+        arch={props.configuration.arch}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />

@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Site Customize -- dynamically customize the look of CoCalc for the client.
+// Site Customize -- dynamically customize the look and configuration
+// of CoCalc for the client.
 
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
-
 import {
   Actions,
   rclass,
@@ -48,6 +48,12 @@ import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
+import type {
+  GoogleCloudImages,
+  Images,
+} from "@cocalc/util/db-schema/compute-servers";
+import { getImages, getGoogleCloudImages } from "@cocalc/frontend/compute/api";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -136,10 +142,12 @@ export interface CustomizeState {
   jupyter_api_enabled?: boolean;
 
   compute_servers_enabled?: boolean;
-  compute_servers_google_enabled?: boolean;
+  ["compute_servers_google-cloud_enabled"]?: boolean;
   compute_servers_lambda_enabled?: boolean;
   compute_servers_dns_enabled?: boolean;
   compute_servers_dns?: string;
+  compute_servers_images?: TypedMap<Images> | string | null;
+  compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -160,7 +168,37 @@ export class CustomizeStore extends Store<CustomizeState> {
   }
 }
 
-export class CustomizeActions extends Actions<CustomizeState> {}
+export class CustomizeActions extends Actions<CustomizeState> {
+  // reload is admin only
+  updateComputeServerImages = reuseInFlight(async (reload?) => {
+    if (!store.get("compute_servers_enabled")) {
+      this.setState({ compute_servers_images: fromJS({}) as any });
+      return;
+    }
+    try {
+      this.setState({
+        compute_servers_images: fromJS(await getImages(reload)) as any,
+      });
+    } catch (err) {
+      this.setState({ compute_servers_images: `${err}` });
+    }
+  });
+  updateComputeServerImagesGoogle = reuseInFlight(async (reload?) => {
+    if (!store.get("compute_servers_google-cloud_enabled")) {
+      this.setState({ compute_servers_images_google: fromJS({}) as any });
+      return;
+    }
+    try {
+      this.setState({
+        compute_servers_images_google: fromJS(
+          await getGoogleCloudImages(reload),
+        ) as any,
+      });
+    } catch (err) {
+      this.setState({ compute_servers_images_google: `${err}` });
+    }
+  });
+}
 
 export const store = redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize", CustomizeActions);

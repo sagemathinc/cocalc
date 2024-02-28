@@ -29,22 +29,22 @@ function setState {
 
 setState state running
 
-sleep 1
+sleep 0.1
 setState install configure '' 60 10
 
 
 setState install install-docker '' 120 20
-sleep 1
+sleep 0.1
 setState install install-nodejs 60 50
-sleep 1
+sleep 0.1
 setState install install-cocalc '' 60 70
-sleep 1
+sleep 0.1
 setState install install-user '' 60 80
-sleep 1
+sleep 0.1
 setState install ready '' 0  100
 
 setState vm start '' 60 60
-sleep 1
+sleep 0.1
 
 while true; do
   setState vm ready '' 35 100

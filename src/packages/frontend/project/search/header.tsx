@@ -5,7 +5,6 @@
 
 import { Icon } from "@cocalc/frontend/components";
 import { PathNavigator } from "../explorer/path-navigator";
-
 const SIZE = "20px";
 
 export const ProjectSearchHeader: React.FC<{ project_id: string }> = ({

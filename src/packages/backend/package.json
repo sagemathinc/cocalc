@@ -18,7 +18,7 @@
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest dist/",
+    "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },
   "files": [
@@ -32,14 +32,15 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/debug": "^4.1.7",
-    "async-await-utils": "^3.0.1",
+    "@types/debug": "^4.1.12",
     "awaiting": "^3.0.0",
     "chokidar": "^3.5.3",
     "debug": "^4.3.2",
+    "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "password-hash": "^1.2.2",
+    "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
     "underscore": "^1.12.1"

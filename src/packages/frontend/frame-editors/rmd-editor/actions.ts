@@ -7,7 +7,7 @@
 R Markdown Editor Actions
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { Set } from "immutable";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
@@ -22,6 +22,15 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
+import { open_new_tab } from "@cocalc/frontend/misc";
+const HELP_URL = "https://doc.cocalc.com/frame-editor.html#edit-rmd";
+
+const MINIMAL = `# Title
+
+\`\`\`{r}
+summary(c(1,2,3))
+\`\`\`
+`;
 
 const custom_pdf_error_message: string = `
 To create a PDF document from R Markdown, you specify the \`pdf_document\` output format in the
@@ -52,12 +61,16 @@ export class Actions extends MarkdownActions {
 
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
-    if (!this.is_public) {
-      // one extra thing after markdown.
-      this._syncstring.once("ready", this._init_rmd_converter.bind(this));
-      this._check_produced_files();
-      this.setState({ custom_pdf_error_message });
-    }
+    // one extra thing after markdown.
+    this._syncstring.once("ready", () => {
+      this._init_rmd_converter();
+    });
+    this._check_produced_files();
+    this.setState({ custom_pdf_error_message });
+    this._syncstring.on(
+      "change",
+      debounce(this.ensureNonempty.bind(this), 1500),
+    );
   }
 
   private do_implicit_builds(): boolean {
@@ -104,6 +117,11 @@ export class Actions extends MarkdownActions {
     this.is_building = true;
     try {
       const actions = this.redux.getEditorActions(this.project_id, this.path);
+      if (actions == null) {
+        // opening/close a newly created file can trigger build when actions aren't
+        // ready yet.  https://github.com/sagemathinc/cocalc/issues/7249
+        return;
+      }
       await (actions as BaseActions<CodeEditorState>).save(false);
       await this.run_rmd_converter(Date.now());
     } finally {
@@ -123,7 +141,8 @@ export class Actions extends MarkdownActions {
     if (project_store == undefined) {
       return;
     }
-    const dir_listings = project_store.get("directory_listings");
+    // TODO: change the 0 to the compute server when/if we ever support RMD on a compute server (which we don't)
+    const dir_listings = project_store.getIn(["directory_listings", 0]);
     if (dir_listings == undefined) {
       return;
     }
@@ -240,4 +259,15 @@ export class Actions extends MarkdownActions {
 
   // Never delete trailing whitespace for markdown files.
   delete_trailing_whitespace(): void {}
+
+  help(): void {
+    open_new_tab(HELP_URL);
+  }
+
+  private ensureNonempty() {
+    if (this.store && !this.store.get("value")?.trim()) {
+      this.set_value(MINIMAL);
+      this.build();
+    }
+  }
 }

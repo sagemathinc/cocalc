@@ -520,6 +520,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     open_new_tab("https://doc.cocalc.com/jupyter.html");
   }
 
+  about = () => {
+    this.jupyter_actions.show_about();
+  };
+
   chatgptCodeDescription(): string {
     const kernel =
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";

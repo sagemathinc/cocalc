@@ -16,7 +16,8 @@ The two helpful async/await libraries I found are:
 */
 
 import * as awaiting from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
+
+import { reuseInFlight } from "./reuse-in-flight";
 
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like

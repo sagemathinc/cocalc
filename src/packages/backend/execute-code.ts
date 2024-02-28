@@ -29,7 +29,7 @@ const log = getLogger("execute-code");
 
 // Async/await interface to executing code.
 export async function executeCode(
-  opts: ExecuteCodeOptions
+  opts: ExecuteCodeOptions,
 ): Promise<ExecuteCodeOutput> {
   return await callback_opts(execute_code)(opts);
 }
@@ -45,12 +45,12 @@ export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
         opts.cb?.(err);
       }
     })();
-  }
+  },
 );
 
 // actual implementation, without the aggregate wrapper
 async function executeCodeNoAggregate(
-  opts: ExecuteCodeOptions
+  opts: ExecuteCodeOptions,
 ): Promise<ExecuteCodeOutput> {
   if (opts.args == null) opts.args = [];
   if (opts.timeout == null) opts.timeout = 10;
@@ -133,7 +133,7 @@ function doSpawn(opts, cb) {
       opts.args,
       "and timeout",
       opts.timeout,
-      "seconds"
+      "seconds",
     );
   }
   const spawnOptions = {
@@ -254,34 +254,31 @@ function doSpawn(opts, cb) {
         opts.command,
         "took",
         walltime(start_time),
-        "seconds"
+        "seconds",
       );
-      log.debug(
-        "stdout=",
-        trunc(stdout, 512),
-        "stderr=",
-        trunc(stderr, 512),
-        "exit_code=",
-        exit_code
-      );
+      log.debug({
+        stdout: trunc(stdout, 512),
+        stderr: trunc(stderr, 512),
+        exit_code,
+      });
     }
     if (err) {
       cb(err);
     } else if (opts.err_on_exit && exit_code != 0) {
       cb(
         `command '${opts.command}' (args=${opts.args?.join(
-          " "
+          " ",
         )}) exited with nonzero code ${exit_code} -- stderr='${trunc(
           stderr,
-          1024
-        )}'`
+          1024,
+        )}'`,
       );
     } else if (!ran_code) {
       // regardless of opts.err_on_exit !
       cb(
         `command '${opts.command}' (args=${opts.args?.join(
-          " "
-        )}) was not able to run -- stderr='${trunc(stderr, 1024)}'`
+          " ",
+        )}) was not able to run -- stderr='${trunc(stderr, 1024)}'`,
       );
     } else {
       if (opts.max_output != null) {
@@ -312,7 +309,7 @@ function doSpawn(opts, cb) {
         log.debug(
           "subprocess did not exit after",
           opts.timeout,
-          "seconds, so killing with SIGKILL"
+          "seconds, so killing with SIGKILL",
         );
       }
       try {

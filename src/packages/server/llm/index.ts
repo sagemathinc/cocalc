@@ -10,6 +10,8 @@ High level summary:
 * The ChatOutput interface is what they return in any case.
 */
 
+const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
+
 import { delay } from "awaiting";
 
 import getLogger from "@cocalc/backend/logger";
@@ -19,6 +21,7 @@ import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
+  OpenAIMessages,
   getLLMCost,
   isFreeModel,
   isValidModel,
@@ -56,6 +59,38 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
   }
 }
 
+async function evaluteCall({
+  system,
+  history,
+  input,
+  client,
+  model,
+  maxTokens,
+  stream,
+}) {
+  if (client instanceof VertexAIClient) {
+    return await evaluateVertexAI({
+      system,
+      history,
+      input,
+      client,
+      maxTokens,
+      model,
+      stream,
+    });
+  }
+
+  return await evaluateOpenAI({
+    system,
+    history,
+    input,
+    client,
+    model,
+    maxTokens,
+    stream,
+  });
+}
+
 async function evaluateImpl({
   input,
   system,
@@ -89,25 +124,15 @@ async function evaluateImpl({
   const client = await getClient(model);
 
   const { output, total_tokens, prompt_tokens, completion_tokens } =
-    client instanceof VertexAIClient
-      ? await evaluateVertexAI({
-          system,
-          history,
-          input,
-          client,
-          maxTokens,
-          model,
-          stream,
-        })
-      : await evaluateOpenAI({
-          system,
-          history,
-          input,
-          client,
-          model,
-          maxTokens,
-          stream,
-        });
+    await evaluteCall({
+      system,
+      history,
+      input,
+      client,
+      model,
+      maxTokens,
+      stream,
+    });
 
   log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
@@ -207,6 +232,7 @@ async function evaluateVertexAI({
       });
     } catch (err) {
       const retry = i < maxAttempts - 1;
+      if (DEBUG_THROW_LLM_ERROR) throw err;
       log.debug(
         "Google Vertex AI API call failed",
         err,
@@ -234,8 +260,7 @@ async function evaluateOpenAI({
   maxTokens,
   stream,
 }): Promise<ChatOutput> {
-  const messages: { role: "system" | "user" | "assistant"; content: string }[] =
-    [];
+  const messages: OpenAIMessages = [];
   if (system) {
     messages.push({ role: "system", content: system });
   }

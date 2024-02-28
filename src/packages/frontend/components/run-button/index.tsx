@@ -13,8 +13,8 @@ import {
   useState,
 } from "react";
 import TimeAgo from "react-timeago";
-import { reuseInFlight } from "async-await-utils/hof";
 
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 //import { file_associations } from "@cocalc/frontend/file-associations";
 //import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -118,7 +118,7 @@ export default function RunButton({
       setOutput0(
         outputMessagesRef.current == null ? null : (
           <Output output={outputMessagesRef.current} old />
-        )
+        ),
       );
     } else {
       outputMessagesRef.current = messages;
@@ -374,7 +374,7 @@ export default function RunButton({
                   setKernelName(name);
                   setShowPopover(false);
                   setInfo?.(
-                    `${kernelLanguage(name, project_id)} {kernel="${name}"}`
+                    `${kernelLanguage(name, project_id)} {kernel="${name}"}`,
                   );
                 }}
                 kernel={kernelName}
@@ -496,5 +496,5 @@ type GetFromCache = (hash: string) => Promise<{
 }>;
 
 const getFromDatabaseCache: GetFromCache = reuseInFlight(
-  async (hash) => await api("execute", { hash })
+  async (hash) => await api("execute", { hash }),
 );

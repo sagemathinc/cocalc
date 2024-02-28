@@ -2,7 +2,6 @@ import { CSSProperties } from "react";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 
-// I copied this straight from the openai website html, and modified it for react.
 interface Props {
   size?;
   backgroundColor?;

@@ -9,36 +9,37 @@
 
 const BANNED_DOMAINS = { "qq.com": true };
 
-import { promisify } from "util";
+import sendgrid from "@sendgrid/client";
+import * as async from "async";
 import * as fs from "fs";
+import { isEqual, template } from "lodash";
+import { createTransport } from "nodemailer";
 import * as os_path from "path";
-import { isEqual } from "lodash";
-const fs_readFile_prom = promisify(fs.readFile);
-import { getLogger } from "@cocalc/backend/logger";
-import { template } from "lodash";
-import { AllSiteSettingsCached } from "@cocalc/util/db-schema/types";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import sanitizeHtml from "sanitize-html";
+import { promisify } from "util";
+
 import base_path from "@cocalc/backend/base-path";
 import { secrets } from "@cocalc/backend/data";
+import { getLogger } from "@cocalc/backend/logger";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { AllSiteSettingsCached } from "@cocalc/util/db-schema/types";
 // sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
-import sendgrid from "@sendgrid/client";
-import { createTransport } from "nodemailer";
-import { defaults, required, split, to_json } from "@cocalc/util/misc";
-import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
-import sanitizeHtml from "sanitize-html";
 import { contains_url } from "@cocalc/backend/misc";
+import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
+import { defaults, required, split, to_json } from "@cocalc/util/misc";
 import {
-  SENDGRID_TEMPLATE_ID,
-  SENDGRID_ASM_NEWSLETTER,
-  SENDGRID_ASM_INVITES,
-  COMPANY_NAME,
   COMPANY_EMAIL,
-  SITE_NAME,
+  COMPANY_NAME,
   DNS,
   HELP_EMAIL,
   LIVE_DEMO_REQUEST,
+  SENDGRID_ASM_INVITES,
+  SENDGRID_ASM_NEWSLETTER,
+  SENDGRID_TEMPLATE_ID,
+  SITE_NAME,
 } from "@cocalc/util/theme";
-import * as async from "async";
+
+const fs_readFile_prom = promisify(fs.readFile);
 
 const winston = getLogger("server:hub:email");
 

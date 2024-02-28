@@ -17,7 +17,9 @@ import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
 import debug from "debug";
 import { project } from "@cocalc/api-client";
 import { jupyter } from "./jupyter";
+import { fileServer } from "./file-server";
 import { terminal } from "./terminal";
+import { initListings } from "./listings";
 import { once } from "@cocalc/util/async-utils";
 import { dirname, join } from "path";
 import { userInfo } from "os";
@@ -131,6 +133,7 @@ class Manager {
       project_id: this.project_id,
       client_id,
       home: this.home,
+      role: "compute_server",
     });
     this.reportComponentState({
       state: "connecting",
@@ -155,6 +158,7 @@ class Manager {
         }
       }
     });
+    await this.initListings();
     await this.initSyncDB();
     this.state = "ready";
     this.reportComponentState({
@@ -165,6 +169,15 @@ class Manager {
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
   };
 
+  private initListings = async () => {
+    await initListings({
+      client: this.client,
+      project_id: this.project_id,
+      compute_server_id: this.compute_server_id,
+      home: this.home,
+    });
+  };
+
   private initSyncDB = async () => {
     this.sync_db = this.client.sync_client.sync_db({
       project_id: this.project_id,
@@ -172,6 +185,7 @@ class Manager {
     });
     this.sync_db.on("change", this.handleSyncdbChange);
     this.sync_db.on("error", async (err) => {
+      this.sync_db.close();
       // This could MAYBE possibly very rarely happen if you click to restart a project, then immediately
       // close the browser tab, then try to connect compute server to it and there's a broken socket,
       // which is in a cache but not yet tested and removed...  Just try again.
@@ -229,10 +243,9 @@ class Manager {
     }
   };
 
-  private ensureConnected = (path) => {
+  private ensureConnected = async (path) => {
     this.log("ensureConnected", path);
     if (this.connections[path] == null) {
-      this.connections[path] = "connecting";
       if (path.endsWith(".term")) {
         const term = terminal({
           websocket: this.websocket,
@@ -251,11 +264,19 @@ class Manager {
           path,
         });
       } else {
-        delete this.connections[path];
-        this.setError({
-          path,
-          message: "only term and ipynb files are supported",
-        });
+        try {
+          this.connections[path] = "connecting";
+          this.connections[path] = await fileServer({
+            client: this.client,
+            path,
+          });
+        } catch (err) {
+          delete this.connections[path];
+          this.setError({
+            path,
+            message: `${err}`,
+          });
+        }
       }
     }
   };

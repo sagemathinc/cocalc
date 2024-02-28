@@ -116,6 +116,7 @@ export class Listings extends EventEmitter {
         query: {
           listings: {
             project_id: this.project_id,
+            compute_server_id: this.compute_server_id,
             path,
             deleted: null,
           },
@@ -245,6 +246,7 @@ export class Listings extends EventEmitter {
       query: {
         listings: {
           project_id: this.project_id,
+          compute_server_id: this.compute_server_id,
           path,
           listing: null,
           error: null,
@@ -264,6 +266,7 @@ export class Listings extends EventEmitter {
       query: {
         listings: {
           project_id: this.project_id,
+          compute_server_id: this.compute_server_id,
           path,
           missing: null,
         },
@@ -300,6 +303,7 @@ export class Listings extends EventEmitter {
       max_time_s: 15 * 60,
       group,
       trigger_start_project,
+      compute_server_id: this.compute_server_id,
     });
     if (x.error != null) {
       throw Error(x.error);
@@ -360,6 +364,12 @@ export class Listings extends EventEmitter {
         ],
       },
       [],
+      // space out individual changes by 100ms -- without this we get multiple 'change' events
+      // at the exact same time, which breaks properly updating the directory_listings data
+      // structure by the project store.  This also helps avoid too much updating at once
+      // of the frontend UI.  Symptom without this: refresh browser at HOME, then change to
+      // a subdir such as tmp and see it spin forever.
+      100,
     );
 
     if ((this.state as State) == "closed") return;
@@ -492,6 +502,9 @@ export class Listings extends EventEmitter {
   };
 }
 
-export function listings(project_id: string): Listings {
-  return new Listings(project_id);
+export function listings(
+  project_id: string,
+  compute_server_id: number = 0,
+): Listings {
+  return new Listings(project_id, compute_server_id);
 }

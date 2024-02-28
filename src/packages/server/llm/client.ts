@@ -4,7 +4,7 @@ Get the client for the given LanguageModel.
 You do not have to worry too much about throwing an exception, because they're caught in ./index::evaluate
 */
 
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -14,11 +14,11 @@ import { VertexAIClient } from "./vertex-ai-client";
 
 const log = getLogger("llm:client");
 
-const clientCache: { [key: string]: OpenAIApi | VertexAIClient } = {};
+const clientCache: { [key: string]: OpenAI | VertexAIClient } = {};
 
 export default async function getClient(
   model?: LanguageModel,
-): Promise<OpenAIApi | VertexAIClient> {
+): Promise<OpenAI | VertexAIClient> {
   const vendor = model == null ? "openai" : model2vendor(model);
 
   switch (vendor) {
@@ -33,8 +33,7 @@ export default async function getClient(
       }
 
       log.debug("creating openai client...");
-      const configuration = new Configuration({ apiKey });
-      const client = new OpenAIApi(configuration);
+      const client = new OpenAI({ apiKey });
       clientCache[apiKey] = client;
       return client;
 

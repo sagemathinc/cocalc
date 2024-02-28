@@ -5,6 +5,8 @@ import type { CB } from "@cocalc/util/types/callback";
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
+  is_compute_server: () => boolean;
+  is_browser: () => boolean;
   dbg: (str: string) => Function;
   query: (opts: any) => void;
   query_cancel: Function;
@@ -14,7 +16,6 @@ export interface Client extends EventEmitter {
   is_signed_in: () => boolean;
   touch_project: (project_id: string) => void;
   set_connected?: Function;
-  is_compute_server?: boolean;
   is_deleted: (path: string, project_id: string) => true | false | undefined;
 }
 
@@ -27,6 +28,7 @@ export interface ClientFs extends Client {
   }) => Promise<void>;
   path_stat: (opts: { path: string; cb: CB }) => any;
   path_exists: (opts: { path: string; cb: CB }) => any;
+  path_access: (opts: { path: string; mode: string; cb: CB }) => void;
   watch_file: (opts: {
     path: string;
     interval?: number;

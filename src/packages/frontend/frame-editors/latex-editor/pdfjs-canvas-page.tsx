@@ -7,10 +7,11 @@
 Render a single PDF page using canvas.
 */
 
+import type { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack.mjs";
 import { useCallback, useEffect, useRef } from "react";
-import type { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
-import AnnotationLayer, { SyncHighlight } from "./pdfjs-annotation";
 import { useDebouncedCallback } from "use-debounce";
+
+import AnnotationLayer, { SyncHighlight } from "./pdfjs-annotation";
 
 interface Props {
   page: PDFPageProxy;

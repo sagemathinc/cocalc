@@ -477,7 +477,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           key="open"
           title={
             <span>
-              <Icon name="folder-open" /> Open Directory
+              <Icon name="folder-open" /> Open Folder
             </span>
           }
           tip="Open the directory in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."

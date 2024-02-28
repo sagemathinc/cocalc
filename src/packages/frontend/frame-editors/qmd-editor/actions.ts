@@ -8,7 +8,7 @@ Quarto Editor Actions
 */
 
 import { path_split } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Set } from "immutable";
 import { debounce } from "lodash";
 import { redux } from "../../app-framework";
@@ -105,7 +105,8 @@ export class Actions extends MarkdownActions {
     if (project_store == undefined) {
       return;
     }
-    const dir_listings = project_store.get("directory_listings");
+    // TODO: change the 0 to the compute server when/if we ever support QMD on a compute server (which we don't)
+    const dir_listings = project_store.getIn(["directory_listings", 0]);
     if (dir_listings == undefined) {
       return;
     }

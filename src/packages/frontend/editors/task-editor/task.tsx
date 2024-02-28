@@ -61,11 +61,14 @@ export default function Task({
   } as CSSProperties;
   if (editing_desc) {
     style.border = `2px solid ${CODE_FOCUSED_COLOR}`;
+    style.borderLeft = `10px solid ${CODE_FOCUSED_COLOR}`;
   } else if (is_current) {
     style.border = `2px solid ${FOCUSED_COLOR}`;
+    style.borderLeft = `10px solid ${FOCUSED_COLOR}`;
   } else {
     style.border = "2px solid #ddd";
     style.borderTop = "2px solid #eeejj";
+    style.borderLeft = `10px solid #ddd`;
   }
   if (task.get("deleted")) {
     style.background = "#d9534f";

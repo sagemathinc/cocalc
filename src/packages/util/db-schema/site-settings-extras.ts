@@ -141,7 +141,9 @@ export type SiteSettingsExtrasKeys =
   //  | "lambda_cloud_api_key"
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
+  | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
+  | "compute_servers_images_spec_url"
   //   | "coreweave_kubeconfig"
   //   | "fluidstack_api_key"
   //   | "fluidstack_api_token"
@@ -151,6 +153,9 @@ export type SiteSettingsExtrasKeys =
   | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
+
+const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
+  "https://raw.githubusercontent.com/sagemathinc/cocalc-compute-docker/main/images.json";
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
@@ -169,8 +174,8 @@ export const EXTRAS: SettingsExtras = {
     show: openai_enabled,
   },
   google_vertexai_key: {
-    name: "Google GenerativeAI Key",
-    desc: "Create a [Generative AI Key](https://makersuite.google.com/app/apikey) in the Google AI Studio and paste the content.",
+    name: "Google Gemini Generative AI API Key",
+    desc: "Create an [API Key](https://aistudio.google.com/app/apikey) in [Google's AI Studio](https://aistudio.google.com/) and paste the content here.",
     default: "",
     password: true,
     show: vertexai_enabled,
@@ -320,8 +325,8 @@ export const EXTRAS: SettingsExtras = {
     show: () => true,
   },
   zendesk_uri: {
-    name: "Zendesk Uri",
-    desc: "This is the Uri for your Zendesk server.  E.g., for `cocalc.com` it is https://sagemathcloud.zendesk.com/api/v2",
+    name: "Zendesk Subdomain",
+    desc: "This is the Subdomain of your Zendesk server.  E.g., for `cocalc.com` it is `sagemathcloud`",
     default: "",
     show: () => true,
   },
@@ -584,8 +589,15 @@ export const EXTRAS: SettingsExtras = {
   },
   google_cloud_compute_servers_prefix: {
     name: "Compute Servers: Google Cloud - Resource Prefix",
-    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server. If the prefix is 'cocalc-compute-server', then the compute server with id 17 will be called 'cocalc-compute-server-17'.",
+    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server. If the prefix is 'cocalc-compute-server', then the compute server with id 17 will be called 'cocalc-compute-server-17'.  You very likely want to change this, especially if you have several servers in the same Google cloud project; it must be different between different servers.",
     default: "cocalc-compute-server",
+    to_val: to_trimmed_str,
+    show: compute_servers_google_enabled,
+  },
+  google_cloud_compute_servers_image_prefix: {
+    name: "Compute Servers: Google Cloud - Image Prefix",
+    desc: "Prepend this string to the Google cloud images that are created.  You should probably leave this as the default, keep it very short, and it's fine to share these between CoCalc servers using the same project.",
+    default: "cocalc",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
   },
@@ -596,6 +608,12 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: (conf) => to_bool(conf.compute_servers_dns_enabled),
+  },
+  compute_servers_images_spec_url: {
+    name: "Compute Servers: Images Spec URL",
+    desc: `The URL of the compute server "images.json" spec file.  By default this is [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here), which is managed by SageMath, Inc.  However, you may replace this with your own json spec file, if you want to manage your own compute server images.  [Click here to update the database cache of the spec file and see the latest version.](api/v2/compute/get-images?ttl=0)`,
+    default: DEFAULT_COMPUTE_SERVER_IMAGES_JSON,
+    show: compute_servers_enabled,
   },
   //   fluidstack_api_key: {
   //     name: "Compute Servers: FluidStack - API Key (not implemented)",

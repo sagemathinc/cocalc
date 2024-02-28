@@ -45,7 +45,7 @@ export default function Overview() {
           icon={PAYASYOUGO_ICON}
           title="Pay As You Go Servers"
         >
-          Run Jupyter Notebooks and Linux Terminals on GPU's and high powered
+          Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered
           virtual machines with full admin privileges. Pay only for what you
           actually use.
         </Product>

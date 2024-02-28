@@ -4,10 +4,10 @@
  */
 
 /*
-Create a new site license.
+Create a new dedicated vm/disk site license.
 */
 
-import { Divider, Form, Input, Radio, Select, Typography } from "antd";
+import { Alert, Divider, Form, Input, Radio, Select, Typography } from "antd";
 import { sortBy } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -329,7 +329,14 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
         rules={[{ required: true, message: "Please select a type" }]}
         extra={
           showExplanations && (
-            <>Select if you want to get a Dedicate Disk or a Virtual Machine.</>
+            <div style={{ marginTop: "5px" }}>
+              Select if you want to get a Dedicate Disk or a Virtual Machine.
+              NOTE: Dedicated disks are deprecated -- create a{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>{" "}
+              instead.
+            </div>
           )
         }
       >
@@ -342,7 +349,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
             setType(e.target.value);
           }}
         >
-          <Radio.Button key={"disk"} value={"disk"}>
+          <Radio.Button key={"disk"} value={"disk"} disabled>
             Disk
           </Radio.Button>
           <Radio.Button key={"vm"} value={"vm"}>
@@ -733,6 +740,19 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
     );
   }
 
+  function renderStartupWarning() {
+    if (formType !== "vm") return;
+    return (
+      <Form.Item label="Warning">
+        <Alert
+          type="warning"
+          showIcon
+          message="It takes about 15 minutes to start a Dedicated VM. Until then, the project will not be able to start."
+        />
+      </Form.Item>
+    );
+  }
+
   return (
     <div>
       <InfoBar
@@ -776,6 +796,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
             {renderConfiguration()}
 
             <TitleDescription showExplanations={showExplanations} form={form} />
+            {renderStartupWarning()}
             {renderCost()}
           </>
         )}

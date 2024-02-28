@@ -147,6 +147,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       frameActions.current?.select_cell_range(id);
       return;
     }
+    frameActions.current?.set_mode("escape");
     frameActions.current?.set_cur_id(id);
     frameActions.current?.unselect_all_cells();
   }
@@ -169,12 +170,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   function render_not_deletable(): Rendered {
     if (is_deletable()) return;
     return (
-      <Tip
-        title={"Protected from deletion"}
-        placement={"right"}
-        size={"small"}
-        style={{ marginRight: "5px" }}
-      >
+      <Tip title={"Protected from deletion"} placement={"right"} size={"small"}>
         <Icon name="ban" />
       </Tip>
     );
@@ -187,7 +183,6 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         title={"Protected from modifications"}
         placement={"right"}
         size={"small"}
-        style={{ marginRight: "5px" }}
       >
         <Icon name="lock" />
       </Tip>
@@ -229,8 +224,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       // in the condition above.
       style = {
         position: "absolute",
-        top: "2px",
-        left: "5px",
+        top: "-2px",
+        left: 0,
         whiteSpace: "nowrap",
         color: COLORS.GRAY_L,
       };

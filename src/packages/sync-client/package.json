@@ -8,7 +8,12 @@
     "./*": "./dist/*.js",
     "./lib/*": "./dist/lib/*.js"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc --build",
@@ -16,20 +21,22 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/primus-multiplex": "^1.1.0",
+    "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/primus": "^7.3.6",
-    "async-await-utils": "^3.0.1",
     "cookie": "^0.5.0",
     "debug": "^4.3.2",
     "primus": "^8.0.7",
-    "primus-responder": "^1.0.4",
     "ws": "^8.13.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-client",

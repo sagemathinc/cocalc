@@ -26,10 +26,11 @@ import { syncdoc_call } from "../sync/sync-doc";
 import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
-import { delete_files } from "./delete-files";
+import { delete_files } from "@cocalc/backend/files/delete-files";
 import { eval_code } from "./eval-code";
 import computeFilesystemCache from "./compute-filesystem-cache";
-import { move_files, rename_file } from "./move-files";
+import { move_files } from "@cocalc/backend/files/move-files";
+import { rename_file } from "@cocalc/backend/files/rename-file";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
 import query from "./query";
@@ -39,10 +40,15 @@ import handleSyncFsApiCall, {
   handleSyncFsRequestCall,
   handleComputeServerSyncRegister,
   handleCopy,
+  handleSyncFsGetListing,
+  handleComputeServerFilesystemExec,
+  handleComputeServerDeleteFiles,
+  handleComputeServerMoveFiles,
+  handleComputeServerRenameFile,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
-
 import { getLogger } from "@cocalc/project/logger";
+
 const log = getLogger("websocket-api");
 
 let primus: any = undefined;
@@ -91,13 +97,33 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "version":
       return version;
     case "listing":
-      return await listing(data.path, data.hidden);
+      return await listing(data.path, data.hidden, data.compute_server_id);
     case "delete_files":
-      return await delete_files(data.paths);
+      const { compute_server_id, paths } = data;
+      if (compute_server_id) {
+        return await handleComputeServerDeleteFiles({
+          paths,
+          compute_server_id,
+        });
+      } else {
+        return await delete_files(data.paths);
+      }
     case "move_files":
-      return await move_files(data.paths, data.dest, log);
+      if (data.compute_server_id) {
+        return await handleComputeServerMoveFiles(data);
+      } else {
+        return await move_files(data.paths, data.dest, (path) =>
+          client.set_deleted(path),
+        );
+      }
     case "rename_file":
-      return await rename_file(data.src, data.dest, log);
+      if (data.compute_server_id) {
+        return await handleComputeServerRenameFile(data);
+      } else {
+        return await rename_file(data.src, data.dest, (path) =>
+          client.set_deleted(path),
+        );
+      }
     case "canonical_paths":
       return await canonical_paths(data.paths);
     case "configuration":
@@ -108,13 +134,20 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "prettier_string": // deprecated
     case "formatter_string":
       return await run_formatter_string(data.path, data.str, data.options, log);
-    case "jupyter":
-      // DEPRECATED: The "jupyter" endpoint is only here for browser client
-      // backward compatibility.   Can be safely deleted soon, but not immediately
-      // to make the release easier
-      return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
-      return await exec(data.opts);
+      if (data.opts?.compute_server_id) {
+        if (data.opts.filesystem) {
+          return await handleComputeServerFilesystemExec(data.opts);
+        } else {
+          throw Error(
+            `exec on compute server without also setting opts.filesystem=true is not implemented ${JSON.stringify(
+              data.opts,
+            )}`,
+          );
+        }
+      } else {
+        return await exec(data.opts);
+      }
     case "query":
       return await query(client, data.opts);
     case "eval_code":
@@ -174,12 +207,15 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import getListing from "@cocalc/backend/get-listing";
 async function listing(
   path: string,
-  hidden?: boolean,
+  hidden: boolean,
+  compute_server_id?: number,
 ): Promise<DirectoryListingEntry[]> {
-  return await getListing(path, hidden);
+  if (!compute_server_id) {
+    return await getListing(path, hidden);
+  } else {
+    return await handleSyncFsGetListing({ path, hidden, compute_server_id });
+  }
 }
-
-import { handleApiRequest as jupyter } from "@cocalc/jupyter/kernel/websocket-api";
 
 // Execute code
 import { executeCode } from "@cocalc/backend/execute-code";

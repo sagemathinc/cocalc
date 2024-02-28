@@ -101,6 +101,7 @@ interface Props {
     jupyter_api?: boolean;
   }) => void;
   has_network_access?: boolean;
+  compute_server_id?: number;
 }
 
 // ensures the custom font sizes in the text of the first row is consistent
@@ -143,6 +144,23 @@ export default function Configure(props: Props) {
   );
   const kucalc = useTypedRedux("customize", "kucalc");
   const shareServer = useTypedRedux("customize", "share_server");
+
+  if (props.compute_server_id) {
+    return (
+      <Alert
+        type="warning"
+        style={{ padding: "30px", margin: "30px" }}
+        description={
+          <>
+            <h3>Publicly sharing files on a compute server is not supported</h3>
+            <div style={{ fontSize: "12pt" }}>
+              Copy the files to the project, then share them.
+            </div>
+          </>
+        }
+      />
+    );
+  }
 
   const handleSharingOptionsChange = (e) => {
     const state: States = e.target.value;
@@ -290,7 +308,6 @@ export default function Configure(props: Props) {
                         )}
                       </A>
                     </Radio>
-
                     <Radio
                       name="sharing_options"
                       value="public_unlisted"
