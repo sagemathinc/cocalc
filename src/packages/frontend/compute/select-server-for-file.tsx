@@ -221,13 +221,13 @@ export function modalParams({ current, target, path }) {
   return {
     title: (
       <>
-        {what} {targetDesc}?
+        {what} {targetDesc}
       </>
     ),
-    cancelText: <>Stay {sourceDesc}?</>,
+    cancelText: <>Stay {sourceDesc}</>,
     okText: (
       <>
-        {what} {targetDesc}?
+        {what} {targetDesc}
       </>
     ),
     description: (
