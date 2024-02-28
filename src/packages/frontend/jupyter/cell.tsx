@@ -4,22 +4,25 @@
  */
 
 /*
-React component that describes a single cella
+React component that describes a single cell
 */
 
 import { Map } from "immutable";
-import { React, Rendered, useDelayedRender } from "../app-framework";
-import { clear_selection } from "../misc/clear-selection";
+
+import {
+  React,
+  Rendered,
+  useDelayedRender,
+} from "@cocalc/frontend/app-framework";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { COLORS } from "@cocalc/util/theme";
-import { INPUT_PROMPT_COLOR } from "./prompt/base";
 import { Icon, Tip } from "../components";
+import { clear_selection } from "../misc/clear-selection";
+import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
-
-import { JupyterActions } from "./browser-actions";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
+import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
@@ -44,7 +47,7 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
-  chatgpt?;
+  showAItools: boolean;
   computeServerId?: number;
 }
 
@@ -67,6 +70,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.is_scrolling !== props.is_scrolling ||
     nextProps.height !== props.height ||
     nextProps.computeServerId !== props.computeServerId ||
+    nextProps.showAItools !== props.showAItools ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current))
   );
@@ -112,7 +116,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         trust={props.trust}
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
-        chatgpt={props.chatgpt}
+        showAItools={props.showAItools}
         computeServerId={props.computeServerId}
       />
     );
@@ -136,7 +140,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
-        chatgpt={props.chatgpt}
+        showAItools={props.showAItools}
       />
     );
   }

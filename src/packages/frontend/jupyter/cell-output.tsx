@@ -29,7 +29,7 @@ interface CellOutputProps {
   hidePrompt?: boolean;
   style?: React.CSSProperties;
   divRef?;
-  chatgpt?;
+  showAItools: boolean;
 }
 
 export function CellOutput({
@@ -45,7 +45,7 @@ export function CellOutput({
   hidePrompt,
   divRef,
   style,
-  chatgpt,
+  showAItools,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -88,10 +88,22 @@ export function CellOutput({
         directory={directory}
         name={name}
         trust={trust}
-        chatgpt={chatgpt}
+        showAItools={showAItools}
       />
     </div>
   );
+}
+
+interface OutputColumnProps {
+  cell: ImmutableMap<string, any>;
+  id: string;
+  actions?: JupyterActions;
+  more_output?: ImmutableMap<string, any>;
+  project_id?: string;
+  directory?: string;
+  name?: string;
+  trust?: boolean;
+  showAItools: boolean;
 }
 
 function OutputColumn({
@@ -103,8 +115,8 @@ function OutputColumn({
   directory,
   name,
   trust,
-  chatgpt,
-}) {
+  showAItools
+}: OutputColumnProps) {
   if (cell.get("collapsed")) {
     return <CollapsedOutput actions={actions} id={id} />;
   }
@@ -138,7 +150,7 @@ function OutputColumn({
       name={name}
       trust={trust}
       id={id}
-      chatgpt={chatgpt}
+      showAItools={showAItools}
     />
   );
 }

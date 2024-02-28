@@ -43,7 +43,6 @@ import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
 import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
-import * as chatgpt from "./chatgpt";
 import KernelWarning from "./kernel-warning";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
@@ -286,7 +285,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        chatgpt={chatgpt}
+        showAItools={true}
         computeServerId={computeServerId}
       />
     );

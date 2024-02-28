@@ -6,13 +6,17 @@
 /*
 React component that describes the input of a cell
 */
+import { Button, Tooltip } from "antd";
+import { delay } from "awaiting";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Tooltip } from "antd";
+
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import PasteButton from "@cocalc/frontend/components/paste-button";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
@@ -24,12 +28,10 @@ import { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
+import * as chatgpt from "./chatgpt";
 import { CodeMirror } from "./codemirror-component";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import { delay } from "awaiting";
-import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -76,7 +78,7 @@ export interface CellInputProps {
   is_scrolling?: boolean;
   id: string;
   index: number;
-  chatgpt?;
+  showAItools: boolean;
   computeServerId?: number;
 }
 
@@ -399,7 +401,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           style={{
             position: "absolute",
             right: "2px",
-            top: "-20px",
+            top: "-21px",
           }}
           className="hidden-xs"
         >
@@ -421,12 +423,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 />
               </div>
             )}
-            {props.chatgpt != null && (
-              <props.chatgpt.ChatGPTExplain
-                id={props.id}
-                actions={props.actions}
-              />
-            )}
+            {props.showAItools ? (
+              <chatgpt.ChatGPTExplain id={props.id} actions={props.actions} />
+            ) : undefined}
             {/* Should only show formatter button if there is a way to format this code. */}
             {!props.is_readonly && props.actions != null && (
               <Tooltip title="Format this code to look nice" placement="top">
@@ -469,18 +468,20 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 }
               />
             )}
-            {input && (
+            {input ? (
               <div
                 style={{
                   marginLeft: "3px",
-                  padding: "4px",
-                  borderLeft: "1px solid #ccc",
-                  borderTop: "1px solid #ccc",
+                  padding: "4px 4px 0px 4px",
+                  borderLeft: `1px solid ${COLORS.GRAY_L}`,
+                  borderTop: `1px solid ${COLORS.GRAY_L}`,
+                  borderRight: `1px solid ${COLORS.GRAY_L}`,
+                  borderRadius: "4px",
                 }}
               >
                 {props.index + 1}
               </div>
-            )}
+            ) : undefined}
           </div>
         </div>
       );

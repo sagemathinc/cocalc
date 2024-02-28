@@ -34,7 +34,7 @@ export interface InsertCellProps {
   actions: JupyterActions;
   id: string;
   position: "above" | "below";
-  chatgpt?;
+  showAItools: boolean;
 }
 
 export interface InsertCellState {
@@ -43,13 +43,13 @@ export interface InsertCellState {
 
 export function InsertCell({
   position,
-  chatgpt,
+  showAItools,
   actions,
   id,
 }: InsertCellProps) {
   const { project_id } = useFrameContext();
   const haveChatGTP =
-    chatgpt &&
+    showAItools &&
     redux
       .getStore("projects")
       .hasLanguageModelEnabled(project_id, "generate-cell");

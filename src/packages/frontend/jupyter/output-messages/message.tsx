@@ -7,19 +7,21 @@
 Handling of output messages.
 */
 
-import React from "react";
+import Anser from "anser";
 import type { Map } from "immutable";
+import React from "react";
+
 import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
-import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
-import { Stdout } from "./stdout";
-import { Stderr } from "./stderr";
-import { MoreOutput } from "./more-output";
+import * as chatgpt from "../chatgpt";
 import { Input } from "./input";
 import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
-import { Traceback } from "./traceback";
+import { MoreOutput } from "./more-output";
 import { NotImplemented } from "./not-implemented";
-import Anser from "anser";
+import { Stderr } from "./stderr";
+import { Stdout } from "./stdout";
+import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
+import { Traceback } from "./traceback";
 
 function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
@@ -71,7 +73,7 @@ export const CellOutputMessage: React.FC<CellOutputMessageProps> = React.memo(
         id={props.id}
       />
     );
-  }
+  },
 );
 
 interface CellOutputMessagesProps {
@@ -83,7 +85,7 @@ interface CellOutputMessagesProps {
   scrolled?: boolean;
   trust?: boolean;
   id?: string;
-  chatgpt?;
+  showAItools: boolean;
 }
 
 function shouldMemoize(prev, next) {
@@ -104,11 +106,11 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     scrolled,
     trust,
     id,
-    chatgpt,
+    showAItools,
   }: CellOutputMessagesProps) => {
     const obj: Map<string, any>[] = React.useMemo(
       () => messageList(output),
-      [output]
+      [output],
     );
 
     const v: JSX.Element[] = [];
@@ -139,12 +141,12 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
             name={name}
             trust={trust}
             id={id}
-          />
+          />,
         );
       }
     }
     const help =
-      hasError && id && actions && chatgpt ? (
+      hasError && id && actions && showAItools ? (
         <chatgpt.ChatGPTError
           style={{ margin: "5px 0" }}
           input={actions.store.getIn(["cells", id, "input"]) ?? ""}
@@ -162,7 +164,7 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       </div>
     );
   },
-  shouldMemoize
+  shouldMemoize,
 );
 
 function numericallyOrderedKeys(obj: object): number[] {

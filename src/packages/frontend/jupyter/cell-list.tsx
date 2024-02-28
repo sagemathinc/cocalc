@@ -97,7 +97,7 @@ interface CellListProps {
   sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
   use_windowed_list?: boolean;
-  chatgpt?;
+  showAItools: boolean; // if yes, it's a usual cell and we enable AI tools
   computeServerId?: number;
 }
 
@@ -125,7 +125,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     sel_ids,
     trust,
     use_windowed_list,
-    chatgpt,
+    showAItools,
     computeServerId,
   } = props;
 
@@ -426,7 +426,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return (
       <InsertCell
         id={id}
-        chatgpt={chatgpt}
+        showAItools = {showAItools}
         key={id + "insert" + position}
         position={position}
         actions={actions}
@@ -484,7 +484,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           trust={trust}
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
-          chatgpt={chatgpt}
+          showAItools={showAItools}
           computeServerId={computeServerId}
         />
       </div>
