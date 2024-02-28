@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { DisplayImage } from "./select-image";
 
 interface Props {
   project_id: string;
@@ -112,6 +113,14 @@ export function ComputeServerDocStatus({
         >
           {progress < 100 ? `${progress}% - ` : ""}
           {requestedServer.get("title")} (Id: {requestedId})
+          <DisplayImage
+            style={{
+              marginLeft: "10px",
+              borderLeft: "1px solid black",
+              paddingLeft: "10px",
+            }}
+            configuration={requestedServer.get("configuration")?.toJS()}
+          />
         </div>
       </Tooltip>
       {progress == 100 && !noSync && (
