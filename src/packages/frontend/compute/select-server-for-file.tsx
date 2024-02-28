@@ -154,10 +154,12 @@ export default function SelectComputeServerForFile({
           setIdNum(lastValueRef.current ?? 0);
           setValue(lastValueRef.current ?? 0);
         }}
+        cancelButtonProps={{ style: { marginTop: "5px" } }}
         okButtonProps={{
           // @ts-ignore
           ref: okButtonRef,
           style: {
+            marginTop: "5px",
             background: computeServers[idNum]?.color ?? PROJECT_COLOR,
             color: avatar_fontcolor(
               computeServers[idNum]?.color ?? PROJECT_COLOR,
@@ -209,12 +211,12 @@ export function modalParams({ current, target, path }) {
   }
   const targetDesc = (
     <span key="target-desc">
-      on <ComputeServer key="target-name" id={target} titleOnly />
+      on <ComputeServer noColor key="target-name" id={target} titleOnly />
     </span>
   );
   const sourceDesc = (
     <span key="source-desc">
-      on <ComputeServer key="source-name" id={current} titleOnly />
+      on <ComputeServer noColor key="source-name" id={current} titleOnly />
     </span>
   );
 
