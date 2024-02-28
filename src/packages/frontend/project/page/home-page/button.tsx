@@ -47,7 +47,21 @@ export default function HomePageButton({ project_id, active, width }) {
         transitionDuration: "0s",
       }}
       onClick={() => {
-        actions?.set_active_tab("home");
+        // People find the entire home page idea very confusing.
+        // Thus I've commented this out:
+
+        // actions?.set_active_tab("home");
+
+        // And replaced it by just showing the file explorer in the
+        // home directory, with no flyout panels open, which is a reasonable
+        // expectation for a "Home" button, since that's what the project shows
+        // by default on open.  This is just a very quick bandaide to reduce
+        // confusion until we come up with something better (e.g., a dropdown
+        // menu and shortcut toolbar).
+        actions?.set_active_tab("files");
+        actions?.set_current_path("");
+        actions?.setFlyoutExpanded("files", false, false);
+
         track("switch_to_fixed_tab", {
           how: "click-on-tab",
           name: "home",
