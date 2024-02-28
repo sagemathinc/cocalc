@@ -221,12 +221,13 @@ async function startServer(): Promise<void> {
     nextServer: !!program.nextServer,
     cert: program.httpsCert,
     key: program.httpsKey,
+    // important: we need this hack in both devel and prod mode (i.e., on cocalc-docker) or the hub
+    // websocket fails with nextjs 14.  This wasn't needed for nextjs 13 in prod mode.
     listenersHack:
       program.mode == "single-user" &&
       program.proxyServer &&
       program.nextServer &&
-      program.websocketServer &&
-      process.env["NODE_ENV"] == "development",
+      program.websocketServer,
   });
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
