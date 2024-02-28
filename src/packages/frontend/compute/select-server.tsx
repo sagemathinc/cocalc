@@ -153,7 +153,7 @@ export default function SelectServer({
     }
     const v: { label: JSX.Element; options: Option[] }[] = [
       {
-        label: <div style={{ fontSize: "12pt" }}>The Project</div>,
+        label: <div style={{ fontSize: "12pt" }}>Default shared resources</div>,
         options: [
           {
             value: "0",
@@ -171,15 +171,15 @@ export default function SelectServer({
                 {value != 0 ? (
                   <div>
                     <div>
-                      <Icon name="edit" /> Project
+                      <Icon name="edit" /> Shared Resources
                     </div>
                     <div style={{ marginLeft: "15px" }}>
-                      <Icon name="users" /> Default shared resources
+                      <Icon name="users" /> Default shared image
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <Icon name="edit" /> Project
+                    <Icon name="edit" /> Shared Resources
                   </div>
                 )}
               </div>
@@ -254,6 +254,8 @@ export default function SelectServer({
     return <Spin delay={1000} />;
   }
 
+  const background = computeServers[value ?? ""]?.color ?? PROJECT_COLOR;
+
   return (
     <Tooltip
       mouseEnterDelay={0.9}
@@ -270,9 +272,9 @@ export default function SelectServer({
         size={size}
         bordered={false}
         placeholder={
-          <span style={{ color: "#333" }}>
+          <span style={{ color: avatar_fontcolor(background) }}>
             <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
-            {!noLabel || open ? <VisibleMDLG>Project</VisibleMDLG> : undefined}
+            {!noLabel || open ? <VisibleMDLG>Server</VisibleMDLG> : undefined}
           </span>
         }
         open={open}
@@ -283,11 +285,12 @@ export default function SelectServer({
         onClear={() => {
           setValue(undefined);
         }}
-        value={value == 0 || value == null ? null : `${value}`}
+        value={!open || value == 0 || value == null ? null : `${value}`}
         onDropdownVisibleChange={setOpen}
         style={{
-          width: getWidth(open, value, noLabel, size),
-          background: computeServers[value ?? ""]?.color ?? PROJECT_COLOR,
+          width: open ? "300px" : undefined,
+          background,
+          color: avatar_fontcolor(background),
           ...style,
         }}
         options={options}
@@ -295,14 +298,4 @@ export default function SelectServer({
       />
     </Tooltip>
   );
-}
-
-function getWidth(open, value, noLabel, size) {
-  if (!open && (noLabel || value == "0" || !value)) {
-    return undefined;
-  }
-  if (open) {
-    return "300px";
-  }
-  return size == "small" ? "100px" : "150px";
 }

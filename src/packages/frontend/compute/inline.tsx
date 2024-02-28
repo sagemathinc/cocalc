@@ -49,7 +49,7 @@ export default function ComputeServer({
       return;
     }
     if (!id) {
-      setServer({ title: "The Project", color: PROJECT_COLOR });
+      setServer({ title: "Default Shared Resources", color: PROJECT_COLOR });
       return;
     }
     (async () => {
