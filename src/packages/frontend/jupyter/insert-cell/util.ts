@@ -12,7 +12,7 @@ export function insertCell({
   actions;
   type: "code" | "markdown";
   id: string; // id relative to which we insert
-  position: "above" | "below";
+  position: "above" | "below" | "replace";
   content?: string;
 }): string | undefined {
   if (frameActions.current == null) {
@@ -20,7 +20,10 @@ export function insertCell({
     return;
   }
   frameActions.current.set_cur_id(id);
-  const new_id = frameActions.current.insert_cell(position == "above" ? -1 : 1);
+  const new_id =
+    position === "replace"
+      ? id
+      : frameActions.current.insert_cell(position === "above" ? -1 : 1);
   frameActions.current.set_cur_id(new_id);
 
   if (content) {

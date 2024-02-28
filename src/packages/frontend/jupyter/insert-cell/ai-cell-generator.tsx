@@ -1,4 +1,4 @@
-import { Button, Input, Popover, Space } from "antd";
+import { Button, Checkbox, Input, Popover, Space } from "antd";
 import { throttle } from "lodash";
 import React, { useMemo, useState } from "react";
 
@@ -30,9 +30,10 @@ interface AIGenerateCodeCellProps {
   children: React.ReactNode;
   frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
   id: string;
-  position: "above" | "below";
+  position: "above" | "below" | "replace";
   setShowChatGPT: (show: boolean) => void;
   showChatGPT: boolean;
+  closeWhenDone?: boolean;
 }
 
 export default function AIGenerateCodeCell({
@@ -43,11 +44,20 @@ export default function AIGenerateCodeCell({
   position,
   setShowChatGPT,
   showChatGPT,
+  closeWhenDone,
 }: AIGenerateCodeCellProps) {
   const [model, setModel] = useLanguageModelSetting();
   const [querying, setQuerying] = useState<boolean>(false);
   const { project_id, path } = useFrameContext();
   const [prompt, setPrompt] = useState<string>("");
+  const [includePreviousCell, setIncludePreviousCell] = useState<boolean>(true);
+
+  const prevCodeContents = getPreviousNonemptyCodeCellContents(
+    frameActions.current,
+    id,
+    position,
+  );
+
   const input = useMemo(() => {
     if (!showChatGPT) return "";
     const { input } = getInput({
@@ -57,9 +67,26 @@ export default function AIGenerateCodeCell({
       id,
       position,
       model,
+      prevCodeContents: includePreviousCell ? prevCodeContents : "",
     });
     return input;
-  }, [showChatGPT, prompt, model]);
+  }, [showChatGPT, prompt, model, includePreviousCell]);
+
+  function doGenerate() {
+    queryLanguageModel({
+      frameActions,
+      actions,
+      id,
+      position,
+      setQuerying,
+      model,
+      project_id,
+      path,
+      prompt,
+      whenDone: closeWhenDone ? () => setShowChatGPT(false) : undefined,
+      prevCodeContents: includePreviousCell ? prevCodeContents : "",
+    });
+  }
 
   return (
     <Popover
@@ -102,22 +129,26 @@ export default function AIGenerateCodeCell({
                 placeholder="Describe the new cell..."
                 onPressEnter={(e) => {
                   if (!e.shiftKey) return;
-                  queryLanguageModel({
-                    frameActions,
-                    actions,
-                    id,
-                    position,
-                    setQuerying,
-                    model,
-                    project_id,
-                    path,
-                    prompt,
-                  });
+                  doGenerate();
                 }}
                 autoSize={{ minRows: 2, maxRows: 6 }}
               />
             </Paragraph>
-            The following will be sent to {modelToName(model)}:
+            {prevCodeContents ? (
+              <Paragraph>
+                <Space>
+                  <Checkbox
+                    checked={includePreviousCell}
+                    onChange={(e) => setIncludePreviousCell(e.target.checked)}
+                  >
+                    Include previous code cell
+                  </Checkbox>
+                </Space>
+              </Paragraph>
+            ) : undefined}
+            <Paragraph>
+              The following will be sent to {modelToName(model)}:
+            </Paragraph>
             <StaticMarkdown
               value={input}
               style={{
@@ -135,17 +166,7 @@ export default function AIGenerateCodeCell({
                 <Button
                   type="primary"
                   onClick={() => {
-                    queryLanguageModel({
-                      frameActions,
-                      actions,
-                      id,
-                      position,
-                      setQuerying,
-                      model,
-                      project_id,
-                      path,
-                      prompt,
-                    });
+                    doGenerate();
                   }}
                   disabled={querying || !prompt.trim()}
                 >
@@ -170,10 +191,12 @@ interface QueryLanguageModelProps {
   id: string;
   model: LanguageModel;
   path: string;
-  position: "above" | "below";
+  position: "above" | "below" | "replace";
   project_id: string;
   prompt: string;
   setQuerying: (querying: boolean) => void;
+  whenDone?: () => void;
+  prevCodeContents: string;
 }
 
 async function queryLanguageModel({
@@ -186,8 +209,11 @@ async function queryLanguageModel({
   project_id,
   prompt,
   setQuerying,
+  whenDone,
+  prevCodeContents,
 }: QueryLanguageModelProps) {
   if (!prompt.trim()) return;
+
   const { input, system } = getInput({
     actions,
     frameActions,
@@ -195,6 +221,7 @@ async function queryLanguageModel({
     model,
     position,
     prompt,
+    prevCodeContents,
   });
   if (!input) {
     return;
@@ -205,7 +232,7 @@ async function queryLanguageModel({
     const tag = "generate-jupyter-cell";
     track("chatgpt", { project_id, path, tag, type: "generate", model });
 
-    // This is here to make it clear this was generated by GPT.
+    // This is here to make it clear this was generated by a language model.
     // It could also be a comment in the code cell but for that we would need to know how the
     // comment character is in the language.
     const noteCellId = insertCell({
@@ -234,14 +261,17 @@ async function queryLanguageModel({
       id: noteCellId,
       position: "below",
     });
+    if (firstCellId == null) {
+      throw new Error("unable to insert cells");
+    }
     fa.set_mode("escape"); // while tokens come in ...
-    if (firstCellId == null) return; // to make TS happy
+    fa.set_md_cell_not_editing(firstCellId);
 
     let curCellId = firstCellId;
     let curCellPos = 0;
     let numCells = 1;
 
-    const reply = await webapp_client.openai_client.languageModelStream({
+    const stream = await webapp_client.openai_client.languageModelStream({
       input,
       project_id,
       path,
@@ -282,15 +312,17 @@ async function queryLanguageModel({
     );
 
     let answer = "";
-    reply.on("token", (token) => {
+    stream.on("token", (token) => {
       if (token != null) {
         answer += token;
         updateCells(answer);
       } else {
-        fa.switch_code_cell_to_edit(firstCellId);
+        // fa.switch_code_cell_to_edit(firstCellId);
+        whenDone?.();
       }
     });
-    reply.on("error", (err) => {
+
+    stream.on("error", (err) => {
       fa.set_cell_input(
         firstCellId,
         `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
@@ -301,6 +333,8 @@ async function queryLanguageModel({
       fa.set_mode("escape");
       return;
     });
+
+    stream.emit("start");
   } catch (err) {
     alert_message({
       type: "error",
@@ -317,15 +351,15 @@ interface GetInputProps {
   frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
   id: string;
   model: LanguageModel;
-  position: "above" | "below";
+  position: "above" | "below" | "replace";
   prompt: string;
+  prevCodeContents: string;
 }
 
 function getInput({
   actions,
   frameActions,
-  id,
-  position,
+  prevCodeContents,
   prompt,
 }: GetInputProps): {
   input: string;
@@ -343,11 +377,6 @@ function getInput({
   const kernel_info = actions.store.get("kernel_info");
   const lang = kernel_info?.get("language") ?? "python";
   const kernel_name = kernel_info?.get("display_name") ?? "Python 3";
-  const prevCodeContents = getPreviousNonemptyCodeCellContents(
-    frameActions.current,
-    id,
-    position,
-  );
   const prevCode = prevCodeContents
     ? `The previous code cell is\n\n\`\`\`${lang}\n${prevCodeContents}\n\`\`\``
     : "";
@@ -359,7 +388,7 @@ function getInput({
 }
 
 function getPreviousNonemptyCodeCellContents(actions, id, position): string {
-  let delta = position == "below" ? 0 : -1;
+  let delta = position === "below" ? 0 : -1;
   while (true) {
     const prevId = actions.getPreviousCodeCellID(id, delta);
     if (!prevId) return "";

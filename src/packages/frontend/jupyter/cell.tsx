@@ -6,20 +6,22 @@
 /*
 React component that describes a single cella
 */
-
 import { Map } from "immutable";
-import { React, Rendered, useDelayedRender } from "../app-framework";
-import { clear_selection } from "../misc/clear-selection";
+
+import {
+  React,
+  Rendered,
+  useDelayedRender,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Tip } from "@cocalc/frontend/components";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
 import { COLORS } from "@cocalc/util/theme";
-import { INPUT_PROMPT_COLOR } from "./prompt/base";
-import { Icon, Tip } from "../components";
+import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
-
-import { JupyterActions } from "./browser-actions";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
+import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
@@ -148,8 +150,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       return;
     }
     frameActions.current?.set_mode("escape");
-    frameActions.current?.set_cur_id(id);
     frameActions.current?.unselect_all_cells();
+    frameActions.current?.set_cur_id(id);
   }
 
   function double_click(event: any): void {

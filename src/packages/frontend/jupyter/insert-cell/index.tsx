@@ -16,12 +16,12 @@ import { Button, Space, Tooltip } from "antd";
 import { ReactNode, useState } from "react";
 
 import { redux, useFrameContext } from "@cocalc/frontend/app-framework";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import AIAvatar from "../../components/ai-avatar";
 import { JupyterActions } from "../browser-actions";
 import ChatGPTPopover from "./ai-cell-generator";
 import { insertCell, pasteCell } from "./util";
@@ -54,7 +54,7 @@ export function InsertCell({
       .getStore("projects")
       .hasLanguageModelEnabled(project_id, "generate-cell");
   const frameActions = useNotebookFrameActions();
-  const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
+  const [showAICellGen, setShowAICellGen] = useState<boolean>(false);
 
   if (IS_TOUCH && position === "above") {
     // TODO: Inserting cells via hover and click does not make sense
@@ -69,7 +69,7 @@ export function InsertCell({
     e.preventDefault();
     e.stopPropagation();
     if (haveChatGTP && (e.altKey || e.metaKey)) {
-      setShowChatGPT(true);
+      setShowAICellGen(true);
       return;
     }
     const type =
@@ -89,7 +89,7 @@ export function InsertCell({
         pasteCell({ frameActions, actions, id, position });
         break;
       case "chatgpt":
-        setShowChatGPT(true);
+        setShowAICellGen(true);
         break;
       default:
         unreachable(type);
@@ -108,13 +108,13 @@ export function InsertCell({
         ...(position === "below"
           ? ({ marginBottom: `${BTN_HEIGHT}px` } as const)
           : {}),
-        ...(showChatGPT ? { backgroundColor: COLORS.FG_BLUE } : {}),
+        ...(showAICellGen ? { backgroundColor: COLORS.FG_BLUE } : {}),
       }}
-      onClick={showChatGPT ? undefined : handleBarClick}
+      onClick={showAICellGen ? undefined : handleBarClick}
     >
       <ChatGPTPopover
-        setShowChatGPT={setShowChatGPT}
-        showChatGPT={showChatGPT}
+        setShowChatGPT={setShowAICellGen}
+        showChatGPT={showAICellGen}
         actions={actions}
         frameActions={frameActions}
         id={id}
@@ -123,7 +123,7 @@ export function InsertCell({
         <div
           className="cocalc-jupyter-insert-cell-controls"
           style={
-            showChatGPT || position === "below"
+            showAICellGen || position === "below"
               ? {
                   visibility: "visible",
                   opacity: 1,

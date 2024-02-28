@@ -6,13 +6,18 @@
 /*
 React component that describes the input of a cell
 */
+
+import { Button, Tooltip } from "antd";
+import { delay } from "awaiting";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Tooltip } from "antd";
-import { React, Rendered } from "@cocalc/frontend/app-framework";
+
+import { CSS, React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import PasteButton from "@cocalc/frontend/components/paste-button";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
@@ -25,11 +30,10 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
+import { STYLE as CODEMIRROR_STYLE } from "./codemirror-editor";
+import ChatGPTPopover from "./insert-cell/ai-cell-generator";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import { delay } from "awaiting";
-import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -84,6 +88,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
     const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
+    const [showAICellGen, setShowAICellGen] = useState(false);
+
     function render_input_prompt(type: string): Rendered {
       return (
         <HiddenXS>
@@ -137,6 +143,53 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return opt;
     }
 
+    function emptyGenerateClick(e: React.MouseEvent) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (props.chatgpt != null) {
+        setShowAICellGen(true);
+      }
+    }
+
+    function render_empty_cell_prompt(): Rendered {
+      const { actions } = props;
+      if (actions == null) return <></>; // this never happens
+      const color = COLORS.GRAY;
+      const style: CSS = {
+        ...CODEMIRROR_STYLE,
+        color,
+        padding: "10px",
+      } as const;
+      return (
+        <ChatGPTPopover
+          setShowChatGPT={setShowAICellGen}
+          showChatGPT={showAICellGen}
+          actions={actions}
+          frameActions={frameActions}
+          id={props.id}
+          position={"replace"}
+          closeWhenDone={true}
+        >
+          <div style={style}>
+            Click to enter code
+            {props.chatgpt != null ? (
+              <>
+                {" "}
+                or{" "}
+                <a
+                  style={{ color, textDecoration: "underline" }}
+                  onMouseDown={emptyGenerateClick}
+                >
+                  generate using AI
+                </a>
+              </>
+            ) : undefined}
+            .
+          </div>
+        </ChatGPTPopover>
+      );
+    }
+
     function render_codemirror(type: "code" | "markdown" | "raw"): Rendered {
       let value = props.cell.get("input");
       if (typeof value != "string") {
@@ -144,6 +197,15 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
         // and anyways, a user could edit the underlying db file and mess things up.
         value = "";
+      }
+      if (
+        (value === "" &&
+          type === "code" &&
+          !props.is_current &&
+          !props.is_readonly) ||
+        showAICellGen
+      ) {
+        return render_empty_cell_prompt();
       }
       return (
         <CodeMirror

@@ -9,18 +9,18 @@ declare const $: any;
 
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 
-import LRU from "lru-cache";
 import { delay } from "awaiting";
-import { React, useRef, usePrevious } from "../app-framework";
-import * as underscore from "underscore";
+import CodeMirror from "codemirror";
 import { Map as ImmutableMap } from "immutable";
+import LRU from "lru-cache";
+import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
+import * as underscore from "underscore";
+
+import { React, usePrevious, useRef } from "@cocalc/frontend/app-framework";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { COLORS } from "@cocalc/util/theme";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
-import CodeMirror from "codemirror";
-import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
-
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -32,10 +32,10 @@ interface CachedInfo {
 
 const cache = new LRU<string, CachedInfo>({ max: 1000 });
 
-const STYLE: React.CSSProperties = {
+export const STYLE: React.CSSProperties = {
   width: "100%",
   overflow: "hidden",
-  border: "1px solid #cfcfcf",
+  border: `1px solid ${COLORS.GRAY_L}`,
   borderRadius: "5px",
   padding: "5px",
   lineHeight: "1.21429em",
@@ -56,13 +56,13 @@ export interface Actions extends CompleteActions {
   introspect_at_pos: (
     code: string,
     level: 0 | 1,
-    pos: { ch: number; line: number }
+    pos: { ch: number; line: number },
   ) => Promise<void>;
   complete: (
     code: string,
     pos?: { line: number; ch: number } | number,
     id?: string,
-    offset?: any
+    offset?: any,
   ) => Promise<boolean>;
   save: () => Promise<void>;
 }
@@ -198,7 +198,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   // for the whiteboard.  It's only used there, and is a miracle it partly
   // works at all...  I wonder if CodeMirror 6 would be better?
   const [containerHeight, setContainerHeight] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const innerDivRef = useRef<any>();
   useEffect(() => {
@@ -310,7 +310,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           cell_list_div.scrollTop(
             scroll -
               (cell_list_top - cm.current.cursorCoords(true, "window").top) -
-              20
+              20,
           );
         }
       }
@@ -525,7 +525,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           top,
           left,
           gutter,
-        }
+        },
       );
       if (!show_dialog) {
         frameActions.current?.set_mode("edit");
@@ -553,7 +553,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
   function init_codemirror(
     options: ImmutableMap<string, any>,
-    value: string
+    value: string,
   ): void {
     if (cm.current != null) return;
     const node = cm_ref.current;
