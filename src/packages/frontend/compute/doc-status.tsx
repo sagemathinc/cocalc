@@ -24,8 +24,21 @@ import ComputeServer from "./compute-server";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-export function ComputeServerDocStatus({ project_id, id, requestedId }) {
+interface Props {
+  project_id: string;
+  id: number;
+  requestedId: number;
+  noSync?: boolean;
+}
+
+export function ComputeServerDocStatus({
+  project_id,
+  id,
+  requestedId,
+  noSync,
+}: Props) {
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -70,15 +83,45 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
         borderBottom:
           requestedServer != null && !showDetails
             ? "1px solid #ccc"
-            : /*? `1px solid ${requestedServer?.get("color")}` */
-              undefined,
-        height: "23px",
+            : undefined,
       }}
     >
-      {progress == 100 && (
+      <Tooltip
+        mouseEnterDelay={0.9}
+        title={
+          <>
+            {progress == 100 ? "Running on " : "Moving to "}{" "}
+            <Inline id={requestedId} computeServer={requestedServer} />.
+          </>
+        }
+      >
+        <div
+          onClick={() => {
+            setShowDetails(showDetails === true ? false : true);
+          }}
+          style={{
+            height: "23px",
+            cursor: "pointer",
+            padding: "2px 5px",
+            background: requestedServer.get("color"),
+            color: avatar_fontcolor(requestedServer.get("color")),
+            width: "100%",
+            overflow: "hidden",
+            textAlign: "center",
+          }}
+        >
+          {progress < 100 ? `${progress}% - ` : ""}
+          {requestedServer.get("title")} (Id: {requestedId})
+        </div>
+      </Tooltip>
+      {progress == 100 && !noSync && (
         <SyncButton
           disabled={excludeFromSync}
-          style={{ marginTop: "-1px", marginLeft: "1px", marginRight: "5px" }}
+          style={{
+            marginTop: "-1px",
+            marginLeft: "-3px",
+            float: "right",
+          }}
           size="small"
           compute_server_id={id}
           project_id={project_id}
@@ -93,43 +136,6 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
           Sync Files
         </SyncButton>
       )}
-      <Tooltip
-        mouseEnterDelay={0.9}
-        title={
-          <>
-            {progress == 100 ? "Running on " : "Moving to "}{" "}
-            <Inline id={requestedId} computeServer={requestedServer} />.
-          </>
-        }
-      >
-        <div
-          onClick={() => {
-            setShowDetails(showDetails === true ? false : true);
-          }}
-          style={{ display: "flex", flex: 1 }}
-        >
-          <div style={{ marginRight: "5px", flex: 1 }}>
-            <Inline
-              computeServer={requestedServer}
-              colorOnly
-              id={requestedId}
-              style={{
-                borderRadius: "5px",
-                height: "22px",
-                cursor: "pointer",
-                width: `${progress}%`,
-              }}
-              colorLabel={progress < 100 ? `${progress}%` : ""}
-            />
-          </div>
-          <Button
-            size="small"
-            style={{ marginTop: "-1px", marginRight: "1px", color: "#666" }}
-          >
-            <Icon name="servers" /> <Inline prompt id={requestedId} />
-          </Button>
-        </div>
-      </Tooltip>
     </div>
   );
 
@@ -151,7 +157,10 @@ export function ComputeServerDocStatus({ project_id, id, requestedId }) {
   }
 
   return (
-    <div className="smc-vfill" style={{ flex: 100 }}>
+    <div
+      className="smc-vfill"
+      style={{ flex: 100, minHeight: "250px", background: "white" }}
+    >
       <div>{topBar(progress)}</div>
       <div
         className="smc-vfill"
@@ -330,4 +339,3 @@ function getProgress(
 function isRecent(expire = 0) {
   return Date.now() - expire < 60 * 1000;
 }
-
