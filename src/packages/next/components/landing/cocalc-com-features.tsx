@@ -50,7 +50,7 @@ export function CoCalcComFeatures() {
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="Collaborate using your favorite tools"
+        title="Realtime Collaboration Using Your Favorite Tools"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
@@ -207,7 +207,7 @@ export function CoCalcComFeatures() {
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="And much more …"
+        title="Much More …"
         icon="wrench"
         anchor="more"
         style={{ backgroundColor: COLORS.YELL_LLL }}

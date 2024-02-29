@@ -27,11 +27,6 @@ export default function AllNews(props: Props) {
   const { customize } = props;
   const { siteName } = customize;
 
-  // sort by last token (last name) in "name" field
-  const testimonials = sortBy(
-    TESTIMONIALS,
-    (t) => t.name.split(" ").slice(-1)[0],
-  );
 
   function content() {
     return (
@@ -40,7 +35,7 @@ export default function AllNews(props: Props) {
           <Icon name="comments" /> {siteName} Testimonials
         </Title>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          {testimonials.map((testimonial, idx) => (
+          {TESTIMONIALS.map((testimonial, idx) => (
             <TestimonialComponent key={idx} testimonial={testimonial} />
           ))}
         </Space>
