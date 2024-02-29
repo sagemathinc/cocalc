@@ -87,31 +87,18 @@ function SignIn0(props: SignInProps) {
   }
 
   function renderFooter() {
-    if (!minimal) {
-      return;
-    }
-
-    if (showSignUp) {
-      return (
-        <div>
-          New to {siteName}? {
-          signUpAction
-            ? <a onClick={signUpAction}>Sign Up</a>
-            : <A href="/auth/sign-up">Sign Up</A>
-        } {anonymousSignup && (
-          <>
-            or <A href="/auth/try"> try {siteName} without creating an account. </A>
-          </>
-        )}
-        </div>
-      );
-    } else {
-      return (
+    return (!minimal || showSignUp) && (
+      <>
+        New to CoCalc? {signUpAction
+          ? <a onClick={signUpAction}>Sign Up</a>
+          : <A href="/auth/sign-up">Sign Up</A>
+        } {anonymousSignup ? (
         <>
-          You can also <A href="/auth/try"> try {siteName} without creating an account. </A>
+          or <A href="/auth/try"> try {siteName} without creating an account. </A>
         </>
-      );
-    }
+      ) : 'today.'}
+      </>
+    );
   }
 
   function renderError() {
