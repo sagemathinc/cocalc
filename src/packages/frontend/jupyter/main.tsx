@@ -66,6 +66,7 @@ interface Props {
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
   is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
+  is_visible?: boolean;
   mode: NotebookMode;
   font_size?: number;
 
@@ -87,6 +88,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     is_focused,
     is_fullscreen,
+    is_visible,
     font_size,
     mode,
     cur_id,
@@ -275,6 +277,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         font_size={font_size}
         hook_offset={hook_offset}
         is_focused={is_focused}
+        is_visible={is_visible}
         md_edit_ids={md_edit_ids}
         mode={mode}
         more_output={more_output}

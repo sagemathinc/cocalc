@@ -35,6 +35,7 @@ export interface InsertCellProps {
   id: string;
   position: "above" | "below";
   chatgpt?;
+  hide?: boolean;
 }
 
 export interface InsertCellState {
@@ -46,6 +47,7 @@ export function InsertCell({
   chatgpt,
   actions,
   id,
+  hide,
 }: InsertCellProps) {
   const { project_id } = useFrameContext();
   const haveChatGTP =
@@ -114,7 +116,7 @@ export function InsertCell({
     >
       <ChatGPTPopover
         setShowChatGPT={setShowChatGPT}
-        showChatGPT={showChatGPT}
+        showChatGPT={!hide && showChatGPT}
         actions={actions}
         frameActions={frameActions}
         id={id}
