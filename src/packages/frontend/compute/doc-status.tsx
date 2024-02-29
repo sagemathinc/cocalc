@@ -104,22 +104,22 @@ export function ComputeServerDocStatus({
             height: "23px",
             cursor: "pointer",
             padding: "2px 5px",
-            background: requestedServer.get("color"),
-            color: avatar_fontcolor(requestedServer.get("color")),
+            background: requestedServer?.get("color") ?? "#fff",
+            color: avatar_fontcolor(requestedServer?.get("color") ?? "#fff"),
             width: "100%",
             overflow: "hidden",
             textAlign: "center",
           }}
         >
           {progress < 100 ? `${progress}% - ` : ""}
-          {requestedServer.get("title")} (Id: {requestedId})
+          {requestedServer?.get("title") ?? "Loading..."} (Id: {requestedId})
           <DisplayImage
             style={{
               marginLeft: "10px",
               borderLeft: "1px solid black",
               paddingLeft: "10px",
             }}
-            configuration={requestedServer.get("configuration")?.toJS()}
+            configuration={requestedServer?.get("configuration")?.toJS()}
           />
         </div>
       </Tooltip>
