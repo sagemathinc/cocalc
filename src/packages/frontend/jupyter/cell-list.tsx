@@ -86,6 +86,7 @@ interface CellListProps {
   font_size: number;
   hook_offset?: number;
   is_focused?: boolean;
+  is_visible?: boolean;
   md_edit_ids?: immutable.Set<string>;
   mode: NotebookMode;
   more_output?: immutable.Map<string, any>;
@@ -114,6 +115,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     font_size,
     hook_offset,
     is_focused,
+    is_visible,
     md_edit_ids,
     mode,
     more_output,
@@ -425,6 +427,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (actions == null) return null;
     return (
       <InsertCell
+        hide={!is_visible}
         id={id}
         chatgpt={chatgpt}
         key={id + "insert" + position}
