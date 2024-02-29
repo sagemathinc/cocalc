@@ -30,7 +30,6 @@ import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
-import { InsertCell } from "./insert-cell";
 import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 
 import {
@@ -420,29 +419,19 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }
 
-  function render_insert_cell(
-    id: string,
-    position: "above" | "below" = "above",
-  ): JSX.Element | null {
-    if (actions == null) return null;
-    return (
-      <InsertCell
-        hide={!is_visible}
-        id={id}
-        chatgpt={chatgpt}
-        key={id + "insert" + position}
-        position={position}
-        actions={actions}
-      />
-    );
-  }
-
-  function render_cell(
-    id: string,
-    isScrolling?: boolean,
-    index?: number,
-    delayRendering?: number,
-  ) {
+  function render_cell({
+    id,
+    isScrolling,
+    index,
+    delayRendering, // seems not used anywhere!
+    isLast,
+  }: {
+    id: string;
+    isScrolling?: boolean;
+    index?: number;
+    delayRendering?: number;
+    isLast?: boolean;
+  }) {
     const cell = cells.get(id);
     if (cell == null) return null;
     if (index == null) {
@@ -482,6 +471,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           directory={directory}
           complete={complete}
           is_focused={is_focused}
+          is_visible={is_visible}
           more_output={more_output?.get(id)}
           cell_toolbar={cell_toolbar}
           trust={trust}
@@ -489,6 +479,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           delayRendering={delayRendering}
           chatgpt={chatgpt}
           computeServerId={computeServerId}
+          isLast={isLast}
         />
       </div>
     );
@@ -657,17 +648,24 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             }
             const id = cell_list.get(index - EXTRA_TOP_CELLS);
             if (id == null) return null;
-            const is_last: boolean = id === cell_list.get(-1);
+            const isLast: boolean = id === cell_list.get(-1);
             const h = virtuosoHeightsRef.current[index];
             if (actions == null) {
-              return render_cell(id, false, index - EXTRA_TOP_CELLS);
+              return render_cell({
+                id,
+                isScrolling: false,
+                index: index - EXTRA_TOP_CELLS,
+              });
             }
             return (
               <SortableItem id={id} key={id}>
                 <DivTempHeight height={h ? `${h}px` : undefined}>
-                  {render_insert_cell(id, "above")}
-                  {render_cell(id, false, index - EXTRA_TOP_CELLS)}
-                  {is_last ? render_insert_cell(id, "below") : undefined}
+                  {render_cell({
+                    id,
+                    isScrolling: false,
+                    index: index - EXTRA_TOP_CELLS,
+                    isLast,
+                  })}
                 </DivTempHeight>
               </SortableItem>
             );
@@ -686,20 +684,14 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     const v: (JSX.Element | null)[] = [];
     let index: number = 0;
     cell_list.forEach((id: string) => {
+      const isLast = id === cell_list.get(-1);
       v.push(
         <SortableItem id={id} key={id}>
-          {actions != null && render_insert_cell(id)}
-          {render_cell(id, false, index, index)}
+          {render_cell({ id, isScrolling: false, index, isLast })}
         </SortableItem>,
       );
       index += 1;
     });
-    if (actions != null && v.length > 0) {
-      const id = cell_list.get(cell_list.size - 1);
-      if (id != null) {
-        v.push(render_insert_cell(id, "below"));
-      }
-    }
     v.push(BOTTOM_PADDING_CELL);
 
     body = (
@@ -738,8 +730,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               fontSize: `${font_size}px`,
             }}
           >
-            {render_insert_cell(id, "above")}
-            {render_cell(id)}
+            {render_cell({ id })}
           </div>
         )}
         onDragStart={(id) => {

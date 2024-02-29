@@ -15,6 +15,7 @@ import { INPUT_PROMPT_COLOR } from "./prompt/base";
 import { Icon, Tip } from "../components";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
+import { InsertCell } from "./insert-cell";
 
 import { JupyterActions } from "./browser-actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
@@ -46,6 +47,8 @@ interface Props {
   delayRendering?: number;
   chatgpt?;
   computeServerId?: number;
+  is_visible?: boolean;
+  isLast?: boolean;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -61,6 +64,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.mode !== props.mode ||
     nextProps.font_size !== props.font_size ||
     nextProps.is_focused !== props.is_focused ||
+    nextProps.is_visible !== props.is_visible ||
     nextProps.more_output !== props.more_output ||
     nextProps.cell_toolbar !== props.cell_toolbar ||
     nextProps.trust !== props.trust ||
@@ -292,6 +296,22 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     style.background = "#e3f2fd";
   }
 
+  function render_insert_cell(
+    position: "above" | "below" = "above",
+  ): JSX.Element | null {
+    if (props.actions == null) return null;
+    return (
+      <InsertCell
+        hide={!props.is_visible}
+        id={id}
+        chatgpt={props.chatgpt}
+        key={id + "insert" + position}
+        position={position}
+        actions={props.actions}
+      />
+    );
+  }
+
   // Note that the cell id is used for scroll functionality, so *is* important.
   return (
     <div
@@ -301,9 +321,11 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       id={id}
       cocalc-test={"jupyter-cell"}
     >
+      {render_insert_cell("above")}
       {render_metadata_state()}
       {render_cell_input(props.cell)}
       {render_cell_output(props.cell)}
+      {props.isLast ? render_insert_cell("below") : undefined}
     </div>
   );
 }, areEqual);
