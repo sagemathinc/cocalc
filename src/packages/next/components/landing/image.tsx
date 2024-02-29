@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import NextImage from "next/legacy/image";
+import NextImage from "next/image";
 import { join } from "path";
 import { CSSProperties } from "react";
 
@@ -50,50 +50,35 @@ export default function Image(props: Props) {
     // Here's the issue: https://github.com/vercel/next.js/issues/22244
     src.src = join(basePath, src.src);
   }
-  if (process.env.NODE_ENV == "development") {
-    // The NextImage stuff just totally stopped working
-    // in dev mode recently.  No idea why. So we don't use
-    // it except in production.  See
-    //   https://github.com/sagemathinc/cocalc/issues/7064
-    return (
-      <img
-        src={src.src}
-        height={height}
-        width={width}
-        alt={alt}
-        style={{ ...style, maxWidth: "100%" }}
-      />
-    );
-  }
+
   if (height != null && width != null) {
     return (
       <NextImage
-        src={src}
+        src={src.src}
         alt={alt}
         height={height}
         width={width}
         priority={priority}
       />
     );
-  } else {
-    return (
-      <div
-        style={{
-          width: "100%",
-          ...style,
-          display: "inline-block",
-        }}
-      >
-        <div style={{ position: "relative", width: "100%" }}>
-          <NextImage
-            src={src}
-            alt={alt}
-            layout="responsive"
-            width={width}
-            priority={priority}
-          />
-        </div>
-      </div>
-    );
   }
+  return (
+    <div
+      style={{
+        width: "100%",
+        ...style,
+        display: "inline-block",
+      }}
+    >
+      <div style={{ position: "relative", width: "100%" }}>
+        <img
+          src={src.src}
+          height={height}
+          width={width}
+          alt={alt}
+          style={{ ...style, maxWidth: "100%" }}
+        />
+      </div>
+    </div>
+  );
 }
