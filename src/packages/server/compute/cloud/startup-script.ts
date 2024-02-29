@@ -174,7 +174,7 @@ function userSsh() {
 if ! grep -q "Match User user" /etc/ssh/sshd_config; then
    {
       echo "Match User user"
-      echo '   ForceCommand [[ -z "\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \${SSH_ORIGINAL_COMMAND}'
+      echo '   ForceCommand [[ -z "\\\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \\\${SSH_ORIGINAL_COMMAND}'
    } >> /etc/ssh/sshd_config
    service ssh restart
 fi
