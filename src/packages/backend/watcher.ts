@@ -14,92 +14,62 @@ is an event emitter with events:
 
 and a method .close().
 
-The ctime might be undefined, in case it can't be determined.
-
-If debounce is given, only fires after the file
-definitely has not had its ctime changed
-for at least debounce ms.  Does NOT fire when
-the file first has ctime changed.
+Only fires after the file definitely has not had its
+ctime changed for at least debounce ms (this is the atomic
+option to chokidar).  Does NOT fire when the file first
+has ctime changed.
 */
 
 import { EventEmitter } from "node:events";
-import { stat, unwatchFile, watchFile } from "node:fs";
+import { watch, FSWatcher } from "chokidar";
 import { getLogger } from "./logger";
+import { debounce as lodashDebounce } from "lodash";
 
 const L = getLogger("watcher");
 
 export class Watcher extends EventEmitter {
   private path: string;
   private interval: number;
-  private debounce: number;
-  private _waiting_for_stable?: boolean;
+  private watcher: FSWatcher;
 
-  constructor(path, interval, debounce) {
+  constructor(path: string, interval: number=300, debounce: number=0) {
     super();
-    this.close = this.close.bind(this);
-    this._listen = this._listen.bind(this);
-    this._emit_when_stable = this._emit_when_stable.bind(this);
     this.path = path;
     this.interval = interval;
-    this.debounce = debounce;
 
     L.debug(`${path}: interval=${interval}, debounce=${debounce}`);
-    watchFile(
-      this.path,
-      { interval: this.interval, persistent: false },
-      this._listen
-    );
-  }
-
-  close() {
-    this.removeAllListeners();
-    unwatchFile(this.path, this._listen);
-  }
-
-  _listen(curr, _prev): void {
-    if (curr.dev === 0) {
+    this.watcher = watch(this.path, {
+      interval: this.interval, // only effective if we end up forced to use polling
+      persistent: false,
+      alwaysStat: true,
+      atomic: true,
+    });
+    this.watcher.on("unlink", () => {
       this.emit("delete");
-      return;
-    }
-    if (this.debounce) {
-      this._emit_when_stable(true);
-    } else {
-      stat(this.path, (err, stats) => {
-        if (!err) {
-          this.emit("change", stats.ctime);
-        }
-      });
-    }
-  }
+    });
+    this.watcher.on("unlinkDir", () => {
+      this.emit("delete");
+    });
 
-  _emit_when_stable(first): void {
-    /*
-    @_emit_when_stable gets called
-    periodically until the last ctime of the file
-    is at least @debounce ms in the past, or there
-    is an error.
-    */
-    if (first && this._waiting_for_stable) {
-      return;
-    }
-    this._waiting_for_stable = true;
-    stat(this.path, (err, stats) => {
-      if (err) {
-        // maybe file deleted; give up.
-        delete this._waiting_for_stable;
+    const emitChange = lodashDebounce(
+      (ctime) => this.emit("change", ctime),
+      debounce,
+    );
+    this.watcher.on("error", (err) => {
+      L.debug("WATCHER error -- ", err);
+    });
+
+    this.watcher.on("change", (_, stats) => {
+      if (stats == null) {
+        L.debug("WATCHER change with no stats (shouldn't happen)", { path });
         return;
       }
-      const elapsed = Date.now() - stats.ctime.getTime();
-      if (elapsed < this.debounce) {
-        // File keeps changing - try again soon
-        setTimeout(
-          () => this._emit_when_stable(false),
-          Math.max(500, this.debounce - elapsed + 100)
-        );
-      } else {
-        delete this._waiting_for_stable;
-        this.emit("change", stats.ctime);
-      }
+      emitChange(stats.ctime);
     });
   }
+
+  close = async () => {
+    this.removeAllListeners();
+    await this.watcher.close();
+  };
 }
