@@ -48,6 +48,7 @@ import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
+import AutoRestart from "./auto-restart";
 import generateVouchers from "@cocalc/util/vouchers";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
@@ -410,6 +411,17 @@ export default function GoogleCloudConfiguration({
       ),
     },
     {
+      key: "auto-restart",
+      label: <></>,
+      value: (
+        <AutoRestart
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
       key: "admin",
       label: <></>,
       value: <Admin id={id} configuration={configuration} loading={loading} />,
@@ -728,9 +740,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         <b>will automatically stop when there is a surge in demand.</b>
         They might also not be available in a given region, so you may have to
         try different regions.{" "}
-        {configuration.acceleratorType && (
-          <> Spot GPU's are in high demand.</>
-        )}
+        {configuration.acceleratorType && <> Spot GPU's are in high demand.</>}
       </div>
     </div>
   );

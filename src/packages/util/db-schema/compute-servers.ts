@@ -438,6 +438,10 @@ interface BaseConfiguration {
   ephemeral?: boolean;
   // Token used for authentication at https://compute-server...
   authToken?: string;
+  // If this compute server stops pinging us, e.g., due to being preempted or
+  // just crashing due to out of memory (etc) should we automatically do a
+  // forced restart.  Note that currently for on prem this isn't possible.
+  autoRestart?: boolean;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {
