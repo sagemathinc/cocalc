@@ -8,7 +8,7 @@
 declare const $: any;
 
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
-
+import { Button } from "antd";
 import LRU from "lru-cache";
 import { delay } from "awaiting";
 import { React, useRef, usePrevious } from "../app-framework";
@@ -17,7 +17,13 @@ import { Map as ImmutableMap } from "immutable";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
-import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
+import {
+  CSSProperties,
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
@@ -80,6 +86,7 @@ interface CodeMirrorEditorProps {
   set_last_cursor?: Function; // TODO: type
   last_cursor?: any;
   is_focused?: boolean;
+  is_current?: boolean;
   is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
   style?: CSSProperties;
@@ -107,6 +114,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   set_last_cursor,
   last_cursor,
   is_focused,
+  is_current,
   is_scrolling,
   complete,
   style,
@@ -127,11 +135,12 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const cm_is_focused = useRef<boolean>(false);
   const vim_mode = useRef<boolean>(false);
   const cm_ref = React.createRef<HTMLTextAreaElement>();
-
+  const [cmValue, setCmValue] = useState<string>(value);
+  const handleChange = useCallback(() => {
+    setCmValue(cm.current?.getValue());
+  }, []);
   const key = useRef<string | null>(null);
-
   const prev_options = usePrevious(options);
-
   const frameActions = useNotebookFrameActions();
 
   useEffect(() => {
@@ -238,6 +247,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       cm.current.save = null;
       if (cm_change.current != null) {
         cm.current.off("change", cm_change.current);
+        cm.current.off("change", handleChange);
         cm.current.off("focus", cm_focus);
         cm.current.off("blur", cm_blur);
         cm_change.current = null;
@@ -642,6 +652,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
     cm_change.current = underscore.debounce(cm_save, SAVE_DEBOUNCE_MS);
     cm.current.on("change", cm_change.current);
+    cm.current.on("change", handleChange);
     cm.current.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
@@ -711,12 +722,41 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
   }
 
+  function renderPlaceholder() {
+    if (!is_current || cmValue) {
+      return;
+    }
+    return (
+      <div style={{ position: "relative" }}>
+        <div
+          style={{
+            position: "absolute",
+            color: "#bfbfbf",
+            zIndex: 1,
+            left: "10px",
+            top: setShowChatGPT == null ? "7.5px" : "2.5px",
+          }}
+          onClick={focus_cm}
+        >
+          Enter code{setShowChatGPT == null ? "..." : " or "}
+          {setShowChatGPT != null && (
+            <Button
+              type="link"
+              style={{ marginLeft: "-15px", opacity: 0.7 }}
+              onClick={() => setShowChatGPT?.(true)}
+            >
+              generate using AI...
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: "100%", overflow: "hidden" }}>
+      {renderPlaceholder()}
       {render_cursors()}
-      {is_focused && !value && setShowChatGPT != null && (
-        <div onClick={() => setShowChatGPT?.(true)}>Generate</div>
-      )}
       <div
         ref={innerDivRef}
         style={{ ...STYLE, height: containerHeight, ...style }}

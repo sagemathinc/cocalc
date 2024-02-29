@@ -294,7 +294,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     // The bigger top margin when in fully read only mode (no props.actions, e.g., timetravel view)
     // is to deal with the fact that the insert cell bar isn't rendered, but some of the controls off
     // to the right assume it is.
-    margin: props.actions != null ? "2px 15px 2px 5px" : "20px 15px 2px 5px",
+    margin: props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
     position: "relative",
   };
 

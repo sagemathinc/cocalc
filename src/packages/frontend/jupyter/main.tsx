@@ -17,7 +17,6 @@ import {
   useRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
 import { Button, Tooltip } from "antd";
@@ -289,7 +288,13 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        chatgpt={chatgpt}
+        chatgpt={
+          redux
+            .getStore("projects")
+            .hasLanguageModelEnabled(project_id, "generate-cell")
+            ? chatgpt
+            : undefined
+        }
         computeServerId={computeServerId}
       />
     );

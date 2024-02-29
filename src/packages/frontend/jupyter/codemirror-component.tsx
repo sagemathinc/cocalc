@@ -26,6 +26,7 @@ interface CodeMirrorProps {
   value: string;
   font_size?: number; // not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
   is_focused: boolean;
+  is_current: boolean;
   cursors?: ImmutableMap<any, any>;
   complete?: ImmutableMap<any, any>;
   is_scrolling?: boolean;
@@ -42,6 +43,7 @@ function should_memoize(prev, next) {
     "value",
     "font_size",
     "is_focused",
+    "is_current",
     "is_scrolling",
     "cursors",
     "complete",
@@ -57,6 +59,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       value,
       font_size,
       is_focused,
+      is_current,
       cursors,
       complete,
       is_scrolling,
@@ -107,6 +110,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
           set_last_cursor={set_last_cursor}
           last_cursor={last_cursor}
           is_focused={is_focused}
+          is_current={is_current}
           is_scrolling={is_scrolling}
           complete={complete}
           registerEditor={registerEditor}

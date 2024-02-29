@@ -155,6 +155,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           actions={props.actions}
           id={props.cell.get("id")}
           is_focused={props.is_focused}
+          is_current={props.is_current}
           font_size={props.font_size}
           cursors={props.cell.get("cursors")}
           is_scrolling={props.is_scrolling}
@@ -167,7 +168,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
-          setShowChatGPT={props.setShowChatGPT}
+          setShowChatGPT={props.chatgpt ? props.setShowChatGPT : undefined}
         />
       );
     }
