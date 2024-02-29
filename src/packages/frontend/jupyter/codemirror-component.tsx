@@ -32,6 +32,7 @@ interface CodeMirrorProps {
   registerEditor?;
   unregisterEditor?;
   getValueRef?;
+  setShowChatGPT?;
 }
 
 function should_memoize(prev, next) {
@@ -62,6 +63,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       registerEditor,
       unregisterEditor,
       getValueRef,
+      setShowChatGPT,
     } = props;
 
     const is_mounted = useIsMountedRef();
@@ -110,6 +112,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
           registerEditor={registerEditor}
           unregisterEditor={unregisterEditor}
           getValueRef={getValueRef}
+          setShowChatGPT={setShowChatGPT}
         />
       );
     } else {
@@ -125,5 +128,5 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       );
     }
   },
-  should_memoize
+  should_memoize,
 );

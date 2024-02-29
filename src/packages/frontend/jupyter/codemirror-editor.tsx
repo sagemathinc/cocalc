@@ -56,13 +56,13 @@ export interface Actions extends CompleteActions {
   introspect_at_pos: (
     code: string,
     level: 0 | 1,
-    pos: { ch: number; line: number }
+    pos: { ch: number; line: number },
   ) => Promise<void>;
   complete: (
     code: string,
     pos?: { line: number; ch: number } | number,
     id?: string,
-    offset?: any
+    offset?: any,
   ) => Promise<boolean>;
   save: () => Promise<void>;
 }
@@ -92,6 +92,7 @@ interface CodeMirrorEditorProps {
   refresh?: any; // if this changes, then cm.refresh() is called.
   getValueRef?: MutableRefObject<() => string>;
   canvasScale?: number;
+  setShowChatGPT?: (show: boolean) => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -118,6 +119,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   refresh,
   getValueRef,
   canvasScale,
+  setShowChatGPT,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -198,7 +200,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   // for the whiteboard.  It's only used there, and is a miracle it partly
   // works at all...  I wonder if CodeMirror 6 would be better?
   const [containerHeight, setContainerHeight] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const innerDivRef = useRef<any>();
   useEffect(() => {
@@ -310,7 +312,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           cell_list_div.scrollTop(
             scroll -
               (cell_list_top - cm.current.cursorCoords(true, "window").top) -
-              20
+              20,
           );
         }
       }
@@ -525,7 +527,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           top,
           left,
           gutter,
-        }
+        },
       );
       if (!show_dialog) {
         frameActions.current?.set_mode("edit");
@@ -553,7 +555,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
   function init_codemirror(
     options: ImmutableMap<string, any>,
-    value: string
+    value: string,
   ): void {
     if (cm.current != null) return;
     const node = cm_ref.current;
@@ -712,6 +714,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   return (
     <div style={{ width: "100%", overflow: "hidden" }}>
       {render_cursors()}
+      {is_focused && !value && setShowChatGPT != null && (
+        <div onClick={() => setShowChatGPT?.(true)}>Generate</div>
+      )}
       <div
         ref={innerDivRef}
         style={{ ...STYLE, height: containerHeight, ...style }}

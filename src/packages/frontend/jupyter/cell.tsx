@@ -16,10 +16,10 @@ import { Icon, Tip } from "../components";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
 import { InsertCell } from "./insert-cell";
-
+import { useState } from "react";
 import { JupyterActions } from "./browser-actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 
 interface Props {
@@ -48,6 +48,7 @@ interface Props {
   chatgpt?;
   computeServerId?: number;
   is_visible?: boolean;
+  isFirst?: boolean;
   isLast?: boolean;
 }
 
@@ -70,6 +71,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.trust !== props.trust ||
     nextProps.is_scrolling !== props.is_scrolling ||
     nextProps.height !== props.height ||
+    nextProps.isFirst !== props.isFirst ||
+    nextProps.isLast !== props.isLast ||
     nextProps.computeServerId !== props.computeServerId ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current))
@@ -77,6 +80,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
+  const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
+  const [showChatGPTFirst, setShowChatGPTFirst] = useState<boolean>(false);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   const render = useDelayedRender(props.delayRendering ?? 0);
@@ -118,6 +123,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         is_scrolling={props.is_scrolling}
         chatgpt={props.chatgpt}
         computeServerId={props.computeServerId}
+        setShowChatGPT={setShowChatGPT}
       />
     );
   }
@@ -299,7 +305,9 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   function render_insert_cell(
     position: "above" | "below" = "above",
   ): JSX.Element | null {
-    if (props.actions == null) return null;
+    if (props.actions == null || IS_TOUCH) {
+      return null;
+    }
     return (
       <InsertCell
         hide={!props.is_visible}
@@ -308,6 +316,11 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         key={id + "insert" + position}
         position={position}
         actions={props.actions}
+        showChatGPT={position == "above" ? showChatGPTFirst : showChatGPT}
+        setShowChatGPT={
+          position == "above" ? setShowChatGPTFirst : setShowChatGPT
+        }
+        alwaysShow={position == "below" && props.isLast}
       />
     );
   }
@@ -321,11 +334,11 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       id={id}
       cocalc-test={"jupyter-cell"}
     >
-      {render_insert_cell("above")}
+      {props.isFirst ? render_insert_cell("above") : undefined}
       {render_metadata_state()}
       {render_cell_input(props.cell)}
       {render_cell_output(props.cell)}
-      {props.isLast ? render_insert_cell("below") : undefined}
+      {render_insert_cell("below")}
     </div>
   );
 }, areEqual);

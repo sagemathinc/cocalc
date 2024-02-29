@@ -78,6 +78,7 @@ export interface CellInputProps {
   index: number;
   chatgpt?;
   computeServerId?: number;
+  setShowChatGPT?;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -166,6 +167,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
+          setShowChatGPT={props.setShowChatGPT}
         />
       );
     }

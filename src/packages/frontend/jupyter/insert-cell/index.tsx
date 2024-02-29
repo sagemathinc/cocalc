@@ -13,11 +13,9 @@ which is confusing.
 */
 
 import { Button, Space, Tooltip } from "antd";
-import { ReactNode, useState } from "react";
-
+import { ReactNode } from "react";
 import { redux, useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -36,6 +34,9 @@ export interface InsertCellProps {
   position: "above" | "below";
   chatgpt?;
   hide?: boolean;
+  showChatGPT;
+  setShowChatGPT;
+  alwaysShow?: boolean;
 }
 
 export interface InsertCellState {
@@ -48,6 +49,9 @@ export function InsertCell({
   actions,
   id,
   hide,
+  showChatGPT,
+  setShowChatGPT,
+  alwaysShow,
 }: InsertCellProps) {
   const { project_id } = useFrameContext();
   const haveChatGTP =
@@ -56,16 +60,6 @@ export function InsertCell({
       .getStore("projects")
       .hasLanguageModelEnabled(project_id, "generate-cell");
   const frameActions = useNotebookFrameActions();
-  const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
-
-  if (IS_TOUCH && position === "above") {
-    // TODO: Inserting cells via hover and click does not make sense
-    // for a touch device, since no notion of hover, and is just confusing and results
-    // in many false inserts.
-    // Exception: last bottom insert bar, because it is always visible; it appears
-    // because for it position == 'below'.
-    return <div style={{ height: "6px" }}></div>;
-  }
 
   function handleBarClick(e) {
     e.preventDefault();
@@ -99,7 +93,7 @@ export function InsertCell({
   }
 
   const classNames = ["cocalc-jupyter-insert-cell"];
-  if (position === "below") {
+  if (alwaysShow) {
     classNames.push("cocalc-jupyter-insert-cell-below");
   }
 
@@ -107,9 +101,7 @@ export function InsertCell({
     <div
       className={classNames.join(" ")}
       style={{
-        ...(position === "below"
-          ? ({ marginBottom: `${BTN_HEIGHT}px` } as const)
-          : {}),
+        ...(alwaysShow ? ({ marginBottom: `${BTN_HEIGHT}px` } as const) : {}),
         ...(showChatGPT ? { backgroundColor: COLORS.FG_BLUE } : {}),
       }}
       onClick={showChatGPT ? undefined : handleBarClick}
@@ -125,7 +117,7 @@ export function InsertCell({
         <div
           className="cocalc-jupyter-insert-cell-controls"
           style={
-            showChatGPT || position === "below"
+            showChatGPT || alwaysShow
               ? {
                   visibility: "visible",
                   opacity: 1,

@@ -424,12 +424,14 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     isScrolling,
     index,
     delayRendering, // seems not used anywhere!
+    isFirst,
     isLast,
   }: {
     id: string;
     isScrolling?: boolean;
     index?: number;
     delayRendering?: number;
+    isFirst?: boolean;
     isLast?: boolean;
   }) {
     const cell = cells.get(id);
@@ -479,6 +481,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           delayRendering={delayRendering}
           chatgpt={chatgpt}
           computeServerId={computeServerId}
+          isFirst={isFirst}
           isLast={isLast}
         />
       </div>
@@ -648,7 +651,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             }
             const id = cell_list.get(index - EXTRA_TOP_CELLS);
             if (id == null) return null;
-            const isLast: boolean = id === cell_list.get(-1);
             const h = virtuosoHeightsRef.current[index];
             if (actions == null) {
               return render_cell({
@@ -664,7 +666,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
                     id,
                     isScrolling: false,
                     index: index - EXTRA_TOP_CELLS,
-                    isLast,
+                    isFirst: id === cell_list.get(0),
+                    isLast: id === cell_list.get(-1),
                   })}
                 </DivTempHeight>
               </SortableItem>
@@ -683,13 +686,20 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     // non-windowed mode, which we will always support as an option.
     const v: (JSX.Element | null)[] = [];
     let index: number = 0;
+    let isFirst = true;
     cell_list.forEach((id: string) => {
-      const isLast = id === cell_list.get(-1);
       v.push(
         <SortableItem id={id} key={id}>
-          {render_cell({ id, isScrolling: false, index, isLast })}
+          {render_cell({
+            id,
+            isScrolling: false,
+            index,
+            isFirst,
+            isLast: cell_list.get(-1) == id,
+          })}
         </SortableItem>,
       );
+      isFirst = false;
       index += 1;
     });
     v.push(BOTTOM_PADDING_CELL);
