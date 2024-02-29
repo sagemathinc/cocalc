@@ -185,22 +185,36 @@ async function doDeprovision(server: ComputeServer) {
 export const state: (opts: {
   account_id: string;
   id: number;
-}) => Promise<State> = reuseInFlight(async ({ account_id, id }) => {
-  //const now = Date.now();
-  //   const last = lastCalled[id];
-  //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
-  //     return last.state;
-  //   }
-  const server = await getServer({ account_id, id });
-  const state = await getCloudServerState(server);
-  doPurchaseUpdate({ server, state });
-  if (state == "deprovisioned") {
-    // don't need it anymore.
-    await deleteProjectApiKey({ account_id, server });
-  }
-  //lastCalled[id] = { time: now, state };
-  return state;
-});
+
+  // maintenance = true -- means we are getting this state as part of
+  // a maintenance loop, NOT as part of a user or api initiated action.
+  // An impact of this is that auto restart could be triggered.
+  maintenance?: boolean;
+}) => Promise<State> = reuseInFlight(
+  async ({ account_id, id, maintenance }) => {
+    //const now = Date.now();
+    //   const last = lastCalled[id];
+    //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
+    //     return last.state;
+    //   }
+    const server = await getServer({ account_id, id });
+    const state = await getCloudServerState(server);
+    doPurchaseUpdate({ server, state });
+    if (state == "deprovisioned") {
+      // don't need it anymore.
+      await deleteProjectApiKey({ account_id, server });
+    } else if (
+      maintenance &&
+      server.configuration?.autoRestart &&
+      state == "off"
+    ) {
+      // compute server got killed so launch the compute server running again.
+      start({ account_id, id });
+    }
+    //lastCalled[id] = { time: now, state };
+    return state;
+  },
+);
 
 async function getCloudServerState(server: ComputeServer): Promise<State> {
   try {
