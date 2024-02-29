@@ -19,10 +19,11 @@ export const SUPPORTED_CHANGES = [
   "acceleratorCount",
   "test",
   "excludeFromSync",
-  "authToken"
+  "authToken",
+  "autoRestart",
 ];
 
-export const RUNNING_CHANGES = ["ephemeral", "diskSizeGb"];
+export const RUNNING_CHANGES = ["ephemeral", "diskSizeGb", "autoRestart"];
 
 export async function makeConfigurationChange({
   id,
