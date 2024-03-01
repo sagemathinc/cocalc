@@ -292,6 +292,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (!noSave) {
       await this.save();
     }
+    if (this.is_closed()) {
+      return;
+    }
 
     if (this.syncdb != null) {
       this.syncdb.close();
