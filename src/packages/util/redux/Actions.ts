@@ -39,9 +39,13 @@ export class Actions<T> {
   };
 
   destroy = (): void => {
-    if (this.name == null || this.redux == null) {
-      // no need to destroy actions because this.name  or this.redux is not defined -- must have already been destroyed
-      return;
+    if (this.name == null) {
+      throw Error("unable to destroy actions because this.name is not defined");
+    }
+    if (this.redux == null) {
+      throw Error(
+        `unable to destroy actions '${this.name}' since this.redux is not defined`,
+      );
     }
     // On the share server this.redux can be undefined at this point.
     this.redux.removeActions(this.name);
