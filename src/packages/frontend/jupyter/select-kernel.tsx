@@ -451,14 +451,23 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       );
     }
 
-    function render_close_button(): Rendered | undefined {
+    function renderCloseButton(): Rendered | undefined {
       if (kernel == null || kernel_info == null) return;
       return (
         <Button
-          style={{ float: "right", marginTop: "10px" }}
+          style={{ marginRight: "5px" }}
           onClick={() => actions.hide_select_kernel()}
         >
           Close
+        </Button>
+      );
+    }
+
+    function renderRefreshButton(): Rendered | undefined {
+      if (kernel == null || kernel_info == null) return;
+      return (
+        <Button onClick={() => actions.fetch_jupyter_kernels()}>
+          <Icon name="refresh" /> Refresh
         </Button>
       );
     }
@@ -484,12 +493,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_head(): Rendered {
       return (
-        <Row justify="space-between">
-          <Col flex={1}>
-            <h3>Select a Kernel</h3>
-          </Col>
-          <Col flex={"auto"}>{render_close_button()}</Col>
-        </Row>
+        <div>
+          <div style={{ float: "right" }}>
+            {renderCloseButton()}
+            {renderRefreshButton()}
+          </div>
+          <h3>Select a Kernel</h3>
+        </div>
       );
     }
 
@@ -506,7 +516,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     if (IS_MOBILE) {
       /*
 NOTE: I tried viewing this on mobile and it is so HORRIBLE!
-Something about the CSS and Typography componnets are just truly
+Something about the CSS and Typography components are just truly
 a horrific disaster.  This one component though is maybe usable.
 */
       return (
@@ -517,7 +527,10 @@ a horrific disaster.  This one component though is maybe usable.
           }}
           className={"smc-vfill"}
         >
-          {render_close_button()}
+          <div style={{ float: "right" }}>
+            {renderCloseButton()}
+            {renderRefreshButton()}
+          </div>
           {render_select_all()}
         </div>
       );
