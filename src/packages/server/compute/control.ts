@@ -753,3 +753,15 @@ export async function setImageTested(opts: {
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }
 }
+
+export async function getSerialPortOutput({ account_id, id }): Promise<string> {
+  const server = await getServer({ account_id, id });
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.getSerialPortOutput(server);
+    default:
+      throw Error(
+        `serial port output not implemented on cloud '${server.cloud}'`,
+      );
+  }
+}
