@@ -22,6 +22,7 @@ import {
   MutableRefObject,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -204,6 +205,31 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       $(cm.current.getWrapperElement()).css({ paddingBottom: 0 });
     }
   }, [is_focused]);
+
+  const [placeHolderOffset, setPlaceHolderOffset] = useState<number>(
+    options.get("lineNumbers") ? 30 : 0,
+  );
+
+  useEffect(() => {
+    if (!is_current || cmValue) {
+      return;
+    }
+    if (options.get("lineNumbers")) {
+      // account for line numbers if enabled.  Must wait until after
+      // codemirror renders to see what we got.
+      // That said, this only matters when the only line
+      // number is "1" (since there can be at most 1 line in order for
+      // cmValue=''), so this number is always 30 in practice.
+      setPlaceHolderOffset(30);
+      setTimeout(() => {
+        setPlaceHolderOffset(
+          ($(cm.current?.getGutterElement()).width() ?? 29) + 1,
+        );
+      }, 0);
+    } else {
+      setPlaceHolderOffset(0);
+    }
+  }, [is_current, cmValue, options]);
 
   // This is an attempt to make code editing somewhat work at non 100% scale
   // for the whiteboard.  It's only used there, and is a miracle it partly
@@ -733,12 +759,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
             position: "absolute",
             color: "#bfbfbf",
             zIndex: 1,
-            left: "10px",
+            left: 10 + placeHolderOffset,
             top: setShowChatGPT == null ? "7.5px" : "2.5px",
+            marginLeft: "-5px",
+            paddingLeft: "5px",
+            overflow: "hidden",
+            display: "flex",
           }}
           onClick={focus_cm}
         >
-          Enter code{setShowChatGPT == null ? "..." : " or "}
+          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 0" }}>
+            Enter code{setShowChatGPT == null ? "..." : " or "}
+          </div>
           {setShowChatGPT != null && (
             <Button
               type="link"
