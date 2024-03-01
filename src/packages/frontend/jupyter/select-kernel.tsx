@@ -69,8 +69,7 @@ interface KernelSelectorProps {
 }
 
 export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
-  (props: KernelSelectorProps) => {
-    const { actions } = props;
+  ({ actions }: KernelSelectorProps) => {
     const editor_settings = useTypedRedux("account", "editor_settings");
 
     const redux_kernel: undefined | string = useRedux([actions.name, "kernel"]);
@@ -381,7 +380,14 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           msg = (
             <>
               Your notebook kernel <code>"{kernel}"</code> does not exist on{" "}
-              <SiteName />.
+              {actions.getComputeServerId() ? (
+                "this compute server"
+              ) : (
+                <>
+                  the <SiteName /> shared environment
+                </>
+              )}
+              .
             </>
           );
         } else {
