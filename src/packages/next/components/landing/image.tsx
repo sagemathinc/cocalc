@@ -3,11 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import NextImage from "next/image";
-import { join } from "path";
-import { CSSProperties } from "react";
+// NOTE -- at this point, I'm completely giving up on next's image
+// for now. It's always broken and the api keeps changing and it's
+// too hard to work with.
+// import NextImage from "next/image";
 
-import basePath from "lib/base-path";
+import { CSSProperties } from "react";
 import { MediaURL } from "./util";
 
 // copied from https://github.com/vercel/next.js/blob/eb871d30915d668dd9ba897d4d04ced207ce2e6d/packages/next/image-types/global.d.ts
@@ -29,7 +30,7 @@ interface Props {
 }
 
 export default function Image(props: Props) {
-  const { src, style, alt, width, height, priority = false } = props;
+  const { src, style, alt, width, height } = props;
   if (typeof src === "string") {
     return (
       <img
@@ -41,24 +42,27 @@ export default function Image(props: Props) {
       />
     );
   }
-  if (basePath.length > 1 && !src.src?.startsWith(basePath)) {
-    // This is a hack to workaround the very annoying fact that
-    // next/image does NOT properly support the nextjs basePath
-    // option.  This is definitely a bug in nextjs, and when it
-    // gets fixed, this workaround will break our site!
-    // The next/image implementation is in packages/next/client/image.tsx of nextjs itself.
-    // Here's the issue: https://github.com/vercel/next.js/issues/22244
-    src.src = join(basePath, src.src);
-  }
 
-  if (height != null && width != null) {
+  //   if (height != null && width != null) {
+  //     return (
+  //       <NextImage
+  //         src={src.src}
+  //         alt={alt}
+  //         height={height}
+  //         width={width}
+  //         priority={priority}
+  //       />
+  //     );
+  //   }
+
+  if (width != null) {
     return (
-      <NextImage
+      <img
         src={src.src}
-        alt={alt}
         height={height}
         width={width}
-        priority={priority}
+        alt={alt}
+        style={{ ...style, maxWidth: "100%" }}
       />
     );
   }

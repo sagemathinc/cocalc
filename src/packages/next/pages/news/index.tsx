@@ -37,7 +37,7 @@ import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
 import { GetServerSidePropsContext } from "next";
-import Image from "next/image";
+import Image from "components/landing/image";
 import { useRouter } from "next/router";
 import jsonfeedIcon from "public/jsonfeed.png";
 import rssIcon from "public/rss.svg";
@@ -74,7 +74,7 @@ export default function AllNews(props: Props) {
   const isAdmin = profile?.is_admin;
 
   const [channel, setChannel] = useState<ChannelAll>(
-    isChannelAll(initChannel) ? initChannel : "all"
+    isChannelAll(initChannel) ? initChannel : "all",
   );
   const [search, setSearchState] = useState<string>(initSearch ?? "");
 
