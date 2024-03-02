@@ -37,10 +37,8 @@ async function callApi(endpoint: string, args?: object) {
   try {
     json = await resp.json();
   } catch (e) {
-    console.error(`Error parsing response JSON from ${url}. Response text:`, {
-      text: await respClone.text(),
-    });
-    throw e; // rethrow the original error
+    const e2 = `Error -- invalid JSON: ${await respClone.text()}`;
+    throw Error(e2);
   }
   if (json == null) {
     throw Error("timeout -- please try again");

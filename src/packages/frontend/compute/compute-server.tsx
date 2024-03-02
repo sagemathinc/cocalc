@@ -12,6 +12,7 @@ import { deleteServer, undeleteServer } from "./api";
 import Cloud from "./cloud";
 import Color, { randomColor } from "./color";
 import ComputeServerLog from "./compute-server-log";
+import SerialPortOutput from "./serial-port-output";
 import Configuration from "./configuration";
 import CurrentCost from "./current-cost";
 import Description from "./description";
@@ -273,6 +274,17 @@ export default function ComputeServer({
                 title={title}
               />
             )}
+            {id != null &&
+              configuration.cloud == "google-cloud" &&
+              (state == "starting" ||
+                state == "stopping" ||
+                state == "running") && (
+                <SerialPortOutput
+                  id={id}
+                  style={{ marginLeft: "-15px" }}
+                  title={title}
+                />
+              )}
             {id != null && (
               <div style={{ marginLeft: "-15px" }}>
                 <CurrentCost state={state} cost_per_hour={cost_per_hour} />
