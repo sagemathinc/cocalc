@@ -105,15 +105,13 @@ if [ $? -ne 0 ]; then
 ${installDocker()}
 fi
 
-${installMicroK8s({ image, IMAGES })}
-
 # We use group 999 for docker inside the compute container,
 # so that has to also be the case outside or docker without
 # sudo won't work.
 groupmod -g 999 docker
 chgrp docker /var/run/docker.sock
 
-setState install install-nodejs 60 50
+setState install install-nodejs '' 60 50
 ${installNode()}
 if [ $? -ne 0 ]; then
    setState install error "problem installing nodejs"
@@ -133,6 +131,17 @@ if [ $? -ne 0 ]; then
    setState install error "problem creating user"
    exit 1
 fi
+
+# install-k8s has to be AFTER install-user.
+setState install install-k8s '' 120 90
+${installMicroK8s({ image, IMAGES })}
+if [ $? -ne 0 ]; then
+   setState install error "problem installing kubernetes"
+   exit 1
+fi
+
+setState install install-k8s '' 120 95
+
 setState install ready '' 0  100
 
 setState vm start '' 60 60

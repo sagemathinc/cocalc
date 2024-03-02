@@ -118,7 +118,19 @@ export function installMicroK8s({
     // not required for this image
     return "";
   }
-  return "snap install microk8s --classic";
+  return `
+snap install microk8s --classic
+
+if [ $? -ne 0 ]; then
+    echo "FAILED to install microk8s!"
+    exit 1;
+fi
+
+mkdir -p /data/.cache/.kube
+microk8s config > /data/.cache/.kube/config
+chown -R user. /data/.cache/.kube
+chmod og-rwx -R  /data/.cache/.kube
+`;
 }
 
 export async function installConf({
