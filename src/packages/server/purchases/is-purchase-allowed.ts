@@ -101,7 +101,9 @@ export async function isPurchaseAllowed({
   }
   const { services, minBalance } = await getPurchaseQuotas(account_id, client);
   // First check that making purchase won't reduce our balance below the minBalance.
-  const balance = (await getBalance(account_id, client)) + margin;
+  // Also, we round balance down since fractional pennies don't count, and
+  // can cause required to be off by 1 below.
+  const balance = round2down(await getBalance(account_id, client)) + margin;
   const amountAfterPurchase = balance - cost;
   // add 0.01 due to potential rounding errors
   if (amountAfterPurchase + 0.01 < minBalance) {

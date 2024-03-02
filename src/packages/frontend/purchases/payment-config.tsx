@@ -44,7 +44,7 @@ export default function PaymentConfig({
   return (
     <div>
       <div style={{ textAlign: "center" }}>
-        <MoneyStatistic title={"Current Balance"} value={balance} />
+        <MoneyStatistic title={"Current Balance"} value={balance} roundDown />
       </div>
       <Divider plain orientation="left">
         Enter amount in US dollars{" "}
