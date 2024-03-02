@@ -134,7 +134,7 @@ fi
 
 # install-k8s has to be AFTER install-user.
 setState install install-k8s '' 120 90
-${installMicroK8s({ image, IMAGES })}
+${installMicroK8s({ image, IMAGES, gpu })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing kubernetes"
    exit 1

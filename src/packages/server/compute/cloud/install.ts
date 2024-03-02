@@ -109,9 +109,11 @@ set -v
 export function installMicroK8s({
   image,
   IMAGES,
+  gpu,
 }: {
   image: string;
   IMAGES: Images;
+  gpu?: boolean;
 }) {
   const microk8s = IMAGES[image]?.microk8s;
   if (!microk8s) {
@@ -129,7 +131,13 @@ fi
 mkdir -p /data/.cache/.kube
 microk8s config > /data/.cache/.kube/config
 chown -R user. /data/.cache/.kube
+chown user. /data/.cache /data
 chmod og-rwx -R  /data/.cache/.kube
+
+microk8s enable ingress
+microk8s enable hostpath-storage
+
+${gpu ? 'microk8s enable gpu' : ''}
 `;
 }
 
