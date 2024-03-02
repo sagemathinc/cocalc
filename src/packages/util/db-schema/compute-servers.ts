@@ -442,6 +442,7 @@ interface BaseConfiguration {
   // just crashing due to out of memory (etc) should we automatically do a
   // forced restart.  Note that currently for on prem this isn't possible.
   autoRestart?: boolean;
+  autoRestartDisabled?: boolean; // used to temporarily disable it to avoid accidentally triggering it.
 }
 
 interface LambdaConfiguration extends BaseConfiguration {

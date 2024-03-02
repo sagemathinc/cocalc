@@ -38,7 +38,7 @@ import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";
 import updatePurchase from "./update-purchase";
-import { changedKeys } from "@cocalc/server/compute/util";
+import { changedKeys, setConfiguration } from "@cocalc/server/compute/util";
 import { checkValidDomain } from "@cocalc/util/compute/dns";
 import { hasDNS, makeDnsChange } from "./dns";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
@@ -130,6 +130,11 @@ export const stop: (opts: { account_id: string; id: number }) => Promise<void> =
     await setError(id, "");
     runTasks({ account_id, id }, async () => {
       await setState(id, "stopping");
+      if (server.configuration?.autoRestart) {
+        // If we are explicitly stopping an auto-restart server, we disable auto restart,
+        // so there is no chance of it being accidentally triggered.
+        await setConfiguration(id, { autoRestartDisabled: true });
+      }
       await deleteProjectApiKey({ account_id, server });
       await doStop(server);
       await setState(id, "off");
@@ -206,10 +211,19 @@ export const state: (opts: {
     } else if (
       maintenance &&
       server.configuration?.autoRestart &&
+      !server.configuration?.autoRestartDisabled &&
       state == "off"
     ) {
       // compute server got killed so launch the compute server running again.
       start({ account_id, id });
+    } else if (
+      server.configuration?.autoRestart &&
+      server.configuration?.autoRestartDisabled &&
+      state == "running"
+    ) {
+      // This is an auto-restart server and it's running,
+      // so re-enable auto restart.
+      await setConfiguration(id, { autoRestartDisabled: false });
     }
     //lastCalled[id] = { time: now, state };
     return state;
