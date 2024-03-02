@@ -27,8 +27,6 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
-// TODO: maybe should optionally add minDiskSizeGb to Version?
-
 export interface Image {
   // What we show the user to describe this image, e.g., in the image select menu.
   label: string;
@@ -52,6 +50,8 @@ export interface Image {
   versions: ImageVersion[];
   // If true, then a GPU is required to use this image.
   gpu?: boolean;
+  // If true, then the microk8s snap is required to use this image.
+  microk8s?: boolean;
   // authToken: if true, image has web interface that supports configurable auth token
   authToken?: boolean;
   // jupyterKernels: if false, no jupyter kernels included. If true or a list of

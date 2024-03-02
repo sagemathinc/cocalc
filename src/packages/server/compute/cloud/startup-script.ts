@@ -6,6 +6,7 @@ import {
   installNode,
   installCoCalc,
   installConf,
+  installMicroK8s,
   installUser,
   UID,
 } from "./install";
@@ -103,6 +104,8 @@ if [ $? -ne 0 ]; then
    setState install install-docker '' 120 20
 ${installDocker()}
 fi
+
+${installMicroK8s({ image, IMAGES })}
 
 # We use group 999 for docker inside the compute container,
 # so that has to also be the case outside or docker without

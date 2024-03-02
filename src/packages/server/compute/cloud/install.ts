@@ -106,6 +106,21 @@ set -v
 `;
 }
 
+export function installMicroK8s({
+  image,
+  IMAGES,
+}: {
+  image: string;
+  IMAGES: Images;
+}) {
+  const microk8s = IMAGES[image]?.microk8s;
+  if (!microk8s) {
+    // not required for this image
+    return "";
+  }
+  return "snap install microk8s --classic";
+}
+
 export async function installConf({
   api_key,
   api_server,
