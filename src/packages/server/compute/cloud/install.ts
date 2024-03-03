@@ -135,7 +135,6 @@ chown user. /data/.cache /data
 chmod og-rwx -R  /data/.cache/.kube
 
 microk8s enable ingress
-microk8s enable hostpath-storage
 
 ${gpu ? 'microk8s enable gpu' : ''}
 `;

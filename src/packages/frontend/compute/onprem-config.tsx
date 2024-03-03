@@ -11,6 +11,7 @@ import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
+import { A } from "@cocalc/frontend/components";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
@@ -74,14 +75,21 @@ export default function OnPremCloudConfiguration({
       <div style={{ color: "#666", marginBottom: "15px" }}>
         You can connect any{" "}
         <u>
-          <b>Ubuntu 22.04 Virtual Machine</b>
+          <b>
+            <A href="https://ubuntu.com/download/server">
+              Ubuntu 22.04 LTS Server
+            </A>{" "}
+            Virtual Machine
+          </b>
         </u>{" "}
         that you have a root acount on to this CoCalc project and seamlessly run
         Jupyter notebooks and terminals using it.{" "}
         <b>
           On Prem compute servers are currently completely free, and will work
           even with projects that have no upgrades or licenses. YOU MUST CREATE
-          A VIRTUAL MACHINE ON YOUR OWN COMPUTER.
+          AN <A href="https://ubuntu.com/download/server">UBUNTU 22.04 LTS</A>{" "}
+          VIRTUAL MACHINE ON YOUR OWN COMPUTER. No other version of Ubuntu will
+          work.
         </b>
       </div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
