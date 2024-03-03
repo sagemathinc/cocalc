@@ -524,7 +524,7 @@ docker system prune -a -f
 # Install nodejs
 ${installNode()}
 
-${installCoCalc({ arch, IMAGES })}
+${installCoCalc({ IMAGES })}
 
 # Pre-pull filesystem Docker container
 docker pull ${IMAGES["filesystem"].package}:${tag_filesystem}

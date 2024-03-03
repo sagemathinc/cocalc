@@ -3,10 +3,7 @@ This all assume Ubuntu 22.04.
 */
 
 import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
-import {
-  Architecture,
-  getImageField,
-} from "@cocalc/util/db-schema/compute-servers";
+import { getImageField } from "@cocalc/util/db-schema/compute-servers";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import type { Images } from "@cocalc/server/compute/images";
 
@@ -88,20 +85,24 @@ fi
 }
 
 export function installCoCalc({
-  arch,
   IMAGES,
   tag,
 }: {
-  arch: Architecture;
   IMAGES: Images;
   tag?: string;
 }) {
-  const pkg = IMAGES["cocalc"][getImageField(arch)];
+  const pkg_x86_64 = IMAGES["cocalc"][getImageField("x86_64")];
+  const pkg_arm64 = IMAGES["cocalc"][getImageField("arm64")];
+  const npmTag = getTag({ image: "cocalc", IMAGES, tag });
 
   return `
 set +v
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-npx -y ${pkg}@${getTag({ image: "cocalc", IMAGES, tag })} /cocalc
+if [ $(uname -m) = "aarch64" ]; then
+    npx -y ${pkg_arm64}@${npmTag} /cocalc
+else
+    npx -y ${pkg_x86_64}@${npmTag} /cocalc
+fi;
 set -v
 `;
 }
@@ -136,7 +137,7 @@ chmod og-rwx -R  /data/.cache/.kube
 
 microk8s enable ingress
 
-${gpu ? 'microk8s enable gpu' : ''}
+${gpu ? "microk8s enable gpu" : ""}
 `;
 }
 

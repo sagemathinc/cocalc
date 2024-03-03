@@ -1,5 +1,4 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import type { Architecture } from "@cocalc/util/db-schema/compute-servers";
 import { getImages, Images } from "@cocalc/server/compute/images";
 import {
   installDocker,
@@ -37,7 +36,6 @@ export default async function startupScript({
   api_key,
   project_id,
   gpu,
-  arch,
   hostname,
   exclude_from_sync,
   auth_token,
@@ -51,7 +49,6 @@ export default async function startupScript({
   api_key: string;
   project_id: string;
   gpu?: boolean;
-  arch: Architecture;
   hostname: string;
   exclude_from_sync: string;
   auth_token: string;
@@ -119,7 +116,7 @@ if [ $? -ne 0 ]; then
 fi
 
 setState install install-cocalc '' 60 70
-${installCoCalc({ arch, IMAGES, tag: tag_cocalc })}
+${installCoCalc({ IMAGES, tag: tag_cocalc })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
