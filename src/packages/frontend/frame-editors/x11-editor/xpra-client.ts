@@ -136,7 +136,7 @@ export class XpraClient extends EventEmitter {
 
   async connect(): Promise<void> {
     this.idle_timed_out = false;
-    this.last_active = new Date().valueOf();
+    this.last_active = Date.now();
     this.emit("ws:idle", false);
     // use this is dumb, but will do **for now**.  It's
     // dumb since instead when we reconnect to the network,
@@ -462,11 +462,11 @@ export class XpraClient extends EventEmitter {
 
   // call this when stuff is happening
   record_active(): void {
-    this.last_active = new Date().valueOf();
+    this.last_active = Date.now();
   }
 
   async touch_if_active(): Promise<void> {
-    if (new Date().valueOf() - this.last_active < 70000) {
+    if (Date.now() - this.last_active < 70000) {
       try {
         await touch_project(this.options.project_id);
         await touch(this.options.project_id, this.options.path);
@@ -519,7 +519,7 @@ export class XpraClient extends EventEmitter {
       return;
     }
     if (
-      new Date().valueOf() - this.last_active >=
+      Date.now() - this.last_active >=
       this.options.idle_timeout_ms
     ) {
       // inactive

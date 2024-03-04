@@ -8,7 +8,7 @@ export default function Composing({ element, focused }) {
   const [counter, setCounter] = useState<number>(0);
 
   const mesg = useMemo(() => {
-    const cutoff = new Date().valueOf() - 1000 * 60;
+    const cutoff = Date.now() - 1000 * 60;
     const v: ReactNode[] = [];
     for (const sender_id in element.data ?? {}) {
       if (sender_id.length != 36) continue;

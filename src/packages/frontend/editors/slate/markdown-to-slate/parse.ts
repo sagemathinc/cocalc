@@ -50,7 +50,7 @@ export function markdown_to_slate(
   cache?
 ): Descendant[] {
   // Parse the markdown:
-  // const t0 = new Date().valueOf();
+  // const t0 = Date.now();
   const { tokens, meta, lines, references } = parse_markdown(markdown, no_meta);
   // window.markdown_parse = { tokens, meta, lines, references };
 
@@ -94,12 +94,12 @@ export function markdown_to_slate(
   */
   //   console.log(
   //     "time: markdown_to_slate without normalize",
-  //     new Date().valueOf() - t0,
+  //     Date.now() - t0,
   //     "ms"
   //   );
   const ndoc = normalize(doc);
 
-  // console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
+  // console.log("time: markdown_to_slate", Date.now() - t0, "ms");
   // console.log({ markdown_to_slate: JSON.stringify(doc) });
   return ndoc;
 }

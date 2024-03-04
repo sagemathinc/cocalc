@@ -863,7 +863,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       console.warn("no cell with id", id);
       return;
     }
-    const time = new Date().valueOf();
+    const time = Date.now();
     const sender_id = this.redux.getStore("account").get_account_id();
     const sender_name = getName(sender_id);
     this.setElementData({
@@ -881,7 +881,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       console.warn("no cell with id", id);
       return;
     }
-    const time = new Date().valueOf();
+    const time = Date.now();
     const sender_id = this.redux.getStore("account").get_account_id();
     // We also record (reasonably truncated) sender name, just in case
     // they are no longer a collaborator with user who is looking at

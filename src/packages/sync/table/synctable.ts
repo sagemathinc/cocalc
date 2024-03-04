@@ -103,7 +103,7 @@ export class SyncTable extends EventEmitter {
   // close and open the file or refresh their browser.  It might
   // be better to switch to storing the current version number
   // on disk.
-  private initial_version: number = new Date().valueOf();
+  private initial_version: number = Date.now();
 
   // disconnected <--> connected --> closed
   private state: State;
@@ -1103,7 +1103,7 @@ export class SyncTable extends EventEmitter {
     proposed_keys: { [key: string]: boolean },
     timeout_ms: number,
   ): Promise<void> {
-    const start_ms = new Date().valueOf();
+    const start_ms = Date.now();
     while (len(proposed_keys) > 0) {
       for (const key in proposed_keys) {
         if (this.versions[key] > 0) {
@@ -1111,7 +1111,7 @@ export class SyncTable extends EventEmitter {
         }
       }
       if (len(proposed_keys) > 0) {
-        const elapsed_ms = new Date().valueOf() - start_ms;
+        const elapsed_ms = Date.now() - start_ms;
         const keys: string[] = await once(
           this,
           "increased-versions",

@@ -32,10 +32,10 @@ export class TrackingClient {
       error = JSON.stringify(error);
     }
     const last = this.log_error_cache[error];
-    if (last != null && new Date().valueOf() - last <= 1000 * 60 * 15) {
+    if (last != null && Date.now() - last <= 1000 * 60 * 15) {
       return;
     }
-    this.log_error_cache[error] = new Date().valueOf();
+    this.log_error_cache[error] = Date.now();
     this.client.call({
       message: message.log_client_error({ error }),
     });

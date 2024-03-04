@@ -95,7 +95,7 @@ class SyncTableChannel extends EventEmitter {
     this.set_connected(false);
     this.clean_up_sockets();
 
-    const time_since_last_connect = new Date().valueOf() - this.last_connect;
+    const time_since_last_connect = Date.now() - this.last_connect;
     if (time_since_last_connect < MIN_CONNECT_WAIT_MS) {
       // Last attempt to connect was very recent, so we wait a little before
       // trying again.
@@ -109,7 +109,7 @@ class SyncTableChannel extends EventEmitter {
       log: this.log,
     });
 
-    this.last_connect = new Date().valueOf();
+    this.last_connect = Date.now();
   }
 
   private set_connected(connected: boolean): void {

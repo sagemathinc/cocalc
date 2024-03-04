@@ -62,7 +62,7 @@ export function init_websocket_api(_primus: any): void {
 
     spark.on("request", async (data, done) => {
       log.debug("primus-api", "request", data, "REQUEST");
-      const t0 = new Date().valueOf();
+      const t0 = Date.now();
       try {
         const resp = await handleApiCall(data, spark);
         //log.debug("primus-api", "response", resp);
@@ -78,7 +78,7 @@ export function init_websocket_api(_primus: any): void {
         "primus-api",
         "request",
         data,
-        `FINISHED: time=${new Date().valueOf() - t0}ms`,
+        `FINISHED: time=${Date.now() - t0}ms`,
       );
     });
   });

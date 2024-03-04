@@ -351,7 +351,7 @@ export class ProjectClient {
       project_id: opts.project_id,
       command,
       timeout: 60,
-      aggregate: Math.round(new Date().valueOf() / 5000), // aggregate calls into 5s windows, in case multiple clients ask for same find at once...
+      aggregate: Math.round(Date.now() / 5000), // aggregate calls into 5s windows, in case multiple clients ask for same find at once...
     });
     const n = opts.path.length + 1;
     let v = result.stdout.split("\n");
@@ -404,10 +404,10 @@ export class ProjectClient {
     // Do not make the timeout long, since that can mess up
     // getting the hub-websocket to connect to the project.
     const last = this.touch_throttle[project_id];
-    if (last != null && new Date().valueOf() - last <= 3000) {
+    if (last != null && Date.now() - last <= 3000) {
       return;
     }
-    this.touch_throttle[project_id] = new Date().valueOf();
+    this.touch_throttle[project_id] = Date.now();
     try {
       await this.call(message.touch_project({ project_id }));
     } catch (err) {
