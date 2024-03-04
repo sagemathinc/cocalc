@@ -320,7 +320,7 @@ export class SyncDoc extends EventEmitter {
       //const t0 = new Date();
       await this.init_all();
       //console.log(  // TODO remove at some point.
-      //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
+      //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
       //);
     } catch (err) {
       if (this.state == "closed") {
@@ -2700,7 +2700,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
-    x.time = new Date().valueOf();
+    x.time = Date.now();
     this.syncstring_table.set(
       this.syncstring_table_get_one().set("save", fromJS(x)),
     );

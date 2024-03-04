@@ -44,7 +44,7 @@ export class Actions extends BaseActions<PDFEditorState> {
   }
 
   reload(_: string /* id not used here */): void {
-    const now: number = new Date().valueOf();
+    const now: number = Date.now();
     let type: string;
     for (type in EDITOR_SPEC) {
       this.set_reload(type, now);

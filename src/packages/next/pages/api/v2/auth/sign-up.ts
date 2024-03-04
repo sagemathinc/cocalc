@@ -53,7 +53,7 @@ export default async function signUp(req, res) {
   email = (email ?? "").toLowerCase().trim();
   firstName = (firstName ? firstName : "Anonymous").trim();
   lastName = (
-    lastName ? lastName : `User-${Math.round(new Date().valueOf() / 1000)}`
+    lastName ? lastName : `User-${Math.round(Date.now() / 1000)}`
   ).trim();
   registrationToken = (registrationToken ?? "").trim();
 

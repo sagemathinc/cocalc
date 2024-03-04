@@ -284,7 +284,7 @@ export class Terminal {
       logger.debug("terminal data -- truncating");
       this.history = this.history.slice(n - MAX_HISTORY_LENGTH / 2);
       const last = this.last_truncate_time;
-      const now = new Date().valueOf();
+      const now = Date.now();
       this.last_truncate_time = now;
       logger.debug(now, last, now - last, TRUNCATE_THRESH_MS);
       if (now - last <= TRUNCATE_THRESH_MS) {

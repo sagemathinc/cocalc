@@ -25,7 +25,7 @@ export const ShowToggle: React.FC<Props> = React.memo(
 
     function toggle_state() {
       // avoid accidental double clicks...
-      const now = new Date().valueOf();
+      const now = Date.now();
       if (now - last_call_ref.current <= 300) {
         return;
       }

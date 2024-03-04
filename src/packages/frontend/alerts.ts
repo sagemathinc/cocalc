@@ -86,7 +86,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
 }
 
 function check_for_clock_skew() {
-  const local_time = new Date().valueOf();
+  const local_time = Date.now();
   const s = Math.ceil(
     Math.abs(
       webapp_client.time_client.server_time().valueOf() - local_time.valueOf()

@@ -196,7 +196,7 @@ export default function Canvas({
     throttleMs: 100,
     getFontSize: () => font_size ?? DEFAULT_FONT_SIZE,
     onZoom: ({ fontSize, first }) => {
-      lastPinchRef.current = new Date().valueOf();
+      lastPinchRef.current = Date.now();
       if (first) {
         const rect = scaleDivRef.current?.getBoundingClientRect();
         const mouse =
@@ -302,7 +302,7 @@ export default function Canvas({
   if (scaleRef.current != canvasScale) {
     if (isNavigator) {
       scaleRef.current = canvasScale;
-    } else if (new Date().valueOf() >= lastPinchRef.current + 500) {
+    } else if (Date.now() >= lastPinchRef.current + 500) {
       // - canvasScale changed due to something external, rather than
       // usePinchToZoom above, since when changing due to pinch zoom,
       // scaleRef has already been set before this call here happens.
