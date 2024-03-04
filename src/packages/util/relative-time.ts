@@ -22,7 +22,7 @@ function getSkew(): number {
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
 export function milliseconds_ago(ms): Date {
-  return new Date(new Date().valueOf() - ms);
+  return new Date(Date.now() - ms);
 }
 export function seconds_ago(s): Date {
   return milliseconds_ago(1000 * s);

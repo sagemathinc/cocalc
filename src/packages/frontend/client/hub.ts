@@ -200,7 +200,7 @@ export class HubClient {
       case "signed_in":
         this.client.account_id = mesg.account_id;
         this.set_signed_in();
-        this.signed_in_time = new Date().valueOf();
+        this.signed_in_time = Date.now();
         setRememberMe(appBasePath);
         this.signed_in_mesg = mesg;
         this.client.emit("signed_in", mesg);

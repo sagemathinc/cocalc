@@ -277,7 +277,7 @@ export function PDFJS({
         await delay(3000);
         if (isMounted.current && missing && actions.update_pdf != null) {
           // try again, since there is function
-          actions.update_pdf(new Date().valueOf(), true);
+          actions.update_pdf(Date.now(), true);
         }
       }
     }

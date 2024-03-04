@@ -58,21 +58,21 @@ describe("tests involving bash mode", () => {
 
 describe("test timeout", () => {
   it("kills if timeout reached", async () => {
-    const t = new Date().valueOf();
+    const t = Date.now();
     try {
       await executeCode({ command: "sleep 60", timeout: 0.1 });
       expect(false).toBe(true);
     } catch (err) {
       expect(err).toContain("killed command");
-      expect(new Date().valueOf() - t).toBeGreaterThan(90);
-      expect(new Date().valueOf() - t).toBeLessThan(500);
+      expect(Date.now() - t).toBeGreaterThan(90);
+      expect(Date.now() - t).toBeLessThan(500);
     }
   });
 
   it("doesn't kill when timeout not reached", async () => {
-    const t = new Date().valueOf();
+    const t = Date.now();
     await executeCode({ command: "sleep 0.1", timeout: 0.5 });
-    expect(new Date().valueOf() - t).toBeGreaterThan(90);
+    expect(Date.now() - t).toBeGreaterThan(90);
   });
 
   it("kills in non-bash mode if timeout reached", async () => {

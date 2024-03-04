@@ -318,7 +318,7 @@ export class TaskActions extends Actions<TaskState> {
     ) {
       const last_edited =
         this.store.getIn(["tasks", task_id, "last_edited"]) ?? 0;
-      const now = new Date().valueOf();
+      const now = Date.now();
       if (now - last_edited >= LAST_EDITED_THRESH_S * 1000) {
         obj["last_edited"] = now;
       }

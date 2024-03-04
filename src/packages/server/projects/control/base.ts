@@ -144,9 +144,9 @@ export abstract class BaseProject extends EventEmitter {
     maxTime: number;
   }): Promise<void> {
     const { until, maxTime } = opts;
-    const t0 = new Date().valueOf();
+    const t0 = Date.now();
     let d = 250;
-    while (new Date().valueOf() - t0 <= maxTime) {
+    while (Date.now() - t0 <= maxTime) {
       if (await until()) {
         logger.debug(`wait ${this.project_id} -- satisfied`);
         return;

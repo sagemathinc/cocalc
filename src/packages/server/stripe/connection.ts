@@ -28,7 +28,7 @@ let stripe: StripeWithPublishableKey | undefined = undefined;
 let key: string = "";
 let last: number = 0;
 export async function getConn(): Promise<StripeWithPublishableKey> {
-  if (stripe != null && new Date().valueOf() - last <= 1000 * 60) {
+  if (stripe != null && Date.now() - last <= 1000 * 60) {
     return stripe;
   }
   const { stripe_publishable_key, stripe_secret_key } =
@@ -49,7 +49,7 @@ export async function getConn(): Promise<StripeWithPublishableKey> {
       apiVersion,
     }) as StripeWithPublishableKey;
     stripe.publishable_key = stripe_publishable_key;
-    last = new Date().valueOf();
+    last = Date.now();
   }
   return stripe;
 }

@@ -72,7 +72,7 @@ export class UsersClient {
     }
     const v = await callback2(get_username, {
       call: this.call,
-      aggregate: Math.floor(new Date().valueOf() / 60000),
+      aggregate: Math.floor(Date.now() / 60000),
       account_id,
     });
     const u = v[account_id];

@@ -242,7 +242,7 @@ export function Quota({ quota, upgrades }: { quota?: any; upgrades?: any }) {
 }
 
 export function DateRange({ activates, expires, info }) {
-  const isExpired = expires && expires < new Date().valueOf();
+  const isExpired = expires && expires < Date.now();
   const sub = info?.purchased?.subscription;
   if (sub && sub != "no") {
     return (

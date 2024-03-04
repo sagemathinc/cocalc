@@ -103,7 +103,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   // get randomly broken (at least, e.g., for k3d).
   private async waitUntilTableStabilizes(stableMs = 250): Promise<void> {
     while (true) {
-      const now = new Date().valueOf();
+      const now = Date.now();
       if (now - this.lastTableChange >= stableMs) {
         return;
       }
@@ -113,7 +113,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async handle_table_state_change({ model_id, type }): Promise<void> {
     // console.log("handle_table_state_change - ", model_id, type);
-    this.lastTableChange = new Date().valueOf();
+    this.lastTableChange = Date.now();
     try {
       switch (type) {
         case "state":
@@ -393,12 +393,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
     // TODO: this is silly, of course.  I will rewrite this when I better
     // understand what is going on.
-    const start = new Date().valueOf();
+    const start = Date.now();
     let d = 1;
     while (true) {
       const isDereferenced = await this.dereference_model_links(state);
       if (isDereferenced) break;
-      const now = new Date().valueOf();
+      const now = Date.now();
       if (now - start > MAX_DEREF_WAIT_MS) {
         throw Error(`unable to dereference model links - "${model_id}"`);
       }
