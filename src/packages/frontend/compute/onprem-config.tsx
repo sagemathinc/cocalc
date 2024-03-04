@@ -9,10 +9,8 @@ import { useEffect, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
-import { CopyToClipBoard } from "@cocalc/frontend/components";
 import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
-import { A } from "@cocalc/frontend/components";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
