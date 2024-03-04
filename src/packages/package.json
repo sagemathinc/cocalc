@@ -11,5 +11,13 @@
   },
   "dependencies": {
     "encoding": "^0.1.13"
+  },
+  "pnpm": {
+    "overrides": {
+      "follow-redirects@<1.15.4": "^1.15.4",
+      "es5-ext@<0.10.63": "^0.10.63",
+      "undici@<5.28.3": "^5.28.3",
+      "postcss@<8.4.31": "^8.4.31"
+    }
   }
 }
