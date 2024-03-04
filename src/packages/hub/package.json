@@ -6,6 +6,11 @@
     "./*": "./dist/*.js",
     "./run/*": "./run/*.js"
   },
+  "pnpm": {
+    "overrides": {
+      "http-proxy>follow-redirects": "1.15.4"
+    }
+  },
   "dependencies": {
     "@cocalc/assets": "workspace:*",
     "@cocalc/backend": "workspace:*",
