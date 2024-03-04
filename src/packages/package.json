@@ -14,7 +14,8 @@
   },
   "pnpm": {
     "overrides": {
-      "follow-redirects@<1.15.4": "^1.15.4"
+      "follow-redirects@<1.15.4": "^1.15.4",
+      "es5-ext@<0.10.63": "^0.10.63"
     }
   }
 }
