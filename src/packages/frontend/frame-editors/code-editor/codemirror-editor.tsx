@@ -234,7 +234,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       props.gutters,
       editor_actions(),
       props.actions,
-      props.id
+      props.id,
     );
     if (options == null) throw Error("bug"); // make typescript happy.
 
@@ -325,7 +325,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     // After this only stuff that we use for the non-public version!
     const save_syncstring_debounce = debounce(
       save_syncstring,
-      SAVE_DEBOUNCE_MS
+      SAVE_DEBOUNCE_MS,
     );
 
     cm.on("beforeChange", (_, changeObj) => {
@@ -403,7 +403,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
         props.gutters,
         editor_actions(),
         props.actions,
-        props.id
+        props.id,
       );
     }
     const cm = cmRef.current;
@@ -509,6 +509,9 @@ CodemirrorEditor.defaultProps = { value: "" };
 // so be careful.
 if ((CodeMirror as any).commands.save == null) {
   (CodeMirror as any).commands.save = (cm: any) => {
-    cm.cocalc_actions?.save(true);
+    const f = cm.cocalc_actions?.save;
+    if (typeof f == "function") {
+      f(true);
+    }
   };
 }

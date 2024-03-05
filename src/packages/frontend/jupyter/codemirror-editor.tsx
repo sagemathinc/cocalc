@@ -639,6 +639,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
 
     cm.current.save = () => actions.save();
+
+    // needed for vim support -- see src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx
+    cm.current.cocalc_actions = { save: cm.current.save };
+
+
     if (actions != null && options0.keyMap === "vim") {
       vim_mode.current = true;
       cm.current.on("vim-mode-change", async (obj) => {
