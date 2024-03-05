@@ -66,8 +66,8 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             Linux server,
           </li>
           <li>
-            <Icon name="server" /> Dedicated GPUs, hundreds of very fast
-            vCPUs, and thousands of GB of RAM
+            <Icon name="server" /> Dedicated GPUs, hundreds of very fast vCPUs,
+            and thousands of GB of RAM
           </li>
           <li>
             <Icon name="mathematica" /> <Icon name="matlab" />{" "}
@@ -232,6 +232,10 @@ function ComputeServerTable({
           id={id}
           style={{ marginBottom: "15px" }}
           key={`${id}`}
+          controllable={
+            account_id == data.account_id ||
+            data.configuration?.allowCollaboratorControl
+          }
           editable={account_id == data.account_id}
           {...data}
           setShowDeleted={setShowDeleted}

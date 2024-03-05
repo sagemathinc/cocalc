@@ -238,10 +238,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   );
 }
 
-async function updateFastDataDirectoryId(
-  id: number,
-  configuration,
-) {
+async function updateFastDataDirectoryId(id: number, configuration) {
   const { excludeFromSync } = configuration;
   if (excludeFromSync == null || excludeFromSync.length == 0) {
     return;

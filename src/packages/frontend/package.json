@@ -73,7 +73,7 @@
     "bootstrap-colorpicker": "^2.5.3",
     "cat-names": "^3.1.0",
     "cheerio": "^1.0.0-rc.10",
-    "codemirror": "^5.65.3",
+    "codemirror": "^5.65.16",
     "color-map": "^2.0.6",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.7.0",
@@ -176,7 +176,7 @@
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {
-    "@types/codemirror": "^5.60.5",
+    "@types/codemirror": "^5.60.15",
     "@types/jquery": "^3.5.5",
     "@types/katex": "^0.16.0",
     "@types/lodash": "^4.14.202",

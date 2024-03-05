@@ -443,6 +443,9 @@ interface BaseConfiguration {
   // forced restart.  Note that currently for on prem this isn't possible.
   autoRestart?: boolean;
   autoRestartDisabled?: boolean; // used to temporarily disable it to avoid accidentally triggering it.
+  // Allow collaborators to control the state of the compute server.
+  // They cannot change any other configuration.  User still pays for everything and owns compute server.
+  allowCollaboratorControl?: boolean;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {

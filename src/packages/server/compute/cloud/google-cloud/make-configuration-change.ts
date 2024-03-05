@@ -21,9 +21,15 @@ export const SUPPORTED_CHANGES = [
   "excludeFromSync",
   "authToken",
   "autoRestart",
+  "allowCollaboratorControl",
 ];
 
-export const RUNNING_CHANGES = ["ephemeral", "diskSizeGb", "autoRestart"];
+export const RUNNING_CHANGES = [
+  "ephemeral",
+  "diskSizeGb",
+  "autoRestart",
+  "allowCollaboratorControl",
+];
 
 export async function makeConfigurationChange({
   id,

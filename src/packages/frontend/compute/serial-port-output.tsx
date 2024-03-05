@@ -97,11 +97,12 @@ export default function SerialPortOutput({
           setShow(false);
         }}
         footer={[
-          <Button onClick={update} disabled={loading}>
+          <Button key="refresh" onClick={update} disabled={loading}>
             <Icon name="refresh" /> Refresh
             {loading && <Spin style={{ marginLeft: "15px" }} />}
           </Button>,
           <Button
+            key="top"
             onClick={() => {
               termRef.current?.scrollToTop();
             }}
@@ -109,6 +110,7 @@ export default function SerialPortOutput({
             <Icon name="arrow-up" /> Top
           </Button>,
           <Button
+            key="bottom"
             onClick={() => {
               termRef.current?.scrollToBottom();
             }}
@@ -116,6 +118,7 @@ export default function SerialPortOutput({
             <Icon name="arrow-down" /> Bottom
           </Button>,
           <Button
+            key="ok"
             type="primary"
             onClick={() => {
               setShow(false);
