@@ -12,7 +12,7 @@ import { Button } from "antd";
 import LRU from "lru-cache";
 import { delay } from "awaiting";
 import { React, useRef, usePrevious } from "../app-framework";
-import * as underscore from "underscore";
+import { debounce } from "lodash";
 import { Map as ImmutableMap } from "immutable";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
@@ -142,6 +142,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const key = useRef<string | null>(null);
   const prev_options = usePrevious(options);
   const frameActions = useNotebookFrameActions();
+  const ignoreNextValue = useRef<boolean>(false);
 
   useEffect(() => {
     if (frameActions.current?.frame_id != null) {
@@ -176,6 +177,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, [font_size, is_scrolling]);
 
   useEffect(() => {
+    if (ignoreNextValue.current) {
+      // See https://github.com/sagemathinc/cocalc/issues/7330
+      // What happened in 7330 is that when you enter text,
+      // then IMMEDIATELY PASTE, the cell got reset
+      // undoing the paste.  This was because we saved out
+      // the state right *before* the paste so the undo history
+      // had a checkpoint before then. But in order to hook
+      // into all that, we have to use the CodeMirror
+      // "beforeChange" hook, which just makes things complicated.
+      ignoreNextValue.current = false;
+      return;
+    }
     if (cm.current != null) {
       cm.current.setValueNoJump(value);
     }
@@ -643,7 +656,6 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     // needed for vim support -- see src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx
     cm.current.cocalc_actions = { save: cm.current.save };
 
-
     if (actions != null && options0.keyMap === "vim") {
       vim_mode.current = true;
       cm.current.on("vim-mode-change", async (obj) => {
@@ -680,12 +692,16 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           .setSelections(info.sel, undefined, { scroll: false });
       }
     }
-    cm_change.current = underscore.debounce(cm_save, SAVE_DEBOUNCE_MS);
+
+    cm_change.current = debounce(cm_save, SAVE_DEBOUNCE_MS);
+
     cm.current.on("change", cm_change.current);
     cm.current.on("change", handleChange);
     cm.current.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
-        // See https://github.com/sagemathinc/cocalc/issues/5110
+        // See https://github.com/sagemathinc/cocalc/issues/5110 and
+        // https://github.com/sagemathinc/cocalc/issues/7330
+        ignoreNextValue.current = true;
         cm_save();
       }
     });
