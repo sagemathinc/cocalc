@@ -49,6 +49,7 @@ import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 import AutoRestart from "./auto-restart";
+import AllowCollaboratorControl from "./allow-collaborator-control";
 import generateVouchers from "@cocalc/util/vouchers";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
@@ -415,6 +416,17 @@ export default function GoogleCloudConfiguration({
       label: <></>,
       value: (
         <AutoRestart
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
+      key: "allow-collaborator-control",
+      label: <></>,
+      value: (
+        <AllowCollaboratorControl
           setConfig={setConfig}
           configuration={configuration}
           loading={loading}

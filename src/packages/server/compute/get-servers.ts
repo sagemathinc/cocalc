@@ -51,6 +51,15 @@ export default async function getServers({
 export async function getServer({ account_id, id }): Promise<ComputeServer> {
   const x = await getServers({ account_id, id });
   if (x.length != 1) {
+    const server = await getServerNoCheck(id);
+    if (server.configuration?.allowCollaboratorControl) {
+      if (
+        !(await isCollaborator({ project_id: server.project_id, account_id }))
+      ) {
+        throw Error("user must be collaborator on project");
+      }
+      return server;
+    }
     throw Error("permission denied");
   }
   return x[0];
