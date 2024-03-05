@@ -64,7 +64,7 @@ export default function EditQuota({
         style={{ width: "175px" }}
         key={name}
         min={MIN[name] ?? 1}
-        max={max}
+        max={max ? (units == "MB" ? max / 1000 : max) : undefined}
         value={displayValue(quotaState[name], units)}
         step={1}
         onChange={(value) => {

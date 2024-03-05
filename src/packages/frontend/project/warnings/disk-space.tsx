@@ -9,7 +9,6 @@ import {
   useMemo,
   useRedux,
   useTypedRedux,
-  redux,
   useActions,
 } from "../../app-framework";
 import { Icon } from "../../components";
@@ -21,11 +20,8 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
   const project = useRedux(["projects", "project_map", project_id]);
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const quotas = useMemo(
-    () =>
-      is_commercial
-        ? redux.getStore("projects").get_total_project_quotas(project_id)
-        : undefined,
-    [project, is_commercial]
+    () => (is_commercial ? project.get("run_quota")?.toJS() : undefined),
+    [project, is_commercial],
   );
 
   const actions = useActions({ project_id });
