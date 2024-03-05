@@ -84,8 +84,8 @@ export async function getTitle({
     return { title: "The Project", color: "#666" };
   }
   const { rows } = await getPool().query(
-    "SELECT title, color, project_id FROM compute_servers WHERE id=$1",
-    [id, account_id],
+    "SELECT title, color, project_id, account_id FROM compute_servers WHERE id=$1",
+    [id],
   );
   if (rows.length == 0) {
     throw Error(`no server with id=${id}`);
