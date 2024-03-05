@@ -35,7 +35,7 @@ export default function getActions({
   type,
   project_id,
 }): JSX.Element[] {
-  if (!editable) {
+  if (!editable && !configuration?.allowCollaboratorControl) {
     return [];
   }
   const s = STATE_INFO[state ?? "off"];
@@ -47,6 +47,17 @@ export default function getActions({
   }
   const v: JSX.Element[] = [];
   for (const action of s.actions) {
+    if (
+      !editable &&
+      action != "stop" &&
+      action != "start" &&
+      action != "suspend" &&
+      action != "resume" &&
+      action != "reboot"
+    ) {
+      // non-owner can only do start/stop/suspend/resume -- NOT delete or deprovision.
+      continue;
+    }
     const a = ACTION_INFO[action];
     if (!a) continue;
     if (action == "suspend") {
@@ -87,6 +98,7 @@ export default function getActions({
         label={label}
         icon={icon}
         tip={tip}
+        editable={editable}
         description={description}
         setError={setError}
         confirm={confirm}
@@ -107,6 +119,7 @@ function ActionButton({
   action,
   icon,
   label,
+  editable,
   description,
   tip,
   setError,
@@ -183,7 +196,7 @@ function ActionButton({
     try {
       setError("");
       setDoing(true);
-      if (action == "start" || action == "resume") {
+      if (editable && (action == "start" || action == "resume")) {
         let c = cost_per_hour;
         if (c == null) {
           c = await updateCost();
@@ -252,9 +265,9 @@ function ActionButton({
                 showIcon
                 style={{ margin: "15px 0" }}
                 type="info"
-                message={
-                  "This will safely turn off the VM, and allow you to edit its configuration."
-                }
+                message={`This will safely turn off the VM${
+                  editable ? ", and allow you to edit its configuration." : "."
+                }`}
               />
             )}
             {!configuration.ephemeral && danger && (
@@ -344,7 +357,8 @@ function ActionButton({
       }
       content={
         <div style={{ width: "400px" }}>
-          {description}{" "}
+          {description} {editable && <>You will be charged:</>}
+          {!editable && <>The owner of this compute server will be charged:</>}
           {cost_per_hour != null && (
             <div style={{ textAlign: "center" }}>
               <MoneyStatistic

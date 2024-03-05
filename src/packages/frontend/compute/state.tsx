@@ -32,6 +32,7 @@ export default function State({
   state_changed,
   editable,
   account_id,
+  configuration,
   purchase_id,
 }: Props) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -71,12 +72,16 @@ export default function State({
       content={() => {
         return (
           <div style={{ maxWidth: "400px" }}>
-            <Body account_id={account_id} editable={editable} />
-            <NetworkUsage id={id} data={data} state={state} />
+            <Body
+              account_id={account_id}
+              editable={editable}
+              controllable={configuration?.allowCollaboratorControl}
+            />
+            {editable && <NetworkUsage id={id} data={data} state={state} />}
             <div style={{ textAlign: "center", margin: "15px 0" }}>
               {refresh}
             </div>
-            {purchase_id && <div>Purchase Id: {purchase_id} </div>}
+            {editable && purchase_id && <div>Current Purchase Id: {purchase_id} </div>}
           </div>
         );
       }}
@@ -184,7 +189,14 @@ function ProgressBarTimer({
   );
 }
 
-function Body({ account_id, editable }) {
+function Body({ account_id, editable, controllable }) {
+  if (controllable && !editable) {
+    return (
+      <div>
+        Project collaborators can change the state of this compute server.
+      </div>
+    );
+  }
   if (!editable) {
     return (
       <div>
@@ -199,7 +211,6 @@ function Body({ account_id, editable }) {
         )}
       </div>
     );
-  } else {
-    return null;
   }
+  return null;
 }

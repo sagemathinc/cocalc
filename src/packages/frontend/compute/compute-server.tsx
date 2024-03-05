@@ -1,6 +1,5 @@
 import { Button, Card, Divider, Modal, Popconfirm } from "antd";
 import { CSSProperties, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
@@ -77,7 +76,7 @@ export default function ComputeServer({
       type: "text",
       project_id,
     });
-    if (editable) {
+    if (editable || configuration?.allowCollaboratorControl) {
       actions.push(
         <Button
           key="edit"
@@ -91,7 +90,15 @@ export default function ComputeServer({
             setEdit(!edit);
           }}
         >
-          <Icon name="gears" /> {!edit ? "Edit" : "Editing..."}
+          {editable ? (
+            <>
+              <Icon name="gears" /> {!edit ? "Edit..." : "Editing..."}
+            </>
+          ) : (
+            <>
+              <Icon name="eye" /> Details...
+            </>
+          )}
         </Button>,
       );
     }
@@ -190,7 +197,7 @@ export default function ComputeServer({
     <div>
       <div style={{ width: "100%", display: "flex" }}>
         <Button onClick={() => setEdit(false)} style={{ marginRight: "5px" }}>
-          <Icon name="save" /> Save
+          <Icon name="save" /> {editable ? "Save" : "Close"}
         </Button>
         <div style={{ marginRight: "5px" }}>
           {getActions({
@@ -427,7 +434,8 @@ function ComputeServerEdit({
           <>
             {buttons}
             <Divider />
-            <Icon name="edit" /> Edit Compute Server With Id={id}
+            <Icon name="edit" style={{ marginRight: "15px" }} />{" "}
+            {editable ? "Edit" : ""} Compute Server With Id={id}
           </>
         }
         footer={

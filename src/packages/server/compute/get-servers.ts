@@ -84,11 +84,18 @@ export async function getTitle({
     return { title: "The Project", color: "#666" };
   }
   const { rows } = await getPool().query(
-    "SELECT title, color FROM compute_servers WHERE id=$1 AND account_id=$2",
+    "SELECT title, color, project_id FROM compute_servers WHERE id=$1",
     [id, account_id],
   );
   if (rows.length == 0) {
-    throw Error(`users does not own a server with id=${id}`);
+    throw Error(`no server with id=${id}`);
+  }
+  if (rows[0].account_id != account_id) {
+    if (
+      !(await isCollaborator({ project_id: rows[0].project_id, account_id }))
+    ) {
+      throw Error("user must be collaborator on project");
+    }
   }
   return { title: rows[0].title ?? "", color: rows[0].color ?? "" };
 }
