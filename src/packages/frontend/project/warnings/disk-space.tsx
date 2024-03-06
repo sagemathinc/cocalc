@@ -19,8 +19,12 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
 }) => {
   const project = useRedux(["projects", "project_map", project_id]);
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  // We got a report of a crash when project isn't defined; that could happen
+  // when opening a project via a direct link, and the project isn't in the
+  // initial project maps (the map will get extended to all projects, and
+  // then this gets rerendered).
   const quotas = useMemo(
-    () => (is_commercial ? project.get("run_quota")?.toJS() : undefined),
+    () => (is_commercial ? project?.get("run_quota")?.toJS() : undefined),
     [project, is_commercial],
   );
 
