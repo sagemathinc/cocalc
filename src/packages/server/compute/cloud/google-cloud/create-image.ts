@@ -508,6 +508,11 @@ function createBuildConfiguration({
         } as const)),
   } as const;
 
+  // IMPORTANT SECURITY NOTE: Do *NOT* install microk8s, even for an image
+  // that uses it. Though it saves time (e.g., 30s), it likely also sets up
+  // secret keys that would be a major security vulnerability, i.e., two kubernetes
+  // VM's made from the same image have the same keys. So don't do that.
+
   const startupScript = `
 #!/bin/bash
 set -ev
