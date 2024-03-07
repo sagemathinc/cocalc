@@ -9,7 +9,10 @@ await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
 await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
 
-a = require('./dist/compute/cloud/google-cloud/create-image')
+images = require('./dist/compute/images'); a = require('./dist/compute/cloud/google-cloud/create-image');
+
+(await images.getImages(0))['jupyterhub']
+await a.createImages({image:"jupyterhub"});
 
 await a.createImages({image:"python", arch:'x86_64'})
 
