@@ -45,21 +45,10 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
           </A>
         </strong>
         , <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
-        <strong>Docker</strong>, to host a{" "}
-        <strong>
-          <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/docs/cocalc.com.md">
-            powerful public webserver
-          </A>
-        </strong>
-        , or use{" "}
-        <strong>
-          <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/mathematica.md">
-            commercial software
-          </A>
-        </strong>{" "}
-        in CoCalc? Compute servers are pay as you go virtual machines where you
+        <strong>Docker</strong> or <strong>Kubernetes</strong> on CoCalc?
+        Compute servers are virtual machines where you and your collaborators
         can run Jupyter notebooks, terminals and web servers collaboratively,
-        with full access to this project.
+        with full access to your project.
         <ul>
           <li>
             <Icon name="ubuntu" /> Full root and internet access on an Ubuntu
@@ -101,9 +90,11 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             running notebooks and terminals on your compute servers.
           </li>
           <li>
-            A compute server belongs to the user who created it; only they can
-            start or stop it, and they will be billed by the second for usage.
-            Any project collaborator can connect to a running compute server.
+            A compute server belongs to the user who created it, and they will
+            be billed by the second for usage. Select "Allow Collaborator
+            Control" to allow project collaborators to start and stop a compute
+            server. Project collaborators can always connect to running compute
+            servers.
           </li>
           <li>
             You can ssh to root@ or user@ the ip address of your compute server
@@ -116,12 +107,16 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
               account public ssh keys
             </A>{" "}
             that has access to this project (you must restart the compute server
-            if you add keys). Once there, type{" "}
-            <code>docker exec -it compute bash</code> to access your compute
-            image. If you start a web service on any port P on your compute
-            server, type <code>ssh -L P:localhost:P root@ip_address</code>
+            if you add keys). If you start a web service on any port P on your
+            compute server, type{" "}
+            <code>ssh -L P:localhost:P user@ip_address</code>
             on your laptop, and you can connect to that web service on localhost
-            on your laptop.
+            on your laptop. Also ports 80 and 443 are always publicly visible
+            (so no port forwarding is required). If you connect to
+            root@ip_address, you are root on the underlying virtual machine; if
+            you connect to user@ip_address, you are the user inside the main
+            compute container, with full access to your chosen image -- this is
+            the same as opening a terminal and selecting the compute server.
           </li>
         </ul>
       </Typography.Paragraph>

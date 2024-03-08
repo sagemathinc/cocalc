@@ -452,16 +452,6 @@ export function CoCalcComFeatures() {
                     .
                   </li>
                   <li>
-                    Run your own {siteName} server easily via{" "}
-                    <A
-                      style={link}
-                      href="https://github.com/sagemathinc/cocalc-docker#readme"
-                    >
-                      <strong>cocalc-docker</strong>
-                    </A>{" "}
-                    for a small group.
-                  </li>
-                  <li>
                     Deploy a highly scalable variant of {siteName} on your{" "}
                     <strong>Kubernetes cluster</strong> via{" "}
                     <A
