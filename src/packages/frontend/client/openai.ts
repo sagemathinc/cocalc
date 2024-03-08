@@ -8,6 +8,11 @@ import { EventEmitter } from "events";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
+import {
+  LanguageModel,
+  isFreeModel,
+  model2service,
+} from "@cocalc/util/db-schema/llm";
 import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
 import {
   MAX_EMBEDDINGS_TOKENS,
@@ -15,10 +20,9 @@ import {
   MAX_SAVE_LIMIT,
   MAX_SEARCH_LIMIT,
 } from "@cocalc/util/db-schema/openai";
+import { LLMService } from "@cocalc/util/db-schema/purchases";
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
-import { LanguageModel, LanguageService } from "@cocalc/util/db-schema/llm";
-import { isFreeModel, model2service } from "@cocalc/util/db-schema/llm";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.  BE BRIEF.";
@@ -96,7 +100,7 @@ export class LLMClient {
 
     if (!isFreeModel(model)) {
       // Ollama and others are treated as "free"
-      const service = model2service(model) as LanguageService;
+      const service = model2service(model) as LLMService;
       // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
       const { allowed, reason } =
         await this.client.purchases_client.isPurchaseAllowed(service);

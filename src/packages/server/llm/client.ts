@@ -76,7 +76,7 @@ const ollamaCache: { [key: string]: Ollama } = {};
 
 /**
  * The idea here is: the ollama config contains all available endpoints and their configuration.
- * The "model" is the unique key in the ollama_configuration mapping, it was prefixed by "ollama-".
+ * The "model" is the unique key in the ollama_configuration mapping, it was prefixed by $OLLAMA_PREFIX.
  * For the actual Ollama client instantitation, we pick the model parameter from the config or just use the unique model name as a fallback.
  * In particular, this means you can query the same Ollama model with differnet parameters, or even have several ollama servers running.
  * All other config parameters are passed to the Ollama constructor (e.g. topK, temperature, etc.).

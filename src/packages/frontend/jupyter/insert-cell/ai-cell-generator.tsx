@@ -158,7 +158,7 @@ interface QueryLanguageModelProps {
   actions: JupyterActions;
   frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
   id: string;
-  model: LanguageModel | string;
+  model: LanguageModel;
   path: string;
   position: "above" | "below";
   project_id: string;
@@ -306,7 +306,7 @@ interface GetInputProps {
   actions: JupyterActions;
   frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
   id: string;
-  model: LanguageModel | string;
+  model: LanguageModel;
   position: "above" | "below";
   prompt: string;
 }

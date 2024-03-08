@@ -1,7 +1,7 @@
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { EnabledLLMs } from "@cocalc/frontend/project/context";
 import {
-  LanguageModel,
+  LanguageService,
   USER_SELECTABLE_LANGUAGE_MODELS,
   fromOllamaModel,
   getValidLanguageModelName,
@@ -14,7 +14,7 @@ export const SETTINGS_LANGUAGE_MODEL_KEY = "language_model";
 // The "AI Formula" dialog is outside the project context (unfortunately)
 export function useLanguageModelSetting(
   project_id?: string,
-): [LanguageModel | string, (llm: LanguageModel | string) => void] {
+): [LanguageService, (llm: LanguageService) => void] {
   const other_settings = useTypedRedux("account", "other_settings");
   const ollama = useTypedRedux("customize", "ollama");
 
@@ -27,7 +27,7 @@ export function useLanguageModelSetting(
     return projectsStore.whichLLMareEnabled(project_id);
   }, [haveOpenAI, haveGoogle, haveOllama]);
 
-  const llm = useMemo(() => {
+  const llm: LanguageService = useMemo(() => {
     return getValidLanguageModelName(
       other_settings?.get("language_model"),
       enabledLLMs,
@@ -35,7 +35,7 @@ export function useLanguageModelSetting(
     );
   }, [other_settings]);
 
-  function setLLM(llm: LanguageModel | string) {
+  function setLLM(llm: LanguageService) {
     if (USER_SELECTABLE_LANGUAGE_MODELS.includes(llm as any)) {
       redux
         .getActions("account")

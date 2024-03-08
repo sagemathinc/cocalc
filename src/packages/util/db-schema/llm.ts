@@ -1,8 +1,9 @@
 // this contains bits and pieces from the wrongly named openai.ts file
 
 import type { LLMService, Service } from "@cocalc/util/db-schema/purchases";
-import { unreachable } from "../misc";
+import { unreachable } from "@cocalc/util/misc";
 
+// the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
 export const LANGUAGE_MODELS = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
@@ -28,12 +29,21 @@ export const USER_SELECTABLE_LANGUAGE_MODELS: Readonly<LanguageModel[]> = [
   "gemini-pro",
 ] as const;
 
-export type LanguageModel = (typeof LANGUAGE_MODELS)[number];
+export type OllamaLLM = string;
 
-export function isLanguageModel(model?: string): model is LanguageModel {
-  return LANGUAGE_MODELS.includes(model as LanguageModel);
+export type LanguageModel = (typeof LANGUAGE_MODELS)[number] | OllamaLLM;
+
+// we check if the given object is any known language model
+export function isLanguageModel(model?: unknown): model is LanguageModel {
+  if (model == null) return false;
+  if (isOllamaLLM(model)) return true;
+  if (typeof model !== "string") return false;
+  return LANGUAGE_MODELS.includes(model as any);
 }
 
+// this is used in initialization functions. e.g. to get a default model depending on the overall availability
+// usually, this should just return the chatgpt3 model, but e.g. if neither google or openai is available,
+// then it might even falls back to an available ollama model. It needs to return a string, though, for the frontend, etc.
 export function getValidLanguageModelName(
   model: string | undefined,
   filter: { google: boolean; openai: boolean; ollama: boolean } = {
@@ -42,7 +52,7 @@ export function getValidLanguageModelName(
     ollama: false,
   },
   ollama: string[] = [], // keys of ollama models
-): LanguageModel | string {
+): LanguageModel {
   const dftl =
     filter.openai === true
       ? DEFAULT_MODEL
@@ -52,10 +62,10 @@ export function getValidLanguageModelName(
   if (model == null) {
     return dftl;
   }
-  if (LANGUAGE_MODELS.includes(model as LanguageModel)) {
+  if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
     return model;
   }
-  if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
+  if (typeof model === "string" && isLanguageModel(model)) {
     return model;
   }
   return dftl;
@@ -67,6 +77,15 @@ export interface OpenAIMessage {
 }
 export type OpenAIMessages = OpenAIMessage[];
 
+export const OLLAMA_PREFIX = "ollama-";
+
+export type OllamaService = string;
+
+export function isOllamaService(service: string): service is OllamaService {
+  return isOllamaLLM(service);
+}
+
+// we encode the in the frontend and elsewhere with the service name as a prefix
 export type LanguageService =
   | "openai-gpt-3.5-turbo"
   | "openai-gpt-3.5-turbo-16k"
@@ -76,7 +95,8 @@ export type LanguageService =
   | "google-text-bison-001"
   | "google-chat-bison-001"
   | "google-embedding-gecko-001"
-  | "google-gemini-pro";
+  | "google-gemini-pro"
+  | OllamaService;
 
 const LANGUAGE_MODEL_VENDORS = ["openai", "google", "ollama"] as const;
 export type Vendor = (typeof LANGUAGE_MODEL_VENDORS)[number];
@@ -87,11 +107,13 @@ export const LANGUAGE_MODEL_PREFIXES = [
   ...LANGUAGE_MODEL_VENDORS.map((v) => `${v}-`),
 ] as const;
 
-export function model2service(
-  model: LanguageModel | string,
-): LanguageService | string {
+// we encode the in the frontend and elsewhere with the service name as a prefix
+export function model2service(model: LanguageModel): LanguageService {
   if (model === "text-embedding-ada-002") {
     return `openai-${model}`;
+  }
+  if (isOllamaLLM(model)) {
+    return toOllamaModel(model);
   }
   if (isLanguageModel(model)) {
     if (
@@ -105,9 +127,7 @@ export function model2service(
       return `openai-${model}`;
     }
   }
-  if (isOllamaLLM(model)) {
-    return toOllamaModel(model);
-  }
+
   throw new Error(`unknown model: ${model}`);
 }
 
@@ -119,11 +139,15 @@ export function service2model(
   if (service === "chatgpt") {
     return "gpt-3.5-turbo";
   }
+
   // split off the first part of service, e.g., "openai-" or "google-"
   const s = service.split("-")[0];
-  const hasPrefix = s === "openai" || s === "google";
+  const hasPrefix = s === "openai" || s === "google" || s === "ollama";
   const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
-  if (!LANGUAGE_MODELS.includes(m as LanguageModel)) {
+  if (hasPrefix && s === "ollama") {
+    return toOllamaModel(m);
+  }
+  if (!LANGUAGE_MODELS.includes(m as any)) {
     // We don't throw an error, since the frontend would crash
     // throw new Error(`unknown service: ${service}`);
     console.warn(`service2model: unknown service: ${service}`);
@@ -135,32 +159,40 @@ export function service2model(
 // Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
 export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 
-export function model2vendor(model: LanguageModel | string): Vendor {
-  if (model.startsWith("gpt-")) {
-    return "openai";
-  } else if (isOllamaLLM(model)) {
+export function model2vendor(model): Vendor {
+  if (isOllamaLLM(model)) {
     return "ollama";
+  } else if (model.startsWith("gpt-")) {
+    return "openai";
   } else {
     return "google";
   }
 }
 
-export function toOllamaModel(model: string) {
+// wraps the model name in an object that indicates that it's an ollama model
+// TODO: maybe it will be necessary at some point to pass in the list of available ollama models
+// TODO: in the future, this object will also contain info like the max tokens and other parameters (from the DB)
+export function toOllamaModel(model: string): OllamaLLM {
   if (isOllamaLLM(model)) {
     throw new Error(`already an ollama model: ${model}`);
   }
   return `ollama-${model}`;
 }
 
-export function fromOllamaModel(model: string) {
+// unwraps the model name from an object that indicates that it's an ollama model
+export function fromOllamaModel(model: OllamaLLM) {
   if (!isOllamaLLM(model)) {
     throw new Error(`not an ollama model: ${model}`);
   }
-  return model.slice("ollama-".length);
+  return model.slice(OLLAMA_PREFIX.length);
 }
 
-export function isOllamaLLM(model: string) {
-  return model.startsWith("ollama-");
+export function isOllamaLLM(model: unknown): model is OllamaLLM {
+  return (
+    typeof model === "string" &&
+    model.startsWith(OLLAMA_PREFIX) &&
+    model.length > OLLAMA_PREFIX.length
+  );
 }
 
 const MODELS_OPENAI = [
@@ -180,7 +212,6 @@ export const MODELS = [
 ] as const;
 
 export type Model = (typeof MODELS)[number];
-
 export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
 
 // Map from psuedo account_id to what should be displayed to user.
@@ -200,9 +231,9 @@ export const LLM_USERNAMES = {
   "gemini-pro": "Gemini Pro",
 } as const;
 
-export function isFreeModel(model: string) {
+export function isFreeModel(model: unknown) {
   if (isOllamaLLM(model)) return true;
-  if (LANGUAGE_MODELS.includes(model as LanguageModel)) {
+  if (LANGUAGE_MODELS.includes(model as any)) {
     // of these models, the following are free
     return (
       (model as Model) == "gpt-3.5-turbo" ||
@@ -258,7 +289,7 @@ interface Cost {
 // Our cost is a configurable multiple of this.
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
-const LLM_COST: { [name in LanguageModel]: Cost } = {
+export const LLM_COST: { [name in string]: Cost } = {
   "gpt-4": {
     prompt_tokens: 0.03 / 1000,
     completion_tokens: 0.06 / 1000,
@@ -316,7 +347,9 @@ export function isValidModel(model?: string): boolean {
   return LLM_COST[model ?? ""] != null;
 }
 
-export function getMaxTokens(model?: Model | string): number {
+export function getMaxTokens(model?: LanguageModel): number {
+  // TODO: store max tokens in the model object itself, this is just a fallback
+  if (isOllamaLLM(model)) return 8192;
   return LLM_COST[model ?? ""]?.max_tokens ?? 4096;
 }
 

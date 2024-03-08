@@ -1,5 +1,6 @@
 import { CSS } from "@cocalc/frontend/app-framework";
 import {
+  LanguageModel,
   isLanguageModel,
   isOllamaLLM,
   model2vendor,
@@ -13,7 +14,7 @@ import OpenAIAvatar from "./openai-avatar";
 
 export function LanguageModelVendorAvatar(
   props: Readonly<{
-    model?: string;
+    model?: LanguageModel;
     size?: number;
     style?: CSS;
   }>,

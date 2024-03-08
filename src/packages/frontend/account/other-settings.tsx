@@ -390,6 +390,7 @@ export class OtherSettings extends Component<Props> {
     const options: { value: string; display: JSX.Element }[] = [];
 
     for (const key of USER_SELECTABLE_LANGUAGE_MODELS) {
+      if (typeof key !== "string") continue
       const vendor = model2vendor(key);
       if (vendor === "google" && !enabled.google) continue;
       if (vendor === "openai" && !enabled.openai) continue;

@@ -435,7 +435,7 @@ async function updateInput(
   actions: Actions,
   id,
   scope,
-  model: LanguageModel | string,
+  model: LanguageModel,
 ): Promise<{ input: string; inputOrig: string }> {
   if (scope == "none") {
     return { input: "", inputOrig: "" };

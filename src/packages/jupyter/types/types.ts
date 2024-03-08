@@ -78,8 +78,8 @@ export type KernelMetadata = {
 };
 
 export interface AiTools {
-  model: LanguageModel | string;
-  setModel: (llm: LanguageModel | string) => void;
+  model: LanguageModel ;
+  setModel: (llm: LanguageModel ) => void;
   toolComponents: {
     ChatGPTExplain;
     ChatGPTError;

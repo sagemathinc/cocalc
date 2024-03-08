@@ -23,8 +23,8 @@ export type { LanguageModel };
 type SizeType = ConfigProviderProps["componentSize"];
 
 interface Props {
-  model: LanguageModel | string;
-  setModel: (model: LanguageModel | string) => void;
+  model: LanguageModel;
+  setModel: (model: LanguageModel) => void;
   size?: SizeType;
   style?: CSS;
   project_id: string;
@@ -75,6 +75,7 @@ export default function ModelSwitch({
     title: string,
   ) {
     if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel)) return;
+    if (typeof btnModel !== "string") return;
 
     const display = (
       <>
@@ -183,18 +184,16 @@ export default function ModelSwitch({
   );
 }
 
-export function modelToName(model: LanguageModel | string): string {
+export function modelToName(model: LanguageModel): string {
   if (isOllamaLLM(model)) {
     const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
     const om = ollama[fromOllamaModel(model)];
-    if (om) {
-      return om.display ?? `Ollama ${model}`;
-    }
+    return om ? om.display : `Ollama ${model}`;
   }
   return LLM_USERNAMES[model] ?? model;
 }
 
-export function modelToMention(model: LanguageModel | string): string {
+export function modelToMention(model: LanguageModel): string {
   return `<span class="user-mention" account-id=${model2service(
     model,
   )} >@${modelToName(model)}</span>`;

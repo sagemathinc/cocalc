@@ -3,9 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import * as misc from "@cocalc/util/misc";
 import { Form, Select } from "antd";
+import React from "react";
+
+import * as misc from "@cocalc/util/misc";
+
 const { Option } = Select;
 
 interface Props {

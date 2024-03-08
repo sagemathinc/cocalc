@@ -1,13 +1,14 @@
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/model-switch";
 import {
+  LanguageModel,
   fromOllamaModel,
   isLanguageModel,
   isOllamaLLM,
 } from "@cocalc/util/db-schema/llm";
 import { LanguageModelVendorAvatar } from "./language-model-icon";
 
-export function LLMModelName(props: Readonly<{ model: string }>) {
+export function LLMModelName(props: Readonly<{ model: LanguageModel }>) {
   const { model } = props;
 
   const ollama = useTypedRedux("customize", "ollama");

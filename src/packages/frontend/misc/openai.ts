@@ -1,8 +1,8 @@
 // NOTE! This gpt-3-tokenizer is LARGE, e.g., 1.6MB, so be
 // sure to async load it by clients of this code.
-import GPT3Tokenizer from "gpt3-tokenizer";
-import type { Model } from "@cocalc/util/db-schema/llm";
+import type { LanguageModel } from "@cocalc/util/db-schema/llm";
 import { getMaxTokens } from "@cocalc/util/db-schema/llm";
+import GPT3Tokenizer from "gpt3-tokenizer";
 
 export { getMaxTokens };
 
@@ -64,7 +64,7 @@ export function truncateMessage(content: string, maxTokens: number): string {
 export function truncateHistory(
   history: History,
   maxTokens: number,
-  model: Model,
+  model: LanguageModel,
 ): History {
   if (maxTokens <= 0) {
     return [];

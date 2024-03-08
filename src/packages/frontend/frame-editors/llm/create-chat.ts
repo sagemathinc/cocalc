@@ -9,7 +9,7 @@ export interface Options {
   command: string;
   allowEmpty?: boolean;
   tag?: string;
-  model: LanguageModel | string;
+  model: LanguageModel;
 }
 
 export default async function createChat({
