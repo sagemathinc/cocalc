@@ -52,9 +52,9 @@ export const getImages = createDatabaseCache<Images>({
 // Update the images object that is stored in the database,
 // and also return it.
 async function fetchImagesFromRemote(): Promise<Images> {
-  logger.debug("fetchImagesFromRemote");
   const db = getPool();
-  const url = await getRemoteUrl(db);
+  const url = `${await getRemoteUrl(db)}?random=${Math.random()}`;
+  logger.debug("fetchImagesFromRemote", { url });
   const response = await fetch(url);
   return await response.json();
 }

@@ -179,7 +179,7 @@ export const shoppingCartCheckout = async ({
           availableBalance = 0;
 
           return {
-            amount: itemCharge - remainingAvailableBalance,
+            amount: round2up(itemCharge - remainingAvailableBalance),
             description: `${description} [${currency(
               remainingAvailableBalance,
             )} deducted from account balance]`,

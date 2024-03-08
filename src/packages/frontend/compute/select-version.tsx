@@ -125,7 +125,12 @@ export default function SelectVersion({
   );
 }
 
-function toOption(x: { label?: string; tag: string; tested?: boolean }) {
+function toOption(x: {
+  label?: string;
+  tag: string;
+  tested?: boolean;
+  version?: string;
+}) {
   return {
     label: `${x.label ?? x.tag}${!x.tested ? " (untested)" : ""}`,
     value: x.tag,

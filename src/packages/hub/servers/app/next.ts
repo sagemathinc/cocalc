@@ -64,7 +64,7 @@ export default async function init(app: Application) {
         } catch (_err) {
           res.status(404).end();
         }
-      }
+      },
     );
 
     // 2: The download server -- just like raw, but files always get sent via download.
@@ -83,7 +83,7 @@ export default async function init(app: Application) {
         } catch (_err) {
           res.status(404).end();
         }
-      }
+      },
     );
 
     // 3: Redirects for backward compat; unfortunately there's slight
@@ -99,8 +99,10 @@ export default async function init(app: Application) {
 
   // The next.js server that serves everything else.
   winston.info(
-    "Now using next.js packages/share handler to handle all endpoints not otherwise handled"
+    "Now using next.js packages/share handler to handle all endpoints not otherwise handled",
   );
+
+  // nextjs listens on everything else
   app.all("*", handler);
 }
 

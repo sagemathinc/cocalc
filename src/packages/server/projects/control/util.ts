@@ -13,8 +13,9 @@ import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
+import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
 
-const winston = getLogger("project-control:util");
+const logger = getLogger("project-control:util");
 
 export const mkdir = promisify(fs.mkdir);
 const readFile = promisify(fs.readFile);
@@ -48,21 +49,33 @@ function pidIsRunning(pid: number): boolean {
 }
 
 function pidFile(HOME: string): string {
-  return join(dataPath(HOME), "project.pid");
+  return join(dataPath(HOME), pidFilename);
 }
 
 // throws error if no such file
 export async function getProjectPID(HOME: string): Promise<number> {
-  return parseInt((await readFile(pidFile(HOME))).toString());
+  const path = pidFile(HOME);
+  // if path is older than 2*pidUpdateIntervalMs, throw an error:
+  const stats = await stat(path);
+  const modificationTime = stats.mtime.getTime();
+  const now = Date.now();
+
+  if (now - modificationTime > 2 * pidUpdateIntervalMs + 1) {
+    throw new Error(
+      `The pid file "${path}" is too old -- considering project to be dead`,
+    );
+  }
+
+  return parseInt((await readFile(path)).toString());
 }
 
 export async function isProjectRunning(HOME: string): Promise<boolean> {
   try {
     const pid = await getProjectPID(HOME);
-    //winston.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
+    //logger.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
     return pidIsRunning(pid);
   } catch (err) {
-    //winston.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
+    //logger.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
     // err would happen if file doesn't exist, which means nothing to do.
     return false;
   }
@@ -70,7 +83,7 @@ export async function isProjectRunning(HOME: string): Promise<boolean> {
 
 export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   const data = dataPath(HOME);
-  winston.debug(`setup "${data}"...`);
+  logger.debug(`setup "${data}"...`);
   await rm(data, { recursive: true, force: true });
   await mkdir(data);
   if (uid != null) {
@@ -84,14 +97,14 @@ async function logLaunchParams(params): Promise<void> {
   try {
     await writeFile(path, JSON.stringify(params, undefined, 2));
   } catch (err) {
-    winston.debug(
+    logger.debug(
       `WARNING: failed to write ${path}, which is ONLY used for debugging -- ${err}`,
     );
   }
 }
 
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
-  winston.debug(`launching project daemon at "${env.HOME}"...`);
+  logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
   const args = [
@@ -102,7 +115,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
     "--blobstore",
     blobstore,
   ];
-  winston.debug(
+  logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
   logLaunchParams({ cwd, env, cmd, args, uid });
@@ -114,19 +127,19 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       gid: uid,
     });
     child.on("error", (err) => {
-      winston.debug(`project daemon error ${err}`);
+      logger.debug(`project daemon error ${err}`);
       cb(err);
     });
     child.on("exit", async (code) => {
-      winston.debug("project daemon exited with code", code);
+      logger.debug("project daemon exited with code", code);
       if (code != 0) {
         try {
           const s = (await readFile(env.LOGS)).toString();
-          winston.debug("project log file ended: ", s.slice(-2000));
+          logger.debug("project log file ended: ", s.slice(-2000));
         } catch (err) {
           // there's a lot of reasons the log file might not even exist,
           // e.g., debugging is not enabled
-          winston.debug("project log file ended - unable to read log ", err);
+          logger.debug("project log file ended - unable to read log ", err);
         }
       }
       cb(code);
@@ -138,10 +151,10 @@ async function exec(
   command: string,
   verbose?: boolean,
 ): Promise<{ stdout: string; stderr: string }> {
-  winston.debug(`exec '${command}'`);
+  logger.debug(`exec '${command}'`);
   const output = await promisify(exec0)(command);
   if (verbose) {
-    winston.debug(`output: ${JSON.stringify(output)}`);
+    logger.debug(`output: ${JSON.stringify(output)}`);
   }
   return output;
 }
@@ -155,11 +168,11 @@ export async function createUser(project_id: string): Promise<void> {
     // that is fine. The user may or may not already exist.
   }
   const uid = `${getUid(project_id)}`;
-  winston.debug("createUser: adding group");
+  logger.debug("createUser: adding group");
   try {
     await exec(`/usr/sbin/groupadd -g ${uid} -o ${username}`, true);
   } catch (_) {}
-  winston.debug("createUser: adding user");
+  logger.debug("createUser: adding user");
   try {
     await exec(
       `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -m -d ${homePath(
@@ -265,7 +278,7 @@ export async function getEnvironment(
 }
 
 export async function getState(HOME: string): Promise<ProjectState> {
-  winston.debug(`getState("${HOME}")`);
+  logger.debug(`getState("${HOME}")`);
   try {
     return {
       ip: "localhost",
@@ -282,7 +295,7 @@ export async function getState(HOME: string): Promise<ProjectState> {
 }
 
 export async function getStatus(HOME: string): Promise<ProjectStatus> {
-  winston.debug(`getStatus("${HOME}")`);
+  logger.debug(`getStatus("${HOME}")`);
   const data = dataPath(HOME);
   const status: ProjectStatus = {};
   if (!(await isProjectRunning(HOME))) {
@@ -315,7 +328,7 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
         status[path] = val;
       }
     } catch (_err) {
-      //winston.debug(`getStatus: ${_err}`);
+      //logger.debug(`getStatus: ${_err}`);
     }
   }
   return status;
@@ -343,7 +356,7 @@ export async function ensureConfFilesExists(
           await chown(target, uid);
         }
       } catch (err) {
-        winston.error(`ensureConfFilesExists -- ${err}`);
+        logger.error(`ensureConfFilesExists -- ${err}`);
       }
     }
   }
@@ -358,9 +371,7 @@ export async function copyPath(
   project_id: string,
   target_uid?: number,
 ): Promise<void> {
-  winston.info(
-    `copyPath(source="${project_id}"): opts=${JSON.stringify(opts)}`,
-  );
+  logger.info(`copyPath(source="${project_id}"): opts=${JSON.stringify(opts)}`);
   const { path, overwrite_newer, delete_missing, backup, timeout, bwlimit } =
     opts;
   if (path == null) {
@@ -477,7 +488,7 @@ export async function copyPath(
   }
 
   // do the copy!
-  winston.info(`doing rsync ${args.join(" ")}`);
+  logger.info(`doing rsync ${args.join(" ")}`);
   if (opts.wait_until_done ?? true) {
     try {
       const stdout = await spawnAsync("rsync", args, {
@@ -485,7 +496,7 @@ export async function copyPath(
           ? 1000 * opts.timeout
           : undefined /* spawnAsync has ms units, but rsync has second units */,
       });
-      winston.info(`finished rsync ${stdout}`);
+      logger.info(`finished rsync ${stdout}`);
     } catch (err) {
       throw Error(
         `WARNING: copy exited with an error -- ${

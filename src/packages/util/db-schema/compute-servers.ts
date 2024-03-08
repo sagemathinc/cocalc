@@ -27,8 +27,6 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
-// TODO: maybe should optionally add minDiskSizeGb to Version?
-
 export interface Image {
   // What we show the user to describe this image, e.g., in the image select menu.
   label: string;
@@ -52,6 +50,8 @@ export interface Image {
   versions: ImageVersion[];
   // If true, then a GPU is required to use this image.
   gpu?: boolean;
+  // If true, then the microk8s snap is required to use this image.
+  microk8s?: boolean;
   // authToken: if true, image has web interface that supports configurable auth token
   authToken?: boolean;
   // jupyterKernels: if false, no jupyter kernels included. If true or a list of
@@ -438,6 +438,14 @@ interface BaseConfiguration {
   ephemeral?: boolean;
   // Token used for authentication at https://compute-server...
   authToken?: string;
+  // If this compute server stops pinging us, e.g., due to being preempted or
+  // just crashing due to out of memory (etc) should we automatically do a
+  // forced restart.  Note that currently for on prem this isn't possible.
+  autoRestart?: boolean;
+  autoRestartDisabled?: boolean; // used to temporarily disable it to avoid accidentally triggering it.
+  // Allow collaborators to control the state of the compute server.
+  // They cannot change any other configuration.  User still pays for everything and owns compute server.
+  allowCollaboratorControl?: boolean;
 }
 
 interface LambdaConfiguration extends BaseConfiguration {

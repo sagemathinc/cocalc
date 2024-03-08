@@ -7,6 +7,7 @@ import { exists, stat } from "fs";
 import fs from "node:fs";
 import type { CB } from "@cocalc/util/types/callback";
 import { Watcher } from "@cocalc/backend/watcher";
+
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("sync-client:client-fs");

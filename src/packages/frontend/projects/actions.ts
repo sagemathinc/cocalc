@@ -240,7 +240,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
             [opts.fingerprint]: {
               title: opts.title,
               value: opts.value,
-              creation_date: new Date().valueOf(),
+              creation_date: Date.now(),
             },
           },
         },

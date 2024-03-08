@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { DisplayImage } from "./select-image";
 
 interface Props {
   project_id: string;
@@ -103,15 +104,23 @@ export function ComputeServerDocStatus({
             height: "23px",
             cursor: "pointer",
             padding: "2px 5px",
-            background: requestedServer.get("color"),
-            color: avatar_fontcolor(requestedServer.get("color")),
+            background: requestedServer?.get("color") ?? "#fff",
+            color: avatar_fontcolor(requestedServer?.get("color") ?? "#fff"),
             width: "100%",
             overflow: "hidden",
             textAlign: "center",
           }}
         >
           {progress < 100 ? `${progress}% - ` : ""}
-          {requestedServer.get("title")} (Id: {requestedId})
+          {requestedServer?.get("title") ?? "Loading..."} (Id: {requestedId})
+          <DisplayImage
+            style={{
+              marginLeft: "10px",
+              borderLeft: "1px solid black",
+              paddingLeft: "10px",
+            }}
+            configuration={requestedServer?.get("configuration")?.toJS()}
+          />
         </div>
       </Tooltip>
       {progress == 100 && !noSync && (

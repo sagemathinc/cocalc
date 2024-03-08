@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { useContext } from 'react';
+import React, { useContext } from "react";
 import { Menu, MenuProps, Typography, Flex } from "antd";
 import { useRouter } from "next/router";
 
-import { currency } from "@cocalc/util/misc";
-import { COLORS } from '@cocalc/util/theme';
+import { currency, round2down } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "@cocalc/frontend/components/icon";
 
 import { StoreBalanceContext } from "../../lib/balance";
@@ -22,7 +22,7 @@ const styles: { [k: string]: React.CSSProperties } = {
     height: "100%",
     whiteSpace: "nowrap",
     flexGrow: 1,
-    textAlign: "end"
+    textAlign: "end",
   },
   menu: {
     width: "100%",
@@ -56,7 +56,7 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
     router.push(`/store/${keyPath[0]}`, undefined, {
       scroll: false,
     });
-  }
+  };
 
   const items: MenuItem[] = [
     {
@@ -87,12 +87,17 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
   ];
 
   return (
-    <Flex gap="middle" justify="space-between" style={styles.menuRoot} wrap="wrap">
+    <Flex
+      gap="middle"
+      justify="space-between"
+      style={styles.menuRoot}
+      wrap="wrap"
+    >
       <Flex style={styles.menuContainer} align="center">
         <strong>
           <a
             onClick={() => {
-              router.push('/store', undefined, {
+              router.push("/store", undefined, {
                 scroll: false,
               });
             }}
@@ -110,7 +115,9 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
         />
       </Flex>
       <Text strong style={styles.menuBookend}>
-        {balance !== undefined ? `Balance: ${currency(balance)}` : null}
+        {balance !== undefined
+          ? `Balance: ${currency(round2down(balance))}`
+          : null}
       </Text>
     </Flex>
   );

@@ -9,7 +9,10 @@ await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
 await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
 
-a = require('./dist/compute/cloud/google-cloud/create-image')
+images = require('./dist/compute/images'); a = require('./dist/compute/cloud/google-cloud/create-image');
+
+(await images.getImages(0))['jupyterhub']
+await a.createImages({image:"jupyterhub"});
 
 await a.createImages({image:"python", arch:'x86_64'})
 
@@ -508,6 +511,11 @@ function createBuildConfiguration({
         } as const)),
   } as const;
 
+  // IMPORTANT SECURITY NOTE: Do *NOT* install microk8s, even for an image
+  // that uses it. Though it saves time (e.g., 30s), it likely also sets up
+  // secret keys that would be a major security vulnerability, i.e., two kubernetes
+  // VM's made from the same image have the same keys. So don't do that.
+
   const startupScript = `
 #!/bin/bash
 set -ev
@@ -524,7 +532,7 @@ docker system prune -a -f
 # Install nodejs
 ${installNode()}
 
-${installCoCalc({ arch, IMAGES })}
+${installCoCalc({ IMAGES })}
 
 # Pre-pull filesystem Docker container
 docker pull ${IMAGES["filesystem"].package}:${tag_filesystem}

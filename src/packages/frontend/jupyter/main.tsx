@@ -17,19 +17,23 @@ import {
   useRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-
 // Support for all the MIME types
-import "./output-messages/mime-types/init-frontend";
 import { Button, Tooltip } from "antd";
+import "./output-messages/mime-types/init-frontend";
 // React components that implement parts of the Jupyter notebook.
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { ErrorDisplay } from "@cocalc/frontend/components";
-import { Loading } from "@cocalc/frontend/components/loading";
 import { A } from "@cocalc/frontend/components/A";
+import { Loading } from "@cocalc/frontend/components/loading";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import { AiTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
 import type { JupyterActions } from "./browser-actions";
 import { CellList } from "./cell-list";
+import * as toolComponents from "./chatgpt";
 import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
@@ -37,14 +41,11 @@ import { FindAndReplace } from "./find-and-replace";
 import { InsertImage } from "./insert-image";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
+import KernelWarning from "./kernel-warning";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
-import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
-import KernelWarning from "./kernel-warning";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -65,6 +66,7 @@ interface Props {
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
   is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
+  is_visible?: boolean;
   mode: NotebookMode;
   font_size?: number;
 
@@ -86,6 +88,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     is_focused,
     is_fullscreen,
+    is_visible,
     font_size,
     mode,
     cur_id,
@@ -186,6 +189,17 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const requestedComputeServerId =
     useRedux([name, "requestedComputeServerId"]) ?? 0;
 
+  // this is confusing: it's here because the "nbviewer" code reuses a subset of components
+  // and this is here to pass down AI tools related functionality to those, which are used by the frontend
+  const [model, setModel] = useLanguageModelSetting(project_id);
+  // ATTN: if you add values here, make sure to check the memoize check functions in the components –
+  // otherwise they will not re-render as expected.
+  const aiTools: AiTools = {
+    model,
+    setModel,
+    toolComponents,
+  } as const;
+
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
   // what comes up with Jupyter notebooks.
@@ -274,6 +288,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         font_size={font_size}
         hook_offset={hook_offset}
         is_focused={is_focused}
+        is_visible={is_visible}
         md_edit_ids={md_edit_ids}
         mode={mode}
         more_output={more_output}
@@ -285,7 +300,13 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        showAItools={true}
+        aiTools={
+          redux
+            .getStore("projects")
+            .hasLanguageModelEnabled(project_id, "generate-cell")
+            ? aiTools
+            : undefined
+        }
         computeServerId={computeServerId}
       />
     );

@@ -311,7 +311,7 @@ export class Actions extends BaseActions<X11EditorState> {
       super.reload(id);
       return;
     }
-    this.set_reload("x11", new Date().valueOf());
+    this.set_reload("x11", Date.now());
   }
 
   blur(): void {

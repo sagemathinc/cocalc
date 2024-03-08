@@ -168,11 +168,11 @@ export default function View({
     if (newId != null) {
       // UNCLEAR: We could filter to remove older records to save memory and
       // put in the new one.  But people might be annoyed by this and it is abitrary.
-      // const now = new Date().valueOf();
+      // const now = Date.now();
       /// .filter((x) => x.timestamp >= now - 1000 * 60 * 5)
       addedRecords.push({
         id: newId,
-        timestamp: new Date().valueOf(),
+        timestamp: Date.now(),
         viewName: name,
         viewId: id,
       });

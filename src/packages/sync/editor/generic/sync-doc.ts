@@ -47,6 +47,9 @@ const MAX_FILE_SIZE_MB = 8;
 // cursors less responsive.
 const CURSOR_THROTTLE_MS = 750;
 
+// Ignore file changes for this long after save to disk.
+const RECENT_SAVE_TO_DISK_MS = 2000;
+
 import {
   COMPUTE_THRESH_MS,
   COMPUTER_SERVER_CURSOR_TYPE,
@@ -317,7 +320,7 @@ export class SyncDoc extends EventEmitter {
       //const t0 = new Date();
       await this.init_all();
       //console.log(  // TODO remove at some point.
-      //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
+      //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
       //);
     } catch (err) {
       if (this.state == "closed") {
@@ -2633,10 +2636,10 @@ export class SyncDoc extends EventEmitter {
     if (
       this.save_to_disk_start_ctime == null ||
       (this.save_to_disk_end_ctime != null &&
-        time - this.save_to_disk_end_ctime >= 7 * 1000)
+        time - this.save_to_disk_end_ctime >= RECENT_SAVE_TO_DISK_MS)
     ) {
       // Either we never saved to disk, or the last attempt
-      // to save was at least 7s ago, and it finished,
+      // to save was at least RECENT_SAVE_TO_DISK_MS ago, and it finished,
       // so definitely this change event was not caused by it.
       dbg("load_from_disk since no recent save to disk");
       await this.load_from_disk();
@@ -2697,7 +2700,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
-    x.time = new Date().valueOf();
+    x.time = Date.now();
     this.syncstring_table.set(
       this.syncstring_table_get_one().set("save", fromJS(x)),
     );

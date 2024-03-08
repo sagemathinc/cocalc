@@ -11,6 +11,7 @@ import getClient, {
   suspendInstance,
   resumeInstance,
   setMetadata,
+  getSerialPortOutput as getSerialPortOutput0,
 } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
@@ -261,4 +262,16 @@ export async function setImageTested(server: ComputeServer, tested: boolean) {
     throw Error("must have a google-cloud configuration");
   }
   await setTested(configuration, tested);
+}
+
+export async function getSerialPortOutput(
+  server: ComputeServer,
+): Promise<string> {
+  const { configuration } = server;
+  if (configuration?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const name = await getServerName(server);
+  const { zone } = configuration;
+  return await getSerialPortOutput0({ name, zone });
 }

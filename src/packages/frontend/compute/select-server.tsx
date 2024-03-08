@@ -153,7 +153,7 @@ export default function SelectServer({
     }
     const v: { label: JSX.Element; options: Option[] }[] = [
       {
-        label: <div style={{ fontSize: "12pt" }}>Default shared resources</div>,
+        label: <div style={{ fontSize: "12pt" }}>Default</div>,
         options: [
           {
             value: "0",
@@ -174,7 +174,7 @@ export default function SelectServer({
                       <Icon name="edit" /> Shared Resources
                     </div>
                     <div style={{ marginLeft: "15px" }}>
-                      <Icon name="users" /> Default shared image
+                      <Icon name="users" /> Standard image
                     </div>
                   </div>
                 ) : (

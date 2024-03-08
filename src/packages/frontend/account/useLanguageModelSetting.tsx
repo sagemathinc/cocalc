@@ -13,10 +13,19 @@ export const SETTINGS_LANGUAGE_MODEL_KEY = "language_model";
 // ATTN: it is tempting to use the `useProjectContext` hook here, but it is not possible
 // The "AI Formula" dialog is outside the project context (unfortunately)
 export function useLanguageModelSetting(
-  enabledLLMs: EnabledLLMs,
+  project_id?: string,
 ): [LanguageModel | string, (llm: LanguageModel | string) => void] {
   const other_settings = useTypedRedux("account", "other_settings");
   const ollama = useTypedRedux("customize", "ollama");
+
+  const haveOpenAI = useTypedRedux("customize", "openai_enabled");
+  const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
+  const haveOllama = useTypedRedux("customize", "ollama_enabled");
+
+  const enabledLLMs: EnabledLLMs = useMemo(() => {
+    const projectsStore = redux.getStore("projects");
+    return projectsStore.whichLLMareEnabled(project_id);
+  }, [haveOpenAI, haveGoogle, haveOllama]);
 
   const llm = useMemo(() => {
     return getValidLanguageModelName(

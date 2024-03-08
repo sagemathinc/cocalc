@@ -6,6 +6,7 @@
 /*
 React component that describes the input of a cell
 */
+
 import { Button, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Map } from "immutable";
@@ -22,13 +23,14 @@ import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-m
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import { AiTools } from "@cocalc/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
-import * as chatgpt from "./chatgpt";
+import { ChatGPTExplain } from "./chatgpt";
 import { CodeMirror } from "./codemirror-component";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
@@ -78,8 +80,9 @@ export interface CellInputProps {
   is_scrolling?: boolean;
   id: string;
   index: number;
-  showAItools: boolean;
+  aiTools?: AiTools;
   computeServerId?: number;
+  setShowChatGPT?;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -156,6 +159,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           actions={props.actions}
           id={props.cell.get("id")}
           is_focused={props.is_focused}
+          is_current={props.is_current}
           font_size={props.font_size}
           cursors={props.cell.get("cursors")}
           is_scrolling={props.is_scrolling}
@@ -168,6 +172,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
+          setShowChatGPT={props.aiTools ? props.setShowChatGPT : undefined}
         />
       );
     }
@@ -401,7 +406,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           style={{
             position: "absolute",
             right: "2px",
-            top: "-21px",
+            top: "-20px",
           }}
           className="hidden-xs"
         >
@@ -423,9 +428,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 />
               </div>
             )}
-            {props.showAItools ? (
-              <chatgpt.ChatGPTExplain id={props.id} actions={props.actions} />
-            ) : undefined}
+            {props.aiTools && (
+              <ChatGPTExplain id={props.id} actions={props.actions} />
+            )}
             {/* Should only show formatter button if there is a way to format this code. */}
             {!props.is_readonly && props.actions != null && (
               <Tooltip title="Format this code to look nice" placement="top">
@@ -468,20 +473,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 }
               />
             )}
-            {input ? (
+            {input && (
               <div
                 style={{
                   marginLeft: "3px",
-                  padding: "4px 4px 0px 4px",
-                  borderLeft: `1px solid ${COLORS.GRAY_L}`,
-                  borderTop: `1px solid ${COLORS.GRAY_L}`,
-                  borderRight: `1px solid ${COLORS.GRAY_L}`,
-                  borderRadius: "4px",
+                  padding: "4px",
+                  borderLeft: "1px solid #ccc",
+                  borderTop: "1px solid #ccc",
                 }}
               >
                 {props.index + 1}
               </div>
-            ) : undefined}
+            )}
           </div>
         </div>
       );
@@ -553,6 +556,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.is_readonly !== cur.is_readonly ||
       next.is_scrolling !== cur.is_scrolling ||
       next.cell_toolbar !== cur.cell_toolbar ||
+      (next.aiTools?.model ?? "") !== (cur.aiTools?.model ?? "") ||
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
       (next.cell_toolbar === "slideshow" &&

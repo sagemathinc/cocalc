@@ -274,8 +274,10 @@ function packageNameToUrl(name: string): string {
 
 export function DisplayImage({
   configuration,
+  style,
 }: {
   configuration: { image: string };
+  style?;
 }) {
   const [IMAGES, ImagesError] = useImages();
   if (IMAGES == null) {
@@ -288,10 +290,10 @@ export function DisplayImage({
   if (image == null) return null;
   const data = IMAGES[image];
   if (data == null) {
-    return <span>{image}</span>;
+    return <span style={style}>{image}</span>;
   }
   return (
-    <span>
+    <span style={style}>
       <Icon name={data.icon} style={{ marginRight: "5px" }} /> {data.label}
     </span>
   );

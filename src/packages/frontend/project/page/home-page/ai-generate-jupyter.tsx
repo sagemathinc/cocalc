@@ -86,9 +86,7 @@ export default function AIGenerateJupyterNotebook({
   onSuccess,
   project_id,
 }: Props) {
-  const projectsStore = redux.getStore("projects");
-  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
-  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
+  const [model, setModel] = useLanguageModelSetting(project_id);
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null,
   );

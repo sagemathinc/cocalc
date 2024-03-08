@@ -240,7 +240,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (elt == null) return;
       // See https://stackoverflow.com/questions/7668525/is-there-a-jquery-selector-to-get-all-elements-that-can-get-focus
       const focuseable = $(elt).find(
-        "a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, *[tabindex], *[contenteditable]"
+        "a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, *[tabindex], *[contenteditable]",
       );
       if (focuseable.length > 0) {
         focuseable.on("focus", () => {
@@ -276,7 +276,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       } catch (err) {
         if (!is_mounted.current) return;
         setIsUnsupported(
-          `view of ${model.current.module}.${model.current.name} - ${err}`
+          `view of ${model.current.module}.${model.current.name} - ${err}`,
         );
         return;
       }
@@ -360,7 +360,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
                 name={name}
               />
             ),
-          })
+          }),
         );
         i += 1;
       }
@@ -405,7 +405,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
             value={fromJS({ model_id })}
             actions={actions}
             name={name}
-          />
+          />,
         );
         i += 1;
       }
@@ -505,7 +505,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         {renderReactView()}
       </>
     );
-  }
+  },
 );
 
 export function getLayoutStyle(model) {

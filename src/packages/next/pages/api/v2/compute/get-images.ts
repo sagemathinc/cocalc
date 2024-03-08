@@ -21,14 +21,15 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  // NOTE: only admins can specify a TTL
-  const { ttl } = getParams(req, {
+  let { ttl } = getParams(req, {
     allowGet: true,
   });
   if (ttl != null) {
+    // NOTE: only admins can specify a TTL
     if (!(await userIsInGroup(account_id, "admin"))) {
       throw Error("only admin are allowed to specify the ttl");
     }
+    ttl = parseInt(ttl);
   }
   return await getImages(ttl);
 }

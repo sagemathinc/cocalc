@@ -1,11 +1,11 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import type { Architecture } from "@cocalc/util/db-schema/compute-servers";
 import { getImages, Images } from "@cocalc/server/compute/images";
 import {
   installDocker,
   installNode,
   installCoCalc,
   installConf,
+  installMicroK8s,
   installUser,
   UID,
 } from "./install";
@@ -36,7 +36,6 @@ export default async function startupScript({
   api_key,
   project_id,
   gpu,
-  arch,
   hostname,
   exclude_from_sync,
   auth_token,
@@ -50,7 +49,6 @@ export default async function startupScript({
   api_key: string;
   project_id: string;
   gpu?: boolean;
-  arch: Architecture;
   hostname: string;
   exclude_from_sync: string;
   auth_token: string;
@@ -110,7 +108,7 @@ fi
 groupmod -g 999 docker
 chgrp docker /var/run/docker.sock
 
-setState install install-nodejs 60 50
+setState install install-nodejs '' 60 50
 ${installNode()}
 if [ $? -ne 0 ]; then
    setState install error "problem installing nodejs"
@@ -118,7 +116,7 @@ if [ $? -ne 0 ]; then
 fi
 
 setState install install-cocalc '' 60 70
-${installCoCalc({ arch, IMAGES, tag: tag_cocalc })}
+${installCoCalc({ IMAGES, tag: tag_cocalc })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
@@ -130,6 +128,17 @@ if [ $? -ne 0 ]; then
    setState install error "problem creating user"
    exit 1
 fi
+
+# install-k8s has to be AFTER install-user.
+setState install install-k8s '' 120 90
+${installMicroK8s({ image, IMAGES, gpu })}
+if [ $? -ne 0 ]; then
+   setState install error "problem installing kubernetes"
+   exit 1
+fi
+
+setState install install-k8s '' 120 95
+
 setState install ready '' 0  100
 
 setState vm start '' 60 60
@@ -174,7 +183,7 @@ function userSsh() {
 if ! grep -q "Match User user" /etc/ssh/sshd_config; then
    {
       echo "Match User user"
-      echo '   ForceCommand [[ -z "\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \${SSH_ORIGINAL_COMMAND}'
+      echo '   ForceCommand [[ -z "\\\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \\\${SSH_ORIGINAL_COMMAND}'
    } >> /etc/ssh/sshd_config
    service ssh restart
 fi

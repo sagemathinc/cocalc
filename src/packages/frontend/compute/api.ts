@@ -29,7 +29,11 @@ export async function computeServerAction(opts: {
 }
 
 export async function getServerState(id: number) {
-  await api("compute/get-server-state", { id });
+  return await api("compute/get-server-state", { id });
+}
+
+export async function getSerialPortOutput(id: number) {
+  return await api("compute/get-serial-port-output", { id });
 }
 
 export async function deleteServer(id: number) {

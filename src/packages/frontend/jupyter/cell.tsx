@@ -14,13 +14,17 @@ import {
   Rendered,
   useDelayedRender,
 } from "@cocalc/frontend/app-framework";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { AiTools } from "@cocalc/jupyter/types";
 import { COLORS } from "@cocalc/util/theme";
+import { useState } from "react";
 import { Icon, Tip } from "../components";
 import { clear_selection } from "../misc/clear-selection";
 import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
+import { InsertCell } from "./insert-cell";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
@@ -47,8 +51,11 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
-  showAItools: boolean;
+  aiTools?: AiTools;
   computeServerId?: number;
+  is_visible?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -64,22 +71,28 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.mode !== props.mode ||
     nextProps.font_size !== props.font_size ||
     nextProps.is_focused !== props.is_focused ||
+    nextProps.is_visible !== props.is_visible ||
     nextProps.more_output !== props.more_output ||
     nextProps.cell_toolbar !== props.cell_toolbar ||
     nextProps.trust !== props.trust ||
     nextProps.is_scrolling !== props.is_scrolling ||
     nextProps.height !== props.height ||
+    nextProps.isFirst !== props.isFirst ||
+    nextProps.isLast !== props.isLast ||
     nextProps.computeServerId !== props.computeServerId ||
-    nextProps.showAItools !== props.showAItools ||
+    (nextProps.aiTools?.model ?? "") !== (props.aiTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current))
   );
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
+  const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
+  const [showChatGPTFirst, setShowChatGPTFirst] = useState<boolean>(false);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   const render = useDelayedRender(props.delayRendering ?? 0);
+
   if (!render) {
     return <></>;
   }
@@ -116,8 +129,9 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         trust={props.trust}
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
-        showAItools={props.showAItools}
+        aiTools={props.aiTools}
         computeServerId={props.computeServerId}
+        setShowChatGPT={setShowChatGPT}
       />
     );
   }
@@ -140,7 +154,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
-        showAItools={props.showAItools}
+        aiTools={props.aiTools}
       />
     );
   }
@@ -288,12 +302,35 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     // The bigger top margin when in fully read only mode (no props.actions, e.g., timetravel view)
     // is to deal with the fact that the insert cell bar isn't rendered, but some of the controls off
     // to the right assume it is.
-    margin: props.actions != null ? "2px 15px 2px 5px" : "20px 15px 2px 5px",
+    margin: props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
     position: "relative",
   };
 
   if (props.is_selected) {
     style.background = "#e3f2fd";
+  }
+
+  function render_insert_cell(
+    position: "above" | "below" = "above",
+  ): JSX.Element | null {
+    if (props.actions == null || IS_TOUCH) {
+      return null;
+    }
+    return (
+      <InsertCell
+        hide={!props.is_visible}
+        id={id}
+        aiTools={props.aiTools}
+        key={id + "insert" + position}
+        position={position}
+        actions={props.actions}
+        showChatGPT={position == "above" ? showChatGPTFirst : showChatGPT}
+        setShowChatGPT={
+          position == "above" ? setShowChatGPTFirst : setShowChatGPT
+        }
+        alwaysShow={position == "below" && props.isLast}
+      />
+    );
   }
 
   // Note that the cell id is used for scroll functionality, so *is* important.
@@ -305,9 +342,11 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       id={id}
       cocalc-test={"jupyter-cell"}
     >
+      {props.isFirst ? render_insert_cell("above") : undefined}
       {render_metadata_state()}
       {render_cell_input(props.cell)}
       {render_cell_output(props.cell)}
+      {render_insert_cell("below")}
     </div>
   );
 }, areEqual);

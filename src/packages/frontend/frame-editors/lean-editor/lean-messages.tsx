@@ -225,7 +225,7 @@ class LeanMessages extends Component<Props, {}> {
       return;
     }
     const t =
-      new Date().valueOf() - Math.max(0, server_time().valueOf() - time);
+      Date.now() - Math.max(0, server_time().valueOf() - time);
     return <TimeAgo date={t} />;
   }
 

@@ -298,7 +298,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         [opts.fingerprint]: {
           title: opts.title,
           value: opts.value,
-          creation_date: new Date().valueOf(),
+          creation_date: Date.now(),
         },
       },
     });

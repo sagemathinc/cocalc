@@ -72,17 +72,9 @@ export default function OnPremCloudConfiguration({
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "15px" }}>
-        You can connect any{" "}
-        <u>
-          <b>Ubuntu 22.04 Virtual Machine</b>
-        </u>{" "}
-        that you have a root acount on to this CoCalc project and seamlessly run
-        Jupyter notebooks and terminals using it.{" "}
-        <b>
-          On Prem compute servers are currently completely free, and will work
-          even with projects that have no upgrades or licenses. YOU MUST CREATE
-          A VIRTUAL MACHINE ON YOUR OWN COMPUTER.
-        </b>
+        You can connect any UBUNTU VIRTUAL MACHINE that you have a root acount
+        on to this CoCalc project and seamlessly run Jupyter notebooks and
+        terminals using it. On Prem compute servers are currently free.
       </div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>Architecture</b>

@@ -353,10 +353,10 @@ export function MarkdownInput(props: Props) {
     if (onSave != null) {
       // This funny cocalc_actions is just how this is setup
       // elsewhere in cocalc... Basically the global
-      //    CodeMirror.commands.ave
-      // is set to use this.
+      //    CodeMirror.commands.save
+      // is set to use this at the bottom of src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx
       // @ts-ignore
-      cm.current.cocalc_actions = { explicit_save: onSave };
+      cm.current.cocalc_actions = { save: onSave };
     }
 
     if (enableUpload) {

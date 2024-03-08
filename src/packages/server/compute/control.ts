@@ -38,7 +38,7 @@ import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";
 import updatePurchase from "./update-purchase";
-import { changedKeys } from "@cocalc/server/compute/util";
+import { changedKeys, setConfiguration } from "@cocalc/server/compute/util";
 import { checkValidDomain } from "@cocalc/util/compute/dns";
 import { hasDNS, makeDnsChange } from "./dns";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
@@ -130,6 +130,11 @@ export const stop: (opts: { account_id: string; id: number }) => Promise<void> =
     await setError(id, "");
     runTasks({ account_id, id }, async () => {
       await setState(id, "stopping");
+      if (server.configuration?.autoRestart) {
+        // If we are explicitly stopping an auto-restart server, we disable auto restart,
+        // so there is no chance of it being accidentally triggered.
+        await setConfiguration(id, { autoRestartDisabled: true });
+      }
       await deleteProjectApiKey({ account_id, server });
       await doStop(server);
       await setState(id, "off");
@@ -185,22 +190,45 @@ async function doDeprovision(server: ComputeServer) {
 export const state: (opts: {
   account_id: string;
   id: number;
-}) => Promise<State> = reuseInFlight(async ({ account_id, id }) => {
-  //const now = Date.now();
-  //   const last = lastCalled[id];
-  //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
-  //     return last.state;
-  //   }
-  const server = await getServer({ account_id, id });
-  const state = await getCloudServerState(server);
-  doPurchaseUpdate({ server, state });
-  if (state == "deprovisioned") {
-    // don't need it anymore.
-    await deleteProjectApiKey({ account_id, server });
-  }
-  //lastCalled[id] = { time: now, state };
-  return state;
-});
+
+  // maintenance = true -- means we are getting this state as part of
+  // a maintenance loop, NOT as part of a user or api initiated action.
+  // An impact of this is that auto restart could be triggered.
+  maintenance?: boolean;
+}) => Promise<State> = reuseInFlight(
+  async ({ account_id, id, maintenance }) => {
+    //const now = Date.now();
+    //   const last = lastCalled[id];
+    //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
+    //     return last.state;
+    //   }
+    const server = await getServer({ account_id, id });
+    const state = await getCloudServerState(server);
+    doPurchaseUpdate({ server, state });
+    if (state == "deprovisioned") {
+      // don't need it anymore.
+      await deleteProjectApiKey({ account_id, server });
+    } else if (
+      maintenance &&
+      server.configuration?.autoRestart &&
+      !server.configuration?.autoRestartDisabled &&
+      state == "off"
+    ) {
+      // compute server got killed so launch the compute server running again.
+      start({ account_id, id });
+    } else if (
+      server.configuration?.autoRestart &&
+      server.configuration?.autoRestartDisabled &&
+      state == "running"
+    ) {
+      // This is an auto-restart server and it's running,
+      // so re-enable auto restart.
+      await setConfiguration(id, { autoRestartDisabled: false });
+    }
+    //lastCalled[id] = { time: now, state };
+    return state;
+  },
+);
 
 async function getCloudServerState(server: ComputeServer): Promise<State> {
   try {
@@ -737,5 +765,17 @@ export async function setImageTested(opts: {
       return;
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}
+
+export async function getSerialPortOutput({ account_id, id }): Promise<string> {
+  const server = await getServer({ account_id, id });
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.getSerialPortOutput(server);
+    default:
+      throw Error(
+        `serial port output not implemented on cloud '${server.cloud}'`,
+      );
   }
 }

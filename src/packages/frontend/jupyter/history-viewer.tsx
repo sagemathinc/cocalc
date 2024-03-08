@@ -85,7 +85,6 @@ export const HistoryViewer: React.FC<HistoryViewerProps> = ({
         project_id={project_id}
         directory={directory}
         trust={false}
-        showAItools={false}
       />
     </div>
   );

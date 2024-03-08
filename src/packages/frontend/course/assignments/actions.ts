@@ -1905,7 +1905,7 @@ ${details}
       Map(),
     );
     const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
-    nbgrader_run_info = nbgrader_run_info.set(key, new Date().valueOf());
+    nbgrader_run_info = nbgrader_run_info.set(key, Date.now());
     this.course_actions.setState({ nbgrader_run_info });
   }
 

@@ -19,7 +19,13 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import { capitalize, plural, round1, round4 } from "@cocalc/util/misc";
+import {
+  capitalize,
+  plural,
+  round1,
+  round2down,
+  round4,
+} from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -364,7 +370,7 @@ export function PurchasesTable({
           <span>Total of Displayed Costs: ${(-total).toFixed(2)}</span>
         )}
         {showBalance && balance != null && (
-          <span>Current Balance: ${balance.toFixed(2)}</span>
+          <span>Current Balance: ${round2down(balance)}</span>
         )}
       </div>
     </div>

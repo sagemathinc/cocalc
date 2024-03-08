@@ -57,7 +57,7 @@ export async function do_anonymous_setup(client: WebappClient): Promise<void> {
     try {
       const resp = await client.account_client.create_account({
         first_name: "Anonymous",
-        last_name: `User-${Math.round(new Date().valueOf() / 1000)}`,
+        last_name: `User-${Math.round(Date.now() / 1000)}`,
       });
       if (resp?.event == "account_creation_failed") {
         throw Error(resp.error);

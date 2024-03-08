@@ -16,7 +16,6 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
 
-const DOCKER_PRICE = "$999";
 const K8S_PRICE = "$5000";
 const K8S_PRICE_ACADEMIC = "$3000";
 
@@ -43,71 +42,9 @@ export default function OnPrem({ customize }) {
 function Body() {
   const router = useRouter();
 
-  function docker(): JSX.Element {
-    const body = encodeURIComponent(
-      "I'm interested in puchasing CoCalc Docker on-premises."
-    );
-
-    return (
-      <>
-        <Title level={2}>
-          CoCalc Docker <Icon name="docker" style={{ float: "right" }} />
-        </Title>
-        <Paragraph>
-          <Text strong>
-            <A
-              href={"https://github.com/sagemathinc/cocalc-docker#what-is-this"}
-            >
-              CoCalc Docker
-            </A>
-          </Text>{" "}
-          is a downsized but feature complete version of CoCalc. It can be used
-          on your own laptop, desktop or server. It is suitable for{" "}
-          <Text strong>personal use</Text> or a small{" "}
-          <Text strong>working group</Text>, e.g. a few researchers in an office
-          or lab.
-        </Paragraph>
-        <Text strong>Features</Text>: it includes support for Jupyter Notebooks,
-        a recent version of Sage, Python 3, R, Julia, Octave and LaTeX. Also,
-        X11 support, editing and compiling code and much more is included as
-        well. If something is missing, you could{" "}
-        <A
-          href={
-            "https://github.com/sagemathinc/cocalc-docker#adding-custom-software-to-your-cocalc-instance"
-          }
-        >
-          extend the base image
-        </A>{" "}
-        to fit your needs.
-        <Paragraph></Paragraph>
-        <Paragraph>
-          The <Text strong>setup</Text> is very easy: CoCalc Docker comes as a
-          pre-packaged single <A href={"https://www.docker.com/"}>Docker</A>{" "}
-          image. All services are included and ready to work out of the box.
-        </Paragraph>
-        <Paragraph>
-          The license is business-friendly and costs {DOCKER_PRICE}/year.
-        </Paragraph>
-        <Paragraph style={{ textAlign: "center" }}>
-          <Button
-            type="primary"
-            size="large"
-            onClick={() =>
-              router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Docker&body=${body}&title=Purchase%20CoCalc-Docker`
-              )
-            }
-          >
-            Purchase CoCalc Docker at {DOCKER_PRICE}/year
-          </Button>
-        </Paragraph>
-      </>
-    );
-  }
-
   function cloud(): JSX.Element {
     const body = encodeURIComponent(
-      "I'm interested in puchasing CoCalc Cloud on-premises."
+      "I'm interested in puchasing CoCalc Cloud on-premises.",
     );
 
     return (
@@ -123,8 +60,8 @@ function Body() {
           <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>. The
           underlying services and their architecture are the same, as the ones
           that power the main service at cocalc.com. This means you get the same
-          overall performance, scalability and reliability as the main SaaS
-          site.
+          overall performance, scalability and reliability as the{" "}
+          <A href="https://cocalc.com">main cocalc.com website</A>.
         </Paragraph>
         <Paragraph>
           <Text strong>Features</Text>
@@ -150,9 +87,9 @@ function Body() {
             <li>
               You can <Text strong>deploy</Text> this solution on your own
               bare-metal cluster or managed kubernetes clusters like{" "}
-              <A href={"https://aws.amazon.com/eks/"}>Amazon's AWS EKS</A> or{" "}
+              <A href={"https://aws.amazon.com/eks/"}>Amazon's EKS</A> or{" "}
               <A href={"https://cloud.google.com/kubernetes-engine"}>
-                Google's GCE GKE
+                Google's GKE
               </A>
               . Other options should work as well.
             </li>
@@ -203,7 +140,7 @@ function Body() {
         </Paragraph>
         <Paragraph>
           For more details, see the{" "}
-          <A href="https://doc-cloud.cocalc.com/">cocalc cloud documentation</A>
+          <A href="https://doc-cloud.cocalc.com/">CoCalc Cloud documentation</A>
           .
         </Paragraph>
         <Title level={3}>Purchasing CoCalc Cloud</Title>
@@ -220,7 +157,7 @@ function Body() {
             size="large"
             onClick={() =>
               router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Business&body=${body}&title=Purchase%20CoCalc-Cloud`
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Business&body=${body}&title=Purchase%20CoCalc-Cloud`,
               )
             }
           >
@@ -232,7 +169,7 @@ function Body() {
             size="large"
             onClick={() =>
               router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Academic&body=${body}&title=Purchase%20CoCalc-Cloud`
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Academic&body=${body}&title=Purchase%20CoCalc-Cloud`,
               )
             }
           >
@@ -255,11 +192,11 @@ function Body() {
     >
       <Title level={1} style={{ textAlign: "center" }}>
         <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc - On
-        Premises Offerings
+        Premises
       </Title>
 
       <Paragraph>
-        CoCalc's on-premises offerings allow you to run CoCalc on your own
+        CoCalc's on-premises offering allow you to run CoCalc on your own
         machine or cluster in order to keep your data on-site and use compute
         resources that you already have.
       </Paragraph>
@@ -286,8 +223,6 @@ function Body() {
             </>
           }
         />
-        {docker()}
-        <hr style={{ margin: "30px 0" }} />
         {cloud()}
       </div>
     </div>

@@ -13,7 +13,6 @@ import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -159,9 +158,7 @@ export default function LanguageModelTitleBarButton({
   const contextRef = useRef<any>(null);
   const submitRef = useRef<any>(null);
 
-  const projectsStore = redux.getStore("projects");
-  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
-  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
+  const [model, setModel] = useLanguageModelSetting(project_id);
 
   useEffect(() => {
     if (showDialog) {

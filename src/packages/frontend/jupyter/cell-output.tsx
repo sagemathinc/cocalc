@@ -7,14 +7,16 @@
 React component that describes the output of a cell
 */
 
-import React from "react";
+import { Alert } from "antd";
 import type { Map as ImmutableMap } from "immutable";
+import React from "react";
+
+import { AiTools } from "@cocalc/jupyter/types";
+import type { JupyterActions } from "./browser-actions";
+import { CellHiddenPart } from "./cell-hidden-part";
+import { CollapsedOutput, OutputToggle } from "./cell-output-toggle";
 import { CellOutputMessages } from "./output-messages/message";
 import { OutputPrompt } from "./prompt/output";
-import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
-import { CellHiddenPart } from "./cell-hidden-part";
-import type { JupyterActions } from "./browser-actions";
-import { Alert } from "antd";
 
 interface CellOutputProps {
   actions?: JupyterActions;
@@ -29,7 +31,7 @@ interface CellOutputProps {
   hidePrompt?: boolean;
   style?: React.CSSProperties;
   divRef?;
-  showAItools: boolean;
+  aiTools?: AiTools;
 }
 
 export function CellOutput({
@@ -45,7 +47,7 @@ export function CellOutput({
   hidePrompt,
   divRef,
   style,
-  showAItools,
+  aiTools,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -88,7 +90,7 @@ export function CellOutput({
         directory={directory}
         name={name}
         trust={trust}
-        showAItools={showAItools}
+        aiTools={aiTools}
       />
     </div>
   );
@@ -103,7 +105,7 @@ interface OutputColumnProps {
   directory?: string;
   name?: string;
   trust?: boolean;
-  showAItools: boolean;
+  aiTools?;
 }
 
 function OutputColumn({
@@ -115,7 +117,7 @@ function OutputColumn({
   directory,
   name,
   trust,
-  showAItools
+  aiTools,
 }: OutputColumnProps) {
   if (cell.get("collapsed")) {
     return <CollapsedOutput actions={actions} id={id} />;
@@ -150,7 +152,7 @@ function OutputColumn({
       name={name}
       trust={trust}
       id={id}
-      showAItools={showAItools}
+      aiTools={aiTools}
     />
   );
 }
@@ -191,7 +193,11 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled", true)}>
+      <OutputToggle
+        actions={actions}
+        id={id}
+        scrolled={cell.get("scrolled", true)}
+      >
         {prompt}
       </OutputToggle>
     );

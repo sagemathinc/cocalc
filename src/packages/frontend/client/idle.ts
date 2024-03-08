@@ -36,7 +36,7 @@ export class IdleClient {
     // Wait a little before setting this stuff up.
     await delay(15 * 1000);
 
-    this.idle_time = new Date().valueOf() + this.idle_timeout;
+    this.idle_time = Date.now() + this.idle_timeout;
 
     /*
     The this.init_time is a Date in the future.
@@ -86,7 +86,7 @@ export class IdleClient {
 
   private idle_check(): void {
     if (!this.idle_time) return;
-    const now = new Date().valueOf();
+    const now = Date.now();
     if (this.idle_time >= now) return;
     this.show_notification();
     if (!this.delayed_disconnect) {
@@ -105,7 +105,7 @@ export class IdleClient {
   // indicating that user is currently active.
   public idle_reset(): void {
     this.hide_notification();
-    this.idle_time = new Date().valueOf() + this.idle_timeout + 1000;
+    this.idle_time = Date.now() + this.idle_timeout + 1000;
     if (this.delayed_disconnect) {
       clearTimeout(this.delayed_disconnect);
       this.delayed_disconnect = undefined;

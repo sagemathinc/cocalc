@@ -41,9 +41,7 @@ interface Props extends Opts {
 }
 
 function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
-  const projectsStore = redux.getStore("projects");
-  const enabledLLMs = projectsStore.whichLLMareEnabled(project_id);
-  const [model, setModel] = useLanguageModelSetting(enabledLLMs);
+  const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState<string>(text);
   const [formula, setFormula] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);

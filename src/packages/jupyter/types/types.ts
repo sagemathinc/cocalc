@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { LanguageModel } from "@cocalc/util/db-schema/llm";
 import type * as immutable from "immutable";
 
 export type NotebookMode = "edit" | "escape";
@@ -75,3 +76,12 @@ export type KernelMetadata = {
     [key: string]: string | Record<string, string>;
   };
 };
+
+export interface AiTools {
+  model: LanguageModel | string;
+  setModel: (llm: LanguageModel | string) => void;
+  toolComponents: {
+    ChatGPTExplain;
+    ChatGPTError;
+  };
+}

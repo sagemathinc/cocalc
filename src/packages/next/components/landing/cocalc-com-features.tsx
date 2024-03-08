@@ -50,7 +50,7 @@ export function CoCalcComFeatures() {
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="Collaborate using your favorite tools"
+        title="Realtime Collaboration Using Your Favorite Tools"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
@@ -207,7 +207,7 @@ export function CoCalcComFeatures() {
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="And much more …"
+        title="Much More …"
         icon="wrench"
         anchor="more"
         style={{ backgroundColor: COLORS.YELL_LLL }}
@@ -450,16 +450,6 @@ export function CoCalcComFeatures() {
                       on-prem compute server
                     </A>
                     .
-                  </li>
-                  <li>
-                    Run your own {siteName} server easily via{" "}
-                    <A
-                      style={link}
-                      href="https://github.com/sagemathinc/cocalc-docker#readme"
-                    >
-                      <strong>cocalc-docker</strong>
-                    </A>{" "}
-                    for a small group.
                   </li>
                   <li>
                     Deploy a highly scalable variant of {siteName} on your{" "}

@@ -36,7 +36,9 @@ export default function Balance({
       </div>
     );
   } else {
-    let stat = <MoneyStatistic title={"Current Balance"} value={balance} />;
+    let stat = (
+      <MoneyStatistic title={"Current Balance"} value={balance} roundDown />
+    );
     if (balance < 0) {
       stat = (
         <Tooltip

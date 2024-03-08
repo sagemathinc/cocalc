@@ -668,7 +668,7 @@ export function ExplainPaymentSituation({
   const { balance, chargeAmount, total, minBalance } = params;
   const curBalance = (
     <div style={{ float: "right", marginLeft: "30px", fontWeight: "bold" }}>
-      Account Balance: {currency(balance)}
+      Account Balance: {currency(round2down(balance))}
       {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
     </div>
   );

@@ -53,8 +53,9 @@ export function setup_global_cocalc(client): void {
   cocalc.schema = require("@cocalc/util/schema");
   cocalc.redux = redux;
   cocalc.load_eruda = load_eruda;
+  cocalc.compute = require("@cocalc/frontend/compute/api");
   console.log(
-    "DEBUG: Enabling extra CoCalc library functionality.  Type cocalc or cc.[tab]."
+    "DEBUG: Enabling extra CoCalc library functionality.  Type cocalc or cc.[tab].",
   );
   window.cocalc = window.cc = cocalc;
 
