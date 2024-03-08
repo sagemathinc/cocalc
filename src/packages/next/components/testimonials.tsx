@@ -23,6 +23,19 @@ export interface Testimonial {
 }
 export const TESTIMONIALS: Readonly<Testimonial[]> = [
   {
+    name: "John Spitzer",
+    date: "March 2024",
+    content: `
+I have used SageMath for a long time.
+The mathematics community does make an effort to provide open source options unlike the physics community which is only now discovering the attractions of open source.
+
+I have been using CoCalc for some time now and I have noticed a significant improvement in performance over recent times while the pricing is excellent.
+
+My recent work has been done entirely on CoCalc and it all worked fine.
+It is a great development environment.
+All the best and keep up the good work!`,
+  },
+  {
     name: "Travis",
     date: "Winter 2024",
     content: `
