@@ -108,21 +108,21 @@ fi
 groupmod -g 999 docker
 chgrp docker /var/run/docker.sock
 
-setState install install-nodejs '' 60 50
+setState install install-nodejs '' 60 40
 ${installNode()}
 if [ $? -ne 0 ]; then
    setState install error "problem installing nodejs"
    exit 1
 fi
 
-setState install install-cocalc '' 60 70
+setState install install-cocalc '' 60 50
 ${installCoCalc({ IMAGES, tag: tag_cocalc })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
 fi
 
-setState install install-user '' 60 80
+setState install install-user '' 60 60
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
    setState install error "problem creating user"
@@ -130,14 +130,13 @@ if [ $? -ne 0 ]; then
 fi
 
 # install-k8s has to be AFTER install-user.
-setState install install-k8s '' 120 90
 ${installMicroK8s({ image, IMAGES, gpu })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing kubernetes"
    exit 1
 fi
 
-setState install install-k8s '' 120 95
+setState install install-k8s '' 120 90
 
 setState install ready '' 0  100
 
