@@ -200,6 +200,10 @@ parameters:
   dataLocality: "best-effort"
 EOF
 
+  # Install nfs-common, which is needed for read-write-many support
+  apt-get update
+  apt-get install -y nfs-common
+
 fi
 
 echo "Kubernetes installation complete."
