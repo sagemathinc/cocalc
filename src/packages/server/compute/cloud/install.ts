@@ -197,7 +197,6 @@ parameters:
   staleReplicaTimeout: "30"
   fromBackup: ""
   fsType: "ext4"
-  dataLocality: "best-effort"
 EOF
 
   # Install nfs-common, which is needed for read-write-many support
