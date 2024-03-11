@@ -20,7 +20,6 @@ import {
   MAX_SAVE_LIMIT,
   MAX_SEARCH_LIMIT,
 } from "@cocalc/util/db-schema/openai";
-import { LLMService } from "@cocalc/util/db-schema/purchases";
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
 
@@ -100,7 +99,7 @@ export class LLMClient {
 
     if (!isFreeModel(model)) {
       // Ollama and others are treated as "free"
-      const service = model2service(model) as LLMService;
+      const service = model2service(model) ;
       // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
       const { allowed, reason } =
         await this.client.purchases_client.isPurchaseAllowed(service);

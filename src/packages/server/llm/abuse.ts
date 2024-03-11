@@ -25,12 +25,10 @@ where they limit per minute, not per hour (like below):
 import getPool from "@cocalc/database/pool";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
-  isFreeModel,
-  isOllamaLLM,
   LanguageModel,
-  LanguageService,
+  isFreeModel,
+  isLanguageModel,
   model2service,
-  MODELS,
 } from "@cocalc/util/db-schema/llm";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -38,7 +36,7 @@ const QUOTAS = {
   noAccount: 0,
   account: 10 ** 5,
   global: 10 ** 6,
-};
+} as const;
 
 /* for testing
 const QUOTAS = {
@@ -68,7 +66,7 @@ export async function checkForAbuse({
     throw Error("at least one of account_id or analytics_cookie must be set");
   }
 
-  if (!MODELS.includes(model) && !isOllamaLLM(model)) {
+  if (!isLanguageModel(model)) {
     throw Error(`invalid model "${model}"`);
   }
 
@@ -76,7 +74,7 @@ export async function checkForAbuse({
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
-      service: model2service(model) as LanguageService,
+      service: model2service(model),
     });
     // We always allow usage of for pay models, since the user is paying for
     // them.  Only free models need to be throttled.
@@ -116,7 +114,7 @@ export async function checkForAbuse({
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
-      service: model2service(model) as LanguageService,
+      service: model2service(model),
     });
   }
 }

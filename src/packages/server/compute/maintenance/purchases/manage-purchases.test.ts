@@ -3,23 +3,24 @@ Test managing purchases
 */
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
-import createProject from "@cocalc/server/projects/create";
+import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 import createServer from "@cocalc/server/compute/create-server";
 import { getServer } from "@cocalc/server/compute/get-servers";
-import managePurchases, {
-  outstandingPurchases,
-  MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
-  MIN_NETWORK_CLOSE_DELAY_MS,
-  MAX_PURCHASE_LENGTH_MS,
-} from "./manage-purchases";
-import { setTestNetworkUsage } from "@cocalc/server/compute/control";
-import { getPurchase } from "./util";
+import { resetTestEmails, testEmails } from "@cocalc/server/email/send-email";
+import createProject from "@cocalc/server/projects/create";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
-import { delay } from "awaiting";
-import { testEmails, resetTestEmails } from "@cocalc/server/email/send-email";
 import { setPurchaseQuota } from "@cocalc/server/purchases/purchase-quotas";
+import { ComputeServer } from "@cocalc/util/db-schema/purchases";
+import { uuid } from "@cocalc/util/misc";
+import { delay } from "awaiting";
+import managePurchases, {
+  MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
+  MAX_PURCHASE_LENGTH_MS,
+  MIN_NETWORK_CLOSE_DELAY_MS,
+  outstandingPurchases,
+} from "./manage-purchases";
+import { getPurchase } from "./util";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -118,7 +119,7 @@ describe("confirm managing of purchases works", () => {
     if (purchases[0].description.type != "compute-server") {
       throw Error("bug");
     }
-    expect(purchases[0].description.state).toBe("running");
+    expect((purchases[0].description as ComputeServer).state).toBe("running");
     expect(purchases[0].service).toBe("compute-server");
   });
 

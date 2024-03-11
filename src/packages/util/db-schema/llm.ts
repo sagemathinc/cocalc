@@ -1,14 +1,20 @@
 // this contains bits and pieces from the wrongly named openai.ts file
 
-import type { LLMService, Service } from "@cocalc/util/db-schema/purchases";
+import type { Service } from "@cocalc/util/db-schema/purchases";
 import { unreachable } from "@cocalc/util/misc";
 
-// the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
-export const LANGUAGE_MODELS = [
+const MODELS_OPENAI = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
   "gpt-4",
   "gpt-4-32k",
+] as const;
+
+export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
+
+// the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
+export const LANGUAGE_MODELS = [
+  ...MODELS_OPENAI,
   // google's are taken from here – we use the generative AI client lib
   // https://developers.generativeai.google/models/language
   "text-bison-001",
@@ -36,8 +42,8 @@ export type LanguageModel = (typeof LANGUAGE_MODELS)[number] | OllamaLLM;
 // we check if the given object is any known language model
 export function isLanguageModel(model?: unknown): model is LanguageModel {
   if (model == null) return false;
-  if (isOllamaLLM(model)) return true;
   if (typeof model !== "string") return false;
+  if (isOllamaLLM(model)) return true;
   return LANGUAGE_MODELS.includes(model as any);
 }
 
@@ -86,6 +92,8 @@ export function isOllamaService(service: string): service is OllamaService {
 }
 
 // we encode the in the frontend and elsewhere with the service name as a prefix
+// ATTN: don't change the encoding pattern of [vendor]-[model]
+//       for whatever reason, it's also described that way in purchases/close.ts
 export type LanguageService =
   | "openai-gpt-3.5-turbo"
   | "openai-gpt-3.5-turbo-16k"
@@ -195,25 +203,6 @@ export function isOllamaLLM(model: unknown): model is OllamaLLM {
   );
 }
 
-const MODELS_OPENAI = [
-  "gpt-3.5-turbo",
-  "gpt-3.5-turbo-16k",
-  "gpt-4",
-  "gpt-4-32k",
-] as const;
-
-export const MODELS = [
-  ...MODELS_OPENAI,
-  "text-embedding-ada-002",
-  "text-bison-001",
-  "chat-bison-001",
-  "embedding-gecko-001",
-  "gemini-pro",
-] as const;
-
-export type Model = (typeof MODELS)[number];
-export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
-
 // Map from psuedo account_id to what should be displayed to user.
 // This is used in various places in the frontend.
 // Google PaLM: https://cloud.google.com/vertex-ai/docs/generative-ai/pricing
@@ -236,11 +225,11 @@ export function isFreeModel(model: unknown) {
   if (LANGUAGE_MODELS.includes(model as any)) {
     // of these models, the following are free
     return (
-      (model as Model) == "gpt-3.5-turbo" ||
-      (model as Model) == "text-bison-001" ||
-      (model as Model) == "chat-bison-001" ||
-      (model as Model) == "embedding-gecko-001" ||
-      (model as Model) == "gemini-pro"
+      (model as LanguageModel) == "gpt-3.5-turbo" ||
+      (model as LanguageModel) == "text-bison-001" ||
+      (model as LanguageModel) == "chat-bison-001" ||
+      (model as LanguageModel) == "embedding-gecko-001" ||
+      (model as LanguageModel) == "gemini-pro"
     );
   }
   // all others are free
@@ -251,7 +240,7 @@ export function isFreeModel(model: unknown) {
 // we only need to check for the vendor prefixes, no special cases!
 export function isLanguageModelService(
   service: Service,
-): service is LLMService {
+): service is LanguageService {
   for (const v of LANGUAGE_MODEL_VENDORS) {
     if (service.startsWith(`${v}-`)) {
       return true;
@@ -359,7 +348,7 @@ export interface LLMCost {
 }
 
 export function getLLMCost(
-  model: Model,
+  model: LanguageModel,
   markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
 ): LLMCost {
   const x = LLM_COST[model];
@@ -380,7 +369,10 @@ export function getLLMCost(
 // The maximum cost for one single call using the given model.
 // We can't know the cost until after it happens, so this bound is useful for
 // ensuring user can afford to make a call.
-export function getMaxCost(model: Model, markup_percentage: number): number {
+export function getMaxCost(
+  model: LanguageModel,
+  markup_percentage: number,
+): number {
   const { prompt_tokens, completion_tokens } = getLLMCost(
     model,
     markup_percentage,

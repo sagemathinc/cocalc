@@ -16,6 +16,7 @@ import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
+import { LanguageService } from "./llm";
 import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 
@@ -30,17 +31,6 @@ export type Reason =
 // monthly quota on each one in purchase-quotas.
 // The service names for openai are of the form "openai-[model name]"
 
-export type LLMService =
-  | "openai-gpt-4"
-  | "openai-gpt-4-32k"
-  | "openai-gpt-3.5-turbo"
-  | "openai-gpt-3.5-turbo-16k"
-  | "openai-text-embedding-ada-002"
-  | "google-text-bison-001"
-  | "google-chat-bison-001"
-  | "google-embedding-gecko-001"
-  | "google-gemini-pro";
-
 export type ComputeService =
   | "credit"
   | "refund"
@@ -51,60 +41,14 @@ export type ComputeService =
   | "voucher"
   | "edit-license";
 
-export type Service = LLMService | ComputeService;
+export type Service = LanguageService | ComputeService;
 
-export interface OpenaiGPT4 {
-  type: "openai-gpt-4";
+export interface LLMDescription {
+  type: LanguageService;
   prompt_tokens: number;
   completion_tokens: number;
-}
-
-export interface OpenaiGPT4_32k {
-  type: "openai-gpt-4-32k";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface OpenaiGPT35 {
-  type: "openai-gpt-3.5-turbo";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleTextBison {
-  type: "google-text-bison-001";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleChatBison {
-  type: "google-chat-bison-001";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleEmbeddingGecko {
-  type: "google-embedding-gecko-001";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleGeminiPro {
-  type: "google-gemini-pro";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface OpenaiGPT35_16k {
-  type: "openai-gpt-3.5-turbo-16k";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface OpenaiTextEmbeddingsAda002 {
-  type: "openai-text-embedding-ada-002";
-  prompt_tokens: number;
-  completion_tokens: number;
+  amount?: number; // appears in purchses/close.ts
+  last_updated?: number; // also in purchases/close.ts, a timestamp (Date.valueOf())
 }
 
 export interface ProjectUpgrade {
@@ -178,15 +122,7 @@ export interface Refund {
 }
 
 export type Description =
-  | OpenaiGPT4
-  | OpenaiGPT4_32k
-  | OpenaiGPT35
-  | OpenaiGPT35_16k
-  | OpenaiTextEmbeddingsAda002
-  | GoogleTextBison
-  | GoogleChatBison
-  | GoogleEmbeddingGecko
-  | GoogleGeminiPro
+  | LLMDescription
   | ProjectUpgrade
   | ComputeServer
   | ComputeServerNetworkUsage
