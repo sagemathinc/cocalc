@@ -29,13 +29,19 @@ const logger = getLogger("server:compute:maintenance:purchases:manage");
 export const MIN_NETWORK_CLOSE_DELAY_MS = 2 * 60 * 1000;
 
 // a single purchase is split once it exceeds this length:
-export const MAX_PURCHASE_LENGTH_MS = 1000 * 60 * 60 * 24; // 1 day
+export const MAX_PURCHASE_LENGTH_MS = 1000 * 60 * 60 * 24;
 
 // network purchasing info is updated this frequently for running servers
-export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 30; // 30 minutes
+export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 15;
 
-//every provisioned server gets purchases updated at least this often
-export const PERIODIC_UPDATE_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
+// every *provisioned non-running server* gets purchases updated at least this often.
+// We make this frequent enough to limit damage from abuse, but not too frequent
+// to cause too much load on the database.
+// Use PERIODIC_SHORT_UPDATE_INTERVAL_MS for servers that had some recent change:
+export const PERIODIC_SHORT_UPDATE_INTERVAL_MS = 1000 * 60 * 2;
+
+// Use PERIODIC_LONG_UPDATE_INTERVAL_MS for all servers
+export const PERIODIC_LONG_UPDATE_INTERVAL_MS = 1000 * 60 * 60;
 
 export default async function managePurchases() {
   logger.debug("managePurchases");

@@ -15,11 +15,19 @@ const COST_THRESH_DOLLARS = 2;
 // If can't buy -- even if you increase all quotas and balance by
 // this amount -- then delete.  This is to avoid bad situations, e.g.,
 // buy 50TB of expensive disk, turn machine off, get a huge bill.
-const DELETE_THRESH_MARGIN = 20;
+// On the other hand, a typical abuse situation involves somebody adding
+// say $10 from a stolen credit card and then quickly spending as much
+// as possible.  And they might do this with a large number of different
+// accounts at once.  So we don't want this margin to be too large.
+const DELETE_THRESH_MARGIN = 5;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
 export default async function lowBalance({ server }) {
+  if (server.state == "deprovisioned") {
+    // We only need to worry if the server isn't already deprovisioned.
+    return;
+  }
   if (!(await checkAllowed("compute-server", server))) {
     return;
   }
