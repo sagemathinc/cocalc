@@ -135,7 +135,15 @@ export const stop: (opts: { account_id: string; id: number }) => Promise<void> =
         // so there is no chance of it being accidentally triggered.
         await setConfiguration(id, { autoRestartDisabled: true });
       }
-      await deleteProjectApiKey({ account_id, server });
+      try {
+        await deleteProjectApiKey({ account_id, server });
+      } catch (err) {
+        logger.debug(
+          "WARNING -- unable to delete api key used by server",
+          server,
+          err,
+        );
+      }
       await doStop(server);
       await setState(id, "off");
     });
@@ -167,7 +175,19 @@ export const deprovision: (opts: {
 
   runTasks({ account_id, id }, async () => {
     await setState(id, "stopping");
-    await deleteProjectApiKey({ account_id, server });
+    try {
+      await deleteProjectApiKey({ account_id, server });
+    } catch (err) {
+      // This can happen if the user is no longer a collaborator on the
+      // project that contains the compute server and they run out of money,
+      // so the system automatically deletes their compute server.  It's
+      // bad for this to block the actual compute server delete below!
+      logger.debug(
+        "WARNING -- unable to delete api key used by server",
+        server,
+        err,
+      );
+    }
     await doDeprovision(server);
     await setState(id, "deprovisioned");
   });
@@ -207,7 +227,15 @@ export const state: (opts: {
     doPurchaseUpdate({ server, state });
     if (state == "deprovisioned") {
       // don't need it anymore.
-      await deleteProjectApiKey({ account_id, server });
+      try {
+        await deleteProjectApiKey({ account_id, server });
+      } catch (err) {
+        logger.debug(
+          "WARNING -- unable to delete api key used by server",
+          server,
+          err,
+        );
+      }
     } else if (
       maintenance &&
       server.configuration?.autoRestart &&
