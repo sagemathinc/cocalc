@@ -165,7 +165,7 @@ function getOptions({
         // on google cloud, so make sure image is built and tested
         versions = versions.filter(
           (y) =>
-            x[`${makeValidGoogleName(y.tag)}-${makeValidGoogleName(arch)}`]
+            x?.[`${makeValidGoogleName(y.tag)}-${makeValidGoogleName(arch)}`]
               ?.tested,
         );
       }
