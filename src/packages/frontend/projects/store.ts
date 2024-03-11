@@ -11,6 +11,7 @@ import { StudentProjectFunctionality } from "@cocalc/frontend/course/configurati
 import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { LLMServicesAvailable, LLMVendor } from "@cocalc/util/db-schema/llm";
 import {
   cmp,
   coerce_codomain_to_numbers,
@@ -735,22 +736,31 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   // ATTN: the useLanguageModelSetting hook computes this dynamically, with dependencies
-  public whichLLMareEnabled(project_id: string = "global", tag?: string) {
+  public whichLLMareEnabled(
+    project_id: string = "global",
+    tag?: string,
+  ): LLMServicesAvailable {
     const haveOpenAI = this.hasLanguageModelEnabled(project_id, tag, "openai");
     const haveGoogle = this.hasLanguageModelEnabled(project_id, tag, "google");
     const haveOllama = this.hasLanguageModelEnabled(project_id, tag, "ollama");
+    const haveMistral = this.hasLanguageModelEnabled(
+      project_id,
+      tag,
+      "mistralai",
+    );
 
     return {
       openai: haveOpenAI,
       google: haveGoogle,
       ollama: haveOllama,
+      mistral: haveMistral,
     };
   }
 
   hasLanguageModelEnabled(
     project_id: string = "global",
     tag?: string,
-    vendor: "openai" | "google" | "ollama" | "any" = "any",
+    vendor: LLMVendor | "any" = "any",
   ): boolean {
     // cache answer for a few seconds, in case this gets called a lot:
 
@@ -782,17 +792,19 @@ export class ProjectsStore extends Store<ProjectsState> {
   private _hasLanguageModelEnabled(
     project_id: string | "global" = "global",
     courseLimited?: boolean,
-    vendor: "openai" | "google" | "ollama" | "any" = "any",
+    vendor: LLMVendor | "any" = "any",
   ): boolean {
     const customize = redux.getStore("customize");
     const haveOpenAI = customize.get("openai_enabled");
     const haveGoogle = customize.get("google_vertexai_enabled");
     const haveOllama = customize.get("ollama_enabled");
+    const haveMistral = customize.get("mistral_enabled");
 
-    if (!haveOpenAI && !haveGoogle && !haveOllama) return false; // the vendor == "any" case
+    if (!haveOpenAI && !haveGoogle && !haveOllama && !haveMistral) return false; // the vendor == "any" case
     if (vendor === "openai" && !haveOpenAI) return false;
     if (vendor === "google" && !haveGoogle) return false;
     if (vendor === "ollama" && !haveOllama) return false;
+    if (vendor === "mistralai" && !haveMistral) return false;
 
     // this customization parameter accounts for disabling **any** language model vendor
     const openai_disabled = redux

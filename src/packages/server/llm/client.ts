@@ -66,6 +66,9 @@ export async function getClient(
     case "ollama":
       throw new Error("Use the getOllama function instead");
 
+    case "mistralai":
+      throw new Error("Use the getMistral function instead");
+
     default:
       unreachable(vendor);
       throw new Error(`unknown vendor: ${vendor}`);

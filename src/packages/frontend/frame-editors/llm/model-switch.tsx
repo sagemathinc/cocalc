@@ -8,6 +8,7 @@ import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
+  MISTRAL_MODELS,
   USER_SELECTABLE_LANGUAGE_MODELS,
   fromOllamaModel,
   isFreeModel,
@@ -54,6 +55,11 @@ export default function ModelSwitch({
     undefined,
     "google",
   );
+  const showMistral = projectsStore.hasLanguageModelEnabled(
+    project_id,
+    undefined,
+    "mistralai",
+  );
   const showOllama = projectsStore.hasLanguageModelEnabled(
     project_id,
     undefined,
@@ -74,7 +80,7 @@ export default function ModelSwitch({
     btnModel: LanguageModel,
     title: string,
   ) {
-    if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel)) return;
+    if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel as any)) return;
     if (typeof btnModel !== "string") return;
 
     const display = (
@@ -134,6 +140,18 @@ export default function ModelSwitch({
     );
   }
 
+  function appendMistral(ret: NonNullable<SelectProps["options"]>) {
+    if (!showMistral) return null;
+
+    return (
+      <>
+        {makeLLMOption(ret, MISTRAL_MODELS[0], `Mistral's "small" model`)}
+        {makeLLMOption(ret, MISTRAL_MODELS[1], `Mistral's "medium" model`)}
+        {makeLLMOption(ret, MISTRAL_MODELS[2], `Mistral's "large" model`)}
+      </>
+    );
+  }
+
   function appendOllama(ret: NonNullable<SelectProps["options"]>) {
     if (!showOllama || !ollama) return null;
 
@@ -165,6 +183,7 @@ export default function ModelSwitch({
     const ret: NonNullable<SelectProps["options"]> = [];
     appendOpenAI(ret);
     appendGoogle(ret);
+    appendMistral(ret);
     appendOllama(ret);
     return ret;
   }

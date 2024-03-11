@@ -13,6 +13,7 @@ import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
+  LLMServicesAvailable,
   LLM_USERNAMES,
   USER_SELECTABLE_LANGUAGE_MODELS,
   model2service,
@@ -43,11 +44,7 @@ interface Props {
   search: string | undefined;
   project_id: string;
   ollama: { [key: string]: OllamaPublic };
-  enabledLLMs: {
-    openai: boolean;
-    google: boolean;
-    ollama: boolean;
-  };
+  enabledLLMs: LLMServicesAvailable;
 }
 
 function mentionableUsers({
@@ -147,8 +144,8 @@ function mentionableUsers({
   }
 
   if (enabledLLMs.google) {
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("chat-bison-001")) {
-      // ATTN: palm is no longer supported, but have to keep this to avoid breaking old chats.
+    // ATTN: palm is no longer supported, but have to keep this to avoid breaking old chats.
+    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("chat-bison-001" as any)) {
       if (!search || "palm".includes(search)) {
         v.push({
           value: model2service("chat-bison-001"),
@@ -192,6 +189,9 @@ function mentionableUsers({
         });
       }
     }
+  }
+
+  if (enabledLLMs.mistral) {
   }
 
   for (const { account_id } of project_users) {

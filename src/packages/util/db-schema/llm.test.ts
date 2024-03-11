@@ -1,6 +1,13 @@
 // this tests the wrongly named openai.ts file
 
-import { isFreeModel, LANGUAGE_MODELS, LLM_COST, OLLAMA_PREFIX } from "./llm";
+import {
+  isFreeModel,
+  LANGUAGE_MODEL_VENDORS,
+  LANGUAGE_MODELS,
+  LLM_COST,
+  OLLAMA_PREFIX,
+  USER_SELECTABLE_LANGUAGE_MODELS,
+} from "./llm";
 
 describe("llm", () => {
   test("isFreeModel", () => {
@@ -15,6 +22,20 @@ describe("llm", () => {
     // ATTN: don't use isValidModel to test!
     for (const model in LLM_COST) {
       expect(LANGUAGE_MODELS.includes(model as any)).toBe(true);
+    }
+  });
+
+  test("all user selectable ones are valid", () => {
+    for (const model of USER_SELECTABLE_LANGUAGE_MODELS) {
+      expect(LANGUAGE_MODELS.includes(model)).toBe(true);
+    }
+  });
+
+  test("none of the user selectable models start with any of the vendor prefixes", () => {
+    for (const model of USER_SELECTABLE_LANGUAGE_MODELS) {
+      for (const prefix of LANGUAGE_MODEL_VENDORS) {
+        expect(model.startsWith(prefix)).toBe(false);
+      }
     }
   });
 });

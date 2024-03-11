@@ -1,6 +1,6 @@
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { EnabledLLMs } from "@cocalc/frontend/project/context";
 import {
+  LLMServicesAvailable,
   LanguageService,
   USER_SELECTABLE_LANGUAGE_MODELS,
   fromOllamaModel,
@@ -21,11 +21,12 @@ export function useLanguageModelSetting(
   const haveOpenAI = useTypedRedux("customize", "openai_enabled");
   const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
   const haveOllama = useTypedRedux("customize", "ollama_enabled");
+  const haveMistral = useTypedRedux("customize", "mistral_enabled");
 
-  const enabledLLMs: EnabledLLMs = useMemo(() => {
+  const enabledLLMs: LLMServicesAvailable = useMemo(() => {
     const projectsStore = redux.getStore("projects");
     return projectsStore.whichLLMareEnabled(project_id);
-  }, [haveOpenAI, haveGoogle, haveOllama]);
+  }, [haveOpenAI, haveGoogle, haveOllama, haveMistral]);
 
   const llm: LanguageService = useMemo(() => {
     return getValidLanguageModelName(

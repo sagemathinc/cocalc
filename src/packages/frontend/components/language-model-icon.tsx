@@ -9,6 +9,7 @@ import { unreachable } from "@cocalc/util/misc";
 import AIAvatar from "./ai-avatar";
 import GoogleGeminiLogo from "./google-gemini-avatar";
 import GooglePalmLogo from "./google-palm-avatar";
+import MistralAvatar from "./mistral-avatar";
 import OllamaAvatar from "./ollama-avatar";
 import OpenAIAvatar from "./openai-avatar";
 
@@ -49,6 +50,9 @@ export function LanguageModelVendorAvatar(
             return fallback();
         }
       }
+
+      case "mistralai":
+        return <MistralAvatar size={size} style={style} />;
 
       case "ollama":
         return <OllamaAvatar size={size} style={style} />;

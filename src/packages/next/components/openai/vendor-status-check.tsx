@@ -1,8 +1,12 @@
-import { Vendor } from "@cocalc/util/db-schema/llm";
+import { LLMVendor } from "@cocalc/util/db-schema/llm";
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 
-export function VendorStatusCheck({ vendor }: { vendor: Vendor }): JSX.Element {
+export function VendorStatusCheck({
+  vendor,
+}: {
+  vendor: LLMVendor;
+}): JSX.Element {
   switch (vendor) {
     case "openai":
       return (
@@ -27,6 +31,13 @@ export function VendorStatusCheck({ vendor }: { vendor: Vendor }): JSX.Element {
           This Ollama based API endpoint does not have a status page. If you are
           experiencing issues you have to check with the API service directly or
           try again later.
+        </>
+      );
+    case "mistralai":
+      return (
+        <>
+          This Mistral based API endpoint does not have a status page. If you
+          are experiencing issues, use another model or try again later.
         </>
       );
     default:

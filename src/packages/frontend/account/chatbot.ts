@@ -12,7 +12,7 @@ import {
   LANGUAGE_MODELS,
   LANGUAGE_MODEL_PREFIXES,
   LLM_USERNAMES,
-  Vendor,
+  LLMVendor,
   fromOllamaModel,
   isOllamaLLM,
   model2vendor,
@@ -29,7 +29,7 @@ export function isChatBot(account_id?: string): boolean {
   );
 }
 
-export function getChatBotVendor(account_id?: string): Vendor {
+export function getChatBotVendor(account_id?: string): LLMVendor {
   if (account_id == null) {
     return "openai";
   }

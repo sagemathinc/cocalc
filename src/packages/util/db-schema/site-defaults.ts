@@ -5,8 +5,8 @@
 
 // Default settings to customize a given site, typically a private install of CoCalc.
 
-import jsonic from "jsonic";
 import { is_valid_email_address } from "@cocalc/util/misc";
+import jsonic from "jsonic";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -26,6 +26,7 @@ export type SiteSettingsKeys =
   | "policies"
   | "openai_enabled"
   | "google_vertexai_enabled"
+  | "mistral_enabled"
   | "ollama_enabled"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
@@ -592,6 +593,13 @@ export const site_settings_conf: SiteSettings = {
   google_vertexai_enabled: {
     name: "Google Gemini Generative AI UI",
     desc: "Controls visibility of UI elements related to Google's **Gemini Generative AI** integration.  You must **also set your Gemini Generative AI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  mistral_enabled: {
+    name: "Mistral AI UI",
+    desc: "Controls visibility of UI elements related to Mistral AI integration.  You must **also set your Mistral API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

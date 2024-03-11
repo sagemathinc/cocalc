@@ -13,6 +13,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { UserGroup } from "@cocalc/frontend/projects/store";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
+import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
@@ -26,11 +27,6 @@ import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
 
-export interface EnabledLLMs {
-  openai: boolean;
-  google: boolean;
-  ollama: boolean;
-}
 export interface ProjectContextState {
   actions?: ProjectActions;
   active_project_tab?: string;
@@ -44,7 +40,7 @@ export interface ProjectContextState {
   flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
   onCoCalcCom: boolean;
   onCoCalcDocker: boolean;
-  enabledLLMs: EnabledLLMs;
+  enabledLLMs: LLMServicesAvailable;
 }
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -65,6 +61,7 @@ export const ProjectContext: Context<ProjectContextState> =
       openai: false,
       google: false,
       ollama: false,
+      mistral: false,
     },
   });
 
@@ -105,11 +102,12 @@ export function useProjectContextProvider(
   const haveOpenAI = useTypedRedux("customize", "openai_enabled");
   const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
   const haveOllama = useTypedRedux("customize", "ollama_enabled");
+  const haveMistral = useTypedRedux("customize", "mistral_enabled");
 
   const enabledLLMs = useMemo(() => {
     const projectsStore = redux.getStore("projects");
     return projectsStore.whichLLMareEnabled(project_id);
-  }, [haveOpenAI, haveGoogle, haveOllama]);
+  }, [haveOpenAI, haveGoogle, haveOllama, haveMistral]);
 
   return {
     actions,

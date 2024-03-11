@@ -68,6 +68,7 @@ const pii_retention_display = (retention: string) => {
 const openai_enabled = (conf: SiteSettings) => to_bool(conf.openai_enabled);
 const vertexai_enabled = (conf: SiteSettings) =>
   to_bool(conf.google_vertexai_enabled);
+const mistral_enabled = (conf: SiteSettings) => to_bool(conf.mistral_enabled);
 const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) || vertexai_enabled(conf) || ollama_enabled(conf);
@@ -192,6 +193,7 @@ export type SiteSettingsExtrasKeys =
   | "openai_api_key"
   | "google_vertexai_key"
   | "ollama_configuration"
+  | "mistral_api_key"
   | "qdrant_section"
   | "qdrant_api_key"
   | "qdrant_cluster_url"
@@ -263,10 +265,17 @@ export const EXTRAS: SettingsExtras = {
   },
   google_vertexai_key: {
     name: "Google Gemini Generative AI API Key",
-    desc: "Create an [API Key](https://aistudio.google.com/app/apikey) in [Google's AI Studio](https://aistudio.google.com/) and paste the content here.",
+    desc: "Create an [API Key](https://aistudio.google.com/app/apikey) in [Google's AI Studio](https://aistudio.google.com/) and paste it here.",
     default: "",
     password: true,
     show: vertexai_enabled,
+  },
+  mistral_api_key: {
+    name: "Mistral AI API Key",
+    desc: "Create an API Key in the [Mistral AI Console](https://console.mistral.ai/api-keys/) and paste it here.",
+    default: "",
+    password: true,
+    show: mistral_enabled,
   },
   ollama_configuration: {
     name: "Ollama Configuration",

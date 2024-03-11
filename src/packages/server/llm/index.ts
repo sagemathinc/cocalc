@@ -24,6 +24,7 @@ import {
   OpenAIMessages,
   getLLMCost,
   isFreeModel,
+  isMistralService,
   isOllamaLLM,
   isValidModel,
   model2service,
@@ -33,6 +34,7 @@ import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
+import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
 import { VertexAIClient } from "./vertex-ai-client";
@@ -95,6 +97,15 @@ async function evaluateImpl({
     await (async () => {
       if (isOllamaLLM(model)) {
         return await evaluateOllama({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
+      } else if (isMistralService(model)) {
+        return await evaluateMistral({
           system,
           history,
           input,

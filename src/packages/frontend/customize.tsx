@@ -96,6 +96,7 @@ export interface CustomizeState {
   is_commercial: boolean;
   openai_enabled: boolean;
   google_vertexai_enabled: boolean;
+  mistral_enabled: boolean;
   ollama_enabled: boolean;
   neural_search_enabled: boolean;
   datastore: boolean;
