@@ -69,14 +69,15 @@ export class Ban extends Component<Props, State> {
         title={<>Ban "{this.props.name}"?</>}
         description={
           <div style={{ width: "400px" }}>
-            {this.props.name} will be logged out, can't login, all api access is
-            revoked, auth_tokens are deleted, and all ability to spend money is
-            immeediately halted. This means{" "}
+            {this.props.name} won't be able to login, all API access is revoked,
+            auth_tokens are deleted, can't connect to projects, and all ability
+            to spend money is immeediately halted. This means{" "}
             <b>
               any compute servers they are running will be completely deleted.
             </b>{" "}
-            Use this on spammers and credit card fraudsters. Admins can still
-            access banned accounts via "Impersonate" for forensic purposes.
+            Use this on spammers and credit card fraudsters. Before they refresh
+            their browser, they will just feel likely CoCalc is slow/broken, but
+            they won't know why.
           </div>
         }
         okText="Yes, BAN THEM"
