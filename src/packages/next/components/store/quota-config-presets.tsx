@@ -21,11 +21,12 @@ export type Presets =
 
 // Fields to be used to match a configured license against a pre-existing preset.
 //
-export const PRESET_MATCH_FIELDS = {
-  cpu: "CPU",
+export const PRESET_MATCH_FIELDS: Record<string, string> = {
+  cpu: "CPU count",
   disk: "disk space",
   ram: "memory",
-  uptime: "uptime",
+  uptime: "idle timeout",
+  member: "member hosting",
 };
 
 export interface Preset {
@@ -36,8 +37,8 @@ export interface Preset {
   cpu: number;
   ram: number;
   disk: number;
-  uptime?: Uptime;
-  member?: boolean;
+  uptime: Uptime;
+  member: boolean;
 }
 
 type PresetEntries = {
@@ -89,6 +90,7 @@ export const PRESETS: PresetEntries = {
     ram: STANDARD_RAM,
     disk: STANDARD_DISK,
     uptime: "short",
+    member: true,
   },
   //   student: {
   //     icon: "meh",
@@ -127,6 +129,7 @@ export const PRESETS: PresetEntries = {
     ram: 2 * STANDARD_RAM,
     disk: 2 * STANDARD_DISK,
     uptime: "medium",
+    member: true,
   },
   instructor: {
     icon: "highlighter",
@@ -161,6 +164,7 @@ export const PRESETS: PresetEntries = {
     ram: 6,
     disk: 15,
     uptime: "medium",
+    member: true,
   },
   research: {
     icon: "rocket",
@@ -188,6 +192,7 @@ export const PRESETS: PresetEntries = {
     ram: 6,
     disk: 10,
     uptime: "day",
+    member: true,
   },
   development: {
     icon: "settings",
@@ -206,6 +211,7 @@ export const PRESETS: PresetEntries = {
     ram: 8,
     disk: 10,
     uptime: "medium",
+    member: true,
   },
   /*budget: {
     icon: "wallet",
