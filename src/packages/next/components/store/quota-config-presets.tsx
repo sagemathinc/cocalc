@@ -19,6 +19,15 @@ export type Presets =
   | "development";
 //| "budget";
 
+// Fields to be used to match a configured license against a pre-existing preset.
+//
+export const PRESET_MATCH_FIELDS = {
+  cpu: "CPU",
+  disk: "disk space",
+  ram: "memory",
+  uptime: "uptime",
+};
+
 export interface Preset {
   icon?: IconName;
   name: string;
@@ -72,13 +81,14 @@ export const PRESETS: PresetEntries = {
         You can run two or three Jupyter Notebooks in the same project at the
         same time, given they do not require a large amount of memory. This
         quota is fine for editing LaTeX documents, working with Sage Worksheets,
-        and all other document types as well. {STANDARD_DISK}G of disk space are
-        also sufficient to store many files and a few small datasets.
+        and all other document types. {STANDARD_DISK}G of disk space are also
+        sufficient to store many files and a few small datasets.
       </>
     ),
     cpu: STANDARD_CPU,
     ram: STANDARD_RAM,
     disk: STANDARD_DISK,
+    uptime: "short",
   },
   //   student: {
   //     icon: "meh",
@@ -104,11 +114,11 @@ export const PRESETS: PresetEntries = {
     descr: "covers student projects with extra resources",
     details: (
       <>
-        This quota preset is very similar as the "Student" quota, although
-        students will get a bit more ram and disk space.{" "}
+        This quota preset is very similar to the "Student" quota, although
+        students are allowed a bit more ram and disk space.{" "}
         {WARN_SELECT_NUMBER_PROJECTS} The increased idle-timeout will keep their
-        notebooks and worksheets a bit longer running, while not in active use.
-        Choose this schema, if you plan to let them run data and memory
+        notebooks and worksheets running for a bit longer while not in active
+        use. Choose this schema if you plan to let students run data and memory
         intensive calculations, e.g. data-science, machine-learning, etc.{" "}
         {APPLY_LICENSE_COURSE_CONFIG}
       </>
@@ -159,12 +169,19 @@ export const PRESETS: PresetEntries = {
     details: (
       <>
         This configuration allows the project to run many Jupyter Notebooks and
-        Worksheets at once or run computations that require plenty of memory. An
-        idle-timeout of one day is sufficient to not interrupt your work and you
-        can also run calculations, which take a while to complete. Increasing
-        the disk space quota allows you to store larger datasets as well. If you
-        need vastly more disk space, you can also get a{" "}
-        <A href={"/store/dedicated?type=disk"}>dedicated disk</A>.
+        Worksheets at once or to run memory-intensive computations. An
+        idle-timeout of one day is sufficient to not interrupt your work; you
+        can also execute long-running calculations with this configuration.
+        Increasing the disk space quota also allows you to store larger
+        datasets. If you need{" "}
+        <b>vastly more dedicated disk space, CPU or RAM</b>, you should instead{" "}
+        <b>
+          rent a{" "}
+          <A href="https://doc.cocalc.com/compute_server.html">
+            compute server
+          </A>
+          .
+        </b>
       </>
     ),
     cpu: 1,
@@ -178,8 +195,11 @@ export const PRESETS: PresetEntries = {
     descr: "is suitable for software development",
     details: (
       <>
-        This configuration helps with parallelizing build tasks across more than
-        one CPU, increases the amount of memory and also disk space.
+        This configuration allows for parallelized build tasks across more than
+        one CPU with an increased the amount of memory and disk space. If you
+        need <b>vastly more dedicated disk space, CPU or RAM</b>, you should
+        instead rent a{" "}
+        <A href="https://doc.cocalc.com/compute_server.html">compute server</A>.
       </>
     ),
     cpu: 2,

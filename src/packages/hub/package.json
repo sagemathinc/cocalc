@@ -17,6 +17,7 @@
     "@cocalc/server": "workspace:*",
     "@cocalc/static": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@isaacs/ttlcache": "^1.2.1",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.4",
     "@types/express": "^4.17.13",

@@ -15,7 +15,12 @@ import {
 import { Col, Divider, Form, Radio, Row, Space, Tabs, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
-import { PRESETS, Preset, Presets } from "./quota-config-presets";
+import {
+  PRESETS,
+  Preset,
+  Presets,
+  PRESET_MATCH_FIELDS,
+} from "./quota-config-presets";
 
 const { Text } = Typography;
 
@@ -119,9 +124,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
                 Google Cloud vCPUs.
               </A>{" "}
-              To keep prices low, these vCPUs may be shared with other
-              projects, though member hosting very significantly reduces
-              competition for CPUs. We also offer{" "}
+              To keep prices low, these vCPUs may be shared with other projects,
+              though member hosting very significantly reduces competition for
+              CPUs. We also offer{" "}
               <A href={"/store/dedicated?type=vm"}>
                 dedicated virtual machines
               </A>{" "}
@@ -159,8 +164,12 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               Extra disk space lets you store a larger number of files.
               Snapshots and file edit history is included at no additional
               charge. Each project receives at least {DISK_DEFAULT_GB}G of
-              storage space. We also offer much larger{" "}
-              <A href={"/store/dedicated?type=disk"}>dedicated disks</A>.
+              storage space. We also offer MUCH larger disks (and CPU and
+              memory) via{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>
+              .
             </>
           ) : undefined
         }
@@ -193,20 +202,11 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       );
     }
 
-    const cpuValue = form.getFieldValue("cpu");
-    const ramValue = form.getFieldValue("ram");
-    const diskValue = form.getFieldValue("disk");
     const memberValue = form.getFieldValue("member");
-    const uptimeValue = form.getFieldValue("uptime");
-
-    if (
-      cpuValue == null ||
-      ramValue == null ||
-      diskValue == null ||
-      memberValue == null ||
-      uptimeValue == null
-    )
+    const quotaConfig = form.getFieldsValue(Object.keys(PRESET_MATCH_FIELDS));
+    if (Object.values(quotaConfig).includes(null) || memberValue == null) {
       return;
+    }
 
     const presetData: Preset = PRESETS[preset];
     if (presetData == null) {
@@ -217,6 +217,17 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       );
     }
     const { name, descr, details } = presetData;
+
+    const presetDiff = Object.keys(PRESET_MATCH_FIELDS).reduce(
+      (diff, presetField) => {
+        if (presetData[presetField] !== quotaConfig[presetField]) {
+          diff.push(presetField);
+        }
+
+        return diff;
+      },
+      [] as string[],
+    );
 
     function presetDescription() {
       if (!descr) {
@@ -233,52 +244,57 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     }
 
     function renderProvides() {
-      const basic = (
-        <>
-          provides up to{" "}
-          <Text strong>
-            {cpuValue} CPU {plural(cpuValue, "core")}
-          </Text>
-          , <Text strong>{ramValue}G memory</Text>, and{" "}
-          <Text strong>{diskValue}G disk space</Text> for each project.
-        </>
-      );
+      if (preset) {
+        const { cpu, disk, ram, uptime } = PRESETS[preset];
+        const memberValue = form.getFieldValue("member");
 
-      const mh =
-        memberValue === false ? (
-          <Text strong>member hosting is disabled</Text>
-        ) : null;
-
-      const ut =
-        uptimeValue !== "short" ? (
+        const basic = (
           <>
-            {mh != null ? " and" : ""} the project's{" "}
+            provides up to{" "}
             <Text strong>
-              idle timeout is {displaySiteLicense(uptimeValue)}
+              {cpu} CPU {plural(cpu, "core")}
             </Text>
+            , <Text strong>{ram}G memory</Text>, and{" "}
+            <Text strong>{disk}G disk space</Text> for each project.
           </>
-        ) : null;
+        );
 
-      const any = mh != null || ut != null;
+        const mh =
+          memberValue === false ? (
+            <Text strong>member hosting is disabled</Text>
+          ) : null;
 
-      return (
-        <>
-          {basic} {any ? "Additionally, " : ""}
-          {mh}
-          {ut}
-          {any ? "." : ""}
-        </>
-      );
+        const ut =
+          uptime && uptime !== "short" ? (
+            <>
+              {mh != null ? " and" : ""} the project's{" "}
+              <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
+            </>
+          ) : null;
+
+        const any = mh != null || ut != null;
+
+        return (
+          <>
+            {basic} {any ? "Additionally, " : ""}
+            {mh}
+            {ut}
+            {any ? "." : ""}
+          </>
+        );
+      }
     }
 
     function presetIsAdjusted() {
-      if (!presetAdjusted) return;
+      if (!presetAdjusted || !presetDiff.length) return;
+      const lf = new Intl.ListFormat("en");
       return (
         <Typography style={{ marginBottom: "10px" }}>
           <Text type="warning">
-            The preset has been adjusted and parts of the description might no
-            longer be applicable. If you select another one, your modifications
-            will be reset.
+            The current license differs from the <b>{lf.format(presetDiff)} </b>
+            configuration for the currently selected preset. By clicking any of
+            the above buttons, you can ensure your license configuration matches
+            the original preset configuration.
           </Text>
         </Typography>
       );
@@ -300,8 +316,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     return (
       <Text type="secondary">
         After selecting a preset, feel free to fine tune the selection in the "
-        {EXPERT_CONFIG}" or change the "Member hosting" or the "Idle timeout"
-        configuration below. Subsequent preset selections will reset your
+        {EXPERT_CONFIG}" tab. Subsequent preset selections will reset your
         adjustments.
       </Text>
     );
@@ -334,12 +349,12 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     return (
       <>
         <Form.Item label="Presets" shouldUpdate={true} extra={presetExtra()}>
-          <Radio.Group onChange={onPresetChange} value={preset}>
+          <Radio.Group value={preset}>
             <Space size={[5, 5]} wrap>
               {Object.keys(PRESETS).map((p) => {
                 const presetData = PRESETS[p];
                 return (
-                  <Radio.Button key={p} value={p}>
+                  <Radio.Button onClick={onPresetChange} key={p} value={p}>
                     <Icon name={presetData.icon ?? "arrow-up"} />{" "}
                     {presetData.name}
                   </Radio.Button>

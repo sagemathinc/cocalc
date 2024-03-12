@@ -80,7 +80,7 @@ const dataSource: DataSource = [
       <>
         How to{" "}
         <A href="/pricing/dedicated">
-          rent a dedicated powerful virtual machine or large dedicated disk
+          rent a dedicated powerful virtual machine
         </A>
         , which can greatly improve collaboration and scalability in your
         research group.
