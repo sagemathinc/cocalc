@@ -5,6 +5,7 @@
 
 import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
+import api from "./api";
 
 export class AdminClient {
   private async_call: AsyncCall;
@@ -26,15 +27,13 @@ export class AdminClient {
 
   public async admin_ban_user(
     account_id: string,
-    ban: boolean = true // if true, ban user  -- if false, unban them.
+    ban: boolean = true, // if true, ban user  -- if false, remove ban
   ): Promise<void> {
-    await this.async_call({
-      message: message.admin_ban_user({
-        account_id,
-        ban,
-      }),
-      allow_post: true,
-    });
+    if (ban) {
+      await api("/accounts/ban", { account_id });
+    } else {
+      await api("/accounts/remove-ban", { account_id });
+    }
   }
 
   public async get_user_auth_token(account_id: string): Promise<string> {

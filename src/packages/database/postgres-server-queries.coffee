@@ -953,25 +953,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : @_account_where(opts)
             cb    : one_result('banned', (err, banned) => opts.cb(err, !!banned))
 
-    _set_ban_user: (opts) =>
-        opts = defaults opts,
-            account_id    : undefined
-            email_address : undefined
-            banned        : required
-            cb            : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query : 'UPDATE accounts'
-            set   : {banned: opts.banned}
-            where : @_account_where(opts)
-            cb    : one_result('banned', opts.cb)
-
-    ban_user: (opts) =>
-        @_set_ban_user(misc.merge(opts, banned:true))
-
-    unban_user: (opts) =>
-        @_set_ban_user(misc.merge(opts, banned:false))
-
     _touch_account: (account_id, cb) =>
         if @_throttle('_touch_account', 120, account_id)
             cb()
