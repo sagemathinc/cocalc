@@ -65,6 +65,7 @@ import {
   installDocker,
   installUser,
   installCoCalc,
+  installMicroK8s,
   installNode,
 } from "../install";
 import { delay } from "awaiting";
@@ -511,14 +512,16 @@ function createBuildConfiguration({
         } as const)),
   } as const;
 
-  // IMPORTANT SECURITY NOTE: Do *NOT* install microk8s, even for an image
-  // that uses it. Though it saves time (e.g., 30s), it likely also sets up
-  // secret keys that would be a major security vulnerability, i.e., two kubernetes
-  // VM's made from the same image have the same keys. So don't do that.
+  // IMPORTANT SECURITY NOTE: It should be be OK to install microk8s, even for an image
+  // that uses it.  This sets up secret keys, but in recent versions of Kubernetes,
+  // those keys are changed when the hostname changes, which happens when the image
+  // is used!
 
   const startupScript = `
 #!/bin/bash
 set -ev
+
+function setState {}
 
 # Install docker daemon and client
 ${installDocker()}
@@ -542,6 +545,9 @@ docker pull ${pkg}:${tag}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
 ${gpu ? installCuda() : ""}
+
+# install-k8s has to be AFTER install-user and cuda
+${installMicroK8s({ image, IMAGES, gpu })}
 
 df -h /
 sync
