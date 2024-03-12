@@ -1,4 +1,4 @@
-import { Button, Divider, Input, Modal, Space } from "antd";
+import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
@@ -105,9 +105,13 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     if (!tex) {
       tex = formula;
     }
-    // if there is "\[" and "\]" in the formula, replace both by $$
+    // if there are "\[" and "\]" in the formula, replace both by $$
     if (tex.includes("\\[") && tex.includes("\\]")) {
       tex = tex.replace(/\\\[|\\\]/g, "$$");
+    }
+    // similar, replace "\(" and "\)" by single $ signs
+    if (tex.includes("\\(") && tex.includes("\\)")) {
+      tex = tex.replace(/\\\(|\\\)/g, "$");
     }
     // if there are at least two $$ or $ in the tex, we extract the part between the first and second $ or $$
     // This is necessary, because despite the prompt, some LLM return stuff like: "Here is the LaTeX formula: $$ ... $$."
@@ -139,7 +143,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
       });
       const tex = processFormula(reply);
       // significant differece? Also show the full reply
-      if (reply.length * 0.9 > tex.length) {
+      if (reply.length > 2 * tex.length) {
         setFullReply(reply);
       } else {
         setFullReply("");
@@ -243,19 +247,32 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
           </Button>
         </Space.Compact>
         {formula ? (
-          <>
-            <Paragraph code>{formula}</Paragraph>
-            <Space direction="vertical" size="small">
-              <Divider orientation="left">Preview</Divider>
-              <Markdown value={`### ${wrapFormula(formula)}`} />
-              {fullReply ? (
-                <>
-                  <Divider orientation="left">Full reply</Divider>
-                  <Markdown value={fullReply} />
-                </>
-              ) : undefined}
-            </Space>
-          </>
+          <Descriptions
+            size={"small"}
+            column={1}
+            bordered
+            items={[
+              {
+                key: "1",
+                label: "LaTeX",
+                children: <Paragraph code>{formula}</Paragraph>,
+              },
+              {
+                key: "2",
+                label: "Preview",
+                children: <Markdown value={wrapFormula(formula)} />,
+              },
+              ...(fullReply
+                ? [
+                    {
+                      key: "3",
+                      label: "Full reply",
+                      children: <Markdown value={fullReply} />,
+                    },
+                  ]
+                : []),
+            ]}
+          />
         ) : undefined}
         {error ? <Paragraph type="danger">{error}</Paragraph> : undefined}
         {mode === "tex" ? (
