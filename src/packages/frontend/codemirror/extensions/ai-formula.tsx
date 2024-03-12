@@ -44,6 +44,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState<string>(text);
   const [formula, setFormula] = useState<string>("");
+  const [fullReply, setFullReply] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -89,7 +90,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     }
   }
 
-  function processFormula(formula: string) {
+  function processFormula(formula: string): string {
     let tex = "";
     // iterate over all lines in formula. save everything between the first ``` and last ``` in tex
     let inCode = false;
@@ -104,8 +105,6 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     if (!tex) {
       tex = formula;
     }
-    // convert tex to be on a single line
-    tex = tex.replace(/\n/g, " ").trim();
     // if there is "\[" and "\]" in the formula, replace both by $$
     if (tex.includes("\\[") && tex.includes("\\]")) {
       tex = tex.replace(/\\\[|\\\]/g, "$$");
@@ -120,22 +119,31 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
       }
     }
     setFormula(tex);
+    return tex;
   }
 
   async function doGenerate() {
     try {
       setError(undefined);
       setGenerating(true);
+      setFormula("");
+      setFullReply("");
       const tag = `generate-formula`;
       track("chatgpt", { project_id, tag, mode, type: "generate", model });
-      const tex = await webapp_client.openai_client.query({
+      const reply = await webapp_client.openai_client.query({
         input: getPrompt(),
         project_id,
         tag,
         model,
         system: "",
       });
-      processFormula(tex);
+      const tex = processFormula(reply);
+      // significant differece? Also show the full reply
+      if (reply.length * 0.9 > tex.length) {
+        setFullReply(reply);
+      } else {
+        setFullReply("");
+      }
     } catch (err) {
       setError(err.message || err.toString());
     } finally {
@@ -237,9 +245,15 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
         {formula ? (
           <>
             <Paragraph code>{formula}</Paragraph>
-            <Space direction="horizontal" size="middle">
-              Preview:
-              <Markdown value={wrapFormula(formula)} />
+            <Space direction="vertical" size="small">
+              <Divider orientation="left">Preview</Divider>
+              <Markdown value={`### ${wrapFormula(formula)}`} />
+              {fullReply ? (
+                <>
+                  <Divider orientation="left">Full reply</Divider>
+                  <Markdown value={fullReply} />
+                </>
+              ) : undefined}
             </Space>
           </>
         ) : undefined}
