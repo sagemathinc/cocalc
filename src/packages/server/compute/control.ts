@@ -47,6 +47,7 @@ import {
   deprovisionScript,
 } from "@cocalc/server/compute/cloud/off-scripts";
 import setDetailedState from "@cocalc/server/compute/set-detailed-state";
+import isBanned from "@cocalc/server/accounts/is-banned";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -74,6 +75,10 @@ export const start: (opts: {
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
   try {
+    if (await isBanned(account_id)) {
+      // they should never get this far, but just in case.
+      throw Error("user is banned");
+    }
     await setError(id, "");
     await setProjectApiKey({ account_id, server });
   } catch (err) {

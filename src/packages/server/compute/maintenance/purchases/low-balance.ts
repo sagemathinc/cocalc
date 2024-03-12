@@ -19,7 +19,7 @@ const COST_THRESH_DOLLARS = 2;
 // say $10 from a stolen credit card and then quickly spending as much
 // as possible.  And they might do this with a large number of different
 // accounts at once.  So we don't want this margin to be too large.
-const DELETE_THRESH_MARGIN = 5;
+const DELETE_THRESH_MARGIN = 10;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
