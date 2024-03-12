@@ -104,6 +104,21 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     if (!tex) {
       tex = formula;
     }
+    // convert tex to be on a single line
+    tex = tex.replace(/\n/g, " ").trim();
+    // if there is "\[" and "\]" in the formula, replace both by $$
+    if (tex.includes("\\[") && tex.includes("\\]")) {
+      tex = tex.replace(/\\\[|\\\]/g, "$$");
+    }
+    // if there are at least two $$ or $ in the tex, we extract the part between the first and second $ or $$
+    // This is necessary, because despite the prompt, some LLM return stuff like: "Here is the LaTeX formula: $$ ... $$."
+    for (const delimiter of ["$$", "$"]) {
+      const parts = tex.split(delimiter);
+      if (parts.length >= 3) {
+        tex = parts[1];
+        break;
+      }
+    }
     setFormula(tex);
   }
 
