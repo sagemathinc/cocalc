@@ -25,6 +25,7 @@ import {
 const { Text } = Typography;
 
 const EXPERT_CONFIG = "Expert configuration";
+const listFormat = new Intl.ListFormat("en");
 
 interface Props {
   showExplanations: boolean;
@@ -82,7 +83,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   }
 
   /**
-   * When a quota is changed, we warn the user that the preset was adjusted. (the text updates, though, since it rerenders every time). Explanation in the details could make no sense, though – that's why this is added.
+   * When a quota is changed, we warn the user that the preset was adjusted.
+   * (the text updates, though, since it rerenders every time). Explanation in
+   * the details could make no sense, though – that's why this is added.
    */
   function presetWasAdjusted() {
     setPresetAdjusted?.(true);
@@ -202,9 +205,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       );
     }
 
-    const memberValue = form.getFieldValue("member");
-    const quotaConfig = form.getFieldsValue(Object.keys(PRESET_MATCH_FIELDS));
-    if (Object.values(quotaConfig).includes(null) || memberValue == null) {
+    const quotaConfig: Record<string, string> = form.getFieldsValue(Object.keys(PRESET_MATCH_FIELDS));
+    const invalidConfigValues = Object.keys(quotaConfig).filter((field) => quotaConfig[field] == null);
+    if (invalidConfigValues.length) {
       return;
     }
 
@@ -221,7 +224,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     const presetDiff = Object.keys(PRESET_MATCH_FIELDS).reduce(
       (diff, presetField) => {
         if (presetData[presetField] !== quotaConfig[presetField]) {
-          diff.push(presetField);
+          diff.push(PRESET_MATCH_FIELDS[presetField]);
         }
 
         return diff;
@@ -245,8 +248,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
     function renderProvides() {
       if (preset) {
-        const { cpu, disk, ram, uptime } = PRESETS[preset];
-        const memberValue = form.getFieldValue("member");
+        const { cpu, disk, ram, uptime, member } = PRESETS[preset];
 
         const basic = (
           <>
@@ -260,7 +262,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         );
 
         const mh =
-          memberValue === false ? (
+          member === false ? (
             <Text strong>member hosting is disabled</Text>
           ) : null;
 
@@ -287,14 +289,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
     function presetIsAdjusted() {
       if (!presetAdjusted || !presetDiff.length) return;
-      const lf = new Intl.ListFormat("en");
       return (
         <Typography style={{ marginBottom: "10px" }}>
           <Text type="warning">
-            The current license differs from the <b>{lf.format(presetDiff)} </b>
-            configuration for the currently selected preset. By clicking any of
-            the above buttons, you can ensure your license configuration matches
-            the original preset configuration.
+            The currently configured license differs from the selected preset in
+            <b> {listFormat.format(presetDiff)}</b>.
+
+            By clicking any of the above buttons, you can ensure your license
+            configuration matches the original preset configuration.
           </Text>
         </Typography>
       );
@@ -337,9 +339,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (val == null || setPreset == null) return;
     setPreset(val);
     setPresetAdjusted?.(false);
-    const preset = PRESETS[val];
-    if (preset != null) {
-      const { cpu, ram, disk, uptime = "short", member = true } = preset;
+    const presetData = PRESETS[val];
+    if (presetData != null) {
+      const { cpu, ram, disk, uptime = "short", member = true } = presetData;
       form.setFieldsValue({ uptime, member, cpu, ram, disk });
     }
     onChange();
