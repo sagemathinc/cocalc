@@ -11,7 +11,6 @@ import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
 import { program as commander, Option } from "commander";
-
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
@@ -45,6 +44,7 @@ import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
+import TTLCache from "@isaacs/ttlcache";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -306,7 +306,11 @@ async function startServer(): Promise<void> {
 
 // addErrorListeners: after successful startup, don't crash on routine errors.
 // We don't do this until startup, since we do want to crash on errors on startup.
-// TODO: could alternatively be handled via winston (?).
+
+// Use cache to not save the SAME error to the database (and prometheus)
+// more than once per minute.
+const errorReportCache = new TTLCache({ ttl: 60 * 1000 });
+
 function addErrorListeners(uncaught_exception_total) {
   process.addListener("uncaughtException", function (err) {
     winston.error(
@@ -318,6 +322,11 @@ function addErrorListeners(uncaught_exception_total) {
     winston.error(
       "BUG ****************************************************************************",
     );
+    const key = `${err}`;
+    if (errorReportCache.has(key)) {
+      return;
+    }
+    errorReportCache.set(key, true);
     database?.uncaught_exception(err);
     uncaught_exception_total.inc(1);
   });
@@ -331,6 +340,11 @@ function addErrorListeners(uncaught_exception_total) {
     winston.error(
       "BUG UNHANDLED REJECTION *********************************************************",
     );
+    const key = `${p}${reason}`;
+    if (errorReportCache.has(key)) {
+      return;
+    }
+    errorReportCache.set(key, true);
     database?.uncaught_exception(reason);
     uncaught_exception_total.inc(1);
   });
