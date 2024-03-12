@@ -36,6 +36,8 @@ import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { Paragraph, Title } from "components/misc";
 
+const DEFAULT_PRESET: Presets = "standard";
+
 const STYLE: React.CSSProperties = {
   marginTop: "15px",
   maxWidth: MAX_WIDTH,
@@ -135,7 +137,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [form] = Form.useForm();
   const router = useRouter();
 
-  const [preset, setPreset] = useState<Presets | null>("standard");
+  const [preset, setPreset] = useState<Presets | null>(DEFAULT_PRESET);
   const [presetAdjusted, setPresetAdjusted] = useState<boolean>(false);
 
   /**
@@ -194,8 +196,6 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           if (item.product == "site-license") {
             form.setFieldsValue({ ...item.description, type: "regular" });
           }
-
-          setConfigMode("expert");
         } catch (err) {
           setCartError(err.message);
         } finally {
@@ -205,13 +205,17 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
       })();
     } else {
       const vals = decodeFormValues(router, "regular");
-      const dflt = PRESETS["standard"];
+      const dflt = PRESETS[DEFAULT_PRESET];
       if (isEmpty(vals)) {
-        form.setFieldsValue({ ...dflt, preset: "standard" });
+        form.setFieldsValue({
+          ...dflt,
+        });
       } else {
         // we have to make sure cpu, mem and disk are set, otherwise there is no "cost"
-        form.setFieldsValue({ ...dflt, ...vals });
-        setConfigMode("expert");
+        form.setFieldsValue({
+          ...dflt,
+          ...vals,
+        });
       }
     }
     onLicenseChange();
