@@ -8,13 +8,14 @@ import { isEmpty } from "lodash";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
-import GooglePalmLogo from "@cocalc/frontend/components/google-palm-avatar";
+import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
 import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   LLMServicesAvailable,
   LLM_USERNAMES,
+  MISTRAL_MODELS,
   USER_SELECTABLE_LANGUAGE_MODELS,
   model2service,
   toOllamaModel,
@@ -144,21 +145,6 @@ function mentionableUsers({
   }
 
   if (enabledLLMs.google) {
-    // ATTN: palm is no longer supported, but have to keep this to avoid breaking old chats.
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("chat-bison-001" as any)) {
-      if (!search || "palm".includes(search)) {
-        v.push({
-          value: model2service("chat-bison-001"),
-          label: (
-            <span>
-              <GooglePalmLogo size={24} /> {LLM_USERNAMES["chat-bison-001"]}
-            </span>
-          ),
-          search: "palm",
-        });
-      }
-    }
-
     if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gemini-pro")) {
       if (!search || "gemini".includes(search)) {
         v.push({
@@ -176,7 +162,7 @@ function mentionableUsers({
 
   if (enabledLLMs.ollama && !isEmpty(ollama)) {
     for (const [key, conf] of Object.entries(ollama)) {
-      if (!search || key.includes(search) || conf.display.includes(search)) {
+      if (!search || key.includes(search) || conf.display.toLowerCase().includes(search)) {
         const value = toOllamaModel(key);
         v.push({
           value,
@@ -192,6 +178,21 @@ function mentionableUsers({
   }
 
   if (enabledLLMs.mistral) {
+    for (const m of MISTRAL_MODELS) {
+      if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(m)) continue;
+      const name = LLM_USERNAMES[m] ?? m;
+      if (!search || m.includes(search) || name.toLowerCase().includes(search)) {
+        v.push({
+          value: model2service(m),
+          label: (
+            <span>
+              <MistralAvatar size={24} /> {name}
+            </span>
+          ),
+          search: m,
+        });
+      }
+    }
   }
 
   for (const { account_id } of project_users) {

@@ -737,7 +737,7 @@ function getReplyToRoot(message, messages): Date | undefined {
 
 // We strip out any cased version of the string @chatgpt and also all mentions.
 function stripMentions(value: string): string {
-  for (const name of ["@chatgpt4", "@chatgpt", "@palm"]) {
+  for (const name of ["@chatgpt4", "@chatgpt"]) {
     while (true) {
       const i = value.toLowerCase().indexOf(name);
       if (i == -1) break;
@@ -780,7 +780,8 @@ function getLanguageModel(input?: string): false | LanguageModel {
     return "gpt-3.5-turbo";
   }
   // these prefexes should come from util/db-schema/openai::model2service
-  for (const prefix of ["account-id=openai-", "account-id=google-"]) {
+  for (const vendorprefix of LANGUAGE_MODEL_PREFIXES) {
+    const prefix = `account-id=${vendorprefix}`;
     const i = x.indexOf(prefix);
     if (i != -1) {
       const j = x.indexOf(">", i);

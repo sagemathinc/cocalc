@@ -46,7 +46,6 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
   "gpt-4",
-  // "chat-bison-001", // PaLM2 is not good, replies with no response too often
   "gemini-pro",
   ...MISTRAL_MODELS,
 ] as const;
@@ -187,8 +186,8 @@ export function service2model(
 
   // split off the first part of service, e.g., "openai-" or "google-"
   const s = service.split("-")[0];
-  const hasPrefix =
-    s === "openai" || s === "google" || s === "ollama" || s === "mistral";
+  const hasPrefix = LANGUAGE_MODEL_VENDORS.some((v) => s === v);
+
   const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
   if (hasPrefix && s === "ollama") {
     return toOllamaModel(m);
