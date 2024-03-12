@@ -12,6 +12,7 @@ import { currency, round2up, round2down } from "@cocalc/util/misc";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { getPurchaseQuotas } from "./purchase-quotas";
+import isBanned from "@cocalc/server/accounts/is-banned";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -50,6 +51,9 @@ export async function isPurchaseAllowed({
   }
   if (!(await isValidAccount(account_id))) {
     return { allowed: false, reason: `${account_id} is not a valid account` };
+  }
+  if (await isBanned(account_id)) {
+    return { allowed: false, reason: `${account_id} is banned` };
   }
   if (QUOTA_SPEC[service] == null) {
     return {

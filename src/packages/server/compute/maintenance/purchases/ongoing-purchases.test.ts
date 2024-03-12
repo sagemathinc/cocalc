@@ -15,7 +15,7 @@ import createProject from "@cocalc/server/projects/create";
 import createServer from "@cocalc/server/compute/create-server";
 import { getServer } from "@cocalc/server/compute/get-servers";
 import {
-  PERIODIC_UPDATE_INTERVAL_MS,
+  PERIODIC_SHORT_UPDATE_INTERVAL_MS,
   MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
   MAX_PURCHASE_LENGTH_MS,
 } from "./manage-purchases";
@@ -28,7 +28,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await getPool().end();
 });
-
 
 describe("creates account, project, test compute server, and purchase", () => {
   const account_id = uuid();
@@ -92,12 +91,11 @@ describe("creates account, project, test compute server, and purchase", () => {
     expect(!!server.update_purchase).toBe(false);
   });
 
-  // this won't work if we set state to running, since then the network update happens, which is more frequent
-  it("clear flag and mark last_purchase_update as first more recent than PERIODIC_UPDATE_INTERVAL_MS then less recent, verify that server DOES NOT, then DOES get flagged for update", async () => {
+  it("clear flag and mark last_purchase_update as first more recent than PERIODIC_SHORT_UPDATE_INTERVAL_MS then less recent, verify that server DOES NOT, then DOES get flagged for update", async () => {
     const pool = getPool();
     await pool.query(
-      `UPDATE compute_servers SET update_purchase=FALSE, last_purchase_update=NOW()-interval '${
-        (0.9 * PERIODIC_UPDATE_INTERVAL_MS) / 1000
+      `UPDATE compute_servers SET update_purchase=FALSE, state='running', last_edited=now()-interval '6 hours', last_purchase_update=NOW()-interval '${
+        (0.9 * PERIODIC_SHORT_UPDATE_INTERVAL_MS) / 1000
       } seconds' WHERE id=$1`,
       [id],
     );
@@ -105,8 +103,8 @@ describe("creates account, project, test compute server, and purchase", () => {
     let server = await getServer({ account_id, id });
     expect(!!server.update_purchase).toBe(false);
     await pool.query(
-      `UPDATE compute_servers SET update_purchase=FALSE, last_purchase_update=NOW()-interval '${
-        PERIODIC_UPDATE_INTERVAL_MS / 1000 + 30
+      `UPDATE compute_servers SET update_purchase=FALSE, state='running',  last_purchase_update=NOW()-interval '${
+        PERIODIC_SHORT_UPDATE_INTERVAL_MS / 1000 + 30
       } seconds' WHERE id=$1`,
       [id],
     );
@@ -115,11 +113,11 @@ describe("creates account, project, test compute server, and purchase", () => {
     expect(!!server.update_purchase).toBe(true);
   });
 
-  it("clear flag, set state to running, and test network periodi update works as it should", async () => {
+  it("same test as above, but with last state change in the distant past", async () => {
     const pool = getPool();
     await pool.query(
-      `UPDATE compute_servers SET state='running', update_purchase=FALSE, last_purchase_update=NOW()-interval '${
-        (0.9 * MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS) / 1000
+      `UPDATE compute_servers SET update_purchase=FALSE, state='running', last_edited=now()-interval '6 hours', last_purchase_update=NOW()-interval '${
+        (0.9 * PERIODIC_SHORT_UPDATE_INTERVAL_MS) / 1000
       } seconds' WHERE id=$1`,
       [id],
     );
@@ -127,8 +125,8 @@ describe("creates account, project, test compute server, and purchase", () => {
     let server = await getServer({ account_id, id });
     expect(!!server.update_purchase).toBe(false);
     await pool.query(
-      `UPDATE compute_servers SET update_purchase=FALSE, last_purchase_update=NOW()-interval '${
-        MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS / 1000 + 30
+      `UPDATE compute_servers SET update_purchase=FALSE, state='running',  last_purchase_update=NOW()-interval '${
+        PERIODIC_SHORT_UPDATE_INTERVAL_MS / 1000 + 30
       } seconds' WHERE id=$1`,
       [id],
     );
@@ -192,10 +190,10 @@ describe("creates account, project, test compute server, and purchase", () => {
     expect(!!server.update_purchase).toBe(false);
   });
 
-  it("make recent network purchase, then check that server does NOT get flagged", async () => {
+  it("make recent network purchase, then check that server does NOT get flagged for update", async () => {
     const pool = getPool();
     await pool.query(
-      "UPDATE compute_servers SET update_purchase=FALSE, last_purchase_update=NOW()-interval '5 minutes' WHERE id=$1",
+      "UPDATE compute_servers SET update_purchase=FALSE, last_purchase_update=NOW()-interval '30 seconds' WHERE id=$1",
       [id],
     );
     const purchase_id = await createPurchase({
@@ -204,12 +202,12 @@ describe("creates account, project, test compute server, and purchase", () => {
       project_id,
       service: "compute-server-network-usage",
       cost_so_far: 0,
-      period_start: new Date(Date.now() - 1000 * 60 * 2), //  minutes ago
+      period_start: new Date(Date.now() - 1000 * 30),
       description: {
         type: "compute-server-network-usage",
         compute_server_id: id,
         amount: 0,
-        last_updated: Date.now() - 2 * 60 * 1000,
+        last_updated: Date.now() - 30 * 1000,
       },
     });
     await ongoingPurchases();
