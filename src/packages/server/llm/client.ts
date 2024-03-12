@@ -15,7 +15,7 @@ import {
   LanguageModel,
   isOllamaLLM,
   model2vendor,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import { VertexAIClient } from "./vertex-ai-client";
 

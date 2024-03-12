@@ -29,7 +29,7 @@ import {
   isFreeModel,
   isLanguageModel,
   model2service,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {

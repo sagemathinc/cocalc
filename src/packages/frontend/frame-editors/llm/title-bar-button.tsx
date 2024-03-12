@@ -445,7 +445,7 @@ async function updateInput(
   if (input.length > 2000) {
     // Truncate input (also this MUST be a lazy import):
     const { truncateMessage, getMaxTokens } = await import(
-      "@cocalc/frontend/misc/openai"
+      "@cocalc/frontend/misc/llm"
     );
     const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
     input = truncateMessage(input, maxTokens);

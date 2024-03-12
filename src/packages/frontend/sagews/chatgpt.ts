@@ -1,6 +1,6 @@
 import { redux } from "@cocalc/frontend/app-framework";
 import { getHelp } from "@cocalc/frontend/frame-editors/llm/help-me-fix";
-import { getValidLanguageModelName } from "@cocalc/util/db-schema/llm";
+import { getValidLanguageModelName } from "@cocalc/util/db-schema/llm-utils";
 import { MARKERS } from "@cocalc/util/sagews";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "../account/useLanguageModelSetting";
 

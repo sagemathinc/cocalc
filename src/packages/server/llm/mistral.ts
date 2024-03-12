@@ -8,10 +8,7 @@ import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
-import {
-  fromMistralService,
-  isMistralService,
-} from "@cocalc/util/db-schema/llm";
+import { isMistralModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
@@ -29,11 +26,10 @@ interface MistralOpts {
 export async function evaluateMistral(
   opts: Readonly<MistralOpts>,
 ): Promise<ChatOutput> {
-  if (!isMistralService(opts.model)) {
+  if (!isMistralModel(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }
-  const model = fromMistralService(opts.model);
-  const { system, history, input, maxTokens, stream } = opts;
+  const { system, history, input, maxTokens, stream, model } = opts;
 
   log.debug("evaluateMistral", {
     input,
@@ -55,20 +51,6 @@ export async function evaluateMistral(
     throw new Error(`Mistral api key is not configured.`);
   }
 
-  const msgs: ["ai" | "human", string][] = [];
-
-  if (history) {
-    let nextRole: "model" | "user" = "user";
-    for (const { content } of history) {
-      if (nextRole === "user") {
-        msgs.push(["human", content]);
-      } else {
-        msgs.push(["ai", content]);
-      }
-      nextRole = nextRole === "user" ? "model" : "user";
-    }
-  }
-
   const mistral = new ChatMistralAI({
     apiKey: mistral_api_key,
     modelName: model,
@@ -76,7 +58,7 @@ export async function evaluateMistral(
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],
-    new MessagesPlaceholder("chat_history"),
+    new MessagesPlaceholder("history"),
     ["human", "{input}"],
   ]);
 
@@ -84,12 +66,11 @@ export async function evaluateMistral(
 
   const chainWithHistory = new RunnableWithMessageHistory({
     runnable: chain,
+    config: { configurable: { sessionId: "ignored" } },
     inputMessagesKey: "input",
-    historyMessagesKey: "chat_history",
+    historyMessagesKey: "history",
     getMessageHistory: async (_) => {
       const chatHistory = new ChatMessageHistory();
-      // await history.addMessage(new HumanMessage("be brief"));
-      // await history.addMessage(new AIMessage("ok"));
       if (history) {
         let nextRole: "model" | "user" = "user";
         for (const { content } of history) {
@@ -106,16 +87,16 @@ export async function evaluateMistral(
     },
   });
 
-  const chunks = await chainWithHistory.stream(
-    { input },
-    { configurable: { sessionId: "ignored" } },
-  );
+  const chunks = await chainWithHistory.stream({ input });
 
   let output = "";
   for await (const chunk of chunks) {
-    if (typeof chunk !== "string") continue;
-    output += chunk;
-    opts.stream?.(chunk);
+    const { content } = chunk;
+    log.debug(typeof chunk, { content, chunk });
+
+    if (typeof content !== "string") continue;
+    output += content;
+    opts.stream?.(content);
   }
 
   // and an empty call when done

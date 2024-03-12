@@ -24,12 +24,12 @@ import {
   OpenAIMessages,
   getLLMCost,
   isFreeModel,
-  isMistralService,
+  isMistralModel,
   isOllamaLLM,
   isValidModel,
   model2service,
   model2vendor,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { callChatGPTAPI } from "./call-llm";
@@ -104,7 +104,7 @@ async function evaluateImpl({
           maxTokens,
           stream,
         });
-      } else if (isMistralService(model)) {
+      } else if (isMistralModel(model)) {
         return await evaluateMistral({
           system,
           history,

@@ -1,456 +1,246 @@
-// this contains bits and pieces from the wrongly named openai.ts file
+// NOTE: this is not just OpenAI, but also includes other models that we use
+// Mentally, just ignore "openai" and instead focus on "gpt-*" or "codey" or whatever they are called.
+// TODO: refactor this, the names of the tables, etc. to be more generic.
 
-import type { Service } from "@cocalc/util/db-schema/purchases";
-import { unreachable } from "@cocalc/util/misc";
+import { History } from "@cocalc/util/types/llm";
+import { CREATED_BY, ID } from "./crm";
+import { SCHEMA as schema } from "./index";
+import { LanguageModel } from "./llm-utils";
+import { Table } from "./types";
 
-const MODELS_OPENAI = [
-  "gpt-3.5-turbo",
-  "gpt-3.5-turbo-16k",
-  "gpt-4",
-  "gpt-4-32k",
-] as const;
-
-export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
-
-// ATTN: when you modify this list, also change frontend/.../llm/model-switch.tsx!
-export const MISTRAL_MODELS = [
-  // yes, all 3 of them have an extra mistral-prefix, on top of the vendor prefix
-  "mistral-small-latest",
-  "mistral-medium-latest",
-  "mistral-large-latest",
-] as const;
-
-export type MistralModel = (typeof MISTRAL_MODELS)[number];
-
-export function isMistralModel(model: unknown): model is MistralModel {
-  return MISTRAL_MODELS.includes(model as any);
-}
-
-// the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
-export const LANGUAGE_MODELS = [
-  ...MODELS_OPENAI,
-  ...MISTRAL_MODELS,
-  // google's are taken from here – we use the generative AI client lib
-  // https://developers.generativeai.google/models/language
-  "text-bison-001",
-  "chat-bison-001",
-  "embedding-gecko-001",
-  "text-embedding-ada-002",
-  "gemini-pro",
-] as const;
-
-// This hardcodes which models can be selected by users.
-// Make sure to update this when adding new models.
-// This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
-export const USER_SELECTABLE_LANGUAGE_MODELS = [
-  "gpt-3.5-turbo",
-  "gpt-3.5-turbo-16k",
-  "gpt-4",
-  // "chat-bison-001", // PaLM2 is not good, replies with no response too often
-  "gemini-pro",
-  ...MISTRAL_MODELS,
-] as const;
-
-export type OllamaLLM = string;
-
-export type LanguageModel = (typeof LANGUAGE_MODELS)[number] | OllamaLLM;
-
-// we check if the given object is any known language model
-export function isLanguageModel(model?: unknown): model is LanguageModel {
-  if (model == null) return false;
-  if (typeof model !== "string") return false;
-  if (isOllamaLLM(model)) return true;
-  return LANGUAGE_MODELS.includes(model as any);
-}
-
-export interface LLMServicesAvailable {
-  google: boolean;
-  openai: boolean;
-  ollama: boolean;
-  mistral: boolean;
-}
-
-// this is used in initialization functions. e.g. to get a default model depending on the overall availability
-// usually, this should just return the chatgpt3 model, but e.g. if neither google or openai is available,
-// then it might even falls back to an available ollama model. It needs to return a string, though, for the frontend, etc.
-export function getValidLanguageModelName(
-  model: string | undefined,
-  filter: LLMServicesAvailable = {
-    google: true,
-    openai: true,
-    ollama: false,
-    mistral: false,
-  },
-  ollama: string[] = [], // keys of ollama models
-): LanguageModel {
-  const dftl =
-    filter.openai === true
-      ? DEFAULT_MODEL
-      : filter.ollama && ollama?.length > 0
-      ? toOllamaModel(ollama[0])
-      : "chat-bison-001";
-  if (model == null) {
-    return dftl;
-  }
-  if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
-    return model;
-  }
-  if (typeof model === "string" && isLanguageModel(model)) {
-    return model;
-  }
-  return dftl;
-}
-
-export interface OpenAIMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-export type OpenAIMessages = OpenAIMessage[];
-
-export const OLLAMA_PREFIX = "ollama-";
-export type OllamaService = string;
-export function isOllamaService(service: string): service is OllamaService {
-  return isOllamaLLM(service);
-}
-
-export const MISTRAL_PREFIX = "mistralai-";
-export type MistralService = string;
-export function isMistralService(service: string): service is MistralService {
-  return service.startsWith(MISTRAL_PREFIX);
-}
-
-// we encode the in the frontend and elsewhere with the service name as a prefix
-// ATTN: don't change the encoding pattern of [vendor]-[model]
-//       for whatever reason, it's also described that way in purchases/close.ts
-export type LanguageService =
-  | "openai-gpt-3.5-turbo"
-  | "openai-gpt-3.5-turbo-16k"
-  | "openai-gpt-4"
-  | "openai-gpt-4-32k"
-  | "openai-text-embedding-ada-002"
-  | "google-text-bison-001"
-  | "google-chat-bison-001"
-  | "google-embedding-gecko-001"
-  | "google-gemini-pro"
-  | OllamaService
-  | MistralService;
-
-export const LANGUAGE_MODEL_VENDORS = [
-  "openai",
-  "google",
-  "ollama",
-  "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
-] as const;
-export type LLMVendor = (typeof LANGUAGE_MODEL_VENDORS)[number];
-
-// used e.g. for checking "account-id={string}" and other things like that
-export const LANGUAGE_MODEL_PREFIXES = [
-  "chatgpt",
-  ...LANGUAGE_MODEL_VENDORS.map((v) => `${v}-`),
-] as const;
-
-// we encode the in the frontend and elsewhere with the service name as a prefix
-export function model2service(model: LanguageModel): LanguageService {
-  if (model === "text-embedding-ada-002") {
-    return `openai-${model}`;
-  }
-  if (isOllamaLLM(model)) {
-    return toOllamaModel(model);
-  }
-  if (isMistralModel(model)) {
-    return toMistralService(model);
-  }
-  if (isLanguageModel(model)) {
-    if (
-      model === "text-bison-001" ||
-      model === "chat-bison-001" ||
-      model === "embedding-gecko-001" ||
-      model === "gemini-pro"
-    ) {
-      return `google-${model}`;
-    } else {
-      return `openai-${model}`;
-    }
-  }
-
-  throw new Error(`unknown model: ${model}`);
-}
-
-// inverse of model2service, but robust for chat avatars, which might not have a prefix
-// TODO: fix the mess
-export function service2model(
-  service: LanguageService | "chatgpt",
-): LanguageModel {
-  if (service === "chatgpt") {
-    return "gpt-3.5-turbo";
-  }
-
-  // split off the first part of service, e.g., "openai-" or "google-"
-  const s = service.split("-")[0];
-  const hasPrefix =
-    s === "openai" || s === "google" || s === "ollama" || s === "mistral";
-  const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
-  if (hasPrefix && s === "ollama") {
-    return toOllamaModel(m);
-  }
-  if (!LANGUAGE_MODELS.includes(m as any)) {
-    // We don't throw an error, since the frontend would crash
-    // throw new Error(`unknown service: ${service}`);
-    console.warn(`service2model: unknown service: ${service}`);
-    return "gpt-3.5-turbo";
-  }
-  return m as LanguageModel;
-}
-
-// Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
-export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
-
-export function model2vendor(model): LLMVendor {
-  if (isOllamaLLM(model)) {
-    return "ollama";
-  } else if (isMistralModel(model)) {
-    return "mistralai";
-  } else if (model.startsWith("gpt-")) {
-    return "openai";
-  } else {
-    return "google";
-  }
-}
-
-// wraps the model name in an object that indicates that it's an ollama model
-// TODO: maybe it will be necessary at some point to pass in the list of available ollama models
-// TODO: in the future, this object will also contain info like the max tokens and other parameters (from the DB)
-export function toOllamaModel(model: string): OllamaLLM {
-  if (isOllamaLLM(model)) {
-    throw new Error(`already an ollama model: ${model}`);
-  }
-  return `${OLLAMA_PREFIX}${model}`;
-}
-
-// unwraps the model name from an object that indicates that it's an ollama model
-export function fromOllamaModel(model: OllamaLLM) {
-  if (!isOllamaLLM(model)) {
-    throw new Error(`not an ollama model: ${model}`);
-  }
-  return model.slice(OLLAMA_PREFIX.length);
-}
-
-export function isOllamaLLM(model: unknown): model is OllamaLLM {
-  return (
-    typeof model === "string" &&
-    model.startsWith(OLLAMA_PREFIX) &&
-    model.length > OLLAMA_PREFIX.length
-  );
-}
-
-export function toMistralService(model: string): MistralService {
-  if (isMistralService(model)) {
-    throw new Error(`already a mistral model: ${model}`);
-  }
-  return `${MISTRAL_PREFIX}${model}`;
-}
-
-export function fromMistralService(model: MistralService) {
-  if (!isMistralService(model)) {
-    throw new Error(`not a mistral model: ${model}`);
-  }
-  return model.slice(MISTRAL_PREFIX.length);
-}
-
-// Map from psuedo account_id to what should be displayed to user.
-// This is used in various places in the frontend.
-// Google PaLM: https://cloud.google.com/vertex-ai/docs/generative-ai/pricing
-export const LLM_USERNAMES: {
-  [key in
-    | (typeof USER_SELECTABLE_LANGUAGE_MODELS)[number]
-    | "chatgpt" // some additional ones, backwards compatibility
-    | "chatgpt3"
-    | "chatgpt4"
-    | "gpt-4-32k"
-    | "text-bison-001"
-    | "chat-bison-001"]: string;
-} = {
-  chatgpt: "GPT-3.5",
-  chatgpt3: "GPT-3.5",
-  chatgpt4: "GPT-4",
-  "gpt-4": "GPT-4",
-  "gpt-4-32k": "GPT-4-32k",
-  "gpt-3.5-turbo": "GPT-3.5",
-  "gpt-3.5-turbo-16k": "GPT-3.5-16k",
-  "text-bison-001": "PaLM 2",
-  "chat-bison-001": "PaLM 2",
-  "gemini-pro": "Gemini Pro",
-  "mistral-small-latest": "Mistral AI Small",
-  "mistral-medium-latest": "Mistral AI Medium",
-  "mistral-large-latest": "Mistral AI Large",
-} as const;
-
-export function isFreeModel(model: unknown) {
-  if (isOllamaLLM(model)) return true;
-  if (isMistralModel(model)) return true;
-  if (LANGUAGE_MODELS.includes(model as any)) {
-    // of these models, the following are free
-    return (
-      (model as LanguageModel) == "gpt-3.5-turbo" ||
-      (model as LanguageModel) == "text-bison-001" ||
-      (model as LanguageModel) == "chat-bison-001" ||
-      (model as LanguageModel) == "embedding-gecko-001" ||
-      (model as LanguageModel) == "gemini-pro"
-    );
-  }
-  // all others are free
-  return true;
-}
-
-// this is used in purchases/get-service-cost
-// we only need to check for the vendor prefixes, no special cases!
-export function isLanguageModelService(
-  service: Service,
-): service is LanguageService {
-  for (const v of LANGUAGE_MODEL_VENDORS) {
-    if (service.startsWith(`${v}-`)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-export function getVendorStatusCheckMD(vendor: LLMVendor): string {
-  switch (vendor) {
-    case "openai":
-      return `OpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
-    case "google":
-      return `Google [status](https://status.cloud.google.com) and [downdetector](https://downdetector.com/status/google-cloud).`;
-    case "ollama":
-      return `No status information for Ollama available – you have to check with the particular backend for the model.`;
-    case "mistralai":
-      return `No status information for Mistral AI available.`;
-    default:
-      unreachable(vendor);
-  }
-  return "";
-}
-
-export function llmSupportsStreaming(model: LanguageModel): boolean {
-  return (
-    model2vendor(model) === "openai" ||
-    model === "gemini-pro" ||
-    model2vendor(model) === "mistralai"
-  );
-}
-
-interface Cost {
+export interface LLMLogEntry {
+  id: number;
+  account_id?: string;
+  analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
+  expire?: Date;
+  history?: History;
+  input: string;
+  model?: LanguageModel;
+  output: string;
+  path?: string;
+  project_id?: string;
   prompt_tokens: number;
-  completion_tokens: number;
-  max_tokens: number;
+  system?: string;
+  tag?: string; // useful for keeping track of where queries come frome when doing analytics later
+  time: Date;
+  total_time_s: number; // how long the request took in s
+  total_tokens: number;
 }
 
-// This is the official published cost that openai charges.
-// It changes over time, so this will sometimes need to be updated.
-// Our cost is a configurable multiple of this.
-// https://openai.com/pricing#language-models
-// There appears to be no api that provides the prices, unfortunately.
-export const LLM_COST: { [name in string]: Cost } = {
-  "gpt-4": {
-    prompt_tokens: 0.03 / 1000,
-    completion_tokens: 0.06 / 1000,
-    max_tokens: 8192,
+Table({
+  name: "openai_chatgpt_log", // historically a wrong name, don't change it
+  fields: {
+    id: ID,
+    time: { type: "timestamp", desc: "When this particular chat happened." },
+    analytics_cookie: {
+      title: "Analytics Cookie",
+      type: "string",
+      desc: "The analytics cookie for the user that asked this question.",
+    },
+    account_id: CREATED_BY,
+    system: {
+      title: "System Context",
+      type: "string",
+      desc: "System context prompt.",
+      render: {
+        type: "markdown",
+      },
+    },
+    input: {
+      title: "Input",
+      type: "string",
+      desc: "Input text that was sent to chatgpt",
+      render: {
+        type: "markdown",
+      },
+    },
+    output: {
+      title: "Output",
+      type: "string",
+      desc: "Output text that was returned from chatgpt",
+      render: {
+        type: "markdown",
+      },
+    },
+    history: {
+      title: "History",
+      type: "array",
+      pg_type: "JSONB[]",
+      desc: "Historical context for this thread of discussion",
+      render: {
+        type: "json",
+      },
+    },
+    total_tokens: {
+      type: "integer",
+      desc: "The total number of tokens involved in this API call.",
+    },
+    prompt_tokens: {
+      type: "integer",
+      desc: "The number of tokens in the prompt.",
+    },
+    total_time_s: {
+      type: "number",
+      desc: "Total amount of time the API call took in seconds.",
+    },
+    project_id: {
+      type: "uuid",
+      render: { type: "project_link" },
+    },
+    path: {
+      type: "string",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "optional future date, when the entry will be deleted",
+    },
+    model: {
+      type: "string",
+    },
+    tag: {
+      type: "string",
+      desc: "A string that the client can include that is useful for analytics later",
+    },
   },
-  "gpt-4-32k": {
-    prompt_tokens: 0.06 / 1000,
-    completion_tokens: 0.12 / 1000,
-    max_tokens: 32768,
+  rules: {
+    desc: "Language Model Log",
+    primary_key: "id",
+    pg_indexes: ["account_id", "analytics_cookie", "time"],
+    user_query: {
+      get: {
+        pg_where: [{ "account_id = $::UUID": "account_id" }],
+        fields: {
+          id: null,
+          time: null,
+          account_id: null,
+          input: null,
+          system: null,
+          output: null,
+          total_tokens: null,
+          prompt_tokens: null,
+          total_time_s: null,
+          project_id: null,
+          path: null,
+          history: null,
+          expire: null,
+          model: null,
+          tag: null,
+        },
+      },
+      set: {
+        // this is so that a user can expire any chats they wanted to have expunged from
+        // the system completely.
+        fields: {
+          account_id: "account_id",
+          id: true,
+          expire: true,
+        },
+      },
+    },
   },
-  "gpt-3.5-turbo": {
-    prompt_tokens: 0.0015 / 1000,
-    completion_tokens: 0.002 / 1000,
-    max_tokens: 4096,
-  },
-  "gpt-3.5-turbo-16k": {
-    prompt_tokens: 0.003 / 1000,
-    completion_tokens: 0.004 / 1000,
-    max_tokens: 16384,
-  },
-  "text-embedding-ada-002": {
-    prompt_tokens: 0.0001 / 1000,
-    completion_tokens: 0.0001 / 1000, // NOTE: this isn't a thing with embeddings
-    max_tokens: 8191,
-  },
-  // https://developers.generativeai.google/models/language
-  "text-bison-001": {
-    // we assume 5 characters is 1 token on average
-    prompt_tokens: (5 * 0.0005) / 1000,
-    completion_tokens: (5 * 0.0005) / 1000,
-    max_tokens: 8196,
-  },
-  "chat-bison-001": {
-    // we assume 5 characters is 1 token on average
-    prompt_tokens: (5 * 0.0005) / 1000,
-    completion_tokens: (5 * 0.0005) / 1000,
-    max_tokens: 8196,
-  },
-  "embedding-gecko-001": {
-    prompt_tokens: (5 * 0.0001) / 1000,
-    completion_tokens: 0,
-    max_tokens: 8196, // ???
-  },
-  "gemini-pro": {
-    // https://ai.google.dev/models/gemini
-    prompt_tokens: (5 * 0.0001) / 1000,
-    completion_tokens: 0,
-    max_tokens: 30720,
-  },
-} as const;
+});
 
-export function isValidModel(model?: string): boolean {
-  if (model == null) return false;
-  if (isOllamaLLM(model)) return true;
-  if (isMistralModel(model)) return true;
-  return LLM_COST[model ?? ""] != null;
+Table({
+  name: "crm_openai_chatgpt_log",
+  rules: {
+    virtual: "openai_chatgpt_log",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true,
+        fields: {
+          id: null,
+          time: null,
+          account_id: null,
+          analytics_cookie: null,
+          input: null,
+          system: null,
+          output: null,
+          total_tokens: null,
+          prompt_tokens: null,
+          total_time_s: null,
+          project_id: null,
+          path: null,
+          history: null,
+          model: null,
+          tag: null,
+        },
+      },
+    },
+  },
+  fields: schema.openai_chatgpt_log.fields,
+});
+
+export interface EmbeddingData {
+  id: string; // fragment id, i.e., exactly what is after the # in the url
+  text?: string; // test that is embedded using a model
+  meta?: object; // extra metadata
+  hash?: string; // hash that is used to know when we need to update the point; e.g., hash of text and meta.
 }
 
-export function getMaxTokens(model?: LanguageModel): number {
-  // TODO: store max tokens in the model object itself, this is just a fallback
-  if (isOllamaLLM(model)) return 8192;
-  if (isMistralModel(model)) return 4096; // TODO: check with MistralAI
-  return LLM_COST[model ?? ""]?.max_tokens ?? 4096;
-}
+// *technical* limit is 8K tokens, but there's no good reason for a search to be really longthere's no good reason for a search to be really long,
+// and it could be costly.
+export const MAX_SEARCH_TEXT = 4000;
+// Limit on the number of outputs when doing a search.  This should stay under 10MB total,
+// to avoid message size limits. Use paging for more, which app client automatically does.
+export const MAX_SEARCH_LIMIT = 200;
 
-export interface LLMCost {
-  prompt_tokens: number;
-  completion_tokens: number;
-}
+// Maximum number of distinct embeddings that a single client can save at once.
+// The app client itself will automatically chunk the saves at this size.
+export const MAX_SAVE_LIMIT = 50;
+// Similar limit on removing items; can be larger since no vector embedding computation, etc.
+export const MAX_REMOVE_LIMIT = 100;
+// See https://platform.openai.com/docs/guides/embeddings/what-are-embeddings
+export const MAX_EMBEDDINGS_TOKENS = 8191;
 
-export function getLLMCost(
-  model: LanguageModel,
-  markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
-): LLMCost {
-  const x = LLM_COST[model];
-  if (x == null) {
-    throw Error(`unknown model "${model}"`);
-  }
-  const { prompt_tokens, completion_tokens } = x;
-  if (markup_percentage < 0) {
-    throw Error("markup percentage can't be negative");
-  }
-  const f = 1 + markup_percentage / 100;
-  return {
-    prompt_tokens: prompt_tokens * f,
-    completion_tokens: completion_tokens * f,
-  };
-}
+Table({
+  name: "openai_embedding_log",
+  fields: {
+    id: ID,
+    time: { type: "timestamp", desc: "When this particular chat happened." },
+    account_id: CREATED_BY,
+    tokens: {
+      type: "integer",
+      desc: "The total number of tokens of the input.",
+    },
+    model: {
+      type: "string",
+      desc: "The model that was used; if left blank it is assumed to be text-embedding-ada-002.",
+    },
+  },
+  rules: {
+    desc: "OpenAI Vector Embedding Log.  This logs who is responsible for calls to openai.  It is used to avoid abuse, have good analytics, and may eventually be used for pay-as-you-go, etc.",
+    primary_key: "id",
+    pg_indexes: ["((tokens IS NOT NULL))"],
+  },
+});
 
-// The maximum cost for one single call using the given model.
-// We can't know the cost until after it happens, so this bound is useful for
-// ensuring user can afford to make a call.
-export function getMaxCost(
-  model: LanguageModel,
-  markup_percentage: number,
-): number {
-  const { prompt_tokens, completion_tokens } = getLLMCost(
-    model,
-    markup_percentage,
-  );
-  const { max_tokens } = LLM_COST[model];
-  return Math.max(prompt_tokens, completion_tokens) * max_tokens;
-}
+Table({
+  name: "openai_embedding_cache",
+  fields: {
+    input_sha1: {
+      title: "Sha1 hash of input",
+      type: "string",
+      pg_type: "char(40)",
+    },
+    vector: {
+      type: "array",
+      pg_type: "double precision[]",
+      desc: "The vector obtained from openai.",
+    },
+    model: {
+      type: "string",
+      desc: "The model that was used; if left blank it is assumed to be text-embedding-ada-002.",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "Date when the cache entry will be deleted.  Some entries correspond to queries users type, so may be very frequent, or content in shared notebooks (e.g., students in class), so caching is very valuable when it is actively happening.  Others don't get accessed, so we free up the space.",
+    },
+  },
+  rules: {
+    desc: "OpenAI Vector Embedding Cache.  This is a cache of embeddings that we computed using openai.  It helps us avoid having to recompute embeddings, which costs money and takes time.  It is only used as a CACHE by our system.  This entire table could be deleted at any time, and the only impact is that some things may be slower and we may have to pay to recompute embeddings, but nothing should *break*.",
+    primary_key: "input_sha1",
+    pg_indexes: ["((vector IS NOT NULL))"],
+  },
+});

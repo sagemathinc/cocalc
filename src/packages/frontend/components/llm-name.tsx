@@ -5,7 +5,7 @@ import {
   fromOllamaModel,
   isLanguageModel,
   isOllamaLLM,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { LanguageModelVendorAvatar } from "./language-model-icon";
 
 export function LLMModelName(props: Readonly<{ model: LanguageModel }>) {

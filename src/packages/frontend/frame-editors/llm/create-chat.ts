@@ -42,7 +42,7 @@ export default async function createChat({
   }
   // Truncate input (also this MUST lazy import):
   const { truncateMessage, getMaxTokens } = await import(
-    "@cocalc/frontend/misc/openai"
+    "@cocalc/frontend/misc/llm"
   );
   const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
   input = truncateMessage(input, maxTokens);

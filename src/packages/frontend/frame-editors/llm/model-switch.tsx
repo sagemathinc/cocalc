@@ -15,7 +15,7 @@ import {
   isOllamaLLM,
   model2service,
   toOllamaModel,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import type { OllamaPublic } from "@cocalc/util/types/llm";
 
 export { DEFAULT_MODEL };
@@ -145,9 +145,9 @@ export default function ModelSwitch({
 
     return (
       <>
-        {makeLLMOption(ret, MISTRAL_MODELS[0], `Mistral's "small" model`)}
-        {makeLLMOption(ret, MISTRAL_MODELS[1], `Mistral's "medium" model`)}
-        {makeLLMOption(ret, MISTRAL_MODELS[2], `Mistral's "large" model`)}
+        {makeLLMOption(ret, MISTRAL_MODELS[0], `Mistral AI's "small" model`)}
+        {makeLLMOption(ret, MISTRAL_MODELS[1], `Mistral AI's "medium" model`)}
+        {makeLLMOption(ret, MISTRAL_MODELS[2], `Mistral AI's "large" model`)}
       </>
     );
   }

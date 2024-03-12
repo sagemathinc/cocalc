@@ -13,7 +13,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { UserGroup } from "@cocalc/frontend/projects/store";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
-import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm";
+import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,

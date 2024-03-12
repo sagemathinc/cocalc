@@ -20,7 +20,7 @@ import {
   LanguageModel,
   getVendorStatusCheckMD,
   model2vendor,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { insertCell } from "./util";
@@ -230,7 +230,7 @@ async function queryLanguageModel({
     let curCellPos = 0;
     let numCells = 1;
 
-    const reply = await webapp_client.openai_client.languageModelStream({
+    const reply = await webapp_client.openai_client.queryStream({
       input,
       project_id,
       path,

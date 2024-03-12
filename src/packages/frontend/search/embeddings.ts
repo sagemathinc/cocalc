@@ -23,14 +23,15 @@ slightly temporary issues of too much or too little data in the search index
 are not "fatal data loss" for us, since this is just search.
 */
 
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { debounce } from "lodash";
 import jsonStable from "json-stable-stringify";
+import { debounce } from "lodash";
 import sha1 from "sha1";
-import { close, copy_with, len, uuidsha1 } from "@cocalc/util/misc";
-import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
+
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { SyncDB } from "@cocalc/sync/editor/db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
+import { EmbeddingData } from "@cocalc/util/db-schema/llm";
+import { close, copy_with, len, uuidsha1 } from "@cocalc/util/misc";
 
 // How long until we update the index, if users stops using this file actively.
 const DEBOUNCE_MS = 7500;
@@ -113,11 +114,11 @@ class Embeddings {
         } catch (err) {
           console.warn(
             `WARNING: issue syncing embeddings for "${this.path}:"`,
-            err
+            err,
           );
           this.waitUntil = Date.now() + 60 * 1000; // wait a bit before trying again.
         }
-      }, debounceMs)
+      }, debounceMs),
     );
     syncdb.once("closed", () => {
       close(this);
@@ -141,7 +142,7 @@ class Embeddings {
       await this.sync();
     } catch (err) {
       console.warn(
-        `WARNING: issue initializing embeddings for ${this.url}: ${err}`
+        `WARNING: issue initializing embeddings for ${this.url}: ${err}`,
       );
     }
   }

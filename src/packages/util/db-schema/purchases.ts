@@ -16,7 +16,7 @@ import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { LanguageService } from "./llm";
+import { LanguageService } from "./llm-utils";
 import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 

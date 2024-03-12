@@ -15,7 +15,7 @@ import ModelSwitch from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { show_react_modal } from "@cocalc/frontend/misc";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { isFreeModel } from "@cocalc/util/db-schema/llm";
+import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";
@@ -53,11 +53,13 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
 
   function getPrompt() {
     const description = input || text;
+    const p1 = `Convert the following plain-text description of a formula to a LaTeX formula`;
+    const p2 = `Return the LaTeX formula, and only the formula. Enclose the formula in a single snippet delimited by $. Do not add any explanations.`;
     switch (mode) {
       case "tex":
-        return `Convert the following plain-text description of a formula to a LaTeX formula in a *.tex file. Assume the package  amsmath is available. Only return the LaTeX formula in a single code snippet, delimited by $ or $$. Do not add any explanations:\n\n${description}`;
+        return `${p1} in a *.tex file. Assume the package "amsmath" is available. ${p2}:\n\n${description}`;
       case "md":
-        return `Convert the following plain-text description of a formula to a LaTeX formula in a markdown file. Only return the LaTeX formula in a single code snippet, delimited by $ or $$. Do not add any explanations:\n\n${description}`;
+        return `${p1} in a markdown file. ${p2}\n\n${description}`;
       default:
         unreachable(mode);
     }
@@ -111,12 +113,12 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
       setGenerating(true);
       const tag = `generate-formula`;
       track("chatgpt", { project_id, tag, mode, type: "generate", model });
-      const tex = await webapp_client.openai_client.chatgpt({
+      const tex = await webapp_client.openai_client.query({
         input: getPrompt(),
         project_id,
         tag,
         model,
-        system: null,
+        system: "",
       });
       processFormula(tex);
     } catch (err) {

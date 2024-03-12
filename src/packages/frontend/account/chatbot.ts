@@ -16,7 +16,7 @@ import {
   fromOllamaModel,
   isOllamaLLM,
   model2vendor,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 
 // we either check if the prefix is one of the known ones (used in some circumstances)
 // or if the account id is exactly one of the language models (more precise)

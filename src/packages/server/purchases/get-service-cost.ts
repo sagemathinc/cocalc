@@ -9,7 +9,7 @@ import {
   getLLMCost,
   isLanguageModelService,
   service2model,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { unreachable } from "@cocalc/util/misc";
 

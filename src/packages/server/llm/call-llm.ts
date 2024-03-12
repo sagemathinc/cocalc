@@ -2,7 +2,7 @@ import { delay } from "awaiting";
 import type OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
-import { ModelOpenAI, OpenAIMessages } from "@cocalc/util/db-schema/llm";
+import { ModelOpenAI, OpenAIMessages } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput } from "@cocalc/util/types/llm";
 import { Stream } from "openai/streaming";
 import { totalNumTokens } from "./chatgpt-numtokens";

@@ -6,10 +6,10 @@ import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 
 import getLogger from "@cocalc/backend/logger";
-import { fromOllamaModel, isOllamaLLM } from "@cocalc/util/db-schema/llm";
+import { fromOllamaModel, isOllamaLLM } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
-import { getOllama } from "./client";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { getOllama } from "./client";
 
 const log = getLogger("llm:ollama");
 
@@ -42,20 +42,6 @@ export async function evaluateOllama(
 
   const ollama = await getOllama(model);
 
-  const msgs: ["ai" | "human", string][] = [];
-
-  if (history) {
-    let nextRole: "model" | "user" = "user";
-    for (const { content } of history) {
-      if (nextRole === "user") {
-        msgs.push(["human", content]);
-      } else {
-        msgs.push(["ai", content]);
-      }
-      nextRole = nextRole === "user" ? "model" : "user";
-    }
-  }
-
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],
     new MessagesPlaceholder("chat_history"),
@@ -66,6 +52,7 @@ export async function evaluateOllama(
 
   const chainWithHistory = new RunnableWithMessageHistory({
     runnable: chain,
+    config: { configurable: { sessionId: "ignored" } },
     inputMessagesKey: "input",
     historyMessagesKey: "chat_history",
     getMessageHistory: async (_) => {
@@ -88,10 +75,7 @@ export async function evaluateOllama(
     },
   });
 
-  const chunks = await chainWithHistory.stream(
-    { input },
-    { configurable: { sessionId: "ignored" } },
-  );
+  const chunks = await chainWithHistory.stream({ input });
 
   let output = "";
   for await (const chunk of chunks) {

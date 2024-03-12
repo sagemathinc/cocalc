@@ -19,7 +19,7 @@ import {
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ChatStream } from "@cocalc/frontend/client/openai";
+import { ChatStream } from "@cocalc/frontend/client/llm";
 import {
   A,
   HelpIcon,
@@ -50,7 +50,7 @@ import { once } from "@cocalc/util/async-utils";
 import {
   getVendorStatusCheckMD,
   model2vendor,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ensure_project_running } from "../../project-start-warning";
@@ -158,7 +158,7 @@ export default function AIGenerateJupyterNotebook({
     try {
       setQuerying(true);
 
-      const llmStream = webapp_client.openai_client.languageModelStream({
+      const llmStream = webapp_client.openai_client.queryStream({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.

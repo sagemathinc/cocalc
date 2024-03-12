@@ -2,7 +2,7 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import type { Service } from "./purchases";
-import { isFreeModel } from "./llm";
+import { isFreeModel } from "./llm-utils";
 
 export type { Service };
 

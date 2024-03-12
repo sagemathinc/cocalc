@@ -7,7 +7,7 @@ import {
   LLM_COST,
   OLLAMA_PREFIX,
   USER_SELECTABLE_LANGUAGE_MODELS,
-} from "./llm";
+} from "./llm-utils";
 
 describe("llm", () => {
   test("isFreeModel", () => {

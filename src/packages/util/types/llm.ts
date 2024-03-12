@@ -1,4 +1,4 @@
-import { LanguageModel } from "@cocalc/util/db-schema/llm";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 
 export type History = {
   role: "assistant" | "user" | "system";

@@ -1,8 +1,10 @@
 // NOTE! This gpt-3-tokenizer is LARGE, e.g., 1.6MB, so be
 // sure to async load it by clients of this code.
-import type { LanguageModel } from "@cocalc/util/db-schema/llm";
-import { getMaxTokens } from "@cocalc/util/db-schema/llm";
 import GPT3Tokenizer from "gpt3-tokenizer";
+
+import type { History } from "@cocalc/frontend/client/types";
+import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 
 export { getMaxTokens };
 
@@ -33,13 +35,6 @@ export function numTokensUpperBound(
     Math.max(0, content.length - maxTokens * APPROX_CHARACTERS_PER_TOKEN)
   );
 }
-
-export interface Message {
-  role: "assistant" | "user" | "system";
-  content: string;
-}
-
-export type History = Message[];
 
 /* We truncate the message.
 For performance considerations (see WARNING by numTokensEstimate above),

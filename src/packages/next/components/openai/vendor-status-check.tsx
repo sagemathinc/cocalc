@@ -1,4 +1,4 @@
-import { LLMVendor } from "@cocalc/util/db-schema/llm";
+import { LLMVendor } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 

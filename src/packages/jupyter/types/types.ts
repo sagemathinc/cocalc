@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { LanguageModel } from "@cocalc/util/db-schema/llm";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import type * as immutable from "immutable";
 
 export type NotebookMode = "edit" | "escape";

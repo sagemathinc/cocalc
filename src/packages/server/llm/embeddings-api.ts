@@ -1,13 +1,13 @@
-import * as embeddings from "./embeddings";
-import { isValidUUID, is_array } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
+import type { EmbeddingData } from "@cocalc/util/db-schema/llm";
 import {
-  MAX_SEARCH_TEXT,
-  MAX_SEARCH_LIMIT,
-  MAX_SAVE_LIMIT,
   MAX_REMOVE_LIMIT,
-} from "@cocalc/util/db-schema/openai";
+  MAX_SAVE_LIMIT,
+  MAX_SEARCH_LIMIT,
+  MAX_SEARCH_TEXT,
+} from "@cocalc/util/db-schema/llm";
+import { isValidUUID, is_array } from "@cocalc/util/misc";
+import * as embeddings from "./embeddings";
 
 function validateSearchParams({ text, filter, limit, selector, offset }) {
   if (text != null) {
@@ -48,7 +48,7 @@ function validateSearchParams({ text, filter, limit, selector, offset }) {
   if (selector != null) {
     if (typeof selector != "object") {
       throw Error(
-        "selector must object of the form  { include?: string[]; exclude?: string[] }"
+        "selector must object of the form  { include?: string[]; exclude?: string[] }",
       );
     }
   }
@@ -96,7 +96,7 @@ export async function search({
 async function scopeFilter(
   account_id: string,
   scope: string | string[],
-  filter: object = {}
+  filter: object = {},
 ): Promise<object> {
   if (typeof scope != "string" && !is_array(scope)) {
     throw Error("scope must be a string or string[]");
@@ -123,7 +123,7 @@ async function scopeFilter(
         !(await isCollaborator({ project_id, account_id }))
       ) {
         throw Error(
-          `must be a collaborator on the project with id '${project_id}'`
+          `must be a collaborator on the project with id '${project_id}'`,
         );
       }
       knownProjects.add(project_id);
@@ -155,7 +155,7 @@ async function prepareData(
   project_id: string,
   path: string,
   data: EmbeddingData[],
-  needsText: boolean
+  needsText: boolean,
 ): Promise<embeddings.Data[]> {
   if (!is_array(data)) {
     throw Error("data must be an array");
@@ -169,7 +169,7 @@ async function prepareData(
   for (const { id, text, meta, hash } of data) {
     if (!id || typeof id != "string") {
       throw Error(
-        "you must specify the id for each item and it must be a nonempty string"
+        "you must specify the id for each item and it must be a nonempty string",
       );
     }
     if (needsText) {
@@ -218,7 +218,7 @@ export async function save({
     project_id,
     path,
     data,
-    true
+    true,
   );
   return await embeddings.save(data2, account_id);
 }

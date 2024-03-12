@@ -5,7 +5,7 @@
  */
 
 import getLogger from "@cocalc/backend/logger";
-import { LanguageModel } from "@cocalc/util/db-schema/llm";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
 import {
   DiscussServiceClient,

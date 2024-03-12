@@ -29,7 +29,7 @@ import {
   getValidLanguageModelName,
   isFreeModel,
   model2vendor,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,

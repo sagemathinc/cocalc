@@ -18,7 +18,7 @@ import {
   USER_SELECTABLE_LANGUAGE_MODELS,
   model2service,
   toOllamaModel,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { OllamaPublic } from "@cocalc/util/types/llm";
 import { Item } from "./complete";

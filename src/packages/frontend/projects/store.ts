@@ -11,7 +11,7 @@ import { StudentProjectFunctionality } from "@cocalc/frontend/course/configurati
 import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { LLMServicesAvailable, LLMVendor } from "@cocalc/util/db-schema/llm";
+import { LLMServicesAvailable, LLMVendor } from "@cocalc/util/db-schema/llm-utils";
 import {
   cmp,
   coerce_codomain_to_numbers,

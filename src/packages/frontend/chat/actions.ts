@@ -6,23 +6,23 @@
 import { fromJS, Map as immutableMap } from "immutable";
 
 import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { History as LanguageModelHistory } from "@cocalc/frontend/misc/openai";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import {
+  LANGUAGE_MODEL_PREFIXES,
   getVendorStatusCheckMD,
   model2service,
   model2vendor,
   type LanguageModel,
-  LANGUAGE_MODEL_PREFIXES,
-} from "@cocalc/util/db-schema/llm";
+} from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
@@ -606,7 +606,7 @@ export class ChatActions extends Actions<ChatState> {
     setTimeout(() => {
       this.chatStreams.delete(id);
     }, 3 * 60 * 1000);
-    const chatStream = webapp_client.openai_client.languageModelStream({
+    const chatStream = webapp_client.openai_client.queryStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
       project_id,
