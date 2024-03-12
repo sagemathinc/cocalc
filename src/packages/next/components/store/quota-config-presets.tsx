@@ -81,8 +81,8 @@ export const PRESETS: PresetEntries = {
         You can run two or three Jupyter Notebooks in the same project at the
         same time, given they do not require a large amount of memory. This
         quota is fine for editing LaTeX documents, working with Sage Worksheets,
-        and all other document types. {STANDARD_DISK}G of disk space are
-        also sufficient to store many files and a few small datasets.
+        and all other document types. {STANDARD_DISK}G of disk space are also
+        sufficient to store many files and a few small datasets.
       </>
     ),
     cpu: STANDARD_CPU,
@@ -173,8 +173,15 @@ export const PRESETS: PresetEntries = {
         idle-timeout of one day is sufficient to not interrupt your work; you
         can also execute long-running calculations with this configuration.
         Increasing the disk space quota also allows you to store larger
-        datasets. If you need vastly more disk space, you can additionally
-        purchase a{" "} <A href={"/store/dedicated?type=disk"}>dedicated disk</A>.
+        datasets. If you need{" "}
+        <b>vastly more dedicated disk space, CPU or RAM</b>, you should instead{" "}
+        <b>
+          rent a{" "}
+          <A href="https://doc.cocalc.com/compute_server.html">
+            compute server
+          </A>
+          .
+        </b>
       </>
     ),
     cpu: 1,
@@ -189,7 +196,10 @@ export const PRESETS: PresetEntries = {
     details: (
       <>
         This configuration allows for parallelized build tasks across more than
-        one CPU with an increased the amount of memory and disk space.
+        one CPU with an increased the amount of memory and disk space. If you
+        need <b>vastly more dedicated disk space, CPU or RAM</b>, you should
+        instead rent a{" "}
+        <A href="https://doc.cocalc.com/compute_server.html">compute server</A>.
       </>
     ),
     cpu: 2,

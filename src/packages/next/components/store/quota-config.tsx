@@ -15,7 +15,12 @@ import {
 import { Col, Divider, Form, Radio, Row, Space, Tabs, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
-import { PRESETS, Preset, Presets, PRESET_MATCH_FIELDS } from "./quota-config-presets";
+import {
+  PRESETS,
+  Preset,
+  Presets,
+  PRESET_MATCH_FIELDS,
+} from "./quota-config-presets";
 
 const { Text } = Typography;
 
@@ -119,9 +124,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
                 Google Cloud vCPUs.
               </A>{" "}
-              To keep prices low, these vCPUs may be shared with other
-              projects, though member hosting very significantly reduces
-              competition for CPUs. We also offer{" "}
+              To keep prices low, these vCPUs may be shared with other projects,
+              though member hosting very significantly reduces competition for
+              CPUs. We also offer{" "}
               <A href={"/store/dedicated?type=vm"}>
                 dedicated virtual machines
               </A>{" "}
@@ -159,8 +164,12 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               Extra disk space lets you store a larger number of files.
               Snapshots and file edit history is included at no additional
               charge. Each project receives at least {DISK_DEFAULT_GB}G of
-              storage space. We also offer much larger{" "}
-              <A href={"/store/dedicated?type=disk"}>dedicated disks</A>.
+              storage space. We also offer MUCH larger disks (and CPU and
+              memory) via{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>
+              .
             </>
           ) : undefined
         }
@@ -207,11 +216,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         </div>
       );
     }
-    const {
-      name,
-      descr,
-      details,
-    } = presetData;
+    const { name, descr, details } = presetData;
 
     const presetDiff = Object.keys(PRESET_MATCH_FIELDS).reduce(
       (diff, presetField) => {
@@ -220,7 +225,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         }
 
         return diff;
-      }, [] as string[]);
+      },
+      [] as string[],
+    );
 
     function presetDescription() {
       if (!descr) {
@@ -238,12 +245,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
     function renderProvides() {
       if (preset) {
-        const {
-          cpu,
-          disk,
-          ram,
-          uptime,
-        } = PRESETS[preset];
+        const { cpu, disk, ram, uptime } = PRESETS[preset];
         const memberValue = form.getFieldValue("member");
 
         const basic = (
@@ -262,13 +264,11 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <Text strong>member hosting is disabled</Text>
           ) : null;
 
-        const ut = uptime &&
-          uptime !== "short" ? (
+        const ut =
+          uptime && uptime !== "short" ? (
             <>
               {mh != null ? " and" : ""} the project's{" "}
-              <Text strong>
-                idle timeout is {displaySiteLicense(uptime)}
-              </Text>
+              <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
             </>
           ) : null;
 
@@ -287,15 +287,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
     function presetIsAdjusted() {
       if (!presetAdjusted || !presetDiff.length) return;
-      const lf = new Intl.ListFormat('en');
+      const lf = new Intl.ListFormat("en");
       return (
         <Typography style={{ marginBottom: "10px" }}>
           <Text type="warning">
             The current license differs from the <b>{lf.format(presetDiff)} </b>
-            configuration for the currently selected preset.
-
-            By clicking any of the above buttons, you can ensure your license
-            configuration matches the original preset configuration.
+            configuration for the currently selected preset. By clicking any of
+            the above buttons, you can ensure your license configuration matches
+            the original preset configuration.
           </Text>
         </Typography>
       );
