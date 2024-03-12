@@ -26,7 +26,7 @@ import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
-import { PRESETS, Presets } from "./quota-config-presets";
+import { PRESET_MATCH_FIELDS, PRESETS, Presets } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
@@ -138,10 +138,42 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [preset, setPreset] = useState<Presets | null>("standard");
   const [presetAdjusted, setPresetAdjusted] = useState<boolean>(false);
 
-  function onChange() {
+  /**
+   * Utility function to match current license configuration to a particular preset. If none is
+   * found, this function returns undefined.
+   */
+  function findPreset() {
+    const currentConfiguration = form.getFieldsValue(Object.keys(PRESET_MATCH_FIELDS));
+    let foundPreset: Presets|undefined;
+
+    Object.keys(PRESETS).some((p) => {
+      const presetMismatch = Object.keys(PRESET_MATCH_FIELDS).some(
+        (formField) => !(PRESETS[p][formField] === currentConfiguration[formField])
+      );
+
+      if (!presetMismatch) {
+        foundPreset = p as Presets;
+      }
+
+      return !presetMismatch;
+    });
+
+    return foundPreset;
+  }
+
+  function onLicenseChange() {
     const vals = form.getFieldsValue(true);
     encodeFormValues(router, vals, "regular");
     setCost(computeCost(vals));
+
+    const foundPreset = findPreset();
+
+    if (foundPreset) {
+      setPresetAdjusted(false);
+      setPreset(foundPreset);
+    } else {
+      setPresetAdjusted(true);
+    }
   }
 
   useEffect(() => {
@@ -162,12 +194,14 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           if (item.product == "site-license") {
             form.setFieldsValue({ ...item.description, type: "regular" });
           }
+
+          setConfigMode("expert");
         } catch (err) {
           setCartError(err.message);
         } finally {
           setLoading(false);
         }
-        onChange();
+        onLicenseChange();
       })();
     } else {
       const vals = decodeFormValues(router, "regular");
@@ -178,10 +212,9 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         // we have to make sure cpu, mem and disk are set, otherwise there is no "cost"
         form.setFieldsValue({ ...dflt, ...vals });
         setConfigMode("expert");
-        setPresetAdjusted(true);
       }
     }
-    onChange();
+    onLicenseChange();
   }, []);
 
   if (loading) {
@@ -219,7 +252,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
         autoComplete="off"
-        onValuesChange={onChange}
+        onValuesChange={onLicenseChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
         <ToggleExplanations
@@ -233,38 +266,38 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         <UsageAndDuration
           showExplanations={showExplanations}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
         />
         <RunLimit
           showExplanations={showExplanations}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
         />
         <QuotaConfig
           boost={false}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
           showExplanations={showExplanations}
           configMode={configMode}
           setConfigMode={setConfigMode}
           preset={preset}
           setPreset={setPreset}
           presetAdjusted={presetAdjusted}
-          setPresetAdjusted={setPresetAdjusted}
         />
-        <MemberHostingAndIdleTimeout
-          showExplanations={showExplanations}
-          form={form}
-          onChange={onChange}
-          shadowMember={shadowMember}
-          setShadowMember={setShadowMember}
-          setPresetAdjusted={setPresetAdjusted}
-        />
+        {configMode === "expert" && (
+          <MemberHostingAndIdleTimeout
+            showExplanations={showExplanations}
+            form={form}
+            onChange={onLicenseChange}
+            shadowMember={shadowMember}
+            setShadowMember={setShadowMember}
+          />
+        )}
         <TitleDescription showExplanations={showExplanations} form={form} />
         <Reset
           addBox={addBox}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
           router={router}
         />
       </Form>
