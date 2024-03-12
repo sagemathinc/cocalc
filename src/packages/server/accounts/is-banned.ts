@@ -7,7 +7,12 @@ import LRU from "lru-cache";
 const noCache = new LRU<string, boolean>({ max: 10000, ttl: 1000 * 60 });
 const yesCache = new LRU<string, boolean>({ max: 10000, ttl: 10 * 1000 * 60 });
 
-export default async function isBanned(account_id: string): Promise<boolean> {
+export default async function isBanned(
+  account_id: string | null | undefined,
+): Promise<boolean> {
+  if (!account_id) {
+    return false;
+  }
   if (yesCache.has(account_id)) {
     // user is definitely considered banned.  Takes up to 10 minutes to time out.
     return true;
