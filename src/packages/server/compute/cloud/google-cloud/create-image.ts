@@ -521,8 +521,9 @@ function createBuildConfiguration({
 #!/bin/bash
 set -ev
 
-function setState {}
-
+function setState {
+   echo "$*"
+}
 # Install docker daemon and client
 ${installDocker()}
 
