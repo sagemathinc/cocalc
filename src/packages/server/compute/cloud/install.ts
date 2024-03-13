@@ -211,11 +211,108 @@ fi
 # Remove this node if we are building an image, so it isn't there
 # when we instantiate it!
 ${imageBuild ? "" : "microk8s remove-node `hostname`"}
+# SECURITY: When doing build remove all the client credentials. When credentials are
+# missing, create new ones on first boot.  This is critical so one use can't
+# connect to another user's Kubernetes cluster!!!
+${
+  imageBuild
+    ? "rm /var/snap/microk8s/current/credentials/*.config"
+    : generateCredentials()
+}
 
 echo "Kubernetes installation complete."
 
 setState install install-k8s '' 120 87
 
+`;
+}
+
+// I found this script at https://microk8s.io/docs/how-to-cis-harden,
+// which recreates all the auth and other certs for microk8s
+// using x509 auth, which is the default.  I could find absolutely
+// no other way besides this for regenerating all auth, which was
+// pretty annoying!
+
+function generateCredentials() {
+  return `
+function refresh_microk8s_x509() {
+  if [ ! -f /var/snap/microk8s/current/credentials/client.config ]; then
+    mkdir -p /var/tmp/certs
+    for user in client kubelet scheduler controller proxy; do
+      openssl genrsa -out /var/tmp/certs/\${user}.key 2048
+    done
+
+    # client/admin cert
+    subject="/CN=admin/O=system:masters"
+    openssl req -new -sha256 -key /var/tmp/certs/client.key -out /var/tmp/certs/client.csr -subj \${subject}
+
+    # kubelet cert
+    hostname=$(hostname | tr '[:upper:]' '[:lower:]')
+    echo "subjectAltName=DNS:$hostname" > /var/tmp/certs/kubelet.csr.conf
+    subject="/CN=system:node:\${hostname}/O=system:nodes"
+    openssl req -new -sha256 -key /var/tmp/certs/kubelet.key -out /var/tmp/certs/kubelet.csr -subj \${subject}
+
+    # kube-proxy cert
+    subject="/CN=system:kube-proxy"
+    openssl req -new -sha256 -key /var/tmp/certs/proxy.key -out /var/tmp/certs/proxy.csr -subj \${subject}
+
+    # kube-scheduler cert
+    subject="/CN=system:kube-scheduler"
+    openssl req -new -sha256 -key /var/tmp/certs/scheduler.key -out /var/tmp/certs/scheduler.csr -subj \${subject}
+
+    # kube-controller-manager cert
+    subject="/CN=system:kube-controller-manager"
+    openssl req -new -sha256 -key /var/tmp/certs/controller.key -out /var/tmp/certs/controller.csr -subj \${subject}
+
+    for user in client scheduler controller proxy; do
+      openssl x509 -req -sha256 -in /var/tmp/certs/\${user}.csr -CA /var/snap/microk8s/current/certs/ca.crt -CAkey /var/snap/microk8s/current/certs/ca.key -CAcreateserial -out /var/tmp/certs/\${user}.crt -days 3650
+    done
+
+    openssl x509 -req -sha256 -in /var/tmp/certs/kubelet.csr -CA /var/snap/microk8s/current/certs/ca.crt -CAkey /var/snap/microk8s/current/certs/ca.key -CAcreateserial -out /var/tmp/certs/kubelet.crt -days 3650 -extfile /var/tmp/certs/kubelet.csr.conf
+
+    create_x509_cert() {
+      # Create a kubeconfig file with x509 auth
+      # $1: the name of the config file
+      # $2: the user to use al login
+      # $3: path to certificate file
+      # $4: path to certificate key file
+
+      kubeconfig=$1
+      user=$2
+      cert=$3
+      key=$4
+
+      ca_data=$(cat /var/snap/microk8s/current/certs/ca.crt | base64 -w 0)
+      cert_data=$(cat \${cert} | base64 -w 0)
+      key_data=$(cat \${key} | base64 -w 0)
+      config_file=/var/snap/microk8s/current/credentials/\${kubeconfig}
+
+      cp /snap/microk8s/current/client-x509.config.template \${config_file}
+      sed -i 's/CADATA/'"\${ca_data}"'/g' \${config_file}
+      sed -i 's/NAME/'"\${user}"'/g' \${config_file}
+      sed -i 's/PATHTOCERT/'"\${cert_data}"'/g' \${config_file}
+      sed -i 's/PATHTOKEYCERT/'"\${key_data}"'/g' \${config_file}
+      sed -i 's/client-certificate/client-certificate-data/g' \${config_file}
+      sed -i 's/client-key/client-key-data/g' \${config_file}
+    }
+
+    create_x509_cert "client.config" "admin" /var/tmp/certs/client.crt /var/tmp/certs/client.key
+    create_x509_cert "controller.config" "system:kube-controller-manager" /var/tmp/certs/controller.crt /var/tmp/certs/controller.key
+    create_x509_cert "proxy.config" "system:kube-proxy" /var/tmp/certs/proxy.crt /var/tmp/certs/proxy.key
+    create_x509_cert "scheduler.config" "system:kube-scheduler" /var/tmp/certs/scheduler.crt /var/tmp/certs/scheduler.key
+    create_x509_cert "kubelet.config" "system:node:\${hostname}" /var/tmp/certs/kubelet.crt /var/tmp/certs/kubelet.key
+
+    rm -rf /var/tmp/certs
+
+  fi
+}
+
+if [ ! -f /var/snap/microk8s/current/credentials/client.config ]; then
+  echo "/var/snap/microk8s/current/credentials/client.config does not exist -- generating new microk8s x509 certs"
+  refresh_microk8s_x509
+else
+  echo "/var/snap/microk8s/current/credentials/client.config exists -- using existing microk8s x509 certs"
+fi
 `;
 }
 
