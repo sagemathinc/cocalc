@@ -127,6 +127,8 @@ export function installMicroK8s({
   return `
 setState install install-k8s '' 120 70
 
+${imageBuild ? "" : generateCredentials()}
+
 snap install microk8s --classic
 
 if [ $? -ne 0 ]; then
@@ -214,11 +216,7 @@ ${imageBuild ? "" : "microk8s remove-node `hostname`"}
 # SECURITY: When doing build remove all the client credentials. When credentials are
 # missing, create new ones on first boot.  This is critical so one use can't
 # connect to another user's Kubernetes cluster!!!
-${
-  imageBuild
-    ? "rm /var/snap/microk8s/current/credentials/*.config"
-    : generateCredentials()
-}
+${imageBuild ? "rm /var/snap/microk8s/current/credentials/*.config" : ""}
 
 echo "Kubernetes installation complete."
 
@@ -307,7 +305,7 @@ function refresh_microk8s_x509() {
   fi
 }
 
-if [ ! -f /var/snap/microk8s/current/credentials/client.config ]; then
+if [ -d /var/snap/microk8s/current/credentials -a ! -f /var/snap/microk8s/current/credentials/client.config ]; then
   echo "/var/snap/microk8s/current/credentials/client.config does not exist -- generating new microk8s x509 certs"
   refresh_microk8s_x509
 else
