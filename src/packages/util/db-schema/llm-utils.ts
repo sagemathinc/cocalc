@@ -154,7 +154,7 @@ export function model2service(model: LanguageModel): LanguageService {
     return `openai-${model}`;
   }
   if (isOllamaLLM(model)) {
-    return toOllamaModel(model);
+    return model; // already has the ollama prefix
   }
   if (isMistralModel(model)) {
     return toMistralService(model);

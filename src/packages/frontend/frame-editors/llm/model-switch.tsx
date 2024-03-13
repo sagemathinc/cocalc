@@ -145,9 +145,21 @@ export default function ModelSwitch({
 
     return (
       <>
-        {makeLLMOption(ret, MISTRAL_MODELS[0], `Mistral AI's "small" model`)}
-        {makeLLMOption(ret, MISTRAL_MODELS[1], `Mistral AI's "medium" model`)}
-        {makeLLMOption(ret, MISTRAL_MODELS[2], `Mistral AI's "large" model`)}
+        {makeLLMOption(
+          ret,
+          MISTRAL_MODELS[0],
+          "Fast, simple queries, short answers, less capabilities",
+        )}
+        {makeLLMOption(
+          ret,
+          MISTRAL_MODELS[1],
+          "Intermediate tasks, summarizing, generating documents, etc.",
+        )}
+        {makeLLMOption(
+          ret,
+          MISTRAL_MODELS[2],
+          "Slowest, most powerful, large reasoning capabilities",
+        )}
       </>
     );
   }

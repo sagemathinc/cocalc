@@ -21,6 +21,7 @@ import {
   getVendorStatusCheckMD,
   model2service,
   model2vendor,
+  toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
@@ -553,7 +554,13 @@ export class ChatActions extends Actions<ChatState> {
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
-    const sender_id = model2service(model);
+    const sender_id = (function () {
+      try {
+        return model2service(model);
+      } catch {
+        return model;
+      }
+    })();
     let date: string = this.send_reply({
       message,
       reply: ":robot: Thinking...",
@@ -785,7 +792,12 @@ function getLanguageModel(input?: string): false | LanguageModel {
     const i = x.indexOf(prefix);
     if (i != -1) {
       const j = x.indexOf(">", i);
-      return x.slice(i + prefix.length, j).trim() as any;
+      const model = x.slice(i + prefix.length, j).trim() as LanguageModel;
+      // for now, ollama must be prefixed – in the future, all model names will have a vendor prefix!
+      if (vendorprefix.startsWith("ollama")) {
+        return toOllamaModel(model);
+      }
+      return model;
     }
   }
   return false;
