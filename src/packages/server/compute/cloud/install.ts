@@ -210,11 +210,8 @@ EOF
 
 fi
 
-# Remove this node if we are building an image, so it isn't there
-# when we instantiate it!
-${imageBuild ? "" : "microk8s remove-node `hostname`"}
 # SECURITY: When doing build remove all the client credentials. When credentials are
-# missing, create new ones on first boot.  This is critical so one use can't
+# missing, we will create new ones on first boot.  This is critical so one use can't
 # connect to another user's Kubernetes cluster!!!
 ${imageBuild ? "rm /var/snap/microk8s/current/credentials/*.config" : ""}
 
@@ -302,7 +299,10 @@ function refresh_microk8s_x509() {
 
     rm -rf /var/tmp/certs
     microk8s start
-
+    microk8s status -w >/dev/null
+    microk8s remove-node `microk8s kubectl get nodes -o custom-columns='NAME:.metadata.name' --no-headers`
+    microk8s stop
+    microk8s start
   fi
 }
 
