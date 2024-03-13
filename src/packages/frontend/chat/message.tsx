@@ -32,6 +32,8 @@ import {
   sender_is_viewer,
 } from "./utils";
 
+const DELETE_BUTTON = false;
+
 // 5 minutes -- how long to show the "regenerate button" for chatgpt.
 // Don't show it forever, since we want to avoid clutter.
 const regenerateCutoff = 1000 * 60 * 5;
@@ -374,35 +376,36 @@ export default function Message(props: Props) {
                     </Button>
                   </Tooltip>
                 )}
-                {newest_content(props.message).trim().length > 0 && (
-                  <Tooltip
-                    title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                    placement="left"
-                  >
-                    <Popconfirm
-                      title="Delete this message"
-                      description="Are you sure you want to delete this message?"
-                      onConfirm={() => {
-                        props.actions?.set_editing(props.message, true);
-                        setTimeout(
-                          () => props.actions?.send_edit(props.message, ""),
-                          1,
-                        );
-                      }}
+                {DELETE_BUTTON &&
+                  newest_content(props.message).trim().length > 0 && (
+                    <Tooltip
+                      title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+                      placement="left"
                     >
-                      <Button
-                        disabled={replying}
-                        style={{
-                          color: is_viewers_message ? "white" : "#555",
+                      <Popconfirm
+                        title="Delete this message"
+                        description="Are you sure you want to delete this message?"
+                        onConfirm={() => {
+                          props.actions?.set_editing(props.message, true);
+                          setTimeout(
+                            () => props.actions?.send_edit(props.message, ""),
+                            1,
+                          );
                         }}
-                        type="text"
-                        size="small"
                       >
-                        <Icon name="trash" /> Delete
-                      </Button>
-                    </Popconfirm>
-                  </Tooltip>
-                )}
+                        <Button
+                          disabled={replying}
+                          style={{
+                            color: is_viewers_message ? "white" : "#555",
+                          }}
+                          type="text"
+                          size="small"
+                        >
+                          <Icon name="trash" /> Delete
+                        </Button>
+                      </Popconfirm>
+                    </Tooltip>
+                  )}
                 {!props.message.get("reply_to") &&
                   props.allowReply &&
                   !replying && (
