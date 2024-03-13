@@ -28,7 +28,7 @@ export default function passwordStrength(password: string): {
     score,
     help:
       score <= 2
-        ? `${feedback?.warning ?? ""}\n ${
+        ? `Password is too weak. ${feedback?.warning ?? ""}\n ${
             feedback?.suggestions ? feedback?.suggestions.join("\n ") : ""
           }`
         : undefined,

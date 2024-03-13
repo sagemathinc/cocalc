@@ -27,7 +27,7 @@ export default function ComputeServers() {
       level={LANDING_HEADER_LEVEL}
       title={
         <>
-          Dedicated Compute Servers with GPU support{" "}
+          Dedicated Compute Servers with Powerful CPU and Optional GPU Support{" "}
           <sup>
             <Tag color={COLORS.ANTD_GREEN}>new</Tag>
           </sup>
@@ -44,8 +44,8 @@ export default function ComputeServers() {
     >
       <Paragraph>
         Extend your {siteName} projects with powerful{" "}
-        <Text strong>compute servers</Text>. They give you much more power, GPU
-        support, and flexibility for your computations.
+        <Text strong>compute servers</Text>. They give you much more power,
+        optional GPU support, and flexibility for your computations.
       </Paragraph>
       <Paragraph>
         From within your {siteName} project, spin up and connect to a powerful
@@ -62,20 +62,21 @@ export default function ComputeServers() {
         pre-configured software environments make it very easy to make use of
         them, right out of the box. These software environments include
         SageMath, Google Colab, Julia, PyTorch, Tensorflow and CUDA Toolkit,
-        accommodating a versatile range of applications.
+        accommodating a versatile range of applications. You can also run any
+        command as root, install anything you want, and use Docker and
+        Kubernetes.
       </Paragraph>
       <Paragraph>
-        Your <Text strong>files are synchronized</Text> on demand. Therefore,
-        you can almost seamlessly switch between local and remote computing. You
-        also have much more temporary storage right there on the remote machine.
+        Your <Text strong>files are synchronized</Text>. Therefore, you can
+        seamlessly switch between local and remote computing. You also have much
+        more disk storage on the remote machine.
       </Paragraph>
       <Paragraph>
         Usage of these machines is <Text strong>billed by the second</Text>. The
         pricing is highly competitive, starting at{" "}
         <b>
-          <i>under $0.15/hour for computer servers with a GPU</i>
+          <i>under $0.01/hour and under $0.15/hour with a GPU!</i>
         </b>
-        !
       </Paragraph>
       <Paragraph>
         <A href="https://doc.cocalc.com/compute_server.html">Read the docs</A>{" "}

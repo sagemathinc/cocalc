@@ -746,29 +746,6 @@ class exports.Client extends EventEmitter
                     @push_to_client(message.signed_out(id:mesg.id))
 
     # Messages: Password/email address management
-    mesg_change_password: (mesg) =>
-        password.change_password
-            mesg       : mesg
-            account_id : @account_id
-            ip_address : @ip_address
-            database   : @database
-            cb         : (err) =>
-                @push_to_client(message.changed_password(id:mesg.id, error:err))
-
-    mesg_forgot_password: (mesg) =>
-        password.forgot_password
-            mesg       : mesg
-            ip_address : @ip_address
-            database   : @database
-            cb         : (err) =>
-                @push_to_client(message.forgot_password_response(id:mesg.id, error:err))
-
-    mesg_reset_forgot_password: (mesg) =>
-        password.reset_forgot_password
-            mesg       : mesg
-            database   : @database
-            cb         : (err) =>
-                @push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
 
     mesg_change_email_address: (mesg) =>
         password.change_email_address
