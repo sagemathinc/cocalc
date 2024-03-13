@@ -140,7 +140,11 @@ export class UserResult extends Component<Props, State> {
       return;
     }
     return (
-      <Ban account_id={this.props.account_id} banned={this.props.banned} />
+      <Ban
+        account_id={this.props.account_id}
+        banned={this.props.banned}
+        name={`${this.props.first_name} ${this.props.last_name} ${this.props.email_address}`}
+      />
     );
   }
 

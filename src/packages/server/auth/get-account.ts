@@ -7,6 +7,7 @@ import getPool from "@cocalc/database/pool";
 import { getAccountIdFromApiKey } from "@cocalc/server/auth/api";
 import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 import getLogger from "@cocalc/backend/logger";
+import isBanned from "@cocalc/server/accounts/is-banned";
 
 const logger = getLogger("server:get-account");
 
@@ -24,7 +25,7 @@ export default async function getAccountId(
     noCache,
   }: {
     noCache?: boolean;
-  } = {}
+  } = {},
 ): Promise<string | undefined> {
   if (req == null) {
     return;
@@ -53,13 +54,18 @@ export default async function getAccountId(
   // important to use CHAR(127) instead of TEXT for 100x performance gain.
   const result = await pool.query(
     "SELECT account_id, expire FROM remember_me WHERE hash = $1::CHAR(127)",
-    [hash]
+    [hash],
   );
   if (result.rows.length == 0) {
     logger.debug("no known remember_me cookie with hash", hash);
     return;
   }
   const { account_id, expire } = result.rows[0];
+  if (await isBanned(account_id)) {
+    // banned user so do not allow  -- act of banning user should have
+    // deleted all remember_me, but we put this extra check in just in case.
+    return;
+  }
   if (expire <= new Date()) {
     logger.debug("remember_me cookie with this hash expired already", {
       account_id,

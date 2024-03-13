@@ -3003,13 +3003,6 @@ message({
   link: undefined,
 });
 
-message({
-  event: "admin_ban_user",
-  id: undefined,
-  account_id: required,
-  ban: required, // if true ban; if false, unban
-});
-
 // Request to purchase a license (either via stripe or a quote)
 API(
   message({

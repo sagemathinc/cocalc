@@ -23,6 +23,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import base62 from "base62/lib/ascii";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import type { ApiKey as ApiKeyType } from "@cocalc/util/db-schema/api-keys";
+import isBanned from "@cocalc/server/accounts/is-banned";
 
 const log = getLogger("server:api:manage");
 
@@ -73,7 +74,7 @@ export default async function manageApiKeys({
     !(await isCollaborator({ account_id, project_id }))
   ) {
     throw Error(
-      "user must be collaborator on project to manage project_id api keys"
+      "user must be collaborator on project to manage project_id api keys",
     );
   }
 
@@ -101,13 +102,13 @@ async function getApiKeys({
   if (project_id) {
     const { rows } = await pool.query(
       "SELECT id,account_id,expire,created,name,trunc,last_active FROM api_keys WHERE project_id=$1::UUID ORDER BY created DESC",
-      [project_id]
+      [project_id],
     );
     return rows;
   } else {
     const { rows } = await pool.query(
       "SELECT id,account_id,expire,created,name,trunc,last_active FROM api_keys WHERE account_id=$1::UUID AND project_id IS NULL ORDER BY created DESC",
-      [account_id]
+      [account_id],
     );
     return rows;
   }
@@ -118,13 +119,13 @@ async function getApiKey({ id, account_id, project_id }) {
   if (project_id) {
     const { rows } = await pool.query(
       "SELECT id,account_id,expire,created,name,trunc,last_active FROM api_keys WHERE id=$1 AND project_id=$2",
-      [id, project_id]
+      [id, project_id],
     );
     return rows[0];
   } else {
     const { rows } = await pool.query(
       "SELECT id,account_id,expire,created,name,trunc,last_active FROM api_keys WHERE id=$1 AND account_id=$2",
-      [id, account_id]
+      [id, account_id],
     );
     return rows[0];
   }
@@ -154,7 +155,7 @@ async function numKeys(account_id: string): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT COUNT(*) AS count FROM api_keys WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   return rows[0].count;
 }
@@ -173,12 +174,12 @@ async function createApiKey({
   const pool = getPool();
   if ((await numKeys(account_id)) >= MAX_API_KEYS) {
     throw Error(
-      `There is a limit of ${MAX_API_KEYS} per account; please delete some api keys.`
+      `There is a limit of ${MAX_API_KEYS} per account; please delete some api keys.`,
     );
   }
   const { rows } = await pool.query(
     "INSERT INTO api_keys(account_id,created,project_id,expire,name) VALUES($1,NOW(),$2,$3,$4) RETURNING id,account_id,expire,created,name,last_active",
-    [account_id, project_id, expire, name]
+    [account_id, project_id, expire, name],
   );
   const { id } = rows[0];
   // We encode the id in the secret so when the user presents the secret we can find the record.
@@ -205,12 +206,12 @@ async function updateApiKey({ apiKey, account_id, project_id }) {
     // for some other random project or user.
     await pool.query(
       "UPDATE api_keys SET expire=$3,name=$4,last_active=$5 WHERE id=$1 AND project_id=$2",
-      [id, project_id, expire, name, last_active]
+      [id, project_id, expire, name, last_active],
     );
   } else {
     await pool.query(
       "UPDATE api_keys SET expire=$3,name=$4,last_active=$5 WHERE id=$1 AND account_id=$2",
-      [id, account_id, expire, name, last_active]
+      [id, account_id, expire, name, last_active],
     );
   }
 }
@@ -264,8 +265,9 @@ async function doManageApiKeys({
 }
 
 /*
-Get the account that has the given api key, or returns undefined
-if there is no such account.
+Get the account (account_id or project_id!) that has the given api key,
+or returns undefined if there is no such account, or if the account
+that owns the api key is banned.
 
 If the api_key is not an account wide key, instead return the project_id
 if the key is a valid key for a project.
@@ -273,7 +275,7 @@ if the key is a valid key for a project.
 Record that access happened by updating last_active.
 */
 export async function getAccountWithApiKey(
-  secret: string
+  secret: string,
 ): Promise<string | undefined> {
   log.debug("getAccountWithApiKey");
   const pool = getPool("medium");
@@ -282,10 +284,14 @@ export async function getAccountWithApiKey(
   if (secret.startsWith("sk_")) {
     const { rows } = await pool.query(
       "SELECT account_id FROM accounts WHERE api_key = $1::TEXT",
-      [secret]
+      [secret],
     );
     if (rows.length > 0) {
       const account_id = rows[0].account_id;
+      if (await isBanned(account_id)) {
+        log.debug("getAccountWithApiKey: banned api key ", account_id);
+        return;
+      }
       // it's a valid account api key
       log.debug("getAccountWithApiKey: valid api key for ", account_id);
       return account_id;
@@ -296,9 +302,13 @@ export async function getAccountWithApiKey(
   const id = decode62(secret.slice(-6));
   const { rows } = await pool.query(
     "SELECT account_id,project_id,hash,expire FROM api_keys WHERE id=$1",
-    [id]
+    [id],
   );
   if (rows.length == 0) return undefined;
+  if (await isBanned(rows[0].account_id)) {
+    log.debug("getAccountWithApiKey: banned api key ", rows[0]?.account_id);
+    return;
+  }
   if (verifyPassword(secret, rows[0].hash)) {
     // If project and account_id no longer a collab, then we delete the key and fail.
     // I.e., if you reate an api key for a project, then you stop collab on that
@@ -352,7 +362,7 @@ export async function legacyManageApiKey({
     case "get":
       const { rows } = await pool.query(
         "SELECT api_key FROM accounts WHERE account_id=$1::UUID",
-        [account_id]
+        [account_id],
       );
       if (rows.length == 0) {
         throw Error("no such account");
@@ -361,7 +371,7 @@ export async function legacyManageApiKey({
     case "delete":
       await pool.query(
         "UPDATE accounts SET api_key=NULL WHERE account_id=$1::UUID",
-        [account_id]
+        [account_id],
       );
       return;
     case "regenerate":
@@ -373,7 +383,7 @@ export async function legacyManageApiKey({
       const api_key = `sk_${generate()}`;
       await pool.query(
         "UPDATE accounts SET api_key=$1 WHERE account_id=$2::UUID",
-        [api_key, account_id]
+        [api_key, account_id],
       );
       return api_key;
     default:
