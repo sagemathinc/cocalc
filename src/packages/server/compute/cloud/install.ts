@@ -300,7 +300,7 @@ function refresh_microk8s_x509() {
     rm -rf /var/tmp/certs
     microk8s start
     microk8s status -w >/dev/null
-    microk8s remove-node `microk8s kubectl get nodes -o custom-columns='NAME:.metadata.name' --no-headers`
+    microk8s remove-node \`microk8s kubectl get nodes -o custom-columns='NAME:.metadata.name' --no-headers\`
     microk8s stop
     microk8s start
   fi
