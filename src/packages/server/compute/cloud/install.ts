@@ -301,6 +301,7 @@ function refresh_microk8s_x509() {
     create_x509_cert "kubelet.config" "system:node:\${hostname}" /var/tmp/certs/kubelet.crt /var/tmp/certs/kubelet.key
 
     rm -rf /var/tmp/certs
+    microk8s start
 
   fi
 }
