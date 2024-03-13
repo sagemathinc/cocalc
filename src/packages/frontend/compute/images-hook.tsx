@@ -24,6 +24,11 @@ export async function reloadImages(name: Name, reload?: boolean) {
   }
 }
 
+export async function forceRefreshImages() {
+  await reloadImages("compute_servers_images", true);
+  await reloadImages("compute_servers_images_google", true);
+}
+
 function useImages0(name: Name) {
   const IMAGES = useTypedRedux("customize", name);
   useEffect(() => {

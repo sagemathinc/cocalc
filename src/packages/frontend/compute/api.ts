@@ -8,6 +8,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { redux } from "@cocalc/frontend/app-framework";
 
 export async function createServer(opts: {
   project_id: string;
@@ -160,14 +161,20 @@ async function getImagesFor({
 }: {
   cloud: string;
   endpoint: string;
-  // reload -- if true, reloads data from external resource; only admins can do this.
   reload?: boolean;
 }): Promise<any> {
   if (!reload && cacheHas(cloud)) {
     return cacheGet(cloud);
   }
+
   try {
-    const images = await api(endpoint, reload ? { ttl: 0 } : undefined);
+    const images = await api(
+      endpoint,
+      // admin reload forces fetch data from github and/or google cloud - normal users just have their cache ignored above
+      reload && redux.getStore("account").get("is_admin")
+        ? { ttl: 0 }
+        : undefined,
+    );
     cacheSet(cloud, images);
     return images;
   } catch (err) {
