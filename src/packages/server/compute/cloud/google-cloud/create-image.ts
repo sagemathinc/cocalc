@@ -548,7 +548,7 @@ docker pull ${pkg}:${tag}
 ${gpu ? installCuda() : ""}
 
 # install-k8s has to be AFTER install-user and cuda
-${installMicroK8s({ image, IMAGES, gpu })}
+${installMicroK8s({ image, IMAGES, gpu, imageBuild: true })}
 
 df -h /
 sync

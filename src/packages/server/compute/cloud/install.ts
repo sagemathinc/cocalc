@@ -112,10 +112,12 @@ export function installMicroK8s({
   image,
   IMAGES,
   gpu,
+  imageBuild,
 }: {
   image: string;
   IMAGES: Images;
   gpu?: boolean;
+  imageBuild?: boolean;
 }) {
   const microk8s = IMAGES[image]?.microk8s;
   if (!microk8s) {
@@ -205,6 +207,10 @@ EOF
   apt-get install -y nfs-common
 
 fi
+
+# Remove this node if we are building an image, so it isn't there
+# when we instantiate it!
+${imageBuild ? "" : "microk8s remove-node `hostname`"}
 
 echo "Kubernetes installation complete."
 

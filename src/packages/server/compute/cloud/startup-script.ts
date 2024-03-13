@@ -130,7 +130,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # install-k8s has to be AFTER install-user.
-${installMicroK8s({ image, IMAGES, gpu })}
+${installMicroK8s({ image, IMAGES, gpu, imageBuild: false })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing kubernetes"
    exit 1
