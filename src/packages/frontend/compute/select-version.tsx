@@ -2,9 +2,11 @@ import type {
   Configuration,
   Images,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Radio } from "antd";
+import { Button, Radio, Spin } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { A } from "@cocalc/frontend/components";
+import { A, Icon } from "@cocalc/frontend/components";
+import { forceRefreshImages } from "./images-hook";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
   setConfig;
@@ -24,6 +26,8 @@ export default function SelectVersion({
   style,
 }: Props) {
   const [tag, setTag] = useState<string | undefined>(configuration.tag);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   const [tag_filesystem, set_tag_filesystem] = useState<string | undefined>(
     configuration.tag_filesystem,
   );
@@ -56,6 +60,26 @@ export default function SelectVersion({
 
   return (
     <div style={style}>
+      <Button
+        size="small"
+        style={{ float: "right" }}
+        onClick={async () => {
+          try {
+            setError("");
+            setRefreshing(true);
+            await forceRefreshImages();
+          } catch (err) {
+            setError(`${err}`);
+          } finally {
+            setRefreshing(false);
+          }
+        }}
+        disabled={refreshing}
+      >
+        <Icon name="refresh" /> Refresh{refreshing ? "ing..." : ""} Images
+        {refreshing && <Spin />}
+      </Button>
+      <ShowError error={error} setError={setError} />
       <SelectTag
         style={{ marginBottom: "5px" }}
         label={
