@@ -30,6 +30,7 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getParams from "lib/api/get-params";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
 import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
+import passwordStrength from "@cocalc/server/auth/password-strength";
 
 interface Issues {
   terms?: string;
@@ -192,6 +193,11 @@ function checkObviousConditions({ terms, email, password }): Issues {
   }
   if (!password || password.length < 6) {
     issues.password = "Your password must not be trivial to guess.";
+  } else {
+    const { score, help } = passwordStrength(password);
+    if (score <= 2) {
+      issues.password = help ? help : "Your password is too easy to guess.";
+    }
   }
   return issues;
 }
