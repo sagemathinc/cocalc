@@ -16,7 +16,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { AiTools } from "@cocalc/jupyter/types";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { COLORS } from "@cocalc/util/theme";
 import { useState } from "react";
 import { Icon, Tip } from "../components";
@@ -51,7 +51,7 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
-  aiTools?: AiTools;
+  llmTools?: LLMTools;
   computeServerId?: number;
   is_visible?: boolean;
   isFirst?: boolean;
@@ -80,7 +80,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.isFirst !== props.isFirst ||
     nextProps.isLast !== props.isLast ||
     nextProps.computeServerId !== props.computeServerId ||
-    (nextProps.aiTools?.model ?? "") !== (props.aiTools?.model ?? "") ||
+    (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current))
   );
@@ -129,7 +129,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         trust={props.trust}
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
-        aiTools={props.aiTools}
+        llmTools={props.llmTools}
         computeServerId={props.computeServerId}
         setShowChatGPT={setShowChatGPT}
       />
@@ -154,7 +154,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
-        aiTools={props.aiTools}
+        llmTools={props.llmTools}
       />
     );
   }
@@ -320,7 +320,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       <InsertCell
         hide={!props.is_visible}
         id={id}
-        aiTools={props.aiTools}
+        llmTools={props.llmTools}
         key={id + "insert" + position}
         position={position}
         actions={props.actions}

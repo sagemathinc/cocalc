@@ -18,7 +18,7 @@ import { ReactNode } from "react";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { AiTools } from "@cocalc/jupyter/types";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
@@ -33,7 +33,7 @@ export interface InsertCellProps {
   actions: JupyterActions;
   id: string;
   position: "above" | "below";
-  aiTools?: AiTools;
+  llmTools?: LLMTools;
   hide?: boolean;
   showChatGPT;
   setShowChatGPT;
@@ -46,7 +46,7 @@ export interface InsertCellState {
 
 export function InsertCell({
   position,
-  aiTools,
+  llmTools,
   actions,
   id,
   hide,
@@ -59,7 +59,7 @@ export function InsertCell({
   function handleBarClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (aiTools && (e.altKey || e.metaKey)) {
+    if (llmTools && (e.altKey || e.metaKey)) {
       setShowChatGPT(true);
       return;
     }
@@ -142,7 +142,7 @@ export function InsertCell({
             >
               <Icon name="paste" /> Paste
             </TinyButton>
-            {aiTools && (
+            {llmTools && (
               <TinyButton
                 type="chatgpt"
                 title="Create code based on your description (alt+click line)"

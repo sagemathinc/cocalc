@@ -26,14 +26,14 @@ import { ErrorDisplay } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
-import { AiTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
 import type { JupyterActions } from "./browser-actions";
 import { CellList } from "./cell-list";
-import * as toolComponents from "./chatgpt";
+import * as toolComponents from "./llm";
 import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
@@ -194,7 +194,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const [model, setModel] = useLanguageModelSetting(project_id);
   // ATTN: if you add values here, make sure to check the memoize check functions in the components –
   // otherwise they will not re-render as expected.
-  const aiTools: AiTools = {
+  const llmTools: LLMTools = {
     model,
     setModel,
     toolComponents,
@@ -300,11 +300,11 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        aiTools={
+        llmTools={
           redux
             .getStore("projects")
             .hasLanguageModelEnabled(project_id, "generate-cell")
-            ? aiTools
+            ? llmTools
             : undefined
         }
         computeServerId={computeServerId}

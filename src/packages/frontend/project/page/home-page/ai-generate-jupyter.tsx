@@ -39,8 +39,8 @@ import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import ModelSwitch, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/model-switch";
-import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";

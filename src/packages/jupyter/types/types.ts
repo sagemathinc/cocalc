@@ -77,11 +77,11 @@ export type KernelMetadata = {
   };
 };
 
-export interface AiTools {
-  model: LanguageModel ;
-  setModel: (llm: LanguageModel ) => void;
+export interface LLMTools {
+  model: LanguageModel;
+  setModel: (llm: LanguageModel) => void;
   toolComponents: {
-    ChatGPTExplain;
-    ChatGPTError;
+    LLMExplainCell;
+    LLMError;
   };
 }

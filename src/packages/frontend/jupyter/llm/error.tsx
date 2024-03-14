@@ -13,7 +13,7 @@ interface Props {
   traceback: string;
 }
 
-export default function ChatGPTError({ style, traceback, input }: Props) {
+export default function LLMError({ style, traceback, input }: Props) {
   const { actions: frameActions } = useFrameContext();
   if (frameActions == null) return null;
   return (

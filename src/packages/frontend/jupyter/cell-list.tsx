@@ -34,7 +34,7 @@ import {
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
-import { AiTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
@@ -96,7 +96,7 @@ interface CellListProps {
   sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
   use_windowed_list?: boolean;
-  aiTools?: AiTools;
+  llmTools?: LLMTools;
   computeServerId?: number;
 }
 
@@ -125,7 +125,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     sel_ids,
     trust,
     use_windowed_list,
-    aiTools,
+    llmTools,
     computeServerId,
   } = props;
 
@@ -475,7 +475,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           trust={trust}
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
-          aiTools={aiTools}
+          llmTools={llmTools}
           computeServerId={computeServerId}
           isFirst={isFirst}
           isLast={isLast}

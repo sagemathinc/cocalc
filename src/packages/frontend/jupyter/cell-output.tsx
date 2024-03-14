@@ -11,7 +11,7 @@ import { Alert } from "antd";
 import type { Map as ImmutableMap } from "immutable";
 import React from "react";
 
-import { AiTools } from "@cocalc/jupyter/types";
+import { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
 import { CollapsedOutput, OutputToggle } from "./cell-output-toggle";
@@ -31,7 +31,7 @@ interface CellOutputProps {
   hidePrompt?: boolean;
   style?: React.CSSProperties;
   divRef?;
-  aiTools?: AiTools;
+  llmTools?: LLMTools;
 }
 
 export function CellOutput({
@@ -47,7 +47,7 @@ export function CellOutput({
   hidePrompt,
   divRef,
   style,
-  aiTools,
+  llmTools,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -90,7 +90,7 @@ export function CellOutput({
         directory={directory}
         name={name}
         trust={trust}
-        aiTools={aiTools}
+        llmTools={llmTools}
       />
     </div>
   );
@@ -105,7 +105,7 @@ interface OutputColumnProps {
   directory?: string;
   name?: string;
   trust?: boolean;
-  aiTools?;
+  llmTools?;
 }
 
 function OutputColumn({
@@ -117,7 +117,7 @@ function OutputColumn({
   directory,
   name,
   trust,
-  aiTools,
+  llmTools,
 }: OutputColumnProps) {
   if (cell.get("collapsed")) {
     return <CollapsedOutput actions={actions} id={id} />;
@@ -152,7 +152,7 @@ function OutputColumn({
       name={name}
       trust={trust}
       id={id}
-      aiTools={aiTools}
+      llmTools={llmTools}
     />
   );
 }

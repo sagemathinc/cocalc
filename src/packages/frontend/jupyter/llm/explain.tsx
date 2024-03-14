@@ -17,25 +17,30 @@ import ModelSwitch, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/model-switch";
-import { AiTools } from "@cocalc/jupyter/types";
+import { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "../browser-actions";
 
 interface Props {
   actions?;
   id: string;
   style?: CSSProperties;
-  aiTools?: AiTools;
+  llmTools?: LLMTools;
 }
 
-export default function ChatGPTExplain({ actions, id, style, aiTools }: Props) {
+export default function LLMExplainCell({
+  actions,
+  id,
+  style,
+  llmTools,
+}: Props) {
   const { project_id, path } = useFrameContext();
   const [gettingExplanation, setGettingExplanation] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  if (actions == null || aiTools == null) {
+  if (actions == null || llmTools == null) {
     return null;
   }
-  const { model, setModel } = aiTools;
+  const { model, setModel } = llmTools;
   return (
     <div style={style}>
       <PopconfirmKeyboard

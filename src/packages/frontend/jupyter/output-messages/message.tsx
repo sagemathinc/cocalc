@@ -12,6 +12,7 @@ import type { Map } from "immutable";
 import React from "react";
 
 import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { Input } from "./input";
 import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
@@ -21,7 +22,6 @@ import { Stderr } from "./stderr";
 import { Stdout } from "./stdout";
 import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
 import { Traceback } from "./traceback";
-import { AiTools } from "@cocalc/jupyter/types";
 
 function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
@@ -85,7 +85,7 @@ interface CellOutputMessagesProps {
   scrolled?: boolean;
   trust?: boolean;
   id?: string;
-  aiTools?: AiTools;
+  llmTools?: LLMTools;
 }
 
 function shouldMemoize(prev, next) {
@@ -106,7 +106,7 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     scrolled,
     trust,
     id,
-    aiTools,
+    llmTools,
   }: CellOutputMessagesProps) => {
     const obj: Map<string, any>[] = React.useMemo(
       () => messageList(output),
@@ -146,8 +146,8 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       }
     }
     const help =
-      hasError && id && actions && aiTools ? (
-        <aiTools.toolComponents.ChatGPTError
+      hasError && id && actions && llmTools ? (
+        <llmTools.toolComponents.LLMError
           style={{ margin: "5px 0" }}
           input={actions.store.getIn(["cells", id, "input"]) ?? ""}
           traceback={Anser.ansiToText(traceback.trim())}

@@ -23,15 +23,15 @@ import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-m
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
-import { AiTools } from "@cocalc/jupyter/types";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
-import { ChatGPTExplain } from "./chatgpt";
 import { CodeMirror } from "./codemirror-component";
+import { LLMExplainCell } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
 
@@ -80,7 +80,7 @@ export interface CellInputProps {
   is_scrolling?: boolean;
   id: string;
   index: number;
-  aiTools?: AiTools;
+  llmTools?: LLMTools;
   computeServerId?: number;
   setShowChatGPT?;
 }
@@ -172,7 +172,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
-          setShowChatGPT={props.aiTools ? props.setShowChatGPT : undefined}
+          setShowChatGPT={props.llmTools ? props.setShowChatGPT : undefined}
         />
       );
     }
@@ -428,9 +428,13 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 />
               </div>
             )}
-            {props.aiTools && (
-              <ChatGPTExplain id={props.id} actions={props.actions} />
-            )}
+            {props.llmTools ? (
+              <LLMExplainCell
+                id={props.id}
+                actions={props.actions}
+                llmTools={props.llmTools}
+              />
+            ) : undefined}
             {/* Should only show formatter button if there is a way to format this code. */}
             {!props.is_readonly && props.actions != null && (
               <Tooltip title="Format this code to look nice" placement="top">
@@ -556,7 +560,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.is_readonly !== cur.is_readonly ||
       next.is_scrolling !== cur.is_scrolling ||
       next.cell_toolbar !== cur.cell_toolbar ||
-      (next.aiTools?.model ?? "") !== (cur.aiTools?.model ?? "") ||
+      (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
       (next.cell_toolbar === "slideshow" &&
