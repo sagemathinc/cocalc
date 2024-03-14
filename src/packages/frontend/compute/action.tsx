@@ -50,6 +50,7 @@ export default function getActions({
     if (
       !editable &&
       action != "stop" &&
+      action != "deprovision" &&
       action != "start" &&
       action != "suspend" &&
       action != "resume" &&
@@ -58,10 +59,21 @@ export default function getActions({
       // non-owner can only do start/stop/suspend/resume -- NOT delete or deprovision.
       continue;
     }
+    if (!editable && action == "deprovision" && !configuration.ephemeral) {
+      // also do not allow NON ephemeral deprovision by collaborator.
+      // For ephemeral, collab is encouraged to delete server.
+      continue;
+    }
     const a = ACTION_INFO[action];
     if (!a) continue;
     if (action == "suspend") {
       if (configuration.cloud != "google-cloud") {
+        continue;
+      }
+      if (configuration.machineType.startsWith("t2a-")) {
+        // TODO: suspend/resume breaks the clock badly on ARM64, and I haven't
+        // figured out a workaround, so don't support it for now.  I guess this
+        // is a GCP bug.
         continue;
       }
       // must have no gpu and <= 208GB of RAM -- https://cloud.google.com/compute/docs/instances/suspend-resume-instance

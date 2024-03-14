@@ -34,7 +34,7 @@ export default async function getInstance({ name, zone }: Options): Promise<{
         cpuPlatform: "",
       } as const;
     }
-    logger.debug("got error", err.message);
+    throw err;
   }
   // logger.debug("got GCP instance info", response);
   const internalIp = response?.networkInterfaces?.[0]?.networkIP ?? "";

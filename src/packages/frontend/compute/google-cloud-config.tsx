@@ -50,6 +50,7 @@ import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 import AutoRestart from "./auto-restart";
 import AllowCollaboratorControl from "./allow-collaborator-control";
+import NestedVirtualization from "./nested-virtualization";
 import generateVouchers from "@cocalc/util/vouchers";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
@@ -427,6 +428,17 @@ export default function GoogleCloudConfiguration({
       label: <></>,
       value: (
         <AllowCollaboratorControl
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
+      key: "nested-virtualization",
+      label: <></>,
+      value: (
+        <NestedVirtualization
           setConfig={setConfig}
           configuration={configuration}
           loading={loading}

@@ -66,6 +66,8 @@ export default async function createInstance({
 
   const schedulingModel = getSchedulingModel(configuration);
 
+  const advancedMachineFeatures = getAdvancedMachineFeatures(configuration);
+
   const maxRunDuration = configuration.maxRunDurationSeconds
     ? {
         seconds: configuration.maxRunDurationSeconds,
@@ -92,6 +94,7 @@ export default async function createInstance({
     scheduling,
     guestAccelerators,
     tags,
+    advancedMachineFeatures,
   };
 
   logger.debug("create instance", instanceResource);
@@ -238,5 +241,13 @@ export function getSchedulingModel(configuration: GoogleCloudConfiguration) {
       provisioningModel: "STANDARD",
       preemptible: false,
     };
+  }
+}
+
+function getAdvancedMachineFeatures(configuration) {
+  if (configuration.enableNestedVirtualization) {
+    return { enableNestedVirtualization: true };
+  } else {
+    return {};
   }
 }

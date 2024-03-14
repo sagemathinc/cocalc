@@ -104,7 +104,7 @@ export const PasswordSetting: React.FC = () => {
           />
           <A href={join(appBasePath, "auth/password-reset")}>
             Forgot Password?
-          </A>
+          </A>{" "}
         </>
       );
     }

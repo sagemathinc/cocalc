@@ -1,10 +1,22 @@
 /*
 Show the serial port output for a specific compute server in a project
 that user collaborates on.
+
+Autorefresh exponential backoff algorithm:
+
+- when not enabled, obviously do nothing
+- when enabled refresh in MIN_INTERVAL_MS.
+   - if there is a change, refresh again in MIN_INTERVAL_MS
+   - if there is no change, refresh in cur*EXPONENTIAL_BACKOFF seconds,
+     up to MAX_INTERVAL_MS.
 */
 
-import { Modal, Button, Spin, Tooltip } from "antd";
-import { useRef, useState } from "react";
+const MIN_INTERVAL_MS = 2000;
+const MAX_INTERVAL_MS = 45000;
+const EXPONENTIAL_BACKOFF = 1.3;
+
+import { Modal, Checkbox, Button, Spin, Tooltip } from "antd";
+import { useEffect, useCallback, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { getSerialPortOutput } from "./api";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -27,10 +39,42 @@ export default function SerialPortOutput({
   color?: string;
 }) {
   const [show, setShow] = useState<boolean>(false);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const termRef = useRef<any>(null);
   const eltRef = useRef<any>(null);
+  const timeoutRef = useRef<any>(null);
+  const timeoutMsRef = useRef<number>(MIN_INTERVAL_MS);
+  const lastOutputRef = useRef<string>("");
+
+  const clearTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      clearInterval(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  const updateRefresh = useCallback(async () => {
+    clearTimeout();
+    const before = lastOutputRef.current;
+    await update();
+    timeoutRef.current = setTimeout(updateRefresh, timeoutMsRef.current);
+    if (before == lastOutputRef.current) {
+      timeoutMsRef.current = Math.min(
+        timeoutMsRef.current * EXPONENTIAL_BACKOFF,
+        MAX_INTERVAL_MS,
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    // get it started
+    updateRefresh();
+
+    // clear timeout on unmount
+    return clearTimeout;
+  }, []);
 
   const update = async () => {
     if (loading) {
@@ -40,6 +84,7 @@ export default function SerialPortOutput({
       setLoading(true);
       setError("");
       const output = await getSerialPortOutput(id);
+      lastOutputRef.current = output;
       if (termRef.current == null) {
         const elt = ReactDOM.findDOMNode(eltRef.current) as any;
         if (elt != null) {
@@ -97,7 +142,38 @@ export default function SerialPortOutput({
           setShow(false);
         }}
         footer={[
-          <Button key="refresh" onClick={update} disabled={loading}>
+          <Checkbox
+            checked={autoRefresh}
+            onChange={() => {
+              if (autoRefresh) {
+                clearTimeout();
+              } else {
+                timeoutMsRef.current = MIN_INTERVAL_MS;
+                updateRefresh();
+              }
+              setAutoRefresh(!autoRefresh);
+            }}
+            key="auto-refresh"
+            style={{ float: "left" }}
+          >
+            Auto Refresh
+          </Checkbox>,
+          <Button key="cancel" onClick={() => setShow(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="refresh"
+            onClick={() => {
+              if (autoRefresh) {
+                clearTimeout();
+                timeoutMsRef.current = MIN_INTERVAL_MS;
+                updateRefresh();
+              } else {
+                update();
+              }
+            }}
+            disabled={loading}
+          >
             <Icon name="refresh" /> Refresh
             {loading && <Spin style={{ marginLeft: "15px" }} />}
           </Button>,

@@ -65,7 +65,7 @@ export class AccountClient {
     return await this.call(
       message.sign_in_using_auth_token({
         auth_token,
-      })
+      }),
     );
   }
 
@@ -101,27 +101,15 @@ export class AccountClient {
   }
 
   public async change_password(
-    old_password: string,
-    new_password: string = ""
+    currentPassword: string,
+    newPassword: string = "",
   ): Promise<void> {
-    if (this.client.account_id == null) {
-      throw Error("must be signed in");
-    }
-    const x = await this.call(
-      message.change_password({
-        account_id: this.client.account_id,
-        old_password,
-        new_password,
-      })
-    );
-    if (x.error) {
-      throw Error(x.error);
-    }
+    await api("/accounts/set-password", { currentPassword, newPassword });
   }
 
   public async change_email(
     new_email_address: string,
-    password: string = ""
+    password: string = "",
   ): Promise<void> {
     if (this.client.account_id == null) {
       throw Error("must be logged in");
@@ -131,7 +119,7 @@ export class AccountClient {
         account_id: this.client.account_id,
         new_email_address,
         password,
-      })
+      }),
     );
     if (x.error) {
       throw Error(x.error);
@@ -139,7 +127,7 @@ export class AccountClient {
   }
 
   public async send_verification_email(
-    only_verify: boolean = true
+    only_verify: boolean = true,
   ): Promise<void> {
     const account_id = this.client.account_id;
     if (!account_id) {
@@ -149,7 +137,7 @@ export class AccountClient {
       message.send_verification_email({
         account_id,
         only_verify,
-      })
+      }),
     );
     if (x.error) {
       throw Error(x.error);
@@ -161,7 +149,7 @@ export class AccountClient {
     const x = await this.call(
       message.forgot_password({
         email_address,
-      })
+      }),
     );
     if (x.error) {
       throw Error(x.error);
@@ -171,13 +159,13 @@ export class AccountClient {
   // forgot password -- send forgot password request to server
   public async reset_forgot_password(
     reset_code: string,
-    new_password: string
+    new_password: string,
   ): Promise<void> {
     const resp = await this.call(
       message.reset_forgot_password({
         reset_code,
         new_password,
-      })
+      }),
     );
     if (resp.error) {
       throw Error(resp.error);
@@ -190,14 +178,14 @@ export class AccountClient {
       message.unlink_passport({
         strategy,
         id,
-      })
+      }),
     );
   }
 
   // legacy api:  getting, setting, deleting, etc., the api key for this account
   public async api_key(
     action: "get" | "delete" | "regenerate",
-    password: string
+    password: string,
   ): Promise<string> {
     if (this.client.account_id == null) {
       throw Error("must be logged in");
@@ -207,7 +195,7 @@ export class AccountClient {
         message.api_key({
           action,
           password,
-        })
+        }),
       )
     ).api_key;
   }

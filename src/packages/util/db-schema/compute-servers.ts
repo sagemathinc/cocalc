@@ -546,6 +546,9 @@ export interface GoogleCloudConfiguration extends BaseConfiguration {
   sourceImage?: string;
   // If true, then we have an external ip address
   externalIp?: boolean;
+  // If true, can run full VM's inside of the machine, but there is 10% performance penalty.
+  // This will only work for Intel non-e2 non-a3 instance types. No AMD and no ARM64.
+  enableNestedVirtualization?: boolean;
 }
 
 export interface OnPremCloudConfiguration extends BaseConfiguration {

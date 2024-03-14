@@ -184,38 +184,50 @@ function SignUp0({
   }
 
   function renderFooter() {
-    return (!minimal || showSignIn) && (
-      <>
-        <div>
-          Already have an account? {
-            signInAction
-              ? <a onClick={signInAction}>Sign In</a>
-              : <A href="/auth/sign-in">Sign In</A>
-          } {anonymousSignup && (
-            <>
-              or <A href="/auth/try"> try {siteName} without creating an account. </A>
-            </>
-          )}
-        </div>
-      </>
+    return (
+      (!minimal || showSignIn) && (
+        <>
+          <div>
+            Already have an account?{" "}
+            {signInAction ? (
+              <a onClick={signInAction}>Sign In</a>
+            ) : (
+              <A href="/auth/sign-in">Sign In</A>
+            )}{" "}
+            {anonymousSignup && (
+              <>
+                or{" "}
+                <A href="/auth/try">
+                  {" "}
+                  try {siteName} without creating an account.{" "}
+                </A>
+              </>
+            )}
+          </div>
+        </>
+      )
     );
   }
 
   function renderError() {
-    return issues.error && (
-      <Alert style={LINE} type="error" showIcon message={issues.error}/>
+    return (
+      issues.error && (
+        <Alert style={LINE} type="error" showIcon message={issues.error} />
+      )
     );
   }
 
   function renderSubtitle() {
-    return <>
-      <h4 style={{ color: "#666", marginBottom: "35px" }}>
-        Start collaborating for free today.
-      </h4>
-      {accountCreationInstructions && (
-        <Markdown value={accountCreationInstructions}/>
-      )}
-    </>;
+    return (
+      <>
+        <h4 style={{ color: "#666", marginBottom: "35px" }}>
+          Start collaborating for free today.
+        </h4>
+        {accountCreationInstructions && (
+          <Markdown value={accountCreationInstructions} />
+        )}
+      </>
+    );
   }
 
   return (
@@ -276,7 +288,7 @@ function SignUp0({
           strategies={strategies}
           hideSSO={requiredSSO != null}
         />
-        <RequiredSSO strategy={requiredSSO}/>
+        <RequiredSSO strategy={requiredSSO} />
         {issues.email && (
           <Alert
             style={LINE}
@@ -306,7 +318,7 @@ function SignUp0({
           </div>
         )}
         {issues.password && (
-          <Alert style={LINE} type="error" showIcon message={issues.email}/>
+          <Alert style={LINE} type="error" showIcon message={issues.password} />
         )}
         {requiredSSO == null && (
           <div style={LINE}>
@@ -345,20 +357,20 @@ function SignUp0({
           {requiresToken2 && !registrationToken
             ? "Enter the secret registration token"
             : !email
-              ? "How will you sign in?"
-              : requiredSSO != null
-                ? "You must sign up via SSO"
-                : !password || password.length < 6
-                  ? "Choose password with at least 6 characters"
-                  : !firstName?.trim()
-                    ? "Enter your first name above"
-                    : !lastName?.trim()
-                      ? "Enter your last name above"
-                      : !isValidEmailAddress(email)
-                        ? "Enter a valid email address above"
-                        : signingUp
-                          ? ""
-                          : "Sign Up!"}
+            ? "How will you sign in?"
+            : requiredSSO != null
+            ? "You must sign up via SSO"
+            : !password || password.length < 6
+            ? "Choose password with at least 6 characters"
+            : !firstName?.trim()
+            ? "Enter your first name above"
+            : !lastName?.trim()
+            ? "Enter your last name above"
+            : !isValidEmailAddress(email)
+            ? "Enter a valid email address above"
+            : signingUp
+            ? ""
+            : "Sign Up!"}
           {signingUp && (
             <span style={{ marginLeft: "15px" }}>
               <Loading>Signing Up...</Loading>
