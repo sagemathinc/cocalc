@@ -50,8 +50,8 @@ export default function NestedVirtualization({
                   <li>
                     One way to run a VM is to ssh into the compute server as
                     root, install <A href="https://multipass.run/">Multipass</A>{" "}
-                    by typing <tt>snap install multipass</tt> then use any
-                    multipass command, e.g., <tt>multipass launch</tt>.
+                    by typing <code>snap install multipass</code> then use any
+                    multipass command, e.g., <code>multipass launch</code>.
                   </li>
                   <li>
                     Nested virtualization is only supported for Intel processes
