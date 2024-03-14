@@ -55,11 +55,6 @@ export default function SerialPortOutput({
     }
   }, []);
 
-  // clear timeout on unmount
-  useEffect(() => {
-    return clearTimeout;
-  }, []);
-
   const updateRefresh = useCallback(async () => {
     clearTimeout();
     const before = lastOutputRef.current;
@@ -71,6 +66,14 @@ export default function SerialPortOutput({
         MAX_INTERVAL_MS,
       );
     }
+  }, []);
+
+  useEffect(() => {
+    // get it started
+    updateRefresh();
+
+    // clear timeout on unmount
+    return clearTimeout;
   }, []);
 
   const update = async () => {
