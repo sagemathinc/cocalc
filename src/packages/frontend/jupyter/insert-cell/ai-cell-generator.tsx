@@ -344,7 +344,7 @@ function getInput({
 
   return {
     input: `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\The entire code cell must be in a single code block. Enclose this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`,
-    system: `Return a single code block in the language "${lang}".`,
+    system: `Return a single code block in the language "${lang}". Be brief.`,
   };
 }
 

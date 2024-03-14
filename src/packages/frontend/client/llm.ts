@@ -16,15 +16,13 @@ import {
 } from "@cocalc/util/db-schema/llm";
 import {
   LanguageModel,
+  getSystemPrompt,
   isFreeModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
 import type { History } from "./types"; // do not import until needed -- it is HUGE!
-
-const DEFAULT_SYSTEM_PROMPT =
-  "Assume full access to CoCalc and using CoCalc right now.  Enclose all math formulas in $.  Include the language directly after the triple backticks in all markdown code blocks.  Be brief.";
 
 interface EmbeddingsQuery {
   scope: string | string[];
@@ -64,7 +62,7 @@ export class LLMClient {
   private async queryLanguageModel({
     input,
     model,
-    system = DEFAULT_SYSTEM_PROMPT,
+    system, // if not set, a default system prompt is used – disable by setting to ""
     history,
     project_id,
     path,
@@ -81,6 +79,8 @@ export class LLMClient {
     tag?: string;
     startStreamExplicitly?: boolean;
   }): Promise<string> {
+    system ??= getSystemPrompt(model, path);
+
     if (!redux.getStore("projects").hasLanguageModelEnabled(project_id, tag)) {
       return `Language model support is not currently enabled ${
         project_id ? "in this project" : "on this server"

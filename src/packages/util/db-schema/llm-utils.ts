@@ -3,6 +3,8 @@
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { unreachable } from "@cocalc/util/misc";
 
+const OPENAI_PREFIX = "openai-";
+
 const MODELS_OPENAI = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
@@ -118,6 +120,8 @@ export function isMistralService(service: string): service is MistralService {
   return service.startsWith(MISTRAL_PREFIX);
 }
 
+const GOOGLE_PREFIX = "google-";
+
 // we encode the in the frontend and elsewhere with the service name as a prefix
 // ATTN: don't change the encoding pattern of [vendor]-[model]
 //       for whatever reason, it's also described that way in purchases/close.ts
@@ -151,7 +155,7 @@ export const LANGUAGE_MODEL_PREFIXES = [
 // we encode the in the frontend and elsewhere with the service name as a prefix
 export function model2service(model: LanguageModel): LanguageService {
   if (model === "text-embedding-ada-002") {
-    return `openai-${model}`;
+    return `${OPENAI_PREFIX}${model}`;
   }
   if (isOllamaLLM(model)) {
     return model; // already has the ollama prefix
@@ -166,9 +170,9 @@ export function model2service(model: LanguageModel): LanguageService {
       model === "embedding-gecko-001" ||
       model === "gemini-pro"
     ) {
-      return `google-${model}`;
+      return `${GOOGLE_PREFIX}${model}`;
     } else {
-      return `openai-${model}`;
+      return `${OPENAI_PREFIX}${model}`;
     }
   }
 
@@ -452,4 +456,40 @@ export function getMaxCost(
   );
   const { max_tokens } = LLM_COST[model];
   return Math.max(prompt_tokens, completion_tokens) * max_tokens;
+}
+
+/**
+ * Initially, we just had one system promt for all LLMs.
+ * This was tuned for the ChatGPTs by OpenAI, but breaks down for others.
+ * For example, Gemini and Mistral are confused by mentioning "CoCalc" and insert code cells for all kinds of questions.
+ */
+export function getSystemPrompt(
+  model: LanguageModel,
+  _path: string | undefined,
+) {
+  // TODO: for now, path is ignored. We might want to use it to customize the prompt in the future.
+  const common = "Be brief.";
+  const math = "Enclose any math formulas in $.";
+
+  if (model2vendor(model) === "openai" || model.startsWith(OPENAI_PREFIX)) {
+    const mdCode =
+      "Include the language directly after the triple backticks in all markdown code blocks.";
+    return `Assume full access to CoCalc and using CoCalc right now.\n${mdCode}\n${math}\n${common}`;
+  }
+
+  // mistral stupidly inserts anything mentioned in the prompt as examples, always.
+  if (model2vendor(model) === "mistralai" || model.startsWith(MISTRAL_PREFIX)) {
+    return common;
+  }
+
+  if (model2vendor(model) === "google" || model.startsWith(GOOGLE_PREFIX)) {
+    return `${math}\n${common}`;
+  }
+
+  if (model2vendor(model) === "ollama" || model.startsWith(OLLAMA_PREFIX)) {
+    return `${math}\n${common}`;
+  }
+
+  const mdCode = `Any code blocks in triple backticks should mention the language after the first backticks. For example \`\`\`python\nprint("Hello, World!")\n\`\`\``;
+  return `${mdCode}\n${math}\n${common}`;
 }
