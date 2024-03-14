@@ -83,24 +83,25 @@ export default function ModelSwitch({
     if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel as any)) return;
     if (typeof btnModel !== "string") return;
 
-    const display = (
+    const model = (
       <>
         <strong>{modelToName(btnModel)}</strong> {getPrice(btnModel)}
       </>
     );
-    const text = (
+    const tooltip = (
       <>
-        <strong>{display}</strong>: {title}
+        <strong>{model}</strong>: {title}
+      </>
+    );
+    const display = (
+      <>
+        <LanguageModelVendorAvatar model={btnModel} /> {tooltip}
       </>
     );
     ret.push({
       value: btnModel,
       display,
-      label: (
-        <Tooltip title={text}>
-          <LanguageModelVendorAvatar model={btnModel} /> {text}
-        </Tooltip>
-      ),
+      label: <Tooltip title={tooltip}>{display}</Tooltip>,
     });
   }
 
@@ -179,6 +180,7 @@ export default function ModelSwitch({
         value: ollamaModel,
         display: (
           <>
+            <LanguageModelVendorAvatar model={ollamaModel} />{" "}
             <strong>{modelToName(ollamaModel)}</strong> {getPrice(ollamaModel)}
           </>
         ),

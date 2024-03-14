@@ -52,7 +52,8 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
     return await evaluateImpl(opts);
   } catch (err) {
     // We want to avoid leaking any information about the error to the client
-    log.debug("error calling AI language model", err);
+    log.debug("error calling AI language model", err, err.stack);
+    if (DEBUG_THROW_LLM_ERROR) throw err;
     throw new Error(
       `There is a problem calling ${
         LLM_USERNAMES[model] ?? model

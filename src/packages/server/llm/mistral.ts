@@ -11,6 +11,7 @@ import { getServerSettings } from "@cocalc/database/settings";
 import { isMistralModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { totalNumTokens } from "./chatgpt-numtokens";
 
 const log = getLogger("llm:mistral");
 
@@ -102,8 +103,10 @@ export async function evaluateMistral(
   // and an empty call when done
   opts.stream?.();
 
-  const prompt_tokens = 10;
-  const completion_tokens = 10;
+  // we use that GPT3 tokenizer to get an approximate number of tokens
+  const prompt_tokens =
+    totalNumTokens(history ?? []) + totalNumTokens([{ content: input }]);
+  const completion_tokens = totalNumTokens([{ content: output }]);
 
   return {
     output,

@@ -5,7 +5,6 @@ You do not have to worry too much about throwing an exception, because they're c
 */
 
 import { Ollama } from "@langchain/community/llms/ollama";
-import jsonStable from "json-stable-stringify";
 import * as _ from "lodash";
 import OpenAI from "openai";
 
@@ -75,14 +74,14 @@ export async function getClient(
   }
 }
 
-const ollamaCache: { [key: string]: Ollama } = {};
-
 /**
  * The idea here is: the ollama config contains all available endpoints and their configuration.
  * The "model" is the unique key in the ollama_configuration mapping, it was prefixed by $OLLAMA_PREFIX.
  * For the actual Ollama client instantitation, we pick the model parameter from the config or just use the unique model name as a fallback.
  * In particular, this means you can query the same Ollama model with differnet parameters, or even have several ollama servers running.
  * All other config parameters are passed to the Ollama constructor (e.g. topK, temperature, etc.).
+ *
+ * ATTN: do not cache the Ollama instance, we don't know if there are side effects
  */
 export async function getOllama(model: string) {
   if (isOllamaLLM(model)) {
@@ -103,15 +102,6 @@ export async function getOllama(model: string) {
     throw new Error(`Ollama model ${model} is disabled`);
   }
 
-  // the key is a hash of the model name and the specific config – such that changes in the config will invalidate the cache
-  const key = `${model}:${jsonStable(config)}`;
-
-  // model is the unique key in the ServerSettings.ollama_configuration mapping
-  if (ollamaCache[key]) {
-    log.debug(`Using cached Ollama client for model ${model}`);
-    return ollamaCache[key];
-  }
-
   const baseUrl = config.baseUrl;
 
   if (!baseUrl) {
@@ -120,6 +110,7 @@ export async function getOllama(model: string) {
     );
   }
 
+  // this means the model is kept in the GPU memory for 24 hours – by default its only a few minutes or so
   const keepAlive: string = config.keepAlive ?? "24h";
 
   // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
@@ -134,6 +125,5 @@ export async function getOllama(model: string) {
   log.debug("Instantiating Ollama client with config", ollamaConfig);
 
   const client = new Ollama(ollamaConfig);
-  ollamaCache[key] = client;
   return client;
 }
