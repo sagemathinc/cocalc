@@ -5,8 +5,9 @@
 
 // Default settings to customize a given site, typically a private install of CoCalc.
 
-import { is_valid_email_address } from "@cocalc/util/misc";
 import jsonic from "jsonic";
+
+import { is_valid_email_address } from "@cocalc/util/misc";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 

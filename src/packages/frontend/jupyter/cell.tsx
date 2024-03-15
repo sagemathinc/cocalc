@@ -8,19 +8,19 @@ React component that describes a single cell
 */
 
 import { Map } from "immutable";
+import { useState } from "react";
 
 import {
   React,
   Rendered,
   useDelayedRender,
 } from "@cocalc/frontend/app-framework";
+import { Icon, Tip } from "@cocalc/frontend/components";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
 import { LLMTools } from "@cocalc/jupyter/types";
 import { COLORS } from "@cocalc/util/theme";
-import { useState } from "react";
-import { Icon, Tip } from "../components";
-import { clear_selection } from "../misc/clear-selection";
 import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";

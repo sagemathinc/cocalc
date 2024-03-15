@@ -71,7 +71,10 @@ const vertexai_enabled = (conf: SiteSettings) =>
 const mistral_enabled = (conf: SiteSettings) => to_bool(conf.mistral_enabled);
 const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
-  openai_enabled(conf) || vertexai_enabled(conf) || ollama_enabled(conf);
+  openai_enabled(conf) ||
+  vertexai_enabled(conf) ||
+  ollama_enabled(conf) ||
+  mistral_enabled(conf);
 
 const compute_servers_enabled = (conf: SiteSettings) =>
   to_bool(conf.compute_servers_enabled);
@@ -279,7 +282,7 @@ export const EXTRAS: SettingsExtras = {
   },
   ollama_configuration: {
     name: "Ollama Configuration",
-    desc: "This is the configuration for the Ollama LLM API endpoints.",
+    desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and runs at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model"}}',
     default: "",
     multiline: 5,
     show: ollama_enabled,
