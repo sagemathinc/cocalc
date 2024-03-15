@@ -11,7 +11,7 @@ import { getServerSettings } from "@cocalc/database/settings";
 import { isMistralModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { totalNumTokens } from "./chatgpt-numtokens";
+import { numTokens } from "./chatgpt-numtokens";
 
 const log = getLogger("llm:mistral");
 
@@ -65,6 +65,8 @@ export async function evaluateMistral(
 
   const chain = prompt.pipe(mistral);
 
+  let historyTokens = 0;
+
   const chainWithHistory = new RunnableWithMessageHistory({
     runnable: chain,
     config: { configurable: { sessionId: "ignored" } },
@@ -75,6 +77,7 @@ export async function evaluateMistral(
       if (history) {
         let nextRole: "model" | "user" = "user";
         for (const { content } of history) {
+          historyTokens += numTokens(content);
           if (nextRole === "user") {
             await chatHistory.addMessage(new HumanMessage(content));
           } else {
@@ -104,9 +107,8 @@ export async function evaluateMistral(
   opts.stream?.();
 
   // we use that GPT3 tokenizer to get an approximate number of tokens
-  const prompt_tokens =
-    totalNumTokens(history ?? []) + totalNumTokens([{ content: input }]);
-  const completion_tokens = totalNumTokens([{ content: output }]);
+  const prompt_tokens = numTokens(input) + historyTokens;
+  const completion_tokens = numTokens(output);
 
   return {
     output,
