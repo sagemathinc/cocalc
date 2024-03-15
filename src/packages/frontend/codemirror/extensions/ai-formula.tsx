@@ -210,7 +210,8 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
         </Paragraph>
         <Paragraph>
           Once you're happy, click the "Insert formula" button and the generated
-          LaTeX formula will be inserted at the current cursor position.
+          LaTeX formula will be inserted at the current cursor position. The
+          "Insert fully reply" button will, well, insert the entire answer.
         </Paragraph>
         <Paragraph>
           Prior to opening this dialog, you can even select a portion of your
@@ -292,6 +293,13 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <div>
         <Button onClick={onCancel}>Cancel</Button>
+        <Button
+          type={"default"}
+          disabled={!fullReply}
+          onClick={() => cb(undefined, `\n\n${fullReply}\n\n`)}
+        >
+          Insert full reply
+        </Button>
         <Button
           type={formula ? "primary" : "default"}
           disabled={!formula}
