@@ -129,6 +129,7 @@ function mentionableUsers({
         });
       }
     }
+
     if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4")) {
       if (!search || "chatgpt4".includes(search)) {
         v.push({
@@ -139,6 +140,20 @@ function mentionableUsers({
             </span>
           ),
           search: "chatgpt4",
+        });
+      }
+    }
+
+    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4-turbo-preview")) {
+      if (!search || "chatgpt4turbo".includes(search)) {
+        v.push({
+          value: "openai-gpt-4-turbo-preview",
+          label: (
+            <span>
+              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-4-turbo-preview"]}
+            </span>
+          ),
+          search: "chatgpt4turbo",
         });
       }
     }
@@ -162,8 +177,13 @@ function mentionableUsers({
 
   if (enabledLLMs.ollama && !isEmpty(ollama)) {
     for (const [key, conf] of Object.entries(ollama)) {
-      if (!search || key.includes(search) || conf.display.toLowerCase().includes(search)) {
-        const value = toOllamaModel(key);
+      const value = toOllamaModel(key);
+      if (
+        !search ||
+        key.includes(search) ||
+        value.includes(search) ||
+        conf.display.toLowerCase().includes(search)
+      ) {
         v.push({
           value,
           label: (
@@ -181,7 +201,11 @@ function mentionableUsers({
     for (const m of MISTRAL_MODELS) {
       if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(m)) continue;
       const name = LLM_USERNAMES[m] ?? m;
-      if (!search || m.includes(search) || name.toLowerCase().includes(search)) {
+      if (
+        !search ||
+        m.includes(search) ||
+        name.toLowerCase().includes(search)
+      ) {
         v.push({
           value: model2service(m),
           label: (

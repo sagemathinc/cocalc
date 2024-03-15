@@ -10,6 +10,7 @@ const MODELS_OPENAI = [
   "gpt-3.5-turbo-16k",
   "gpt-4",
   "gpt-4-32k",
+  "gpt-4-turbo-preview",
 ] as const;
 
 export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
@@ -47,6 +48,7 @@ export const LANGUAGE_MODELS = [
 export const USER_SELECTABLE_LANGUAGE_MODELS = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
+  "gpt-4-turbo-preview",
   "gpt-4",
   "gemini-pro",
   ...MISTRAL_MODELS,
@@ -130,6 +132,7 @@ export type LanguageService =
   | "openai-gpt-3.5-turbo-16k"
   | "openai-gpt-4"
   | "openai-gpt-4-32k"
+  | "openai-gpt-4-turbo-preview"
   | "openai-text-embedding-ada-002"
   | "google-text-bison-001"
   | "google-chat-bison-001"
@@ -280,6 +283,7 @@ export const LLM_USERNAMES: {
   "gpt-4-32k": "GPT-4-32k",
   "gpt-3.5-turbo": "GPT-3.5",
   "gpt-3.5-turbo-16k": "GPT-3.5-16k",
+  "gpt-4-turbo-preview": "GPT-4 Turbo",
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini Pro",
@@ -373,6 +377,11 @@ export const LLM_COST: { [name in string]: Cost } = {
     prompt_tokens: 0.003 / 1000,
     completion_tokens: 0.004 / 1000,
     max_tokens: 16384,
+  },
+  "gpt-4-turbo-preview": {
+    prompt_tokens: 0.01 / 1000,
+    completion_tokens: 0.03 / 1000,
+    max_tokens: 128000,
   },
   "text-embedding-ada-002": {
     prompt_tokens: 0.0001 / 1000,

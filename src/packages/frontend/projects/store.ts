@@ -11,7 +11,10 @@ import { StudentProjectFunctionality } from "@cocalc/frontend/course/configurati
 import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { LLMServicesAvailable, LLMVendor } from "@cocalc/util/db-schema/llm-utils";
+import {
+  LLMServicesAvailable,
+  LLMVendor,
+} from "@cocalc/util/db-schema/llm-utils";
 import {
   cmp,
   coerce_codomain_to_numbers,
@@ -31,7 +34,10 @@ import { Upgrades } from "@cocalc/util/upgrades/types";
 
 export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 
-const openAICache = new LRU<string, boolean>({ max: 50, ttl: 1000 * 60 });
+const aiCapabilitiesCache = new LRU<string, boolean>({
+  max: 50,
+  ttl: 1000 * 60,
+});
 
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0]),
@@ -732,7 +738,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   clearOpenAICache() {
-    openAICache.clear();
+    aiCapabilitiesCache.clear();
   }
 
   // ATTN: the useLanguageModelSetting hook computes this dynamically, with dependencies
@@ -777,15 +783,15 @@ export class ProjectsStore extends Store<ProjectsState> {
       courseLimited = true;
     }
     const key = `${project_id}-${courseLimited}-${vendor}`;
-    if (openAICache.has(key)) {
-      return !!openAICache.get(key);
+    if (aiCapabilitiesCache.has(key)) {
+      return !!aiCapabilitiesCache.get(key);
     }
     const value = this._hasLanguageModelEnabled(
       project_id,
       courseLimited,
       vendor,
     );
-    openAICache.set(key, value);
+    aiCapabilitiesCache.set(key, value);
     return value;
   }
 
@@ -813,7 +819,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (openai_disabled) {
       return false;
     }
-    if (project_id != "global") {
+    if (project_id !== "global") {
       const s = this.getIn([
         "project_map",
         project_id,

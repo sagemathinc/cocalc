@@ -123,7 +123,12 @@ export default function ModelSwitch({
     makeLLMOption(
       ret,
       "gpt-4",
-      "OpenAI's most capable model, great for tasks that require creativity and advanced reasoning (8k token context)",
+      "GPT-4 can follow complex instructions in natural language and solve difficult problems with accuracy. (8k token context)",
+    );
+    makeLLMOption(
+      ret,
+      "gpt-4-turbo-preview",
+      "GPT-4 Turbo is more powerful, has fresher knowledge and offered at a lower price  than GPT-4. (128k token context)",
     );
   }
 

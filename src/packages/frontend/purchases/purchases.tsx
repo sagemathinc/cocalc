@@ -587,7 +587,7 @@ function Description({ description, period_end, service }) {
   if (description == null) {
     return null;
   }
-  if (service == "openai-gpt-4") {
+  if (service === "openai-gpt-4" || service === "openai-gpt-4-turbo-preview") {
     return (
       <Tooltip
         title={() => (
@@ -598,7 +598,7 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
-        GPT-4
+        GPT-4 {service === "openai-gpt-4-turbo-preview" ? " Turbo" : ""}
       </Tooltip>
     );
   }
