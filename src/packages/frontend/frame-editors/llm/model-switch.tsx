@@ -28,7 +28,7 @@ interface Props {
   setModel: (model: LanguageModel) => void;
   size?: SizeType;
   style?: CSS;
-  project_id: string;
+  project_id?: string;
 }
 
 // The tooltips below are adopted from chat.openai.com
