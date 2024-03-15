@@ -82,10 +82,13 @@ export class LLMClient {
     system ??= getSystemPrompt(model, path);
 
     if (!redux.getStore("projects").hasLanguageModelEnabled(project_id, tag)) {
-      return `Language model support is not currently enabled ${
-        project_id ? "in this project" : "on this server"
-      }.`;
+      throw new Error(
+        `Language model support is not currently enabled ${
+          project_id ? "in this project" : "on this server"
+        }. [tag=${tag}]`,
+      );
     }
+
     input = input.trim();
     if (chatStream == null) {
       if (!input || input == "test") {

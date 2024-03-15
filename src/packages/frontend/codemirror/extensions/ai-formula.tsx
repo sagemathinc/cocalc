@@ -20,6 +20,8 @@ import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";
 
+const LLM_USAGE_TAG = `generate-formula`;
+
 interface Opts {
   mode: Mode;
   text?: string;
@@ -50,7 +52,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
 
   const enabled = redux
     .getStore("projects")
-    .hasLanguageModelEnabled(project_id);
+    .hasLanguageModelEnabled(project_id, LLM_USAGE_TAG);
 
   function getPrompt() {
     const description = input || text;
@@ -132,12 +134,17 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
       setGenerating(true);
       setFormula("");
       setFullReply("");
-      const tag = `generate-formula`;
-      track("chatgpt", { project_id, tag, mode, type: "generate", model });
+      track("chatgpt", {
+        project_id,
+        tag: LLM_USAGE_TAG,
+        mode,
+        type: "generate",
+        model,
+      });
       const reply = await webapp_client.openai_client.query({
         input: getPrompt(),
         project_id,
-        tag,
+        tag: LLM_USAGE_TAG,
         model,
         system: "",
       });
