@@ -1,8 +1,8 @@
-import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
+import { LLM_USERNAMES, isFreeModel } from "./llm-utils";
 import type { Service } from "./purchases";
-import { isFreeModel } from "./llm-utils";
+import { Table } from "./types";
 
 export type { Service };
 
@@ -40,6 +40,10 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4-turbo-preview": {
     display: "OpenAI GPT-4 Turbo",
     color: "#10a37f",
+  },
+  "mistralai-mistral-large-latest": {
+    display: LLM_USERNAMES["mistral-large-latest"],
+    color: "#ff7000", // the orange from their website
   },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   "compute-server": { display: "Compute Server", color: "#2196f3" },

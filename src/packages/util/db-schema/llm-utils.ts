@@ -294,15 +294,18 @@ export const LLM_USERNAMES: {
 
 export function isFreeModel(model: unknown) {
   if (isOllamaLLM(model)) return true;
-  if (isMistralModel(model)) return true;
+  if (isMistralModel(model)) {
+    // the large one is not free
+    return (model as LanguageModel) !== "mistral-large-latest";
+  }
   if (LANGUAGE_MODELS.includes(model as any)) {
     // of these models, the following are free
     return (
-      (model as LanguageModel) == "gpt-3.5-turbo" ||
-      (model as LanguageModel) == "text-bison-001" ||
-      (model as LanguageModel) == "chat-bison-001" ||
-      (model as LanguageModel) == "embedding-gecko-001" ||
-      (model as LanguageModel) == "gemini-pro"
+      (model as LanguageModel) === "gpt-3.5-turbo" ||
+      (model as LanguageModel) === "text-bison-001" ||
+      (model as LanguageModel) === "chat-bison-001" ||
+      (model as LanguageModel) === "embedding-gecko-001" ||
+      (model as LanguageModel) === "gemini-pro"
     );
   }
   // all others are free
@@ -379,9 +382,9 @@ export const LLM_COST: { [name in string]: Cost } = {
     max_tokens: 16384,
   },
   "gpt-4-turbo-preview": {
-    prompt_tokens: 0.01 / 1000,
-    completion_tokens: 0.03 / 1000,
-    max_tokens: 128000,
+    prompt_tokens: 0.01 / 1000, // 	$10.00 / 1M tokens
+    completion_tokens: 0.03 / 1000, // $30.00 / 1M tokens
+    max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
   },
   "text-embedding-ada-002": {
     prompt_tokens: 0.0001 / 1000,
@@ -411,6 +414,21 @@ export const LLM_COST: { [name in string]: Cost } = {
     prompt_tokens: (5 * 0.0001) / 1000,
     completion_tokens: 0,
     max_tokens: 30720,
+  },
+  "mistral-small-latest": {
+    prompt_tokens: 0.002 / 1000, // 2$ / 1M tokens
+    completion_tokens: 0.006 / 1000, // 6$ / 1M tokens
+    max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+  },
+  "mistral-medium-latest": {
+    prompt_tokens: 0.0027 / 1000, // 2.7$ / 1M tokens
+    completion_tokens: 0.0081 / 1000, // 8.1$ / 1M tokens
+    max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+  },
+  "mistral-large-latest": {
+    prompt_tokens: 0.008 / 1000, // 8$ / 1M tokens
+    completion_tokens: 0.024 / 1000, // 24$ / 1M tokens
+    max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
   },
 } as const;
 
