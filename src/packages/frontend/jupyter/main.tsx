@@ -33,7 +33,6 @@ import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
 import type { JupyterActions } from "./browser-actions";
 import { CellList } from "./cell-list";
-import * as toolComponents from "./llm";
 import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
@@ -43,6 +42,7 @@ import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
 import KernelWarning from "./kernel-warning";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
@@ -194,11 +194,17 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const [model, setModel] = useLanguageModelSetting(project_id);
   // ATTN: if you add values here, make sure to check the memoize check functions in the components –
   // otherwise they will not re-render as expected.
-  const llmTools: LLMTools = {
-    model,
-    setModel,
-    toolComponents,
-  } as const;
+  const llmEnabled = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id);
+  // This only checks if we can use the LLM tools at all – details checks like "for this project in a course" are by component
+  const llmTools: LLMTools | undefined = llmEnabled
+    ? {
+        model,
+        setModel,
+        toolComponents,
+      }
+    : undefined;
 
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
@@ -300,13 +306,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        llmTools={
-          redux
-            .getStore("projects")
-            .hasLanguageModelEnabled(project_id, "generate-cell")
-            ? llmTools
-            : undefined
-        }
+        llmTools={llmTools}
         computeServerId={computeServerId}
       />
     );

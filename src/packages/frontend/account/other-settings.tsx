@@ -40,7 +40,7 @@ interface Props {
   kucalc: string;
 }
 
-export function OtherSettings(props: Readonly<Props>): Rendered {
+export function OtherSettings(props: Readonly<Props>): JSX.Element {
   const [model, setModel] = useLanguageModelSetting();
 
   function on_change(name: string, value: any): void {

@@ -12,7 +12,7 @@ import { delay } from "awaiting";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { React, Rendered } from "@cocalc/frontend/app-framework";
+import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
@@ -89,6 +89,13 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
     const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
+
+    const haveAIGenerateCell =
+      props.llmTools &&
+      redux
+        .getStore("projects")
+        .hasLanguageModelEnabled(props.project_id, "generate-cell");
+
     function render_input_prompt(type: string): Rendered {
       return (
         <HiddenXS>
@@ -172,7 +179,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
-          setShowChatGPT={props.llmTools ? props.setShowChatGPT : undefined}
+          setShowChatGPT={haveAIGenerateCell ? props.setShowChatGPT : undefined}
         />
       );
     }

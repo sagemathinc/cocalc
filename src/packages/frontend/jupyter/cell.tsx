@@ -318,6 +318,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     }
     return (
       <InsertCell
+        project_id={props.project_id}
         hide={!props.is_visible}
         id={id}
         llmTools={props.llmTools}

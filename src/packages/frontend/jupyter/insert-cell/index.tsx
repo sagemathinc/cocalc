@@ -15,6 +15,7 @@ which is confusing.
 import { Button, Space, Tooltip } from "antd";
 import { ReactNode } from "react";
 
+import { redux } from "@cocalc/frontend/app-framework";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
@@ -31,6 +32,7 @@ const BTN_HEIGHT = 22;
 
 export interface InsertCellProps {
   actions: JupyterActions;
+  project_id?: string;
   id: string;
   position: "above" | "below";
   llmTools?: LLMTools;
@@ -45,6 +47,7 @@ export interface InsertCellState {
 }
 
 export function InsertCell({
+  project_id,
   position,
   llmTools,
   actions,
@@ -56,10 +59,14 @@ export function InsertCell({
 }: InsertCellProps) {
   const frameActions = useNotebookFrameActions();
 
+  const showGenerateCell = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id, "generate-cell");
+
   function handleBarClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (llmTools && (e.altKey || e.metaKey)) {
+    if (showGenerateCell && llmTools && (e.altKey || e.metaKey)) {
       setShowChatGPT(true);
       return;
     }
@@ -142,7 +149,7 @@ export function InsertCell({
             >
               <Icon name="paste" /> Paste
             </TinyButton>
-            {llmTools && (
+            {showGenerateCell && llmTools && (
               <TinyButton
                 type="chatgpt"
                 title="Create code based on your description (alt+click line)"

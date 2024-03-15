@@ -173,6 +173,15 @@ export class CustomizeStore extends Store<CustomizeState> {
     await this.until_configured();
     return this.getIn(["software", "default"]) ?? DEFAULT_COMPUTE_IMAGE;
   }
+
+  getEnabledLLMs() {
+    return {
+      haveOpenAI: this.get("openai_enabled"),
+      haveGoogle: this.get("google_vertexai_enabled"),
+      haveOllama: this.get("ollama_enabled"),
+      haveMistral: this.get("mistral_enabled"),
+    };
+  }
 }
 
 export class CustomizeActions extends Actions<CustomizeState> {

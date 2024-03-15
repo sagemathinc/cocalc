@@ -34,7 +34,7 @@ import { Upgrades } from "@cocalc/util/upgrades/types";
 
 export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 
-const aiCapabilitiesCache = new LRU<string, boolean>({
+const aiEnabledCache = new LRU<string, boolean>({
   max: 50,
   ttl: 1000 * 60,
 });
@@ -738,7 +738,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   clearOpenAICache() {
-    aiCapabilitiesCache.clear();
+    aiEnabledCache.clear();
   }
 
   // ATTN: the useLanguageModelSetting hook computes this dynamically, with dependencies
@@ -763,78 +763,83 @@ export class ProjectsStore extends Store<ProjectsState> {
     };
   }
 
+  /**
+   * Returns true for those "tags", which might be restricted by the instructor in a student project.
+   */
+  private limitAIinCourseProject(tag?: string): boolean {
+    // Regarding the aiEnabledCache:
+    // We only care about 'explain' or 'help-me-fix' or 'reply' for the tags
+    // right now regarding disabling AI integration, hence to make our cache
+    // better we base the key only on those possibilities.
+    const allowed = ["explain", "help-me-fix", "reply"];
+    if (tag && !allowed.includes(tag)) {
+      return true;
+    }
+    return false;
+  }
+
   hasLanguageModelEnabled(
     project_id: string = "global",
     tag?: string,
     vendor: LLMVendor | "any" = "any",
   ): boolean {
-    // cache answer for a few seconds, in case this gets called a lot:
+    const courseLimited = this.limitAIinCourseProject(tag);
 
-    let courseLimited = false;
-    if (
-      tag &&
-      (tag.includes("explain") ||
-        tag.includes("help-me-fix") ||
-        tag.includes("reply"))
-    ) {
-      // We only care about 'explain' or 'help-me-fix' or 'reply' for the tags
-      // right now regarding disabling chatgpt, hence to make our cache
-      // better we base the key only on those possibilities.
-      courseLimited = true;
-    }
+    // cache answer for a few seconds, in case this gets called a lot:
     const key = `${project_id}-${courseLimited}-${vendor}`;
-    if (aiCapabilitiesCache.has(key)) {
-      return !!aiCapabilitiesCache.get(key);
+    if (aiEnabledCache.has(key)) {
+      return !!aiEnabledCache.get(key);
     }
     const value = this._hasLanguageModelEnabled(
       project_id,
       courseLimited,
       vendor,
     );
-    aiCapabilitiesCache.set(key, value);
+    aiEnabledCache.set(key, value);
     return value;
   }
 
   private _hasLanguageModelEnabled(
     project_id: string | "global" = "global",
-    courseLimited?: boolean,
+    courseLimited: boolean,
     vendor: LLMVendor | "any" = "any",
   ): boolean {
+    // First, check which ones are actually available
     const customize = redux.getStore("customize");
-    const haveOpenAI = customize.get("openai_enabled");
-    const haveGoogle = customize.get("google_vertexai_enabled");
-    const haveOllama = customize.get("ollama_enabled");
-    const haveMistral = customize.get("mistral_enabled");
+    const { haveOpenAI, haveGoogle, haveOllama, haveMistral } =
+      customize.getEnabledLLMs();
 
-    if (!haveOpenAI && !haveGoogle && !haveOllama && !haveMistral) return false; // the vendor == "any" case
+    // if none are available, we can't enable any – that's the "any" case
+    if (!haveOpenAI && !haveGoogle && !haveOllama && !haveMistral) return false;
+
+    // check by specific vendor
     if (vendor === "openai" && !haveOpenAI) return false;
     if (vendor === "google" && !haveGoogle) return false;
     if (vendor === "ollama" && !haveOllama) return false;
     if (vendor === "mistralai" && !haveMistral) return false;
 
-    // this customization parameter accounts for disabling **any** language model vendor
+    // the "openai_disabled" account setting disabled **any** language model vendor!
     const openai_disabled = redux
       .getStore("account")
       .getIn(["other_settings", "openai_disabled"]);
     if (openai_disabled) {
       return false;
     }
+
+    // Finally, if we're in a specific project, we check if some/all are disabled for students
     if (project_id !== "global") {
-      const s = this.getIn([
+      const studentProjectSettings = this.getIn([
         "project_map",
         project_id,
         "course",
         "student_project_functionality",
       ]);
-      if (s?.get("disableChatGPT")) {
+
+      if (studentProjectSettings?.get("disableChatGPT")) {
         return false;
       }
-      if (s?.get("disableSomeChatGPT")) {
-        if (courseLimited) {
-          return true;
-        } else {
-          return false;
-        }
+      if (studentProjectSettings?.get("disableSomeChatGPT")) {
+        return !courseLimited;
       }
     }
     return true;
