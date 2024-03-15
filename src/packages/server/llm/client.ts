@@ -45,10 +45,6 @@ export async function getClient(
 
     case "google":
       const { google_vertexai_key } = await getServerSettings();
-      const key = `google:${google_vertexai_key}-${model}`;
-      if (clientCache[key]) {
-        return clientCache[key];
-      }
       if (!google_vertexai_key) {
         log.warn("requested google vertexai key, but it's not configured");
         throw Error("google vertexai not configured");
@@ -58,9 +54,8 @@ export async function getClient(
         throw Error("this should never happen");
       }
 
-      const vai = new VertexAIClient({ apiKey: google_vertexai_key }, model);
-      clientCache[key] = vai;
-      return vai;
+      // ATTN: do not cache the instance. I saw suspicious errors, better to clean up the memory each time.
+      return new VertexAIClient({ apiKey: google_vertexai_key }, model);
 
     case "ollama":
       throw new Error("Use the getOllama function instead");

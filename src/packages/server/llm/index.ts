@@ -223,7 +223,7 @@ interface EvalVertexAIProps {
   history?: History;
   input: string;
   // maxTokens?: number;
-  model: LanguageModel; // only "chat-bison-001" | "gemini-pro";
+  model: LanguageModel; // only "gemini-pro";
   stream?: (output?: string) => void;
   maxTokens?: number; // only gemini-pro
 }
