@@ -6,6 +6,7 @@ import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
   DEFAULT_MODEL,
+  LLM_DESCR,
   LLM_USERNAMES,
   LanguageModel,
   MISTRAL_MODELS,
@@ -90,7 +91,7 @@ export default function ModelSwitch({
     );
     const tooltip = (
       <>
-        <strong>{model}</strong>: {title}
+        <strong>{model}</strong> – {title}
       </>
     );
     const display = (
@@ -108,42 +109,16 @@ export default function ModelSwitch({
   function appendOpenAI(ret: NonNullable<SelectProps["options"]>) {
     if (!showOpenAI) return null;
 
-    makeLLMOption(
-      ret,
-      "gpt-3.5-turbo",
-      "OpenAI's fastest model, great for most everyday tasks (4k token context)",
-    );
-    makeLLMOption(
-      ret,
-      "gpt-3.5-turbo-16k",
-      `Same as ${modelToName(
-        "gpt-3.5-turbo",
-      )} but with much larger context size (16k token context)`,
-    );
-    makeLLMOption(
-      ret,
-      "gpt-4",
-      "GPT-4 can follow complex instructions in natural language and solve difficult problems with accuracy. (8k token context)",
-    );
-    makeLLMOption(
-      ret,
-      "gpt-4-turbo-preview",
-      "GPT-4 Turbo is more powerful, has fresher knowledge and offered at a lower price  than GPT-4. (128k token context)",
-    );
+    makeLLMOption(ret, "gpt-3.5-turbo", LLM_DESCR["gpt-3.5-turbo"]);
+    makeLLMOption(ret, "gpt-3.5-turbo-16k", LLM_DESCR["gpt-3.5-turbo-16k"]);
+    makeLLMOption(ret, "gpt-4", LLM_DESCR["gpt-4"]);
+    makeLLMOption(ret, "gpt-4-turbo-preview", LLM_DESCR["gpt-4-turbo-preview"]);
   }
 
   function appendGoogle(ret: NonNullable<SelectProps["options"]>) {
     if (!showGoogle) return null;
 
-    return (
-      <>
-        {makeLLMOption(
-          ret,
-          GOOGLE_GEMINI,
-          `Google's Gemini Pro Generative AI model (30k token context)`,
-        )}
-      </>
-    );
+    return <>{makeLLMOption(ret, GOOGLE_GEMINI, LLM_DESCR[GOOGLE_GEMINI])}</>;
   }
 
   function appendMistral(ret: NonNullable<SelectProps["options"]>) {
@@ -151,21 +126,9 @@ export default function ModelSwitch({
 
     return (
       <>
-        {makeLLMOption(
-          ret,
-          MISTRAL_MODELS[0],
-          "Fast, simple queries, short answers, less capabilities",
-        )}
-        {makeLLMOption(
-          ret,
-          MISTRAL_MODELS[1],
-          "Intermediate tasks, summarizing, generating documents, etc.",
-        )}
-        {makeLLMOption(
-          ret,
-          MISTRAL_MODELS[2],
-          "Slowest, most powerful, large reasoning capabilities",
-        )}
+        {makeLLMOption(ret, MISTRAL_MODELS[0], LLM_DESCR[MISTRAL_MODELS[0]])}
+        {makeLLMOption(ret, MISTRAL_MODELS[1], LLM_DESCR[MISTRAL_MODELS[1]])}
+        {makeLLMOption(ret, MISTRAL_MODELS[2], LLM_DESCR[MISTRAL_MODELS[2]])}
       </>
     );
   }
@@ -178,7 +141,8 @@ export default function ModelSwitch({
       const ollamaModel = toOllamaModel(key);
       const text = (
         <>
-          <strong>{display}</strong> {getPrice(ollamaModel)}: {desc ?? "Ollama"}
+          <strong>{display}</strong> {getPrice(ollamaModel)} –{" "}
+          {desc ?? "Ollama"}
         </>
       );
       ret.push({

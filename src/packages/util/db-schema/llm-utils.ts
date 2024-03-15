@@ -263,10 +263,7 @@ export function fromMistralService(model: MistralService) {
   return model.slice(MISTRAL_PREFIX.length);
 }
 
-// Map from psuedo account_id to what should be displayed to user.
-// This is used in various places in the frontend.
-// Google PaLM: https://cloud.google.com/vertex-ai/docs/generative-ai/pricing
-export const LLM_USERNAMES: {
+type LLM2String = {
   [key in
     | (typeof USER_SELECTABLE_LANGUAGE_MODELS)[number]
     | "chatgpt" // some additional ones, backwards compatibility
@@ -275,7 +272,12 @@ export const LLM_USERNAMES: {
     | "gpt-4-32k"
     | "text-bison-001"
     | "chat-bison-001"]: string;
-} = {
+};
+
+// Map from psuedo account_id to what should be displayed to user.
+// This is used in various places in the frontend.
+// Google PaLM: https://cloud.google.com/vertex-ai/docs/generative-ai/pricing
+export const LLM_USERNAMES: LLM2String = {
   chatgpt: "GPT-3.5",
   chatgpt3: "GPT-3.5",
   chatgpt4: "GPT-4",
@@ -290,6 +292,31 @@ export const LLM_USERNAMES: {
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
+} as const;
+
+// similar to the above, we map to short user-visible description texts
+// this comes next to the name, hence you do not have to mention the name
+export const LLM_DESCR: LLM2String = {
+  chatgpt: "Fast, great for everyday tasks. (OpenAI, 4k token context)",
+  chatgpt3: "Fast, great for everyday tasks. (OpenAI, 4k token context)",
+  chatgpt4:
+    "Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
+  "gpt-4":
+    "Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
+  "gpt-4-32k": "",
+  "gpt-3.5-turbo": "Fast, great for everyday tasks. (OpenAI, 4k token context)",
+  "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
+  "gpt-4-turbo-preview":
+    "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 128k token context)",
+  "text-bison-001": "",
+  "chat-bison-001": "",
+  "gemini-pro": "Google's Gemini Pro Generative AI model (30k token context)",
+  "mistral-small-latest":
+    "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
+  "mistral-medium-latest":
+    "Intermediate tasks, summarizing, generating documents, etc. (Mistral AI, 4k token context)",
+  "mistral-large-latest":
+    "Most powerful, large reasoning capabilities, but slower. (Mistral AI, 4k token context)",
 } as const;
 
 export function isFreeModel(model: unknown) {

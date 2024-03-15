@@ -282,7 +282,7 @@ export const EXTRAS: SettingsExtras = {
   },
   ollama_configuration: {
     name: "Ollama Configuration",
-    desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and runs at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model"}}',
+    desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and is available at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model"}}',
     default: "",
     multiline: 5,
     show: ollama_enabled,
