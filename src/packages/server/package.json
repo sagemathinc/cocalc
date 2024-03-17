@@ -39,6 +39,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
     "@cocalc/gcloud-pricing-calculator": "^1.7.0",
+    "@cocalc/mistralai": "^0.0.2",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@google-ai/generativelanguage": "^1.1.0",
@@ -46,9 +47,10 @@
     "@google-cloud/monitoring": "^4.0.0",
     "@google/generative-ai": "^0.1.3",
     "@isaacs/ttlcache": "^1.2.1",
-    "@langchain/community": "^0.0.38",
-    "@langchain/core": "^0.1.46",
-    "@langchain/mistralai": "^0.0.13",
+    "@langchain/community": "^0.0.40",
+    "@langchain/core": "^0.1.48",
+    "@langchain/mistralai": "^0.0.14",
+    "@mistralai/mistralai": "link:node_modules/@cocalc/mistralai",
     "@node-saml/passport-saml": "^4.0.4",
     "@passport-js/passport-twitter": "^1.0.8",
     "@passport-next/passport-google-oauth2": "^1.0.0",
@@ -120,10 +122,5 @@
   "devDependencies": {
     "@types/node": "^18.16.14",
     "expect": "^26.6.2"
-  },
-  "pnpm": {
-    "overrides": {
-      "@langchain/core": "^0.1.46"
-    }
   }
 }
