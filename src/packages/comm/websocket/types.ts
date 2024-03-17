@@ -203,6 +203,11 @@ interface MesgComputeServerSyncRegister {
   opts: { compute_server_id: number };
 }
 
+interface MesgComputeServerComputeRegister {
+  cmd: "compute_server_compute_register";
+  opts: { compute_server_id: number };
+}
+
 interface MesgComputeServerSyncRequest {
   cmd: "compute_server_sync_request";
   opts: { compute_server_id: number };
@@ -260,6 +265,7 @@ export type Mesg =
   | MesgComputeFilesystemCache
   | MesgSyncFS
   | MesgComputeServerSyncRegister
+  | MesgComputeServerComputeRegister
   | MesgComputeServerSyncRequest
   | MesgCopyFromProjectToComputeServer
   | MesgCopyFromComputeServerToProject;

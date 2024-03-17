@@ -45,6 +45,8 @@ import handleSyncFsApiCall, {
   handleComputeServerDeleteFiles,
   handleComputeServerMoveFiles,
   handleComputeServerRenameFile,
+  handleComputeServerComputeRegister,
+  handleComputeServerComputeExec,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
 import { getLogger } from "@cocalc/project/logger";
@@ -139,11 +141,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
         if (data.opts.filesystem) {
           return await handleComputeServerFilesystemExec(data.opts);
         } else {
-          throw Error(
-            `exec on compute server without also setting opts.filesystem=true is not implemented ${JSON.stringify(
-              data.opts,
-            )}`,
-          );
+          return await handleComputeServerComputeExec(data.opts);
         }
       } else {
         return await exec(data.opts);
@@ -187,7 +185,11 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "sync_fs":
       return await handleSyncFsApiCall(data.opts);
     case "compute_server_sync_register":
+      // register filesystem container
       return await handleComputeServerSyncRegister(data.opts, spark);
+    case "compute_server_compute_register":
+      // register compute container
+      return await handleComputeServerComputeRegister(data.opts, spark);
     case "compute_server_sync_request":
       return await handleSyncFsRequestCall(data.opts);
     case "copy_from_project_to_compute_server":

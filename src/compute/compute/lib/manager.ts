@@ -27,10 +27,12 @@ import { pingProjectUntilSuccess, waitUntilFilesystemIsOfType } from "./util";
 import { apiCall } from "@cocalc/api-client";
 import { get_blob_store as initJupyterBlobStore } from "@cocalc/jupyter/blobs";
 import { delay } from "awaiting";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 const logger = debug("cocalc:compute:manager");
 
 const STATUS_INTERVAL_MS = 20 * 1000;
+const REGISTER_INTERVAL_MS = 30000;
 
 interface Options {
   project_id: string;
@@ -167,6 +169,8 @@ class Manager {
       timeout: Math.ceil(STATUS_INTERVAL_MS / 1000 + 3),
     });
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
+
+    await this.initApiRequestHandler();
   };
 
   private initListings = async () => {
@@ -335,5 +339,83 @@ class Manager {
 
   private cwd = (path) => {
     return join(this.home, dirname(path));
+  };
+
+  /**********************************************************
+   *
+   * project --> compute server api
+   *
+   * NOTE: this is very similar to what is in packages/sync-fs/lib/index.ts
+   * which is a much more complicated version for doing sync.
+   * There is code duplication, but at least it is good code.  I would like
+   * to refactor these.
+   * NOTE: there's nothing implemented for closing this properly, which
+   * doesn't matter since right now the lifetime of this object is the lifetime
+   * of the process.  But for unit testing it would be nice to have a way to close this...
+   **************************************/
+  private registerToHandleApi = async (state = "online") => {
+    if (state != "online") return;
+    try {
+      this.log("registerToHandleApi: registering");
+      const api = await this.client.project_client.api(this.project_id);
+      await api.computeServerComputeRegister(this.compute_server_id);
+      this.log("registerToHandleApi: registered");
+    } catch (err) {
+      this.log("registerToHandleApi: ERROR -- ", err);
+    }
+  };
+
+  private initApiRequestHandler = async () => {
+    this.log("initApiRequestHandler: installing API request handler");
+    this.websocket.on("data", this.handleApiRequest);
+    this.log("initSyncRequestHandler: installed handler");
+    this.registerToHandleApi();
+    //this.registerToHandleApiInterval =
+    setInterval(this.registerToHandleApi, REGISTER_INTERVAL_MS);
+    this.websocket.on("state", this.registerToHandleApi);
+  };
+
+  private handleApiRequest = async (data) => {
+    if (!data?.event) {
+      return;
+    }
+    try {
+      this.log("handleApiRequest:", { data });
+      const resp = await this.doApiRequest(data);
+      this.log("handleApiRequest: ", { resp });
+      if (data.id && this.websocket != null) {
+        this.websocket.write({
+          id: data.id,
+          resp,
+        });
+      }
+    } catch (err) {
+      const error = `${err}`;
+      if (data.id && this.websocket != null) {
+        this.log("handleApiRequest: returning error", {
+          event: data?.event,
+          error,
+        });
+        this.websocket.write({
+          id: data.id,
+          error,
+        });
+      } else {
+        this.log("handleApiRequest: ignoring error", {
+          event: data?.event,
+          error,
+        });
+      }
+    }
+  };
+
+  private doApiRequest = async (data) => {
+    this.log("doApiRequest", { data });
+    switch (data?.event) {
+      case "exec":
+        return await executeCode({ ...data.opts, home: this.home });
+      default:
+        throw Error(`unknown event '${data?.event}'`);
+    }
   };
 }
