@@ -599,7 +599,16 @@ function Description({ description, period_end, service }) {
     // service should be DescriptionType["type"]
     return null;
   }
-  if (service === "openai-gpt-4" || service === "openai-gpt-4-turbo-preview") {
+  if (
+    service === "openai-gpt-4" ||
+    service === "openai-gpt-4-turbo-preview" ||
+    service === "openai-gpt-4-turbo-preview-8k"
+  ) {
+    const extra = service.includes("turbo")
+      ? service.includes("128k")
+        ? "Turbo 128k"
+        : "Turbo 8k"
+      : "";
     return (
       <Tooltip
         title={() => (
@@ -610,7 +619,7 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
-        GPT-4 {service === "openai-gpt-4-turbo-preview" ? " Turbo" : ""}
+        GPT-4 {extra}
       </Tooltip>
     );
   }

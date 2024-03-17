@@ -157,6 +157,21 @@ function mentionableUsers({
         });
       }
     }
+
+    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4-turbo-preview-8k")) {
+      if (!search || "chatgpt4turbo".includes(search)) {
+        v.push({
+          value: "openai-gpt-4-turbo-preview-8k",
+          label: (
+            <span>
+              <OpenAIAvatar size={24} />{" "}
+              {LLM_USERNAMES["gpt-4-turbo-preview-8k"]}
+            </span>
+          ),
+          search: "chatgpt4turbo",
+        });
+      }
+    }
   }
 
   if (enabledLLMs.google) {

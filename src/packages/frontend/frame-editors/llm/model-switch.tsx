@@ -112,6 +112,11 @@ export default function ModelSwitch({
     makeLLMOption(ret, "gpt-3.5-turbo", LLM_DESCR["gpt-3.5-turbo"]);
     makeLLMOption(ret, "gpt-3.5-turbo-16k", LLM_DESCR["gpt-3.5-turbo-16k"]);
     makeLLMOption(ret, "gpt-4", LLM_DESCR["gpt-4"]);
+    makeLLMOption(
+      ret,
+      "gpt-4-turbo-preview-8k",
+      LLM_DESCR["gpt-4-turbo-preview-8k"],
+    );
     makeLLMOption(ret, "gpt-4-turbo-preview", LLM_DESCR["gpt-4-turbo-preview"]);
   }
 

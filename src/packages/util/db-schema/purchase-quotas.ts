@@ -38,7 +38,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     noSet: true, // because this is not user visible yet
   },
   "openai-gpt-4-turbo-preview": {
-    display: "OpenAI GPT-4 Turbo",
+    display: "OpenAI GPT-4 Turbo 128k",
+    color: "#10a37f",
+  },
+  "openai-gpt-4-turbo-preview-8k": {
+    display: "OpenAI GPT-4 Turbo 8k",
     color: "#10a37f",
   },
   "mistralai-mistral-large-latest": {

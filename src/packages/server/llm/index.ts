@@ -285,6 +285,11 @@ async function evaluateOpenAI({
   maxTokens,
   stream,
 }): Promise<ChatOutput> {
+  // the *-8k variant is artificial – the input is already limited/truncated to 8k
+  if (model === "gpt-4-turbo-preview-8k") {
+    model = "gpt-4-turbo-preview";
+  }
+
   const messages: OpenAIMessages = [];
   if (system) {
     messages.push({ role: "system", content: system });

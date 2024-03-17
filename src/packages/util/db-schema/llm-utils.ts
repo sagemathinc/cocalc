@@ -11,6 +11,7 @@ const MODELS_OPENAI = [
   "gpt-4",
   "gpt-4-32k",
   "gpt-4-turbo-preview",
+  "gpt-4-turbo-preview-8k", // like above, but artificially limited to 8k tokens
 ] as const;
 
 export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
@@ -49,6 +50,7 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
   "gpt-4-turbo-preview",
+  "gpt-4-turbo-preview-8k", // like above, but artificially limited to 8k tokens
   "gpt-4",
   "gemini-pro",
   ...MISTRAL_MODELS,
@@ -133,6 +135,7 @@ export type LanguageService =
   | "openai-gpt-4"
   | "openai-gpt-4-32k"
   | "openai-gpt-4-turbo-preview"
+  | "openai-gpt-4-turbo-preview-8k"
   | "openai-text-embedding-ada-002"
   | "google-text-bison-001"
   | "google-chat-bison-001"
@@ -285,7 +288,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-4-32k": "GPT-4-32k",
   "gpt-3.5-turbo": "GPT-3.5",
   "gpt-3.5-turbo-16k": "GPT-3.5-16k",
-  "gpt-4-turbo-preview": "GPT-4 Turbo",
+  "gpt-4-turbo-preview": "GPT-4 Turbo 128k",
+  "gpt-4-turbo-preview-8k": "GPT-4 Turbo 8k",
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini Pro",
@@ -306,8 +310,9 @@ export const LLM_DESCR: LLM2String = {
   "gpt-4-32k": "",
   "gpt-3.5-turbo": "Fast, great for everyday tasks. (OpenAI, 4k token context)",
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
-  "gpt-4-turbo-preview":
-    "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 128k token context)",
+  "gpt-4-turbo-preview-8k":
+    "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
+  "gpt-4-turbo-preview": "Like GPT-4 Turob 8k, but with up to 128k token context",
   "text-bison-001": "",
   "chat-bison-001": "",
   "gemini-pro": "Google's Gemini Pro Generative AI model (30k token context)",
@@ -412,6 +417,12 @@ export const LLM_COST: { [name in string]: Cost } = {
     prompt_tokens: 0.01 / 1000, // 	$10.00 / 1M tokens
     completion_tokens: 0.03 / 1000, // $30.00 / 1M tokens
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
+  },
+  // like above, but we limit the tokens to reduce how much money user has to commit to
+  "gpt-4-turbo-preview-8k": {
+    prompt_tokens: 0.01 / 1000, // 	$10.00 / 1M tokens
+    completion_tokens: 0.03 / 1000, // $30.00 / 1M tokens
+    max_tokens: 8192, // the actual reply is 8k, and we use this to truncate the input prompt!
   },
   "text-embedding-ada-002": {
     prompt_tokens: 0.0001 / 1000,
