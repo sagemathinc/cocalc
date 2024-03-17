@@ -23,6 +23,10 @@ export default function init(
   const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
+    socket.on("error", (err) => {
+      // server will crash sometimes without this:
+      logger.debug("WARNING -- websocket socket error", err);
+    });
     const dbg = (...args) => {
       logger.silly(req.url, ...args);
     };

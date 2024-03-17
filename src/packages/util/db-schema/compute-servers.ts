@@ -63,6 +63,18 @@ export interface Image {
   disabled?: boolean;
   // priority -- optional integer used for sorting options to display to user. The bigger the higher.
   priority?: number;
+  // proxy: if false, do NOT run https proxy server on host VM
+  //        if nothing given, runs proxy server with no default config (so does nothing)
+  //        if given, is array of proxy config.
+  proxy?:
+    | false
+    | {
+        path: string;
+        target: string;
+        ws?: boolean;
+        options?: any;
+        wsOptions?: any;
+      }[];
 }
 
 export type Images = { [name: string]: Image };
