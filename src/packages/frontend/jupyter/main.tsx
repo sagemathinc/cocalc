@@ -18,12 +18,16 @@ import {
   useRef,
 } from "@cocalc/frontend/app-framework";
 // Support for all the MIME types
-import "./output-messages/mime-types/init-frontend";
 import { Button, Tooltip } from "antd";
+import "./output-messages/mime-types/init-frontend";
 // React components that implement parts of the Jupyter notebook.
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { ErrorDisplay } from "@cocalc/frontend/components";
-import { Loading } from "@cocalc/frontend/components/loading";
 import { A } from "@cocalc/frontend/components/A";
+import { Loading } from "@cocalc/frontend/components/loading";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
@@ -36,15 +40,12 @@ import { FindAndReplace } from "./find-and-replace";
 import { InsertImage } from "./insert-image";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
+import KernelWarning from "./kernel-warning";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
-import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
-import * as chatgpt from "./chatgpt";
-import KernelWarning from "./kernel-warning";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -188,6 +189,23 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const requestedComputeServerId =
     useRedux([name, "requestedComputeServerId"]) ?? 0;
 
+  // this is confusing: it's here because the "nbviewer" code reuses a subset of components
+  // and this is here to pass down AI tools related functionality to those, which are used by the frontend
+  const [model, setModel] = useLanguageModelSetting(project_id);
+  // ATTN: if you add values here, make sure to check the memoize check functions in the components –
+  // otherwise they will not re-render as expected.
+  const llmEnabled = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id);
+  // This only checks if we can use the LLM tools at all – details checks like "for this project in a course" are by component
+  const llmTools: LLMTools | undefined = llmEnabled
+    ? {
+        model,
+        setModel,
+        toolComponents,
+      }
+    : undefined;
+
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
   // what comes up with Jupyter notebooks.
@@ -288,13 +306,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        chatgpt={
-          redux
-            .getStore("projects")
-            .hasLanguageModelEnabled(project_id, "generate-cell")
-            ? chatgpt
-            : undefined
-        }
+        llmTools={llmTools}
         computeServerId={computeServerId}
       />
     );

@@ -1,7 +1,6 @@
-import { CSSProperties, useEffect, useState } from "react";
 import {
-  Checkbox,
   Button,
+  Checkbox,
   Popover,
   Space,
   Spin,
@@ -9,45 +8,54 @@ import {
   Tag,
   Tooltip,
 } from "antd";
+import { CSSProperties, useEffect, useState } from "react";
+
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
-import * as api from "./api";
-import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
-import type { Purchase, Description } from "@cocalc/util/db-schema/purchases";
-import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import { A } from "@cocalc/frontend/components/A";
+import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
-import ServiceTag from "./service";
+import Next from "@cocalc/frontend/components/next";
+import { SettingBox } from "@cocalc/frontend/components/setting-box";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import {
+  ComputeServerDescription,
+  ComputeServerNetworkUsageDescription,
+} from "@cocalc/frontend/compute/purchases";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { load_target } from "@cocalc/frontend/history";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import getSupportURL from "@cocalc/frontend/support/url";
+import {
+  LLM_USERNAMES,
+  MISTRAL_PREFIX,
+  service2model,
+} from "@cocalc/util/db-schema/llm-utils";
+import type {
+  ProjectQuota,
+  Service,
+} from "@cocalc/util/db-schema/purchase-quotas";
+import type { Purchase } from "@cocalc/util/db-schema/purchases";
+import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
+import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   capitalize,
+  currency,
   plural,
   round1,
   round2down,
   round4,
 } from "@cocalc/util/misc";
-import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
-import Next from "@cocalc/frontend/components/next";
-import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
-import { currency } from "@cocalc/util/misc";
-import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import { load_target } from "@cocalc/frontend/history";
-import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import Refresh from "./refresh";
-import ShowError from "@cocalc/frontend/components/error";
-import Export from "./export";
-import EmailStatement from "./email-statement";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import AdminRefund from "./admin-refund";
-import { A } from "@cocalc/frontend/components/A";
-import getSupportURL from "@cocalc/frontend/support/url";
-import {
-  ComputeServerDescription,
-  ComputeServerNetworkUsageDescription,
-} from "@cocalc/frontend/compute/purchases";
+import * as api from "./api";
+import EmailStatement from "./email-statement";
+import Export from "./export";
+import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
+import Refresh from "./refresh";
+import ServiceTag from "./service";
 
 const DEFAULT_LIMIT = 150;
 
@@ -587,7 +595,20 @@ function Description({ description, period_end, service }) {
   if (description == null) {
     return null;
   }
-  if (service == "openai-gpt-4") {
+  if (typeof service !== "string") {
+    // service should be DescriptionType["type"]
+    return null;
+  }
+  if (
+    service === "openai-gpt-4" ||
+    service === "openai-gpt-4-turbo-preview" ||
+    service === "openai-gpt-4-turbo-preview-8k"
+  ) {
+    const extra = service.includes("turbo")
+      ? service.includes("128k")
+        ? "Turbo 128k"
+        : "Turbo 8k"
+      : "";
     return (
       <Tooltip
         title={() => (
@@ -598,12 +619,27 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
-        GPT-4
+        GPT-4 {extra}
+      </Tooltip>
+    );
+  }
+  if (service.startsWith(MISTRAL_PREFIX)) {
+    return (
+      <Tooltip
+        title={() => (
+          <div>
+            Prompt tokens: {description.prompt_tokens}
+            <br />
+            Completion tokens: {description.completion_tokens}
+          </div>
+        )}
+      >
+        {LLM_USERNAMES[service2model(service)] ?? service}
       </Tooltip>
     );
   }
   //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
-  if (service == "license") {
+  if (service === "license") {
     const { license_id } = description;
     return (
       <Popover
@@ -628,7 +664,7 @@ function Description({ description, period_end, service }) {
       </Popover>
     );
   }
-  if (service == "credit") {
+  if (service === "credit") {
     return (
       <Space>
         <Tooltip title="Thank you!">
@@ -644,7 +680,7 @@ function Description({ description, period_end, service }) {
       </Space>
     );
   }
-  if (service == "refund") {
+  if (service === "refund") {
     const { notes, reason, purchase_id } = description;
     return (
       <Tooltip
@@ -665,7 +701,7 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service == "project-upgrade") {
+  if (service === "project-upgrade") {
     const quota = description?.quota ?? {};
     return (
       <>
@@ -674,7 +710,7 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service == "compute-server") {
+  if (service === "compute-server") {
     return (
       <ComputeServerDescription
         description={description}
@@ -683,7 +719,7 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service == "compute-server-network-usage") {
+  if (service === "compute-server-network-usage") {
     return (
       <ComputeServerNetworkUsageDescription
         description={description}
@@ -692,7 +728,7 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service == "voucher") {
+  if (service === "voucher") {
     const { title, quantity, voucher_id } = description;
     return (
       <div>
@@ -702,7 +738,7 @@ function Description({ description, period_end, service }) {
       </div>
     );
   }
-  if (service == "edit-license") {
+  if (service === "edit-license") {
     const { license_id } = description;
     return (
       <Popover

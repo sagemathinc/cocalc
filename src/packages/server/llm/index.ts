@@ -24,14 +24,18 @@ import {
   OpenAIMessages,
   getLLMCost,
   isFreeModel,
+  isMistralModel,
+  isOllamaLLM,
   isValidModel,
   model2service,
   model2vendor,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm-utils";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
-import { callChatGPTAPI } from "./call-chatgpt";
-import getClient from "./client";
+import { callChatGPTAPI } from "./call-llm";
+import { getClient } from "./client";
+import { evaluateMistral } from "./mistral";
+import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
 import { VertexAIClient } from "./vertex-ai-client";
 
@@ -48,7 +52,8 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
     return await evaluateImpl(opts);
   } catch (err) {
     // We want to avoid leaking any information about the error to the client
-    log.debug("error calling AI language model", err);
+    log.debug("error calling AI language model", err, err.stack);
+    if (DEBUG_THROW_LLM_ERROR) throw err;
     throw new Error(
       `There is a problem calling ${
         LLM_USERNAMES[model] ?? model
@@ -57,38 +62,6 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
       }`,
     );
   }
-}
-
-async function evaluteCall({
-  system,
-  history,
-  input,
-  client,
-  model,
-  maxTokens,
-  stream,
-}) {
-  if (client instanceof VertexAIClient) {
-    return await evaluateVertexAI({
-      system,
-      history,
-      input,
-      client,
-      maxTokens,
-      model,
-      stream,
-    });
-  }
-
-  return await evaluateOpenAI({
-    system,
-    history,
-    input,
-    client,
-    model,
-    maxTokens,
-    stream,
-  });
 }
 
 async function evaluateImpl({
@@ -104,7 +77,7 @@ async function evaluateImpl({
   stream,
   maxTokens,
 }: ChatOptions): Promise<string> {
-  log.debug("evaluate", {
+  log.debug("evaluateImpl", {
     input,
     history,
     system,
@@ -121,18 +94,37 @@ async function evaluateImpl({
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
 
-  const client = await getClient(model);
-
   const { output, total_tokens, prompt_tokens, completion_tokens } =
-    await evaluteCall({
-      system,
-      history,
-      input,
-      client,
-      model,
-      maxTokens,
-      stream,
-    });
+    await (async () => {
+      if (isOllamaLLM(model)) {
+        return await evaluateOllama({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
+      } else if (isMistralModel(model)) {
+        return await evaluateMistral({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
+      } else {
+        return await evaluteCall({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
+      }
+    })();
 
   log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
@@ -192,13 +184,46 @@ async function evaluateImpl({
   return output;
 }
 
+async function evaluteCall({
+  system,
+  history,
+  input,
+  model,
+  maxTokens,
+  stream,
+}) {
+  const client = await getClient(model);
+
+  if (client instanceof VertexAIClient) {
+    return await evaluateVertexAI({
+      system,
+      history,
+      input,
+      client,
+      maxTokens,
+      model,
+      stream,
+    });
+  }
+
+  return await evaluateOpenAI({
+    system,
+    history,
+    input,
+    client,
+    model,
+    maxTokens,
+    stream,
+  });
+}
+
 interface EvalVertexAIProps {
   client: VertexAIClient;
   system?: string;
   history?: History;
   input: string;
   // maxTokens?: number;
-  model: LanguageModel; // only "chat-bison-001" | "gemini-pro";
+  model: LanguageModel; // only "gemini-pro";
   stream?: (output?: string) => void;
   maxTokens?: number; // only gemini-pro
 }
@@ -260,6 +285,11 @@ async function evaluateOpenAI({
   maxTokens,
   stream,
 }): Promise<ChatOutput> {
+  // the *-8k variant is artificial – the input is already limited/truncated to 8k
+  if (model === "gpt-4-turbo-preview-8k") {
+    model = "gpt-4-turbo-preview";
+  }
+
   const messages: OpenAIMessages = [];
   if (system) {
     messages.push({ role: "system", content: system });

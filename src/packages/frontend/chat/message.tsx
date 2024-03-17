@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Col, Row, Popconfirm, Tooltip } from "antd";
+import { Button, Col, Popconfirm, Row, Tooltip } from "antd";
 import { Map } from "immutable";
 import { CSSProperties } from "react";
 
@@ -17,7 +17,7 @@ import {
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import { modelToName } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import { modelToName } from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
@@ -127,7 +127,7 @@ export default function Message(props: Props) {
   const is_viewers_message = sender_is_viewer(props.account_id, props.message);
   const verb = show_history ? "Hide" : "Show";
 
-  const isChatGPTThread = useMemo(
+  const isLLMThread = useMemo(
     () => props.actions?.isLanguageModelThread(props.message.get("date")),
     [props.message],
   );
@@ -632,9 +632,9 @@ export default function Message(props: Props) {
           {!generating && (
             <Tooltip
               title={
-                isChatGPTThread
+                isLLMThread
                   ? `Reply to ${modelToName(
-                      isChatGPTThread,
+                      isLLMThread,
                     )}, sending the entire thread as context.`
                   : "Reply in this thread."
               }
@@ -645,10 +645,10 @@ export default function Message(props: Props) {
                 style={{ color: COLORS.GRAY_M }}
               >
                 <Icon name="reply" /> Reply
-                {isChatGPTThread ? ` to ${modelToName(isChatGPTThread)}` : ""}
-                {isChatGPTThread && (
+                {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
+                {isLLMThread && (
                   <Avatar
-                    account_id={isChatGPTThread}
+                    account_id={isLLMThread}
                     size={16}
                     style={{ marginLeft: "10px", marginBottom: "2.5px" }}
                   />
@@ -657,7 +657,7 @@ export default function Message(props: Props) {
             </Tooltip>
           )}
           {!generating &&
-            isChatGPTThread &&
+            isLLMThread &&
             props.actions &&
             Date.now() - date <= regenerateCutoff && (
               <Button

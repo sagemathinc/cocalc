@@ -6,23 +6,24 @@
 import { fromJS, Map as immutableMap } from "immutable";
 
 import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { History as LanguageModelHistory } from "@cocalc/frontend/misc/openai";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import {
+  LANGUAGE_MODEL_PREFIXES,
   getVendorStatusCheckMD,
   model2service,
   model2vendor,
+  toOllamaModel,
   type LanguageModel,
-  LANGUAGE_MODEL_PREFIXES,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
@@ -553,7 +554,13 @@ export class ChatActions extends Actions<ChatState> {
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
-    const sender_id = model2service(model);
+    const sender_id = (function () {
+      try {
+        return model2service(model);
+      } catch {
+        return model;
+      }
+    })();
     let date: string = this.send_reply({
       message,
       reply: ":robot: Thinking...",
@@ -606,7 +613,7 @@ export class ChatActions extends Actions<ChatState> {
     setTimeout(() => {
       this.chatStreams.delete(id);
     }, 3 * 60 * 1000);
-    const chatStream = webapp_client.openai_client.languageModelStream({
+    const chatStream = webapp_client.openai_client.queryStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
       project_id,
@@ -735,9 +742,9 @@ function getReplyToRoot(message, messages): Date | undefined {
   return date ? new Date(date) : undefined;
 }
 
+// We strip out any cased version of the string @chatgpt and also all mentions.
 function stripMentions(value: string): string {
-  // We strip out any cased version of the string @chatgpt and also all mentions.
-  for (const name of ["@chatgpt4", "@chatgpt", "@palm"]) {
+  for (const name of ["@chatgpt4", "@chatgpt"]) {
     while (true) {
       const i = value.toLowerCase().indexOf(name);
       if (i == -1) break;
@@ -780,11 +787,17 @@ function getLanguageModel(input?: string): false | LanguageModel {
     return "gpt-3.5-turbo";
   }
   // these prefexes should come from util/db-schema/openai::model2service
-  for (const prefix of ["account-id=openai-", "account-id=google-"]) {
+  for (const vendorprefix of LANGUAGE_MODEL_PREFIXES) {
+    const prefix = `account-id=${vendorprefix}`;
     const i = x.indexOf(prefix);
     if (i != -1) {
       const j = x.indexOf(">", i);
-      return x.slice(i + prefix.length, j).trim() as any;
+      const model = x.slice(i + prefix.length, j).trim() as LanguageModel;
+      // for now, ollama must be prefixed – in the future, all model names will have a vendor prefix!
+      if (vendorprefix.startsWith("ollama")) {
+        return toOllamaModel(model);
+      }
+      return model;
     }
   }
   return false;

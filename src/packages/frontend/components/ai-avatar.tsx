@@ -3,7 +3,7 @@ import { CSSProperties } from "react";
 import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
-  size?;
+  size: number; // e.g. 16 or 24
   backgroundColor?;
   style?: CSSProperties;
   innerStyle?: CSSProperties;

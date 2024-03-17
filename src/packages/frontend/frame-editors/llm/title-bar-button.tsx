@@ -11,6 +11,7 @@ to do the work.
 
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   Icon,
@@ -156,7 +157,8 @@ export default function LanguageModelTitleBarButton({
   const scopeRef = useRef<any>(null);
   const contextRef = useRef<any>(null);
   const submitRef = useRef<any>(null);
-  const [model, setModel] = useLanguageModelSetting();
+
+  const [model, setModel] = useLanguageModelSetting(project_id);
 
   useEffect(() => {
     if (showDialog) {
@@ -275,7 +277,6 @@ export default function LanguageModelTitleBarButton({
           Switch model:{" "}
           <ModelSwitch
             project_id={project_id}
-            size="small"
             model={model}
             setModel={setModel}
           />
@@ -444,7 +445,7 @@ async function updateInput(
   if (input.length > 2000) {
     // Truncate input (also this MUST be a lazy import):
     const { truncateMessage, getMaxTokens } = await import(
-      "@cocalc/frontend/misc/openai"
+      "@cocalc/frontend/misc/llm"
     );
     const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
     input = truncateMessage(input, maxTokens);

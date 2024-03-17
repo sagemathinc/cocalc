@@ -1,7 +1,8 @@
 import { redux } from "@cocalc/frontend/app-framework";
-import { getHelp } from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
-import { getValidLanguageModelName } from "@cocalc/util/db-schema/openai";
+import { getHelp } from "@cocalc/frontend/frame-editors/llm/help-me-fix";
+import { getValidLanguageModelName } from "@cocalc/util/db-schema/llm-utils";
 import { MARKERS } from "@cocalc/util/sagews";
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "../account/useLanguageModelSetting";
 
 export function isEnabled(project_id: string): boolean {
   return redux
@@ -24,8 +25,15 @@ export function helpMeFix({
   // use the currently set language model from the account store
   // https://github.com/sagemathinc/cocalc/pull/7278
   const other_settings = redux.getStore("account").get("other_settings");
+
+  const projectsStore = redux.getStore("projects");
+  const enabled = projectsStore.whichLLMareEnabled();
+  const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
+
   const model = getValidLanguageModelName(
-    other_settings?.get("language_model"),
+    other_settings?.get(SETTINGS_LANGUAGE_MODEL_KEY),
+    enabled,
+    Object.keys(ollama),
   );
   getHelp({
     project_id,

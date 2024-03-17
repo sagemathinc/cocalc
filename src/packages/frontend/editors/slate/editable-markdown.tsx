@@ -23,7 +23,7 @@ import {
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
+import { useMentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
 import { EditorFunctions } from "@cocalc/frontend/editors/markdown-input/multimode";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
@@ -32,7 +32,7 @@ import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
+import { Descendant, Editor, Range, Transforms, createEditor } from "slate";
 import { resetSelection } from "./control";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
@@ -119,10 +119,8 @@ interface Props {
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
-  chatGPT?: boolean;
   editBar2?: MutableRefObject<JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
-  vertexAI?: boolean;
   minimal?: boolean;
 }
 
@@ -161,8 +159,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     submitMentionsRef,
     editBar2,
     dirtyRef,
-    chatGPT,
-    vertexAI,
     minimal,
   } = props;
   const { project_id, path, desc } = useFrameContext();
@@ -336,6 +332,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     return estimateSize({ node, fontSize: font_size });
   }, []);
 
+  const mentionableUsers = useMentionableUsers();
+
   const mentions = useMentions({
     editor,
     insertMention: (editor, account_id) => {
@@ -348,8 +346,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         submit_mentions(project_id, path, [{ account_id, description: "" }]);
       }
     },
-    matchingUsers: (search) =>
-      mentionableUsers(project_id, search, chatGPT, vertexAI),
+    matchingUsers: (search) => mentionableUsers(search),
   });
 
   const emojis = useEmojis({

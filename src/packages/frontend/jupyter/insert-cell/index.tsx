@@ -14,11 +14,14 @@ which is confusing.
 
 import { Button, Space, Tooltip } from "antd";
 import { ReactNode } from "react";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import AIAvatar from "../../components/ai-avatar";
 import { JupyterActions } from "../browser-actions";
 import ChatGPTPopover from "./ai-cell-generator";
 import { insertCell, pasteCell } from "./util";
@@ -29,9 +32,10 @@ const BTN_HEIGHT = 22;
 
 export interface InsertCellProps {
   actions: JupyterActions;
+  project_id?: string;
   id: string;
   position: "above" | "below";
-  chatgpt?;
+  llmTools?: LLMTools;
   hide?: boolean;
   showChatGPT;
   setShowChatGPT;
@@ -43,8 +47,9 @@ export interface InsertCellState {
 }
 
 export function InsertCell({
+  project_id,
   position,
-  chatgpt,
+  llmTools,
   actions,
   id,
   hide,
@@ -52,13 +57,16 @@ export function InsertCell({
   setShowChatGPT,
   alwaysShow,
 }: InsertCellProps) {
-  const haveChatGPT = chatgpt != null;
   const frameActions = useNotebookFrameActions();
+
+  const showGenerateCell = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id, "generate-cell");
 
   function handleBarClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (haveChatGPT && (e.altKey || e.metaKey)) {
+    if (showGenerateCell && llmTools && (e.altKey || e.metaKey)) {
       setShowChatGPT(true);
       return;
     }
@@ -141,7 +149,7 @@ export function InsertCell({
             >
               <Icon name="paste" /> Paste
             </TinyButton>
-            {haveChatGPT && (
+            {showGenerateCell && llmTools && (
               <TinyButton
                 type="chatgpt"
                 title="Create code based on your description (alt+click line)"
@@ -171,8 +179,8 @@ function TinyButton({
 }: {
   type: TinyButtonType;
   children?: ReactNode;
-  title;
-  handleButtonClick;
+  title: string;
+  handleButtonClick: (e, type: TinyButtonType) => void;
 }) {
   return (
     <Tooltip title={title} mouseEnterDelay={1.1}>

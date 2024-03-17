@@ -9,31 +9,32 @@
 
 // You can use markdown in the descriptions below and it is rendered properly!
 
+import { isValidUUID } from "@cocalc/util/misc";
 import {
   Config,
+  SiteSettings,
+  displayJson,
+  from_json,
   is_email_enabled,
-  only_for_smtp,
-  only_for_sendgrid,
-  only_for_password_reset_smtp,
-  to_bool,
-  only_booleans,
-  to_int,
-  only_nonneg_int,
-  toFloat,
   onlyNonnegFloat,
   onlyPosFloat,
-  only_pos_int,
-  only_commercial,
+  only_booleans,
   only_cocalc_com,
-  from_json,
+  only_commercial,
+  only_for_password_reset_smtp,
+  only_for_sendgrid,
+  only_for_smtp,
+  only_nonneg_int,
+  only_pos_int,
   parsableJson,
-  displayJson,
+  toFloat,
+  to_bool,
+  to_int,
   to_trimmed_str,
-  SiteSettings,
 } from "./site-defaults";
-import { isValidUUID } from "@cocalc/util/misc";
 
-import { is_valid_email_address, expire_time } from "@cocalc/util/misc";
+import { expire_time, is_valid_email_address } from "@cocalc/util/misc";
+import { isEmpty } from "lodash";
 
 export const pii_retention_parse = (retention: string): number | false => {
   if (retention == "never" || retention == null) return false;
@@ -67,8 +68,13 @@ const pii_retention_display = (retention: string) => {
 const openai_enabled = (conf: SiteSettings) => to_bool(conf.openai_enabled);
 const vertexai_enabled = (conf: SiteSettings) =>
   to_bool(conf.google_vertexai_enabled);
+const mistral_enabled = (conf: SiteSettings) => to_bool(conf.mistral_enabled);
+const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
-  openai_enabled(conf) || vertexai_enabled(conf);
+  openai_enabled(conf) ||
+  vertexai_enabled(conf) ||
+  ollama_enabled(conf) ||
+  mistral_enabled(conf);
 
 const compute_servers_enabled = (conf: SiteSettings) =>
   to_bool(conf.compute_servers_enabled);
@@ -82,6 +88,91 @@ const neural_search_enabled = (conf: SiteSettings) =>
 
 const jupyter_api_enabled = (conf: SiteSettings) =>
   to_bool(conf.jupyter_api_enabled);
+
+function ollama_valid(value: string): boolean {
+  if (isEmpty(value) || !parsableJson(value)) {
+    return false;
+  }
+  const obj = from_json(value);
+  if (typeof obj !== "object") {
+    return false;
+  }
+  for (const key in obj) {
+    const val = obj[key] as any;
+    if (typeof val !== "object") {
+      return false;
+    }
+    if (typeof val.baseUrl !== "string") {
+      return false;
+    }
+    if (val.model && typeof val.model !== "string") {
+      return false;
+    }
+    const c = val.cocalc;
+    if (c != null) {
+      if (typeof c !== "object") {
+        return false;
+      }
+      if (c.display && typeof c.display !== "string") {
+        return false;
+      }
+      if (c.desc && typeof c.desc !== "string") {
+        return false;
+      }
+      if (c.enabled && typeof c.enabled !== "boolean") {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function ollama_display(value: string): string {
+  const structure =
+    "Must be {[key : string] : {model: string, baseUrL: string, cocalc?: {display?: string, desc?: string, ...}, ...}";
+  if (isEmpty(value)) {
+    return `Empty. ${structure}`;
+  }
+  if (!parsableJson(value)) {
+    return `Ollama JSON not parseable. ${structure}`;
+  }
+  const obj = from_json(value);
+  if (typeof obj !== "object") {
+    return "Ollama JSON must be an object";
+  }
+  const ret: string[] = [];
+  for (const key in obj) {
+    const val = obj[key] as any;
+    if (typeof val !== "object") {
+      return `Ollama config ${key} must be an object`;
+    }
+    if (typeof val.baseUrl !== "string") {
+      return `Ollama config ${key} baseUrl field must be a string`;
+    }
+    if (val.model && typeof val.model !== "string") {
+      return `Ollama config ${key} model field must be a string`;
+    }
+    const c = val.cocalc;
+    if (c != null) {
+      if (typeof c !== "object") {
+        return `Ollama config ${key} cocalc field must be an object: {display?: string, desc?: string, enabled?: boolean, ...}`;
+      }
+      if (c.display && typeof c.display !== "string") {
+        return `Ollama config ${key} cocalc.display field must be a string`;
+      }
+      if (c.desc && typeof c.desc !== "string") {
+        return `Ollama config ${key} cocalc.desc field must be a (markdown) string`;
+      }
+      if (c.enabled && typeof c.enabled !== "boolean") {
+        return `Ollama config ${key} cocalc.enabled field must be a boolean`;
+      }
+    }
+    ret.push(
+      `Olama ${key} at ${val.baseUrl} named ${c?.display ?? val.model ?? key}`,
+    );
+  }
+  return `[${ret.join(", ")}]`;
+}
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
@@ -104,6 +195,8 @@ export type SiteSettingsExtrasKeys =
   | "openai_section"
   | "openai_api_key"
   | "google_vertexai_key"
+  | "ollama_configuration"
+  | "mistral_api_key"
   | "qdrant_section"
   | "qdrant_api_key"
   | "qdrant_cluster_url"
@@ -175,10 +268,27 @@ export const EXTRAS: SettingsExtras = {
   },
   google_vertexai_key: {
     name: "Google Gemini Generative AI API Key",
-    desc: "Create an [API Key](https://aistudio.google.com/app/apikey) in [Google's AI Studio](https://aistudio.google.com/) and paste the content here.",
+    desc: "Create an [API Key](https://aistudio.google.com/app/apikey) in [Google's AI Studio](https://aistudio.google.com/) and paste it here.",
     default: "",
     password: true,
     show: vertexai_enabled,
+  },
+  mistral_api_key: {
+    name: "Mistral AI API Key",
+    desc: "Create an API Key in the [Mistral AI Console](https://console.mistral.ai/api-keys/) and paste it here.",
+    default: "",
+    password: true,
+    show: mistral_enabled,
+  },
+  ollama_configuration: {
+    name: "Ollama Configuration",
+    desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and is available at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model"}}',
+    default: "",
+    multiline: 5,
+    show: ollama_enabled,
+    to_val: from_json,
+    valid: ollama_valid,
+    to_display: ollama_display,
   },
   qdrant_section: {
     name: "Qdrant Configuration",

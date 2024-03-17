@@ -1,8 +1,10 @@
 // NOTE! This gpt-3-tokenizer is LARGE, e.g., 1.6MB, so be
 // sure to async load it by clients of this code.
 import GPT3Tokenizer from "gpt3-tokenizer";
-import type { Model } from "@cocalc/util/db-schema/openai";
-import { getMaxTokens } from "@cocalc/util/db-schema/openai";
+
+import type { History } from "@cocalc/frontend/client/types";
+import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 
 export { getMaxTokens };
 
@@ -25,7 +27,7 @@ const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 
 export function numTokensUpperBound(
   content: string,
-  maxTokens: number
+  maxTokens: number,
 ): number {
   return (
     tokenizer.encode(content.slice(0, maxTokens * APPROX_CHARACTERS_PER_TOKEN))
@@ -33,13 +35,6 @@ export function numTokensUpperBound(
     Math.max(0, content.length - maxTokens * APPROX_CHARACTERS_PER_TOKEN)
   );
 }
-
-export interface Message {
-  role: "assistant" | "user" | "system";
-  content: string;
-}
-
-export type History = Message[];
 
 /* We truncate the message.
 For performance considerations (see WARNING by numTokensEstimate above),
@@ -64,7 +59,7 @@ export function truncateMessage(content: string, maxTokens: number): string {
 export function truncateHistory(
   history: History,
   maxTokens: number,
-  model: Model
+  model: LanguageModel,
 ): History {
   if (maxTokens <= 0) {
     return [];
@@ -101,7 +96,7 @@ export function truncateHistory(
     const before = tokens[largestIndex].length;
     const toRemove = Math.max(
       1,
-      Math.min(maxTokens - total, Math.ceil(tokens[largestIndex].length / 5))
+      Math.min(maxTokens - total, Math.ceil(tokens[largestIndex].length / 5)),
     );
     tokens[largestIndex] = tokens[largestIndex].slice(0, -toRemove);
     const after = tokens[largestIndex].length;

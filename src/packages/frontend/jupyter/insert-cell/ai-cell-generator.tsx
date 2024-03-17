@@ -9,18 +9,18 @@ import { Paragraph } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import ModelSwitch, {
   modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
+} from "@cocalc/frontend/frame-editors/llm/model-switch";
+import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   LanguageModel,
   getVendorStatusCheckMD,
   model2vendor,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { insertCell } from "./util";
@@ -44,8 +44,9 @@ export default function AIGenerateCodeCell({
   setShowChatGPT,
   showChatGPT,
 }: AIGenerateCodeCellProps) {
-  const [model, setModel] = useLanguageModelSetting();
   const { project_id, path } = useFrameContext();
+
+  const [model, setModel] = useLanguageModelSetting(project_id);
   const [prompt, setPrompt] = useState<string>("");
   const input = useMemo(() => {
     if (!showChatGPT) return "";
@@ -83,7 +84,6 @@ export default function AIGenerateCodeCell({
           cell using{" "}
           <ModelSwitch
             project_id={project_id}
-            size="small"
             model={model}
             setModel={setModel}
           />
@@ -230,7 +230,7 @@ async function queryLanguageModel({
     let curCellPos = 0;
     let numCells = 1;
 
-    const reply = await webapp_client.openai_client.languageModelStream({
+    const reply = await webapp_client.openai_client.queryStream({
       input,
       project_id,
       path,
@@ -344,7 +344,7 @@ function getInput({
 
   return {
     input: `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\The entire code cell must be in a single code block. Enclose this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`,
-    system: `Return a single code block in the language "${lang}".`,
+    system: `Return a single code block in the language "${lang}". Be brief.`,
   };
 }
 

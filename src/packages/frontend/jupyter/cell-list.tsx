@@ -12,7 +12,9 @@ import * as immutable from "immutable";
 import { debounce } from "lodash";
 import {
   MutableRefObject,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -20,25 +22,22 @@ import {
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { useDebounce } from "use-debounce";
-import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
+import {
+  DragHandle,
+  SortableItem,
+  SortableList,
+} from "@cocalc/frontend/components/sortable-list";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
-import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
-
-import {
-  SortableList,
-  SortableItem,
-  DragHandle,
-} from "@cocalc/frontend/components/sortable-list";
-
-import { createContext, useContext } from "react";
 interface IFrameContextType {
   iframeDivRef?: MutableRefObject<any>;
   iframeOnScrolls?: { [key: string]: () => void };
@@ -97,7 +96,7 @@ interface CellListProps {
   sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
   use_windowed_list?: boolean;
-  chatgpt?;
+  llmTools?: LLMTools;
   computeServerId?: number;
 }
 
@@ -126,7 +125,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     sel_ids,
     trust,
     use_windowed_list,
-    chatgpt,
+    llmTools,
     computeServerId,
   } = props;
 
@@ -348,11 +347,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
         });
         // hack which seems necessary for jupyter at least.
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_TOP_CELLS,
+          }),
         );
       }
     } else if (scroll.startsWith("list")) {
@@ -362,12 +360,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "end",
         });
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
-              align: "end",
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_TOP_CELLS,
+            align: "end",
+          }),
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
@@ -375,12 +372,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "start",
         });
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
-              align: "start",
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_TOP_CELLS,
+            align: "start",
+          }),
         );
       }
     }
@@ -479,7 +475,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           trust={trust}
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
-          chatgpt={chatgpt}
+          llmTools={llmTools}
           computeServerId={computeServerId}
           isFirst={isFirst}
           isLast={isLast}

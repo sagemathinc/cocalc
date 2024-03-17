@@ -14,7 +14,7 @@ import { TimeClient } from "./time";
 import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
-import { LLMClient } from "./openai";
+import { LLMClient } from "./llm";
 import { PurchasesClient } from "./purchases";
 import { JupyterClient } from "./jupyter";
 import { SyncClient } from "@cocalc/sync/client/sync-client";

@@ -1,23 +1,18 @@
 /**
- * This is a wrapper client for Google's Vertex AI
+ * This is a wrapper client for Google's Generative AI API.
  *
  * Right now, this is for Gemini Pro, based on https://ai.google.dev/tutorials/node_quickstart
  */
 
-import getLogger from "@cocalc/backend/logger";
-import { LanguageModel } from "@cocalc/util/db-schema/openai";
-import { ChatOutput, History } from "@cocalc/util/types/llm";
-import {
-  DiscussServiceClient,
-  TextServiceClient,
-} from "@google-ai/generativelanguage";
 import {
   GenerativeModel,
   GoogleGenerativeAI,
   InputContent,
 } from "@google/generative-ai";
-import { GoogleAuth } from "google-auth-library";
-import { numTokens } from "./chatgpt-numtokens";
+
+import getLogger from "@cocalc/backend/logger";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { ChatOutput, History } from "@cocalc/util/types/llm";
 
 const log = getLogger("llm:vertex-ai");
 
@@ -28,16 +23,11 @@ interface AuthMethods {
 
 export class VertexAIClient {
   gcp_project_id?: string;
-  clientText: TextServiceClient;
-  clientDiscuss: DiscussServiceClient;
   genAI: GoogleGenerativeAI;
 
   constructor(auth: AuthMethods, model: LanguageModel) {
-    const authClient = this.getAuthClient(auth);
-    if (model === "text-bison-001") {
-      this.clientText = new TextServiceClient({ authClient });
-    } else if (model === "chat-bison-001") {
-      this.clientDiscuss = new DiscussServiceClient({ authClient });
+    if (model === "text-bison-001" || model === "chat-bison-001") {
+      throw new Error("Palm2 is no longer supported");
     } else if (model === "gemini-pro") {
       if (auth.apiKey == null) {
         throw new Error("you must provide and API key for gemini pro");
@@ -46,44 +36,6 @@ export class VertexAIClient {
     } else {
       throw new Error(`unknown model: ${model}`);
     }
-  }
-
-  private getAuthClient(auth: AuthMethods) {
-    const { apiKey, serviceAccountJSON } = auth;
-    if (typeof serviceAccountJSON === "string") {
-      const sa = JSON.parse(serviceAccountJSON);
-      this.gcp_project_id = sa.project_id;
-      return new GoogleAuth().fromJSON(sa);
-    } else if (typeof apiKey === "string" && apiKey.length > 1) {
-      return new GoogleAuth().fromAPIKey(apiKey);
-    } else {
-      throw new Error("no google vertex ai key or service account json");
-    }
-  }
-
-  // https://developers.generativeai.google/tutorials/text_node_quickstart
-  async query({
-    model,
-    prompt,
-    maxTokens,
-  }: {
-    model: "text-bison-001";
-    prompt: string;
-    maxTokens?: number;
-  }) {
-    // note: model must be text-bison-001
-    if (model !== "text-bison-001") {
-      throw new Error("model must be text-bison-001");
-    }
-    const resp = await this.clientText.generateText({
-      model: `models/${model}`,
-      prompt: {
-        text: prompt,
-      },
-      maxOutputTokens: maxTokens ?? 1024,
-    });
-
-    log.debug("query/ vertex ai", resp);
   }
 
   // https://developers.generativeai.google/tutorials/chat_node_quickstart
@@ -105,7 +57,7 @@ export class VertexAIClient {
   }): Promise<ChatOutput> {
     switch (model) {
       case "chat-bison-001":
-        return this.chatPalm2({ context, history, input, stream });
+        throw new Error("Palm2 is no longer supported");
 
       case "gemini-pro":
         return this.chatGeminiPro({
@@ -202,67 +154,6 @@ export class VertexAIClient {
     );
     return {
       output: text,
-      total_tokens: prompt_tokens + completion_tokens,
-      completion_tokens,
-      prompt_tokens,
-    };
-  }
-
-  // ATTN: PaLM2 is deprecated and this is basically dead code
-  private async chatPalm2({
-    context,
-    history,
-    input,
-    stream,
-  }): Promise<ChatOutput> {
-    const messages: { content: string }[] = (history ?? [])
-      .filter(({ content }) => !!content)
-      .map(({ content }) => {
-        return {
-          content,
-        };
-      });
-
-    messages.push({ content: input });
-
-    const result = await this.clientDiscuss.generateMessage({
-      model: `models/chat-bison-001`,
-      candidateCount: 1, // Optional. The number of candidate results to generate.
-      prompt: {
-        // optional, preamble context to prime responses
-        context,
-        // Required. Alternating prompt/response messages.
-        messages,
-      },
-    });
-
-    log.debug("chat/got response from vertex ai", result);
-
-    const output = result[0].candidates?.[0]?.content;
-
-    // Note (2023-12-08): for generating code, especially in jupyter, PaLM2 often returns nothing with a "filters":[{"reason":"OTHER"}] message
-    // https://developers.generativeai.google/api/rest/generativelanguage/ContentFilter#BlockedReason
-    // I think this is just a bug. If there is no reply, there is now a simple user-visible error message instead of nothing.
-    if (!output) {
-      throw new Error(
-        "There was a problem processing the prompt. Try a different prompt or another language model.",
-      );
-    }
-
-    // PaLM2: there is no streaming
-    if (stream != null) {
-      stream(output);
-      stream();
-    }
-
-    // token estimation
-    const system_tokens = numTokens(context ?? "");
-    const input_all = (history ?? []).map(({ content }) => content).join("\n");
-    const prompt_tokens = system_tokens + numTokens(input_all);
-    const completion_tokens = numTokens(output ?? "");
-
-    return {
-      output,
       total_tokens: prompt_tokens + completion_tokens,
       completion_tokens,
       prompt_tokens,

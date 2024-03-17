@@ -6,18 +6,24 @@
 /*
 React component that describes the input of a cell
 */
+
+import { Button, Tooltip } from "antd";
+import { delay } from "awaiting";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Tooltip } from "antd";
-import { React, Rendered } from "@cocalc/frontend/app-framework";
+
+import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import PasteButton from "@cocalc/frontend/components/paste-button";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
@@ -25,11 +31,9 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
+import { LLMExplainCell } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import { delay } from "awaiting";
-import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -76,7 +80,7 @@ export interface CellInputProps {
   is_scrolling?: boolean;
   id: string;
   index: number;
-  chatgpt?;
+  llmTools?: LLMTools;
   computeServerId?: number;
   setShowChatGPT?;
 }
@@ -85,6 +89,13 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
     const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
+
+    const haveAIGenerateCell =
+      props.llmTools &&
+      redux
+        .getStore("projects")
+        .hasLanguageModelEnabled(props.project_id, "generate-cell");
+
     function render_input_prompt(type: string): Rendered {
       return (
         <HiddenXS>
@@ -168,7 +179,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
-          setShowChatGPT={props.chatgpt ? props.setShowChatGPT : undefined}
+          setShowChatGPT={haveAIGenerateCell ? props.setShowChatGPT : undefined}
         />
       );
     }
@@ -424,12 +435,13 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 />
               </div>
             )}
-            {props.chatgpt != null && (
-              <props.chatgpt.ChatGPTExplain
+            {props.llmTools ? (
+              <LLMExplainCell
                 id={props.id}
                 actions={props.actions}
+                llmTools={props.llmTools}
               />
-            )}
+            ) : undefined}
             {/* Should only show formatter button if there is a way to format this code. */}
             {!props.is_readonly && props.actions != null && (
               <Tooltip title="Format this code to look nice" placement="top">
@@ -555,6 +567,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.is_readonly !== cur.is_readonly ||
       next.is_scrolling !== cur.is_scrolling ||
       next.cell_toolbar !== cur.cell_toolbar ||
+      (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
       (next.cell_toolbar === "slideshow" &&

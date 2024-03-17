@@ -7,14 +7,16 @@
 React component that describes the output of a cell
 */
 
-import React from "react";
+import { Alert } from "antd";
 import type { Map as ImmutableMap } from "immutable";
+import React from "react";
+
+import { LLMTools } from "@cocalc/jupyter/types";
+import type { JupyterActions } from "./browser-actions";
+import { CellHiddenPart } from "./cell-hidden-part";
+import { CollapsedOutput, OutputToggle } from "./cell-output-toggle";
 import { CellOutputMessages } from "./output-messages/message";
 import { OutputPrompt } from "./prompt/output";
-import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
-import { CellHiddenPart } from "./cell-hidden-part";
-import type { JupyterActions } from "./browser-actions";
-import { Alert } from "antd";
 
 interface CellOutputProps {
   actions?: JupyterActions;
@@ -29,7 +31,7 @@ interface CellOutputProps {
   hidePrompt?: boolean;
   style?: React.CSSProperties;
   divRef?;
-  chatgpt?;
+  llmTools?: LLMTools;
 }
 
 export function CellOutput({
@@ -45,7 +47,7 @@ export function CellOutput({
   hidePrompt,
   divRef,
   style,
-  chatgpt,
+  llmTools,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -88,10 +90,22 @@ export function CellOutput({
         directory={directory}
         name={name}
         trust={trust}
-        chatgpt={chatgpt}
+        llmTools={llmTools}
       />
     </div>
   );
+}
+
+interface OutputColumnProps {
+  cell: ImmutableMap<string, any>;
+  id: string;
+  actions?: JupyterActions;
+  more_output?: ImmutableMap<string, any>;
+  project_id?: string;
+  directory?: string;
+  name?: string;
+  trust?: boolean;
+  llmTools?;
 }
 
 function OutputColumn({
@@ -103,8 +117,8 @@ function OutputColumn({
   directory,
   name,
   trust,
-  chatgpt,
-}) {
+  llmTools,
+}: OutputColumnProps) {
   if (cell.get("collapsed")) {
     return <CollapsedOutput actions={actions} id={id} />;
   }
@@ -138,7 +152,7 @@ function OutputColumn({
       name={name}
       trust={trust}
       id={id}
-      chatgpt={chatgpt}
+      llmTools={llmTools}
     />
   );
 }
@@ -179,7 +193,11 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled", true)}>
+      <OutputToggle
+        actions={actions}
+        id={id}
+        scrolled={cell.get("scrolled", true)}
+      >
         {prompt}
       </OutputToggle>
     );

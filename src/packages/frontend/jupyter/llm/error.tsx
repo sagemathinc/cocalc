@@ -3,8 +3,9 @@ Use ChatGPT to explain an error message and help the user fix it.
 */
 
 import { CSSProperties } from "react";
-import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 
 interface Props {
   style?: CSSProperties;
@@ -12,7 +13,7 @@ interface Props {
   traceback: string;
 }
 
-export default function ChatGPTError({ style, traceback, input }: Props) {
+export default function LLMError({ style, traceback, input }: Props) {
   const { actions: frameActions } = useFrameContext();
   if (frameActions == null) return null;
   return (

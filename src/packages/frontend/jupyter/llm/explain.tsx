@@ -5,42 +5,42 @@ Use ChatGPT to explain what the code in a cell does.
 import { Alert, Button } from "antd";
 import { CSSProperties, useState } from "react";
 
-import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import ModelSwitch, {
   LanguageModel,
   modelToMention,
   modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { ProjectsStore } from "@cocalc/frontend/projects/store";
+} from "@cocalc/frontend/frame-editors/llm/model-switch";
+import { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "../browser-actions";
 
 interface Props {
   actions?;
   id: string;
   style?: CSSProperties;
+  llmTools?: LLMTools;
 }
 
-export default function ChatGPTExplain({ actions, id, style }: Props) {
+export default function LLMExplainCell({
+  actions,
+  id,
+  style,
+  llmTools,
+}: Props) {
   const { project_id, path } = useFrameContext();
   const [gettingExplanation, setGettingExplanation] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [model, setModel] = useLanguageModelSetting();
 
-  if (
-    actions == null ||
-    !(
-      actions.redux.getStore("projects") as ProjectsStore
-    ).hasLanguageModelEnabled(project_id, "explain")
-  ) {
+  if (actions == null || llmTools == null) {
     return null;
   }
+  const { model, setModel } = llmTools;
   return (
     <div style={style}>
       <PopconfirmKeyboard
@@ -49,7 +49,6 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
           <b>
             Get explanation of this code from{" "}
             <ModelSwitch
-              size="small"
               model={model}
               setModel={setModel}
               project_id={project_id}

@@ -1,5 +1,6 @@
+import { Map, fromJS } from "immutable";
 import { useEffect, useState } from "react";
-import { fromJS, Map } from "immutable";
+
 import { CellOutput } from "../cell-output";
 
 interface Props {
@@ -18,7 +19,7 @@ export default function NBViewerCellOutput({
   hidePrompt,
 }: Props) {
   const [iCell, setICell] = useState<Map<string, any> | null>(
-    cell == null ? null : fromJS(cell)
+    cell == null ? null : fromJS(cell),
   );
 
   useEffect(() => {

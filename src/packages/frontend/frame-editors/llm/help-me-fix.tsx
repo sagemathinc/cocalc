@@ -8,13 +8,13 @@ import { CSSProperties, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { Icon } from "@cocalc/frontend/components/icon";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { ProjectsStore } from "@cocalc/frontend/projects/store";
+import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
 import shortenError from "./shorten-error";
@@ -51,13 +51,12 @@ export default function HelpMeFix({
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  const [model, setModel] = useLanguageModelSetting();
+  const projectsStore: ProjectsStore = redux.getStore("projects");
+  const [model, setModel] = useLanguageModelSetting(project_id);
+
   if (
     redux == null ||
-    !(redux.getStore("projects") as ProjectsStore).hasLanguageModelEnabled(
-      project_id,
-      "help-me-fix",
-    )
+    !projectsStore.hasLanguageModelEnabled(project_id, "help-me-fix")
   ) {
     return null;
   }
@@ -69,7 +68,6 @@ export default function HelpMeFix({
           <>
             Get Help from{" "}
             <ModelSwitch
-              size="small"
               model={model}
               setModel={setModel}
               project_id={project_id}

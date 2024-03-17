@@ -10,6 +10,8 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@cocalc/mistralai": "^0.0.2",
+    "@mistralai/mistralai": "link:node_modules/@cocalc/mistralai",
     "encoding": "^0.1.13"
   },
   "pnpm": {
@@ -19,7 +21,9 @@
       "es5-ext@<0.10.63": "^0.10.63",
       "undici@<5.28.3": "^5.28.3",
       "postcss@<8.4.31": "^8.4.31",
-      "retry-request@<7.0.1": "^7.0.2"
+      "retry-request@<7.0.1": "^7.0.2",
+      "@langchain/core": "^0.1.48",
+      "@mistralai/mistralai": "node_modules/@cocalc/mistralai"
     }
   }
 }

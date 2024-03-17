@@ -4,23 +4,29 @@
  */
 
 /*
-React component that describes a single cella
+React component that describes a single cell
 */
 
 import { Map } from "immutable";
-import { React, Rendered, useDelayedRender } from "../app-framework";
-import { clear_selection } from "../misc/clear-selection";
+import { useState } from "react";
+
+import {
+  React,
+  Rendered,
+  useDelayedRender,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Tip } from "@cocalc/frontend/components";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { COLORS } from "@cocalc/util/theme";
-import { INPUT_PROMPT_COLOR } from "./prompt/base";
-import { Icon, Tip } from "../components";
+import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
 import { InsertCell } from "./insert-cell";
-import { useState } from "react";
-import { JupyterActions } from "./browser-actions";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
+import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
@@ -45,7 +51,7 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
-  chatgpt?;
+  llmTools?: LLMTools;
   computeServerId?: number;
   is_visible?: boolean;
   isFirst?: boolean;
@@ -74,6 +80,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.isFirst !== props.isFirst ||
     nextProps.isLast !== props.isLast ||
     nextProps.computeServerId !== props.computeServerId ||
+    (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current))
   );
@@ -85,6 +92,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   const render = useDelayedRender(props.delayRendering ?? 0);
+
   if (!render) {
     return <></>;
   }
@@ -121,7 +129,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         trust={props.trust}
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
-        chatgpt={props.chatgpt}
+        llmTools={props.llmTools}
         computeServerId={props.computeServerId}
         setShowChatGPT={setShowChatGPT}
       />
@@ -146,7 +154,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
-        chatgpt={props.chatgpt}
+        llmTools={props.llmTools}
       />
     );
   }
@@ -310,9 +318,10 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     }
     return (
       <InsertCell
+        project_id={props.project_id}
         hide={!props.is_visible}
         id={id}
-        chatgpt={props.chatgpt}
+        llmTools={props.llmTools}
         key={id + "insert" + position}
         position={position}
         actions={props.actions}

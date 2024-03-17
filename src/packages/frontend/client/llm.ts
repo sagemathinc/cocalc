@@ -7,24 +7,22 @@ import { delay } from "awaiting";
 import { EventEmitter } from "events";
 
 import { redux } from "@cocalc/frontend/app-framework";
-import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
-import type {
-  EmbeddingData,
-  LanguageModel,
-} from "@cocalc/util/db-schema/openai";
+import type { EmbeddingData } from "@cocalc/util/db-schema/llm";
 import {
   MAX_EMBEDDINGS_TOKENS,
   MAX_REMOVE_LIMIT,
   MAX_SAVE_LIMIT,
   MAX_SEARCH_LIMIT,
+} from "@cocalc/util/db-schema/llm";
+import {
+  LanguageModel,
+  getSystemPrompt,
   isFreeModel,
   model2service,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm-utils";
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
-
-const DEFAULT_SYSTEM_PROMPT =
-  "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.  BE BRIEF.";
+import type { History } from "./types"; // do not import until needed -- it is HUGE!
 
 interface EmbeddingsQuery {
   scope: string | string[];
@@ -42,11 +40,11 @@ export class LLMClient {
     this.client = client;
   }
 
-  public async chatgpt(opts): Promise<string> {
+  public async query(opts): Promise<string> {
     return await this.queryLanguageModel(opts);
   }
 
-  public languageModelStream(opts, startExplicitly = false): ChatStream {
+  public queryStream(opts, startExplicitly = false): ChatStream {
     const chatStream = new ChatStream();
     (async () => {
       try {
@@ -64,7 +62,7 @@ export class LLMClient {
   private async queryLanguageModel({
     input,
     model,
-    system = DEFAULT_SYSTEM_PROMPT,
+    system, // if not set, a default system prompt is used – disable by setting to ""
     history,
     project_id,
     path,
@@ -81,11 +79,16 @@ export class LLMClient {
     tag?: string;
     startStreamExplicitly?: boolean;
   }): Promise<string> {
+    system ??= getSystemPrompt(model, path);
+
     if (!redux.getStore("projects").hasLanguageModelEnabled(project_id, tag)) {
-      return `Language model support is not currently enabled ${
-        project_id ? "in this project" : "on this server"
-      }.`;
+      throw new Error(
+        `Language model support is not currently enabled ${
+          project_id ? "in this project" : "on this server"
+        }. [tag=${tag}]`,
+      );
     }
+
     input = input.trim();
     if (chatStream == null) {
       if (!input || input == "test") {
@@ -98,6 +101,7 @@ export class LLMClient {
     }
 
     if (!isFreeModel(model)) {
+      // Ollama and others are treated as "free"
       const service = model2service(model);
       // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
       const { allowed, reason } =
@@ -122,7 +126,7 @@ export class LLMClient {
       truncateHistory,
       truncateMessage,
       getMaxTokens,
-    } = await import("@cocalc/frontend/misc/openai");
+    } = await import("@cocalc/frontend/misc/llm");
     // We always leave some room for output:
     const maxTokens = getMaxTokens(model) - 1000;
     input = truncateMessage(input, maxTokens);
@@ -225,7 +229,7 @@ export class LLMClient {
     data: EmbeddingData[];
   }): Promise<string[]> {
     this.assertHasNeuralSearch();
-    const { truncateMessage } = await import("@cocalc/frontend/misc/openai");
+    const { truncateMessage } = await import("@cocalc/frontend/misc/llm");
 
     // Make data be data0, but without mutate data0
     // and with any text truncated to fit in the

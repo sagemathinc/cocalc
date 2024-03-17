@@ -1,4 +1,4 @@
-import { Button, Divider, Input, Modal, Space } from "antd";
+import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
@@ -6,20 +6,21 @@ import {
   HelpIcon,
   Markdown,
   Paragraph,
-  Title,
   Text,
+  Title,
 } from "@cocalc/frontend/components";
-import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
-import ModelSwitch, {
-  modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { LLMModelName } from "@cocalc/frontend/components/llm-name";
+import ModelSwitch from "@cocalc/frontend/frame-editors/llm/model-switch";
 import { show_react_modal } from "@cocalc/frontend/misc";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { unreachable } from "@cocalc/util/misc";
-import { isFreeModel } from "@cocalc/util/db-schema/openai";
 import track from "@cocalc/frontend/user-tracking";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
+import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";
+
+const LLM_USAGE_TAG = `generate-formula`;
 
 interface Opts {
   mode: Mode;
@@ -42,23 +43,26 @@ interface Props extends Opts {
 }
 
 function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
-  const [model, setModel] = useLanguageModelSetting();
+  const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState<string>(text);
   const [formula, setFormula] = useState<string>("");
+  const [fullReply, setFullReply] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
   const enabled = redux
     .getStore("projects")
-    .hasLanguageModelEnabled(project_id);
+    .hasLanguageModelEnabled(project_id, LLM_USAGE_TAG);
 
   function getPrompt() {
     const description = input || text;
+    const p1 = `Convert the following plain-text description of a formula to a LaTeX formula`;
+    const p2 = `Return the LaTeX formula, and only the formula. Enclose the formula in a single snippet delimited by $. Do not add any explanations.`;
     switch (mode) {
       case "tex":
-        return `Convert the following plain-text description of a formula to a LaTeX formula in a *.tex file. Assume the package  amsmath is available. Only return the LaTeX formula in a single code snippet, delimited by $ or $$. Do not add any explanations:\n\n${description}`;
+        return `${p1} in a *.tex file. Assume the package "amsmath" is available. ${p2}:\n\n${description}`;
       case "md":
-        return `Convert the following plain-text description of a formula to a LaTeX formula in a markdown file. Only return the LaTeX formula in a single code snippet, delimited by $ or $$. Do not add any explanations:\n\n${description}`;
+        return `${p1} in a markdown file. ${p2}\n\n${description}`;
       default:
         unreachable(mode);
     }
@@ -88,7 +92,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     }
   }
 
-  function processFormula(formula: string) {
+  function processFormula(formula: string): string {
     let tex = "";
     // iterate over all lines in formula. save everything between the first ``` and last ``` in tex
     let inCode = false;
@@ -103,23 +107,54 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     if (!tex) {
       tex = formula;
     }
+    // if there are "\[" and "\]" in the formula, replace both by $$
+    if (tex.includes("\\[") && tex.includes("\\]")) {
+      tex = tex.replace(/\\\[|\\\]/g, "$$");
+    }
+    // similar, replace "\(" and "\)" by single $ signs
+    if (tex.includes("\\(") && tex.includes("\\)")) {
+      tex = tex.replace(/\\\(|\\\)/g, "$");
+    }
+    // if there are at least two $$ or $ in the tex, we extract the part between the first and second $ or $$
+    // This is necessary, because despite the prompt, some LLM return stuff like: "Here is the LaTeX formula: $$ ... $$."
+    for (const delimiter of ["$$", "$"]) {
+      const parts = tex.split(delimiter);
+      if (parts.length >= 3) {
+        tex = parts[1];
+        break;
+      }
+    }
     setFormula(tex);
+    return tex;
   }
 
   async function doGenerate() {
     try {
       setError(undefined);
       setGenerating(true);
-      const tag = `generate-formula`;
-      track("chatgpt", { project_id, tag, mode, type: "generate", model });
-      const tex = await webapp_client.openai_client.chatgpt({
+      setFormula("");
+      setFullReply("");
+      track("chatgpt", {
+        project_id,
+        tag: LLM_USAGE_TAG,
+        mode,
+        type: "generate",
+        model,
+      });
+      const reply = await webapp_client.openai_client.query({
         input: getPrompt(),
         project_id,
-        tag,
+        tag: LLM_USAGE_TAG,
         model,
-        system: null,
+        system: "",
       });
-      processFormula(tex);
+      const tex = processFormula(reply);
+      // significant differece? Also show the full reply
+      if (reply.length > 2 * tex.length) {
+        setFullReply(reply);
+      } else {
+        setFullReply("");
+      }
     } catch (err) {
       setError(err.message || err.toString());
     } finally {
@@ -138,15 +173,14 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <>
         <Title level={4}>
-          <LanguageModelVendorAvatar model={model} /> Generate LaTeX Formula
-          using {modelToName(model)}
+          <AIAvatar size={24} /> Generate LaTeX Formula using{" "}
+          <LLMModelName model={model} />
         </Title>
         {enabled ? (
           <>
             Select language model:{" "}
             <ModelSwitch
               project_id={project_id}
-              size="small"
               model={model}
               setModel={setModel}
             />
@@ -183,7 +217,8 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
         </Paragraph>
         <Paragraph>
           Once you're happy, click the "Insert formula" button and the generated
-          LaTeX formula will be inserted at the current cursor position.
+          LaTeX formula will be inserted at the current cursor position. The
+          "Insert fully reply" button will, well, insert the entire answer.
         </Paragraph>
         <Paragraph>
           Prior to opening this dialog, you can even select a portion of your
@@ -196,7 +231,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <Paragraph style={{ marginBottom: 0 }}>
-          Use the selected AI language model to generate a LaTeX formula from a
+          The selected AI language model will generate a LaTeX formula the
           description. {help}
         </Paragraph>
         <Space.Compact style={{ width: "100%" }}>
@@ -220,13 +255,32 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
           </Button>
         </Space.Compact>
         {formula ? (
-          <>
-            <Paragraph code>{formula}</Paragraph>
-            <Space direction="horizontal" size="middle">
-              Preview:
-              <Markdown value={wrapFormula(formula)} />
-            </Space>
-          </>
+          <Descriptions
+            size={"small"}
+            column={1}
+            bordered
+            items={[
+              {
+                key: "1",
+                label: "LaTeX",
+                children: <Paragraph code>{formula}</Paragraph>,
+              },
+              {
+                key: "2",
+                label: "Preview",
+                children: <Markdown value={wrapFormula(formula)} />,
+              },
+              ...(fullReply
+                ? [
+                    {
+                      key: "3",
+                      label: "Full reply",
+                      children: <Markdown value={fullReply} />,
+                    },
+                  ]
+                : []),
+            ]}
+          />
         ) : undefined}
         {error ? <Paragraph type="danger">{error}</Paragraph> : undefined}
         {mode === "tex" ? (
@@ -246,6 +300,13 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <div>
         <Button onClick={onCancel}>Cancel</Button>
+        <Button
+          type={"default"}
+          disabled={!fullReply}
+          onClick={() => cb(undefined, `\n\n${fullReply}\n\n`)}
+        >
+          Insert full reply
+        </Button>
         <Button
           type={formula ? "primary" : "default"}
           disabled={!formula}

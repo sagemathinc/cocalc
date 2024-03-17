@@ -8,25 +8,26 @@ History viewer for Jupyter notebooks
 */
 
 import { fromJS, List, Map } from "immutable";
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
-import { Redux, useTypedRedux } from "../app-framework";
-import { createRoot } from "react-dom/client";
-import { path_split } from "@cocalc/util/misc";
+
+import { Redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { ErrorDisplay } from "@cocalc/frontend/components";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import { path_split } from "@cocalc/util/misc";
+import { createRoot } from "react-dom/client";
 import { CellList } from "./cell-list";
 import { cm_options } from "./cm_options";
-import { ErrorDisplay } from "../components";
 import { ERROR_STYLE } from "./main";
 
 function get_cells(
   syncdb: SyncDB,
-  version?: Date
+  version?: Date,
 ): { cells: Map<string, any>; cell_list: List<string> } {
   let cells = Map<string, any>();
   const othercells = syncdb.version(version).get({ type: "cell" });
   if (othercells != null) {
     othercells.forEach(
-      (cell: any) => (cells = cells.set(cell.get("id"), cell))
+      (cell: any) => (cells = cells.set(cell.get("id"), cell)),
     );
   }
   const cell_list = cell_utils.sorted_cell_list(cells);
@@ -115,7 +116,7 @@ export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
       root.render(
         <Redux>
           <HistoryViewer syncdb={syncdb} version={version} />
-        </Redux>
+        </Redux>,
       );
     },
     to_str(version) {

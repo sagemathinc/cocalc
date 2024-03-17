@@ -25,18 +25,18 @@ where they limit per minute, not per hour (like below):
 import getPool from "@cocalc/database/pool";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
-  isFreeModel,
   LanguageModel,
+  isFreeModel,
+  isLanguageModel,
   model2service,
-  MODELS,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {
   noAccount: 0,
   account: 10 ** 5,
   global: 10 ** 6,
-};
+} as const;
 
 /* for testing
 const QUOTAS = {
@@ -65,7 +65,8 @@ export async function checkForAbuse({
     // at least some amount of tracking.
     throw Error("at least one of account_id or analytics_cookie must be set");
   }
-  if (!MODELS.includes(model)) {
+
+  if (!isLanguageModel(model)) {
     throw Error(`invalid model "${model}"`);
   }
 

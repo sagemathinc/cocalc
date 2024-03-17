@@ -1,7 +1,7 @@
 import { sha1, uuidsha1 } from "@cocalc/backend/sha1";
 import { getClient as getDB } from "@cocalc/database/pool";
 import * as qdrant from "@cocalc/database/qdrant";
-import getClient from "./client";
+import { getClient } from "./client";
 import checkForAbuse from "./embeddings-abuse";
 import { VertexAIClient } from "./vertex-ai-client";
 

@@ -7,11 +7,13 @@
 Synchronized table that tracks server settings.
 */
 
+import { isEmpty } from "lodash";
+
 import { once } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { AllSiteSettings } from "@cocalc/util/db-schema/types";
 import { startswith } from "@cocalc/util/misc";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
-import { isEmpty } from "lodash";
 import { database } from "./database";
 
 // Returns:
@@ -22,16 +24,16 @@ import { database } from "./database";
 //   - table: the table, so you can watch for on change events...
 // These get automatically updated when the database changes.
 
-interface ServerSettings {
-  all: object;
+export interface ServerSettingsDynamic {
+  all: AllSiteSettings;
   pub: object;
   version: object;
   table: any;
 }
 
-let serverSettings: ServerSettings | undefined = undefined;
+let serverSettings: ServerSettingsDynamic | undefined = undefined;
 
-export default async function getServerSettings(): Promise<ServerSettings> {
+export default async function getServerSettings(): Promise<ServerSettingsDynamic> {
   if (serverSettings != null) {
     return serverSettings;
   }
