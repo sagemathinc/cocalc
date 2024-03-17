@@ -62,6 +62,7 @@ interface Props {
   is_visible: boolean;
   tab_is_visible: boolean; // if that editor tab is active -- see page/page.tsx
   placeholder?: string;
+  showFormatBar: boolean;
 }
 
 export const FrameTreeLeaf: React.FC<Props> = React.memo(
@@ -91,6 +92,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
       tab_is_visible,
       terminal,
       placeholder,
+      showFormatBar,
     } = props;
 
     if (editor_actions == null) {
@@ -113,14 +115,14 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
     const value: string | undefined = useRedux(name, "value");
     const misspelled_words: Set<string> | undefined = useRedux(
       name,
-      "misspelled_words"
+      "misspelled_words",
     );
     const complete: Map<string, any> | undefined = useRedux(name, "complete");
     const is_loaded: boolean | undefined = useRedux(name, "is_loaded");
     const error: string | undefined = useRedux(name, "error");
     const gutter_markers: Map<string, any> | undefined = useRedux(
       name,
-      "gutter_markers"
+      "gutter_markers",
     );
 
     const [isDeleted, setIsDeleted] = useState<boolean>(false);
@@ -186,6 +188,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
           tab_is_visible={tab_is_visible}
           placeholder={placeholder}
           onFocus={() => actions.set_active_id(desc.get("id"), true)}
+          showFormatBar={showFormatBar}
         />
       );
     }
@@ -220,5 +223,5 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
         {render_leaf()}
       </div>
     );
-  }
+  },
 );

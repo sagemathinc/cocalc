@@ -4,7 +4,7 @@
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
-import { Modal } from "antd";
+import { Button, Modal, Tooltip } from "antd";
 
 import {
   React,
@@ -17,41 +17,43 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useAppState } from "@cocalc/frontend/app/context";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { Loading } from "@cocalc/frontend/components";
 import {
   FrameContext,
   defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { AnonymousName } from "../anonymous-name";
+import { AnonymousName } from "@cocalc/frontend/project/anonymous-name";
 import {
   ProjectContext,
   useProjectContext,
   useProjectContextProvider,
-} from "../context";
-import { ProjectWarningBanner } from "../project-banner";
-import { StartButton } from "../start-button";
-import { DeletedProjectWarning } from "../warnings/deleted";
-import { DiskSpaceWarning } from "../warnings/disk-space";
-import { OOMWarning } from "../warnings/oom";
-import { RamWarning } from "../warnings/ram";
+} from "@cocalc/frontend/project/context";
+import { ProjectWarningBanner } from "@cocalc/frontend/project/project-banner";
+import { StartButton } from "@cocalc/frontend/project/start-button";
+import { DeletedProjectWarning } from "@cocalc/frontend/project/warnings/deleted";
+import { DiskSpaceWarning } from "@cocalc/frontend/project/warnings/disk-space";
+import { OOMWarning } from "@cocalc/frontend/project/warnings/oom";
+import { RamWarning } from "@cocalc/frontend/project/warnings/ram";
+import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
+import track from "@cocalc/frontend/user-tracking";
+import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDERS } from "./common";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
 import { FlyoutBody } from "./flyouts/body";
-import { FLYOUT_DEFAULT_WIDTH_PX } from "./flyouts/consts";
+import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./flyouts/consts";
 import { FlyoutHeader } from "./flyouts/header";
 import {
   getFlyoutExpanded,
+  getFlyoutShowActive,
   getFlyoutWidth,
   storeFlyoutState,
 } from "./flyouts/state";
-import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
-import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
+import { TopTabBar } from "./top-tabbar";
+import { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./vertical-fixed-tabs";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -69,6 +71,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const flyout = useTypedRedux({ project_id }, "flyout");
+  const showFlyoutActive = useTypedRedux({ project_id }, "flyout_active");
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -85,8 +88,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     { project_id },
     "active_project_tab",
   );
-  const [homePageButtonWidth, setHomePageButtonWidth] =
-    React.useState<number>(80);
 
   const [flyoutWidth, setFlyoutWidth] = useState<number>(
     getFlyoutWidth(project_id),
@@ -94,16 +95,16 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const [oldFlyoutWidth, setOldFlyoutWidth] = useState(flyoutWidth);
   const { pageWidthPx } = useAppState();
 
-  const narrowerPX = useMemo(() => {
-    return hideActionButtons ? homePageButtonWidth : 0;
-  }, [hideActionButtons, homePageButtonWidth]);
-
   useEffect(() => {
     const name = getFlyoutExpanded(project_id);
+    const showActive = getFlyoutShowActive(project_id);
     if (isFixedTab(name)) {
       // if there is one to show, restore its width
       setFlyoutWidth(getFlyoutWidth(project_id));
       actions?.setFlyoutExpanded(name, true, false);
+    }
+    if (typeof showActive === "boolean") {
+      actions?.setFlyoutShowActive(showActive);
     }
   }, [project_id]);
 
@@ -122,7 +123,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   async function resetFlyoutWidth() {
     // brief delay to ignore what dragging does
     await new Promise((resolve) => setTimeout(resolve, 10));
-    setWidth(FLYOUT_DEFAULT_WIDTH_PX + narrowerPX, true);
+    setWidth(FLYOUT_DEFAULT_WIDTH_PX, true);
   }
 
   const flyoutLimit = useMemo(() => {
@@ -219,9 +220,28 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (!flyout) return;
     if (fullscreen && fullscreen !== "project") return;
 
+    // this renders the flyout (consisting of a header and body) and a dragbar
+    // special care must be taken when editing the CSS styles. The flyout body has a
+    // vertical orientation and fills the remaining height 100%. insdie the body, there
+    // is a "wrap()" function, which is where a scrollable dragbar appears, when the
+    // overall content is more than the height of the flyout body. One of the key
+    // "tricks" is to specify height 100%, flex:"1 1 0" (start height 0, then calculate),
+    // and be extra careful when to display it as a flex container, and when this stops in the tree.
     return (
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
+        <div
+          style={{
+            display: "flex",
+            flex: "1 1 auto",
+            height: "100%",
+            flexDirection: "column",
+            overflow: "hidden",
+            marginRight: "5px",
+          }}
+        >
+          <FlyoutHeader flyoutWidth={flyoutWidth} flyout={flyout} />
+          <FlyoutBody flyoutWidth={flyoutWidth} flyout={flyout} />
+        </div>
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
           onDragEnd={(e) => updateDrag(e)}
@@ -230,20 +250,21 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             resetFlyoutWidth={resetFlyoutWidth}
             flyoutLimit={flyoutLimit}
             oldFlyoutWidth={oldFlyoutWidth}
+            addMargin={showFlyoutActive}
           />
         </DndContext>
       </div>
     );
   }
 
-  function renderFlyoutHeader() {
-    if (!flyout) return;
+  function renderFlyoutActive() {
+    if (!showFlyoutActive) return;
+
     return (
-      <FlyoutHeader
-        flyoutWidth={flyoutWidth}
-        flyout={flyout}
-        narrowerPX={narrowerPX}
-      />
+      <div style={{ display: "flex", flex: "0", flexDirection: "column" }}>
+        <FlyoutHeader flyoutWidth={FLYOUT_DEFAULT_WIDTH_PX} flyout="active" />
+        <FlyoutBody flyoutWidth={FLYOUT_DEFAULT_WIDTH_PX} flyout="active" />
+      </div>
     );
   }
 
@@ -253,36 +274,65 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
-      <div style={{ display: "flex", margin: "0", paddingTop: "3px" }}>
-        <HomePageButton
-          project_id={project_id}
-          active={active_project_tab == "home"}
-          width={homePageButtonWidth}
-        />
-        {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <Tabs project_id={project_id} />
-        </div>
+      <div
+        style={{
+          flex: "0 1 auto",
+          flexDirection: "row",
+          overflow: "hidden",
+          margin: "0",
+          width: "100%",
+          paddingTop: "3px",
+        }}
+      >
+        <TopTabBar />
       </div>
     );
   }
 
   function renderVerticalActionButtons() {
-    if (hideActionButtons) return;
     if (fullscreen && fullscreen !== "project") return;
 
-    return (
-      <div
-        style={{
-          background: FIXED_TABS_BG_COLOR,
-          borderRadius: "0",
-          borderTop: FIX_BORDERS.borderTop,
-          borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
-        }}
-      >
-        <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
-      </div>
-    );
+    if (hideActionButtons) {
+      return (
+        <Tooltip title="Show the action bar" placement="right">
+          <Button
+            size="small"
+            type="text"
+            style={{
+              position: "fixed",
+              bottom: "0px",
+              left: "0px",
+              zIndex: 1000,
+              outline: `1px solid ${COLORS.GRAY_L}`,
+              borderRadius: "0 3px 0 0 ",
+              backgroundColor: COLORS.GRAY_LLL,
+            }}
+            onClick={() => {
+              track("action-bar", { action: "show" });
+              actions?.toggleActionButtons();
+            }}
+          >
+            <Icon name="vertical-left-outlined" />
+          </Button>
+        </Tooltip>
+      );
+    } else {
+      return (
+        <div
+          style={{
+            flex: "0 0 auto",
+            display: "flex",
+            flexDirection: "column",
+            background: FIXED_TABS_BG_COLOR,
+            borderRadius: "0",
+            borderTop: FIX_BORDERS.borderTop,
+            borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
+          }}
+        >
+          <VerticalFixedTabs />
+        </div>
+      );
+    }
   }
 
   function renderMainContent() {
@@ -320,12 +370,23 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
-        {renderTopRow()}
-        {is_deleted && <DeletedProjectWarning />}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "row" }}>
           {renderVerticalActionButtons()}
           {renderFlyout()}
-          {renderMainContent()}
+          {renderFlyoutActive()}
+          <div
+            style={{
+              flex: "1 1 auto",
+              flexDirection: "column",
+              display: "flex",
+            }}
+          >
+            {renderTopRow()}
+            {is_deleted ? <DeletedProjectWarning /> : undefined}
+            <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+              {renderMainContent()}
+            </div>
+          </div>
         </div>
       </div>
     </ProjectContext.Provider>
@@ -336,10 +397,12 @@ function FlyoutDragbar({
   resetFlyoutWidth,
   flyoutLimit,
   oldFlyoutWidth,
+  addMargin: addPadding,
 }: {
   resetFlyoutWidth: () => void;
   flyoutLimit: { left: number; right: number };
   oldFlyoutWidth: number;
+  addMargin: boolean;
 }) {
   const { project_id } = useProjectContext();
 
@@ -366,10 +429,11 @@ function FlyoutDragbar({
       className="cc-project-flyout-dragbar"
       style={{
         transform: transform ? `translate3d(${dx}px, 0, 0)` : undefined,
-        flex: "1 0 ",
         width: "5px",
         height: "100%",
         cursor: "col-resize",
+        // add some space if flyout + active files are visible
+        marginRight: addPadding ? FLYOUT_PADDING : undefined,
         ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
       }}
       {...listeners}

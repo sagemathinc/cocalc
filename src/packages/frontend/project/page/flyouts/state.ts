@@ -67,6 +67,7 @@ export type LSFlyout = {
   starred?: FlyoutActiveStarred;
   showStarred?: boolean;
   activeTabSort?: FlyoutActiveTabSort;
+  showActive?: boolean;
   logFilter?: FlyoutLogFilter[];
 };
 
@@ -91,11 +92,20 @@ export function storeFlyoutState(
     showStarred?: boolean;
     width?: number | null;
     activeTabSort?: FlyoutActiveTabSort;
+    showActive?: boolean; // only for name=="active"
     logFilter?: FlyoutLogFilter[];
   },
 ): void {
-  const { scroll, expanded, width, mode, files, deduplicate, logFilter } =
-    state;
+  const {
+    scroll,
+    expanded,
+    width,
+    mode,
+    files,
+    deduplicate,
+    logFilter,
+    showActive,
+  } = state;
   const key = lsKey(project_id);
   const current = LS.get<LSFlyout>(key) ?? {};
   current.scroll ??= {};
@@ -116,6 +126,10 @@ export function storeFlyoutState(
     current.expanded = flyout;
   } else if (expanded === false) {
     delete current.expanded;
+  }
+
+  if (flyout === "active" && typeof showActive === "boolean") {
+    current.showActive = showActive;
   }
 
   if (flyout === "log") {
@@ -229,4 +243,8 @@ export function getFlyoutActiveTabSort(
 ): FlyoutActiveTabSort {
   const activeTabSort = LS.get<LSFlyout>(lsKey(project_id))?.activeTabSort;
   return isFlyoutActiveTabSort(activeTabSort) ? activeTabSort : "custom";
+}
+
+export function getFlyoutShowActive(project_id: string): boolean {
+  return LS.get<LSFlyout>(lsKey(project_id))?.showActive ?? false;
 }

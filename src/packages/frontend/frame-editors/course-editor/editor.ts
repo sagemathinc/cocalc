@@ -9,14 +9,15 @@ Spec for editing Jupyter notebooks via a frame tree.
 
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
+import { EditorSpec } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import {
   Assignments,
   Configuration,
+  Handouts,
   SharedProject,
   Students,
-  Handouts,
 } from "./course-panels";
 
 const commands = set([
@@ -30,7 +31,7 @@ const commands = set([
 //const buttons = set(["decrease_font_size", "increase_font_size"]);
 const buttons = undefined;
 
-export const EDITOR_SPEC = {
+export const EDITOR_SPEC: EditorSpec = {
   course_students: {
     short: "Students",
     name: "Students",
@@ -76,7 +77,6 @@ export const EDITOR_SPEC = {
 } as const;
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "CourseEditor",
 });

@@ -3,17 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import type { AppRedux } from "./types";
 import { bind_methods } from "@cocalc/util/misc";
+import type { AppRedux } from "./types";
 
 // NOTE: it is intentional that there is no get method.  Instead, get data
 // from stores.  The table will set stores (via creating actions) as
 // needed when it changes.
 export class Actions<T> {
-  constructor(
-    readonly name: string,
-    readonly redux: AppRedux,
-  ) {
+  constructor(readonly name: string, readonly redux: AppRedux) {
     bind_methods(this); // see comment in Store.ts.
     if (this.name == null) {
       throw Error("name must be defined");

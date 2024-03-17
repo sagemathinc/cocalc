@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useActions,
-  useTypedRedux,
-  useState,
   useIsMountedRef,
-} from "../app-framework";
-import { Loading } from "../components";
-import { Button } from "../antd-bootstrap";
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
 
 export const LoadAllProjects: React.FC = React.memo(() => {
   const done = useTypedRedux("projects", "all_projects_have_been_loaded");

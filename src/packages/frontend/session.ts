@@ -8,16 +8,19 @@ Session management
 */
 
 import { throttle } from "underscore";
-import { webapp_client } from "./webapp-client";
-import { should_load_target_url } from "./misc";
-import { AppRedux } from "./app-framework";
-import { COCALC_MINIMAL } from "./fullscreen";
-import { callback2 } from "@cocalc/util/async-utils";
-import * as LS from "./misc/local-storage-typed";
-import { bind_methods } from "@cocalc/util/misc";
+
+import { AppRedux } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
-import { load_target } from "./history";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
+import { load_target } from "@cocalc/frontend/history";
+import { should_load_target_url } from "@cocalc/frontend/misc";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { callback2 } from "@cocalc/util/async-utils";
+import { bind_methods } from "@cocalc/util/misc";
+
+export type { SessionManager };
 
 const log = (..._args) => {
   // console.trace("session: ", ..._args);

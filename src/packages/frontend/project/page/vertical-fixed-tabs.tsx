@@ -4,24 +4,20 @@
  */
 
 /*
-Tabs in a particular project.
+Vertical Fixed Tabs on the left in a project.
 */
 
 import type { MenuProps } from "antd";
-import { Button, Dropdown, Modal, Switch, Tooltip } from "antd";
-import { debounce, throttle } from "lodash";
-import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Button, Dropdown, Modal, Tooltip } from "antd";
+import { throttle } from "lodash";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { Icon } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
-import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
-import FileTabs from "./file-tabs";
-import { ShareIndicator } from "./share-indicator";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
@@ -29,103 +25,44 @@ import {
   getValidVBAROption,
 } from "./vbar";
 
-const INDICATOR_STYLE: React.CSSProperties = {
-  overflow: "hidden",
-  paddingLeft: "5px",
-} as const;
-
 export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
 
-interface PTProps {
-  project_id: string;
-}
-
-export default function ProjectTabs(props: PTProps) {
-  const { project_id } = props;
-  const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-
-  if (openFiles.size == 0) return <></>;
-
-  return (
-    <div
-      className="smc-file-tabs"
-      style={{
-        width: "100%",
-        height: "40px",
-        padding: "2.5px",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ display: "flex" }}>
-        <div
-          style={{
-            display: "flex",
-            overflow: "hidden",
-            flex: 1,
-          }}
-        >
-          <FileTabs
-            openFiles={openFiles}
-            project_id={project_id}
-            activeTab={activeTab}
-          />
-        </div>
-        <div
-          style={{
-            display: "inline-flex",
-            marginLeft: "-10px",
-          }}
-        >
-          <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
-          <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface FVTProps {
-  setHomePageButtonWidth: (width: number) => void;
-}
-
-export function VerticalFixedTabs(props: Readonly<FVTProps>) {
-  const { setHomePageButtonWidth } = props;
+export function VerticalFixedTabs() {
   const {
-    actions,
     project_id,
     active_project_tab: activeTab,
+    actions,
   } = useProjectContext();
   const active_flyout = useTypedRedux({ project_id }, "flyout");
   const other_settings = useTypedRedux("account", "other_settings");
   const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
-  const tabs = useRef<HTMLDivElement>(null);
+  const gap = useRef<HTMLDivElement>(null);
   const breakPoint = useRef<number>(0);
   const refCondensed = useRef<boolean>(false);
   const [condensed, setCondensed] = useState(false);
 
   const calcCondensed = throttle(
     () => {
-      if (tabs.current == null) return;
+      if (gap.current == null) return;
       if (parent.current == null) return;
 
-      const th = tabs.current.clientHeight;
+      const gh = gap.current.clientHeight;
       const ph = parent.current.clientHeight;
 
       if (refCondensed.current) {
         // 5px slack to avoid flickering
-        if (ph > breakPoint.current + 5) {
+        if (gh > 0 && ph > breakPoint.current + 5) {
           setCondensed(false);
           refCondensed.current = false;
         }
       } else {
-        if (ph < th) {
+        if (gh < 1) {
           setCondensed(true);
           refCondensed.current = true;
           // max? because when we start with a thin window, the ph is already smaller than th
-          breakPoint.current = Math.max(th, ph);
+          breakPoint.current = ph;
         }
       }
     },
@@ -141,28 +78,6 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       window.removeEventListener("resize", calcCondensed);
     };
   }, []);
-
-  useEffect(() => {
-    if (parent.current == null) return;
-
-    const observer = new ResizeObserver(
-      debounce(
-        () => {
-          const width = parent.current?.offsetWidth;
-          // we ignore zero width, which happens when not visible
-          if (width == null || width == 0) return;
-          setHomePageButtonWidth(width);
-        },
-        50,
-        { trailing: true, leading: false },
-      ),
-    );
-    observer.observe(parent.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [condensed, parent.current]);
 
   const items: ReactNode[] = [];
   for (const nameStr in FIXED_PROJECT_TABS) {
@@ -211,6 +126,24 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     if (tab != null) items.push(tab);
   }
 
+  function renderToggleSidebar() {
+    return (
+      <Tooltip title="Hide the action bar" placement="right">
+        <Button
+          size="small"
+          type="text"
+          block
+          onClick={() => {
+            track("action-bar", { action: "hide" });
+            actions?.toggleActionButtons();
+          }}
+        >
+          <Icon name="vertical-right-outlined" />
+        </Button>
+      </Tooltip>
+    );
+  }
+
   return (
     <div
       ref={parent}
@@ -222,27 +155,14 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         // also, the scrollbar is intentionally only active in condensed mode, to avoid it to show up briefly.
         overflowY: condensed ? "auto" : "hidden",
         overflowX: "hidden",
+        flex: "1 1 0",
       }}
     >
-      <div
-        ref={tabs}
-        style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
-      >
-        {items}
-        <div style={{ flex: 1 }}></div> {/* moves hide switch to the bottom */}
-        <LayoutSelector vbar={vbar} />
-        <Tooltip title="Hide the action bar" placement="right">
-          <Switch
-            style={{ margin: "10px" }}
-            size="small"
-            checked
-            onChange={() => {
-              actions?.toggleActionButtons();
-              track("action-bar", { action: "hide" });
-            }}
-          />
-        </Tooltip>
-      </div>
+      {items}
+      {/* moves the layout selector to the bottom */}
+      <div ref={gap} style={{ flex: 1 }}></div>
+      <LayoutSelector vbar={vbar} />
+      {renderToggleSidebar()}
     </div>
   );
 }
@@ -308,54 +228,6 @@ function LayoutSelector({ vbar }) {
       <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
         <Button icon={<Icon name="layout" />} style={{ margin: "5px" }} />
       </Dropdown>
-    </div>
-  );
-}
-
-function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
-  const openFileInfo = useTypedRedux({ project_id }, "open_files");
-  if (!activeTab?.startsWith("editor-")) {
-    // TODO: This is the place in the code where we could support project-wide
-    // side chat, or side chats for each individual Files/Search, etc. page.
-    return null;
-  }
-  const path = tab_to_path(activeTab);
-  if (path == null) {
-    // bug -- tab is not a file tab.
-    return null;
-  }
-  const chatState = openFileInfo.getIn([path, "chatState"]) as any;
-  return (
-    <div style={INDICATOR_STYLE}>
-      <ChatIndicator
-        project_id={project_id}
-        path={path}
-        chatState={chatState}
-      />
-    </div>
-  );
-}
-
-function ShareIndicatorTab({ activeTab, project_id }) {
-  const isAnonymous = useTypedRedux("account", "is_anonymous");
-  const currentPath = useTypedRedux({ project_id }, "current_path");
-
-  if (isAnonymous) {
-    // anon users can't share anything
-    return null;
-  }
-  const path = activeTab === "files" ? currentPath : tab_to_path(activeTab);
-  if (path == null) {
-    // nothing specifically to share
-    return null;
-  }
-  if (path === "") {
-    // sharing whole project not implemented
-    return null;
-  }
-  return (
-    <div style={INDICATOR_STYLE}>
-      <ShareIndicator project_id={project_id} path={path} />
     </div>
   );
 }

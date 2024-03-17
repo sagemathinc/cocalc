@@ -6,6 +6,8 @@
 /* Code related to the history and URL in the browser bar.
 
 The URI schema handled by the single page app is as follows:
+     Homepage (Start):
+        https://cocalc.com/home
      Overall settings:
         https://cocalc.com/settings
      Admin only page:
@@ -91,7 +93,7 @@ export function set_url(url: string, hash?: string) {
   const query_params = params();
   const full_url = join(
     appBasePath,
-    url + query_params + (hash ?? location.hash)
+    url + query_params + (hash ?? location.hash),
   );
   if (full_url === last_full_url) {
     // nothing to do
@@ -105,7 +107,7 @@ export function set_url(url: string, hash?: string) {
 export function load_target(
   target: string,
   ignore_kiosk: boolean = false,
-  change_history: boolean = true
+  change_history: boolean = true,
 ) {
   if (!target) {
     return;
@@ -113,6 +115,9 @@ export function load_target(
   const logged_in = redux.getStore("account").get("is_logged_in");
   const segments = target.split("/");
   switch (segments[0]) {
+    case "home":
+      redux.getActions("page").set_active_tab("home", change_history);
+      break;
     case "help":
       redux.getActions("page").set_active_tab("about", change_history);
       break;
@@ -125,7 +130,7 @@ export function load_target(
             true,
             ignore_kiosk,
             change_history,
-            Fragment.get()
+            Fragment.get(),
           );
       } else {
         redux.getActions("page").set_active_tab("projects", change_history);
@@ -179,16 +184,24 @@ window.onpopstate = (_) => {
   load_target(
     decodeURIComponent(
       document.location.pathname.slice(
-        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1)
-      )
+        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1),
+      ),
     ),
     false,
-    false
+    false,
   );
 };
 
 export function parse_target(target?: string):
-  | { page: "projects" | "help" | "file-use" | "notifications" | "admin" }
+  | {
+      page:
+        | "projects"
+        | "help"
+        | "file-use"
+        | "notifications"
+        | "admin"
+        | "home";
+    }
   | { page: "project"; target: string }
   | {
       page: "account";

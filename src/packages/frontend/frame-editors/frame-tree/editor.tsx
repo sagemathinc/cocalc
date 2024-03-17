@@ -217,8 +217,6 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
 
 interface Options {
   display_name: string;
-  format_bar?: boolean;
-  format_bar_exclude?: SetMap;
   editor_spec: EditorSpec;
 }
 
@@ -241,8 +239,6 @@ export function createEditor(opts: Options): React.FC<EditorProps> {
         name={name}
         path={path}
         project_id={project_id}
-        format_bar={!!opts.format_bar}
-        format_bar_exclude={opts.format_bar_exclude}
         editor_spec={{ ...opts.editor_spec, chat }}
         tab_is_visible={is_visible}
       />

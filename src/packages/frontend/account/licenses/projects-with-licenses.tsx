@@ -3,19 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Row, Col } from "antd";
+import { Col, Row } from "antd";
+import { Virtuoso } from "react-virtuoso";
+
 import {
   React,
+  redux,
+  useEffect,
   useMemo,
   useTypedRedux,
-  useEffect,
-  redux,
-} from "../../app-framework";
-import { Loading, TimeAgo } from "../../components";
-import { projects_with_licenses } from "./util";
+} from "@cocalc/frontend/app-framework";
+import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import { plural, trunc_middle } from "@cocalc/util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";
-import { Virtuoso } from "react-virtuoso";
+import { projects_with_licenses } from "./util";
 
 function open_project(project_id: string): void {
   redux.getActions("projects").open_project({ project_id });
@@ -26,11 +27,11 @@ export const ProjectsWithLicenses: React.FC = () => {
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
   const projects = useMemo(
     () => projects_with_licenses(project_map),
-    [project_map]
+    [project_map],
   );
 
   useEffect(() => {

@@ -12,39 +12,42 @@ trigger actions when certain props change. This manages the state of a single
 codemirror editor instance mainly for use in a frame tree.
 */
 
-import { SAVE_DEBOUNCE_MS } from "./const";
-import { Map, Set } from "immutable";
-import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
+import { Map, Set } from "immutable";
+import { debounce, isEqual, throttle } from "lodash";
+
 import {
+  CSS,
   React,
   ReactDOM,
   Rendered,
-  CSS,
   useEffect,
   useIsMountedRef,
   useRef,
   useState,
-} from "../../app-framework";
-import { debounce, throttle, isEqual } from "lodash";
+} from "@cocalc/frontend/app-framework";
 import { Cursors } from "@cocalc/frontend/jupyter/cursors";
+import { filename_extension } from "@cocalc/util/misc";
 import { cm_options } from "../codemirror/cm-options";
-import { init_style_hacks } from "../codemirror/util";
 import { get_state, set_state } from "../codemirror/codemirror-state";
-import { has_doc, set_doc, get_linked_doc } from "./doc";
-import { GutterMarkers } from "./codemirror-gutter-markers";
-import { Actions } from "./actions";
-import { EditorState } from "../frame-tree/types";
+import { init_style_hacks } from "../codemirror/util";
+import { FormatBar } from "../frame-tree/format-bar";
 import { Path } from "../frame-tree/path";
+import { EditorState } from "../frame-tree/types";
+import { is_safari } from "../generic/browser";
+import { Actions } from "./actions";
+import { GutterMarkers } from "./codemirror-gutter-markers";
+import { SAVE_DEBOUNCE_MS } from "./const";
+import { get_linked_doc, has_doc, set_doc } from "./doc";
 
-const STYLE = {
+const STYLE: CSS = {
   width: "100%",
   overflow: "auto",
-  marginbottom: "1ex",
-  minheight: "2em",
+  marginBottom: "0",
+  minHeight: "2em",
   border: "0px",
   background: "#fff",
-} as CSS;
+} as const;
 
 export interface Props {
   id: string;
@@ -65,6 +68,7 @@ export interface Props {
   editor_settings: Map<string, any>;
   is_subframe?: boolean;
   placeholder?: string;
+  showFormatBar: boolean;
 }
 
 export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
@@ -487,6 +491,13 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
         path={props.path}
         is_current={props.is_current}
       />
+      {props.showFormatBar ? (
+        <FormatBar
+          is_current={props.is_current}
+          actions={props.actions}
+          extension={filename_extension(props.path)}
+        />
+      ) : undefined}
       <div
         style={{ ...STYLE, fontSize: `${props.font_size}px` }}
         className="smc-vfill"

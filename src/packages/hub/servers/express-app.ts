@@ -2,35 +2,36 @@
 The main hub express app.
 */
 
-import { path as WEBAPP_PATH } from "@cocalc/assets";
-import basePath from "@cocalc/backend/base-path";
-import { path as CDN_PATH } from "@cocalc/cdn";
-import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
-import { path as STATIC_PATH } from "@cocalc/static";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import express from "express";
 import ms from "ms";
 import { join } from "path";
 import { parse as parseURL } from "url";
-import { initAnalytics } from "../analytics";
-import { setup_health_checks as setupHealthChecks } from "../health-checks";
-import { getLogger } from "../logger";
-import initProxy from "../proxy";
+import webpackDevMiddleware from "webpack-dev-middleware";
+import webpackHotMiddleware from "webpack-hot-middleware";
+
+import { path as WEBAPP_PATH } from "@cocalc/assets";
+import basePath from "@cocalc/backend/base-path";
+import { path as CDN_PATH } from "@cocalc/cdn";
+import { initAnalytics } from "@cocalc/hub/analytics";
+import { setup_health_checks as setupHealthChecks } from "@cocalc/hub/health-checks";
+import { getLogger } from "@cocalc/hub/logger";
+import initProxy from "@cocalc/hub/proxy";
+import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
+import { path as STATIC_PATH } from "@cocalc/static";
 import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobs from "./app/blobs";
-import initStripeWebhook from "./app/webhooks/stripe";
 import initCustomize from "./app/customize";
-import { setupInstrumentation, initMetricsEndpoint } from "./app/metrics";
+import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initNext from "./app/next";
 import initSetCookies from "./app/set-cookies";
 import initStats from "./app/stats";
+import initStripeWebhook from "./app/webhooks/stripe";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-import webpackHotMiddleware from "webpack-hot-middleware";
-import webpackDevMiddleware from "webpack-dev-middleware";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);

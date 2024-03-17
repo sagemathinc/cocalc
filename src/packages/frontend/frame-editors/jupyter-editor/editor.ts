@@ -8,26 +8,26 @@ Spec for editing Jupyter notebooks via a frame tree.
 */
 
 import { createElement } from "react";
+
+import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
+import { AllActions, commands } from "@cocalc/frontend/jupyter/commands";
+import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
 import { capitalize, field_cmp, set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { CellNotebook } from "./cell-notebook/cell-notebook";
-import { RawIPynb } from "./raw-ipynb";
-import JSONIPynb from "./json-ipynb";
-import { Slideshow } from "./slideshow-revealjs/slideshow";
-import { TableOfContents } from "./table-of-contents";
 import { Introspect } from "./introspect/introspect";
-const SNIPPET_ICON_NAME =
-  require("@cocalc/frontend/assistant/common").ICON_NAME;
-import { JupyterSnippets } from "./snippets";
-import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import { commands, AllActions } from "@cocalc/frontend/jupyter/commands";
-import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
+import JSONIPynb from "./json-ipynb";
 import KernelMenuItem from "./kernel-menu-item";
-import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
+import { RawIPynb } from "./raw-ipynb";
+import { Slideshow } from "./slideshow-revealjs/slideshow";
+import { JupyterSnippets } from "./snippets";
+import { SNIPPET_ICON_NAME } from "./snippets/utils";
+import { TableOfContents } from "./table-of-contents";
 
 const jupyterCommands = set([
   "about",
@@ -49,7 +49,7 @@ const jupyterCommands = set([
   "compute_server",
 ]);
 
-export const EDITOR_SPEC = {
+export const EDITOR_SPEC: EditorSpec = {
   jupyter_cell_notebook: {
     short: "Jupyter",
     name: "Jupyter Notebook",
@@ -57,6 +57,24 @@ export const EDITOR_SPEC = {
     component: CellNotebook,
     commands: jupyterCommands,
     buttons: set([
+      "chatgpt",
+      // "print",
+      "set_zoom",
+      "decrease_font_size",
+      "increase_font_size",
+      // "save", // in the topbar now
+      "time_travel",
+      "cut",
+      "paste",
+      "copy",
+      "undo",
+      "redo",
+      // "halt_jupyter", // in the topbar now
+      // "show_table_of_contents", // in the topbar now
+      // "guide", // in the topbar now
+      // "shell", // in the topbar now
+      // "help", // in the topbar now
+      "compute_server",
       "jupyter-insert-cell",
       "jupyter-run current cell and select next",
       "jupyter-interrupt kernel",
@@ -124,7 +142,7 @@ export const EDITOR_SPEC = {
     component: RawIPynb,
     commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
-};
+} as const;
 
 const JUPYTER_MENUS = {
   file: {
@@ -530,7 +548,6 @@ function initMenus() {
 initMenus();
 
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "JupyterNotebook",
 });

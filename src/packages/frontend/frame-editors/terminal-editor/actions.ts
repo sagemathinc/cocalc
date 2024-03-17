@@ -7,9 +7,11 @@
 Terminal Editor Actions
 */
 import { delay } from "awaiting";
+
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
+import { open_new_tab } from "../../misc";
 import { Actions } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
-import { open_new_tab } from "../../misc";
 import getTour from "./tour";
 
 const HELP_URL = "https://doc.cocalc.com/terminal.html";
@@ -110,6 +112,17 @@ export class TerminalActions extends Actions {
 
   tour(_id, refs) {
     return getTour(refs);
+  }
+
+  public getTopBarActions(): TopBarActions {
+    return [
+      {
+        type: "entry",
+        label: "Guide",
+        icon: "magic",
+        action: () => this.guide(),
+      },
+    ];
   }
 
   compute_server() {

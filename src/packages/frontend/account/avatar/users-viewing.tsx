@@ -15,6 +15,7 @@ import {
 import { Loading } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
 import { Avatar } from "./avatar";
+import { isEmpty } from "lodash";
 
 // How frequently all UsersViewing componenents are completely updated.
 // This is only needed to ensure that faces fade out; any newly added faces
@@ -73,17 +74,25 @@ function useUsersViewing(
 ) {
   const [counter, set_counter] = useState(0); // used to force update periodically.
 
+  // so we can exclude ourselves from list of faces
+  const our_account_id: string | undefined = useTypedRedux(
+    "account",
+    "account_id",
+  );
+
   // only so component is updated immediately whenever file use changes
   const file_use = useTypedRedux("file_use", "file_use");
-  const users = useMemo(
-    () =>
-      redux.getStore("file_use")?.get_active_users({
-        project_id,
-        path,
-        max_age_s,
-      }),
-    [file_use, project_id, path, max_age_s],
-  );
+  const users = useMemo(() => {
+    // if (!our_account_id) return;
+    const nextUsers = redux.getStore("file_use")?.get_active_users({
+      project_id,
+      path,
+      max_age_s,
+    });
+    // only show other users
+    // delete nextUsers?.[our_account_id];
+    return nextUsers;
+  }, [file_use, project_id, path, max_age_s, our_account_id]);
 
   useInterval(() => {
     // cause an update
@@ -104,12 +113,6 @@ export function UsersViewing(props: Readonly<Props>) {
 
   const { users, file_use } = useUsersViewing(project_id, path, max_age_s);
 
-  // so we can exclude ourselves from list of faces
-  const our_account_id: string | undefined = useTypedRedux(
-    "account",
-    "account_id",
-  );
-
   function render_active_users(users) {
     const v: {
       account_id: string;
@@ -128,27 +131,30 @@ export function UsersViewing(props: Readonly<Props>) {
     let i = 0;
     const r: JSX.Element[] = [];
     for (const { account_id, activity } of v) {
-      // only show other users
-      if (account_id !== our_account_id) {
-        i += 1;
-        r.push(
-          <Avatar
-            key={account_id + i}
-            account_id={account_id}
-            max_age_s={max_age_s}
-            project_id={project_id}
-            path={path}
-            size={size}
-            activity={activity}
-          />,
-        );
-      }
+      // "users" already filtered out our own account_id
+      i += 1;
+      r.push(
+        <Avatar
+          key={account_id + i}
+          account_id={account_id}
+          max_age_s={max_age_s}
+          project_id={project_id}
+          path={path}
+          size={size}
+          activity={activity}
+        />,
+      );
     }
     return r;
   }
 
-  if (file_use == null || our_account_id == null) {
+  if (file_use == null) {
     return <Loading />;
+  }
+
+  // don't return the <div> below withouth any children, because this breaks some styling in the topright area of the project editor tabs
+  if (isEmpty(users)) {
+    return <></>;
   }
 
   return (

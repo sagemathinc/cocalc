@@ -120,6 +120,15 @@ const MAIN_COLORS = {
 export const COLORS = {
   ...MAIN_COLORS,
 
+  CONN: {
+    OFFLINE: "rgb(255, 165, 0)",
+    ONLINE: MAIN_COLORS.GRAY_M,
+    DISCONNECTED: "rgb(255, 0, 0)",
+    CONNECTING: "rgb(255, 165, 0)",
+    WARNING: "#08e",
+    RECONNECTING: "#00c",
+  },
+
   // The definitions below add semantic meaning by using the colors
   // navigation bar at the top
   TOP_BAR: {
@@ -131,6 +140,12 @@ export const COLORS = {
     X: MAIN_COLORS.GRAY,
     X_HOVER: MAIN_COLORS.GRAY_L,
     SIGN_IN_BG: MAIN_COLORS.YELL_L,
+  },
+
+  EDITOR: {
+    COL_BAR_BACKGROUND: MAIN_COLORS.GRAY_LL,
+    COL_BAR_BACKGROUND_DARK: MAIN_COLORS.GRAY_DDD,
+    COL_BAR_BORDER: MAIN_COLORS.GRAY_LLL,
   },
 
   PROJECT: {

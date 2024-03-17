@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import { debounce, DebouncedFunc, DebounceSettings } from "lodash";
+import { DebounceSettings, DebouncedFunc, debounce } from "lodash";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 
 type CancelableHOF = <T extends (...args: any[]) => any>(
   func: T,
@@ -30,9 +30,9 @@ function useCallbackWith<
   H extends CancelableHOF,
   F extends (...args: any[]) => any
 >(hof: H, callback: F, ...tail: Tail<Parameters<H>>): typeof wrapped {
-  const wrapped = React.useCallback(hof(callback, ...tail), [...tail]);
+  const wrapped = useCallback(hof(callback, ...tail), [...tail]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     return wrapped.cancel;
   }, [wrapped]);
 
@@ -55,3 +55,33 @@ export const useDebounce = <T extends (...args) => any>(
 ): DebouncedFunc<T> => {
   return useCallbackWith(debounce, cb, wait, options);
 };
+
+/** Observe height and width of the given HTML element, by it's reference */
+export function useMeasureDimensions(
+  ref: React.RefObject<HTMLElement>,
+  { debounce_ms = 50 }: { debounce_ms?: number } = {}
+) {
+  const [height, setHeight] = useState(0);
+  const [width, setWidth] = useState(0);
+
+  // observe the height and width of ref
+  // that's why we need a layout effect
+  useLayoutEffect(() => {
+    if (ref.current == null) return;
+    const observer = new ResizeObserver(
+      debounce(
+        () => {
+          if (ref.current == null) return;
+          setWidth(ref.current.clientWidth);
+          setHeight(ref.current.clientHeight);
+        },
+        debounce_ms,
+        { trailing: true, leading: false }
+      )
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [ref.current]);
+
+  return { height, width };
+}

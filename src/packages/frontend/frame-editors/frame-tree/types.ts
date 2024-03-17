@@ -65,6 +65,8 @@ export interface EditorDescription {
   hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
   clear_info?: { text: string; confirm: string };
   placeholder?: string; // placeholder text to use when empty.
+  format_bar?: boolean; // if true, show the format bar.
+  format_bar_exclude?: SetMap
 }
 
 export interface EditorSpec {

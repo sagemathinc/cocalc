@@ -3,19 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
+
 import {
+  defaults,
   filename_extension_notilde,
   meta_file,
   path_split,
-  defaults,
   required,
 } from "@cocalc/util/misc";
 
-import { React } from "./app-framework";
-
-import { delay } from "awaiting";
+import { React } from "@cocalc/frontend/app-framework";
+import { IconName } from "@cocalc/frontend/components/icon";
 import { getStudentProjectFunctionality } from "./course";
-import { IconName } from "./components/icon";
 
 declare let DEBUG: boolean;
 
@@ -101,8 +101,8 @@ export function register_file_editor(opts: FileEditorInfo): void {
     initAsync: undefined, // async function
     remove: undefined,
     icon: "file-o",
-    save: undefined,
-  }); // optional; If given, doing opts.save(path, redux, project_id) should save the document.
+    save: undefined, // optional; If given, doing opts.save(path, redux, project_id) should save the document.
+  });
 
   if (typeof opts.ext === "string") {
     opts.ext = [opts.ext];

@@ -11,13 +11,16 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
-import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
+
 import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
+import { set_local_storage } from "@cocalc/frontend/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
+import type { ChatState } from "@cocalc/frontend/project/page/chat-button";
 import track from "@cocalc/frontend/user-tracking";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
@@ -30,7 +33,6 @@ import { alert_message } from "./alerts";
 import { Actions, project_redux_name, redux } from "./app-framework";
 import { IconName } from "./components";
 import { local_storage } from "./editor-local-storage";
-import { set_local_storage } from "@cocalc/frontend/misc";
 import { get_editor } from "./editors/react-wrapper";
 import { query as client_query, exec } from "./frame-editors/generic/client";
 import { set_url } from "./history";
@@ -55,7 +57,10 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "./project/page/flyouts/state";
-import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
+import {
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
+} from "./project/page/flyouts/utils";
 import { ensure_project_running } from "./project/project-start-warning";
 import { transform_get_url } from "./project/transform-get-url";
 import {
@@ -76,11 +81,6 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
-import {
-  FLYOUT_LOG_FILTER_DEFAULT,
-  FlyoutLogFilter,
-} from "./project/page/flyouts/utils";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 
 const { defaults, required } = misc;
 
@@ -368,7 +368,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   push_state(local_url?: string, hash?: string): void {
     if (local_url == null) {
-      local_url = this._last_history_state ?? "files/";
+      local_url = this._last_history_state ?? "home/";
     }
     this._last_history_state = local_url;
     set_url(this._url_in_project(local_url), hash);
@@ -396,10 +396,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (misc.path_to_tab(path) === active_project_tab) {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
-        const account_store = this.redux.getStore("account") as any;
-        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
-        next_active_tab = flyoutsDefault ? "home" : "files";
+        // we switch back to the minimal home page
+        next_active_tab = "home";
       } else {
         let path: string | undefined;
 
@@ -613,12 +611,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public toggleFlyout(name: FixedTab): void {
     const store = this.get_store();
     if (store == undefined) return;
-    const flyout = name === store.get("flyout") ? null : name;
-    this.setState({ flyout });
-    // also store this in local storage
-    storeFlyoutState(this.project_id, name, { expanded: flyout != null });
-    if (flyout != null) {
-      track("flyout", { name: flyout, project_id: this.project_id });
+
+    // active is special case
+    if (name === "active") {
+      const flyout_active = !store.get("flyout_active");
+      this.setState({ flyout_active });
+      // also store this in local storage
+      storeFlyoutState(this.project_id, name, { showActive: flyout_active });
+      track("flyout", { name, project_id: this.project_id });
+    } else {
+      // all other flyouts are toggled
+      const flyout = name === store.get("flyout") ? null : name;
+      this.setState({ flyout });
+      // also store this in local storage
+      storeFlyoutState(this.project_id, name, { expanded: flyout != null });
+      if (flyout != null) {
+        track("flyout", { name: flyout, project_id: this.project_id });
+      }
     }
   }
 
@@ -628,6 +637,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (save) {
       storeFlyoutState(this.project_id, name, { expanded: name != null });
     }
+  }
+
+  public setFlyoutShowActive(showActive: boolean): void {
+    this.setState({ flyout_active: showActive });
+    // also store this in local storage
+    storeFlyoutState(this.project_id, "active", { showActive });
   }
 
   public setFlyoutLogMode(mode: FlyoutLogMode): void {
@@ -1359,8 +1374,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
+    const currentId = await computeServerAssociations.getServerIdForPath(
+      sidePath,
+    );
     if (currentId != null) {
       // already set
       return;

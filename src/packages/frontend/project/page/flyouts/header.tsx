@@ -16,7 +16,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIXED_TABS_BG_COLOR } from "../tabs";
+import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
 import { ActiveHeader } from "./active-header";
@@ -28,11 +28,12 @@ const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 interface Props {
   flyoutWidth: number;
   flyout: FixedTab;
-  narrowerPX: number;
+  narrowerPX?: number;
 }
 
 export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
+  const isActiveFlyout = flyout === "active";
   const { actions, project_id, is_active } = useProjectContext();
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
@@ -68,17 +69,18 @@ export function FlyoutHeader(_: Readonly<Props>) {
 
   function closeBtn() {
     return (
-      <Tooltip title="Hide this panel" placement="bottom">
-        <Icon
-          name="times"
-          className="cc-project-fixedtab-close"
-          style={{
-            marginRight: FLYOUT_PADDING,
-            padding: FLYOUT_PADDING,
-          }}
-          onClick={() => actions?.toggleFlyout(flyout)}
-        />
-      </Tooltip>
+      <div
+        style={isActiveFlyout ? { margin: `10px ${FLYOUT_PADDING} 0 0` } : {}}
+      >
+        <Tooltip title="Hide this panel" placement="bottom">
+          <Icon
+            name="times"
+            className="cc-project-fixedtab-close"
+            style={{ padding: FLYOUT_PADDING }}
+            onClick={() => actions?.toggleFlyout(flyout)}
+          />
+        </Tooltip>
+      </div>
     );
   }
 
@@ -206,15 +208,16 @@ export function FlyoutHeader(_: Readonly<Props>) {
         flexDirection: "row",
         alignItems: "start",
         borderRight: FIX_BORDER,
+        borderLeft: isActiveFlyout ? FIX_BORDER : undefined,
         borderTop: FIX_BORDER,
-        borderLeft: FIX_BORDER,
         background: FIXED_TABS_BG_COLOR,
-        borderRadius: "5px 5px 0 0",
+        borderRadius: `${isActiveFlyout ? "5px 0" : "0 5px"} 0 0`,
         width: `${flyoutWidth - narrowerPX}px`,
-        paddingLeft: "10px",
-        paddingTop: "10px",
+        paddingLeft: isActiveFlyout ? "0" : "10px",
+        paddingTop: isActiveFlyout ? "0" : "10px",
         fontSize: "1.2em",
-        marginRight: FLYOUT_PADDING,
+        marginRight: isActiveFlyout ? FLYOUT_PADDING : 0,
+        justifyContent: "center",
       }}
     >
       {renderTitle()}
@@ -229,7 +232,7 @@ function SearchHeader() {
   return (
     <div
       style={{
-        flex: 1,
+        flex: "1 0 auto",
         display: "flex",
         whiteSpace: "nowrap",
         overflow: "hidden",

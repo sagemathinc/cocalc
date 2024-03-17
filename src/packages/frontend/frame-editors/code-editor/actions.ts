@@ -34,6 +34,7 @@ import {
   createTypedMap,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
 import { open_new_tab } from "@cocalc/frontend/misc";
@@ -43,14 +44,15 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import { SyncString } from "@cocalc/sync/editor/string";
 import { once } from "@cocalc/util/async-utils";
 import {
+  Config as FormatterConfig,
   Exts as FormatterExts,
   Syntax as FormatterSyntax,
   Tool as FormatterTool,
@@ -67,6 +69,7 @@ import {
 import languageModelCreateChat, { Options } from "../chatgpt/create-chat";
 import type { Scope as LanguageModelScope } from "../chatgpt/types";
 import { default_opts } from "../codemirror/cm-options";
+import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
 import {
@@ -96,7 +99,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 
 interface gutterMarkerParams {
   line: number;
@@ -2131,6 +2133,16 @@ export class Actions<
     return `Format the entire document using '${tool}'.`;
   }
 
+  private _get_available_features() {
+    // Important: this function may be called even if there is no format support,
+    // because it can be called via a keyboard shortcut.  That's why we gracefully
+    // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
+    const s = this.redux.getProjectStore(this.project_id);
+    if (s == null) return;
+    // TODO: Using any here since TypeMap is just not working right...
+    return s.get("available_features") as any;
+  }
+
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
@@ -2145,13 +2157,7 @@ export class Actions<
       return;
     }
 
-    // Important: this function may be called even if there is no format support,
-    // because it can be called via a keyboard shortcut.  That's why we gracefully
-    // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
-    const s = this.redux.getProjectStore(this.project_id);
-    if (s == null) return;
-    // TODO: Using any here since TypeMap is just not working right...
-    const af: any = s.get("available_features");
+    const af = this._get_available_features();
     if (!this.has_format_support(id, af)) return;
 
     // Definitely have format support
@@ -2994,5 +3000,33 @@ export class Actions<
 
   tour(_id: string, _refs: any): TourProps["steps"] {
     return [];
+  }
+
+  public getTopBarActions(): TopBarActions {
+    return [
+      {
+        priority: 10,
+        label: "Format",
+        icon: FORMAT_SOURCE_ICON,
+        getAction: () => {
+          const id = this._get_active_id();
+          const af = this._get_available_features();
+          if (this.has_format_support(id, af)) {
+            return () => this.format(id);
+          }
+        },
+        type: "entry",
+      },
+      {
+        label: "Print",
+        icon: "print",
+        getAction: () => {
+          const id = this._get_active_id();
+          if (id == null) return;
+          return () => this.print(id);
+        },
+        type: "entry",
+      },
+    ];
   }
 }

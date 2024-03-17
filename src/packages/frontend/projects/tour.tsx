@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { Button, Checkbox, Tour } from "antd";
 import type { TourProps } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Button, Checkbox, Tour } from "antd";
+import { useState } from "react";
+
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
-import projectsImage from "./tour-projects.png";
-import infoImage from "./tour-info.png";
-import collabsImage from "./tour-collabs.png";
-import track from "@cocalc/frontend/user-tracking";
-import { SiteName } from "@cocalc/frontend/customize";
 import { A } from "@cocalc/frontend/components/A";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import track from "@cocalc/frontend/user-tracking";
+import collabsImage from "./tour-collabs.png";
+import infoImage from "./tour-info.png";
+import projectsImage from "./tour-projects.png";
 
 export default function ProjectsPageTour({
   searchRef,
@@ -17,6 +18,7 @@ export default function ProjectsPageTour({
   projectListRef,
   createNewRef,
   style,
+  variant = "old",
 }) {
   const tours = useRedux("account", "tours");
   const [open, setOpen] = useState<boolean>(false);
@@ -50,9 +52,9 @@ export default function ProjectsPageTour({
       ),
       description: (
         <div>
-          To start your work on <SiteName />, click the "Create Project"
-          button. You can specify the project's title, and customize the image
-          and license. Create as many projects as you want!
+          To start your work on <SiteName />, click the "Create Project" button.
+          You can specify the project's title, and customize the image and
+          license. Create as many projects as you want!
         </div>
       ),
       target: () => createNewRef.current,
@@ -169,7 +171,7 @@ export default function ProjectsPageTour({
     <div>
       <Button.Group style={style}>
         <Button
-          type="primary"
+          type={variant === "old" ? "primary" : undefined}
           onClick={() => {
             setOpen(true);
             track("tour", { name: "projects" });

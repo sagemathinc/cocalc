@@ -6,7 +6,7 @@
 import React from "react";
 import { Col, Row } from "react-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { CloseX2, Icon } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Customer, ProjectMap } from "@cocalc/frontend/todo-types";
 import {
@@ -27,6 +27,7 @@ import { useRunQuota } from "./run-quota/hooks";
 import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
+import { useProjectContext } from "../context";
 
 interface ReactProps {
   project_id: string;
@@ -46,6 +47,7 @@ const is_same = (prev: ReactProps, next: ReactProps) => {
 
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const { project_id, account_id, project } = props;
+  const { actions } = useProjectContext();
   const kucalc = useTypedRedux("customize", "kucalc");
   const runQuota = useRunQuota(project_id, null);
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
@@ -71,6 +73,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
       {showNoInternetWarning ? <NoNetworkProjectWarning /> : undefined}
       <h1 style={{ marginTop: "0px" }}>
         <Icon name="wrench" /> Project Settings and Controls
+        <CloseX2 close={() => actions?.set_active_tab("home")} />
       </h1>
       <SavingProjectSettingsError project_id={project_id} />
       <Row>

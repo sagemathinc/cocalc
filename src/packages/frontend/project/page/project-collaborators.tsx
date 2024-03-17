@@ -10,6 +10,7 @@ import {
   CurrentCollaboratorsPanel,
 } from "@cocalc/frontend/collaborators";
 import {
+  CloseX2,
   Icon,
   Loading,
   Paragraph,
@@ -17,11 +18,13 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { useProjectContext } from "../context";
 import { ICON_USERS, ROOT_STYLE, TITLE_USERS } from "../servers/consts";
-import { useProject } from "./common";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
+import { useProject } from "./common";
 
-export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
+export function ProjectCollaboratorsPage(): JSX.Element {
+  const { project_id, actions } = useProjectContext();
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
   const { project, group } = useProject(project_id);
@@ -77,6 +80,7 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
     >
       <Title level={2}>
         <Icon name={ICON_USERS} /> {TITLE_USERS}
+        <CloseX2 close={() => actions?.set_active_tab("home")} />
       </Title>
       <Paragraph>{COLLABS_INFO_TEXT}</Paragraph>
       {renderAdmin()}
@@ -86,4 +90,4 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
 }
 
 export const COLLABS_INFO_TEXT =
-  "Collaborators are people who can access this project. They can view and edit the same files as you.";
+  "Users (collaborators) are people who can access this project. They can view and edit the same files as you.";

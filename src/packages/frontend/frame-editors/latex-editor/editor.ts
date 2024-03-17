@@ -11,7 +11,7 @@ import { set } from "@cocalc/util/misc";
 import { IS_IOS, IS_IPAD } from "../../feature";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
@@ -34,7 +34,7 @@ export const pdfjsCommands = set([
   "sync",
 ]);
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   cm: {
     short: "Source",
     name: "LaTeX Source Code",
@@ -86,6 +86,13 @@ const EDITOR_SPEC = {
     },
 
     gutters: ["Codemirror-latex-errors"],
+    format_bar: true,
+    format_bar_exclude: {
+      strikethrough: true,
+      SpecialChar: true,
+      image: true,
+      unformat: true,
+    },
   } as EditorDescription,
 
   pdfjs_canvas: {
@@ -160,7 +167,7 @@ const EDITOR_SPEC = {
   settings: SETTINGS_SPEC,
 
   time_travel,
-};
+} as const;
 
 // See https://github.com/sagemathinc/cocalc/issues/5114
 if (!IS_IPAD && !IS_IOS) {
@@ -175,13 +182,6 @@ if (!IS_IPAD && !IS_IOS) {
 }
 
 export const Editor = createEditor({
-  format_bar: true,
-  format_bar_exclude: {
-    strikethrough: true,
-    SpecialChar: true,
-    image: true,
-    unformat: true,
-  }, // disabled until we can properly implement them!
   editor_spec: EDITOR_SPEC,
   display_name: "LaTeXEditor",
 });

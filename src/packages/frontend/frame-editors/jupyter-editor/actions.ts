@@ -8,23 +8,26 @@ Jupyter Frame Editor Actions
 */
 
 import { delay } from "awaiting";
-import { FrameTree } from "../frame-tree/types";
+
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
+import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
-import {
-  create_jupyter_actions,
-  close_jupyter_actions,
-} from "./jupyter-actions";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
-import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
-import { JupyterActions } from "../../jupyter/browser-actions";
+import { FrameTree } from "../frame-tree/types";
 import { NotebookFrameActions } from "./cell-notebook/actions";
-import { open_new_tab } from "../../misc";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
+import {
+  close_jupyter_actions,
+  create_jupyter_actions,
+} from "./jupyter-actions";
+import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
+import { SNIPPET_ICON_NAME } from "./snippets/utils";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -536,6 +539,58 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   compute_server() {
     // this is here just so the dropdown gets enabled
+  }
+
+  public getTopBarActions(): TopBarActions {
+    return [
+      {
+        priority: 10,
+        label: "Halt",
+        icon: "PoweroffOutlined",
+        action: () => this.halt_jupyter(),
+        type: "entry",
+      },
+      {
+        label: "Snippets",
+        icon: SNIPPET_ICON_NAME,
+        action: () => this.guide(),
+        type: "entry",
+      },
+      {
+        label: "Contents",
+        icon: "align-right",
+        action: () => this.show_table_of_contents(),
+        type: "entry",
+      },
+      {
+        label: "Shell",
+        icon: "terminal",
+        tooltip: "Open the associated Jupyter Console session",
+        action: () => {
+          const id = this._get_active_id();
+          this.shell(id);
+        },
+        type: "entry",
+      },
+      {
+        label: "Print",
+        icon: "print",
+        tooltip: "Print this notebook as static HTML",
+        action: () => {
+          const id = this._get_active_id();
+          this.print(id);
+        },
+        type: "entry",
+      },
+      {
+        priority: -1,
+        label: "Help",
+        icon: "question-circle",
+        tooltip: "Open the documentation for CoCalc's Jupyter Editor",
+        action: () => this.help(),
+        type: "entry",
+      },
+    ];
   }
 }
 

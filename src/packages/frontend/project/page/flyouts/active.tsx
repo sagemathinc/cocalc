@@ -347,7 +347,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
 
   // if there are starred files but they're hidden, remind the user of that
   function renderEmptyStarredInfo() {
-    if (starred.length === 0 || showStarred) return;
+    if (starred.length === 0 || !showStarred) return;
     return (
       <>
         {" "}
@@ -484,17 +484,18 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   function renderGroups(): JSX.Element {
+    const style: CSS = { marginTop: FLYOUT_PADDING, background: "white" };
     // flat, same ordering as file tabs
     if (mode === "tabs") {
       const [tabs, stars] = renderTabs();
       return (
         <>
-          {wrap(tabs, { marginTop: "10px" })}
+          {wrap(tabs, style)}
           {stars}
         </>
       );
     } else {
-      return wrap(renderGroupsOfGrouped(), { marginTop: "10px" });
+      return wrap(renderGroupsOfGrouped(), style);
     }
   }
 
@@ -565,7 +566,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     return (
       <div
         style={{
-          flex: "1 1 auto",
+          flex: "0 1 auto",
           borderTop: FIX_BORDER,
         }}
       >

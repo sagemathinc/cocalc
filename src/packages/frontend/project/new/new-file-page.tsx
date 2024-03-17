@@ -256,10 +256,6 @@ export default function NewFilePage(props: Props) {
     );
   };
 
-  const showFiles = () => {
-    actions.set_active_tab("files");
-  };
-
   //key is so autofocus works below
   return (
     <SettingBox
@@ -280,7 +276,7 @@ export default function NewFilePage(props: Props) {
           )}
         </div>
       }
-      close={showFiles}
+      close={() => actions.set_active_tab("home")}
     >
       <Modal
         onCancel={() => setCreatingFile("")}

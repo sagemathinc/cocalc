@@ -43,6 +43,7 @@ export class Document extends Component<Props> {
         gutters={[]}
         gutter_markers={fromJS({}) as any}
         editor_settings={this.props.editor_settings}
+        showFormatBar={false}
       />
     );
   }

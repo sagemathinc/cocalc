@@ -11,12 +11,12 @@ Components in this directory may also be used to provide a frame in other editor
 TimeTravel for them.
 */
 
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
 import { AsyncComponent } from "@cocalc/frontend/misc/async-component";
+import { createEditor } from "../frame-tree/editor";
+import { EditorSpec } from "../frame-tree/types";
 
 const TimeTravel = AsyncComponent(
-  async () => (await import("./time-travel")).TimeTravel
+  async () => (await import("./time-travel")).TimeTravel,
 );
 
 import { set } from "@cocalc/util/misc";
@@ -35,15 +35,14 @@ export const time_travel = {
     "copy",
   ]),
   hide_file_menu: true,
-  hide_public: true,
-} as EditorDescription;
-
-const EDITOR_SPEC = {
-  time_travel,
+  hhide_public: true,
 };
 
+const EDITOR_SPEC: EditorSpec = {
+  time_travel,
+} as const;
+
 export const Editor = createEditor({
-  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "TimeTravel",
 });

@@ -7,34 +7,34 @@
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
+
+import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
-import { from_json, to_json, merge_copy, uuid } from "@cocalc/util/misc";
-import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
-import { WidgetManager } from "./widgets/manager";
-import { CursorManager } from "./cursor-manager";
-import { ConfirmDialogOptions } from "./confirm-dialog";
-import { callback2, once } from "@cocalc/util/async-utils";
-import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
-const { instantiate_snippets } = require("../assistant/main");
-import { NBGraderActions } from "./nbgrader/actions";
-import { CellToolbarName } from "@cocalc/jupyter/types";
+
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
-import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import * as parsing from "./parsing";
-import { Syntax } from "@cocalc/util/code-formatter";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
-import * as awaiting from "awaiting";
-import { cm_options } from "./cm_options";
-import track from "@cocalc/frontend/user-tracking";
 import {
   delete_local_storage,
   get_local_storage,
   set_local_storage,
-} from "../misc/local-storage";
-import { parse_headings } from "./contents";
+} from "@cocalc/frontend/misc/local-storage";
+import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
+import { CellToolbarName } from "@cocalc/jupyter/types";
+import { callback2, once } from "@cocalc/util/async-utils";
+import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
+import { from_json, merge_copy, to_json, uuid } from "@cocalc/util/misc";
+import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
+import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
+import { get_usage_info, UsageInfoWS } from "../project/websocket/usage-info";
+import { cm_options } from "./cm_options";
+import { ConfirmDialogOptions } from "./confirm-dialog";
+import { parse_headings } from "./contents";
+import { CursorManager } from "./cursor-manager";
+import { NBGraderActions } from "./nbgrader/actions";
+import * as parsing from "./parsing";
+import { WidgetManager } from "./widgets/manager";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -94,10 +94,6 @@ export class JupyterActions extends JupyterActions0 {
         path: this.path,
       });
     })();
-
-    // this initializes actions+store for the snippet dialog
-    // this is also only a UI specific action
-    this.snippet_actions = instantiate_snippets(this.project_id, this.path);
 
     // nbgrader support
     this.nbgrader_actions = new NBGraderActions(this, this.redux);
@@ -780,9 +776,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public custom_jupyter_kernel_docs(): void {
-    open_new_tab(
-      "https://doc.cocalc.com/howto/custom-jupyter-kernel.html",
-    );
+    open_new_tab("https://doc.cocalc.com/howto/custom-jupyter-kernel.html");
   }
 
   /* Wait until the syncdb is ready *and* there is at

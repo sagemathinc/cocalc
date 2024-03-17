@@ -69,13 +69,13 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         const icon_style: CSS = { ...BASE_STYLE, fontSize: fontSizeIcons };
         if (mesg_info?.get("enqueued") ?? 0 > 6) {
           // serious backlog of data!
-          icon_style.color = "red";
+          icon_style.color = COLORS.CONN.DISCONNECTED;
         } else if (mesg_info?.get("count") ?? 0 > 2) {
           // worrisome amount
-          icon_style.color = "#08e";
+          icon_style.color = COLORS.CONN.WARNING;
         } else if (mesg_info?.get("count") ?? 0 > 0) {
           // working well but doing something minimal
-          icon_style.color = "#00c";
+          icon_style.color = COLORS.CONN.RECONNECTING;
         }
         return <Icon name="wifi" style={icon_style} />;
       } else if (connection_status === "connecting") {
@@ -103,5 +103,5 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         {render_connection_status()}
       </div>
     );
-  }
+  },
 );

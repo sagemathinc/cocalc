@@ -7,18 +7,18 @@
 Top-level react component for editing markdown documents
 */
 
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
-import { RenderedMarkdown } from "./rendered-markdown";
-import { EditableMarkdown } from "./slate";
-import { TableOfContents } from "./table-of-contents";
 import { set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription, EditorSpec } from "../frame-tree/types";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { RenderedMarkdown } from "./rendered-markdown";
+import { EditableMarkdown } from "./slate";
+import { TableOfContents } from "./table-of-contents";
 
-const EDITOR_SPEC = {
+const EDITOR_SPEC: EditorSpec = {
   slate: {
     placeholder: "Enter text...",
     short: "Text",
@@ -28,12 +28,12 @@ const EDITOR_SPEC = {
     commands: set([
       "format_action",
       "chatgpt",
-      //"print",
+      // "print",
       "decrease_font_size",
       "increase_font_size",
-      "save",
+      // "save",
       "time_travel",
-      "show_table_of_contents",
+      // "show_table_of_contents",
       //"replace",
       //"find",
       //"goto_line",
@@ -63,12 +63,12 @@ const EDITOR_SPEC = {
     commands: set([
       "format_action",
       "chatgpt",
-      "print",
+      // "print",
       "decrease_font_size",
       "increase_font_size",
-      "save",
+      // "save",
       "time_travel",
-      "show_table_of_contents",
+      // "show_table_of_contents",
       "replace",
       "find",
       "goto_line",
@@ -77,9 +77,13 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format",
+      // "format",
       "sync",
     ]),
+    format_bar: true,
+    format_bar_exclude: {
+      format_buttons: true,
+    },
     buttons: set([
       "decrease_font_size",
       "increase_font_size",
@@ -100,13 +104,13 @@ const EDITOR_SPEC = {
     component: RenderedMarkdown,
     commands: set([
       "chatgpt",
-      "print",
+      // "print",
       "decrease_font_size",
       "increase_font_size",
-      "show_table_of_contents",
+      // "show_table_of_contents",
       "time_travel",
       "undo", // need these because button bars at top let you do something even in rendered only view.
-      "save",
+      // "save",
       "redo",
       "edit", // change frame to editable slate
     ]),
@@ -122,13 +126,9 @@ const EDITOR_SPEC = {
   terminal,
   settings: SETTINGS_SPEC,
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: true,
-  format_bar_exclude: {
-    format_buttons: true,
-  },
   editor_spec: EDITOR_SPEC,
   display_name: "MarkdownEditor",
 });

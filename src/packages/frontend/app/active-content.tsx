@@ -16,6 +16,7 @@ import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
+import { Homepage } from "@cocalc/frontend/homepage";
 import { Connecting } from "@cocalc/frontend/landing-page/connecting";
 import { NotificationPage } from "@cocalc/frontend/notifications";
 import { ProjectPage } from "@cocalc/frontend/project/page/page";
@@ -64,7 +65,7 @@ export const ActiveContent: React.FC = React.memo(() => {
     v.push(
       <div key={project_id} className={cls}>
         {x}
-      </div>
+      </div>,
     );
   });
 
@@ -100,7 +101,7 @@ export const ActiveContent: React.FC = React.memo(() => {
             </A>
             .
           </Alert>
-        </div>
+        </div>,
       );
     }
   }
@@ -110,6 +111,9 @@ export const ActiveContent: React.FC = React.memo(() => {
     v.push(<KioskModeBanner key={"kiosk"} />);
   } else {
     switch (active_top_tab) {
+      case "home":
+        v.push(<Homepage key={"home"} />);
+        break;
       case "projects":
         v.push(<ProjectsPage key={"projects"} />);
         break;
