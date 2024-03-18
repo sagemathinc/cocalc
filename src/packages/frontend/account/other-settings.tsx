@@ -366,15 +366,24 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     );
   }
 
+  function render_disable_all_llm(): Rendered {
+    return (
+      <Checkbox
+        checked={!!props.other_settings.get("openai_disabled")}
+        onChange={(e) => {
+          on_change("openai_disabled", e.target.checked);
+          redux.getStore("projects").clearOpenAICache();
+        }}
+      >
+        <strong>Disable all AI integrations</strong>, e.g., code generation or
+        explanation buttons in Jupyter, @chatgpt mentions, etc.
+      </Checkbox>
+    );
+  }
+
   function render_language_model(): Rendered {
     return (
-      <LabeledRow
-        label={
-          <>
-            <AIAvatar size={22} /> Default Language Model
-          </>
-        }
-      >
+      <LabeledRow label={<>Default Language Model</>}>
         <ModelSwitch model={model} setModel={setModel} />
       </LabeledRow>
     );
@@ -385,6 +394,19 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
   }
   return (
     <>
+      {redux.getStore("customize").get("openai_enabled") ? (
+        <Panel
+          header={
+            <>
+              <AIAvatar size={22} /> AI Settings
+            </>
+          }
+        >
+          {render_disable_all_llm()}
+          {render_language_model()}
+        </Panel>
+      ) : undefined}
+
       <Panel
         header={
           <>
@@ -412,19 +434,6 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         {render_hide_file_popovers()}
         {render_hide_button_tooltips()}
         {render_no_free_warnings()}
-        {redux.getStore("customize").get("openai_enabled") && (
-          <Checkbox
-            checked={!!props.other_settings.get("openai_disabled")}
-            onChange={(e) => {
-              on_change("openai_disabled", e.target.checked);
-              redux.getStore("projects").clearOpenAICache();
-            }}
-          >
-            <strong>Disable all AI integrations</strong>, e.g., code generation
-            or explanation buttons in Jupyter, @chatgpt mentions, etc.
-          </Checkbox>
-        )}
-        {render_language_model()}
         <Checkbox
           checked={!!props.other_settings.get("disable_markdown_codebar")}
           onChange={(e) => {

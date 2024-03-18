@@ -21,6 +21,7 @@ import "./editor/keyboard";
 import "./system/appearance";
 import "./system/behavior";
 import "./system/listings";
+import "./system/llm";
 
 interface Props {
   main: string;

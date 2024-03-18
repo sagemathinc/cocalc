@@ -10,7 +10,7 @@ interface Info0 {
   path: string;
   desc: string;
   title: string;
-  icon?: IconName;
+  icon?: IconName | JSX.Element;
 }
 
 export interface Info extends Info0 {
