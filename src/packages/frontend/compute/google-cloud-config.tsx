@@ -12,7 +12,6 @@ import {
   Divider,
   Input,
   InputNumber,
-  Popconfirm,
   Radio,
   Select,
   Space,
@@ -51,9 +50,8 @@ import Ephemeral from "./ephemeral";
 import AutoRestart from "./auto-restart";
 import AllowCollaboratorControl from "./allow-collaborator-control";
 import NestedVirtualization from "./nested-virtualization";
-import generateVouchers from "@cocalc/util/vouchers";
-import { CopyToClipBoard } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
+import Proxy from "./proxy";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -396,11 +394,22 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           loading={loading}
           priceData={priceData}
+        />
+      ),
+    },
+    {
+      key: "proxy",
+      label: <></>,
+      value: (
+        <Proxy
+          setConfig={setConfig}
+          configuration={configuration}
           state={state}
           IMAGES={IMAGES}
         />
       ),
     },
+
     {
       key: "ephemeral",
       label: <></>,
@@ -1838,8 +1847,6 @@ function Network({
   configuration,
   loading,
   priceData,
-  state,
-  IMAGES,
 }) {
   const [externalIp, setExternalIp] = useState<boolean>(
     configuration.externalIp ?? true,
@@ -1855,8 +1862,8 @@ function Network({
           <Icon name="network-server" /> Network
         </b>
         <br />
-        All compute servers have full network access with unlimited data
-        transfer in for free. Data transfer out{" "}
+        All compute servers on Google cloud have full network access with
+        unlimited data transfer in for free. Data transfer out{" "}
         <b>costs {currency(DATA_TRANSFER_OUT_COST_PER_GiB)}/GiB</b>.
       </div>
       <Checkbox
@@ -1903,67 +1910,6 @@ function Network({
           loading={loading}
         />
       )}
-      {externalIp && (
-        <AuthToken
-          setConfig={setConfig}
-          configuration={configuration}
-          state={state}
-          IMAGES={IMAGES}
-        />
-      )}
-    </div>
-  );
-}
-
-function createToken() {
-  return generateVouchers({ count: 1, length: 16 })[0];
-}
-
-function AuthToken({ setConfig, configuration, state, IMAGES }) {
-  const { authToken } = IMAGES[configuration.image] ?? {};
-  useEffect(() => {
-    // create token if it is not set but required
-    if (authToken && configuration.authToken == null) {
-      setConfig({ authToken: createToken() });
-    }
-  }, [authToken, configuration.authToken]);
-
-  if (!authToken) {
-    return null;
-  }
-  return (
-    <div style={{ color: "#666" }}>
-      <div style={{ marginTop: "15px", display: "flex" }}>
-        <div style={{ margin: "auto 30px auto 0" }}>
-          <b>Auth Token:</b>
-        </div>
-        <CopyToClipBoard value={configuration.authToken ?? ""} />
-        <Popconfirm
-          onConfirm={() => {
-            setConfig({ authToken: createToken() });
-          }}
-          okText="Change token"
-          title={"Change auth token?"}
-          description={
-            <div style={{ width: "400px" }}>
-              <b>
-                WARNING: Changing the auth token will prevent people who you
-                shared the old token with from using the site.
-              </b>
-            </div>
-          }
-        >
-          <Button
-            style={{ marginLeft: "30px" }}
-            disabled={state != "deprovisioned" && state != "off"}
-          >
-            <Icon name="refresh" />
-            Randomize...
-          </Button>
-        </Popconfirm>
-      </div>
-      Use this token to access the web server that will runs on your compute
-      server.
     </div>
   );
 }
@@ -2003,8 +1949,8 @@ function DNS({ setConfig, configuration, loading }) {
           }
         }}
       >
-        Custom Domain Name with SSL ({currency(DNS_COST_PER_HOUR)}/hour when VM
-        not deprovisioned)
+        Custom Subdomain with SSL ({currency(DNS_COST_PER_HOUR)}/hour
+        when running or stopped)
       </Checkbox>
       {showDns && (
         <A
