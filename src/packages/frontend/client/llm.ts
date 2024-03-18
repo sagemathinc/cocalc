@@ -17,6 +17,7 @@ import {
 import {
   LanguageModel,
   getSystemPrompt,
+  isClientModel,
   isFreeModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -98,6 +99,13 @@ export class LLMClient {
         await delay(1000);
         return "Pong";
       }
+    }
+
+    if (isClientModel(model)) {
+      const { queryClientLLM } = await import(
+        "@cocalc/frontend/misc/llm-client"
+      );
+      return queryClientLLM({ input, history, system, model, chatStream });
     }
 
     if (!isFreeModel(model)) {
