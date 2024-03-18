@@ -65,7 +65,9 @@ export async function getAccount(
   }
   const { account_id, password_hash, banned } = rows[0];
   if (banned) {
-    throw Error(`'${email_address}' is banned`);
+    throw Error(
+      `'${email_address}' is banned -- if you think this is a mistake, please email help@cocalc.com and explain.`,
+    );
   }
   if (!verify(password, password_hash)) {
     throw Error(`password for '${email_address}' is incorrect`);
