@@ -1,16 +1,17 @@
 import { Alert, Modal } from "antd";
 import { useRef } from "react";
+
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
-import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { Icon } from "@cocalc/frontend/components/icon";
-import QuotaConfig from "../quota-config";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import ServiceTag from "../service";
-import Cost from "./cost";
 import { load_target } from "@cocalc/frontend/history";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import MoneyStatistic from "../money-statistic";
+import QuotaConfig from "../quota-config";
+import ServiceTag from "../service";
 import { zIndexPayAsGo as zIndex } from "../zindex";
+import Cost from "./cost";
 
 // Ensure the billing Actions and Store are created, which are needed for purchases, etc., to work...
 import "@cocalc/frontend/billing/actions";
