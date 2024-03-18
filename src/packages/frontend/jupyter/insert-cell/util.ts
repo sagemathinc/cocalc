@@ -12,7 +12,7 @@ export function insertCell({
   actions;
   type: "code" | "markdown";
   id: string; // id relative to which we insert
-  position: "above" | "below";
+  position: "above" | "below" | "replace";
   content?: string;
 }): string | undefined {
   if (frameActions.current == null) {

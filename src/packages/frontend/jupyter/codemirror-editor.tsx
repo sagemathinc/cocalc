@@ -7,16 +7,12 @@
 
 declare const $: any;
 
-import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Button } from "antd";
-import LRU from "lru-cache";
 import { delay } from "awaiting";
-import { React, useRef, usePrevious } from "../app-framework";
-import { debounce } from "lodash";
-import { Map as ImmutableMap } from "immutable";
-import { Complete, Actions as CompleteActions } from "./complete";
-import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
+import { Map as ImmutableMap } from "immutable";
+import { debounce } from "lodash";
+import LRU from "lru-cache";
 import {
   CSSProperties,
   MutableRefObject,
@@ -25,8 +21,12 @@ import {
   useState,
 } from "react";
 
+import { React, usePrevious, useRef } from "@cocalc/frontend/app-framework";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { COLORS } from "@cocalc/util/theme";
+import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
+import { Complete, Actions as CompleteActions } from "./complete";
+import { Cursors } from "./cursors";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -41,7 +41,7 @@ const cache = new LRU<string, CachedInfo>({ max: 1000 });
 const STYLE: React.CSSProperties = {
   width: "100%",
   overflow: "hidden",
-  border: "1px solid #cfcfcf",
+  border: `1px solid ${COLORS.GRAY_L}`,
   borderRadius: "5px",
   padding: "5px",
   lineHeight: "1.21429em",
