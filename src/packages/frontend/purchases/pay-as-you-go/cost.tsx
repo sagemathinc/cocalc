@@ -4,12 +4,13 @@ Render the cost of a pay-as-you-go service.
 This gets the cost once via an api call, then uses the cached cost afterwards (until
 user refreshes browser), since costs change VERY rarely.
 */
-
-import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { Alert, Spin, Table, Tooltip } from "antd";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
+
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Spin, Table, Tooltip } from "antd";
+import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
+import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
 import MoneyStatistic from "../money-statistic";
 
@@ -54,9 +55,9 @@ export default function Cost({ service, inline }: Props) {
 
   if (service == "project-upgrade") {
     return <ProjectUpgradeCost cost={cost} />;
-  } else if (service.startsWith("openai-gpt")) {
+  } else if (isLanguageModelService(service)) {
     return (
-      <OpenAiCost
+      <LLMServiceCost
         prompt_tokens={cost.prompt_tokens}
         completion_tokens={cost.completion_tokens}
       />
@@ -179,7 +180,7 @@ function PricePerUnit({ value, unit, month }: { value; unit; month? }) {
   return body;
 }
 
-function OpenAiCost({ prompt_tokens, completion_tokens }) {
+function LLMServiceCost({ prompt_tokens, completion_tokens }) {
   const inputPrice = currency(prompt_tokens * 1000, 3);
   const outputPrice = currency(completion_tokens * 1000, 3);
   const columns = [
