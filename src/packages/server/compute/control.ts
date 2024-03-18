@@ -522,9 +522,6 @@ export async function validateConfigurationChange({
   }
 
   if (changed.has("authToken")) {
-    if (state == "running" || state == "suspended" || state == "suspending") {
-      throw Error("cannot change authToken while server is running");
-    }
     if (typeof newConfiguration.authToken != "string") {
       throw Error("authToken must be a string");
     }
@@ -607,6 +604,15 @@ export async function makeConfigurationChange({
       }
     }
     changed.delete("dns");
+  }
+  if (changed.has("authToken")) {
+    // this is handled directly by the client right now
+    // TODO: we might change to do it here instead at some point.
+    changed.delete("authToken");
+  }
+  if (changed.has("proxyJson")) {
+    // same comment as for authToken
+    changed.delete("proxyJson");
   }
   if (changed.size == 0) {
     // nothing else to change
@@ -691,11 +697,13 @@ async function getStartupParams(id: number): Promise<{
   image: string;
   exclude_from_sync: string;
   auth_token: string;
+  proxy_json: string;
 }> {
   const server = await getServerNoCheck(id);
   const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
+  const proxy_json = server.configuration?.proxyJson ?? "[]";
   const exclude_from_sync = excludeFromSync.join("|");
   let x;
   switch (server.cloud) {
@@ -704,6 +712,7 @@ async function getStartupParams(id: number): Promise<{
         ...(await googleCloud.getStartupParams(server)),
         exclude_from_sync,
         auth_token,
+        proxy_json,
       };
       break;
     case "onprem":
@@ -718,6 +727,7 @@ async function getStartupParams(id: number): Promise<{
 
         exclude_from_sync,
         auth_token,
+        proxy_json,
       };
       break;
     default:

@@ -11,12 +11,15 @@ import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
+import Proxy from "./proxy";
+import { useImages } from "./images-hook";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
   editable?: boolean;
   // if id not set, then doesn't try to save anything to the backend
   id?: number;
+  project_id: string;
   // called whenever changes are made.
   onChange?: (configuration: OnPremCloudConfiguration) => void;
   disabled?: boolean;
@@ -27,10 +30,12 @@ export default function OnPremCloudConfiguration({
   configuration: configuration0,
   editable,
   id,
+  project_id,
   onChange,
   disabled,
   state,
 }: Props) {
+  const [IMAGES, ImagesError] = useImages();
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [configuration, setLocalConfiguration] =
@@ -60,7 +65,7 @@ export default function OnPremCloudConfiguration({
     }
   };
 
-  if (!editable) {
+  if (!editable || !project_id) {
     return (
       <div>
         On Prem {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
@@ -69,8 +74,12 @@ export default function OnPremCloudConfiguration({
     );
   }
 
+  if (ImagesError != null) {
+    return ImagesError;
+  }
+
   return (
-    <div>
+    <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "15px" }}>
         You can connect any UBUNTU VIRTUAL MACHINE that you have a root acount
         on to this CoCalc project and seamlessly run Jupyter notebooks and
@@ -123,6 +132,15 @@ export default function OnPremCloudConfiguration({
         configuration={configuration}
       />
       <ShowError error={error} setError={setError} />
+      <Divider />
+      <Proxy
+        id={id}
+        project_id={project_id}
+        setConfig={setConfig}
+        configuration={configuration}
+        state={state}
+        IMAGES={IMAGES}
+      />
       {loading && <Spin style={{ marginLeft: "15px" }} />}
     </div>
   );

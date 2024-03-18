@@ -180,6 +180,7 @@ export default function ComputeServer({
         editable={editable}
         state={state}
         id={id}
+        project_id={project_id}
         configuration={configuration}
         onChange={onConfigurationChange}
       />

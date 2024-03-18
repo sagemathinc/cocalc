@@ -7,7 +7,14 @@ import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import AuthToken from "./auth-token";
 
-export default function Proxy({ setConfig, configuration, state, IMAGES }) {
+export default function Proxy({
+  id,
+  project_id,
+  setConfig,
+  configuration,
+  state,
+  IMAGES,
+}) {
   const [help, setHelp] = useState<boolean>(false);
 
   return (
@@ -42,6 +49,8 @@ export default function Proxy({ setConfig, configuration, state, IMAGES }) {
           />
         )}
         <AuthToken
+          id={id}
+          project_id={project_id}
           setConfig={setConfig}
           configuration={configuration}
           state={state}

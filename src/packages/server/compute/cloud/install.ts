@@ -6,6 +6,10 @@ import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 import { getImageField } from "@cocalc/util/db-schema/compute-servers";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import type { Images } from "@cocalc/server/compute/images";
+import {
+  PROXY_CONFIG,
+  PROXY_AUTH_TOKEN_FILE,
+} from "@cocalc/util/compute/constants";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -131,7 +135,7 @@ set +v
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
 set -v
 
-DEBUG=proxy:* PROXY_CONFIG=/cocalc/conf/proxy.json PROXY_AUTH_TOKEN_FILE=/cocalc/conf/auth_token npx -y @cocalc/compute-server-proxy@latest > /var/log/cocalc-proxy.log 2> /var/log/cocalc-proxy.err &
+DEBUG=proxy:* PROXY_CONFIG="${PROXY_CONFIG}" PROXY_AUTH_TOKEN_FILE="${PROXY_AUTH_TOKEN_FILE}" npx -y @cocalc/compute-server-proxy@latest > /var/log/cocalc-proxy.log 2> /var/log/cocalc-proxy.err &
 
 `;
 }
@@ -249,6 +253,7 @@ export async function installConf({
   hostname,
   exclude_from_sync,
   auth_token,
+  proxy_json,
 }) {
   const auth = await authorizedKeys(project_id);
   return `
@@ -260,7 +265,8 @@ echo "${project_id}" > /cocalc/conf/project_id
 echo "${compute_server_id}" > /cocalc/conf/compute_server_id
 echo "${hostname}" > /cocalc/conf/hostname
 echo '${auth}' > /cocalc/conf/authorized_keys
-echo '${auth_token}' > /cocalc/conf/auth_token
+echo '${auth_token}' > ${PROXY_AUTH_TOKEN_FILE}
+echo '${proxy_json}' > ${PROXY_CONFIG}
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
 `;
 }

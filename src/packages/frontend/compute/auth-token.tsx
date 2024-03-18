@@ -1,22 +1,56 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import generateVouchers from "@cocalc/util/vouchers";
 import { Button, Input, Popconfirm } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { PROXY_AUTH_TOKEN_FILE } from "@cocalc/util/compute/constants";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import ShowError from "@cocalc/frontend/components/error";
 
 function createToken() {
   return generateVouchers({ count: 1, length: 16 })[0];
 }
 
-export default function AuthToken({ setConfig, configuration, state, IMAGES }) {
+export default function AuthToken({
+  id,
+  project_id,
+  setConfig,
+  configuration,
+  state,
+  IMAGES,
+}) {
+  const [error, setError] = useState<string>("");
+  const [saving, setSaving] = useState<boolean>(false);
   const { proxy, authToken } = IMAGES[configuration.image] ?? {};
   const noAuthToken = proxy === false && !authToken;
+
+  const updateAuthToken = async () => {
+    const authToken = createToken();
+    try {
+      setSaving(true);
+      setError("");
+      await setConfig({ authToken });
+      if (id && state == "running") {
+        // also attempt to write it directly to the filesystem, which updates
+        // the proxy server in realtime to use the new token.
+        await writeAuthToken({
+          compute_server_id: id,
+          project_id,
+          authToken,
+        });
+      }
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setSaving(false);
+    }
+  };
   useEffect(() => {
     if (noAuthToken) {
       return;
     }
     // create token if it is not set but required
     if (configuration.authToken == null) {
-      setConfig({ authToken: createToken() });
+      updateAuthToken();
     }
   }, [noAuthToken, configuration.authToken]);
 
@@ -31,15 +65,18 @@ export default function AuthToken({ setConfig, configuration, state, IMAGES }) {
         <div style={{ margin: "auto 30px auto 0" }}>
           <b>Auth Token:</b>
         </div>
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "15px 0" }}
+        />
         <Input.Password
           style={{ width: "200px" }}
           readOnly
           value={configuration.authToken ?? ""}
         />
         <Popconfirm
-          onConfirm={() => {
-            setConfig({ authToken: createToken() });
-          }}
+          onConfirm={updateAuthToken}
           okText="Change token"
           title={"Change auth token?"}
           description={
@@ -54,9 +91,10 @@ export default function AuthToken({ setConfig, configuration, state, IMAGES }) {
           <Button
             style={{ marginLeft: "30px" }}
             disabled={
-              authToken &&
-              state != "deprovisioned" &&
-              state != "off" /* will get rid of soon  */
+              saving ||
+              (authToken &&
+                state != "deprovisioned" &&
+                state != "off") /* will get rid of soon  */
             }
           >
             <Icon name="refresh" />
@@ -66,4 +104,16 @@ export default function AuthToken({ setConfig, configuration, state, IMAGES }) {
       </div>
     </div>
   );
+}
+
+// sudo sh -c 'echo "foo" > /blah'
+async function writeAuthToken({ authToken, project_id, compute_server_id }) {
+  const args = ["sh", "-c", `echo "${authToken}" > "${PROXY_AUTH_TOKEN_FILE}"`];
+  await webapp_client.exec({
+    filesystem: true,
+    compute_server_id,
+    project_id,
+    command: "sudo",
+    args,
+  });
 }

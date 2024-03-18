@@ -80,6 +80,7 @@ interface Props {
   editable?: boolean;
   // if id not set, then doesn't try to save anything to the backend
   id?: number;
+  project_id?: string;
   // called whenever changes are made.
   onChange?: (configuration: ConfigurationType) => void;
   disabled?: boolean;
@@ -90,6 +91,7 @@ export default function GoogleCloudConfiguration({
   configuration: configuration0,
   editable,
   id,
+  project_id,
   onChange,
   disabled,
   state,
@@ -154,7 +156,7 @@ export default function GoogleCloudConfiguration({
     return <Spin />;
   }
 
-  if (!editable) {
+  if (!editable || !project_id) {
     const gpu = configuration.acceleratorType
       ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
           configuration.acceleratorType,
@@ -406,6 +408,8 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           state={state}
           IMAGES={IMAGES}
+          project_id={project_id}
+          id={id}
         />
       ),
     },
@@ -1842,12 +1846,7 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({
-  setConfig,
-  configuration,
-  loading,
-  priceData,
-}) {
+function Network({ setConfig, configuration, loading, priceData }) {
   const [externalIp, setExternalIp] = useState<boolean>(
     configuration.externalIp ?? true,
   );
@@ -1949,8 +1948,8 @@ function DNS({ setConfig, configuration, loading }) {
           }
         }}
       >
-        Custom Subdomain with SSL ({currency(DNS_COST_PER_HOUR)}/hour
-        when running or stopped)
+        Custom Subdomain with SSL ({currency(DNS_COST_PER_HOUR)}/hour when
+        running or stopped)
       </Checkbox>
       {showDns && (
         <A
