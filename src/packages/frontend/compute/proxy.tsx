@@ -124,7 +124,7 @@ function ProxyConfig({ id, project_id, setConfig, configuration, state }) {
       >
         Close
       </Button>
-      <Button disabled={saving || proxyJson == stringify(proxy)} onClick={save}>
+      <Button type="primary" disabled={saving || proxyJson == stringify(proxy)} onClick={save}>
         Save {saving && <Spin />}
       </Button>
       <div
@@ -134,7 +134,7 @@ function ProxyConfig({ id, project_id, setConfig, configuration, state }) {
           marginLeft: "30px",
         }}
       >
-        Configure proxy using{" "}
+        Configure <code>/cocalc/conf/proxy.json</code> using{" "}
         <A href="https://github.com/sagemathinc/cocalc-compute-docker/tree/main/src/proxy">
           this JSON format
         </A>
