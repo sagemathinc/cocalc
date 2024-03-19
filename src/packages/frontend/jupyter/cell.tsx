@@ -27,6 +27,7 @@ import { CellOutput } from "./cell-output";
 import { InsertCell } from "./insert-cell";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 import { INPUT_PROMPT_COLOR } from "./prompt/base";
+import { Position } from "./insert-cell/ai-cell-generator";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
@@ -87,8 +88,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
-  const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
-  const [showChatGPTFirst, setShowChatGPTFirst] = useState<boolean>(false);
+  const [showAICellGen, setShowAICellGen] = useState<Position>(null);
+  const [showAICellGenFirst, setShowAICellGenFirst] = useState<boolean>(false);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   const render = useDelayedRender(props.delayRendering ?? 0);
@@ -131,7 +132,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         is_scrolling={props.is_scrolling}
         llmTools={props.llmTools}
         computeServerId={props.computeServerId}
-        setShowChatGPT={setShowChatGPT}
+        setShowAICellGen={setShowAICellGen}
       />
     );
   }
@@ -325,9 +326,11 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         key={id + "insert" + position}
         position={position}
         actions={props.actions}
-        showChatGPT={position == "above" ? showChatGPTFirst : showChatGPT}
-        setShowChatGPT={
-          position == "above" ? setShowChatGPTFirst : setShowChatGPT
+        showAICellGen={
+          position === "above" ? showAICellGenFirst : showAICellGen
+        }
+        setShowAICellGen={
+          position === "above" ? setShowAICellGenFirst : setShowAICellGen
         }
         alwaysShow={position == "below" && props.isLast}
       />

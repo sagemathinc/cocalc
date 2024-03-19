@@ -12,12 +12,19 @@ TODO:
 
 */
 
-import { React, useIsMountedRef, useRef, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
+
+import {
+  React,
+  useIsMountedRef,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import { all_fields_equal } from "@cocalc/util/misc";
+import { JupyterActions } from "./browser-actions";
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";
-import { JupyterActions } from "./browser-actions";
+import { Position } from "./insert-cell/ai-cell-generator";
 
 interface CodeMirrorProps {
   actions?: JupyterActions;
@@ -33,7 +40,7 @@ interface CodeMirrorProps {
   registerEditor?;
   unregisterEditor?;
   getValueRef?;
-  setShowChatGPT?;
+  setShowAICellGen?: (show: Position) => void;
 }
 
 function should_memoize(prev, next) {
@@ -66,7 +73,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       registerEditor,
       unregisterEditor,
       getValueRef,
-      setShowChatGPT,
+      setShowAICellGen,
     } = props;
 
     const is_mounted = useIsMountedRef();
@@ -116,7 +123,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
           registerEditor={registerEditor}
           unregisterEditor={unregisterEditor}
           getValueRef={getValueRef}
-          setShowChatGPT={setShowChatGPT}
+          setShowAICellGen={setShowAICellGen}
         />
       );
     } else {

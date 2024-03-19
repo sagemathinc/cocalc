@@ -27,6 +27,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
+import { Position } from "./insert-cell/ai-cell-generator";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -99,7 +100,7 @@ interface CodeMirrorEditorProps {
   refresh?: any; // if this changes, then cm.refresh() is called.
   getValueRef?: MutableRefObject<() => string>;
   canvasScale?: number;
-  setShowChatGPT?: (show: boolean) => void;
+  setShowAICellGen?: (show: Position) => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -127,7 +128,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   refresh,
   getValueRef,
   canvasScale,
-  setShowChatGPT,
+  setShowAICellGen,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -780,7 +781,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
             color: "#bfbfbf",
             zIndex: 1,
             left: 10 + placeHolderOffset,
-            top: setShowChatGPT == null ? "7.5px" : "2.5px",
+            top: setShowAICellGen == null ? "7.5px" : "2.5px",
             marginLeft: "-5px",
             paddingLeft: "5px",
             overflow: "hidden",
@@ -789,13 +790,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           onClick={focus_cm}
         >
           <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 0" }}>
-            Enter code{setShowChatGPT == null ? "..." : " or "}
+            Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
-          {setShowChatGPT != null && (
+          {setShowAICellGen != null && (
             <Button
               type="link"
               style={{ marginLeft: "-15px", opacity: 0.7 }}
-              onClick={() => setShowChatGPT?.(true)}
+              onClick={() => setShowAICellGen?.("replace")}
             >
               generate using AI...
             </Button>
