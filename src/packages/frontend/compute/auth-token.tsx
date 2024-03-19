@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import generateVouchers from "@cocalc/util/vouchers";
-import { Button, Input, Popconfirm } from "antd";
+import { Button, Input, Popconfirm, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { PROXY_AUTH_TOKEN_FILE } from "@cocalc/util/compute/constants";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { writeTextFileToComputeServer } from "./util";
 import ShowError from "@cocalc/frontend/components/error";
 
 function createToken() {
@@ -99,6 +99,7 @@ export default function AuthToken({
           >
             <Icon name="refresh" />
             Randomize...
+            {saving && <Spin />}
           </Button>
         </Popconfirm>
       </div>
@@ -106,14 +107,12 @@ export default function AuthToken({
   );
 }
 
-// sudo sh -c 'echo "foo" > /blah'
 async function writeAuthToken({ authToken, project_id, compute_server_id }) {
-  const args = ["sh", "-c", `echo "${authToken}" > "${PROXY_AUTH_TOKEN_FILE}"`];
-  await webapp_client.exec({
-    filesystem: true,
-    compute_server_id,
+  await writeTextFileToComputeServer({
+    value: authToken,
     project_id,
-    command: "sudo",
-    args,
+    compute_server_id,
+    sudo: true,
+    path: PROXY_AUTH_TOKEN_FILE,
   });
 }

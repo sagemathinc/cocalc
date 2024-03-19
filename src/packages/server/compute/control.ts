@@ -610,9 +610,9 @@ export async function makeConfigurationChange({
     // TODO: we might change to do it here instead at some point.
     changed.delete("authToken");
   }
-  if (changed.has("proxyJson")) {
+  if (changed.has("proxy")) {
     // same comment as for authToken
-    changed.delete("proxyJson");
+    changed.delete("proxy");
   }
   if (changed.size == 0) {
     // nothing else to change
@@ -631,7 +631,9 @@ export async function makeConfigurationChange({
       });
     default:
       throw Error(
-        `makeConfigurationChange not implemented for cloud '${cloud}'`,
+        `makeConfigurationChange not implemented for cloud '${cloud}' and changed=${JSON.stringify(
+          changed,
+        )}`,
       );
   }
 }
@@ -697,13 +699,13 @@ async function getStartupParams(id: number): Promise<{
   image: string;
   exclude_from_sync: string;
   auth_token: string;
-  proxy_json: string;
+  proxy;
 }> {
   const server = await getServerNoCheck(id);
   const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
-  const proxy_json = server.configuration?.proxyJson ?? "[]";
+  const proxy = server.configuration?.proxy ?? [];
   const exclude_from_sync = excludeFromSync.join("|");
   let x;
   switch (server.cloud) {
@@ -712,7 +714,7 @@ async function getStartupParams(id: number): Promise<{
         ...(await googleCloud.getStartupParams(server)),
         exclude_from_sync,
         auth_token,
-        proxy_json,
+        proxy,
       };
       break;
     case "onprem":
@@ -727,7 +729,7 @@ async function getStartupParams(id: number): Promise<{
 
         exclude_from_sync,
         auth_token,
-        proxy_json,
+        proxy,
       };
       break;
     default:

@@ -27,6 +27,12 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
+interface ProxyRoute {
+  path: string;
+  target: string;
+  ws?: boolean;
+}
+
 export interface Image {
   // What we show the user to describe this image, e.g., in the image select menu.
   label: string;
@@ -66,15 +72,7 @@ export interface Image {
   // proxy: if false, do NOT run https proxy server on host VM
   //        if nothing given, runs proxy server with no default config (so does nothing)
   //        if given, is array of proxy config.
-  proxy?:
-    | false
-    | {
-        path: string;
-        target: string;
-        ws?: boolean;
-        options?: any;
-        wsOptions?: any;
-      }[];
+  proxy?: false | ProxyRoute[];
 }
 
 export type Images = { [name: string]: Image };
@@ -451,7 +449,7 @@ interface BaseConfiguration {
   // Token used for authentication at https://compute-server...
   authToken?: string;
   // Configuration of the https proxy server.
-  proxyJson?: string;
+  proxy?: ProxyRoute[];
   // If this compute server stops pinging us, e.g., due to being preempted or
   // just crashing due to out of memory (etc) should we automatically do a
   // forced restart.  Note that currently for on prem this isn't possible.

@@ -253,7 +253,7 @@ export async function installConf({
   hostname,
   exclude_from_sync,
   auth_token,
-  proxy_json,
+  proxy,
 }) {
   const auth = await authorizedKeys(project_id);
   return `
@@ -266,7 +266,7 @@ echo "${compute_server_id}" > /cocalc/conf/compute_server_id
 echo "${hostname}" > /cocalc/conf/hostname
 echo '${auth}' > /cocalc/conf/authorized_keys
 echo '${auth_token}' > ${PROXY_AUTH_TOKEN_FILE}
-echo '${proxy_json}' > ${PROXY_CONFIG}
+echo '${JSON.stringify(proxy, undefined, 2)}' > ${PROXY_CONFIG}
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
 `;
 }
