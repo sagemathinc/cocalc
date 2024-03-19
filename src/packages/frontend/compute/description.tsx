@@ -7,7 +7,7 @@ import { CopyToClipBoard } from "@cocalc/frontend/components";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Tooltip } from "antd";
+import { Input, Tooltip } from "antd";
 
 interface Props {
   cloud?;
@@ -92,8 +92,13 @@ function RuntimeInfo({ configuration, data }) {
         )}
         {configuration.authToken && (
           <div style={{ display: "flex", marginLeft: "15px" }}>
-            Token:{" "}
-            <CopyToClipBoard size="small" value={configuration.authToken} />
+            Token
+            <Input.Password
+              readOnly
+              size="small"
+              value={configuration.authToken}
+              style={{ width: "125px", marginLeft: "5px", fontSize: "10px" }}
+            />
           </div>
         )}
       </div>
