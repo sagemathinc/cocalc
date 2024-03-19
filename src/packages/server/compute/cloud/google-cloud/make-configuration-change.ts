@@ -19,9 +19,10 @@ export const SUPPORTED_CHANGES = [
   "acceleratorCount",
   "test",
   "excludeFromSync",
-  "authToken",
   "autoRestart",
   "allowCollaboratorControl",
+  "authToken",
+  "proxy",
 ];
 
 export const RUNNING_CHANGES = [
@@ -29,6 +30,8 @@ export const RUNNING_CHANGES = [
   "diskSizeGb",
   "autoRestart",
   "allowCollaboratorControl",
+  "authToken",
+  "proxy",
 ];
 
 export async function makeConfigurationChange({
