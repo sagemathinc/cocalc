@@ -8,8 +8,10 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { LanguageModelVendorAvatar } from "./language-model-icon";
 
-export function LLMModelName(props: Readonly<{ model: LanguageModel }>) {
-  const { model } = props;
+export function LLMModelName(
+  props: Readonly<{ model: LanguageModel; size?: number }>,
+) {
+  const { model, size } = props;
 
   const ollama = useTypedRedux("customize", "ollama");
 
@@ -29,7 +31,12 @@ export function LLMModelName(props: Readonly<{ model: LanguageModel }>) {
 
   return (
     <>
-      <LanguageModelVendorAvatar model={model} /> {renderTitle()}
+      <LanguageModelVendorAvatar
+        model={model}
+        size={size}
+        style={{ marginRight: 0 }}
+      />{" "}
+      {renderTitle()}
     </>
   );
 }
