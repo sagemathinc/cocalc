@@ -23,10 +23,11 @@ import { LLMTools } from "@cocalc/jupyter/types";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
-import { AIGenerateCodeCell, Position } from "./ai-cell-generator";
+import { AIGenerateCodeCell } from "./ai-cell-generator";
+import { Position } from "./types";
 import { insertCell, pasteCell } from "./util";
 
-type TinyButtonType = "code" | "markdown" | "paste" | "chatgpt";
+type TinyButtonType = "code" | "markdown" | "paste" | "aicell";
 
 const BTN_HEIGHT = 22;
 
@@ -66,10 +67,6 @@ export function InsertCell({
   function handleBarClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (showGenerateCell && llmTools && (e.altKey || e.metaKey)) {
-      setShowAICellGen(position);
-      return;
-    }
     const type =
       e.shiftKey || e.ctrlKey || e.altKey || e.metaKey ? "markdown" : "code";
     insertCell({ frameActions, actions, type, id, position });
@@ -86,7 +83,7 @@ export function InsertCell({
       case "paste":
         pasteCell({ frameActions, actions, id, position });
         break;
-      case "chatgpt":
+      case "aicell":
         setShowAICellGen(position);
         break;
       default:
@@ -110,7 +107,7 @@ export function InsertCell({
     >
       <AIGenerateCodeCell
         setShowAICellGen={setShowAICellGen}
-        showAICellGen={!hide && showAICellGen ? position : null}
+        showAICellGen={!hide ? showAICellGen : null}
         actions={actions}
         frameActions={frameActions}
         id={id}
@@ -150,7 +147,7 @@ export function InsertCell({
             </TinyButton>
             {showGenerateCell && llmTools && (
               <TinyButton
-                type="chatgpt"
+                type="aicell"
                 title="Create code based on your description (alt+click line)"
                 handleButtonClick={handleButtonClick}
               >

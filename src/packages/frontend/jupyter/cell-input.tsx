@@ -31,10 +31,10 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
-import { Position } from "./insert-cell/ai-cell-generator";
 import { LLMExplainCell } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
+import { Position } from "./insert-cell/types";
 
 function attachmentTransform(
   project_id: string | undefined,

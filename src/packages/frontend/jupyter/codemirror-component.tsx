@@ -24,7 +24,7 @@ import { all_fields_equal } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";
-import { Position } from "./insert-cell/ai-cell-generator";
+import { Position } from "./insert-cell/types";
 
 interface CodeMirrorProps {
   actions?: JupyterActions;

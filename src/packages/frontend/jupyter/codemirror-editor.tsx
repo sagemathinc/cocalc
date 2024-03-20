@@ -27,7 +27,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
-import { Position } from "./insert-cell/ai-cell-generator";
+import { Position } from "./insert-cell/types";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -792,15 +792,15 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 0" }}>
             Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
-          {setShowAICellGen != null && (
+          {setShowAICellGen != null ? (
             <Button
               type="link"
               style={{ marginLeft: "-15px", opacity: 0.7 }}
-              onClick={() => setShowAICellGen?.("replace")}
+              onClick={() => setShowAICellGen("replace")}
             >
               generate using AI...
             </Button>
-          )}
+          ) : undefined}
         </div>
       </div>
     );

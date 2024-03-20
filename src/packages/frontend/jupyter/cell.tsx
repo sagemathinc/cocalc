@@ -25,9 +25,9 @@ import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
 import { InsertCell } from "./insert-cell";
+import { Position } from "./insert-cell/types";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 import { INPUT_PROMPT_COLOR } from "./prompt/base";
-import { Position } from "./insert-cell/ai-cell-generator";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
@@ -89,7 +89,6 @@ function areEqual(props: Props, nextProps: Props): boolean {
 
 export const Cell: React.FC<Props> = React.memo((props) => {
   const [showAICellGen, setShowAICellGen] = useState<Position>(null);
-  const [showAICellGenFirst, setShowAICellGenFirst] = useState<boolean>(false);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   const render = useDelayedRender(props.delayRendering ?? 0);
@@ -327,12 +326,12 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         position={position}
         actions={props.actions}
         showAICellGen={
-          position === "above" ? showAICellGenFirst : showAICellGen
+          showAICellGen === position || showAICellGen === "replace"
+            ? showAICellGen
+            : null
         }
-        setShowAICellGen={
-          position === "above" ? setShowAICellGenFirst : setShowAICellGen
-        }
-        alwaysShow={position == "below" && props.isLast}
+        setShowAICellGen={setShowAICellGen}
+        alwaysShow={position === "below" && props.isLast}
       />
     );
   }

@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input, InputNumber, Popover, Space } from "antd";
+import { Button, Input, InputNumber, Popover, Space } from "antd";
 import { throttle } from "lodash";
 import React, { useMemo, useState } from "react";
 
@@ -6,6 +6,7 @@ import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageMod
 import { alert_message } from "@cocalc/frontend/alerts";
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Paragraph } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
@@ -22,11 +23,9 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import AIAvatar from "../../components/ai-avatar";
 import { JupyterActions } from "../browser-actions";
+import { Position } from "./types";
 import { insertCell } from "./util";
-
-export type Position = "above" | "below" | "replace" | null;
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -50,15 +49,13 @@ export function AIGenerateCodeCell({
   const [querying, setQuerying] = useState<boolean>(false);
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [prompt, setPrompt] = useState<string>("");
-  const [includePreviousCell, setIncludePreviousCell] = useState<boolean>(true);
-  const [includePreviousCellCount, setIncludePreviousCellCount] =
-    useState<number>(1);
+  const [includePreviousCells, setIncludePreviousCells] = useState<number>(1);
 
   const prevCodeContents = getPreviousNonemptyCodeCellContents(
     frameActions.current,
     id,
     showAICellGen,
-    includePreviousCellCount,
+    includePreviousCells,
   );
 
   const input = useMemo(() => {
@@ -69,10 +66,16 @@ export function AIGenerateCodeCell({
       actions,
       position: showAICellGen,
       model,
-      prevCodeContents: includePreviousCell ? prevCodeContents : "",
+      prevCodeContents: includePreviousCells > 0 ? prevCodeContents : "",
     });
     return input;
-  }, [showAICellGen, prompt, model, includePreviousCell, prevCodeContents]);
+  }, [
+    showAICellGen,
+    prompt,
+    model,
+    includePreviousCells > 0,
+    prevCodeContents,
+  ]);
 
   function doQuery() {
     setQuerying(true);
@@ -90,7 +93,7 @@ export function AIGenerateCodeCell({
         setShowAICellGen(null);
         setQuerying(false);
       },
-      prevCodeContents: includePreviousCell ? prevCodeContents : "",
+      prevCodeContents: includePreviousCells > 0 ? prevCodeContents : "",
     });
   }
 
@@ -138,30 +141,23 @@ export function AIGenerateCodeCell({
             {prevCodeContents ? (
               <Paragraph>
                 <Space>
-                  <Checkbox
-                    checked={includePreviousCell}
-                    onChange={(e) => setIncludePreviousCell(e.target.checked)}
+                  Context: Include previous{" "}
+                  <span
+                    onClick={(e) => {
+                      // otherwise, InputNumber toggles the checkbox
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
                   >
-                    Include previous{" "}
-                    <span
-                      onClick={(e) => {
-                        // otherwise, InputNumber toggles the checkbox
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    >
-                      <InputNumber
-                        min={1}
-                        max={10}
-                        size={"small"}
-                        value={includePreviousCellCount}
-                        onChange={(value) =>
-                          setIncludePreviousCellCount(value ?? 1)
-                        }
-                      />
-                    </span>{" "}
-                    code {plural(includePreviousCellCount, "cell")}
-                  </Checkbox>
+                    <InputNumber
+                      min={0}
+                      max={10}
+                      size={"small"}
+                      value={includePreviousCells}
+                      onChange={(value) => setIncludePreviousCells(value ?? 1)}
+                    />
+                  </span>{" "}
+                  code {plural(includePreviousCells, "cell")}.
                 </Space>
               </Paragraph>
             ) : undefined}

@@ -1,4 +1,7 @@
 import { alert_message } from "@cocalc/frontend/alerts";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterActions } from "../browser-actions";
+import { Position } from "./types";
 
 export function insertCell({
   frameActions,
@@ -8,11 +11,11 @@ export function insertCell({
   id,
   position,
 }: {
-  frameActions;
-  actions;
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  actions: JupyterActions;
   type: "code" | "markdown";
   id: string; // id relative to which we insert
-  position: "above" | "below" | "replace";
+  position: Position;
   content?: string;
 }): string | undefined {
   if (frameActions.current == null) {
@@ -20,7 +23,10 @@ export function insertCell({
     return;
   }
   frameActions.current.set_cur_id(id);
-  const new_id = frameActions.current.insert_cell(position == "above" ? -1 : 1);
+  const new_id =
+    position === "replace"
+      ? id
+      : frameActions.current.insert_cell(position == "above" ? -1 : 1);
   frameActions.current.set_cur_id(new_id);
 
   if (content) {
@@ -47,6 +53,11 @@ export async function pasteCell({
   actions,
   position,
   id,
+}: {
+  frameActions: React.MutableRefObject<NotebookFrameActions | undefined>;
+  actions: JupyterActions;
+  id: string; // id relative to which we insert
+  position: Position;
 }): Promise<void> {
   try {
     // First time around (in Chrome at least), this will require a confirmation by the user
