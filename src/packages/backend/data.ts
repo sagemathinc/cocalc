@@ -87,7 +87,7 @@ export type SSLConfig = ConnectionOptions & {
  *
  * @param env
  */
-export const sslConfigFromCoCalcEnv = (env: CoCalcSSLEnvConfig = process.env): SSLConfig => {
+export function sslConfigFromCoCalcEnv(env: CoCalcSSLEnvConfig = process.env): SSLConfig {
   const sslConfig: SSLConfig = {};
 
   if (env.SMC_DB_SSL_CA_FILE) {
@@ -122,7 +122,7 @@ export const sslConfigFromCoCalcEnv = (env: CoCalcSSLEnvConfig = process.env): S
  *
  * @param config
  */
-export const sslConfigToPsqlEnv = (config: SSLConfig): PsqlSSLEnvConfig => {
+export function sslConfigToPsqlEnv(config: SSLConfig): PsqlSSLEnvConfig {
   if (!config) {
     return {};
   } else if (config === true) {
