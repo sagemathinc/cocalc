@@ -125,7 +125,7 @@ export default function StoreLayout({ page }: Props) {
       case "site-license":
         return <SiteLicense noAccount={noAccount} />;
       case "boost":
-        return <Boost noAccount={noAccount} />;
+        return <Boost />;
       case "dedicated":
         return <DedicatedResource noAccount={noAccount} />;
       case "cart":

@@ -37,25 +37,25 @@ export default function Overview() {
       </div>
       <OverviewRow>
         <Product icon="key" title="Licenses" href="/store/site-license">
-          Buy a license to upgrade projects, remove the warning banner, get
-          internet access, more CPU and memory, etc.
+          Buy a license to upgrade projects, get internet access, more CPU, disk
+          and memory.
         </Product>
         <Product
           href={"https://doc.cocalc.com/compute_server.html"}
           icon={PAYASYOUGO_ICON}
-          title="Pay As You Go Servers"
+          title="Compute Servers"
         >
-          Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered
-          virtual machines with full admin privileges. Pay only for what you
-          actually use.
+          Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered CPU
+          machines with full admin privileges. Pay only for what you actually
+          use.
         </Product>
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
           Run CoCalc on your own machine or cluster in order to keep your data
           on-site and use compute resources that you already have.
         </Product>
         <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
-          Purchase a <A href={"/vouchers"}>voucher code</A> and gift it to
-          someone else.
+          Purchase a <A href={"/vouchers"}>voucher code</A> to make store credit
+          easily available to somebody else.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>
