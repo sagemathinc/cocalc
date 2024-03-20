@@ -15,6 +15,7 @@ import { getHistory } from "./history";
 import { DARK_GREY_BORDER } from "../../util";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { isEqual } from "lodash";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -55,7 +56,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
   );
   useEffect(() => {
     const newHistory = getHistory(editor, element);
-    if (newHistory != null) {
+    if (newHistory != null && !isEqual(history, newHistory)) {
       setHistory(newHistory);
     }
   }, [change]);
