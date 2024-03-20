@@ -83,8 +83,8 @@ export default function DedicatedResource(props: Props) {
       <Title level={3} ref={headerRef}>
         <Icon name={"dedicated"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
-          ? "Edit Dedicated Resources License in Shopping Cart"
-          : "Buy a Dedicated Resources License"}
+          ? "Edit Dedicated VM License in Shopping Cart"
+          : "Buy a Dedicated VM (Deprecated)"}
       </Title>
       {router.query.id == null && (
         <>
@@ -331,7 +331,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
           showExplanations && (
             <div style={{ marginTop: "5px" }}>
               Select if you want to get a Dedicate Disk or a Virtual Machine.
-              NOTE: Dedicated disks are deprecated -- create a{" "}
+              NOTE: Dedicated VM's are deprecated -- create a{" "}
               <A href="https://doc.cocalc.com/compute_server.html">
                 compute server
               </A>{" "}
@@ -341,6 +341,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
         }
       >
         <Radio.Group
+          disabled
           onChange={(e) => {
             // Clear error whenever changing this selection to something.
             // See comment in validateDedicatedDiskName about how this

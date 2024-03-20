@@ -4,6 +4,7 @@ import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageMod
 import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
 import {
   HelpIcon,
+  Icon,
   Markdown,
   Paragraph,
   Text,
@@ -173,8 +174,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <>
         <Title level={4}>
-          <AIAvatar size={24} /> Generate LaTeX Formula using{" "}
-          <LLMModelName model={model} />
+          <AIAvatar size={24} /> Generate LaTeX Formula
         </Title>
         {enabled ? (
           <>
@@ -192,7 +192,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
 
   function renderContent() {
     const help = (
-      <HelpIcon title="Usage">
+      <HelpIcon title="Usage" extra="Help">
         <Paragraph>
           You can enter the description of your desired formula in various ways:
           <ul>
@@ -231,8 +231,8 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <Paragraph style={{ marginBottom: 0 }}>
-          The selected AI language model will generate a LaTeX formula the
-          description. {help}
+          The <LLMModelName model={model} size={18} /> language model will
+          generate a LaTeX formula based on your description. {help}
         </Paragraph>
         <Space.Compact style={{ width: "100%" }}>
           <Input
@@ -241,10 +241,10 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
             placeholder={
               "Describe the formula in natural language and/or algebraic notation."
             }
-            prefix={help}
             defaultValue={text}
             onChange={(e) => setInput(e.target.value)}
             onPressEnter={doGenerate}
+            addonBefore={<Icon name="fx" />}
           />
           <Button
             loading={generating}
