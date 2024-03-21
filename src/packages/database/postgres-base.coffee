@@ -42,7 +42,8 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { primaryKey, primaryKeys } = require('./postgres/schema/table')
 
 misc_node = require('@cocalc/backend/misc_node')
-data = require("@cocalc/backend/data")
+{ sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
+
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
@@ -61,10 +62,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         super()
         opts = defaults opts,
-            host            : data.pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
-            database        : data.pgdatabase
-            user            : data.pguser
-            ssl             : data.pgssl
+            host            : pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
+            database        : pgdatabase
+            user            : pguser
+            ssl             : pgssl
             debug           : exports.DEBUG
             connect         : true
             password        : undefined
@@ -850,7 +851,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
         args = ['--user', @_user, '--host', @_host.split(',')[0], '--port', @_port, '--list', '--tuples-only']
-        sslEnv = data.sslConfigToPsqlEnv(@_ssl)
+        sslEnv = sslConfigToPsqlEnv(@_ssl)
         dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
