@@ -23,10 +23,15 @@ export function insertCell({
     return;
   }
   frameActions.current.set_cur_id(id);
-  const new_id =
-    position === "replace"
-      ? id
-      : frameActions.current.insert_cell(position == "above" ? -1 : 1);
+  const new_id = frameActions.current.insert_cell(
+    position === "above" ? -1 : 1,
+  );
+
+  // my first idea was to set "new_id=id" above, but that doesn't work – the cell ends up being empty.
+  // instead, insert a new cell below and delete the currnet one
+  if (position === "replace") {
+    actions.delete_cells([id]);
+  }
   frameActions.current.set_cur_id(new_id);
 
   if (content) {
@@ -41,6 +46,7 @@ export function insertCell({
       }
       break;
     case "code":
+      actions.set_cell_type(new_id, "code");
       frameActions.current.switch_code_cell_to_edit(new_id);
       break;
   }
