@@ -1,6 +1,7 @@
 import { Ollama } from "@langchain/community/llms/ollama";
 
 import { ChatStream } from "../client/llm";
+import type { History } from "../client/types";
 
 interface Opts {
   model: string;

@@ -23,7 +23,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
-import type { History } from "./types"; // do not import until needed -- it is HUGE!
+import type { History } from "./types";
 
 interface EmbeddingsQuery {
   scope: string | string[];
@@ -102,6 +102,7 @@ export class LLMClient {
     }
 
     if (isClientModel(model)) {
+      // do not import until needed -- it is HUGE!
       const { queryClientLLM } = await import(
         "@cocalc/frontend/misc/llm-client"
       );
@@ -129,12 +130,14 @@ export class LLMClient {
       }
     }
 
+    // do not import until needed -- it is HUGE!
     const {
       numTokensUpperBound,
       truncateHistory,
       truncateMessage,
       getMaxTokens,
     } = await import("@cocalc/frontend/misc/llm");
+
     // We always leave some room for output:
     const maxTokens = getMaxTokens(model) - 1000;
     input = truncateMessage(input, maxTokens);
