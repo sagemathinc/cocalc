@@ -7,7 +7,8 @@ import { CopyToClipBoard } from "@cocalc/frontend/components";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Input, Tooltip } from "antd";
+import { Button, Input, Tooltip } from "antd";
+import { useState } from "react";
 
 interface Props {
   cloud?;
@@ -57,6 +58,7 @@ export default function Description({
 // because I haven't implemented something better through an api, similar to how sync works.
 // It would not be hard.
 function RuntimeInfo({ configuration, data }) {
+  const [showToken, setShowToken] = useState<boolean>(false);
   return (
     <div style={{ display: "flex", textAlign: "center" }}>
       {data?.externalIp && (
@@ -91,14 +93,25 @@ function RuntimeInfo({ configuration, data }) {
           />
         )}
         {configuration.authToken && (
-          <div style={{ display: "flex", marginLeft: "15px" }}>
-            Token
-            <Input.Password
-              readOnly
-              size="small"
-              value={configuration.authToken}
-              style={{ width: "125px", marginLeft: "5px", fontSize: "10px" }}
-            />
+          <div style={{ display: "flex", margin: "-1px 0 0 5px" }}>
+            {!showToken && (
+              <Button
+                stye={{ color: "#666" }}
+                type="text"
+                size="small"
+                onClick={() => setShowToken(!showToken)}
+              >
+                Token...
+              </Button>
+            )}
+            {showToken && (
+              <Input.Password
+                readOnly
+                size="small"
+                value={configuration.authToken}
+                style={{ width: "125px", marginLeft: "5px", fontSize: "10px" }}
+              />
+            )}
           </div>
         )}
       </div>

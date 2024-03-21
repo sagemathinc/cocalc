@@ -171,15 +171,15 @@ function Image(props) {
           image={props.configuration.image}
           style={{ flexDirection: "row" }}
         />
+        {!(state == "deprovisioned" || state == "off") && (
+          <div style={{ color: "#666", marginTop: "5px" }}>
+            You can only edit the image when server is deprovisioned or off.
+          </div>
+        )}
       </div>
       <ExcludeFromSync {...props} />
       <Divider />
       <Ephemeral style={{ marginTop: "30px" }} {...props} />
-      {!(state == "deprovisioned" || state == "off") && (
-        <div style={{ color: "#666", marginTop: "5px" }}>
-          You can only edit the image when server is deprovisioned or off.
-        </div>
-      )}
     </div>
   );
 }
