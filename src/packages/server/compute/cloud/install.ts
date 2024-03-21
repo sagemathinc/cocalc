@@ -111,35 +111,6 @@ set -v
 `;
 }
 
-// if installHttpsProxy runs, it has to be after installNode
-// TODO: A problem with this is for some reason it fails to run below,
-// it won't be reported.  Also, maybe this should be in some sort
-// of official systemd daemon.
-// Todo: maybe also nail down the version or tag better.  I suspect
-// the proxy will get very stable soon.
-// This could also just merge with the @cocalc/compute-server package.
-export function installHttpsProxy({
-  IMAGES,
-  image,
-}: {
-  IMAGES: Images;
-  image: string;
-}) {
-  const proxy = IMAGES[image]?.proxy;
-  if (proxy === false) {
-    return "";
-  }
-
-  return `
-set +v
-NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-set -v
-
-DEBUG=proxy:* PROXY_CONFIG="${PROXY_CONFIG}" PROXY_AUTH_TOKEN_FILE="${PROXY_AUTH_TOKEN_FILE}" npx -y @cocalc/compute-server-proxy@latest > /var/log/cocalc-proxy.log 2> /var/log/cocalc-proxy.err &
-
-`;
-}
-
 export function installMicroK8s({
   image,
   IMAGES,

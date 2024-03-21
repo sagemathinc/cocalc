@@ -4,7 +4,6 @@ import {
   installDocker,
   installNode,
   installCoCalc,
-  installHttpsProxy,
   installConf,
   installMicroK8s,
   installUser,
@@ -125,9 +124,6 @@ if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
 fi
-
-setState install install-proxy '' 60 55
-${installHttpsProxy({ IMAGES, image })}
 
 setState install install-user '' 60 60
 ${doInstallUser ? installUser() : ""}
