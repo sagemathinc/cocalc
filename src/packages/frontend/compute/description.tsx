@@ -96,7 +96,7 @@ function RuntimeInfo({ configuration, data }) {
           <div style={{ display: "flex", margin: "-1px 0 0 5px" }}>
             {!showToken && (
               <Button
-                stye={{ color: "#666" }}
+                style={{ color: "#666" }}
                 type="text"
                 size="small"
                 onClick={() => setShowToken(!showToken)}
