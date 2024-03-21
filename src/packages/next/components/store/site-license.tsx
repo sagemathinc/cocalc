@@ -108,9 +108,7 @@ export default function SiteLicense(props: Props) {
             <PaygInfo what="a license" />
           </Paragraph>
           <Paragraph>
-            You might also be interested in a{" "}
-            <A href="/store/boost">license boost</A> or{" "}
-            <A href="/store/dedicated">dedicated VM</A>. It is also possible to{" "}
+            It is also possible to{" "}
             <A href="https://doc.cocalc.com/vouchers.html">create vouchers</A>{" "}
             for resale or distribution.
           </Paragraph>
@@ -145,12 +143,15 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
    * found, this function returns undefined.
    */
   function findPreset() {
-    const currentConfiguration = form.getFieldsValue(Object.keys(PRESET_MATCH_FIELDS));
-    let foundPreset: Presets|undefined;
+    const currentConfiguration = form.getFieldsValue(
+      Object.keys(PRESET_MATCH_FIELDS),
+    );
+    let foundPreset: Presets | undefined;
 
     Object.keys(PRESETS).some((p) => {
       const presetMismatch = Object.keys(PRESET_MATCH_FIELDS).some(
-        (formField) => !(PRESETS[p][formField] === currentConfiguration[formField])
+        (formField) =>
+          !(PRESETS[p][formField] === currentConfiguration[formField]),
       );
 
       if (!presetMismatch) {

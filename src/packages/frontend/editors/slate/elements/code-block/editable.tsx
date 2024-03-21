@@ -17,6 +17,7 @@ import { useChange } from "../../use-change";
 import { getHistory, isPreviousSiblingCodeBlock } from "./history";
 import InsertBar from "./insert-bar";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import { isEqual } from "lodash";
 
 function Element({ attributes, children, element }: RenderElementProps) {
   if (element.type != "code_block") {
@@ -35,15 +36,15 @@ function Element({ attributes, children, element }: RenderElementProps) {
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   const { change } = useChange();
   const [history, setHistory] = useState<string[]>(
-    getHistory(editor, element) ?? []
+    getHistory(editor, element) ?? [],
   );
   const [codeSibling, setCodeSibling] = useState<boolean>(
-    isPreviousSiblingCodeBlock(editor, element)
+    isPreviousSiblingCodeBlock(editor, element),
   );
   useEffect(() => {
-    const history = getHistory(editor, element);
-    if (history != null) {
-      setHistory(history);
+    const newHistory = getHistory(editor, element);
+    if (newHistory != null && !isEqual(history, newHistory)) {
+      setHistory(newHistory);
       setCodeSibling(isPreviousSiblingCodeBlock(editor, element));
     }
     if (!infoFocusedRef.current && element.info != info) {
