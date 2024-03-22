@@ -326,7 +326,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         position={position}
         actions={props.actions}
         showAICellGen={
-          showAICellGen === position || showAICellGen === "replace"
+          showAICellGen === position ||
+          (position === "below" && showAICellGen === "replace")
             ? showAICellGen
             : null
         }
