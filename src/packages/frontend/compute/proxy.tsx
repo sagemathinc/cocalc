@@ -2,8 +2,8 @@
 The HTTPS proxy server.
 */
 
-import { Alert, Button, Input, Spin, Switch } from "antd";
-import { useEffect, useState } from "react";
+import { Alert, Button, Input, Space, Spin, Switch } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import AuthToken from "./auth-token";
 import ShowError from "@cocalc/frontend/components/error";
@@ -69,8 +69,20 @@ export default function Proxy({
           state={state}
           IMAGES={IMAGES}
         />
+        <Apps
+          configuration={configuration}
+          IMAGES={IMAGES}
+          style={{ marginTop: "10px" }}
+        />
       </div>
     </div>
+  );
+}
+
+function getProxy({ IMAGES, configuration }) {
+  return (
+    configuration?.proxy ??
+    defaultProxyConfig({ image: configuration?.image, IMAGES })
   );
 }
 
@@ -85,9 +97,7 @@ function ProxyConfig({
   const [edit, setEdit] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
-  const proxy =
-    configuration?.proxy ??
-    defaultProxyConfig({ image: configuration.image, IMAGES });
+  const proxy = getProxy({ configuration, IMAGES });
   const [proxyJson, setProxyJson] = useState<string>(stringify(proxy));
   useEffect(() => {
     setProxyJson(stringify(proxy));
@@ -186,4 +196,49 @@ async function writeProxy({ proxy, project_id, compute_server_id }) {
     sudo: true,
     path: PROXY_CONFIG,
   });
+}
+
+function Apps({ configuration, IMAGES, style }) {
+  const apps = useMemo(
+    () => getApps({ configuration, IMAGES }),
+    [configuration?.image, IMAGES != null],
+  );
+  if (apps.length == 0) {
+    return null;
+  }
+  return (
+    <div style={style}>
+      <b>Launch App</b> (opens in new browser tab)
+      <Space style={{ marginTop: "5px" }}>{apps}</Space>
+    </div>
+  );
+}
+
+export function getApps({ configuration, IMAGES }) {
+  const image = configuration?.image;
+  if (IMAGES == null || image == null) {
+    return [];
+  }
+  const proxy = getProxy({ configuration, IMAGES });
+  const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? [];
+
+  const buttons: JSX.Element[] = [];
+  for (const name in apps) {
+    const app = apps[name];
+    if (app.disabled) {
+      continue;
+    }
+    for (const route of proxy) {
+      if (route.path == app.path) {
+        buttons.push(
+          <Button key={name}>
+            {app.icon ? <Icon name={app.icon} /> : undefined}
+            {app.label}
+          </Button>,
+        );
+        break;
+      }
+    }
+  }
+  return buttons;
 }
