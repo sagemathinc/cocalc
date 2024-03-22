@@ -3,13 +3,14 @@ The HTTPS proxy server.
 */
 
 import { Alert, Button, Input, Spin, Switch } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import AuthToken from "./auth-token";
 import ShowError from "@cocalc/frontend/components/error";
 import { PROXY_CONFIG } from "@cocalc/util/compute/constants";
 import { writeTextFileToComputeServer } from "./util";
 import jsonic from "jsonic";
+import { defaultProxyConfig } from "@cocalc/util/compute/images";
 
 export default function Proxy({
   id,
@@ -58,6 +59,7 @@ export default function Proxy({
           setConfig={setConfig}
           configuration={configuration}
           state={state}
+          IMAGES={IMAGES}
         />
         <AuthToken
           id={id}
@@ -72,12 +74,24 @@ export default function Proxy({
   );
 }
 
-function ProxyConfig({ id, project_id, setConfig, configuration, state }) {
+function ProxyConfig({
+  id,
+  project_id,
+  setConfig,
+  configuration,
+  state,
+  IMAGES,
+}) {
   const [edit, setEdit] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
-  const proxy = configuration?.proxy ?? [];
+  const proxy =
+    configuration?.proxy ??
+    defaultProxyConfig({ image: configuration.image, IMAGES });
   const [proxyJson, setProxyJson] = useState<string>(stringify(proxy));
+  useEffect(() => {
+    setProxyJson(stringify(proxy));
+  }, [configuration]);
 
   if (!edit) {
     return (
@@ -104,6 +118,7 @@ function ProxyConfig({ id, project_id, setConfig, configuration, state }) {
           proxy,
         });
       }
+      setEdit(false);
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -119,12 +134,19 @@ function ProxyConfig({ id, project_id, setConfig, configuration, state }) {
       />
       <Button
         disabled={saving}
-        onClick={() => setEdit(false)}
+        onClick={() => {
+          setProxyJson(stringify(proxy));
+          setEdit(false);
+        }}
         style={{ marginRight: "5px" }}
       >
-        Close
+        Cancel
       </Button>
-      <Button type="primary" disabled={saving || proxyJson == stringify(proxy)} onClick={save}>
+      <Button
+        type="primary"
+        disabled={saving || proxyJson == stringify(proxy)}
+        onClick={save}
+      >
         Save {saving && <Spin />}
       </Button>
       <div

@@ -48,8 +48,9 @@ import {
 } from "@cocalc/server/compute/cloud/off-scripts";
 import setDetailedState from "@cocalc/server/compute/set-detailed-state";
 import isBanned from "@cocalc/server/accounts/is-banned";
-
 import getLogger from "@cocalc/backend/logger";
+import { getImages } from "@cocalc/server/compute/images";
+import { defaultProxyConfig } from "@cocalc/util/compute/images";
 
 const logger = getLogger("server:compute:control");
 
@@ -705,13 +706,18 @@ async function getStartupParams(id: number): Promise<{
   const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
-  const proxy = server.configuration?.proxy ?? [];
+  const image = configuration.image ?? "python";
+  const proxy =
+    server.configuration?.proxy ??
+    defaultProxyConfig({ IMAGES: await getImages(), image });
   const exclude_from_sync = excludeFromSync.join("|");
+
   let x;
   switch (server.cloud) {
     case "google-cloud":
       x = {
         ...(await googleCloud.getStartupParams(server)),
+        image,
         exclude_from_sync,
         auth_token,
         proxy,
@@ -725,8 +731,7 @@ async function getStartupParams(id: number): Promise<{
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
-        image: configuration.image ?? "python",
-
+        image,
         exclude_from_sync,
         auth_token,
         proxy,

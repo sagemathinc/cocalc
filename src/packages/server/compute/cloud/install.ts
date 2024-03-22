@@ -227,6 +227,14 @@ export async function installConf({
   proxy,
 }) {
   const auth = await authorizedKeys(project_id);
+
+  // We take care to base64 encode proxy config, so there
+  // is no possible weird bash string escaping issue.  Since
+  // proxy config could contain regexp's, this is a good idea.
+  const base64ProxyConfig = Buffer.from(
+    JSON.stringify(proxy, undefined, 2),
+  ).toString("base64");
+
   return `
 # Setup Current CoCalc Connection Configuration --
 mkdir -p /cocalc/conf
@@ -237,7 +245,7 @@ echo "${compute_server_id}" > /cocalc/conf/compute_server_id
 echo "${hostname}" > /cocalc/conf/hostname
 echo '${auth}' > /cocalc/conf/authorized_keys
 echo '${auth_token}' > ${PROXY_AUTH_TOKEN_FILE}
-echo '${JSON.stringify(proxy, undefined, 2)}' > ${PROXY_CONFIG}
+echo '${base64ProxyConfig}' | base64 --decode > ${PROXY_CONFIG}
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
 `;
 }
