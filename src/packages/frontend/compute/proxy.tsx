@@ -2,7 +2,7 @@
 The HTTPS proxy server.
 */
 
-import { Alert, Button, Input, Space, Spin, Switch } from "antd";
+import { Alert, Button, Input, Spin, Switch } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import AuthToken from "./auth-token";
@@ -234,7 +234,12 @@ function Apps({
         compute_servers_dns,
         state,
       }),
-    [configuration?.image, IMAGES != null],
+    [
+      configuration?.image,
+      IMAGES != null,
+      configuration?.proxy,
+      data?.externalIp,
+    ],
   );
   if (apps.length == 0) {
     return null;
@@ -326,12 +331,12 @@ function LauncherButton({
               compute_servers_dns,
             });
             setUrl(url);
-            //             await webapp_client.exec({
-            //               filesystem: false,
-            //               compute_server_id,
-            //               project_id,
-            //               command: app.launch,
-            //             });
+            await webapp_client.exec({
+              filesystem: false,
+              compute_server_id,
+              project_id,
+              command: app.launch,
+            });
             open_new_tab(url);
           } catch (err) {
             setError(`${app.label}: ${err}`);
@@ -371,7 +376,7 @@ function getUrl({ app, configuration, data, compute_servers_dns }) {
   if (configuration.dns && compute_servers_dns) {
     return `https://${configuration.dns}.${compute_servers_dns}${app.url}${auth}`;
   } else {
-    if (!data.externalIp) {
+    if (!data?.externalIp) {
       throw Error("no external ip addressed assigned");
     }
     return `https://${data.externalIp}${app.url}${auth}`;
