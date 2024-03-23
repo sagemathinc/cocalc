@@ -3,7 +3,7 @@ The HTTPS proxy server.
 */
 
 import { Alert, Button, Input, Spin, Switch } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import AuthToken from "./auth-token";
 import ShowError from "@cocalc/frontend/components/error";
@@ -15,6 +15,8 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { getQuery } from "./description";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
+import { delay } from "awaiting";
+import { TimeAgo } from "@cocalc/frontend/components";
 
 export default function Proxy({
   id,
@@ -286,6 +288,7 @@ function getApps({
       if (route.path == app.path) {
         buttons.push(
           <LauncherButton
+            key={name}
             disabled={state != "running"}
             name={name}
             app={app}
@@ -295,6 +298,7 @@ function getApps({
             data={data}
             compute_servers_dns={compute_servers_dns}
             setError={setError}
+            port={getPort(route)}
           />,
         );
         break;
@@ -303,6 +307,26 @@ function getApps({
   }
   return buttons;
 }
+
+function getPort(route) {
+  let { target } = route;
+  if (!target) {
+    return 80;
+  }
+  const i = target.lastIndexOf(":");
+  if (i == -1) {
+    return 80;
+  }
+  target = target.slice(i + 1);
+  const j = target.indexOf("/");
+  if (j == -1) {
+    return parseInt(target);
+  }
+  return parseInt(target.slice(j));
+}
+
+const START_DELAY_MS = 1500;
+const MAX_DELAY_MS = 7500;
 
 function LauncherButton({
   name,
@@ -314,16 +338,23 @@ function LauncherButton({
   compute_servers_dns,
   setError,
   disabled,
+  port,
 }) {
   const [url, setUrl] = useState<string>("");
+  const [launching, setLaunching] = useState<boolean>(false);
+  const [log, setLog] = useState<string>("");
+  const cancelRef = useRef<boolean>(false);
+  const [start, setStart] = useState<Date | null>(null);
   const dnsIssue =
     !(configuration?.dns && compute_servers_dns) && app.requiresDns;
   return (
     <div key={name} style={{ display: "inline-block", marginRight: "5px" }}>
       <Button
-        disabled={disabled || dnsIssue}
+        disabled={disabled || dnsIssue || launching}
         onClick={async () => {
           try {
+            setLaunching(true);
+            cancelRef.current = false;
             const url = getUrl({
               app,
               configuration,
@@ -331,22 +362,73 @@ function LauncherButton({
               compute_servers_dns,
             });
             setUrl(url);
-            await webapp_client.exec({
-              filesystem: false,
-              compute_server_id,
-              project_id,
-              command: app.launch,
-            });
-            open_new_tab(url);
+            let attempt = 0;
+            setStart(new Date());
+            const isRunning = async () => {
+              attempt += 1;
+              setLog(
+                `Checking if http://localhost:${port} is alive (attempt: ${attempt})...`,
+              );
+              return await isHttpServerResponding({
+                project_id,
+                compute_server_id,
+                port,
+              });
+            };
+            if (!(await isRunning())) {
+              setLog("Launching...");
+              await webapp_client.exec({
+                filesystem: false,
+                compute_server_id,
+                project_id,
+                command: app.launch,
+                err_on_exit: true,
+              });
+            }
+            let d = START_DELAY_MS;
+            while (!cancelRef.current && d < 60 * 1000 * 5) {
+              if (await isRunning()) {
+                setLog("Running!");
+                break;
+              }
+              d = Math.min(MAX_DELAY_MS, d * 1.2);
+              await delay(d);
+            }
+            if (!cancelRef.current) {
+              setLog("Opening tab");
+              open_new_tab(url);
+            }
           } catch (err) {
             setError(`${app.label}: ${err}`);
+          } finally {
+            setLaunching(false);
+            setLog("");
           }
         }}
       >
         {app.icon ? <Icon name={app.icon} /> : undefined}
         {app.label}{" "}
         {dnsIssue && <span style={{ marginLeft: "5px" }}>(requires DNS)</span>}
+        {launching && <Spin />}
       </Button>
+      {launching && (
+        <Button
+          style={{ marginLeft: "5px" }}
+          onClick={() => {
+            cancelRef.current = true;
+            setLaunching(false);
+            setUrl("");
+          }}
+        >
+          Cancel
+        </Button>
+      )}
+      {log && (
+        <div>
+          {log}
+          <TimeAgo date={start} />
+        </div>
+      )}
       {url && (
         <div
           style={{
@@ -381,4 +463,24 @@ function getUrl({ app, configuration, data, compute_servers_dns }) {
     }
     return `https://${data.externalIp}${app.url}${auth}`;
   }
+}
+
+// Returns true if there is an http server responding at http://localhost:port on the
+// given compute server.
+async function isHttpServerResponding({
+  project_id,
+  compute_server_id,
+  port,
+  maxTimeS = 5,
+}) {
+  const command = `curl --silent --fail --max-time ${maxTimeS} http://localhost:${port} >/dev/null; echo $?`;
+  const { stdout } = await webapp_client.exec({
+    filesystem: false,
+    compute_server_id,
+    project_id,
+    command,
+    err_on_exit: false,
+  });
+  console.log(stdout);
+  return stdout.trim() == "0";
 }
