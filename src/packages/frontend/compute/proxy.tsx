@@ -298,7 +298,7 @@ function getApps({
             data={data}
             compute_servers_dns={compute_servers_dns}
             setError={setError}
-            port={getPort(route)}
+            route={route}
           />,
         );
         break;
@@ -306,23 +306,6 @@ function getApps({
     }
   }
   return buttons;
-}
-
-function getPort(route) {
-  let { target } = route;
-  if (!target) {
-    return 80;
-  }
-  const i = target.lastIndexOf(":");
-  if (i == -1) {
-    return 80;
-  }
-  target = target.slice(i + 1);
-  const j = target.indexOf("/");
-  if (j == -1) {
-    return parseInt(target);
-  }
-  return parseInt(target.slice(0, j));
 }
 
 const START_DELAY_MS = 1500;
@@ -338,7 +321,7 @@ function LauncherButton({
   compute_servers_dns,
   setError,
   disabled,
-  port,
+  route,
 }) {
   const [url, setUrl] = useState<string>("");
   const [launching, setLaunching] = useState<boolean>(false);
@@ -367,12 +350,12 @@ function LauncherButton({
             const isRunning = async () => {
               attempt += 1;
               setLog(
-                `Checking if http://localhost:${port} is alive (attempt: ${attempt})...`,
+                `Checking if ${route.target} is alive (attempt: ${attempt})...`,
               );
               return await isHttpServerResponding({
                 project_id,
                 compute_server_id,
-                port,
+                target: route.target,
               });
             };
             if (!(await isRunning())) {
@@ -470,10 +453,10 @@ function getUrl({ app, configuration, data, compute_servers_dns }) {
 async function isHttpServerResponding({
   project_id,
   compute_server_id,
-  port,
+  target,
   maxTimeS = 5,
 }) {
-  const command = `curl --silent --fail --max-time ${maxTimeS} http://localhost:${port} >/dev/null; echo $?`;
+  const command = `curl --silent --fail --max-time ${maxTimeS} ${target} >/dev/null; echo $?`;
   const { stdout } = await webapp_client.exec({
     filesystem: false,
     compute_server_id,
