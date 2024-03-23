@@ -12,9 +12,9 @@ import { writeTextFileToComputeServer } from "./util";
 import jsonic from "jsonic";
 import { defaultProxyConfig } from "@cocalc/util/compute/images";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { getQuery } from "./description";
+import LinkRetry from "@cocalc/frontend/components/link-retry";
 
 export default function Proxy({
   id,
@@ -40,7 +40,7 @@ export default function Proxy({
               checked={help}
               onChange={(val) => setHelp(val)}
             />
-            <Icon name="global" /> Hosted Web Servers
+            <Icon name="global" /> Applications
           </b>
         </div>
         {help && (
@@ -52,8 +52,12 @@ export default function Proxy({
             description={
               <div>
                 You can directly run servers such as JupyterLab, VS Code, and
-                Pluto on your compute server. The authorization token is used to
-                securely access these servers.
+                Pluto on your compute server. The authorization token is used so
+                you and your project collaborators can access these servers.
+                <br />
+                <br />
+                <b>NOTE:</b> It can take a few minutes for an app to start
+                running the first time you launch it.
               </div>
             }
           />
@@ -75,6 +79,7 @@ export default function Proxy({
           IMAGES={IMAGES}
         />
         <Apps
+          state={state}
           configuration={configuration}
           data={data}
           IMAGES={IMAGES}
@@ -213,6 +218,7 @@ function Apps({
   style,
   data,
   project_id,
+  state,
 }) {
   const [error, setError] = useState<string>("");
   const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
@@ -226,6 +232,7 @@ function Apps({
         data,
         IMAGES,
         compute_servers_dns,
+        state,
       }),
     [configuration?.image, IMAGES != null],
   );
@@ -236,8 +243,12 @@ function Apps({
     <div style={style}>
       <b>Launch App</b> (opens in new browser tab)
       <div>
-        <Space style={{ margin: "5px 0" }}>{apps}</Space>
-        <ShowError error={error} setError={setError} />
+        <Space style={{ marginTop: "5px" }}>{apps}</Space>
+        <ShowError
+          style={{ marginTop: "10px" }}
+          error={error}
+          setError={setError}
+        />
       </div>
     </div>
   );
@@ -251,6 +262,7 @@ function getApps({
   project_id,
   compute_servers_dns,
   setError,
+  state,
 }) {
   const image = configuration?.image;
   if (IMAGES == null || image == null) {
@@ -269,6 +281,7 @@ function getApps({
       if (route.path == app.path) {
         buttons.push(
           <LauncherButton
+            disabled={state != "running"}
             name={name}
             app={app}
             compute_server_id={compute_server_id}
@@ -295,54 +308,48 @@ function LauncherButton({
   data,
   compute_servers_dns,
   setError,
+  disabled,
 }) {
+  const [url, setUrl] = useState<string>("");
   return (
-    <Button
-      key={name}
-      onClick={async () => {
-        try {
-          await launchApp({
-            app,
-            compute_server_id,
-            project_id,
-            configuration,
-            data,
-            compute_servers_dns,
-          });
-        } catch (err) {
-          setError(`${app.label}: ${err}`);
-        }
-      }}
-    >
-      {app.icon ? <Icon name={app.icon} /> : undefined}
-      {app.label}
-    </Button>
+    <span key={name}>
+      <Button
+        disabled={disabled}
+        onClick={async () => {
+          try {
+            await webapp_client.exec({
+              filesystem: false,
+              compute_server_id,
+              project_id,
+              command: app.launch,
+            });
+            setUrl(getUrl({ app, configuration, data, compute_servers_dns }));
+          } catch (err) {
+            setError(`${app.label}: ${err}`);
+          }
+        }}
+      >
+        {app.icon ? <Icon name={app.icon} /> : undefined}
+        {app.label}
+      </Button>
+      {url && (
+        <LinkRetry href={url} autoStart maxTime={120000}>
+          <br />
+          {url}
+        </LinkRetry>
+      )}
+    </span>
   );
 }
 
-async function launchApp({
-  app,
-  compute_server_id,
-  project_id,
-  configuration,
-  data,
-  compute_servers_dns,
-}) {
-  await webapp_client.exec({
-    filesystem: false,
-    compute_server_id,
-    project_id,
-    command: app.launch,
-  });
+function getUrl({ app, configuration, data, compute_servers_dns }) {
   const auth = getQuery(configuration.authToken);
-  let url;
   if (configuration.dns && compute_servers_dns) {
-    url = `https://${configuration.dns}.${compute_servers_dns}${app.url}${auth}`;
+    return `https://${configuration.dns}.${compute_servers_dns}${app.url}${auth}`;
   } else {
     if (!data.externalIp) {
       throw Error("no external ip addressed assigned");
     }
-    url = `https://${data.externalIp}${app.url}${auth}`;
+    return `https://${data.externalIp}${app.url}${auth}`;
   }
-  open_new_tab(url);
 }
