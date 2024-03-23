@@ -11,12 +11,17 @@ import { PROXY_CONFIG } from "@cocalc/util/compute/constants";
 import { writeTextFileToComputeServer } from "./util";
 import jsonic from "jsonic";
 import { defaultProxyConfig } from "@cocalc/util/compute/images";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { getQuery } from "./description";
 
 export default function Proxy({
   id,
   project_id,
   setConfig,
   configuration,
+  data,
   state,
   IMAGES,
 }) {
@@ -71,8 +76,11 @@ export default function Proxy({
         />
         <Apps
           configuration={configuration}
+          data={data}
           IMAGES={IMAGES}
           style={{ marginTop: "10px" }}
+          compute_server_id={id}
+          project_id={project_id}
         />
       </div>
     </div>
@@ -198,9 +206,27 @@ async function writeProxy({ proxy, project_id, compute_server_id }) {
   });
 }
 
-function Apps({ configuration, IMAGES, style }) {
+function Apps({
+  compute_server_id,
+  configuration,
+  IMAGES,
+  style,
+  data,
+  project_id,
+}) {
+  const [error, setError] = useState<string>("");
+  const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
   const apps = useMemo(
-    () => getApps({ configuration, IMAGES }),
+    () =>
+      getApps({
+        setError,
+        compute_server_id,
+        project_id,
+        configuration,
+        data,
+        IMAGES,
+        compute_servers_dns,
+      }),
     [configuration?.image, IMAGES != null],
   );
   if (apps.length == 0) {
@@ -209,12 +235,23 @@ function Apps({ configuration, IMAGES, style }) {
   return (
     <div style={style}>
       <b>Launch App</b> (opens in new browser tab)
-      <Space style={{ marginTop: "5px" }}>{apps}</Space>
+      <div>
+        <Space style={{ margin: "5px 0" }}>{apps}</Space>
+        <ShowError error={error} setError={setError} />
+      </div>
     </div>
   );
 }
 
-export function getApps({ configuration, IMAGES }) {
+function getApps({
+  compute_server_id,
+  configuration,
+  data,
+  IMAGES,
+  project_id,
+  compute_servers_dns,
+  setError,
+}) {
   const image = configuration?.image;
   if (IMAGES == null || image == null) {
     return [];
@@ -231,14 +268,81 @@ export function getApps({ configuration, IMAGES }) {
     for (const route of proxy) {
       if (route.path == app.path) {
         buttons.push(
-          <Button key={name}>
-            {app.icon ? <Icon name={app.icon} /> : undefined}
-            {app.label}
-          </Button>,
+          <LauncherButton
+            name={name}
+            app={app}
+            compute_server_id={compute_server_id}
+            project_id={project_id}
+            configuration={configuration}
+            data={data}
+            compute_servers_dns={compute_servers_dns}
+            setError={setError}
+          />,
         );
         break;
       }
     }
   }
   return buttons;
+}
+
+function LauncherButton({
+  name,
+  app,
+  compute_server_id,
+  project_id,
+  configuration,
+  data,
+  compute_servers_dns,
+  setError,
+}) {
+  return (
+    <Button
+      key={name}
+      onClick={async () => {
+        try {
+          await launchApp({
+            app,
+            compute_server_id,
+            project_id,
+            configuration,
+            data,
+            compute_servers_dns,
+          });
+        } catch (err) {
+          setError(`${app.label}: ${err}`);
+        }
+      }}
+    >
+      {app.icon ? <Icon name={app.icon} /> : undefined}
+      {app.label}
+    </Button>
+  );
+}
+
+async function launchApp({
+  app,
+  compute_server_id,
+  project_id,
+  configuration,
+  data,
+  compute_servers_dns,
+}) {
+  await webapp_client.exec({
+    filesystem: false,
+    compute_server_id,
+    project_id,
+    command: app.launch,
+  });
+  const auth = getQuery(configuration.authToken);
+  let url;
+  if (configuration.dns && compute_servers_dns) {
+    url = `https://${configuration.dns}.${compute_servers_dns}${app.url}${auth}`;
+  } else {
+    if (!data.externalIp) {
+      throw Error("no external ip addressed assigned");
+    }
+    url = `https://${data.externalIp}${app.url}${auth}`;
+  }
+  open_new_tab(url);
 }

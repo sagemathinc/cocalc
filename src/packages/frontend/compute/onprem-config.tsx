@@ -24,6 +24,7 @@ interface Props {
   onChange?: (configuration: OnPremCloudConfiguration) => void;
   disabled?: boolean;
   state?: State;
+  data?;
 }
 
 export default function OnPremCloudConfiguration({
@@ -34,6 +35,7 @@ export default function OnPremCloudConfiguration({
   onChange,
   disabled,
   state,
+  data,
 }: Props) {
   const [IMAGES, ImagesError] = useImages();
   const [loading, setLoading] = useState<boolean>(false);
@@ -138,6 +140,7 @@ export default function OnPremCloudConfiguration({
         project_id={project_id}
         setConfig={setConfig}
         configuration={configuration}
+        data={data}
         state={state}
         IMAGES={IMAGES}
       />

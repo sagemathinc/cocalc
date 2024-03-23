@@ -149,6 +149,6 @@ function ExternalIpLink({ externalIp, authToken }) {
   );
 }
 
-function getQuery(authToken) {
+export function getQuery(authToken) {
   return authToken ? `?auth_token=${authToken}` : "";
 }

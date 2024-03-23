@@ -182,6 +182,7 @@ export default function ComputeServer({
         id={id}
         project_id={project_id}
         configuration={configuration}
+        data={data}
         onChange={onConfigurationChange}
       />
 
@@ -440,10 +441,13 @@ function ComputeServerEdit({
           </>
         }
         footer={
-          <div style={{ display: "flex" }}>
-            {buttons}
-            <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
-          </div>
+          <>
+            <Divider />
+            <div style={{ display: "flex" }}>
+              {buttons}
+              <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
+            </div>
+          </>
         }
       >
         <div

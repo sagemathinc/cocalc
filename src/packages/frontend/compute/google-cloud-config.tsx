@@ -85,6 +85,7 @@ interface Props {
   onChange?: (configuration: ConfigurationType) => void;
   disabled?: boolean;
   state?: State;
+  data?;
 }
 
 export default function GoogleCloudConfiguration({
@@ -95,6 +96,7 @@ export default function GoogleCloudConfiguration({
   onChange,
   disabled,
   state,
+  data,
 }: Props) {
   const [IMAGES, ImagesError] = useImages();
   const [googleImages, ImagesErrorGoogle] = useGoogleImages();
@@ -257,7 +259,7 @@ export default function GoogleCloudConfiguration({
     { dataIndex: "label", key: "label", width: 130 },
   ];
 
-  const data = [
+  const dataSource = [
     {
       key: "provisioning",
       label: (
@@ -406,6 +408,7 @@ export default function GoogleCloudConfiguration({
         <Proxy
           setConfig={setConfig}
           configuration={configuration}
+          data={data}
           state={state}
           IMAGES={IMAGES}
           project_id={project_id}
@@ -516,7 +519,7 @@ export default function GoogleCloudConfiguration({
       <Table
         style={{ marginTop: "5px" }}
         columns={columns}
-        dataSource={data}
+        dataSource={dataSource}
         pagination={false}
       />
       {loading && (
@@ -774,9 +777,9 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
       <div style={{ color: "#666", marginTop: "5px" }}>
         Standard VM's stay running until you stop them, whereas spot VM's are up
         to 91% off, but{" "}
-        <b>will automatically stop when there is a surge in demand.</b>{" "}
-        They might also not be available in a given region, so you may have to
-        try different regions.{" "}
+        <b>will automatically stop when there is a surge in demand.</b> They
+        might also not be available in a given region, so you may have to try
+        different regions.{" "}
         {configuration.acceleratorType && <> Spot GPU's are in high demand.</>}
       </div>
     </div>
