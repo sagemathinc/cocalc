@@ -1951,7 +1951,7 @@ function DNS({ setConfig, configuration, loading }) {
           }
         }}
       >
-        Custom Subdomain with SSL ({currency(DNS_COST_PER_HOUR)}/hour when
+        DNS: Custom Subdomain with SSL ({currency(DNS_COST_PER_HOUR)}/hour when
         running or stopped)
       </Checkbox>
       {showDns && (

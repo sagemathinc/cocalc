@@ -243,7 +243,7 @@ function Apps({
     <div style={style}>
       <b>Launch App</b> (opens in new browser tab)
       <div>
-        <Space style={{ marginTop: "5px" }}>{apps}</Space>
+        <div style={{ marginTop: "5px" }}>{apps}</div>
         <ShowError
           style={{ marginTop: "10px" }}
           error={error}
@@ -311,18 +311,14 @@ function LauncherButton({
   disabled,
 }) {
   const [url, setUrl] = useState<string>("");
+  const dnsIssue =
+    !(configuration?.dns && compute_servers_dns) && app.requiresDns;
   return (
-    <div key={name}>
+    <div key={name} style={{ display: "inline-block", marginRight: "5px" }}>
       <Button
-        disabled={disabled}
+        disabled={disabled || dnsIssue}
         onClick={async () => {
           try {
-            await webapp_client.exec({
-              filesystem: false,
-              compute_server_id,
-              project_id,
-              command: app.launch,
-            });
             const url = getUrl({
               app,
               configuration,
@@ -330,6 +326,12 @@ function LauncherButton({
               compute_servers_dns,
             });
             setUrl(url);
+            //             await webapp_client.exec({
+            //               filesystem: false,
+            //               compute_server_id,
+            //               project_id,
+            //               command: app.launch,
+            //             });
             open_new_tab(url);
           } catch (err) {
             setError(`${app.label}: ${err}`);
@@ -337,10 +339,20 @@ function LauncherButton({
         }}
       >
         {app.icon ? <Icon name={app.icon} /> : undefined}
-        {app.label}
+        {app.label}{" "}
+        {dnsIssue && <span style={{ marginLeft: "5px" }}>(requires DNS)</span>}
       </Button>
       {url && (
-        <div style={{ color: "#666" }}>
+        <div
+          style={{
+            color: "#666",
+            maxWidth: "500px",
+            border: "1px solid #aaa",
+            padding: "5px",
+            borderRadius: "5px",
+            margin: "5px 0",
+          }}
+        >
           <A href={url}>{url}</A>
           <br />
           It could take a few minutes for the server to start, so revisit the
