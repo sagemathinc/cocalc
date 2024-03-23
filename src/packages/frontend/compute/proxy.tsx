@@ -14,7 +14,7 @@ import { defaultProxyConfig } from "@cocalc/util/compute/images";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { getQuery } from "./description";
-import LinkRetry from "@cocalc/frontend/components/link-retry";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 
 export default function Proxy({
   id,
@@ -312,7 +312,7 @@ function LauncherButton({
 }) {
   const [url, setUrl] = useState<string>("");
   return (
-    <span key={name}>
+    <div key={name}>
       <Button
         disabled={disabled}
         onClick={async () => {
@@ -323,7 +323,14 @@ function LauncherButton({
               project_id,
               command: app.launch,
             });
-            setUrl(getUrl({ app, configuration, data, compute_servers_dns }));
+            const url = getUrl({
+              app,
+              configuration,
+              data,
+              compute_servers_dns,
+            });
+            setUrl(url);
+            open_new_tab(url);
           } catch (err) {
             setError(`${app.label}: ${err}`);
           }
@@ -333,12 +340,17 @@ function LauncherButton({
         {app.label}
       </Button>
       {url && (
-        <LinkRetry href={url} autoStart maxTime={120000}>
+        <div style={{ color: "#666" }}>
+          <A href={url}>{url}</A>
           <br />
-          {url}
-        </LinkRetry>
+          It could take a few minutes for the server to start, so revisit the
+          above URL if necessary. You can share this URL with other people.
+          <Button size="small" type="link" onClick={() => setUrl("")}>
+            (hide)
+          </Button>
+        </div>
       )}
-    </span>
+    </div>
   );
 }
 
