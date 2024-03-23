@@ -774,7 +774,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
       <div style={{ color: "#666", marginTop: "5px" }}>
         Standard VM's stay running until you stop them, whereas spot VM's are up
         to 91% off, but{" "}
-        <b>will automatically stop when there is a surge in demand.</b>
+        <b>will automatically stop when there is a surge in demand.</b>{" "}
         They might also not be available in a given region, so you may have to
         try different regions.{" "}
         {configuration.acceleratorType && <> Spot GPU's are in high demand.</>}
