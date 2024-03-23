@@ -322,7 +322,7 @@ function getPort(route) {
   if (j == -1) {
     return parseInt(target);
   }
-  return parseInt(target.slice(j));
+  return parseInt(target.slice(0, j));
 }
 
 const START_DELAY_MS = 1500;
