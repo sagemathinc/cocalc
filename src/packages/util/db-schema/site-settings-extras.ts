@@ -82,6 +82,8 @@ const compute_servers_google_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_google-cloud_enabled"]);
 // const compute_servers_lambda_enabled = (conf: SiteSettings) =>
 //   to_bool(conf["compute_servers_lambda-cloud_enabled"]);
+const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
+  to_bool(conf["compute_servers_hyperstack_enabled"]);
 
 const neural_search_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);
@@ -232,6 +234,7 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
   //  | "lambda_cloud_api_key"
+  | "hyperstack_api_key"
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
   | "google_cloud_compute_servers_image_prefix"
@@ -673,6 +676,13 @@ export const EXTRAS: SettingsExtras = {
     show: (conf) => only_commercial(conf) && compute_servers_enabled(conf),
     to_val: toFloat,
     valid: onlyNonnegFloat,
+  },
+  hyperstack_api_key: {
+    name: "Compute Servers: Hyperstack - API Key",
+    desc: "Your [Hyperstack API Key](https://console.hyperstack.cloud/api-keys).  This supports managing compute servers on the [Hyperstack Cloud](https://www.hyperstack.cloud/).",
+    default: "",
+    password: true,
+    show: compute_servers_hyperstack_enabled,
   },
   //   lambda_cloud_api_key: {
   //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",

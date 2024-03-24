@@ -12,7 +12,7 @@ import { Config, RowType } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { Data, IsReadonly } from "./types";
 import { RowEntry } from "./row-entry";
-import { search_match, search_split } from "@cocalc/util/misc";
+import { search_match } from "@cocalc/util/misc";
 
 interface RenderRowProps {
   name: string;
@@ -22,7 +22,7 @@ interface RenderRowProps {
   isReadonly: IsReadonly | null;
   onChangeEntry: (name: string, value: string) => void;
   onJsonEntryChange: (name: string, value: string) => void;
-  filter: string;
+  filter: (string | RegExp)[];
   isModified: (name: string) => boolean;
   isHeader: boolean;
   saveSingleSetting: (name: string) => void;
@@ -42,10 +42,9 @@ export function RenderRow({
   saveSingleSetting,
 }: RenderRowProps) {
   if (data == null) return null;
-  if (filter) {
+  if (filter.length > 0) {
     const x = JSON.stringify(conf).toLowerCase().replace(/-/g, " ");
-    const f = search_split(filter.toLowerCase());
-    if (!search_match(x, f)) {
+    if (!search_match(x, filter)) {
       return null;
     }
   }
