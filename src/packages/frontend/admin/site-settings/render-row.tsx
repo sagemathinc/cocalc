@@ -12,6 +12,7 @@ import { Config, RowType } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { Data, IsReadonly } from "./types";
 import { RowEntry } from "./row-entry";
+import { search_match, search_split } from "@cocalc/util/misc";
 
 interface RenderRowProps {
   name: string;
@@ -42,10 +43,9 @@ export function RenderRow({
 }: RenderRowProps) {
   if (data == null) return null;
   if (filter) {
-    // dumb
     const x = JSON.stringify(conf).toLowerCase().replace(/-/g, " ");
-    const f = filter.toLowerCase();
-    if (!x.includes(f)) {
+    const f = search_split(filter.toLowerCase());
+    if (!search_match(x, f)) {
       return null;
     }
   }
