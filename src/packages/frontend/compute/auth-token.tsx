@@ -20,7 +20,7 @@ export default function AuthToken({
 }) {
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
-  const { proxy, authToken } = IMAGES[configuration.image] ?? {};
+  const { proxy, authToken } = IMAGES?.[configuration.image] ?? {};
   const noAuthToken = proxy === false && !authToken;
 
   const updateAuthToken = async () => {
