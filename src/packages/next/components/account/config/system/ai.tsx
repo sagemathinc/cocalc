@@ -48,6 +48,8 @@ register({
           }
           label="Disable all AI integrations"
         />
+
+        {/* TODO: insert the <ModelSwitch/> component here, which is more complex than just a plain list of options */}
       </Space>
     );
   },
