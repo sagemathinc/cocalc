@@ -80,7 +80,7 @@
     "bottleneck": "^2.19.5",
     "cloudflare": "^2.9.1",
     "cookies": "^0.8.0",
-    "dayjs": "^1.11.7",
+    "dayjs": "^1.11.10",
     "dot-object": "^2.1.4",
     "express-session": "^1.17.3",
     "google-auth-library": "^9.4.1",
