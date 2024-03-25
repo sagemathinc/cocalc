@@ -45,6 +45,7 @@ export class LLMClient {
     return await this.queryLanguageModel(opts);
   }
 
+  // ATTN/TODO: startExplicitly seems to be broken
   public queryStream(opts, startExplicitly = false): ChatStream {
     const chatStream = new ChatStream();
     (async () => {

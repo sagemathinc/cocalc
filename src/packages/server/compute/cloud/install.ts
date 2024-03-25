@@ -6,6 +6,10 @@ import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
 import { getImageField } from "@cocalc/util/db-schema/compute-servers";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import type { Images } from "@cocalc/server/compute/images";
+import {
+  PROXY_CONFIG,
+  PROXY_AUTH_TOKEN_FILE,
+} from "@cocalc/util/compute/constants";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -104,35 +108,6 @@ else
     npx -y ${pkg_x86_64}@${npmTag} /cocalc
 fi;
 set -v
-`;
-}
-
-// if installHttpsProxy runs, it has to be after installNode
-// TODO: A problem with this is for some reason it fails to run below,
-// it won't be reported.  Also, maybe this should be in some sort
-// of official systemd daemon.
-// Todo: maybe also nail down the version or tag better.  I suspect
-// the proxy will get very stable soon.
-// This could also just merge with the @cocalc/compute-server package.
-export function installHttpsProxy({
-  IMAGES,
-  image,
-}: {
-  IMAGES: Images;
-  image: string;
-}) {
-  const proxy = IMAGES[image]?.proxy;
-  if (proxy === false) {
-    return "";
-  }
-
-  return `
-set +v
-NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-set -v
-
-DEBUG=proxy:* PROXY_CONFIG=/cocalc/conf/proxy.json PROXY_AUTH_TOKEN_FILE=/cocalc/conf/auth_token npx -y @cocalc/compute-server-proxy@latest > /var/log/cocalc-proxy.log 2> /var/log/cocalc-proxy.err &
-
 `;
 }
 
@@ -249,8 +224,17 @@ export async function installConf({
   hostname,
   exclude_from_sync,
   auth_token,
+  proxy,
 }) {
   const auth = await authorizedKeys(project_id);
+
+  // We take care to base64 encode proxy config, so there
+  // is no possible weird bash string escaping issue.  Since
+  // proxy config could contain regexp's, this is a good idea.
+  const base64ProxyConfig = Buffer.from(
+    JSON.stringify(proxy, undefined, 2),
+  ).toString("base64");
+
   return `
 # Setup Current CoCalc Connection Configuration --
 mkdir -p /cocalc/conf
@@ -260,7 +244,8 @@ echo "${project_id}" > /cocalc/conf/project_id
 echo "${compute_server_id}" > /cocalc/conf/compute_server_id
 echo "${hostname}" > /cocalc/conf/hostname
 echo '${auth}' > /cocalc/conf/authorized_keys
-echo '${auth_token}' > /cocalc/conf/auth_token
+echo '${auth_token}' > ${PROXY_AUTH_TOKEN_FILE}
+echo '${base64ProxyConfig}' | base64 --decode > ${PROXY_CONFIG}
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
 `;
 }

@@ -48,8 +48,9 @@ import {
 } from "@cocalc/server/compute/cloud/off-scripts";
 import setDetailedState from "@cocalc/server/compute/set-detailed-state";
 import isBanned from "@cocalc/server/accounts/is-banned";
-
 import getLogger from "@cocalc/backend/logger";
+import { getImages } from "@cocalc/server/compute/images";
+import { defaultProxyConfig } from "@cocalc/util/compute/images";
 
 const logger = getLogger("server:compute:control");
 
@@ -522,9 +523,6 @@ export async function validateConfigurationChange({
   }
 
   if (changed.has("authToken")) {
-    if (state == "running" || state == "suspended" || state == "suspending") {
-      throw Error("cannot change authToken while server is running");
-    }
     if (typeof newConfiguration.authToken != "string") {
       throw Error("authToken must be a string");
     }
@@ -608,6 +606,15 @@ export async function makeConfigurationChange({
     }
     changed.delete("dns");
   }
+  if (changed.has("authToken")) {
+    // this is handled directly by the client right now
+    // TODO: we might change to do it here instead at some point.
+    changed.delete("authToken");
+  }
+  if (changed.has("proxy")) {
+    // same comment as for authToken
+    changed.delete("proxy");
+  }
   if (changed.size == 0) {
     // nothing else to change
     return;
@@ -625,7 +632,9 @@ export async function makeConfigurationChange({
       });
     default:
       throw Error(
-        `makeConfigurationChange not implemented for cloud '${cloud}'`,
+        `makeConfigurationChange not implemented for cloud '${cloud}' and changed=${JSON.stringify(
+          changed,
+        )}`,
       );
   }
 }
@@ -691,19 +700,27 @@ async function getStartupParams(id: number): Promise<{
   image: string;
   exclude_from_sync: string;
   auth_token: string;
+  proxy;
 }> {
   const server = await getServerNoCheck(id);
   const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
+  const image = configuration.image ?? "python";
+  const proxy =
+    server.configuration?.proxy ??
+    defaultProxyConfig({ IMAGES: await getImages(), image });
   const exclude_from_sync = excludeFromSync.join("|");
+
   let x;
   switch (server.cloud) {
     case "google-cloud":
       x = {
         ...(await googleCloud.getStartupParams(server)),
+        image,
         exclude_from_sync,
         auth_token,
+        proxy,
       };
       break;
     case "onprem":
@@ -714,10 +731,10 @@ async function getStartupParams(id: number): Promise<{
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
-        image: configuration.image ?? "python",
-
+        image,
         exclude_from_sync,
         auth_token,
+        proxy,
       };
       break;
     default:

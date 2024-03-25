@@ -4,7 +4,6 @@ import {
   installDocker,
   installNode,
   installCoCalc,
-  installHttpsProxy,
   installConf,
   installMicroK8s,
   installUser,
@@ -40,6 +39,7 @@ export default async function startupScript({
   hostname,
   exclude_from_sync,
   auth_token,
+  proxy,
   installUser: doInstallUser,
 }: {
   image?: string; // compute image
@@ -53,6 +53,7 @@ export default async function startupScript({
   hostname: string;
   exclude_from_sync: string;
   auth_token: string;
+  proxy;
   installUser?: boolean;
 }) {
   if (!api_key) {
@@ -87,6 +88,7 @@ ${await installConf({
   hostname,
   exclude_from_sync,
   auth_token,
+  proxy,
 })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing configuration"
@@ -122,9 +124,6 @@ if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
 fi
-
-setState install install-proxy '' 60 55
-${installHttpsProxy({ IMAGES, image })}
 
 setState install install-user '' 60 60
 ${doInstallUser ? installUser() : ""}

@@ -7,16 +7,12 @@
 
 declare const $: any;
 
-import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Button } from "antd";
-import LRU from "lru-cache";
 import { delay } from "awaiting";
-import { React, useRef, usePrevious } from "../app-framework";
-import { debounce } from "lodash";
-import { Map as ImmutableMap } from "immutable";
-import { Complete, Actions as CompleteActions } from "./complete";
-import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
+import { Map as ImmutableMap } from "immutable";
+import { debounce } from "lodash";
+import LRU from "lru-cache";
 import {
   CSSProperties,
   MutableRefObject,
@@ -25,8 +21,13 @@ import {
   useState,
 } from "react";
 
+import { React, usePrevious, useRef } from "@cocalc/frontend/app-framework";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { COLORS } from "@cocalc/util/theme";
+import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
+import { Complete, Actions as CompleteActions } from "./complete";
+import { Cursors } from "./cursors";
+import { Position } from "./insert-cell/types";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -41,7 +42,7 @@ const cache = new LRU<string, CachedInfo>({ max: 1000 });
 const STYLE: React.CSSProperties = {
   width: "100%",
   overflow: "hidden",
-  border: "1px solid #cfcfcf",
+  border: `1px solid ${COLORS.GRAY_L}`,
   borderRadius: "5px",
   padding: "5px",
   lineHeight: "1.21429em",
@@ -99,7 +100,7 @@ interface CodeMirrorEditorProps {
   refresh?: any; // if this changes, then cm.refresh() is called.
   getValueRef?: MutableRefObject<() => string>;
   canvasScale?: number;
-  setShowChatGPT?: (show: boolean) => void;
+  setShowAICellGen?: (show: Position) => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -127,7 +128,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   refresh,
   getValueRef,
   canvasScale,
-  setShowChatGPT,
+  setShowAICellGen,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -780,7 +781,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
             color: "#bfbfbf",
             zIndex: 1,
             left: 10 + placeHolderOffset,
-            top: setShowChatGPT == null ? "7.5px" : "2.5px",
+            top: setShowAICellGen == null ? "7.5px" : "2.5px",
             marginLeft: "-5px",
             paddingLeft: "5px",
             overflow: "hidden",
@@ -789,17 +790,17 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           onClick={focus_cm}
         >
           <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 0" }}>
-            Enter code{setShowChatGPT == null ? "..." : " or "}
+            Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
-          {setShowChatGPT != null && (
+          {setShowAICellGen != null ? (
             <Button
               type="link"
               style={{ marginLeft: "-15px", opacity: 0.7 }}
-              onClick={() => setShowChatGPT?.(true)}
+              onClick={() => setShowAICellGen("replace")}
             >
               generate using AI...
             </Button>
-          )}
+          ) : undefined}
         </div>
       </div>
     );

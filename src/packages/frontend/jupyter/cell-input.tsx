@@ -34,6 +34,7 @@ import { CodeMirror } from "./codemirror-component";
 import { LLMExplainCell } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
+import { Position } from "./insert-cell/types";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -82,7 +83,7 @@ export interface CellInputProps {
   index: number;
   llmTools?: LLMTools;
   computeServerId?: number;
-  setShowChatGPT?;
+  setShowAICellGen?: (show: Position) => void;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -179,7 +180,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
-          setShowChatGPT={haveAIGenerateCell ? props.setShowChatGPT : undefined}
+          setShowAICellGen={
+            haveAIGenerateCell ? props.setShowAICellGen : undefined
+          }
         />
       );
     }
