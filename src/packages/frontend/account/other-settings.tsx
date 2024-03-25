@@ -30,6 +30,7 @@ import {
   VBAR_OPTIONS,
   getValidVBAROption,
 } from "../project/page/vbar";
+import { CustomLLM } from "./custom-llm";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
@@ -389,6 +390,10 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     );
   }
 
+  function render_custom_llm(): Rendered {
+    return <CustomLLM  on_change={on_change}/>;
+  }
+
   if (props.other_settings == null) {
     return <Loading />;
   }
@@ -404,6 +409,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         >
           {render_disable_all_llm()}
           {render_language_model()}
+          {render_custom_llm()}
         </Panel>
       ) : undefined}
 
