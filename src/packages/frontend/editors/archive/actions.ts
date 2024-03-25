@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   filename_extension,
   filename_extension_notilde,

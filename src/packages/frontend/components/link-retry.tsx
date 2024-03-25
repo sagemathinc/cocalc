@@ -22,10 +22,20 @@ interface Props {
   size?: "small" | undefined; // antd button size
   loadingText?: string;
   onClick?: () => void;
+  autoStart?: boolean;
+  maxTime?: number;
 }
 
-const LinkRetry: React.FC<Props> = (props: Props) => {
-  const { href, size, mode = "link", children, onClick } = props;
+const LinkRetry: React.FC<Props> = ({
+  href,
+  size,
+  mode = "link",
+  children,
+  onClick,
+  autoStart,
+  maxTime = 30000,
+  loadingText,
+}: Props) => {
   const isMountedRef = useIsMountedRef();
   const [working, setWorking] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -56,7 +66,7 @@ const LinkRetry: React.FC<Props> = (props: Props) => {
       await retry_until_success({
         f,
         max_delay: 500,
-        max_time: 30000,
+        max_time: maxTime,
         desc: "opening link",
       });
     } catch (err) {
@@ -88,6 +98,12 @@ const LinkRetry: React.FC<Props> = (props: Props) => {
     }
   }
 
+  useEffect(() => {
+    if (autoStart) {
+      start();
+    }
+  }, []);
+
   switch (mode) {
     case "link":
       return (
@@ -97,7 +113,7 @@ const LinkRetry: React.FC<Props> = (props: Props) => {
           </a>
           {mode === "link" && loading && (
             <span>
-              <Gap /> <Loading text={props.loadingText} />
+              <Gap /> <Loading text={loadingText} />
             </span>
           )}
           {error && (

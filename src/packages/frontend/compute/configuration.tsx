@@ -7,16 +7,20 @@ import OnPremConfiguration from "./onprem-config";
 
 interface Props {
   configuration: ConfigurationType;
+  data?;
   editable?: boolean;
   id?: number;
+  project_id?: string;
   onChange?: (configuration: ConfigurationType) => void;
   state?: State;
 }
 
 export default function Configuration({
   configuration,
+  data,
   editable,
   id,
+  project_id,
   onChange,
   state,
 }: Props) {
@@ -52,7 +56,9 @@ export default function Configuration({
       <Config
         editable={editable}
         id={id}
+        project_id={project_id}
         configuration={configuration}
+        data={data}
         onChange={onChange}
         disabled={disabled}
         state={state}
@@ -61,13 +67,24 @@ export default function Configuration({
   );
 }
 
-function Config({ configuration, editable, id, onChange, disabled, state }) {
+function Config({
+  configuration,
+  data,
+  editable,
+  id,
+  project_id,
+  onChange,
+  disabled,
+  state,
+}) {
   if (configuration?.cloud == "google-cloud") {
     return (
       <GoogleCloudConfiguration
         configuration={configuration}
+        data={data}
         editable={editable}
         id={id}
+        project_id={project_id}
         onChange={onChange}
         disabled={disabled}
         state={state}
@@ -77,8 +94,10 @@ function Config({ configuration, editable, id, onChange, disabled, state }) {
     return (
       <OnPremConfiguration
         configuration={configuration}
+        data={data}
         editable={editable}
         id={id}
+        project_id={project_id}
         onChange={onChange}
         disabled={disabled}
         state={state}
