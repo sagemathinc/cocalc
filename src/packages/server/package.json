@@ -28,8 +28,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput ",
+    "build": "../node_modules/.bin/tsc --build",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "TZ=UTC jest --forceExit --runInBand",
     "prepublishOnly": "test"
   },

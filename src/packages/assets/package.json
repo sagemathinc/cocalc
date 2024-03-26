@@ -12,7 +12,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "./build.sh",
-    "test": "npx jest",
+    "test": "../node_modules/.bin/jest",
     "prepublishOnly": "pnpm test"
   },
   "keywords": [
