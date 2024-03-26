@@ -9,8 +9,8 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "make": "pnpm install && pnpm run build",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "build": "../../packages/node_modules/.bin/tsc --build",
+    "tsc": "../../packages/node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "bin": {
     "cocalc-compute-start": "./bin/start.js"

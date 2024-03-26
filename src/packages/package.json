@@ -23,7 +23,8 @@
       "postcss@<8.4.31": "^8.4.31",
       "retry-request@<7.0.1": "^7.0.2",
       "@langchain/core": "^0.1.48",
-      "@mistralai/mistralai": "node_modules/@cocalc/mistralai"
+      "@mistralai/mistralai": "node_modules/@cocalc/mistralai",
+      "katex@<0.16.9": "^0.16.10"
     }
   }
 }

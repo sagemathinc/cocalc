@@ -111,8 +111,8 @@
     "js-cookie": "^2.2.1",
     "json-stable-stringify": "^1.0.1",
     "jsonic": "^1.0.1",
-    "k3d": "^2.14.1",
-    "katex": "^0.16.4",
+    "k3d": "^2.16.1",
+    "katex": "^0.16.10",
     "langs": "^2.0.0",
     "linkify-it": "3.0.3",
     "lodash": "^4.17.21",
@@ -199,7 +199,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc  --build && coffee  -m -c -o dist/ .",
-    "tsc": "NODE_OPTIONS=--max-old-space-size=8192 npx tsc  --watch  --pretty --preserveWatchOutput ",
+    "tsc": "NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc  --watch  --pretty --preserveWatchOutput ",
     "test": "npx jest dist/",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js"
