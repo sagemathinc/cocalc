@@ -1,11 +1,5 @@
 /*
 Get Hyperstack API client.
-
-NOTE: Their API is WEIRDLY SLOW, so we implement a caching layer in front of
-their API so we can write code that doesn't have to work around an insanely
-slow API.  We cache data in memory (not our database), since for sanity
-we put run code for interacting with a cloud API in a single nodejs process
-even in our big Kubernetes deploys.
 */
 
 import axios from "axios";
@@ -43,6 +37,12 @@ export default async function getClient(): Promise<any> {
   clientCache[apiKey] = client;
   return client;
 }
+
+// NOTE: Their API can be SLOW, so we implement a caching layer in front of
+// their API so we can write code that doesn't have to work around this.
+// We cache data in memory (not our database), since for sanity
+// we put run code for interacting with a cloud API in a single nodejs process
+// even in our big Kubernetes deploys.  Only a few things are cached.
 
 const ttlCache = new TTLCache({ ttl: 30 * 60 * 1000 });
 
@@ -84,11 +84,12 @@ async function call({
     }
     //console.log(resp);
     const { data } = resp;
-    if (!data?.status) {
+    if (data?.status === false) {
       throw Error(
-        `error calling Hyperstack api ${url} -- ${data?.message} -- ${JSON.stringify(
+        `error calling Hyperstack api ${url} -- ${JSON.stringify({
           params,
-        )}`,
+          data,
+        })}`,
       );
     }
     if (cache) {
@@ -138,6 +139,51 @@ export async function getFlavors(): Promise<Flavor[]> {
     cache: true,
   });
   return data;
+}
+
+type Availability =
+  | "0"
+  | "1"
+  | "2"
+  | "3"
+  | "4"
+  | "5"
+  | "6"
+  | "7"
+  | "8"
+  | "9"
+  | "10+"
+  | "25+"
+  | "100+"
+  | "200+";
+
+interface ModelInfo {
+  model: string;
+  available: Availability;
+  planned_7_days: Availability | null;
+  planned_30_days: Availability | null;
+  planned_100_days: Availability | null;
+  configuration: {
+    "1x": number;
+    "2x": number;
+    "4x": number;
+    "8x": number;
+    "10x": number;
+  };
+}
+
+interface Stock {
+  region: Region;
+  "stock-type": "GPU";
+  models: ModelInfo[];
+}
+
+export async function getStocks(): Promise<Stock[]> {
+  const { stocks } = await call({
+    method: "get",
+    url: "core/stocks",
+  });
+  return stocks;
 }
 
 // Environments
@@ -239,13 +285,142 @@ export async function createVirtualMachines(params: {
   image_name: string;
   flavor_name: string;
   key_name: string;
-  count: number;
+  count?: number;
 }) {
   log.debug("createVirtualMachines", params);
+  if (!params.count) {
+    params.count = 1;
+  }
   const { instances } = await call({
     method: "post",
     url: "core/virtual-machines",
     params,
   });
   return instances;
+}
+
+interface Volume {
+  id: number;
+  name: string;
+  description: string;
+  volume_type: string;
+  size: number;
+}
+
+interface VolumeAttachment {
+  volume: Volume;
+  status: string;
+  device: string;
+  created_at: string;
+}
+
+interface SecurityRule {
+  id: number;
+  direction: string;
+  protocol: string;
+  port_range_min: number;
+  port_range_max: number;
+  ethertype: string;
+  remote_ip_prefix: string;
+  status: string;
+  created_at: string;
+}
+
+interface VirtualMachine {
+  id: number;
+  name: string;
+  status: string;
+  environment: { name: string };
+  image: { name: string };
+  flavor: {
+    id: number;
+    name: string;
+    cpu: number;
+    ram: number;
+    disk: number;
+    gpu: string;
+    gpu_count: number;
+  };
+  keypair: { name: string };
+  volume_attachments: VolumeAttachment[];
+  security_rules: SecurityRule[];
+  power_state: string;
+  vm_state: string;
+  fixed_ip: string;
+  floating_ip: string;
+  floating_ip_status: string;
+  created_at: string;
+}
+
+export async function getVirtualMachines(): Promise<VirtualMachine[]> {
+  const { instances } = await call({
+    method: "get",
+    url: "/core/virtual-machines",
+  });
+  return instances;
+}
+
+export async function getVirtualMachine(id: number): Promise<VirtualMachine> {
+  // note -- typo on https://infrahub-doc.nexgencloud.com/docs/api-reference/core-resources/virtual-machines/vm-core/retrieve-vm-details where it says
+  // "instances" instead of "instance".
+  const { instance } = await call({
+    method: "get",
+    url: `/core/virtual-machines/${id}`,
+  });
+  return instance;
+}
+
+export async function startVirtualMachine(id: number) {
+  await call({ method: "get", url: `/core/virtual-machines/${id}/start` });
+}
+
+// NOTE: this is really part of restart cleanly, and costs full price!
+export async function stopVirtualMachine(id: number) {
+  await call({ method: "get", url: `/core/virtual-machines/${id}/stop` });
+}
+
+export async function hardRebootVirtualMachine(id: number) {
+  await call({
+    method: "get",
+    url: `/core/virtual-machines/${id}/hard-reboot`,
+  });
+}
+
+// NOTE: this is exactly what is "stop" VM on most clouds, but there are
+// warnings it is slow (my guess -- it copies data off a local disk).
+export async function hibernateVirtualMachine(id: number) {
+  await call({
+    method: "get",
+    url: `/core/virtual-machines/${id}/hibernate`,
+  });
+}
+
+export async function restoreHibernatedVirtualMachine(id: number) {
+  await call({
+    method: "get",
+    url: `/core/virtual-machines/${id}/hibernate-restore`,
+  });
+}
+
+export async function deleteVirtualMachine(id: number) {
+  await call({
+    method: "delete",
+    url: `/core/virtual-machines/${id}`,
+  });
+}
+
+export async function resizeVirtualMachine(id: number, flavor_name: string) {
+  await call({
+    method: "post",
+    url: `/core/virtual-machines/${id}/resize`,
+    params: { flavor_name },
+  });
+}
+
+export async function updateVirtualMachineLabels(id: number, labels: string[]) {
+  await call({
+    method: "put",
+    url: `/core/virtual-machines/${id}/label`,
+    params: { labels },
+  });
 }
