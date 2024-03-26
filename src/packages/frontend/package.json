@@ -110,7 +110,7 @@
     "js-cookie": "^2.2.1",
     "json-stable-stringify": "^1.0.1",
     "jsonic": "^1.0.1",
-    "k3d": "^2.14.1",
+    "k3d": "^2.16.1",
     "katex": "^0.16.10",
     "langs": "^2.0.0",
     "linkify-it": "3.0.3",
