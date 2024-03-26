@@ -27,3 +27,5 @@ export const DEFAULT_COMPUTE_IMAGE = "ubuntu2204";
 // historical note: we used "default" to refer to ubuntu 18.04, but once
 // we switch over to 20.04, we will keep older projects on 18.04 (explicit upgrade)
 export const FALLBACK_COMPUTE_IMAGE = "default";
+
+export const OTHER_SETTINGS_CUSTOM_LLM = "custom_llm";
