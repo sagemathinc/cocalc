@@ -11,8 +11,8 @@
   "files": ["dist/**", "README.md", "package.json", "tsconfig.json"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "build": "../node_modules/.bin/tsc --build",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
   "keywords": ["cocalc"],

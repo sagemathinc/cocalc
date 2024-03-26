@@ -11,8 +11,8 @@
   "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput",
+    "build": "../node_modules/.bin/tsc --build",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "clean": "rm -rf node_modules dist"
   },
   "author": "SageMath, Inc.",

@@ -28,8 +28,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput ",
+    "build": "../node_modules/.bin/tsc --build",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "TZ=UTC jest --forceExit --runInBand",
     "prepublishOnly": "test"
   },
@@ -75,7 +75,7 @@
     "async": "^1.5.2",
     "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
-    "axios": "^1.6.7",
+    "axios": "^1.6.8",
     "base62": "^2.0.1",
     "bottleneck": "^2.19.5",
     "cloudflare": "^2.9.1",

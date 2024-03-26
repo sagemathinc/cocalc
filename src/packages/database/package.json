@@ -48,10 +48,10 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc  --build && coffee -c -o dist/ ./",
+    "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
-    "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist/",
+    "tsc": "../node_modules/.bin/tsc --watch  --pretty --preserveWatchOutput",
+    "test": "../node_modules/.bin/jest dist/",
     "prepublishOnly": "pnpm test"
   },
   "repository": {

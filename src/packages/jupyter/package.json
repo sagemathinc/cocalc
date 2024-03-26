@@ -20,9 +20,9 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
+    "build": "../node_modules/.bin/tsc --build",
     "test": "pnpm exec jest dist",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "files": [
     "dist/**",

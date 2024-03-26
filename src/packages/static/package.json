@@ -12,13 +12,13 @@
     "clean": "rm -rf dist dist-ts node_modules",
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
     "copy-css": "mkdir -p dist-ts/src && cp -v src/*.css dist-ts/src/ && cp -v src/*.svg dist-ts/src/ && cp -v src/*.html dist-ts/src/",
-    "tsc": "pnpm run copy-css && cd src && npx tsc --watch --pretty --preserveWatchOutput",
+    "tsc": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development pnpm webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true pnpm webpack-prod",
     "build": "pnpm run build-dev && ./production-build.py",
-    "build-dev": "pnpm run copy-css && cd src && npx tsc --build ",
-    "test": "npx jest dist-ts",
+    "build-dev": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc --build ",
+    "test": "../node_modules/.bin/jest dist-ts",
     "prepublishOnly": "pnpm test"
   },
   "repository": {

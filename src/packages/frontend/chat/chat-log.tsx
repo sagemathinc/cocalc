@@ -75,11 +75,17 @@ export function ChatLog({
     actions.setState({ scrollToBottom: undefined });
   }, [scrollToBottom]);
 
+  const today = useRedux(["today"], project_id, path);
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
   const sortedDates = useMemo<string[]>(() => {
-    return getSortedDates(messages, search);
-  }, [messages, search, project_id, path]);
+    const dates = getSortedDates(messages, search);
+    if (today) {
+      const cutoff = Date.now() - 1000 * 4 * 60 * 60;
+      return dates.filter((x) => parseInt(x) >= cutoff);
+    }
+    return dates;
+  }, [messages, search, project_id, path, today]);
 
   const visibleHashtags = useMemo(() => {
     let X = immutableSet<string>([]);
@@ -135,7 +141,11 @@ export function ChatLog({
         </VisibleMDLG>
       )}
       {messages != null && (
-        <NotShowing num={messages.size - sortedDates.length} search={search} />
+        <NotShowing
+          num={messages.size - sortedDates.length}
+          search={search}
+          today={today}
+        />
       )}
       <Virtuoso
         ref={virtuosoRef}
@@ -310,7 +320,7 @@ export function getUserName(userMap, accountId: string): string {
   return account.get("first_name", "") + " " + account.get("last_name", "");
 }
 
-function NotShowing({ num, search }) {
+function NotShowing({ num, search, today }) {
   if (num <= 0) return null;
   return (
     <Alert
@@ -319,8 +329,14 @@ function NotShowing({ num, search }) {
       key="not_showing"
       message={
         <b>
-          WARNING: Hiding {num} chats that do not match search for '
-          {search.trim()}'.
+          WARNING: Hiding {num} chats{" "}
+          {search.trim()
+            ? `that do not match search for '${search.trim()}'`
+            : ""}
+          {today
+            ? ` ${search.trim() ? "and" : "that"} were not sent today`
+            : ""}
+          .
         </b>
       }
     />
