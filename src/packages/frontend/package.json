@@ -111,7 +111,7 @@
     "json-stable-stringify": "^1.0.1",
     "jsonic": "^1.0.1",
     "k3d": "^2.14.1",
-    "katex": "^0.16.4",
+    "katex": "^0.16.10",
     "langs": "^2.0.0",
     "linkify-it": "3.0.3",
     "lodash": "^4.17.21",

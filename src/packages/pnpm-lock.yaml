@@ -136,8 +136,8 @@ importers:
         specifier: ^5.65.3
         version: 5.65.11
       katex:
-        specifier: ^0.16.4
-        version: 0.16.4
+        specifier: ^0.16.10
+        version: 0.16.10
       mathjax:
         specifier: ^2.7.9
         version: 2.7.9
@@ -480,8 +480,8 @@ importers:
         specifier: ^2.14.1
         version: 2.15.2(crypto@1.0.1)(encoding@0.1.13)
       katex:
-        specifier: ^0.16.4
-        version: 0.16.4
+        specifier: ^0.16.10
+        version: 0.16.10
       langs:
         specifier: ^2.0.0
         version: 2.0.0
@@ -12964,8 +12964,8 @@ packages:
       commander: 8.3.0
     dev: false
 
-  /katex@0.16.4:
-    resolution: {integrity: sha512-WudRKUj8yyBeVDI4aYMNxhx5Vhh2PjpzQw1GRu/LVGqL4m1AxwD1GcUp0IMbdJaf5zsjtj8ghP0DOQRYhroNkw==}
+  /katex@0.16.10:
+    resolution: {integrity: sha512-ZiqaC04tp2O5utMsl2TEZTXxa6WSC4yo0fv5ML++D3QZv/vx2Mct0mTlRx3O+uUkjfuAgOkzsCmq5MiUEsDDdA==}
     hasBin: true
     dependencies:
       commander: 8.3.0
