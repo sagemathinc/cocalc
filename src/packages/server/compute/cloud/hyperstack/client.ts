@@ -424,3 +424,115 @@ export async function updateVirtualMachineLabels(id: number, labels: string[]) {
     params: { labels },
   });
 }
+
+// This returns 'alive' and works if things are good; if not, something bad happens.
+export async function confirmBillingStatus(): Promise<"alive"> {
+  const { message } = await call({
+    method: "get",
+    url: "/billing/alive",
+  });
+  return message;
+}
+
+interface UsageCostHistory {
+  resource_id: number;
+  resource_type: "vm" | "volume";
+  name: string;
+  organization_id: number;
+  bill_per_minute: number | null;
+  create_time: string;
+  terminate_time: string;
+  total_up_time: number; // up time in *minutes*
+  total_bill: number;
+  active: boolean;
+  exclude_billing: boolean;
+}
+
+export async function getUsageCostHistory(): Promise<UsageCostHistory[]> {
+  const { data } = await call({
+    method: "get",
+    url: "/billing/billing/usage",
+  });
+  return data;
+}
+
+interface LastDayCost {
+  instances_cost: number;
+  volumes_cost: number;
+  clusters_cost: number;
+  total_cost: number;
+}
+
+export async function getLastDayCost(): Promise<LastDayCost> {
+  const { data } = await call({
+    method: "get",
+    url: "/billing/billing/last-day-cost",
+  });
+  return data;
+}
+
+interface CreditInfo {
+  // current credit balance in dollars
+  credit: number;
+  // The balance at which resource access will be suspended
+  threshold: number;
+  can_create_instance: boolean;
+}
+
+export async function getCredit(): Promise<CreditInfo> {
+  const { data } = await call({
+    method: "get",
+    url: "/billing/user-credit/credit",
+  });
+  return data;
+}
+
+interface PaymentDetails {
+  amount: number;
+  currency: string; // e.g., 'usd'
+  paid_from: string; // e.g., "William Stein"
+  status: string; // e.g., "complete".  payment_initiated" means sucessful (?)
+  gateway_response: string | null;
+  description: string | null;
+  transaction_id: string;
+  payment_id: string;
+  updated_at: string;
+}
+
+export async function getPaymentHistory(): Promise<PaymentDetails[]> {
+  const { data } = await call({
+    method: "get",
+    url: "/billing/payment/payment-details",
+  });
+  return data;
+}
+
+// TODO: this seems "half implemented" on the hyperstack side...
+export async function createPayment(amount): Promise<string> {
+  const { data } = await call({
+    method: "post",
+    url: "/billing/payment/payment-initiate",
+    params: { amount },
+  });
+  return data.payment_id;
+}
+
+interface Price {
+  id: number;
+  name: string;
+  value: string;
+  // original_value = price before discounts
+  original_value: string;
+  // true if a discount applied
+  discount_applied: boolean;
+  start_time: string | null;
+  end_time: string | null;
+}
+export async function getPricebook(): Promise<Price[]> {
+  const x = await call({
+    method: "get",
+    url: "/pricebook",
+    cache: true,
+  });
+  return x;
+}
