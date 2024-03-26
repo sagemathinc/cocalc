@@ -1446,8 +1446,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       axios:
-        specifier: ^1.6.7
-        version: 1.6.7
+        specifier: ^1.6.8
+        version: 1.6.8
       base62:
         specifier: ^2.0.1
         version: 2.0.1
@@ -1486,7 +1486,7 @@ importers:
         version: 1.0.1
       langchain:
         specifier: ^0.1.21
-        version: 0.1.25(@google-ai/generativelanguage@1.1.0)(axios@1.6.7)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
+        version: 0.1.25(@google-ai/generativelanguage@1.1.0)(axios@1.6.8)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -5223,7 +5223,7 @@ packages:
     engines: {node: '>=12.*'}
     dependencies:
       '@sendgrid/helpers': 8.0.0
-      axios: 1.6.7
+      axios: 1.6.8
     transitivePeerDependencies:
       - debug
     dev: false
@@ -7092,10 +7092,10 @@ packages:
     resolution: {integrity: sha512-19i4G7Hjxj9idgMlAM0BTRII8HfvsOdlr4D9cf3Dm1MZhvcKjBpzY8AMNEyIKyi+L9TIK15xZatmdcPG003yww==}
     engines: {node: '>=7.6.x'}
 
-  /axios@1.6.7:
-    resolution: {integrity: sha512-/hDJGff6/c7u0hDkvkGxR/oy6CbCs8ziCsC7SqmhjfozqiJGc8Z11wrv9z9lYfY4K8l+H9TpjcMDX0xOZmx+RA==}
+  /axios@1.6.8:
+    resolution: {integrity: sha512-v/ZHtJDU39mDpyBoFVkETcd/uNdxrWRrg3bKpOKzXFA6Bvqopts6ALSMU3y6ijYxbw2B+wPrIv46egTzJXCLGQ==}
     dependencies:
-      follow-redirects: 1.15.5
+      follow-redirects: 1.15.6(debug@4.3.4)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -10098,16 +10098,6 @@ packages:
       react: 18.2.0
     transitivePeerDependencies:
       - encoding
-    dev: false
-
-  /follow-redirects@1.15.5:
-    resolution: {integrity: sha512-vSFWUON1B+yAw1VN4xMfxgn5fTUiaOzAJCKBwIIgT/+7CuGy9+r+5gITvP62j3RmaD5Ph65UaERdOSRGUzZtgw==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
     dev: false
 
   /follow-redirects@1.15.6(debug@4.3.4):
@@ -13197,7 +13187,7 @@ packages:
     engines: {node: '>=18.0.0'}
     dev: false
 
-  /langchain@0.1.25(@google-ai/generativelanguage@1.1.0)(axios@1.6.7)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21):
+  /langchain@0.1.25(@google-ai/generativelanguage@1.1.0)(axios@1.6.8)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21):
     resolution: {integrity: sha512-sfEChvr4H2CklHdSByNBbytwBrFhgtA5kPOnwcBrxuXGg1iOaTzhVxQA0QcNcQucI3hZrsNbZjxGp+Can1ooZQ==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -13361,7 +13351,7 @@ packages:
       '@langchain/community': 0.0.40(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
       '@langchain/core': 0.1.48
       '@langchain/openai': 0.0.18(encoding@0.1.13)
-      axios: 1.6.7
+      axios: 1.6.8
       binary-extensions: 2.2.0
       expr-eval: 2.0.2
       google-auth-library: 9.4.1(encoding@0.1.13)
