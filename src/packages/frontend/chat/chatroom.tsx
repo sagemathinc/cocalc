@@ -5,7 +5,7 @@
 
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-import { Button } from "antd";
+import { Button, Checkbox } from "antd";
 import {
   Button as OldButton,
   ButtonGroup,
@@ -91,6 +91,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   const search = useRedux(["search"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
+  const today = useRedux(["today"], project_id, path);
 
   const submitMentionsRef = useRef<Function>();
   const scrollToBottomRef = useRef<any>(null);
@@ -337,7 +338,17 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             </Button>
           )}
         </Col>
-        <Col xs={3} md={3} style={{ padding: "2px" }}>
+        <Col xs={3} md={3} style={{ padding: "2px", display: "flex" }}>
+          <div style={{ marginTop: "5px" }}>
+            <Checkbox
+              checked={today}
+              onChange={() => {
+                actions.setState({ today: !today });
+              }}
+            >
+              Today
+            </Checkbox>
+          </div>
           {render_search()}
         </Col>
       </Row>
