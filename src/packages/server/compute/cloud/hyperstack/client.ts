@@ -55,12 +55,14 @@ async function call({
   method: "get" | "post" | "delete" | "put";
   url: string;
   params?: object;
-  cache?: boolean;
+  cache?: boolean; // if explicitly true use cache; if explicitly false, clear cache
 }) {
   let key = "";
-  if (cache) {
+  if (cache != null) {
     key = JSON.stringify({ method, url, params });
-    if (ttlCache.has(key)) {
+    if (!cache) {
+      ttlCache.delete(key);
+    } else if (ttlCache.has(key)) {
       return ttlCache.get(key);
     }
   }
@@ -93,6 +95,12 @@ async function call({
       ttlCache.set(key, data);
     }
     return data;
+  } catch (err) {
+    if (err?.response?.data?.message) {
+      throw Error(err.response.data.message);
+    } else {
+      throw err;
+    }
   } finally {
     log.debug(`call TOOK ${(Date.now() - t) / 1000} seconds`, {
       method,
@@ -158,6 +166,38 @@ export async function createEnvironment(params: {
   region: Region;
 }) {
   await call({ method: "post", url: "/core/environments", params });
+}
+
+// Key Pairs
+interface KeyPair {
+  id: number;
+  name: string;
+  environment: string;
+  public_key: string;
+  fingerprint: string;
+  created_at: string;
+}
+
+export async function getKeyPairs(useCache = true): Promise<KeyPair[]> {
+  const { keypairs } = await call({
+    method: "get",
+    url: "/core/keypairs",
+    cache: useCache,
+  });
+  return keypairs;
+}
+
+export async function importKeyPair(params: {
+  name: string;
+  environment_name: string;
+  public_key: string;
+}): Promise<KeyPair> {
+  const { keypair } = await call({
+    method: "post",
+    url: "/core/keypairs",
+    params,
+  });
+  return keypair;
 }
 
 // Images
