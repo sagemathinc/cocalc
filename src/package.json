@@ -38,8 +38,5 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc",
-  "devDependencies": {
-    "express": "^4.17.1"
-  }
+  "homepage": "https://github.com/sagemathinc/cocalc"
 }
