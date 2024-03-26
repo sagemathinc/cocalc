@@ -1335,8 +1335,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@cocalc/gcloud-pricing-calculator':
-        specifier: ^1.7.0
-        version: 1.7.0
+        specifier: ^1.8.0
+        version: 1.8.0
       '@cocalc/mistralai':
         specifier: ^0.0.2
         version: 0.0.2(encoding@0.1.13)
@@ -3216,8 +3216,8 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /@cocalc/gcloud-pricing-calculator@1.7.0:
-    resolution: {integrity: sha512-CYEcvsQcHJq730/Kp25yf7y7cxV+Itgg+QydbT913VkY4vcz6fY5vzyJlDZXgTUN3CdGVucHaVedRlc0d88gWQ==}
+  /@cocalc/gcloud-pricing-calculator@1.8.0:
+    resolution: {integrity: sha512-Z4jjAyeLJNGA1qsh66TzlhymQagcWbGvh1+RYnjMDYo8hd4M91kTdBeVoq18Z6T5qOdL1Z0rTz99+n6zApTrpg==}
     engines: {node: '>=0.18.0'}
     requiresBuild: true
     dependencies:
