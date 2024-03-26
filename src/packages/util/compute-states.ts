@@ -75,7 +75,7 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   archiving: {
-    desc: "Project is being moved to longterm storage.",
+    desc: "Project is being archived to longterm storage.",
     icon: "paper-plane",
     display: "Archiving",
     to: {},
@@ -84,7 +84,7 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   closed: {
-    desc: "Project is stored only as ZFS streams, which must be imported, so it will take longer to start.",
+    desc: "Project is archived and needs to be decompressed, so it will take longer to start.",
     icon: "file-archive", // font awesome icon
     display: "Closed", // displayed name for users
     stable: true,
@@ -96,7 +96,7 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   opening: {
-    desc: "Project is being imported; this may take several minutes depending on size and history.",
+    desc: "Project is being imported; this may take several minutes depending on size.",
     icon: "gears",
     display: "Opening",
     to: {},

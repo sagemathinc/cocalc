@@ -2740,12 +2740,18 @@ export class SyncDoc extends EventEmitter {
      commited to the database yet.  Returns *undefined* if
      initialization not even done yet. */
   public has_unsaved_changes(): boolean | undefined {
+    const dbg = this.dbg("has_unsaved_changes");
     if (this.state !== "ready") {
+      dbg("state not ready", this.state);
       return;
     }
     try {
       return this.hash_of_saved_version() !== this.hash_of_live_version();
     } catch (err) {
+      dbg(
+        "exception computing hash_of_saved_version and hash_of_live_version",
+        err,
+      );
       // This could happen, e.g. when syncstring_table isn't connected
       // in some edge case. Better to just say we don't know then crash
       // everything. See https://github.com/sagemathinc/cocalc/issues/3577
