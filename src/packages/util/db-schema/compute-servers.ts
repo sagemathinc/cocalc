@@ -585,6 +585,11 @@ export interface LambdaCloudData extends BaseData {
   instance_id: string;
 }
 
+export interface HyperstackData extends BaseData {
+  type: "hyperstack";
+  instance_id: string;
+}
+
 export interface GoogleCloudData extends BaseData {
   type: "google-cloud";
   name?: string;
