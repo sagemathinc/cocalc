@@ -10,12 +10,14 @@ import {
 } from "./llm-utils";
 
 describe("llm", () => {
+  const is_cocalc_com = true; // otherwise, the test makes no sense
+
   test("isFreeModel", () => {
-    expect(isFreeModel("gpt-3")).toBe(true);
-    expect(isFreeModel("gpt-4")).toBe(false);
+    expect(isFreeModel("gpt-3", is_cocalc_com)).toBe(true);
+    expect(isFreeModel("gpt-4", is_cocalc_com)).toBe(false);
     // WARNING: if the following breaks, and ollama becomes non-free, then a couple of assumptions are broken as well.
     // search for model2service(...) as LanguageService in the codebase!
-    expect(isFreeModel(`${OLLAMA_PREFIX}-1`)).toBe(true);
+    expect(isFreeModel(`${OLLAMA_PREFIX}-1`, is_cocalc_com)).toBe(true);
   });
 
   test("all keys in the LLM_COST object are valid model names", () => {

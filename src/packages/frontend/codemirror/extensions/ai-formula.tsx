@@ -1,7 +1,12 @@
 import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useEffect,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   HelpIcon,
   Icon,
@@ -44,6 +49,7 @@ interface Props extends Opts {
 }
 
 function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
+  const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState<string>(text);
   const [formula, setFormula] = useState<string>("");
@@ -165,7 +171,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
 
   // Start the query immediately, if the user had selected some text … and it's a free model
   useEffect(() => {
-    if (text && isFreeModel(model)) {
+    if (text && isFreeModel(model, is_cocalc_com)) {
       doGenerate();
     }
   }, [text]);

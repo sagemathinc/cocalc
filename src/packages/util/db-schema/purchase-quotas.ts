@@ -1,6 +1,6 @@
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { LLM_USERNAMES, isFreeModel } from "./llm-utils";
+import { LLM_USERNAMES } from "./llm-utils";
 import type { Service } from "./purchases";
 import { Table } from "./types";
 
@@ -88,7 +88,6 @@ export const QUOTA_SPEC: QuotaSpec = {
   "google-gemini-pro": {
     display: "Google Gemini Pro",
     color: "#4285f4",
-    noSet: isFreeModel("gemini-pro"),
   },
 };
 

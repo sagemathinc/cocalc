@@ -101,7 +101,9 @@ export class LLMClient {
       }
     }
 
-    if (!isFreeModel(model)) {
+    const is_cocalc_com = redux.getStore("customize").get("is_cocalc_com");
+
+    if (!isFreeModel(model, is_cocalc_com)) {
       // Ollama and others are treated as "free"
       const service = model2service(model);
       // when client gets non-free openai model request, check if allowed.  If not, show quota modal.

@@ -31,6 +31,7 @@ import {
   isLanguageModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {
@@ -75,7 +76,10 @@ export async function checkForAbuse({
     throw new Error(`Model "${model}" is disabled.`);
   }
 
-  if (!isFreeModel(model)) {
+  const is_cocalc_com =
+    (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
+
+  if (!isFreeModel(model, is_cocalc_com)) {
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,

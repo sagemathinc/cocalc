@@ -68,14 +68,6 @@ export default function ModelSwitch({
   const ollama = useTypedRedux("customize", "ollama");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
-  function getPrice(btnModel): JSX.Element {
-    return isFreeModel(btnModel) ? (
-      <Tag color="success">free</Tag>
-    ) : (
-      <Tag color="error">paid</Tag>
-    );
-  }
-
   function makeLLMOption(
     ret: NonNullable<SelectProps["options"]>,
     btnModel: LanguageModel,
@@ -86,7 +78,8 @@ export default function ModelSwitch({
 
     const model = (
       <>
-        <strong>{modelToName(btnModel)}</strong> {getPrice(btnModel)}
+        <strong>{modelToName(btnModel)}</strong>{" "}
+        <LLMModelPrice model={btnModel} />
       </>
     );
     const tooltip = (
@@ -146,7 +139,7 @@ export default function ModelSwitch({
       const ollamaModel = toOllamaModel(key);
       const text = (
         <>
-          <strong>{display}</strong> {getPrice(ollamaModel)} –{" "}
+          <strong>{display}</strong> <LLMModelPrice model={ollamaModel} /> –{" "}
           {desc ?? "Ollama"}
         </>
       );
@@ -155,7 +148,8 @@ export default function ModelSwitch({
         display: (
           <>
             <LanguageModelVendorAvatar model={ollamaModel} />{" "}
-            <strong>{modelToName(ollamaModel)}</strong> {getPrice(ollamaModel)}
+            <strong>{modelToName(ollamaModel)}</strong>{" "}
+            <LLMModelPrice model={ollamaModel} />
           </>
         ),
         label: (
@@ -204,4 +198,17 @@ export function modelToMention(model: LanguageModel): string {
   return `<span class="user-mention" account-id=${model2service(
     model,
   )} >@${modelToName(model)}</span>`;
+}
+
+export function LLMModelPrice({ model }: { model: string }) {
+  const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
+
+  // on non-cocalc.com pages, all models are free, hence we do not need to show the price
+  if (!is_cocalc_com) return null;
+
+  return isFreeModel(model, is_cocalc_com) ? (
+    <Tag color="success">free</Tag>
+  ) : (
+    <Tag color="error">paid</Tag>
+  );
 }

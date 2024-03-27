@@ -351,7 +351,8 @@ export const LLM_DESCR: LLM2String = {
     "Most powerful, large reasoning capabilities, but slower. (Mistral AI, 4k token context)",
 } as const;
 
-export function isFreeModel(model: unknown) {
+export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
+  if (!isCoCalcCom) return true;
   if (isOllamaLLM(model)) return true;
   if (isMistralModel(model)) {
     // the large one is not free

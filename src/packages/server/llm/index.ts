@@ -30,6 +30,7 @@ import {
   model2service,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { callChatGPTAPI } from "./call-llm";
@@ -130,7 +131,9 @@ async function evaluateImpl({
   const total_time_s = (Date.now() - start) / 1000;
 
   if (account_id) {
-    if (isFreeModel(model)) {
+    const is_cocalc_com =
+      (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
+    if (isFreeModel(model, is_cocalc_com)) {
       // no charge for now...
     } else {
       // charge for ALL other models.
