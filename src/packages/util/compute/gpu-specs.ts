@@ -1,6 +1,8 @@
-// map from Hyperstack GPU resource name to specs of that GPU
+// key specs of various NVidia GPUs -- useful to show to a user.
 
 interface Specs {
+  // url of official datasheet pdf
+  datasheet: string;
   // amount of GPU memory in GB
   memory: number;
   // memory bandwidth in GB/s
@@ -9,68 +11,95 @@ interface Specs {
   cuda_cores: number;
   // tensor cores
   tensor_cores: number;
-  // rt cores
-  rt_cores: number;
-  // single-precision tflops
-  single_tflops: number;
-  // RT Core performance
-  rt_tflops: number;
-  // Tensor performance
-  tensor_tflops: number;
 }
 
 export const SPECS = {
   "RTX-A4000": {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs21/rtx-a4000/nvidia-rtx-a4000-datasheet.pdf",
     memory: 16,
     memory_bw: 448,
     cuda_cores: 6144,
     tensor_cores: 192,
-    rt_cores: 48,
-    single_tflops: 19.2,
-    rt_tflops: 37.4,
-    tensor_tflops: 153.4,
   },
   "RTX-A5000": {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs21/rtx-a5000/nvidia-rtx-a5000-datasheet.pdf",
     memory: 20,
     memory_bw: 640,
     cuda_cores: 7168,
     tensor_cores: 224,
-    rt_cores: 56,
-    single_tflops: 23.7,
-    rt_tflops: 46.2,
-    tensor_tflops: 189.2,
   },
   "RTX-A6000": {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/proviz-print-nvidia-rtx-a6000-datasheet-us-nvidia-1454980-r9-web%20(1).pdf",
     memory: 48,
     memory_bw: 768,
     cuda_cores: 10752,
     tensor_cores: 336,
-    rt_cores: 84,
-    single_tflops: 38.7,
-    rt_tflops: 75.6,
-    tensor_tflops: 309.7,
   },
   "RTX-A6000-ada": {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/proviz-print-nvidia-rtx-a6000-datasheet-us-nvidia-1454980-r9-web%20(1).pdf",
     memory: 48,
     memory_bw: 768,
     cuda_cores: 10752,
     tensor_cores: 336,
-    rt_cores: 84,
-    single_tflops: 38.7,
-    rt_tflops: 75.6,
-    tensor_tflops: 309.7,
   },
-  A40: 0,
-  L6000: 0,
-  L40: 0,
-  "L40-sm": 0,
-  A100: 80,
-  "A100-80G-PCIe": 80,
-  "A100-80G-PCIe-NVLink": 80,
-  "A100-80G-PCIe-sm": 80,
-  H100: 80,
-  "H100-80G-PCIe": 80,
-  "H100-80G-PCIe-k8s": 80,
-  "H100-80GB-PCIe-sm": 80,
-  "H100-80G-PCIe-NVLink": 80,
+  A40: {
+    datasheet:
+      "https://images.nvidia.com/content/Solutions/data-center/a40/nvidia-a40-datasheet.pdf",
+    memory: 48,
+    memory_bw: 696,
+    cuda_cores: 10752,
+    tensor_cores: 336,
+  },
+  T4: {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf",
+    memory: 16,
+    memory_bw: 300,
+    cuda_cores: 2560,
+    tensor_cores: 320,
+  },
+  L4: {
+    datasheet:
+      "https://resources.nvidia.com/en-us-data-center-overview-mc/en-us-data-center-overview/l4-gpu-datasheet",
+    memory: 24,
+    memory_bw: 300,
+    cuda_cores: 7424,
+    tensor_cores: 240,
+  },
+  L40: {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/support-guide/NVIDIA-L40-Datasheet-January-2023.pdf",
+    memory: 48,
+    memory_bw: 864,
+    cuda_cores: 18176,
+    tensor_cores: 568,
+  },
+  "A100-40G-PCIe": {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf",
+    memory: 40,
+    memory_bw: 1555,
+    cuda_cores: 6912,
+    tensor_cores: 432,
+  },
+  "A100-80G-PCIe": {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf",
+    memory: 80,
+    memory_bw: 1935,
+    cuda_cores: 6912,
+    tensor_cores: 432,
+  },
+  "H100-80G-PCIe": {
+    datasheet:
+      "https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet",
+    memory: 80,
+    memory_bw: 2000,
+    cuda_cores: 14592,
+    tensor_cores: 640,
+  },
 };
