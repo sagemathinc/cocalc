@@ -1,6 +1,6 @@
 // key specs of various NVidia GPUs -- useful to show to a user.
 
-interface Specs {
+export interface Specs {
   // url of official datasheet pdf
   datasheet: string;
   // amount of GPU memory in GB
