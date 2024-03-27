@@ -16,6 +16,10 @@ const MODELS_OPENAI = [
 
 export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
 
+function isOpenAIModel(model: unknown): model is ModelOpenAI {
+  return MODELS_OPENAI.includes(model as any);
+}
+
 // ATTN: when you modify this list, also change frontend/.../llm/model-switch.tsx!
 export const MISTRAL_MODELS = [
   // yes, all 3 of them have an extra mistral-prefix, on top of the vendor prefix
@@ -30,6 +34,14 @@ export function isMistralModel(model: unknown): model is MistralModel {
   return MISTRAL_MODELS.includes(model as any);
 }
 
+export const GOOGLE_MODELS = ["gemini-pro"] as const;
+
+export type GoogleModel = (typeof GOOGLE_MODELS)[number];
+
+export function isGoogleModel(model: unknown): model is GoogleModel {
+  return GOOGLE_MODELS.includes(model as any);
+}
+
 // the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
 export const LANGUAGE_MODELS = [
   ...MODELS_OPENAI,
@@ -40,10 +52,10 @@ export const LANGUAGE_MODELS = [
   "chat-bison-001",
   "embedding-gecko-001",
   "text-embedding-ada-002",
-  "gemini-pro",
+  ...GOOGLE_MODELS,
 ] as const;
 
-// This hardcodes which models can be selected by users.
+// This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
 // Make sure to update this when adding new models.
 // This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
 export const USER_SELECTABLE_LANGUAGE_MODELS = [
@@ -52,7 +64,7 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
   "gpt-4-turbo-preview",
   "gpt-4-turbo-preview-8k", // like above, but artificially limited to 8k tokens
   "gpt-4",
-  "gemini-pro",
+  ...GOOGLE_MODELS,
   ...MISTRAL_MODELS,
 ] as const;
 
@@ -87,20 +99,34 @@ export function getValidLanguageModelName(
     mistral: false,
   },
   ollama: string[] = [], // keys of ollama models
+  selectable_llms: string[],
 ): LanguageModel {
-  const dftl =
-    filter.openai === true
+  const dftl: string =
+    filter.openai === true && selectable_llms.includes(DEFAULT_MODEL)
       ? DEFAULT_MODEL
-      : filter.ollama && ollama?.length > 0
+      : selectable_llms
+          .filter((m) => {
+            if (filter.openai && isOpenAIModel(m)) return true;
+            if (filter.mistral && isMistralModel(m)) return true;
+            if (filter.google && isGoogleModel(m)) return true;
+            return false;
+          })
+          .pop() ??
+        (filter.ollama && ollama?.length > 0)
       ? toOllamaModel(ollama[0])
-      : "chat-bison-001";
+      : DEFAULT_MODEL;
+
   if (model == null) {
     return dftl;
   }
   if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
     return model;
   }
-  if (typeof model === "string" && isLanguageModel(model)) {
+  if (
+    typeof model === "string" &&
+    isLanguageModel(model) &&
+    selectable_llms.includes(model)
+  ) {
     return model;
   }
   return dftl;
@@ -312,7 +338,8 @@ export const LLM_DESCR: LLM2String = {
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
   "gpt-4-turbo-preview-8k":
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
-  "gpt-4-turbo-preview": "Like GPT-4 Turob 8k, but with up to 128k token context",
+  "gpt-4-turbo-preview":
+    "Like GPT-4 Turob 8k, but with up to 128k token context",
   "text-bison-001": "",
   "chat-bison-001": "",
   "gemini-pro": "Google's Gemini Pro Generative AI model (30k token context)",

@@ -16,16 +16,18 @@ import {
   LLMServicesAvailable,
   LLM_USERNAMES,
   MISTRAL_MODELS,
-  USER_SELECTABLE_LANGUAGE_MODELS,
   model2service,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { OllamaPublic } from "@cocalc/util/types/llm";
+import { List } from "immutable";
 import { Item } from "./complete";
 
 export function useMentionableUsers(): (search: string | undefined) => Item[] {
   const { project_id, enabledLLMs } = useProjectContext();
+
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   const ollama = useTypedRedux("customize", "ollama");
 
@@ -36,6 +38,7 @@ export function useMentionableUsers(): (search: string | undefined) => Item[] {
         project_id,
         enabledLLMs,
         ollama: ollama?.toJS() ?? {},
+        selectableLLMs,
       });
     };
   }, [project_id, JSON.stringify(enabledLLMs), ollama]);
@@ -46,6 +49,7 @@ interface Props {
   project_id: string;
   ollama: { [key: string]: OllamaPublic };
   enabledLLMs: LLMServicesAvailable;
+  selectableLLMs: List<string>;
 }
 
 function mentionableUsers({
@@ -53,6 +57,7 @@ function mentionableUsers({
   project_id,
   enabledLLMs,
   ollama,
+  selectableLLMs,
 }: Props): Item[] {
   const users = redux
     .getStore("projects")
@@ -99,7 +104,7 @@ function mentionableUsers({
   const v: Item[] = [];
 
   if (enabledLLMs.openai) {
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-3.5-turbo")) {
+    if (selectableLLMs.includes("gpt-3.5-turbo")) {
       if (!search || "chatgpt3".includes(search)) {
         v.push({
           value: "openai-gpt-3.5-turbo",
@@ -130,7 +135,7 @@ function mentionableUsers({
       }
     }
 
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4")) {
+    if (selectableLLMs.includes("gpt-4")) {
       if (!search || "chatgpt4".includes(search)) {
         v.push({
           value: "openai-gpt-4",
@@ -144,7 +149,7 @@ function mentionableUsers({
       }
     }
 
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4-turbo-preview")) {
+    if (selectableLLMs.includes("gpt-4-turbo-preview")) {
       if (!search || "chatgpt4turbo".includes(search)) {
         v.push({
           value: "openai-gpt-4-turbo-preview",
@@ -158,7 +163,7 @@ function mentionableUsers({
       }
     }
 
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4-turbo-preview-8k")) {
+    if (selectableLLMs.includes("gpt-4-turbo-preview-8k")) {
       if (!search || "chatgpt4turbo".includes(search)) {
         v.push({
           value: "openai-gpt-4-turbo-preview-8k",
@@ -175,7 +180,7 @@ function mentionableUsers({
   }
 
   if (enabledLLMs.google) {
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gemini-pro")) {
+    if (selectableLLMs.includes("gemini-pro")) {
       if (!search || "gemini".includes(search)) {
         v.push({
           value: model2service("gemini-pro"),
@@ -214,7 +219,7 @@ function mentionableUsers({
 
   if (enabledLLMs.mistral) {
     for (const m of MISTRAL_MODELS) {
-      if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(m)) continue;
+      if (!selectableLLMs.includes(m)) continue;
       const name = LLM_USERNAMES[m] ?? m;
       if (
         !search ||

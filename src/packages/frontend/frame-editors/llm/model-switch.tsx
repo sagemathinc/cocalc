@@ -10,7 +10,6 @@ import {
   LLM_USERNAMES,
   LanguageModel,
   MISTRAL_MODELS,
-  USER_SELECTABLE_LANGUAGE_MODELS,
   fromOllamaModel,
   isFreeModel,
   isOllamaLLM,
@@ -67,6 +66,7 @@ export default function ModelSwitch({
     "ollama",
   );
   const ollama = useTypedRedux("customize", "ollama");
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   function getPrice(btnModel): JSX.Element {
     return isFreeModel(btnModel) ? (
@@ -81,7 +81,7 @@ export default function ModelSwitch({
     btnModel: LanguageModel,
     title: string,
   ) {
-    if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel as any)) return;
+    if (!selectableLLMs.includes(btnModel as any)) return;
     if (typeof btnModel !== "string") return;
 
     const model = (
@@ -176,7 +176,7 @@ export default function ModelSwitch({
     return ret;
   }
 
-  // all models selectable here must be in util/db-schema/openai::USER_SELECTABLE_LANGUAGE_MODELS + the custom ones from the ollama configuration
+  // all models selectable here must be in selectableLLMs(default: USER_SELECTABLE_LANGUAGE_MODELS) + the custom ones from the ollama configuration
   return (
     <Select
       dropdownStyle={style}

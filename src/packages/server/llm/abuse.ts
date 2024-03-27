@@ -23,6 +23,7 @@ where they limit per minute, not per hour (like below):
 */
 
 import getPool from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
   LanguageModel,
@@ -67,7 +68,11 @@ export async function checkForAbuse({
   }
 
   if (!isLanguageModel(model)) {
-    throw Error(`invalid model "${model}"`);
+    throw Error(`Invalid model "${model}"`);
+  }
+
+  if (!(await isUserSelectableLanguageModel(model))) {
+    throw new Error(`Model "${model}" is disabled.`);
   }
 
   if (!isFreeModel(model)) {
@@ -81,12 +86,15 @@ export async function checkForAbuse({
     return;
   }
 
+  // Below, we are only concerned with free models.
+
   const usage = await recentUsage({
     cache: "short",
     period: "1 hour",
     account_id,
     analytics_cookie,
   });
+
   // console.log("usage = ", usage);
   if (account_id) {
     if (usage > QUOTAS.account) {
@@ -108,14 +116,6 @@ export async function checkForAbuse({
     throw Error(
       `There is too much usage of ChatGPT right now.  Please try again later or use a non-free language model such as GPT-4.`,
     );
-  }
-
-  if (!isFreeModel(model)) {
-    // This is a for-pay product, so let's make sure user can purchase it.
-    await assertPurchaseAllowed({
-      account_id,
-      service: model2service(model),
-    });
   }
 }
 
@@ -155,4 +155,11 @@ async function recentUsage({
   const { rows } = await pool.query(query, args);
   // console.log("rows = ", rows);
   return parseInt(rows[0]?.["usage"] ?? 0); // undefined = no results in above select,
+}
+
+async function isUserSelectableLanguageModel(
+  model: LanguageModel,
+): Promise<boolean> {
+  const { selectable_llms } = await getServerSettings();
+  return selectable_llms.includes(model);
 }

@@ -155,6 +155,7 @@ export interface CustomizeState {
   compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
 
   ollama?: TypedMap<{ [key: string]: TypedMap<OllamaPublic> }>;
+  selectable_llms: List<string>;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

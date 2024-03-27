@@ -8,6 +8,8 @@
 import jsonic from "jsonic";
 
 import { is_valid_email_address } from "@cocalc/util/misc";
+import { USER_SELECTABLE_LANGUAGE_MODELS } from "./llm-utils";
+import { isEqual } from "lodash";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -48,6 +50,7 @@ export type SiteSettingsKeys =
   | "google_vertexai_enabled"
   | "mistral_enabled"
   | "ollama_enabled"
+  | "selectable_llms"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -112,7 +115,7 @@ export interface Config {
   // this optional function derives the actual value of this setting from current value or from a global (unprocessed) setting.
   readonly to_val?: ToValFunc<ToVal>;
   // this optional function derives the visual representation for the admin (fallback: to_val)
-  readonly to_display?: (val: string) => string;
+  readonly to_display?: (val: string | string[]) => string;
   readonly hint?: (val: string) => string; // markdown
   readonly type?: RowType;
   readonly clearable?: boolean; // default false
@@ -169,6 +172,20 @@ export const onlyNonnegFloat = (val) =>
   ((v) => onlyFloats(v) && v >= 0)(toFloat(val));
 export const onlyPosFloat = (val) =>
   ((v) => onlyFloats(v) && v > 0)(toFloat(val));
+export function to_list_of_llms(val?: string, fallbackAll = true): string[] {
+  if (!val?.trim())
+    return fallbackAll ? [...USER_SELECTABLE_LANGUAGE_MODELS] : [];
+  return val
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => USER_SELECTABLE_LANGUAGE_MODELS.includes(v as any));
+}
+
+export const is_list_of_llms = (val: string) =>
+  val
+    .split(",")
+    .map((s) => s.trim())
+    .every((s) => USER_SELECTABLE_LANGUAGE_MODELS.includes(s as any));
 
 export const from_json = (conf): Mapping => {
   try {
@@ -660,6 +677,20 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["ai-llm"],
+  },
+  selectable_llms: {
+    name: "User Selectable LLMs",
+    desc: "If this is empty, all available LLMs by enabled services will be selectable by your users. If you select one or more, only those LLMs will be shown. This does not affect the availibiltiy of Ollama models.",
+    default: "",
+    valid: is_list_of_llms,
+    to_val: (v) => to_list_of_llms(v), // note: we store this as a comma separated list of model strings
+    to_display: (val: string | string[]) => {
+      const list = Array.isArray(val) ? val : to_list_of_llms(val);
+      return isEqual(list, USER_SELECTABLE_LANGUAGE_MODELS)
+        ? "All LLMs of enabled services will be selectable"
+        : list.join(", ");
+    },
     tags: ["ai-llm"],
   },
   neural_search_enabled: {
