@@ -3,6 +3,21 @@
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { unreachable } from "@cocalc/util/misc";
 
+// "Client LLMs" are defined in the user's account settings
+// They directly query an external LLM service.
+export interface ClientLLM {
+  type: "ollama"; // only one type for now
+  model: string; // non-empty string
+  display: string; // short user-visible string
+  endpoint: string; // URL to the LLM service
+}
+
+const CLIENT_PREFIX = "client-";
+
+export function isClientModel(model: string): boolean {
+  return model.startsWith(CLIENT_PREFIX);
+}
+
 const OPENAI_PREFIX = "openai-";
 
 const MODELS_OPENAI = [
@@ -312,7 +327,8 @@ export const LLM_DESCR: LLM2String = {
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
   "gpt-4-turbo-preview-8k":
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
-  "gpt-4-turbo-preview": "Like GPT-4 Turob 8k, but with up to 128k token context",
+  "gpt-4-turbo-preview":
+    "Like GPT-4 Turob 8k, but with up to 128k token context",
   "text-bison-001": "",
   "chat-bison-001": "",
   "gemini-pro": "Google's Gemini Pro Generative AI model (30k token context)",
