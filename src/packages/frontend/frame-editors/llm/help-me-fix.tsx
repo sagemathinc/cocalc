@@ -16,7 +16,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
-import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
+import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
 import shortenError from "./shorten-error";
 
 interface Props {
@@ -67,7 +67,7 @@ export default function HelpMeFix({
         title={
           <>
             Get Help from{" "}
-            <ModelSwitch
+            <LLMSelector
               model={model}
               setModel={setModel}
               project_id={project_id}

@@ -20,7 +20,7 @@ function isOpenAIModel(model: unknown): model is ModelOpenAI {
   return MODELS_OPENAI.includes(model as any);
 }
 
-// ATTN: when you modify this list, also change frontend/.../llm/model-switch.tsx!
+// ATTN: when you modify this list, also change frontend/.../llm/llm-selector.tsx!
 export const MISTRAL_MODELS = [
   // yes, all 3 of them have an extra mistral-prefix, on top of the vendor prefix
   "mistral-small-latest",

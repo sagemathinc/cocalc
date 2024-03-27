@@ -17,7 +17,7 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
-import ModelSwitch from "@cocalc/frontend/frame-editors/llm/model-switch";
+import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { show_react_modal } from "@cocalc/frontend/misc";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -185,7 +185,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
         {enabled ? (
           <>
             Select language model:{" "}
-            <ModelSwitch
+            <LLMSelector
               project_id={project_id}
               model={model}
               setModel={setModel}

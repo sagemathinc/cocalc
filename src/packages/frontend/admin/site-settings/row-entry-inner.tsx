@@ -10,7 +10,7 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import Password, {
   PasswordTextArea,
 } from "@cocalc/frontend/components/password";
-import { modelToName } from "@cocalc/frontend/frame-editors/llm/model-switch";
+import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { USER_SELECTABLE_LANGUAGE_MODELS } from "@cocalc/util/db-schema/llm-utils";
 import {
   ConfigValid,

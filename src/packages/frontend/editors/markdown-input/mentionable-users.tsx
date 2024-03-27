@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Tooltip } from "antd";
+import { List } from "immutable";
 import { isEmpty } from "lodash";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
@@ -11,9 +13,11 @@ import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
 import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { LLMModelPrice } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   LLMServicesAvailable,
+  LLM_DESCR,
   LLM_USERNAMES,
   MISTRAL_MODELS,
   model2service,
@@ -21,10 +25,17 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { OllamaPublic } from "@cocalc/util/types/llm";
-import { List } from "immutable";
 import { Item } from "./complete";
 
-export function useMentionableUsers(): (search: string | undefined) => Item[] {
+interface Opts {
+  avatarUserSize?: number;
+  avatarLLMSize?: number;
+}
+
+export function useMentionableUsers(): (
+  search: string | undefined,
+  opts?: Opts,
+) => Item[] {
   const { project_id, enabledLLMs } = useProjectContext();
 
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
@@ -32,13 +43,14 @@ export function useMentionableUsers(): (search: string | undefined) => Item[] {
   const ollama = useTypedRedux("customize", "ollama");
 
   return useMemo(() => {
-    return (search: string | undefined) => {
+    return (search: string | undefined, opts?: Opts) => {
       return mentionableUsers({
         search,
         project_id,
         enabledLLMs,
         ollama: ollama?.toJS() ?? {},
         selectableLLMs,
+        opts,
       });
     };
   }, [project_id, JSON.stringify(enabledLLMs), ollama]);
@@ -50,6 +62,7 @@ interface Props {
   ollama: { [key: string]: OllamaPublic };
   enabledLLMs: LLMServicesAvailable;
   selectableLLMs: List<string>;
+  opts?: Opts;
 }
 
 function mentionableUsers({
@@ -58,7 +71,10 @@ function mentionableUsers({
   enabledLLMs,
   ollama,
   selectableLLMs,
+  opts,
 }: Props): Item[] {
+  const { avatarUserSize = 24, avatarLLMSize = 24 } = opts ?? {};
+
   const users = redux
     .getStore("projects")
     .getIn(["project_map", project_id, "users"]);
@@ -109,11 +125,13 @@ function mentionableUsers({
         v.push({
           value: "openai-gpt-3.5-turbo",
           label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-3.5-turbo"]}
-            </span>
+            <LLMTooltip model={"gpt-3.5-turbo"}>
+              <OpenAIAvatar size={avatarLLMSize} />{" "}
+              {LLM_USERNAMES["gpt-3.5-turbo"]}
+            </LLMTooltip>
           ),
           search: "chatgpt3",
+          is_llm: true,
         });
       }
       if (!search || "chatgpt3".includes(search)) {
@@ -126,11 +144,13 @@ function mentionableUsers({
         v.push({
           value: "openai-gpt-3.5-turbo-16k",
           label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-3.5-turbo-16k"]}
-            </span>
+            <LLMTooltip model={"gpt-3.5-turbo-16k"}>
+              <OpenAIAvatar size={avatarLLMSize} />{" "}
+              {LLM_USERNAMES["gpt-3.5-turbo-16k"]}
+            </LLMTooltip>
           ),
           search: "chatgpt3-16k",
+          is_llm: true,
         });
       }
     }
@@ -140,11 +160,12 @@ function mentionableUsers({
         v.push({
           value: "openai-gpt-4",
           label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-4"]}
-            </span>
+            <LLMTooltip model={"gpt-4"}>
+              <OpenAIAvatar size={avatarLLMSize} /> {LLM_USERNAMES["gpt-4"]}
+            </LLMTooltip>
           ),
           search: "chatgpt4",
+          is_llm: true,
         });
       }
     }
@@ -154,11 +175,13 @@ function mentionableUsers({
         v.push({
           value: "openai-gpt-4-turbo-preview",
           label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-4-turbo-preview"]}
-            </span>
+            <LLMTooltip model={"gpt-4-turbo-preview"}>
+              <OpenAIAvatar size={avatarLLMSize} />{" "}
+              {LLM_USERNAMES["gpt-4-turbo-preview"]}
+            </LLMTooltip>
           ),
           search: "chatgpt4turbo",
+          is_llm: true,
         });
       }
     }
@@ -168,12 +191,13 @@ function mentionableUsers({
         v.push({
           value: "openai-gpt-4-turbo-preview-8k",
           label: (
-            <span>
-              <OpenAIAvatar size={24} />{" "}
+            <LLMTooltip model={"gpt-4-turbo-preview-8k"}>
+              <OpenAIAvatar size={avatarLLMSize} />{" "}
               {LLM_USERNAMES["gpt-4-turbo-preview-8k"]}
-            </span>
+            </LLMTooltip>
           ),
           search: "chatgpt4turbo",
+          is_llm: true,
         });
       }
     }
@@ -181,15 +205,18 @@ function mentionableUsers({
 
   if (enabledLLMs.google) {
     if (selectableLLMs.includes("gemini-pro")) {
-      if (!search || "gemini".includes(search)) {
+      const search_term = "gemini-pro";
+      if (!search || search_term.includes(search)) {
         v.push({
           value: model2service("gemini-pro"),
           label: (
-            <span>
-              <GoogleGeminiLogo size={24} /> {LLM_USERNAMES["gemini-pro"]}
-            </span>
+            <LLMTooltip model={"gemini-pro"}>
+              <GoogleGeminiLogo size={avatarLLMSize} />{" "}
+              {LLM_USERNAMES["gemini-pro"]}
+            </LLMTooltip>
           ),
-          search: "gemini",
+          search: search_term,
+          is_llm: true,
         });
       }
     }
@@ -198,20 +225,17 @@ function mentionableUsers({
   if (enabledLLMs.ollama && !isEmpty(ollama)) {
     for (const [key, conf] of Object.entries(ollama)) {
       const value = toOllamaModel(key);
-      if (
-        !search ||
-        key.includes(search) ||
-        value.includes(search) ||
-        conf.display.toLowerCase().includes(search)
-      ) {
+      const search_term = `${key} ${value} ${conf.display}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
         v.push({
           value,
           label: (
             <span>
-              <OllamaAvatar size={24} /> {conf.display}
+              <OllamaAvatar size={avatarLLMSize} /> {conf.display}
             </span>
           ),
-          search: value,
+          search: search_term,
+          is_llm: true,
         });
       }
     }
@@ -221,19 +245,17 @@ function mentionableUsers({
     for (const m of MISTRAL_MODELS) {
       if (!selectableLLMs.includes(m)) continue;
       const name = LLM_USERNAMES[m] ?? m;
-      if (
-        !search ||
-        m.includes(search) ||
-        name.toLowerCase().includes(search)
-      ) {
+      const search_term = `${m} ${name}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
         v.push({
           value: model2service(m),
           label: (
-            <span>
-              <MistralAvatar size={24} /> {name}
-            </span>
+            <LLMTooltip model={m}>
+              <MistralAvatar size={avatarLLMSize} /> {name}
+            </LLMTooltip>
           ),
-          search: m,
+          search: search_term,
+          is_llm: true,
         });
       }
     }
@@ -246,10 +268,31 @@ function mentionableUsers({
     const name = trunc_middle(fullname, 64);
     const label = (
       <span>
-        <Avatar account_id={account_id} size={24} /> {name}
+        <Avatar account_id={account_id} size={avatarUserSize} /> {name}
       </span>
     );
-    v.push({ value: account_id, label, search: s });
+    v.push({ value: account_id, label, search: s, is_llm: false });
   }
+
   return v;
+}
+
+function LLMTooltip({
+  model,
+  children,
+}: {
+  model: string;
+  children: React.ReactNode;
+}) {
+  const descr = LLM_DESCR[model];
+  const title = (
+    <>
+      {descr} <LLMModelPrice model={model} />
+    </>
+  );
+  return (
+    <Tooltip title={title} placement="right">
+      <div>{children}</div>
+    </Tooltip>
+  );
 }

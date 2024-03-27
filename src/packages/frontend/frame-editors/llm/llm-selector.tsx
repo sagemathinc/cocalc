@@ -35,7 +35,7 @@ interface Props {
 
 const GOOGLE_GEMINI: LanguageModel = "gemini-pro";
 
-export default function ModelSwitch({
+export default function LLMSelector({
   style,
   model,
   setModel,

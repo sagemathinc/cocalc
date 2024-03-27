@@ -26,7 +26,7 @@ import { LanguageModelVendorAvatar } from "../../components/language-model-icon"
 import { Actions } from "../code-editor/actions";
 import Context from "./context";
 import { Options } from "./create-chat";
-import ModelSwitch, { LanguageModel, modelToName } from "./model-switch";
+import LLMSelector, { LanguageModel, modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
 
@@ -275,7 +275,7 @@ export default function LanguageModelTitleBarButton({
             do using {modelToName(model)}?
           </Title>
           Switch model:{" "}
-          <ModelSwitch
+          <LLMSelector
             project_id={project_id}
             model={model}
             setModel={setModel}
