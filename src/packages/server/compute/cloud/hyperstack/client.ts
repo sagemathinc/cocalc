@@ -1,5 +1,15 @@
 /*
-Get Hyperstack API client.
+Hyperstack API client.
+
+This tries as much as possible to just provide a Node.js Typescript
+upstream API to access
+
+https://infrahub-doc.nexgencloud.com/docs/api-reference/
+
+There should be nothing CoCalc specific here.  Put that
+in other files.
+
+TODO: maybe the small amount of caching below should be removed.
 */
 
 import axios from "axios";
@@ -82,7 +92,7 @@ async function call({
     } else {
       throw Error(`unsupported method: ${method}`);
     }
-    //console.log(resp);
+    // console.log(resp);
     const { data } = resp;
     if (data?.status === false) {
       throw Error(
@@ -97,8 +107,13 @@ async function call({
     }
     return data;
   } catch (err) {
+    log.debug("ERROR - ", err);
     if (err?.response?.data?.message) {
-      throw Error(err.response.data.message);
+      if (Object.keys(err.response.data).length == 1) {
+        throw Error(err.response.data.message);
+      } else {
+        throw Error(JSON.stringify(err.response.data));
+      }
     } else {
       throw err;
     }
@@ -243,6 +258,8 @@ export async function importKeyPair(params: {
     url: "/core/keypairs",
     params,
   });
+  // update cache to have new key in it
+  await getKeyPairs(false);
   return keypair;
 }
 
@@ -329,7 +346,10 @@ interface SecurityRule {
 interface VirtualMachine {
   id: number;
   name: string;
-  status: string;
+  // TODO: have to figure out what all possible statuses are
+  status: "ACTIVE" | "HIBERNATING" | "HIBERNATED";
+  power_state: "RUNNING" | "SHUTDOWN";
+  vm_state: "active" | "shelved_offloaded";
   environment: { name: string };
   image: { name: string };
   flavor: {
@@ -344,8 +364,6 @@ interface VirtualMachine {
   keypair: { name: string };
   volume_attachments: VolumeAttachment[];
   security_rules: SecurityRule[];
-  power_state: string;
-  vm_state: string;
   fixed_ip: string;
   floating_ip: string;
   floating_ip_status: string;
@@ -361,6 +379,9 @@ export async function getVirtualMachines(): Promise<VirtualMachine[]> {
 }
 
 export async function getVirtualMachine(id: number): Promise<VirtualMachine> {
+  if (!id) {
+    throw Error("id must be defined");
+  }
   // note -- typo on https://infrahub-doc.nexgencloud.com/docs/api-reference/core-resources/virtual-machines/vm-core/retrieve-vm-details where it says
   // "instances" instead of "instance".
   const { instance } = await call({
@@ -422,6 +443,74 @@ export async function updateVirtualMachineLabels(id: number, labels: string[]) {
     method: "put",
     url: `/core/virtual-machines/${id}/label`,
     params: { labels },
+  });
+}
+
+export async function attachPublicIP(id: number) {
+  await call({
+    method: "post",
+    url: `/core/virtual-machines/${id}/attach-floatingip`,
+  });
+}
+export async function detachPublicIP(id: number) {
+  await call({
+    method: "post",
+    url: `/core/virtual-machines/${id}/detach-floatingip`,
+  });
+}
+
+// array of protocols, including 'tcp', 'udp', etc.
+export async function getFirewallProtocols(): Promise<string[]> {
+  const { protocols } = await call({
+    method: "get",
+    url: "/core/sg-rules-protocols",
+  });
+  return protocols;
+}
+
+// Basically this allows you to open a range of ports.
+export async function addFirewallRule({
+  virtual_machine_id,
+  direction = "ingress",
+  protocol = "tcp",
+  ethertype = "IPv4",
+  remote_ip_prefix = "0.0.0.0/0",
+  port_range_min,
+  port_range_max,
+}: {
+  virtual_machine_id: number; // virtual machine id
+  port_range_min: number;
+  port_range_max: number;
+  direction?: "ingress" | "egress";
+  protocol?: string;
+  ethertype?: "IPv4" | "IPv6";
+  remote_ip_prefix?: string;
+}) {
+  const { security_rule } = await call({
+    method: "post",
+    url: `core/virtual-machines/${virtual_machine_id}/sg-rules`,
+    params: {
+      direction,
+      protocol,
+      ethertype,
+      remote_ip_prefix,
+      port_range_min,
+      port_range_max,
+    },
+  });
+  return security_rule;
+}
+
+export async function deleteFirewallRule({
+  virtual_machine_id,
+  sg_rule_id,
+}: {
+  virtual_machine_id: number;
+  sg_rule_id: number;
+}) {
+  await call({
+    method: "delete",
+    url: `/core/virtual-machines/${virtual_machine_id}/sg-rules/${sg_rule_id}`,
   });
 }
 
@@ -491,7 +580,7 @@ interface PaymentDetails {
   amount: number;
   currency: string; // e.g., 'usd'
   paid_from: string; // e.g., "William Stein"
-  status: string; // e.g., "complete".  payment_initiated" means sucessful (?)
+  status: string; // e.g., "complete".  "payment_initiated" means successful (?)
   gateway_response: string | null;
   description: string | null;
   transaction_id: string;
