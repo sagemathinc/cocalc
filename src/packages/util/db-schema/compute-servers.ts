@@ -466,6 +466,12 @@ interface LambdaConfiguration extends BaseConfiguration {
   region_name: string;
 }
 
+interface HyperstackConfiguration extends BaseConfiguration {
+  cloud: "hyperstack";
+  flavor_name: string;
+  region_name: string;
+}
+
 const COREWEAVE_CPU_TYPES = [
   "amd-epyc-rome",
   "amd-epyc-milan",
@@ -571,6 +577,7 @@ export interface OnPremCloudConfiguration extends BaseConfiguration {
 
 export type Configuration =
   | LambdaConfiguration
+  | HyperstackConfiguration
   | CoreWeaveConfiguration
   | FluidStackConfiguration
   | GoogleCloudConfiguration
@@ -587,7 +594,11 @@ export interface LambdaCloudData extends BaseData {
 
 export interface HyperstackData extends BaseData {
   type: "hyperstack";
-  instance_id: string;
+  id: number;
+  name?: string;
+  internalIp?: string;
+  externalIp?: string;
+  creationTimestamp?: Date;
 }
 
 export interface GoogleCloudData extends BaseData {
@@ -601,7 +612,7 @@ export interface GoogleCloudData extends BaseData {
   lastStartTimestamp?: Date;
 }
 
-export type Data = GoogleCloudData | LambdaCloudData;
+export type Data = GoogleCloudData | LambdaCloudData | HyperstackData;
 
 export interface ComponentState {
   state: string;

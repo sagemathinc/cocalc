@@ -219,23 +219,26 @@ interface Environment {
   created_at: string;
 }
 
-export async function getEnvironments(): Promise<Environment[]> {
+export async function getEnvironments(cache = true): Promise<Environment[]> {
   const { environments } = await call({
     method: "get",
     url: "core/environments",
+    cache,
   });
   return environments;
 }
 
-export async function deleteEnvironment(id: number) {
+export async function deleteEnvironment(id: number): Promise<Environment[]> {
   await call({ method: "delete", url: `/core/environments/${id}` });
+  return await getEnvironments(false);
 }
 
 export async function createEnvironment(params: {
   name: string;
   region: Region;
-}) {
+}): Promise<Environment[]> {
   await call({ method: "post", url: "/core/environments", params });
+  return await getEnvironments(false);
 }
 
 // Key Pairs
