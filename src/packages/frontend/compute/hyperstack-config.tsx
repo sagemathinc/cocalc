@@ -3,7 +3,7 @@ import type {
   HyperstackConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { Divider, Select, Spin } from "antd";
-import { setServerConfiguration } from "./api";
+import { getHyperstackPriceData, setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
@@ -12,6 +12,7 @@ import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
 import Proxy from "./proxy";
 import { useImages } from "./images-hook";
+import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -36,6 +37,7 @@ export default function HyperstackConfig({
   state,
   data,
 }: Props) {
+  const [priceData, setPriceData] = useState<HyperstackPriceData | null>(null);
   const [IMAGES, ImagesError] = useImages();
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -47,6 +49,20 @@ export default function HyperstackConfig({
       setLocalConfiguration(configuration0);
     }
   }, [configuration0]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await getHyperstackPriceData();
+        setPriceData(data);
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const setConfig = async (changes) => {
     try {
@@ -110,6 +126,7 @@ export default function HyperstackConfig({
         IMAGES={IMAGES}
       />
       {loading && <Spin style={{ marginLeft: "15px" }} />}
+      <pre>{JSON.stringify(priceData ?? {}, undefined, 2)}</pre>
     </div>
   );
 }
