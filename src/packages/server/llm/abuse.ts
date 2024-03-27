@@ -22,7 +22,8 @@ where they limit per minute, not per hour (like below):
     TPM = tokens per minute
 */
 
-import getPool from "@cocalc/database/pool";
+import { process_env_int } from "@cocalc/backend/misc";
+import getPool, { CacheTime } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
@@ -35,18 +36,10 @@ import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {
-  noAccount: 0,
-  account: 10 ** 5,
-  global: 10 ** 6,
+  noAccount: process_env_int("COCALC_LLM_QUOTA_NO_ACCOUNT", 0),
+  account: process_env_int("COCALC_LLM_QUOTA_ACCOUNT", 10 ** 5),
+  global: process_env_int("COCALC_LLM_QUOTA_GLOBAL", 10 ** 6),
 } as const;
-
-/* for testing
-const QUOTAS = {
-  noAccount: 300,
-  account: 1000,
-  global: 3000,
-};
-*/
 
 // Throws an exception if the request should not be allowed.
 export async function checkForAbuse({
@@ -72,6 +65,7 @@ export async function checkForAbuse({
     throw Error(`Invalid model "${model}"`);
   }
 
+  // it's a valid model name, but maybe not enabled by the admin (by default, all are enabled)
   if (!(await isUserSelectableLanguageModel(model))) {
     throw new Error(`Model "${model}" is disabled.`);
   }
@@ -103,7 +97,11 @@ export async function checkForAbuse({
   if (account_id) {
     if (usage > QUOTAS.account) {
       throw Error(
-        `You may use at most ${QUOTAS.account} tokens per hour. Please try again later or use a non-free language model such as GPT-4.`,
+        `You may use at most ${
+          QUOTAS.account
+        } tokens per hour. Please try again later${
+          is_cocalc_com ? " or use a non-free language model such as GPT-4" : ""
+        }.`,
       );
     }
   } else if (usage > QUOTAS.noAccount) {
@@ -118,7 +116,9 @@ export async function checkForAbuse({
   // console.log("overallUsage = ", usage);
   if (overallUsage > QUOTAS.global) {
     throw Error(
-      `There is too much usage of ChatGPT right now.  Please try again later or use a non-free language model such as GPT-4.`,
+      `There is too much usage of language models right now.  Please try again later ${
+        is_cocalc_com ? " or use a non-free language model such as GPT-4" : ""
+      }.`,
     );
   }
 }
@@ -135,7 +135,7 @@ async function recentUsage({
   // some caching so if user is hitting us a lot, we don't hit the database to
   // decide they are abusive -- at the same time, short enough that we notice.
   // Recommendation: "short"
-  cache?: "short" | "medium" | "long";
+  cache?: CacheTime;
 }): Promise<number> {
   const pool = getPool(cache);
   let query, args;
