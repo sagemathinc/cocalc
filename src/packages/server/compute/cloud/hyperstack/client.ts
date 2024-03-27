@@ -156,6 +156,15 @@ export async function getFlavors(): Promise<Flavor[]> {
   return data;
 }
 
+export async function getRegions(): Promise<Flavor[]> {
+  const { regions } = await call({
+    method: "get",
+    url: "core/regions",
+    cache: true,
+  });
+  return regions;
+}
+
 type Availability =
   | "0"
   | "1"
@@ -303,6 +312,16 @@ export async function createVirtualMachines(params: {
   flavor_name: string;
   key_name: string;
   count?: number;
+  security_rules?: SecurityRule[];
+  assign_floating_ip?: boolean;
+  create_bootable_volume?: boolean;
+  user_data?: string;
+  callback_url?: string;
+  profile?: {
+    name: string;
+    description: string;
+  };
+  labels?: string[];
 }) {
   log.debug("createVirtualMachines", params);
   if (!params.count) {
@@ -343,13 +362,29 @@ interface SecurityRule {
   created_at: string;
 }
 
+// ACTIVE = when its running
+// HIBERNATING = when it is being hibernated
+// HIBERNATED = when it is done hibernating
+// SHUTOFF = ?
+// RESETORING = when it is being switchd from hibernating to active
+
+type VmStatus =
+  | "ACTIVE"
+  | "HIBERNATING"
+  | "HIBERNATED"
+  | "SHUTOFF"
+  | "RESTORING";
+
+type PowerState = "RUNNING" | "SHUTDOWN";
+
+type VmState = "active" | "shelved_offloaded" | "stopped";
+
 interface VirtualMachine {
   id: number;
   name: string;
-  // TODO: have to figure out what all possible statuses are
-  status: "ACTIVE" | "HIBERNATING" | "HIBERNATED";
-  power_state: "RUNNING" | "SHUTDOWN";
-  vm_state: "active" | "shelved_offloaded";
+  status: VmStatus;
+  power_state: PowerState;
+  vm_state: VmState;
   environment: { name: string };
   image: { name: string };
   flavor: {
@@ -459,60 +494,76 @@ export async function detachPublicIP(id: number) {
   });
 }
 
-// array of protocols, including 'tcp', 'udp', etc.
-export async function getFirewallProtocols(): Promise<string[]> {
-  const { protocols } = await call({
+// This getMetrics always fails with status 400
+// in my tests, and I have no idea why.
+// In the frontend in all states it says:
+//  "Virtual Machine needs to be in a valid state to view metrics"
+// so my guess is that this isn't implemented.
+export async function getVirtualMachineMetrics(
+  id,
+  duration:
+    | "1h"
+    | "2h"
+    | "4h"
+    | "6h"
+    | "12h"
+    | "1d"
+    | "3d"
+    | "7d"
+    | "15"
+    | "30d" = "1h",
+) {
+  return await call({
     method: "get",
-    url: "/core/sg-rules-protocols",
+    url: `/core/virtual-machines/${id}/metrics?duration=${duration}`,
   });
-  return protocols;
 }
 
-// Basically this allows you to open a range of ports.
-export async function addFirewallRule({
-  virtual_machine_id,
-  direction = "ingress",
-  protocol = "tcp",
-  ethertype = "IPv4",
-  remote_ip_prefix = "0.0.0.0/0",
-  port_range_min,
-  port_range_max,
-}: {
-  virtual_machine_id: number; // virtual machine id
-  port_range_min: number;
-  port_range_max: number;
-  direction?: "ingress" | "egress";
-  protocol?: string;
-  ethertype?: "IPv4" | "IPv6";
-  remote_ip_prefix?: string;
-}) {
-  const { security_rule } = await call({
-    method: "post",
-    url: `core/virtual-machines/${virtual_machine_id}/sg-rules`,
-    params: {
-      direction,
-      protocol,
-      ethertype,
-      remote_ip_prefix,
-      port_range_min,
-      port_range_max,
-    },
+// docs at https://infrahub-doc.nexgencloud.com/docs/api-reference/core-resources/virtual-machines/retrieve-events-history are wrong, saying this returns virtual_machine_events
+export async function getVirtualMachineEvents(id) {
+  const { instance_events } = await call({
+    method: "get",
+    url: `/core/virtual-machines/${id}/events`,
   });
-  return security_rule;
+  return instance_events;
 }
 
-export async function deleteFirewallRule({
-  virtual_machine_id,
-  sg_rule_id,
+export async function attachVirtualMachineCallback({
+  id,
+  url,
 }: {
-  virtual_machine_id: number;
-  sg_rule_id: number;
+  id: number;
+  url: string;
 }) {
   await call({
-    method: "delete",
-    url: `/core/virtual-machines/${virtual_machine_id}/sg-rules/${sg_rule_id}`,
+    method: "post",
+    url: `core/virtual-machines/${id}/attach-callback`,
+    params: { url },
   });
 }
+
+export async function updateVirtualMachineCallback({
+  id,
+  url,
+}: {
+  id: number;
+  url: string;
+}) {
+  await call({
+    method: "put",
+    url: `core/virtual-machines/${id}/update-callback`,
+    params: { url },
+  });
+}
+
+export async function deleteVirtualMachineCallback({ id }: { id: number }) {
+  await call({
+    method: "delete",
+    url: `core/virtual-machines/${id}/update-callback`,
+  });
+}
+
+// MONEY
 
 // This returns 'alive' and works if things are good; if not, something bad happens.
 export async function confirmBillingStatus(): Promise<"alive"> {
@@ -624,4 +675,271 @@ export async function getPricebook(): Promise<Price[]> {
     cache: true,
   });
   return x;
+}
+
+///////////////////////////////////////////////
+// Firewalls
+
+interface FirewallRule {
+  virtual_machine_id: number; // virtual machine id
+  port_range_min: number;
+  port_range_max: number;
+  direction?: "ingress" | "egress";
+  protocol?: string;
+  ethertype?: "IPv4" | "IPv6";
+  remote_ip_prefix?: string;
+  status: "SUCCESS"; // todo
+  created_at: string;
+}
+
+interface FirewallAttachment {
+  id: number;
+  status: "SUCCESS";
+  vm: {
+    id: number;
+    name: string;
+    flavor: string;
+    environment: string;
+    status: VmStatus;
+    created_at: string;
+  };
+  created_at: string;
+}
+
+interface Firewall {
+  id: number;
+  name: string;
+  description: string;
+  environment: Environment;
+  status: "SUCCESS"; // todo
+  created_at: string;
+  rules: FirewallRule[];
+  attachments: FirewallAttachment[];
+}
+
+export async function getFirewalls(): Promise<Firewall[]> {
+  const { firewalls } = await call({
+    method: "get",
+    url: "/core/firewalls",
+  });
+  return firewalls;
+}
+
+export async function getFirewall(id: number): Promise<Firewall> {
+  const { firewall } = await call({
+    method: "get",
+    url: `/core/firewalls/${id}`,
+  });
+  return firewall;
+}
+
+export async function createFirewall(params: {
+  name: string;
+  environment_id: number;
+  description?: string;
+}): Promise<Firewall> {
+  const { firewall } = await call({
+    method: "post",
+    url: "/core/firewalls",
+    params,
+  });
+  return firewall;
+}
+
+export async function deleteFirewall(id: number): Promise<void> {
+  await call({
+    method: "delete",
+    url: `/core/firewalls/${id}`,
+  });
+}
+
+// array of protocols, including 'tcp', 'udp', etc.
+export async function getFirewallProtocols(): Promise<string[]> {
+  const { protocols } = await call({
+    method: "get",
+    url: "/core/sg-rules-protocols",
+  });
+  return protocols;
+}
+
+interface FirewallRuleDesc {
+  port_range_min: number;
+  port_range_max: number;
+  direction?: "ingress" | "egress";
+  protocol?: string;
+  ethertype?: "IPv4" | "IPv6";
+  remote_ip_prefix?: string;
+}
+
+// Basically this allows you to open a range of ports.
+export async function addFirewallRule(
+  params:
+    | ({
+        virtual_machine_id: number;
+      } & FirewallRuleDesc)
+    | ({ firewall_id: number } & FirewallRuleDesc),
+): Promise<FirewallRule> {
+  // defaults
+  params = {
+    direction: "ingress",
+    protocol: "tcp",
+    ethertype: "IPv4",
+    remote_ip_prefix: "0.0.0.0/0",
+    ...params,
+  };
+  let resp;
+  if (params["virtual_machine_id"]) {
+    const id = params["virtual_machine_id"];
+    delete params["virtual_machine_id"];
+    resp = await call({
+      method: "post",
+      url: `core/virtual-machines/${id}/sg-rules`,
+      params,
+    });
+  } else if (params["firewall_id"]) {
+    const id = params["firewall_id"];
+    delete params["firewall_id"];
+    resp = await call({
+      method: "post",
+      url: `core/firewalls/${id}/firewall-rules`,
+      params,
+    });
+  } else {
+    throw Error("virtual_machine_id or firewall_id must be specified");
+  }
+  const { security_rule } = resp;
+  return security_rule;
+}
+
+export async function deleteFirewallRule(
+  params:
+    | {
+        virtual_machine_id: number;
+        sg_rule_id: number;
+      }
+    | { firewall_id: number; firewall_rule_id: number },
+) {
+  const { virtual_machine_id, sg_rule_id, firewall_id, firewall_rule_id } =
+    (params as any) ?? {};
+  if (virtual_machine_id) {
+    await call({
+      method: "delete",
+      url: `/core/virtual-machines/${virtual_machine_id}/sg-rules/${sg_rule_id}`,
+    });
+  } else if (firewall_id) {
+    await call({
+      method: "delete",
+      url: `/core/firewalls/${firewall_id}/firewall-rules/${firewall_rule_id}`,
+    });
+  } else {
+    throw Error("virtual_machine_id or firewall_id must be specified");
+  }
+}
+
+// This sets *exactly* which VM's this firewall is attached to.
+// It doesn't just add it to some VM's.  This this is very dangerous
+// to use, due to the possibility of a race condition -- if twice at once,
+// running code reads the vms, then adds one, then writes the vms back,
+// then one vm will not get the firewall and the other will!  So don't
+// use this without some sort of lock...
+export async function setFirewallVirtualMachines({
+  firewall_id,
+  vms,
+}: {
+  firewall_id: number;
+  vms: number[]; // the exact list of vm's the firewall will be attached to.
+}) {
+  await call({
+    method: "post",
+    url: `/core/firewalls/${firewall_id}/update-attachments`,
+    params: { vms },
+  });
+}
+
+// VOLUMES
+
+type VolumeType = "Cloud-SSD";
+export async function getVolumeTypes(): Promise<VolumeType[]> {
+  const { volume_types } = await call({
+    method: "get",
+    url: "core/volume-types",
+    cache: true,
+  });
+  return volume_types;
+}
+
+interface VolumeDetails {
+  id: number;
+  name: string;
+  environment: {
+    name: string;
+  };
+  description: string;
+  volume_type: string;
+  size: string;
+  status: string;
+  bootable: boolean;
+  image_id: number;
+  callback_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getVolumes(): Promise<VolumeDetails[]> {
+  const { volumes } = await call({
+    method: "get",
+    url: "core/volumes",
+  });
+  return volumes;
+}
+
+export async function createVolume(params: {
+  name: string;
+  size: number; // in GB
+  environment_name: string;
+  volume_type?: VolumeType;
+  description?: string;
+  image_id?: number;
+}) {
+  params = { volume_type: "Cloud-SSD", ...params };
+  const { volume } = await call({
+    method: "post",
+    url: "core/volumes",
+    params,
+  });
+  return volume;
+}
+
+export async function deleteVolume(id: number) {
+  await call({ method: "delete", url: `/core/volumes/${id}` });
+}
+
+export async function attachVolume({
+  virtual_machine_id,
+  volume_ids,
+}: {
+  virtual_machine_id: number;
+  volume_ids: number[];
+}) {
+  const { volume_attachments } = await call({
+    method: "post",
+    url: `core/virtual-machines/${virtual_machine_id}/attach-volumes`,
+    params: { volume_ids },
+  });
+  return volume_attachments;
+}
+
+export async function detachVolume({
+  virtual_machine_id,
+  volume_ids,
+}: {
+  virtual_machine_id: number;
+  volume_ids: number[];
+}) {
+  const { volume_attachments } = await call({
+    method: "post",
+    url: `core/virtual-machines/${virtual_machine_id}/detach-volumes`,
+    params: { volume_ids },
+  });
+  return volume_attachments;
 }
