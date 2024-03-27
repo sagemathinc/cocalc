@@ -275,6 +275,7 @@ export type Cloud =
   | "any"
   | "onprem"
   | "core-weave"
+  | "hyperstack"
   | "lambda-cloud"
   | "google-cloud"
   | "aws"
@@ -397,6 +398,18 @@ const CLOUDS: {
       excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
+  hyperstack: {
+    name: "hyperstack",
+    label: "Hyperstack GPU Cloud",
+    image: "https://console.hyperstack.cloud/hyperstack-wordmark.svg",
+    defaultConfiguration: {
+      cloud: "hyperstack",
+      image: "anaconda",
+      region_name: "CANADA-01",
+      flavor_name: "n2-H100x1",
+      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+    },
+  },
   onprem: {
     name: "onprem",
     label: "On Prem",
@@ -466,7 +479,7 @@ interface LambdaConfiguration extends BaseConfiguration {
   region_name: string;
 }
 
-interface HyperstackConfiguration extends BaseConfiguration {
+export interface HyperstackConfiguration extends BaseConfiguration {
   cloud: "hyperstack";
   flavor_name: string;
   region_name: string;

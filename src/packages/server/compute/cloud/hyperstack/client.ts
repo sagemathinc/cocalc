@@ -147,20 +147,20 @@ interface Flavor {
   };
 }
 
-export async function getFlavors(): Promise<Flavor[]> {
+export async function getFlavors(cache = true): Promise<Flavor[]> {
   const { data } = await call({
     method: "get",
     url: "core/flavors",
-    cache: true,
+    cache,
   });
   return data;
 }
 
-export async function getRegions(): Promise<Flavor[]> {
+export async function getRegions(cache = true): Promise<Flavor[]> {
   const { regions } = await call({
     method: "get",
     url: "core/regions",
-    cache: true,
+    cache,
   });
   return regions;
 }
@@ -293,6 +293,7 @@ interface Image {
 }
 
 export async function getImages(
+  cache = true,
   params: { region?: Region } = {},
 ): Promise<Image[]> {
   // the api docs incorrectly say this is "data" not "images"
@@ -301,7 +302,7 @@ export async function getImages(
     method: "get",
     url: "/core/images",
     params,
-    cache: true,
+    cache,
   });
   return images;
 }
@@ -671,11 +672,11 @@ interface Price {
   start_time: string | null;
   end_time: string | null;
 }
-export async function getPricebook(): Promise<Price[]> {
+export async function getPricebook(cache=true): Promise<Price[]> {
   const x = await call({
     method: "get",
     url: "/pricebook",
-    cache: true,
+    cache,
   });
   return x;
 }
@@ -862,11 +863,11 @@ export async function setFirewallVirtualMachines({
 // VOLUMES
 
 type VolumeType = "Cloud-SSD";
-export async function getVolumeTypes(): Promise<VolumeType[]> {
+export async function getVolumeTypes(cache=true): Promise<VolumeType[]> {
   const { volume_types } = await call({
     method: "get",
     url: "core/volume-types",
-    cache: true,
+    cache,
   });
   return volume_types;
 }
