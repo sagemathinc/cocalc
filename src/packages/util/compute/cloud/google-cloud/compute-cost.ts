@@ -95,8 +95,13 @@ export function computeInstanceCost({ configuration, priceData }) {
   const cost =
     data[configuration.spot ? "spot" : "prices"]?.[configuration.region];
   if (cost == null) {
+    if (configuration.spot && Object.keys(data["spot"]).length == 0) {
+      throw Error(
+        `spot instance pricing for ${configuration.machineType} is not available`,
+      );
+    }
     throw Error(
-      `unable to determine cost since region pricing for machine type ${configuration.machineType} is unknown. Select a different region.`,
+      `unable to determine cost since machine type ${configuration.machineType} is not available in the region '${configuration.region}'. Select a different region.`,
     );
   }
   return markup({ cost, priceData });
