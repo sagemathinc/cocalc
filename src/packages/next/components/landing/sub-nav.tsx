@@ -52,6 +52,11 @@ const INNER_STYLE: CSS = {
   whiteSpace: "nowrap",
 };
 
+const about = {
+  index: {},
+  team: { label: "Team" },
+} as const;
+
 const software = {
   index: {},
   executables: { label: "Executables" },
@@ -126,6 +131,7 @@ const news = {
 };
 
 const PAGES = {
+  about,
   features,
   software,
   pricing,
@@ -147,7 +153,8 @@ export type SubPage =
   | keyof typeof pricing
   | keyof typeof policies
   | keyof typeof info
-  | keyof typeof support;
+  | keyof typeof support
+  | keyof typeof about;
 
 interface Props {
   page?: Page;
