@@ -98,16 +98,14 @@ export default function HyperstackConfig({
   return (
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>GPU</b>
+        <b>Machine Type</b>
       </div>
-      <Select
-        disabled={loading || disabled}
-        style={{ width: SELECTOR_WIDTH, marginBottom: "10px" }}
-        options={[{ label: "", value: "x86_64" }]}
-        value={"x86_64"}
-        onChange={(arch) => {
-          setConfig({ arch });
-        }}
+      <MachineType
+        id={id}
+        setConfig={setConfig}
+        configuration={configuration}
+        state={state}
+        disabled={disabled}
       />
       <Image
         state={state}
@@ -127,9 +125,30 @@ export default function HyperstackConfig({
         IMAGES={IMAGES}
       />
       {loading && <Spin style={{ marginLeft: "15px" }} />}
+      <pre>{JSON.stringify(priceData ?? [], undefined, 2)}</pre>
       <pre>{JSON.stringify(GPU_SPECS, undefined, 2)}</pre>
-      <pre>{JSON.stringify(priceData ?? {}, undefined, 2)}</pre>
     </div>
+  );
+}
+
+function MachineType({ id, disabled, setConfig, configuration, state }) {
+  if (!priceData) {
+    return <Spin />;
+  }
+  const options = priceData
+    .filter((x) => x.available)
+    .map((x) => {
+      return { label: x.gpu, value: `${x.region_name}|${x.flavor_name}` };
+    });
+  return (
+    <Select
+      disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+      style={{ width: SELECTOR_WIDTH }}
+      options={options}
+      onChange={(type) => {
+        setConfig({ acceleratorType: type });
+      }}
+    />
   );
 }
 
@@ -170,4 +189,3 @@ function Image(props) {
     </div>
   );
 }
-
