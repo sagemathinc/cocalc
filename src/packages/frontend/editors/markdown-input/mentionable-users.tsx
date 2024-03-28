@@ -16,6 +16,7 @@ import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { LLMModelPrice } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
+  ANTHROPIC_MODELS,
   GOOGLE_MODELS,
   LLMServicesAvailable,
   LLM_DESCR,
@@ -27,6 +28,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { OllamaPublic } from "@cocalc/util/types/llm";
+import AnthropicAvatar from "../../components/anthropic-avatar";
 import { Item } from "./complete";
 
 interface Opts {
@@ -168,7 +170,7 @@ function mentionableUsers({
     for (const m of MISTRAL_MODELS) {
       if (!selectableLLMs.includes(m)) continue;
       const name = LLM_USERNAMES[m] ?? m;
-      const search_term = `${m} ${name}`.toLowerCase();
+      const search_term = `mistral ${m} ${name}`.toLowerCase();
       if (!search || search_term.includes(search)) {
         v.push({
           value: model2service(m),
@@ -180,6 +182,26 @@ function mentionableUsers({
           search: search_term,
           is_llm: true,
         });
+      }
+    }
+
+    if (enabledLLMs.anthropic) {
+      for (const m of ANTHROPIC_MODELS) {
+        if (!selectableLLMs.includes(m)) continue;
+        const name = LLM_USERNAMES[m] ?? m;
+        const search_term = `anthropic ${m} ${name}`.toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value: model2service(m),
+            label: (
+              <LLMTooltip model={m}>
+                <AnthropicAvatar size={avatarLLMSize} /> {name}
+              </LLMTooltip>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
       }
     }
 

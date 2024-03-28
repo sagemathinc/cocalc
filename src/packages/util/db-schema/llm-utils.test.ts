@@ -49,4 +49,13 @@ describe("llm", () => {
       expect(LANGUAGE_MODEL_VENDORS.includes(vendor)).toBe(true);
     },
   );
+
+  test("just checking the price", () => {
+    expect(1_000_000 * LLM_COST["gpt-4"].prompt_tokens).toBeCloseTo(30);
+    expect(1_000_000 * LLM_COST["gpt-4"].completion_tokens).toBeCloseTo(60);
+    expect(1_000_000 * LLM_COST["claude-3-opus"].prompt_tokens).toBeCloseTo(15);
+    expect(1_000_000 * LLM_COST["claude-3-opus"].completion_tokens).toBeCloseTo(
+      75,
+    );
+  });
 });

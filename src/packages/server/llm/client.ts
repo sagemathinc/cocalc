@@ -62,7 +62,10 @@ export async function getClient(
       throw new Error("Use the getOllama function instead");
 
     case "mistralai":
-      throw new Error("Use the getMistral function instead");
+      throw new Error("Use the evaluateMistral function instead");
+
+    case "anthropic":
+      throw new Error("Use the evaluateAnthropic function instead");
 
     default:
       unreachable(vendor);

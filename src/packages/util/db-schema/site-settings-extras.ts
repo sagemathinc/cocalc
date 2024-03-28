@@ -69,6 +69,8 @@ const openai_enabled = (conf: SiteSettings) => to_bool(conf.openai_enabled);
 const vertexai_enabled = (conf: SiteSettings) =>
   to_bool(conf.google_vertexai_enabled);
 const mistral_enabled = (conf: SiteSettings) => to_bool(conf.mistral_enabled);
+const anthropic_enabled = (conf: SiteSettings) =>
+  to_bool(conf.anthropic_enabled);
 const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) ||
@@ -197,6 +199,7 @@ export type SiteSettingsExtrasKeys =
   | "google_vertexai_key"
   | "ollama_configuration"
   | "mistral_api_key"
+  | "anthropic_api_key"
   | "qdrant_section"
   | "qdrant_api_key"
   | "qdrant_cluster_url"
@@ -282,6 +285,14 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: mistral_enabled,
+    tags: ["ai-llm"],
+  },
+  anthropic_api_key: {
+    name: "Anthropic API Key",
+    desc: "Create an API Key in the [Anthropic Console](https://console.anthropic.com/) and paste it here.",
+    default: "",
+    password: true,
+    show: anthropic_enabled,
     tags: ["ai-llm"],
   },
   ollama_configuration: {

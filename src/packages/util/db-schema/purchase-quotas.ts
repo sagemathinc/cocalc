@@ -45,10 +45,6 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "OpenAI GPT-4 Turbo 8k",
     color: "#10a37f",
   },
-  "mistralai-mistral-large-latest": {
-    display: LLM_USERNAMES["mistral-large-latest"],
-    color: "#ff7000", // the orange from their website
-  },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   "compute-server": { display: "Compute Server", color: "#2196f3" },
   "compute-server-network-usage": {
@@ -89,13 +85,37 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "Google Gemini 1.0 Pro",
     color: "#4285f4",
   },
-  "google-gemini-ultra": {
+  "google-gemini-1.0-ultra-latest": {
     display: "Google Gemini 1.0 Ultra",
     color: "#4285f4",
   },
   "google-gemini-1.5-pro-latest": {
     display: "Google Gemini 1.5 Pro",
     color: "#4285f4",
+  },
+  "anthropic-claude-3-opus": {
+    display: LLM_USERNAMES["claude-3-opus"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-sonnet": {
+    display: LLM_USERNAMES["claude-3-sonnet"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-haiku": {
+    display: LLM_USERNAMES["claude-3-haiku"],
+    color: "#181818",
+  },
+  "mistralai-mistral-small-latest": {
+    display: LLM_USERNAMES["mistral-small-latest"],
+    color: "#ff7000", // the orange from their website
+  },
+  "mistralai-mistral-medium-latest": {
+    display: LLM_USERNAMES["mistral-medium-latest"],
+    color: "#ff7000", // the orange from their website
+  },
+  "mistralai-mistral-large-latest": {
+    display: LLM_USERNAMES["mistral-large-latest"],
+    color: "#ff7000", // the orange from their website
   },
 };
 

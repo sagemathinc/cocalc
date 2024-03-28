@@ -55,6 +55,7 @@ import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { OllamaPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
+import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -97,6 +98,7 @@ export interface CustomizeState {
   openai_enabled: boolean;
   google_vertexai_enabled: boolean;
   mistral_enabled: boolean;
+  anthropic_enabled: boolean;
   ollama_enabled: boolean;
   neural_search_enabled: boolean;
   datastore: boolean;
@@ -175,12 +177,13 @@ export class CustomizeStore extends Store<CustomizeState> {
     return this.getIn(["software", "default"]) ?? DEFAULT_COMPUTE_IMAGE;
   }
 
-  getEnabledLLMs() {
+  getEnabledLLMs(): LLMServicesAvailable {
     return {
-      haveOpenAI: this.get("openai_enabled"),
-      haveGoogle: this.get("google_vertexai_enabled"),
-      haveOllama: this.get("ollama_enabled"),
-      haveMistral: this.get("mistral_enabled"),
+      openai: this.get("openai_enabled"),
+      google: this.get("google_vertexai_enabled"),
+      ollama: this.get("ollama_enabled"),
+      mistral: this.get("mistral_enabled"),
+      anthropic: this.get("anthropic_enabled"),
     };
   }
 }

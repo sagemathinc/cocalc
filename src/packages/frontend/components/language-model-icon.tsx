@@ -13,6 +13,7 @@ import GooglePalmLogo from "./google-palm-avatar";
 import MistralAvatar from "./mistral-avatar";
 import OllamaAvatar from "./ollama-avatar";
 import OpenAIAvatar from "./openai-avatar";
+import AnthropicAvatar from "./anthropic-avatar";
 
 export function LanguageModelVendorAvatar(
   props: Readonly<{
@@ -58,6 +59,9 @@ export function LanguageModelVendorAvatar(
 
       case "ollama":
         return <OllamaAvatar size={size} style={style} />;
+
+      case "anthropic":
+        return <AnthropicAvatar size={size} style={style} />;
 
       default:
         unreachable(vendor);

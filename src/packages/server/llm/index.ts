@@ -23,6 +23,7 @@ import {
   LanguageModel,
   OpenAIMessages,
   getLLMCost,
+  isAnthropicModel,
   isFreeModel,
   isGoogleModel,
   isMistralModel,
@@ -34,6 +35,7 @@ import {
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
+import { evaluateAnthropic } from "./anthropic";
 import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
 import { evaluateMistral } from "./mistral";
@@ -109,6 +111,15 @@ async function evaluateImpl({
         });
       } else if (isMistralModel(model)) {
         return await evaluateMistral({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
+      } else if (isAnthropicModel(model)) {
+        return await evaluateAnthropic({
           system,
           history,
           input,

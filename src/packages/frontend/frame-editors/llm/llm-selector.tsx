@@ -5,6 +5,7 @@ import type { ConfigProviderProps } from "antd/lib/config-provider";
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
+  ANTHROPIC_MODELS,
   DEFAULT_MODEL,
   GOOGLE_MODELS,
   LLM_DESCR,
@@ -57,6 +58,11 @@ export default function LLMSelector({
     project_id,
     undefined,
     "mistralai",
+  );
+  const showAnthropic = projectsStore.hasLanguageModelEnabled(
+    project_id,
+    undefined,
+    "anthropic",
   );
   const showOllama = projectsStore.hasLanguageModelEnabled(
     project_id,
@@ -112,6 +118,11 @@ export default function LLMSelector({
     MISTRAL_MODELS.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
   }
 
+  function appendAnthropic(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showAnthropic) return;
+    ANTHROPIC_MODELS.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
+  }
+
   function appendOllama(ret: NonNullable<SelectProps["options"]>): void {
     if (!showOllama || !ollama) return;
 
@@ -147,6 +158,7 @@ export default function LLMSelector({
     appendOpenAI(ret);
     appendGoogle(ret);
     appendMistral(ret);
+    appendAnthropic(ret);
     appendOllama(ret);
     return ret;
   }

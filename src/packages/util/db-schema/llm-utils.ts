@@ -15,9 +15,9 @@ export const MODELS_OPENAI = [
   "text-embedding-ada-002", // TODO: this is for embeddings, should be moved to a different place
 ] as const;
 
-export type ModelOpenAI = (typeof MODELS_OPENAI)[number];
+export type OpenAIModel = (typeof MODELS_OPENAI)[number];
 
-function isOpenAIModel(model: unknown): model is ModelOpenAI {
+function isOpenAIModel(model: unknown): model is OpenAIModel {
   return MODELS_OPENAI.includes(model as any);
 }
 
@@ -40,14 +40,47 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
   "gemini-pro",
-  // "gemini-1.0-ultra-latest",  // they give errors: wrong v1 api, countTokens not available, etc.
-  // "gemini-1.5-pro-latest",  // their genAI lib doesn't support it yet, or their API is really incomplete
+  "gemini-1.0-ultra-latest", // they give errors: wrong v1 api, countTokens not available, etc.
+  "gemini-1.5-pro-latest", // their genAI lib doesn't support it yet, or their API is really incomplete
 ] as const;
-
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
-
 export function isGoogleModel(model: unknown): model is GoogleModel {
   return GOOGLE_MODELS.includes(model as any);
+}
+
+// https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
+export const ANTHROPIC_MODELS = [
+  "claude-3-opus",
+  "claude-3-sonnet",
+  "claude-3-haiku",
+] as const;
+// ... and we add a version number (there is no "*-latest") when dispatching on the backend
+export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string } = {
+  "claude-3-opus": "20240229",
+  "claude-3-sonnet": "20240229",
+  "claude-3-haiku": "20240307",
+} as const;
+export const ANTHROPIC_PREFIX = "anthropic-";
+export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
+type AnthropicService = `${typeof ANTHROPIC_PREFIX}${AnthropicModel}`;
+export function isAnthropicModel(model: unknown): model is AnthropicModel {
+  return ANTHROPIC_MODELS.includes(model as any);
+}
+export function toAnthropicService(model: AnthropicModel): AnthropicService {
+  return `${ANTHROPIC_PREFIX}${model}`;
+}
+export function isAnthropicService(
+  service: string,
+): service is AnthropicService {
+  return service.startsWith(ANTHROPIC_PREFIX);
+}
+export function fromAnthropicService(
+  service: AnthropicService,
+): AnthropicModel {
+  if (!isAnthropicService(service)) {
+    throw new Error(`not a mistral service: ${service}`);
+  }
+  return service.slice(ANTHROPIC_PREFIX.length) as AnthropicModel;
 }
 
 // the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
@@ -55,6 +88,7 @@ export const LANGUAGE_MODELS = [
   ...MODELS_OPENAI,
   ...MISTRAL_MODELS,
   ...GOOGLE_MODELS,
+  ...ANTHROPIC_MODELS,
 ] as const;
 
 // This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
@@ -66,8 +100,9 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
       m !== "gpt-4-32k" && // this one is deliberately not selectable by users!
       m !== "text-embedding-ada-002", // shouldn't be in the list in the first place
   ),
-  ...GOOGLE_MODELS,
+  ...GOOGLE_MODELS.filter((m) => m === "gemini-pro"),
   ...MISTRAL_MODELS,
+  ...ANTHROPIC_MODELS,
 ] as const;
 
 export type OllamaLLM = string;
@@ -83,10 +118,11 @@ export function isLanguageModel(model?: unknown): model is LanguageModel {
 }
 
 export interface LLMServicesAvailable {
-  google: boolean;
   openai: boolean;
+  google: boolean;
   ollama: boolean;
   mistral: boolean;
+  anthropic: boolean;
 }
 
 // this is used in initialization functions. e.g. to get a default model depending on the overall availability
@@ -95,10 +131,11 @@ export interface LLMServicesAvailable {
 export function getValidLanguageModelName(
   model: string | undefined,
   filter: LLMServicesAvailable = {
-    google: true,
     openai: true,
+    google: true,
     ollama: false,
     mistral: false,
+    anthropic: false,
   },
   ollama: string[] = [], // keys of ollama models
   selectable_llms: string[],
@@ -147,7 +184,7 @@ export function isOllamaService(service: string): service is OllamaService {
 }
 
 export const MISTRAL_PREFIX = "mistralai-";
-export type MistralService = string;
+export type MistralService = `${typeof MISTRAL_PREFIX}${MistralModel}`;
 export function isMistralService(service: string): service is MistralService {
   return service.startsWith(MISTRAL_PREFIX);
 }
@@ -158,25 +195,22 @@ const GOOGLE_PREFIX = "google-";
 // ATTN: don't change the encoding pattern of [vendor]-[model]
 //       for whatever reason, it's also described that way in purchases/close.ts
 export type LanguageService =
-  | "openai-gpt-3.5-turbo"
-  | "openai-gpt-3.5-turbo-16k"
-  | "openai-gpt-4"
-  | "openai-gpt-4-32k"
-  | "openai-gpt-4-turbo-preview"
-  | "openai-gpt-4-turbo-preview-8k"
-  | "openai-text-embedding-ada-002" // TODO: this is for embeddings, should be moved to a different place
-  | "google-text-bison-001"
-  | "google-chat-bison-001"
-  | "google-embedding-gecko-001"
-  | "google-gemini-pro"
-  | OllamaService
-  | MistralService;
+  | `${typeof OPENAI_PREFIX}${OpenAIModel}`
+  | `${typeof GOOGLE_PREFIX}${
+      | "text-bison-001"
+      | "chat-bison-001"
+      | "embedding-gecko-001"}`
+  | `${typeof GOOGLE_PREFIX}${GoogleModel}`
+  | AnthropicService
+  | MistralService
+  | OllamaService;
 
 export const LANGUAGE_MODEL_VENDORS = [
   "openai",
   "google",
   "ollama",
   "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
+  "anthropic",
 ] as const;
 export type LLMVendor = (typeof LANGUAGE_MODEL_VENDORS)[number];
 
@@ -196,6 +230,9 @@ export function model2service(model: LanguageModel): LanguageService {
   }
   if (isMistralModel(model)) {
     return toMistralService(model);
+  }
+  if (isAnthropicModel(model)) {
+    return toAnthropicService(model);
   }
   if (isLanguageModel(model)) {
     if (
@@ -251,6 +288,8 @@ export function model2vendor(model): LLMVendor {
     return "openai";
   } else if (isGoogleModel(model)) {
     return "google";
+  } else if (isAnthropicModel(model)) {
+    return "anthropic";
   }
   throw new Error(`model2vendor: unknown model: "${model}"`);
 }
@@ -284,6 +323,9 @@ export function isOllamaLLM(model: unknown): model is OllamaLLM {
 export function toMistralService(model: string): MistralService {
   if (isMistralService(model)) {
     throw new Error(`already a mistral model: ${model}`);
+  }
+  if (!isMistralModel(model)) {
+    throw new Error(`not a mistral model: ${model}`);
   }
   return `${MISTRAL_PREFIX}${model}`;
 }
@@ -323,11 +365,14 @@ export const LLM_USERNAMES: LLM2String = {
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini 1.0 Pro",
-  //"gemini-1.0-ultra-latest": "Gemini 1.0 Ultra",
-  //"gemini-1.5-pro-latest": "Gemini 1.5 Pro",
+  "gemini-1.0-ultra-latest": "Gemini 1.0 Ultra",
+  "gemini-1.5-pro-latest": "Gemini 1.5 Pro",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
+  "claude-3-haiku": "Claude 3 Haiku",
+  "claude-3-sonnet": "Claude 3 Sonnet",
+  "claude-3-opus": "Claude 3 Opus",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -351,16 +396,22 @@ export const LLM_DESCR: LLM2String = {
   "chat-bison-001": "",
   "gemini-pro":
     "Google's Gemini 1.0 Pro Generative AI model (30k token context)",
-  //"gemini-1.0-ultra-latest":
-  //  "Google's Gemini 1.0 Ultra Generative AI model (30k token context)",
-  //"gemini-1.5-pro-latest":
-  //  "Google's Gemini 1.5 Pro Generative AI model (100k token context)",
+  "gemini-1.0-ultra-latest":
+    "Google's Gemini 1.0 Ultra Generative AI model (30k token context)",
+  "gemini-1.5-pro-latest":
+    "Google's Gemini 1.5 Pro Generative AI model (100k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
     "Intermediate tasks, summarizing, generating documents, etc. (Mistral AI, 4k token context)",
   "mistral-large-latest":
     "Most powerful, large reasoning capabilities, but slower. (Mistral AI, 4k token context)",
+  "claude-3-haiku":
+    "Fastest model, lightweight actions (Anthropic, 200k token context)",
+  "claude-3-sonnet":
+    "Best combination of performance and speed (Anthropic, 200k token context)",
+  "claude-3-opus":
+    "Most intelligent, complex analysis, higher-order math and coding (Anthropic, 200k token context)",
 } as const;
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
@@ -369,6 +420,10 @@ export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
   if (isMistralModel(model)) {
     // the large one is not free
     return (model as LanguageModel) !== "mistral-large-latest";
+  }
+  if (isAnthropicModel(model)) {
+    // the opus one is not free
+    return (model as LanguageModel) !== "claude-3-opus";
   }
   if (LANGUAGE_MODELS.includes(model as any)) {
     // of these models, the following are free
@@ -407,6 +462,8 @@ export function getVendorStatusCheckMD(vendor: LLMVendor): string {
       return `No status information for Ollama available – you have to check with the particular backend for the model.`;
     case "mistralai":
       return `No status information for Mistral AI available.`;
+    case "anthropic":
+      return `Anthropic [status](https://status.anthropic.com/).`;
     default:
       unreachable(vendor);
   }
@@ -417,7 +474,8 @@ export function llmSupportsStreaming(model: LanguageModel): boolean {
   return (
     model2vendor(model) === "openai" ||
     model2vendor(model) === "google" ||
-    model2vendor(model) === "mistralai"
+    model2vendor(model) === "mistralai" ||
+    model2vendor(model) === "anthropic"
   );
 }
 
@@ -425,6 +483,11 @@ interface Cost {
   prompt_tokens: number;
   completion_tokens: number;
   max_tokens: number;
+}
+
+// price per token for a given price of USD per 1M tokens
+function usd1Mtokens(usd: number): number {
+  return usd / 1_000_000;
 }
 
 // This is the official published cost that openai charges.
@@ -444,24 +507,24 @@ export const LLM_COST: { [name in string]: Cost } = {
     max_tokens: 32768,
   },
   "gpt-3.5-turbo": {
-    prompt_tokens: 0.0015 / 1000,
-    completion_tokens: 0.002 / 1000,
+    prompt_tokens: usd1Mtokens(1.5),
+    completion_tokens: usd1Mtokens(2),
     max_tokens: 4096,
   },
   "gpt-3.5-turbo-16k": {
-    prompt_tokens: 0.003 / 1000,
-    completion_tokens: 0.004 / 1000,
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(4),
     max_tokens: 16384,
   },
   "gpt-4-turbo-preview": {
-    prompt_tokens: 0.01 / 1000, // 	$10.00 / 1M tokens
-    completion_tokens: 0.03 / 1000, // $30.00 / 1M tokens
+    prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
+    completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
   },
   // like above, but we limit the tokens to reduce how much money user has to commit to
   "gpt-4-turbo-preview-8k": {
-    prompt_tokens: 0.01 / 1000, // 	$10.00 / 1M tokens
-    completion_tokens: 0.03 / 1000, // $30.00 / 1M tokens
+    prompt_tokens: usd1Mtokens(10),
+    completion_tokens: usd1Mtokens(30),
     max_tokens: 8192, // the actual reply is 8k, and we use this to truncate the input prompt!
   },
   // also OpenAI
@@ -491,34 +554,50 @@ export const LLM_COST: { [name in string]: Cost } = {
   // you can learn details about the google models via
   // curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY"
   "gemini-pro": {
-    prompt_tokens: 0.0005 / 1000, // TODO: price not yet known!
-    completion_tokens: 0.0005 / 1000,
+    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
+    completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
   },
-  "gemini-ultra": {
-    prompt_tokens: 0.0005 / 1000, // TODO: price not yet known!
-    completion_tokens: 0.0005 / 1000,
+  "gemini-1.0-ultra-latest": {
+    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
+    completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
   },
   "gemini-1.5-pro-latest": {
-    prompt_tokens: 0.0005 / 1000, // TODO: price not yet known!
-    completion_tokens: 0.0005 / 1000,
+    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
+    completion_tokens: usd1Mtokens(1),
     max_tokens: 1048576,
   },
   "mistral-small-latest": {
-    prompt_tokens: 0.002 / 1000, // 2$ / 1M tokens
-    completion_tokens: 0.006 / 1000, // 6$ / 1M tokens
+    prompt_tokens: usd1Mtokens(2), // 2$ / 1M tokens
+    completion_tokens: usd1Mtokens(6), // 6$ / 1M tokens
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
   },
   "mistral-medium-latest": {
-    prompt_tokens: 0.0027 / 1000, // 2.7$ / 1M tokens
-    completion_tokens: 0.0081 / 1000, // 8.1$ / 1M tokens
+    prompt_tokens: usd1Mtokens(2.7), // 2.7$ / 1M tokens
+    completion_tokens: usd1Mtokens(8.1), // 8.1$ / 1M tokens
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
   },
   "mistral-large-latest": {
-    prompt_tokens: 0.008 / 1000, // 8$ / 1M tokens
-    completion_tokens: 0.024 / 1000, // 24$ / 1M tokens
+    prompt_tokens: usd1Mtokens(8), // 8$ / 1M tokens
+    completion_tokens: usd1Mtokens(24), // 24$ / 1M tokens
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+  },
+  // Anthropic: pricing somewhere on that page: https://www.anthropic.com/api
+  "claude-3-opus": {
+    prompt_tokens: usd1Mtokens(15),
+    completion_tokens: usd1Mtokens(75),
+    max_tokens: 200_000,
+  },
+  "claude-3-sonnet": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 200_000,
+  },
+  "claude-3-haiku": {
+    prompt_tokens: usd1Mtokens(0.25),
+    completion_tokens: usd1Mtokens(1.25),
+    max_tokens: 200_000,
   },
 } as const;
 
@@ -606,6 +685,13 @@ export function getSystemPrompt(
   }
 
   if (model2vendor(model) === "ollama" || model.startsWith(OLLAMA_PREFIX)) {
+    return `${math}\n${common}`;
+  }
+
+  if (
+    model2vendor(model) === "anthropic" ||
+    model.startsWith(ANTHROPIC_PREFIX)
+  ) {
     return `${math}\n${common}`;
   }
 

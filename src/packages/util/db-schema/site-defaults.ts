@@ -49,6 +49,7 @@ export type SiteSettingsKeys =
   | "openai_enabled"
   | "google_vertexai_enabled"
   | "mistral_enabled"
+  | "anthropic_enabled"
   | "ollama_enabled"
   | "selectable_llms"
   | "neural_search_enabled"
@@ -666,6 +667,14 @@ export const site_settings_conf: SiteSettings = {
   mistral_enabled: {
     name: "Mistral AI UI",
     desc: "Controls visibility of UI elements related to Mistral AI integration.  You must **also set your Mistral API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["ai-llm"],
+  },
+  anthropic_enabled: {
+    name: "Anthropic AI UI",
+    desc: "Controls visibility of UI elements related to Anthropic AI integration.  You must **also set your Anthropic API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
