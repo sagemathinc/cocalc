@@ -1,10 +1,9 @@
-// this tests the wrongly named openai.ts file
-
 import {
   isFreeModel,
   LANGUAGE_MODEL_VENDORS,
   LANGUAGE_MODELS,
   LLM_COST,
+  model2vendor,
   OLLAMA_PREFIX,
   USER_SELECTABLE_LANGUAGE_MODELS,
 } from "./llm-utils";
@@ -20,12 +19,12 @@ describe("llm", () => {
     expect(isFreeModel(`${OLLAMA_PREFIX}-1`, is_cocalc_com)).toBe(true);
   });
 
-  test("all keys in the LLM_COST object are valid model names", () => {
-    // ATTN: don't use isValidModel to test!
-    for (const model in LLM_COST) {
+  test.each(Object.keys(LLM_COST))(
+    "is valid model names in LLM_COST: '%s'",
+    (model) => {
       expect(LANGUAGE_MODELS.includes(model as any)).toBe(true);
-    }
-  });
+    },
+  );
 
   test("all user selectable ones are valid", () => {
     for (const model of USER_SELECTABLE_LANGUAGE_MODELS) {
@@ -33,11 +32,21 @@ describe("llm", () => {
     }
   });
 
-  test("none of the user selectable models start with any of the vendor prefixes", () => {
-    for (const model of USER_SELECTABLE_LANGUAGE_MODELS) {
+  // none of the user selectable models start with any of the vendor prefixes
+  test.each(USER_SELECTABLE_LANGUAGE_MODELS)(
+    "model '%s' does not start with any vendor prefix",
+    (model) => {
       for (const prefix of LANGUAGE_MODEL_VENDORS) {
         expect(model.startsWith(prefix)).toBe(false);
       }
-    }
-  });
+    },
+  );
+
+  test.each(LANGUAGE_MODELS)(
+    `check that model2vendor('%s') knows the model`,
+    (model) => {
+      const vendor = model2vendor(model);
+      expect(LANGUAGE_MODEL_VENDORS.includes(vendor)).toBe(true);
+    },
+  );
 });

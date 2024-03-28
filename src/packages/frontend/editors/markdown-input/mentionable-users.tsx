@@ -16,10 +16,12 @@ import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { LLMModelPrice } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
+  GOOGLE_MODELS,
   LLMServicesAvailable,
   LLM_DESCR,
   LLM_USERNAMES,
   MISTRAL_MODELS,
+  MODELS_OPENAI,
   model2service,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -120,123 +122,44 @@ function mentionableUsers({
   const v: Item[] = [];
 
   if (enabledLLMs.openai) {
-    if (selectableLLMs.includes("gpt-3.5-turbo")) {
-      if (!search || "chatgpt3".includes(search)) {
-        v.push({
-          value: "openai-gpt-3.5-turbo",
-          label: (
-            <LLMTooltip model={"gpt-3.5-turbo"}>
-              <OpenAIAvatar size={avatarLLMSize} />{" "}
-              {LLM_USERNAMES["gpt-3.5-turbo"]}
-            </LLMTooltip>
-          ),
-          search: "chatgpt3",
-          is_llm: true,
-        });
-      }
-      if (!search || "chatgpt3".includes(search)) {
-        // Realistically it's maybe really unlikely to want to use this in a new chat
-        // you're making...? This did work when I wrote it, but I'm commenting it
-        // out since I think it's just not worth it.
-        // I'm adding this back because: (1) if you use GPT-3.5 too much you hit your limit,
-        // and (2) this is a non-free BUT CHEAP model you can actually use after hitting your
-        // limit, which is muh cheaper than GPT-4.
-        v.push({
-          value: "openai-gpt-3.5-turbo-16k",
-          label: (
-            <LLMTooltip model={"gpt-3.5-turbo-16k"}>
-              <OpenAIAvatar size={avatarLLMSize} />{" "}
-              {LLM_USERNAMES["gpt-3.5-turbo-16k"]}
-            </LLMTooltip>
-          ),
-          search: "chatgpt3-16k",
-          is_llm: true,
-        });
-      }
-    }
-
-    if (selectableLLMs.includes("gpt-4")) {
-      if (!search || "chatgpt4".includes(search)) {
-        v.push({
-          value: "openai-gpt-4",
-          label: (
-            <LLMTooltip model={"gpt-4"}>
-              <OpenAIAvatar size={avatarLLMSize} /> {LLM_USERNAMES["gpt-4"]}
-            </LLMTooltip>
-          ),
-          search: "chatgpt4",
-          is_llm: true,
-        });
-      }
-    }
-
-    if (selectableLLMs.includes("gpt-4-turbo-preview")) {
-      if (!search || "chatgpt4turbo".includes(search)) {
-        v.push({
-          value: "openai-gpt-4-turbo-preview",
-          label: (
-            <LLMTooltip model={"gpt-4-turbo-preview"}>
-              <OpenAIAvatar size={avatarLLMSize} />{" "}
-              {LLM_USERNAMES["gpt-4-turbo-preview"]}
-            </LLMTooltip>
-          ),
-          search: "chatgpt4turbo",
-          is_llm: true,
-        });
-      }
-    }
-
-    if (selectableLLMs.includes("gpt-4-turbo-preview-8k")) {
-      if (!search || "chatgpt4turbo".includes(search)) {
-        v.push({
-          value: "openai-gpt-4-turbo-preview-8k",
-          label: (
-            <LLMTooltip model={"gpt-4-turbo-preview-8k"}>
-              <OpenAIAvatar size={avatarLLMSize} />{" "}
-              {LLM_USERNAMES["gpt-4-turbo-preview-8k"]}
-            </LLMTooltip>
-          ),
-          search: "chatgpt4turbo",
-          is_llm: true,
-        });
+    // NOTE: all modes are included, including the 16k version, because:
+    //       (1) if you use GPT-3.5 too much you hit your limit,
+    //       (2) this is a non-free BUT CHEAP model you can actually use after hitting your limit, which is muh cheaper than GPT-4.
+    for (const m of MODELS_OPENAI) {
+      if (selectableLLMs.includes(m)) {
+        const search_term = m.replace(/-/g, "").toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value: model2service(m),
+            label: (
+              <LLMTooltip model={m}>
+                <OpenAIAvatar size={avatarLLMSize} /> {LLM_USERNAMES[m]}
+              </LLMTooltip>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
       }
     }
   }
 
   if (enabledLLMs.google) {
-    if (selectableLLMs.includes("gemini-pro")) {
-      const search_term = "gemini-pro";
-      if (!search || search_term.includes(search)) {
-        v.push({
-          value: model2service("gemini-pro"),
-          label: (
-            <LLMTooltip model={"gemini-pro"}>
-              <GoogleGeminiLogo size={avatarLLMSize} />{" "}
-              {LLM_USERNAMES["gemini-pro"]}
-            </LLMTooltip>
-          ),
-          search: search_term,
-          is_llm: true,
-        });
-      }
-    }
-  }
-
-  if (enabledLLMs.ollama && !isEmpty(ollama)) {
-    for (const [key, conf] of Object.entries(ollama)) {
-      const value = toOllamaModel(key);
-      const search_term = `${key} ${value} ${conf.display}`.toLowerCase();
-      if (!search || search_term.includes(search)) {
-        v.push({
-          value,
-          label: (
-            <span>
-              <OllamaAvatar size={avatarLLMSize} /> {conf.display}
-            </span>
-          ),
-          search: search_term,
-          is_llm: true,
-        });
+    for (const m of GOOGLE_MODELS) {
+      if (selectableLLMs.includes(m)) {
+        const search_term = m.replace(/-/g, "").toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value: model2service(m),
+            label: (
+              <LLMTooltip model={m}>
+                <GoogleGeminiLogo size={avatarLLMSize} /> {LLM_USERNAMES[m]}
+              </LLMTooltip>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
       }
     }
   }
@@ -257,6 +180,25 @@ function mentionableUsers({
           search: search_term,
           is_llm: true,
         });
+      }
+    }
+
+    if (enabledLLMs.ollama && !isEmpty(ollama)) {
+      for (const [key, conf] of Object.entries(ollama)) {
+        const value = toOllamaModel(key);
+        const search_term = `${key} ${value} ${conf.display}`.toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value,
+            label: (
+              <span>
+                <OllamaAvatar size={avatarLLMSize} /> {conf.display}
+              </span>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
       }
     }
   }

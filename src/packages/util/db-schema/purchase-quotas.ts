@@ -86,7 +86,15 @@ export const QUOTA_SPEC: QuotaSpec = {
     noSet: true, // deprecated, will be removed
   },
   "google-gemini-pro": {
-    display: "Google Gemini Pro",
+    display: "Google Gemini 1.0 Pro",
+    color: "#4285f4",
+  },
+  "google-gemini-ultra": {
+    display: "Google Gemini 1.0 Ultra",
+    color: "#4285f4",
+  },
+  "google-gemini-1.5-pro-latest": {
+    display: "Google Gemini 1.5 Pro",
     color: "#4285f4",
   },
 };

@@ -269,7 +269,7 @@ export const EXTRAS: SettingsExtras = {
     tags: ["ai-llm", "openai"],
   },
   google_vertexai_key: {
-    name: "Google Gemini Generative AI API Key",
+    name: "Google Generative AI API Key",
     desc: "Create an [API Key](https://aistudio.google.com/app/apikey) in [Google's AI Studio](https://aistudio.google.com/) and paste it here.",
     default: "",
     password: true,

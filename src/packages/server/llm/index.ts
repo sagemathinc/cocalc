@@ -24,6 +24,7 @@ import {
   OpenAIMessages,
   getLLMCost,
   isFreeModel,
+  isGoogleModel,
   isMistralModel,
   isOllamaLLM,
   isValidModel,
@@ -240,8 +241,8 @@ async function evaluateVertexAI({
   maxTokens,
   stream,
 }: EvalVertexAIProps): Promise<ChatOutput> {
-  if (model !== "chat-bison-001" && model !== "gemini-pro") {
-    throw new Error(`model ${model} not supported`);
+  if (!isGoogleModel(model)) {
+    throw new Error(`Model "${model}" not a Google model.`);
   }
 
   // TODO: for OpenAI, this is at 3. Unless we really know there are similar issues, we keep this at 1.

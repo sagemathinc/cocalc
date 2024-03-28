@@ -1,6 +1,7 @@
 import { CSS } from "@cocalc/frontend/app-framework";
 import {
   LanguageModel,
+  isGoogleModel,
   isLanguageModel,
   isOllamaLLM,
   model2vendor,
@@ -40,14 +41,15 @@ export function LanguageModelVendorAvatar(
     switch (vendor) {
       case "openai":
         return <OpenAIAvatar size={size} style={style} />;
+
       case "google": {
-        switch (model) {
-          case "chat-bison-001":
-            return <GooglePalmLogo size={size} style={style} />;
-          case "gemini-pro":
-            return <GoogleGeminiLogo size={size} style={style} />;
-          default:
-            return fallback();
+        if (model === "chat-bison-001") {
+          // Palm2, no longer supported, just for backwards compatibility
+          return <GooglePalmLogo size={size} style={style} />;
+        } else if (isGoogleModel(model)) {
+          return <GoogleGeminiLogo size={size} style={style} />;
+        } else {
+          return fallback();
         }
       }
 

@@ -5,13 +5,17 @@
  */
 
 import {
+  Content,
   GenerativeModel,
   GoogleGenerativeAI,
-  InputContent,
 } from "@google/generative-ai";
 
 import getLogger from "@cocalc/backend/logger";
-import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import {
+  GoogleModel,
+  LanguageModel,
+  isGoogleModel,
+} from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
 
 const log = getLogger("llm:vertex-ai");
@@ -28,13 +32,13 @@ export class VertexAIClient {
   constructor(auth: AuthMethods, model: LanguageModel) {
     if (model === "text-bison-001" || model === "chat-bison-001") {
       throw new Error("Palm2 is no longer supported");
-    } else if (model === "gemini-pro") {
+    } else if (isGoogleModel(model)) {
       if (auth.apiKey == null) {
-        throw new Error("you must provide and API key for gemini pro");
+        throw new Error(`API key for Google model "${model}" missing`);
       }
       this.genAI = new GoogleGenerativeAI(auth.apiKey);
     } else {
-      throw new Error(`unknown model: ${model}`);
+      throw new Error(`unknown model: "${model}"`);
     }
   }
 
@@ -48,38 +52,38 @@ export class VertexAIClient {
     maxTokens,
     stream,
   }: {
-    model: "chat-bison-001" | "gemini-pro";
+    model: GoogleModel;
     context?: string;
     history: History;
     input: string;
     maxTokens?: number;
     stream?: (output?: string) => void;
   }): Promise<ChatOutput> {
-    switch (model) {
-      case "chat-bison-001":
-        throw new Error("Palm2 is no longer supported");
-
-      case "gemini-pro":
-        return this.chatGeminiPro({
-          context,
-          history,
-          input,
-          maxTokens,
-          stream,
-        });
-
-      default:
-        throw new Error(`model ${model} not supported`);
+    // we assume all GOOGLE_MODELS are supported by their API client – a sensible assumption
+    if (isGoogleModel(model)) {
+      return this.chatGemini({
+        model,
+        context,
+        history,
+        input,
+        maxTokens,
+        stream,
+      });
     }
+
+    // everything else is not supported, and this error should never happen
+    throw new Error(`model "${model}" not supported`);
   }
 
-  private async chatGeminiPro({
+  private async chatGemini({
+    model,
     context,
     history,
     input,
     maxTokens,
     stream,
   }: {
+    model: GoogleModel;
     context?: string;
     history: History;
     input: string;
@@ -87,18 +91,18 @@ export class VertexAIClient {
     stream?: (output?: string) => void;
   }) {
     // TODO there is no context? hence enter it as the first model message
-    const geminiContext: InputContent[] = context
+    const geminiContext: Content[] = context
       ? [
-          { role: "user", parts: `SYSTEM CONTEXT:\n${context}` },
-          { role: "model", parts: "OK" },
+          { role: "user", parts: [{ text: `SYSTEM CONTEXT:\n${context}` }] },
+          { role: "model", parts: [{ text: "OK" }] },
         ]
       : [];
 
     // reconstruct the history, which always starts with user and we alternate
-    const geminiHistory: InputContent[] = [];
+    const geminiHistory: Content[] = [];
     let nextRole: "model" | "user" = "user";
     for (const { content } of history) {
-      geminiHistory.push({ role: nextRole, parts: content });
+      geminiHistory.push({ role: nextRole, parts: [{ text: content }] });
       nextRole = nextRole === "user" ? "model" : "user";
     }
 
@@ -107,13 +111,11 @@ export class VertexAIClient {
       geminiHistory.length > 0 &&
       geminiHistory[geminiHistory.length - 1].role === "user"
     ) {
-      geminiHistory.push({ role: "model", parts: "" });
+      geminiHistory.push({ role: "model", parts: [{ text: "" }] });
     }
 
     // we create a new model each time (model instances store the chat history!)
-    const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
-      model: "gemini-pro",
-    });
+    const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({ model });
 
     const params = {
       history: [...geminiContext, ...geminiHistory],

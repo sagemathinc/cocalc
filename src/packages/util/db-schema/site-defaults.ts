@@ -656,7 +656,7 @@ export const site_settings_conf: SiteSettings = {
     tags: ["openai", "ai-llm"],
   },
   google_vertexai_enabled: {
-    name: "Google Gemini Generative AI UI",
+    name: "Google Generative AI UI",
     desc: "Controls visibility of UI elements related to Google's **Gemini Generative AI** integration.  You must **also set your Gemini Generative AI API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,

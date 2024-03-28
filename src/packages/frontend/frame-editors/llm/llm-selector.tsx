@@ -6,10 +6,12 @@ import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
   DEFAULT_MODEL,
+  GOOGLE_MODELS,
   LLM_DESCR,
   LLM_USERNAMES,
   LanguageModel,
   MISTRAL_MODELS,
+  MODELS_OPENAI,
   fromOllamaModel,
   isFreeModel,
   isOllamaLLM,
@@ -30,10 +32,6 @@ interface Props {
   style?: CSS;
   project_id?: string;
 }
-
-// The tooltips below are adopted from chat.openai.com
-
-const GOOGLE_GEMINI: LanguageModel = "gemini-pro";
 
 export default function LLMSelector({
   style,
@@ -99,40 +97,23 @@ export default function LLMSelector({
     });
   }
 
-  function appendOpenAI(ret: NonNullable<SelectProps["options"]>) {
-    if (!showOpenAI) return null;
-
-    makeLLMOption(ret, "gpt-3.5-turbo", LLM_DESCR["gpt-3.5-turbo"]);
-    makeLLMOption(ret, "gpt-3.5-turbo-16k", LLM_DESCR["gpt-3.5-turbo-16k"]);
-    makeLLMOption(ret, "gpt-4", LLM_DESCR["gpt-4"]);
-    makeLLMOption(
-      ret,
-      "gpt-4-turbo-preview-8k",
-      LLM_DESCR["gpt-4-turbo-preview-8k"],
-    );
-    makeLLMOption(ret, "gpt-4-turbo-preview", LLM_DESCR["gpt-4-turbo-preview"]);
+  function appendOpenAI(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showOpenAI) return;
+    MODELS_OPENAI.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
   }
 
-  function appendGoogle(ret: NonNullable<SelectProps["options"]>) {
-    if (!showGoogle) return null;
-
-    return <>{makeLLMOption(ret, GOOGLE_GEMINI, LLM_DESCR[GOOGLE_GEMINI])}</>;
+  function appendGoogle(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showGoogle) return;
+    GOOGLE_MODELS.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
   }
 
-  function appendMistral(ret: NonNullable<SelectProps["options"]>) {
-    if (!showMistral) return null;
-
-    return (
-      <>
-        {makeLLMOption(ret, MISTRAL_MODELS[0], LLM_DESCR[MISTRAL_MODELS[0]])}
-        {makeLLMOption(ret, MISTRAL_MODELS[1], LLM_DESCR[MISTRAL_MODELS[1]])}
-        {makeLLMOption(ret, MISTRAL_MODELS[2], LLM_DESCR[MISTRAL_MODELS[2]])}
-      </>
-    );
+  function appendMistral(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showMistral) return;
+    MISTRAL_MODELS.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
   }
 
-  function appendOllama(ret: NonNullable<SelectProps["options"]>) {
-    if (!showOllama || !ollama) return null;
+  function appendOllama(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showOllama || !ollama) return;
 
     for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
       const { display, desc } = config;
