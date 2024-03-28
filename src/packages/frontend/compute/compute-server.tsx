@@ -270,7 +270,7 @@ export default function ComputeServer({
     >
       <Card.Meta
         avatar={
-          <div style={{ width: "64px" }}>
+          <div style={{ width: "64px", height: 0 }}>
             <Icon
               name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
@@ -350,6 +350,15 @@ export default function ComputeServer({
               >
                 <DisplayImage configuration={configuration} />
               </div>
+              <div
+                style={{
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  flex: 1,
+                }}
+              >
+                <Cloud cloud={cloud} state={state} editable={false} id={id} />
+              </div>
             </div>
           )
         }
@@ -379,13 +388,13 @@ export default function ComputeServer({
                 configuration={configuration}
               />
             )}
+            <ShowError
+              error={error}
+              setError={setError}
+              style={{ margin: "15px 0" }}
+            />
           </div>
         }
-      />
-      <ShowError
-        error={error}
-        setError={setError}
-        style={{ margin: "15px 0" }}
       />
       <ComputeServerEdit
         id={id}

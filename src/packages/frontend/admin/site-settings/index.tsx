@@ -7,7 +7,7 @@ import { Alert, Button, Col, Input, InputRef, Modal, Row, Tag } from "antd";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
-
+import { search_split } from "@cocalc/util/misc";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -375,12 +375,13 @@ export default function SiteSettings({ close }) {
   }
 
   const editRows = useMemo(() => {
+    const filter0 = search_split(filter.toLowerCase());
     return (
       <>
         {[site_settings_conf, EXTRAS].map((configData) =>
           keys(configData).map((name) => (
             <RenderRow
-              filter={filter}
+              filter={filter0}
               key={name}
               name={name}
               conf={configData[name]}
@@ -457,22 +458,24 @@ export default function SiteSettings({ close }) {
               "github",
               "pay as you go",
               "compute servers",
-            ].sort().map((name) => (
-              <CheckableTag
-                key={name}
-                style={{ cursor: "pointer" }}
-                checked={!!filter?.includes(name)}
-                onChange={(checked) => {
-                  if (checked) {
-                    setFilter(name);
-                  } else {
-                    setFilter("");
-                  }
-                }}
-              >
-                {name}
-              </CheckableTag>
-            ))}
+            ]
+              .sort()
+              .map((name) => (
+                <CheckableTag
+                  key={name}
+                  style={{ cursor: "pointer" }}
+                  checked={!!filter?.includes(name)}
+                  onChange={(checked) => {
+                    if (checked) {
+                      setFilter(name);
+                    } else {
+                      setFilter("");
+                    }
+                  }}
+                >
+                  {name}
+                </CheckableTag>
+              ))}
           </Col>
         </Row>
         {editRows}

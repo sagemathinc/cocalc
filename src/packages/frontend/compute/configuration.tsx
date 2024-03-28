@@ -4,6 +4,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import GoogleCloudConfiguration from "./google-cloud-config";
 import OnPremConfiguration from "./onprem-config";
+import HyperstackConfiguration from "./hyperstack-config";
 
 interface Props {
   configuration: ConfigurationType;
@@ -93,6 +94,19 @@ function Config({
   } else if (configuration?.cloud == "onprem") {
     return (
       <OnPremConfiguration
+        configuration={configuration}
+        data={data}
+        editable={editable}
+        id={id}
+        project_id={project_id}
+        onChange={onChange}
+        disabled={disabled}
+        state={state}
+      />
+    );
+  } else if (configuration?.cloud == "hyperstack") {
+    return (
+      <HyperstackConfiguration
         configuration={configuration}
         data={data}
         editable={editable}

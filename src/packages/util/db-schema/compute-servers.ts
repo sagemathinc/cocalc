@@ -275,6 +275,7 @@ export type Cloud =
   | "any"
   | "onprem"
   | "core-weave"
+  | "hyperstack"
   | "lambda-cloud"
   | "google-cloud"
   | "aws"
@@ -397,6 +398,18 @@ const CLOUDS: {
       excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
+  hyperstack: {
+    name: "hyperstack",
+    label: "Hyperstack GPU Cloud",
+    image: "https://console.hyperstack.cloud/hyperstack-wordmark.svg",
+    defaultConfiguration: {
+      cloud: "hyperstack",
+      image: "anaconda",
+      region_name: "CANADA-01",
+      flavor_name: "n2-H100x1",
+      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+    },
+  },
   onprem: {
     name: "onprem",
     label: "On Prem",
@@ -463,6 +476,12 @@ interface BaseConfiguration {
 interface LambdaConfiguration extends BaseConfiguration {
   cloud: "lambda-cloud";
   instance_type_name: string;
+  region_name: string;
+}
+
+export interface HyperstackConfiguration extends BaseConfiguration {
+  cloud: "hyperstack";
+  flavor_name: string;
   region_name: string;
 }
 
@@ -571,6 +590,7 @@ export interface OnPremCloudConfiguration extends BaseConfiguration {
 
 export type Configuration =
   | LambdaConfiguration
+  | HyperstackConfiguration
   | CoreWeaveConfiguration
   | FluidStackConfiguration
   | GoogleCloudConfiguration
@@ -585,6 +605,15 @@ export interface LambdaCloudData extends BaseData {
   instance_id: string;
 }
 
+export interface HyperstackData extends BaseData {
+  type: "hyperstack";
+  id: number;
+  name?: string;
+  internalIp?: string;
+  externalIp?: string;
+  creationTimestamp?: Date;
+}
+
 export interface GoogleCloudData extends BaseData {
   type: "google-cloud";
   name?: string;
@@ -596,7 +625,7 @@ export interface GoogleCloudData extends BaseData {
   lastStartTimestamp?: Date;
 }
 
-export type Data = GoogleCloudData | LambdaCloudData;
+export type Data = GoogleCloudData | LambdaCloudData | HyperstackData;
 
 export interface ComponentState {
   state: string;

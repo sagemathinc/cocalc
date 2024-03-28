@@ -115,10 +115,19 @@ export async function setConfiguration(id: number, newConfiguration0: object) {
   logConfigurationChange({ id, configuration, newConfiguration });
 }
 
+const HIDE_FROM_LOG = new Set(["authToken"]);
+
 async function logConfigurationChange({ id, configuration, newConfiguration }) {
   const changes: { [param: string]: { from: any; to: any } } = {};
   for (const key in newConfiguration) {
-    changes[key] = { from: configuration[key], to: newConfiguration[key] };
+    if (HIDE_FROM_LOG.has(key)) {
+      changes[key] = {
+        from: configuration[key] ? "(hidden)" : "",
+        to: newConfiguration[key] ? "(hidden)" : "",
+      };
+    } else {
+      changes[key] = { from: configuration[key], to: newConfiguration[key] };
+    }
   }
   eventLog({
     server: { id },
