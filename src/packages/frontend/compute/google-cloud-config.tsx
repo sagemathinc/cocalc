@@ -811,7 +811,7 @@ function getSpotAndStandardPrices(priceData, configuration) {
     return {
       standard,
       spot,
-      discount: Math.round((1 - spot / standard) * 100),
+      discount: spot != null ? Math.round((1 - spot / standard) * 100) : 0,
     };
   } catch (_) {
     return null;
