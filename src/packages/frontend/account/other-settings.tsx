@@ -19,7 +19,7 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
-import ModelSwitch from "@cocalc/frontend/frame-editors/llm/model-switch";
+import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -375,7 +375,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           </>
         }
       >
-        <ModelSwitch model={model} setModel={setModel} />
+        <LLMSelector model={model} setModel={setModel} />
       </LabeledRow>
     );
   }

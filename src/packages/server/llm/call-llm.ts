@@ -2,7 +2,7 @@ import { delay } from "awaiting";
 import type OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
-import { ModelOpenAI, OpenAIMessages } from "@cocalc/util/db-schema/llm-utils";
+import { OpenAIMessages, OpenAIModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput } from "@cocalc/util/types/llm";
 import { Stream } from "openai/streaming";
 import { totalNumTokens } from "./chatgpt-numtokens";
@@ -11,7 +11,7 @@ const log = getLogger("llm:call-llm");
 
 interface CallChatGPTOpts {
   openai: OpenAI;
-  model: ModelOpenAI;
+  model: OpenAIModel;
   messages: OpenAIMessages;
   maxAttempts: number;
   maxTokens: number;

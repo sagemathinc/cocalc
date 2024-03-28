@@ -346,7 +346,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         submit_mentions(project_id, path, [{ account_id, description: "" }]);
       }
     },
-    matchingUsers: (search) => mentionableUsers(search),
+    matchingUsers: (search) => mentionableUsers(search, { avatarLLMSize: 16 }),
   });
 
   const emojis = useEmojis({

@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Tooltip } from "antd";
+import { List } from "immutable";
 import { isEmpty } from "lodash";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
@@ -11,31 +13,48 @@ import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
 import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { LLMModelPrice } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
+  ANTHROPIC_MODELS,
+  GOOGLE_MODELS,
   LLMServicesAvailable,
+  LLM_DESCR,
   LLM_USERNAMES,
   MISTRAL_MODELS,
-  USER_SELECTABLE_LANGUAGE_MODELS,
+  MODELS_OPENAI,
   model2service,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { OllamaPublic } from "@cocalc/util/types/llm";
+import AnthropicAvatar from "../../components/anthropic-avatar";
 import { Item } from "./complete";
 
-export function useMentionableUsers(): (search: string | undefined) => Item[] {
+interface Opts {
+  avatarUserSize?: number;
+  avatarLLMSize?: number;
+}
+
+export function useMentionableUsers(): (
+  search: string | undefined,
+  opts?: Opts,
+) => Item[] {
   const { project_id, enabledLLMs } = useProjectContext();
+
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   const ollama = useTypedRedux("customize", "ollama");
 
   return useMemo(() => {
-    return (search: string | undefined) => {
+    return (search: string | undefined, opts?: Opts) => {
       return mentionableUsers({
         search,
         project_id,
         enabledLLMs,
         ollama: ollama?.toJS() ?? {},
+        selectableLLMs,
+        opts,
       });
     };
   }, [project_id, JSON.stringify(enabledLLMs), ollama]);
@@ -46,6 +65,8 @@ interface Props {
   project_id: string;
   ollama: { [key: string]: OllamaPublic };
   enabledLLMs: LLMServicesAvailable;
+  selectableLLMs: List<string>;
+  opts?: Opts;
 }
 
 function mentionableUsers({
@@ -53,7 +74,11 @@ function mentionableUsers({
   project_id,
   enabledLLMs,
   ollama,
+  selectableLLMs,
+  opts,
 }: Props): Item[] {
+  const { avatarUserSize = 24, avatarLLMSize = 24 } = opts ?? {};
+
   const users = redux
     .getStore("projects")
     .getIn(["project_map", project_id, "users"]);
@@ -99,137 +124,103 @@ function mentionableUsers({
   const v: Item[] = [];
 
   if (enabledLLMs.openai) {
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-3.5-turbo")) {
-      if (!search || "chatgpt3".includes(search)) {
-        v.push({
-          value: "openai-gpt-3.5-turbo",
-          label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-3.5-turbo"]}
-            </span>
-          ),
-          search: "chatgpt3",
-        });
-      }
-      if (!search || "chatgpt3".includes(search)) {
-        // Realistically it's maybe really unlikely to want to use this in a new chat
-        // you're making...? This did work when I wrote it, but I'm commenting it
-        // out since I think it's just not worth it.
-        // I'm adding this back because: (1) if you use GPT-3.5 too much you hit your limit,
-        // and (2) this is a non-free BUT CHEAP model you can actually use after hitting your
-        // limit, which is muh cheaper than GPT-4.
-        v.push({
-          value: "openai-gpt-3.5-turbo-16k",
-          label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-3.5-turbo-16k"]}
-            </span>
-          ),
-          search: "chatgpt3-16k",
-        });
-      }
-    }
-
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4")) {
-      if (!search || "chatgpt4".includes(search)) {
-        v.push({
-          value: "openai-gpt-4",
-          label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-4"]}
-            </span>
-          ),
-          search: "chatgpt4",
-        });
-      }
-    }
-
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4-turbo-preview")) {
-      if (!search || "chatgpt4turbo".includes(search)) {
-        v.push({
-          value: "openai-gpt-4-turbo-preview",
-          label: (
-            <span>
-              <OpenAIAvatar size={24} /> {LLM_USERNAMES["gpt-4-turbo-preview"]}
-            </span>
-          ),
-          search: "chatgpt4turbo",
-        });
-      }
-    }
-
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gpt-4-turbo-preview-8k")) {
-      if (!search || "chatgpt4turbo".includes(search)) {
-        v.push({
-          value: "openai-gpt-4-turbo-preview-8k",
-          label: (
-            <span>
-              <OpenAIAvatar size={24} />{" "}
-              {LLM_USERNAMES["gpt-4-turbo-preview-8k"]}
-            </span>
-          ),
-          search: "chatgpt4turbo",
-        });
+    // NOTE: all modes are included, including the 16k version, because:
+    //       (1) if you use GPT-3.5 too much you hit your limit,
+    //       (2) this is a non-free BUT CHEAP model you can actually use after hitting your limit, which is muh cheaper than GPT-4.
+    for (const m of MODELS_OPENAI) {
+      if (selectableLLMs.includes(m)) {
+        const search_term = m.replace(/-/g, "").toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value: model2service(m),
+            label: (
+              <LLMTooltip model={m}>
+                <OpenAIAvatar size={avatarLLMSize} /> {LLM_USERNAMES[m]}
+              </LLMTooltip>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
       }
     }
   }
 
   if (enabledLLMs.google) {
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes("gemini-pro")) {
-      if (!search || "gemini".includes(search)) {
-        v.push({
-          value: model2service("gemini-pro"),
-          label: (
-            <span>
-              <GoogleGeminiLogo size={24} /> {LLM_USERNAMES["gemini-pro"]}
-            </span>
-          ),
-          search: "gemini",
-        });
-      }
-    }
-  }
-
-  if (enabledLLMs.ollama && !isEmpty(ollama)) {
-    for (const [key, conf] of Object.entries(ollama)) {
-      const value = toOllamaModel(key);
-      if (
-        !search ||
-        key.includes(search) ||
-        value.includes(search) ||
-        conf.display.toLowerCase().includes(search)
-      ) {
-        v.push({
-          value,
-          label: (
-            <span>
-              <OllamaAvatar size={24} /> {conf.display}
-            </span>
-          ),
-          search: value,
-        });
+    for (const m of GOOGLE_MODELS) {
+      if (selectableLLMs.includes(m)) {
+        const search_term = m.replace(/-/g, "").toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value: model2service(m),
+            label: (
+              <LLMTooltip model={m}>
+                <GoogleGeminiLogo size={avatarLLMSize} /> {LLM_USERNAMES[m]}
+              </LLMTooltip>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
       }
     }
   }
 
   if (enabledLLMs.mistral) {
     for (const m of MISTRAL_MODELS) {
-      if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(m)) continue;
+      if (!selectableLLMs.includes(m)) continue;
       const name = LLM_USERNAMES[m] ?? m;
-      if (
-        !search ||
-        m.includes(search) ||
-        name.toLowerCase().includes(search)
-      ) {
+      const search_term = `mistral ${m} ${name}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
         v.push({
           value: model2service(m),
           label: (
-            <span>
-              <MistralAvatar size={24} /> {name}
-            </span>
+            <LLMTooltip model={m}>
+              <MistralAvatar size={avatarLLMSize} /> {name}
+            </LLMTooltip>
           ),
-          search: m,
+          search: search_term,
+          is_llm: true,
         });
+      }
+    }
+
+    if (enabledLLMs.anthropic) {
+      for (const m of ANTHROPIC_MODELS) {
+        if (!selectableLLMs.includes(m)) continue;
+        const name = LLM_USERNAMES[m] ?? m;
+        const search_term = `anthropic ${m} ${name}`.toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value: model2service(m),
+            label: (
+              <LLMTooltip model={m}>
+                <AnthropicAvatar size={avatarLLMSize} /> {name}
+              </LLMTooltip>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
+      }
+    }
+
+    if (enabledLLMs.ollama && !isEmpty(ollama)) {
+      for (const [key, conf] of Object.entries(ollama)) {
+        const value = toOllamaModel(key);
+        const search_term = `${key} ${value} ${conf.display}`.toLowerCase();
+        if (!search || search_term.includes(search)) {
+          v.push({
+            value,
+            label: (
+              <span>
+                <OllamaAvatar size={avatarLLMSize} /> {conf.display}
+              </span>
+            ),
+            search: search_term,
+            is_llm: true,
+          });
+        }
       }
     }
   }
@@ -241,10 +232,31 @@ function mentionableUsers({
     const name = trunc_middle(fullname, 64);
     const label = (
       <span>
-        <Avatar account_id={account_id} size={24} /> {name}
+        <Avatar account_id={account_id} size={avatarUserSize} /> {name}
       </span>
     );
-    v.push({ value: account_id, label, search: s });
+    v.push({ value: account_id, label, search: s, is_llm: false });
   }
+
   return v;
+}
+
+function LLMTooltip({
+  model,
+  children,
+}: {
+  model: string;
+  children: React.ReactNode;
+}) {
+  const descr = LLM_DESCR[model];
+  const title = (
+    <>
+      {descr} <LLMModelPrice model={model} />
+    </>
+  );
+  return (
+    <Tooltip title={title} placement="right">
+      <div>{children}</div>
+    </Tooltip>
+  );
 }

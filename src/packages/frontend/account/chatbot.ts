@@ -12,8 +12,10 @@ import {
   LANGUAGE_MODELS,
   LANGUAGE_MODEL_PREFIXES,
   LLM_USERNAMES,
+  fromAnthropicService,
   fromMistralService,
   fromOllamaModel,
+  isAnthropicService,
   isMistralService,
   isOllamaLLM,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -42,6 +44,9 @@ export function chatBotName(account_id?: string): string {
   }
   if (isMistralService(account_id)) {
     return LLM_USERNAMES[fromMistralService(account_id)] ?? "Mistral";
+  }
+  if (isAnthropicService(account_id)) {
+    return LLM_USERNAMES[fromAnthropicService(account_id)] ?? "Anthropic";
   }
   if (isOllamaLLM(account_id)) {
     const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};

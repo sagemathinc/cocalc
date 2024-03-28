@@ -23,15 +23,19 @@ import {
   LanguageModel,
   OpenAIMessages,
   getLLMCost,
+  isAnthropicModel,
   isFreeModel,
+  isGoogleModel,
   isMistralModel,
   isOllamaLLM,
   isValidModel,
   model2service,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
+import { evaluateAnthropic } from "./anthropic";
 import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
 import { evaluateMistral } from "./mistral";
@@ -114,6 +118,15 @@ async function evaluateImpl({
           maxTokens,
           stream,
         });
+      } else if (isAnthropicModel(model)) {
+        return await evaluateAnthropic({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
       } else {
         return await evaluteCall({
           system,
@@ -130,7 +143,9 @@ async function evaluateImpl({
   const total_time_s = (Date.now() - start) / 1000;
 
   if (account_id) {
-    if (isFreeModel(model)) {
+    const is_cocalc_com =
+      (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
+    if (isFreeModel(model, is_cocalc_com)) {
       // no charge for now...
     } else {
       // charge for ALL other models.
@@ -237,8 +252,8 @@ async function evaluateVertexAI({
   maxTokens,
   stream,
 }: EvalVertexAIProps): Promise<ChatOutput> {
-  if (model !== "chat-bison-001" && model !== "gemini-pro") {
-    throw new Error(`model ${model} not supported`);
+  if (!isGoogleModel(model)) {
+    throw new Error(`Model "${model}" not a Google model.`);
   }
 
   // TODO: for OpenAI, this is at 3. Unless we really know there are similar issues, we keep this at 1.

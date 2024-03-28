@@ -1,6 +1,6 @@
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { LLM_USERNAMES, isFreeModel } from "./llm-utils";
+import { LLM_USERNAMES } from "./llm-utils";
 import type { Service } from "./purchases";
 import { Table } from "./types";
 
@@ -45,10 +45,6 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "OpenAI GPT-4 Turbo 8k",
     color: "#10a37f",
   },
-  "mistralai-mistral-large-latest": {
-    display: LLM_USERNAMES["mistral-large-latest"],
-    color: "#ff7000", // the orange from their website
-  },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   "compute-server": { display: "Compute Server", color: "#2196f3" },
   "compute-server-network-usage": {
@@ -86,9 +82,40 @@ export const QUOTA_SPEC: QuotaSpec = {
     noSet: true, // deprecated, will be removed
   },
   "google-gemini-pro": {
-    display: "Google Gemini Pro",
+    display: "Google Gemini 1.0 Pro",
     color: "#4285f4",
-    noSet: isFreeModel("gemini-pro"),
+  },
+  "google-gemini-1.0-ultra-latest": {
+    display: "Google Gemini 1.0 Ultra",
+    color: "#4285f4",
+  },
+  "google-gemini-1.5-pro-latest": {
+    display: "Google Gemini 1.5 Pro",
+    color: "#4285f4",
+  },
+  "anthropic-claude-3-opus": {
+    display: LLM_USERNAMES["claude-3-opus"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-sonnet": {
+    display: LLM_USERNAMES["claude-3-sonnet"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-haiku": {
+    display: LLM_USERNAMES["claude-3-haiku"],
+    color: "#181818",
+  },
+  "mistralai-mistral-small-latest": {
+    display: LLM_USERNAMES["mistral-small-latest"],
+    color: "#ff7000", // the orange from their website
+  },
+  "mistralai-mistral-medium-latest": {
+    display: LLM_USERNAMES["mistral-medium-latest"],
+    color: "#ff7000", // the orange from their website
+  },
+  "mistralai-mistral-large-latest": {
+    display: LLM_USERNAMES["mistral-large-latest"],
+    color: "#ff7000", // the orange from their website
   },
 };
 

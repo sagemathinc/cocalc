@@ -9,9 +9,9 @@ import { Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import ModelSwitch, {
+import LLMSelector, {
   modelToName,
-} from "@cocalc/frontend/frame-editors/llm/model-switch";
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -104,7 +104,7 @@ export function AIGenerateCodeCell({
       title={() => (
         <div style={{ fontSize: "18px" }}>
           <AIAvatar size={22} /> Generate code cell using{" "}
-          <ModelSwitch
+          <LLMSelector
             project_id={project_id}
             model={model}
             setModel={setModel}

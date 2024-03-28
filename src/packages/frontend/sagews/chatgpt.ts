@@ -29,11 +29,14 @@ export function helpMeFix({
   const projectsStore = redux.getStore("projects");
   const enabled = projectsStore.whichLLMareEnabled();
   const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
+  const selectableLLMs =
+    redux.getStore("customize").get("selectable_llms")?.toJS() ?? [];
 
   const model = getValidLanguageModelName(
     other_settings?.get(SETTINGS_LANGUAGE_MODEL_KEY),
     enabled,
     Object.keys(ollama),
+    selectableLLMs,
   );
   getHelp({
     project_id,

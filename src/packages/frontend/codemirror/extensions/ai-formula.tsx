@@ -1,7 +1,12 @@
 import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useEffect,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   HelpIcon,
   Icon,
@@ -12,7 +17,7 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
-import ModelSwitch from "@cocalc/frontend/frame-editors/llm/model-switch";
+import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { show_react_modal } from "@cocalc/frontend/misc";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -44,6 +49,7 @@ interface Props extends Opts {
 }
 
 function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
+  const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState<string>(text);
   const [formula, setFormula] = useState<string>("");
@@ -165,7 +171,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
 
   // Start the query immediately, if the user had selected some text … and it's a free model
   useEffect(() => {
-    if (text && isFreeModel(model)) {
+    if (text && isFreeModel(model, is_cocalc_com)) {
       doGenerate();
     }
   }, [text]);
@@ -179,7 +185,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
         {enabled ? (
           <>
             Select language model:{" "}
-            <ModelSwitch
+            <LLMSelector
               project_id={project_id}
               model={model}
               setModel={setModel}

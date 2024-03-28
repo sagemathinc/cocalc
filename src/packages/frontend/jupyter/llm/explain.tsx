@@ -12,11 +12,11 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import ModelSwitch, {
+import LLMSelector, {
   LanguageModel,
   modelToMention,
   modelToName,
-} from "@cocalc/frontend/frame-editors/llm/model-switch";
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "../browser-actions";
 
@@ -48,7 +48,7 @@ export default function LLMExplainCell({
         title={
           <b>
             Get explanation of this code from{" "}
-            <ModelSwitch
+            <LLMSelector
               model={model}
               setModel={setModel}
               project_id={project_id}

@@ -5,13 +5,14 @@ You do not have to worry too much about throwing an exception, because they're c
 */
 
 import { Ollama } from "@langchain/community/llms/ollama";
-import * as _ from "lodash";
+import { omit } from "lodash";
 import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import {
   LanguageModel,
+  isGoogleModel,
   isOllamaLLM,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -50,7 +51,7 @@ export async function getClient(
         throw Error("google vertexai not configured");
       }
 
-      if (!model) {
+      if (!isGoogleModel(model)) {
         throw Error("this should never happen");
       }
 
@@ -61,7 +62,10 @@ export async function getClient(
       throw new Error("Use the getOllama function instead");
 
     case "mistralai":
-      throw new Error("Use the getMistral function instead");
+      throw new Error("Use the evaluateMistral function instead");
+
+    case "anthropic":
+      throw new Error("Use the evaluateAnthropic function instead");
 
     default:
       unreachable(vendor);
@@ -109,7 +113,7 @@ export async function getOllama(model: string) {
   const keepAlive: string = config.keepAlive ?? "24h";
 
   // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
-  const other = _.omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
+  const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
   const ollamaConfig = {
     baseUrl,
     model: config.model ?? model,

@@ -15,7 +15,10 @@ import { ReactEditor } from "../slate-react";
 import React from "react";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { useCallback, useMemo, useState } from "react";
-import { Complete, Item } from "@cocalc/frontend/editors/markdown-input/complete";
+import {
+  Complete,
+  Item,
+} from "@cocalc/frontend/editors/markdown-input/complete";
 import { debounce } from "lodash";
 
 interface Options {
@@ -49,6 +52,8 @@ export const useMentions: (Options) => MentionsControl = ({
       switch (event.key) {
         case "ArrowDown":
         case "ArrowUp":
+        case "ArrowLeft":
+        case "ArrowRight":
         case "Tab":
         case "Enter":
           event.preventDefault();
@@ -59,7 +64,7 @@ export const useMentions: (Options) => MentionsControl = ({
           break;
       }
     },
-    [target]
+    [target],
   );
 
   // we debounce this onChange, since it is VERY expensive and can make typing feel
@@ -118,7 +123,7 @@ export const useMentions: (Options) => MentionsControl = ({
         console.log("WARNING -- slate.mentions", err);
       }
     }, 250),
-    [editor]
+    [editor],
   );
 
   const renderMentions = useCallback(() => {

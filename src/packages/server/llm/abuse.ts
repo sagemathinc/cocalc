@@ -22,7 +22,9 @@ where they limit per minute, not per hour (like below):
     TPM = tokens per minute
 */
 
-import getPool from "@cocalc/database/pool";
+import { process_env_int } from "@cocalc/backend/misc";
+import getPool, { CacheTime } from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/database/settings";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
   LanguageModel,
@@ -30,21 +32,14 @@ import {
   isLanguageModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const QUOTAS = {
-  noAccount: 0,
-  account: 10 ** 5,
-  global: 10 ** 6,
+  noAccount: process_env_int("COCALC_LLM_QUOTA_NO_ACCOUNT", 0),
+  account: process_env_int("COCALC_LLM_QUOTA_ACCOUNT", 10 ** 5),
+  global: process_env_int("COCALC_LLM_QUOTA_GLOBAL", 10 ** 6),
 } as const;
-
-/* for testing
-const QUOTAS = {
-  noAccount: 300,
-  account: 1000,
-  global: 3000,
-};
-*/
 
 // Throws an exception if the request should not be allowed.
 export async function checkForAbuse({
@@ -67,10 +62,18 @@ export async function checkForAbuse({
   }
 
   if (!isLanguageModel(model)) {
-    throw Error(`invalid model "${model}"`);
+    throw Error(`Invalid model "${model}"`);
   }
 
-  if (!isFreeModel(model)) {
+  // it's a valid model name, but maybe not enabled by the admin (by default, all are enabled)
+  if (!(await isUserSelectableLanguageModel(model))) {
+    throw new Error(`Model "${model}" is disabled.`);
+  }
+
+  const is_cocalc_com =
+    (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
+
+  if (!isFreeModel(model, is_cocalc_com)) {
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
@@ -81,17 +84,24 @@ export async function checkForAbuse({
     return;
   }
 
+  // Below, we are only concerned with free models.
+
   const usage = await recentUsage({
     cache: "short",
     period: "1 hour",
     account_id,
     analytics_cookie,
   });
+
   // console.log("usage = ", usage);
   if (account_id) {
     if (usage > QUOTAS.account) {
       throw Error(
-        `You may use at most ${QUOTAS.account} tokens per hour. Please try again later or use a non-free language model such as GPT-4.`,
+        `You may use at most ${
+          QUOTAS.account
+        } tokens per hour. Please try again later${
+          is_cocalc_com ? " or use a non-free language model such as GPT-4" : ""
+        }.`,
       );
     }
   } else if (usage > QUOTAS.noAccount) {
@@ -106,16 +116,10 @@ export async function checkForAbuse({
   // console.log("overallUsage = ", usage);
   if (overallUsage > QUOTAS.global) {
     throw Error(
-      `There is too much usage of ChatGPT right now.  Please try again later or use a non-free language model such as GPT-4.`,
+      `There is too much usage of language models right now.  Please try again later ${
+        is_cocalc_com ? " or use a non-free language model such as GPT-4" : ""
+      }.`,
     );
-  }
-
-  if (!isFreeModel(model)) {
-    // This is a for-pay product, so let's make sure user can purchase it.
-    await assertPurchaseAllowed({
-      account_id,
-      service: model2service(model),
-    });
   }
 }
 
@@ -131,7 +135,7 @@ async function recentUsage({
   // some caching so if user is hitting us a lot, we don't hit the database to
   // decide they are abusive -- at the same time, short enough that we notice.
   // Recommendation: "short"
-  cache?: "short" | "medium" | "long";
+  cache?: CacheTime;
 }): Promise<number> {
   const pool = getPool(cache);
   let query, args;
@@ -155,4 +159,11 @@ async function recentUsage({
   const { rows } = await pool.query(query, args);
   // console.log("rows = ", rows);
   return parseInt(rows[0]?.["usage"] ?? 0); // undefined = no results in above select,
+}
+
+async function isUserSelectableLanguageModel(
+  model: LanguageModel,
+): Promise<boolean> {
+  const { selectable_llms } = await getServerSettings();
+  return selectable_llms.includes(model);
 }

@@ -13,8 +13,8 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import {
-  AllSiteSettingsCached as ServerSettings,
   AllSiteSettingsKeys,
+  AllSiteSettingsCached as ServerSettings,
 } from "@cocalc/util/db-schema/types";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
 export type { ServerSettings };
@@ -32,7 +32,7 @@ const cache = new LRU<CacheKeys, ServerSettings | PassportStrategyDB[]>({
 const KEY: CacheKeys = "server-settings";
 
 export function resetServerSettingsCache() {
-  cache.reset();
+  cache.clear();
 }
 
 export function getPassportsCached(): PassportStrategyDB[] | undefined {
