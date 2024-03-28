@@ -13,7 +13,7 @@ export interface Specs {
   tensor_cores: number;
 }
 
-export const SPECS = {
+export const GPU_SPECS = {
   "RTX-A4000": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs21/rtx-a4000/nvidia-rtx-a4000-datasheet.pdf",
@@ -45,6 +45,14 @@ export const SPECS = {
     memory_bw: 768,
     cuda_cores: 10752,
     tensor_cores: 336,
+  },
+  A10: {
+    datasheet:
+      "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a10/pdf/a10-datasheet.pdf",
+    memory: 24,
+    memory_bw: 600,
+    cuda_cores: 9216,
+    tensor_cores: 288,
   },
   A40: {
     datasheet:

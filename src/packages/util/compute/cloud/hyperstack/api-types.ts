@@ -7,21 +7,30 @@ or data that comes out of it.
 
 export type Region = "CANADA-1" | "NORWAY-1";
 
-export interface Flavor {
+export interface RegionInfo {
+  id: number;
+  name: Region;
+  description?: string;
+}
+
+export interface FlavorData {
+  id: number;
+  name: string;
+  region_name: Region;
+  cpu: number;
+  ram: number;
+  disk: number;
+  ephemeral: number;
+  gpu: string;
+  gpu_count: number;
+  stock_available: boolean;
+  created_at: string;
+}
+
+export interface FlavorRegionData {
   gpu: string;
   region_name: string;
-  flavors: {
-    id: number;
-    name: string;
-    region_name: Region;
-    cpu: number;
-    ram: number;
-    disk: number;
-    gpu: string;
-    gpu_count: number;
-    stock_available: boolean;
-    created_at: string;
-  };
+  flavors: FlavorData[];
 }
 
 export type Availability =
@@ -46,7 +55,7 @@ export interface ModelInfo {
   planned_7_days: Availability | null;
   planned_30_days: Availability | null;
   planned_100_days: Availability | null;
-  configuration: {
+  configurations: {
     "1x": number;
     "2x": number;
     "4x": number;

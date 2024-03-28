@@ -13,6 +13,7 @@ import { SELECTOR_WIDTH } from "./google-cloud-config";
 import Proxy from "./proxy";
 import { useImages } from "./images-hook";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
+import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -126,6 +127,7 @@ export default function HyperstackConfig({
         IMAGES={IMAGES}
       />
       {loading && <Spin style={{ marginLeft: "15px" }} />}
+      <pre>{JSON.stringify(GPU_SPECS, undefined, 2)}</pre>
       <pre>{JSON.stringify(priceData ?? {}, undefined, 2)}</pre>
     </div>
   );
@@ -168,3 +170,4 @@ function Image(props) {
     </div>
   );
 }
+

@@ -19,13 +19,14 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import TTLCache from "@isaacs/ttlcache";
 import type {
   Region,
-  Flavor,
+  FlavorRegionData,
   Stock,
   Environment,
   KeyPair,
   Image,
   SecurityRule,
   VirtualMachine,
+  RegionInfo,
   UsageCostHistory,
   LastDayCost,
   CreditInfo,
@@ -152,7 +153,7 @@ async function call({
 
 // Flavors
 
-export async function getFlavors(cache = true): Promise<Flavor[]> {
+export async function getFlavors(cache = true): Promise<FlavorRegionData[]> {
   const { data } = await call({
     method: "get",
     url: "core/flavors",
@@ -161,7 +162,7 @@ export async function getFlavors(cache = true): Promise<Flavor[]> {
   return data;
 }
 
-export async function getRegions(cache = true): Promise<Flavor[]> {
+export async function getRegions(cache = true): Promise<RegionInfo[]> {
   const { regions } = await call({
     method: "get",
     url: "core/regions",
