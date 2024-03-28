@@ -40,7 +40,6 @@ const SocialMediaIconList = (props: SocialMediaIconListProps) => {
       align="center"
       wrap="wrap"
       style={{
-        width: "100%",
         fontSize: `${iconFontSize}px`,
         ...style,
       }}>
@@ -51,7 +50,7 @@ const SocialMediaIconList = (props: SocialMediaIconListProps) => {
             href={links[mediaType]}
             target="_blank"
             style={{
-              width: `${iconFontSize + 12}px`,
+              width: `${iconFontSize + 16}px`,
               color: COLORS.GRAY,
             }}
           >
