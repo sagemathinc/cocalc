@@ -81,7 +81,7 @@ export function ChatLog({
   const sortedDates = useMemo<string[]>(() => {
     const dates = getSortedDates(messages, search);
     if (today) {
-      const cutoff = Date.now() - 1000 * 4 * 60 * 60;
+      const cutoff = Date.now() - 1000 * 24 * 60 * 60;
       return dates.filter((x) => parseInt(x) >= cutoff);
     }
     return dates;
