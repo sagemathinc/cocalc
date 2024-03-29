@@ -623,7 +623,7 @@ function getRegions(priceData, configuration) {
       if (!zoneData.machineTypes.includes(machineType.split("-")[0])) {
         continue;
       }
-      if (spot != null) {
+      if (spot) {
         if (priceData.machineTypes[machineType]?.spot?.[region] == null) {
           continue;
         }
@@ -735,7 +735,7 @@ function getZones(priceData, configuration) {
 function Provisioning({ priceData, setConfig, configuration, disabled }) {
   const [newSpot, setNewSpot] = useState<boolean>(!!configuration.spot);
   const [prices, setPrices] = useState<{
-    spot: number;
+    spot: number | null;
     standard: number;
     discount: number;
   } | null>(getSpotAndStandardPrices(priceData, configuration));
@@ -744,6 +744,13 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
     setNewSpot(!!configuration.spot);
     setPrices(getSpotAndStandardPrices(priceData, configuration));
   }, [configuration]);
+
+  useEffect(() => {
+    if (configuration.spot && prices != null && !prices.spot) {
+      setNewSpot(false);
+      setConfig({ spot: false });
+    }
+  }, [prices, configuration.spot]);
 
   return (
     <div>
@@ -763,11 +770,11 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
           setConfig({ spot });
         }}
       >
-        <Radio.Button value="spot">
+        <Radio.Button value="spot" disabled={!prices?.spot}>
           Spot{" "}
-          {prices != null
+          {prices?.spot
             ? `${currency(prices.spot)}/hour (${prices.discount}% discount)`
-            : undefined}{" "}
+            : "(not available)"}{" "}
         </Radio.Button>
         <Radio.Button value="standard">
           Standard{" "}
@@ -792,14 +799,19 @@ function getSpotAndStandardPrices(priceData, configuration) {
       priceData,
       configuration: { ...configuration, spot: false },
     });
-    const spot = computeCost({
-      priceData,
-      configuration: { ...configuration, spot: true },
-    });
+    let spot: number | null = null;
+    try {
+      spot = computeCost({
+        priceData,
+        configuration: { ...configuration, spot: true },
+      });
+    } catch (_) {
+      // some machines have no spot instance support, eg h3's.
+    }
     return {
       standard,
       spot,
-      discount: Math.round((1 - spot / standard) * 100),
+      discount: spot != null ? Math.round((1 - spot / standard) * 100) : 0,
     };
   } catch (_) {
     return null;
