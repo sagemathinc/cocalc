@@ -17,15 +17,15 @@ import {
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
-import { VertexAIClient } from "./vertex-ai-client";
+import { GoogleGenAIClient } from "./google-genai-client";
 
 const log = getLogger("llm:client");
 
-const clientCache: { [key: string]: OpenAI | VertexAIClient } = {};
+const clientCache: { [key: string]: OpenAI | GoogleGenAIClient } = {};
 
 export async function getClient(
   model?: LanguageModel,
-): Promise<OpenAI | VertexAIClient> {
+): Promise<OpenAI | GoogleGenAIClient> {
   const vendor = model == null ? "openai" : model2vendor(model);
 
   switch (vendor) {
@@ -56,7 +56,7 @@ export async function getClient(
       }
 
       // ATTN: do not cache the instance. I saw suspicious errors, better to clean up the memory each time.
-      return new VertexAIClient({ apiKey: google_vertexai_key }, model);
+      return new GoogleGenAIClient({ apiKey: google_vertexai_key }, model);
 
     case "ollama":
       throw new Error("Use the getOllama function instead");

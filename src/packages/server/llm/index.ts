@@ -41,7 +41,7 @@ import { getClient } from "./client";
 import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
-import { VertexAIClient } from "./vertex-ai-client";
+import { GoogleGenAIClient } from "./google-genai-client";
 
 const log = getLogger("llm");
 
@@ -209,7 +209,7 @@ async function evaluteCall({
 }) {
   const client = await getClient(model);
 
-  if (client instanceof VertexAIClient) {
+  if (client instanceof GoogleGenAIClient) {
     return await evaluateVertexAI({
       system,
       history,
@@ -233,7 +233,7 @@ async function evaluteCall({
 }
 
 interface EvalVertexAIProps {
-  client: VertexAIClient;
+  client: GoogleGenAIClient;
   system?: string;
   history?: History;
   input: string;

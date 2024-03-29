@@ -25,7 +25,7 @@ interface AuthMethods {
   serviceAccountJSON?: string;
 }
 
-export class VertexAIClient {
+export class GoogleGenAIClient {
   gcp_project_id?: string;
   genAI: GoogleGenerativeAI;
 
