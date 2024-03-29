@@ -6,6 +6,7 @@ import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux } from "@cocalc/frontend/app-framework";
 import { isValidUUID } from "@cocalc/util/misc";
 import { computeServersEnabled } from "./config";
+import { delay } from "awaiting";
 
 const PREFIX = "compute-server-";
 function projectIdToName(project_id) {
@@ -71,8 +72,15 @@ class ComputeServersTable extends Table {
 }
 
 const tables: { [project_id: string]: ComputeServersTable } = {};
-export function init(project_id: string) {
-  if (!computeServersEnabled()) {
+export async function init(project_id: string) {
+  let enabled = computeServersEnabled();
+  while (enabled === null) {
+    // customize hasn't been loaded yet, so we don't know.
+    await delay(1000);
+    enabled = computeServersEnabled();
+  }
+
+  if (!enabled) {
     // no need -- would just waste resources
     return;
   }
@@ -89,4 +97,3 @@ export function close(project_id: string) {
   tables[project_id].close();
   delete tables[project_id];
 }
-
