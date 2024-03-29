@@ -261,10 +261,12 @@ docker rm filesystem >/dev/null 2>&1
 
 setState filesystem run '' 45 25
 
+export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
 docker run \
  -d \
  --name=filesystem \
  --privileged \
+ --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
  --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
  --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
  --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
@@ -337,10 +339,12 @@ docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   setState compute run '' 20 25
+  export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --network host \
    --privileged \
+   --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
    --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
    --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
