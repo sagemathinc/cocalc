@@ -111,7 +111,7 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
       m !== "text-embedding-ada-002", // shouldn't be in the list in the first place
   ),
   ...GOOGLE_MODELS.filter(
-    (m) => m === "gemini-pro" || m === "gemini-1.0-ultra-latest",
+    (m) => m === "gemini-pro", // for now, that's the only one working robustly
   ),
   ...MISTRAL_MODELS,
   ...ANTHROPIC_MODELS.filter((m) => {

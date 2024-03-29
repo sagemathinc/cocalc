@@ -115,8 +115,6 @@ export async function evaluateAnthropic(
   let output = "";
   for await (const chunk of chunks) {
     const { content } = chunk;
-    log.debug(typeof chunk, { content, chunk });
-
     if (typeof content !== "string") continue;
     output += content;
     opts.stream?.(content);

@@ -153,8 +153,6 @@ export class GoogleGenAIClient {
     let output = "";
     for await (const chunk of chunks) {
       const { content } = chunk;
-      log.debug(typeof chunk, { content, chunk });
-
       if (typeof content !== "string") continue;
       output += content;
       stream?.(content);
@@ -172,6 +170,8 @@ export class GoogleGenAIClient {
     const { totalTokens: completion_tokens } = await geminiPro.countTokens(
       output,
     );
+
+    log.debug("chatGemini successful", { prompt_tokens, completion_tokens });
 
     return {
       output,

@@ -25,6 +25,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { Position } from "./types";
 import { insertCell } from "./util";
+import { RawPrompt } from "../llm/raw-prompt";
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -157,22 +158,7 @@ export function AIGenerateCodeCell({
             <Paragraph>
               The following prompt will be sent to {modelToName(model)}:
             </Paragraph>
-            <Paragraph
-              style={{
-                border: "1px solid lightgrey",
-                borderRadius: "5px",
-                margin: "5px 0",
-                padding: "10px",
-                overflowY: "auto",
-                maxHeight: "150px",
-                fontSize: "85%",
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-                color: COLORS.GRAY_M,
-              }}
-            >
-              {input}
-            </Paragraph>
+            <RawPrompt input={input} />
             <Paragraph style={{ textAlign: "center", marginTop: "30px" }}>
               <Space size="large">
                 <Button onClick={() => setShowAICellGen(null)}>Cancel</Button>

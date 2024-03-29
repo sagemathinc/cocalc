@@ -6,11 +6,10 @@ import { Alert, Button } from "antd";
 import { CSSProperties, useState } from "react";
 
 import getChatActions from "@cocalc/frontend/chat/get-actions";
+import { Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import LLMSelector, {
   LanguageModel,
@@ -19,6 +18,7 @@ import LLMSelector, {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "../browser-actions";
+import { RawPrompt } from "./raw-prompt";
 
 interface Props {
   actions?;
@@ -44,16 +44,16 @@ export default function LLMExplainCell({
   return (
     <div style={style}>
       <PopconfirmKeyboard
-        icon={<LanguageModelVendorAvatar model={model} size={20} />}
+        icon={<AIAvatar size={20} />}
         title={
-          <b>
-            Get explanation of this code from{" "}
+          <Text strong>
+            Explain this cell using{" "}
             <LLMSelector
               model={model}
               setModel={setModel}
               project_id={project_id}
             />
-          </b>
+          </Text>
         }
         description={() => {
           const message = createMessage({
@@ -61,6 +61,7 @@ export default function LLMExplainCell({
             actions,
             model,
             open: true,
+            full: false,
           });
           return (
             <div
@@ -72,15 +73,7 @@ export default function LLMExplainCell({
               }}
             >
               The following will be sent to {modelToName(model)}:
-              <StaticMarkdown
-                value={message}
-                style={{
-                  border: "1px solid lightgrey",
-                  borderRadius: "5px",
-                  margin: "5px 0",
-                  padding: "5px",
-                }}
-              />
+              <RawPrompt input={message} />
             </div>
           );
         }}
@@ -156,21 +149,41 @@ async function getExplanation({
   });
 }
 
-function createMessage({ id, actions, model, open }): string {
+function createMessage({ id, actions, model, open, full = true }): string {
   const cell = actions.store.get("cells").get(id);
   if (!cell) {
     return "";
   }
   const kernel_info = actions.store.get("kernel_info");
   const language = kernel_info.get("language");
-  const message = `${modelToMention(
-    model,
-  )} Explain the following ${kernel_info.get(
-    "display_name",
-  )} code that is in a Jupyter notebook:\n\n<details${open ? " open" : ""}>\n\n
-\`\`\`${language}
-${cell.get("input")}
-\`\`\`
-\n\n</details>`;
-  return message;
+  const message = createMessageText({
+    language,
+    cell,
+    open,
+    kernel_info,
+    full,
+  });
+  const mention = modelToMention(model);
+  return full ? `${mention} ${message}` : message;
+}
+
+function createMessageText({
+  language,
+  cell,
+  open,
+  kernel_info,
+  full,
+}): string {
+  const message: string[] = [];
+  message.push(
+    `Explain the following ${kernel_info.get(
+      "display_name",
+    )} code that is in a Jupyter notebook:`,
+  );
+
+  if (full) message.push(`<details${open ? " open" : ""}>`);
+  message.push(`\`\`\`${language}\n${cell.get("input")}\n\`\`\``);
+  if (full) message.push(`</details>`);
+
+  return message.join("\n\n");
 }

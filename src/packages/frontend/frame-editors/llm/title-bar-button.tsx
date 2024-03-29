@@ -417,7 +417,11 @@ export default function LanguageModelTitleBarButton({
         }}
       >
         <span ref={buttonRef}>
-          <AIAvatar size={20} iconColor="#333" style={{ marginTop: "-5px" }} />
+          <AIAvatar
+            size={18}
+            iconColor="#333"
+            style={{ top: "-2px", marginRight: "1px" }}
+          />
           {noLabel ? (
             ""
           ) : (

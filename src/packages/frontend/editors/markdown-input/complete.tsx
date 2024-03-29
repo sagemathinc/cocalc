@@ -82,7 +82,6 @@ export const Complete: FC<Props> = (props: Props) => {
   const select = useCallback(
     (e?) => {
       const key = e?.key ?? selected_key_ref.current;
-      console.log(key);
       if (typeof key === "string") {
         // best to just cancel.
         onSelect(key);
