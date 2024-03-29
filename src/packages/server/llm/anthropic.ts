@@ -10,6 +10,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import {
   ANTHROPIC_VERSION,
+  AnthropicModel,
   isAnthropicModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
@@ -17,6 +18,17 @@ import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { numTokens } from "./chatgpt-numtokens";
 
 const log = getLogger("llm:anthropic");
+
+function getModelName(model: AnthropicModel): string {
+  // The -4k and -8k variants have a limited context window (by us here) while offered for free
+  if (model === "claude-3-sonnet-4k") {
+    model = "claude-3-sonnet";
+  } else if (model === "claude-3-haiku-8k") {
+    model = "claude-3-haiku";
+  }
+  // now we have a valid name, and we have to append their static version number
+  return `${model}-${ANTHROPIC_VERSION[model]}`;
+}
 
 interface AnthropicOpts {
   input: string; // new input that user types
@@ -56,7 +68,7 @@ export async function evaluateAnthropic(
   }
 
   // They do not have a "*-latest" … but we need stable model names
-  const modelName = `${model}-${ANTHROPIC_VERSION[model]}`;
+  const modelName = getModelName(model);
 
   const anthropic = new ChatAnthropic({
     anthropicApiKey,

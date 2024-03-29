@@ -52,13 +52,20 @@ export function isGoogleModel(model: unknown): model is GoogleModel {
 export const ANTHROPIC_MODELS = [
   "claude-3-opus",
   "claude-3-sonnet",
+  "claude-3-sonnet-4k", // limited context window, offered for free
   "claude-3-haiku",
+  "claude-3-haiku-8k", // limited context window, offered for free
 ] as const;
+const CLAUDE_SONNET_VERSION = "20240229";
+const CLAUDE_HAIKU_VERSION = "20240307";
+const CLAUDE_OPUS_VERSION = "20240229";
 // ... and we add a version number (there is no "*-latest") when dispatching on the backend
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string } = {
-  "claude-3-opus": "20240229",
-  "claude-3-sonnet": "20240229",
-  "claude-3-haiku": "20240307",
+  "claude-3-opus": CLAUDE_OPUS_VERSION,
+  "claude-3-sonnet": CLAUDE_SONNET_VERSION,
+  "claude-3-sonnet-4k": CLAUDE_SONNET_VERSION,
+  "claude-3-haiku": CLAUDE_HAIKU_VERSION,
+  "claude-3-haiku-8k": CLAUDE_HAIKU_VERSION,
 } as const;
 export const ANTHROPIC_PREFIX = "anthropic-";
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
@@ -102,12 +109,21 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
   ),
   ...GOOGLE_MODELS.filter((m) => m === "gemini-pro"),
   ...MISTRAL_MODELS,
-  ...ANTHROPIC_MODELS,
+  ...ANTHROPIC_MODELS.filter((m) => {
+    // we show opus and the restricted models (to avoid high costs)
+    return (
+      m === "claude-3-opus" ||
+      m === "claude-3-sonnet-4k" ||
+      m === "claude-3-haiku-8k"
+    );
+  }),
 ] as const;
 
 export type OllamaLLM = string;
 
-export type LanguageModel = (typeof LANGUAGE_MODELS)[number] | OllamaLLM;
+// use the one without Ollama to get stronger typing. Ollama could be any string starting with the OLLAMA_PREFIX.
+export type CoreLanguageModel = (typeof LANGUAGE_MODELS)[number];
+export type LanguageModel = CoreLanguageModel | OllamaLLM;
 
 // we check if the given object is any known language model
 export function isLanguageModel(model?: unknown): model is LanguageModel {
@@ -371,7 +387,9 @@ export const LLM_USERNAMES: LLM2String = {
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
   "claude-3-haiku": "Claude 3 Haiku",
+  "claude-3-haiku-8k": "Claude 3 Haiku 8k",
   "claude-3-sonnet": "Claude 3 Sonnet",
+  "claude-3-sonnet-4k": "Claude 3 Sonnet 4k",
   "claude-3-opus": "Claude 3 Opus",
 } as const;
 
@@ -408,8 +426,12 @@ export const LLM_DESCR: LLM2String = {
     "Most powerful, large reasoning capabilities, but slower. (Mistral AI, 4k token context)",
   "claude-3-haiku":
     "Fastest model, lightweight actions (Anthropic, 200k token context)",
+  "claude-3-haiku-8k":
+    "Fastest model, lightweight actions (Anthropic, 8k token context)",
   "claude-3-sonnet":
     "Best combination of performance and speed (Anthropic, 200k token context)",
+  "claude-3-sonnet-4k":
+    "Best combination of performance and speed (Anthropic, 4k token context)",
   "claude-3-opus":
     "Most intelligent, complex analysis, higher-order math and coding (Anthropic, 200k token context)",
 } as const;
@@ -417,25 +439,14 @@ export const LLM_DESCR: LLM2String = {
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
   if (!isCoCalcCom) return true;
   if (isOllamaLLM(model)) return true;
-  if (isMistralModel(model)) {
-    // the large one is not free
-    return (model as LanguageModel) !== "mistral-large-latest";
+  if (typeof model === "string" && LANGUAGE_MODELS.includes(model as any)) {
+    // i.e. model is now of type CoreLanguageModel and
+    const costInfo = LLM_COST[model];
+    if (costInfo != null) {
+      return costInfo.free;
+    }
   }
-  if (isAnthropicModel(model)) {
-    // the opus one is not free
-    return (model as LanguageModel) !== "claude-3-opus";
-  }
-  if (LANGUAGE_MODELS.includes(model as any)) {
-    // of these models, the following are free
-    return (
-      (model as LanguageModel) === "gpt-3.5-turbo" ||
-      (model as LanguageModel) === "text-bison-001" ||
-      (model as LanguageModel) === "chat-bison-001" ||
-      (model as LanguageModel) === "embedding-gecko-001" ||
-      isGoogleModel(model) // for now, all free – but this will change!
-    );
-  }
-  // all others are free
+  // all others are free (this should actually never happen, but we're cautious)
   return true;
 }
 
@@ -470,19 +481,11 @@ export function getVendorStatusCheckMD(vendor: LLMVendor): string {
   return "";
 }
 
-export function llmSupportsStreaming(model: LanguageModel): boolean {
-  return (
-    model2vendor(model) === "openai" ||
-    model2vendor(model) === "google" ||
-    model2vendor(model) === "mistralai" ||
-    model2vendor(model) === "anthropic"
-  );
-}
-
 interface Cost {
   prompt_tokens: number;
   completion_tokens: number;
   max_tokens: number;
+  free: boolean; // whether this model has a metered paid usage, or offered for free
 }
 
 // price per token for a given price of USD per 1M tokens
@@ -495,43 +498,50 @@ function usd1Mtokens(usd: number): number {
 // Our cost is a configurable multiple of this.
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
-export const LLM_COST: { [name in string]: Cost } = {
+export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
   "gpt-4": {
     prompt_tokens: 0.03 / 1000,
     completion_tokens: 0.06 / 1000,
     max_tokens: 8192,
+    free: false,
   },
   "gpt-4-32k": {
     prompt_tokens: 0.06 / 1000,
     completion_tokens: 0.12 / 1000,
     max_tokens: 32768,
+    free: false,
   },
   "gpt-3.5-turbo": {
     prompt_tokens: usd1Mtokens(1.5),
     completion_tokens: usd1Mtokens(2),
     max_tokens: 4096,
+    free: true,
   },
   "gpt-3.5-turbo-16k": {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(4),
     max_tokens: 16384,
+    free: false,
   },
   "gpt-4-turbo-preview": {
     prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
     completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
+    free: false,
   },
   // like above, but we limit the tokens to reduce how much money user has to commit to
   "gpt-4-turbo-preview-8k": {
     prompt_tokens: usd1Mtokens(10),
     completion_tokens: usd1Mtokens(30),
     max_tokens: 8192, // the actual reply is 8k, and we use this to truncate the input prompt!
+    free: false,
   },
   // also OpenAI
   "text-embedding-ada-002": {
     prompt_tokens: 0.0001 / 1000,
     completion_tokens: 0.0001 / 1000, // NOTE: this isn't a thing with embeddings
     max_tokens: 8191,
+    free: false,
   },
   // https://developers.generativeai.google/models/language
   // "text-bison-001": {
@@ -557,47 +567,68 @@ export const LLM_COST: { [name in string]: Cost } = {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
+    free: true,
   },
   "gemini-1.0-ultra-latest": {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
+    free: true,
   },
   "gemini-1.5-pro-latest": {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 1048576,
+    free: true,
   },
   "mistral-small-latest": {
     prompt_tokens: usd1Mtokens(2), // 2$ / 1M tokens
     completion_tokens: usd1Mtokens(6), // 6$ / 1M tokens
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+    free: true,
   },
   "mistral-medium-latest": {
     prompt_tokens: usd1Mtokens(2.7), // 2.7$ / 1M tokens
     completion_tokens: usd1Mtokens(8.1), // 8.1$ / 1M tokens
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+    free: true,
   },
   "mistral-large-latest": {
     prompt_tokens: usd1Mtokens(8), // 8$ / 1M tokens
     completion_tokens: usd1Mtokens(24), // 24$ / 1M tokens
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+    free: false,
   },
   // Anthropic: pricing somewhere on that page: https://www.anthropic.com/api
   "claude-3-opus": {
     prompt_tokens: usd1Mtokens(15),
     completion_tokens: usd1Mtokens(75),
     max_tokens: 200_000,
+    free: false,
   },
   "claude-3-sonnet": {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(15),
     max_tokens: 200_000,
+    free: false,
+  },
+  "claude-3-sonnet-4k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 4_000, // limited to 4k tokens, offered for free
+    free: true,
   },
   "claude-3-haiku": {
     prompt_tokens: usd1Mtokens(0.25),
     completion_tokens: usd1Mtokens(1.25),
     max_tokens: 200_000,
+    free: false,
+  },
+  "claude-3-haiku-8k": {
+    prompt_tokens: usd1Mtokens(0.25),
+    completion_tokens: usd1Mtokens(1.25),
+    max_tokens: 8_000, // limited to 8k tokens, offered for free
+    free: true,
   },
 } as const;
 
