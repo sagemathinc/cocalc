@@ -193,6 +193,7 @@ export const Complete: FC<Props> = (props: Props) => {
       setLLM(openKeys.includes("sub_llm"));
     },
     mode: "vertical",
+    subMenuCloseDelay: 1.5,
     style: {
       border: `1px solid ${COLORS.GRAY_L}`,
       maxHeight: "45vh", // so can always position menu above/below current line not obscuring it.

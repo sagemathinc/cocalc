@@ -13,7 +13,7 @@ import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-sta
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   LLMServicesAvailable,
-  LLMVendor,
+  LLMServiceName,
 } from "@cocalc/util/db-schema/llm-utils";
 import {
   cmp,
@@ -764,7 +764,7 @@ export class ProjectsStore extends Store<ProjectsState> {
       openai: haveOpenAI,
       google: haveGoogle,
       ollama: haveOllama,
-      mistral: haveMistral,
+      mistralai: haveMistral,
       anthropic: haveAnthropic,
     };
   }
@@ -789,7 +789,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   hasLanguageModelEnabled(
     project_id: string = "global",
     tag?: string,
-    vendor: LLMVendor | "any" = "any",
+    vendor: LLMServiceName | "any" = "any",
   ): boolean {
     const courseLimited = this.limitAIinCourseProject(tag);
 
@@ -810,21 +810,21 @@ export class ProjectsStore extends Store<ProjectsState> {
   private _hasLanguageModelEnabled(
     project_id: string | "global" = "global",
     courseLimited: boolean,
-    vendor: LLMVendor | "any" = "any",
+    vendor: LLMServiceName | "any" = "any",
   ): boolean {
     // First, check which ones are actually available
     const customize = redux.getStore("customize");
-    const { openai, google, ollama, mistral, anthropic } =
+    const { openai, google, ollama, mistralai, anthropic } =
       customize.getEnabledLLMs();
 
     // if none are available, we can't enable any – that's the "any" case
-    if (!openai && !google && !ollama && !mistral && !anthropic) return false;
+    if (!openai && !google && !ollama && !mistralai && !anthropic) return false;
 
     // check by specific vendor
     if (vendor === "openai" && !openai) return false;
     if (vendor === "google" && !google) return false;
     if (vendor === "ollama" && !ollama) return false;
-    if (vendor === "mistralai" && !mistral) return false;
+    if (vendor === "mistralai" && !mistralai) return false;
     if (vendor === "anthropic" && !anthropic) return false;
 
     // the "openai_disabled" account setting disabled **any** language model vendor!

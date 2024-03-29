@@ -1,13 +1,13 @@
-import { LLMVendor } from "@cocalc/util/db-schema/llm-utils";
+import { LLMServiceName } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 
-export function VendorStatusCheck({
-  vendor,
+export function LLMServiceStatusCheck({
+  service,
 }: {
-  vendor: LLMVendor;
+  service: LLMServiceName;
 }): JSX.Element {
-  switch (vendor) {
+  switch (service) {
     case "openai":
       return (
         <>
@@ -52,7 +52,7 @@ export function VendorStatusCheck({
       );
 
     default:
-      unreachable(vendor);
+      unreachable(service);
   }
   return <></>;
 }

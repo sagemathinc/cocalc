@@ -5,6 +5,9 @@ import { unreachable } from "@cocalc/util/misc";
 
 const OPENAI_PREFIX = "openai-";
 
+// NOTE: all arrays of model names should order them by the "simples and fastest" to the "complex, slowest, most expensive"
+// that way, the ordering the UI isn't looking arbitrary, but has a clear logic
+
 export const MODELS_OPENAI = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
@@ -50,11 +53,11 @@ export function isGoogleModel(model: unknown): model is GoogleModel {
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
 export const ANTHROPIC_MODELS = [
-  "claude-3-opus",
-  "claude-3-sonnet",
-  "claude-3-sonnet-4k", // limited context window, offered for free
   "claude-3-haiku",
   "claude-3-haiku-8k", // limited context window, offered for free
+  "claude-3-sonnet",
+  "claude-3-sonnet-4k", // limited context window, offered for free
+  "claude-3-opus",
 ] as const;
 const CLAUDE_SONNET_VERSION = "20240229";
 const CLAUDE_HAIKU_VERSION = "20240307";
@@ -133,13 +136,49 @@ export function isLanguageModel(model?: unknown): model is LanguageModel {
   return LANGUAGE_MODELS.includes(model as any);
 }
 
-export interface LLMServicesAvailable {
-  openai: boolean;
-  google: boolean;
-  ollama: boolean;
-  mistral: boolean;
-  anthropic: boolean;
+export const LANGUAGE_MODEL_SERVICES = [
+  "openai",
+  "google",
+  "ollama",
+  "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
+  "anthropic",
+] as const;
+export type LLMServiceName = (typeof LANGUAGE_MODEL_SERVICES)[number];
+
+export type LLMServicesAvailable = Record<LLMServiceName, boolean>;
+
+interface LLMService {
+  name: string;
+  short: string; // additional short text next to the company name
+  desc: string; // more detailed description
 }
+export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
+  openai: {
+    name: "OpenAI",
+    short: "AI research and deployment company",
+    desc: "OpenAI is an AI research and deployment company. Their mission is to ensure that artificial general intelligence benefits all of humanity.",
+  },
+  google: {
+    name: "Google",
+    short: "Technology company",
+    desc: "Google's mission is to organize the world's information and make it universally accessible and useful.",
+  },
+  anthropic: {
+    name: "Anthropic",
+    short: "AI research company",
+    desc: "Anthropic is an American artificial intelligence (AI) startup company, founded by former members of OpenAI.",
+  },
+  mistralai: {
+    name: "Mistral AI",
+    short: "French AI company",
+    desc: "Mistral AI is a French company selling artificial intelligence (AI) products.",
+  },
+  ollama: {
+    name: "Ollama",
+    short: "Open-source software",
+    desc: "Ollama helps you to get up and running with large language models, locally.",
+  },
+};
 
 // this is used in initialization functions. e.g. to get a default model depending on the overall availability
 // usually, this should just return the chatgpt3 model, but e.g. if neither google or openai is available,
@@ -150,7 +189,7 @@ export function getValidLanguageModelName(
     openai: true,
     google: true,
     ollama: false,
-    mistral: false,
+    mistralai: false,
     anthropic: false,
   },
   ollama: string[] = [], // keys of ollama models
@@ -162,7 +201,7 @@ export function getValidLanguageModelName(
       : selectable_llms
           .filter((m) => {
             if (filter.openai && isOpenAIModel(m)) return true;
-            if (filter.mistral && isMistralModel(m)) return true;
+            if (filter.mistralai && isMistralModel(m)) return true;
             if (filter.google && isGoogleModel(m)) return true;
             return false;
           })
@@ -221,19 +260,10 @@ export type LanguageService =
   | MistralService
   | OllamaService;
 
-export const LANGUAGE_MODEL_VENDORS = [
-  "openai",
-  "google",
-  "ollama",
-  "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
-  "anthropic",
-] as const;
-export type LLMVendor = (typeof LANGUAGE_MODEL_VENDORS)[number];
-
 // used e.g. for checking "account-id={string}" and other things like that
 export const LANGUAGE_MODEL_PREFIXES = [
   "chatgpt",
-  ...LANGUAGE_MODEL_VENDORS.map((v) => `${v}-`),
+  ...LANGUAGE_MODEL_SERVICES.map((v) => `${v}-`),
 ] as const;
 
 // we encode the in the frontend and elsewhere with the service name as a prefix
@@ -277,7 +307,7 @@ export function service2model(
 
   // split off the first part of service, e.g., "openai-" or "google-"
   const s = service.split("-")[0];
-  const hasPrefix = LANGUAGE_MODEL_VENDORS.some((v) => s === v);
+  const hasPrefix = LANGUAGE_MODEL_SERVICES.some((v) => s === v);
 
   const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
   if (hasPrefix && s === "ollama") {
@@ -295,7 +325,7 @@ export function service2model(
 // Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
 export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 
-export function model2vendor(model): LLMVendor {
+export function model2vendor(model): LLMServiceName {
   if (isOllamaLLM(model)) {
     return "ollama";
   } else if (isMistralModel(model)) {
@@ -455,7 +485,7 @@ export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
 export function isLanguageModelService(
   service: Service,
 ): service is LanguageService {
-  for (const v of LANGUAGE_MODEL_VENDORS) {
+  for (const v of LANGUAGE_MODEL_SERVICES) {
     if (service.startsWith(`${v}-`)) {
       return true;
     }
@@ -463,8 +493,8 @@ export function isLanguageModelService(
   return false;
 }
 
-export function getVendorStatusCheckMD(vendor: LLMVendor): string {
-  switch (vendor) {
+export function getLLMServiceStatusCheckMD(service: LLMServiceName): string {
+  switch (service) {
     case "openai":
       return `OpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
     case "google":
@@ -476,7 +506,7 @@ export function getVendorStatusCheckMD(vendor: LLMVendor): string {
     case "anthropic":
       return `Anthropic [status](https://status.anthropic.com/).`;
     default:
-      unreachable(vendor);
+      unreachable(service);
   }
   return "";
 }

@@ -17,7 +17,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   LanguageModel,
-  getVendorStatusCheckMD,
+  getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { plural } from "@cocalc/util/misc";
@@ -353,7 +353,7 @@ async function queryLanguageModel({
       // console.log("ERROR", err);
       fa.set_cell_input(
         firstCellId,
-        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getLLMServiceStatusCheckMD(
           model2vendor(model),
         )}.`,
       );

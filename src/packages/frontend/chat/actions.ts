@@ -18,7 +18,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import {
   LANGUAGE_MODEL_PREFIXES,
-  getVendorStatusCheckMD,
+  getLLMServiceStatusCheckMD,
   model2service,
   model2vendor,
   toOllamaModel,
@@ -664,7 +664,7 @@ export class ChatActions extends Actions<ChatState> {
       }
 
       const vendor = model2vendor(model);
-      const statusCheck = getVendorStatusCheckMD(vendor);
+      const statusCheck = getLLMServiceStatusCheckMD(vendor);
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
       this.syncdb.set({
         date,

@@ -8,7 +8,9 @@ import {
   ANTHROPIC_MODELS,
   DEFAULT_MODEL,
   GOOGLE_MODELS,
+  LLMServiceName,
   LLM_DESCR,
+  LLM_PROVIDER,
   LLM_USERNAMES,
   LanguageModel,
   MISTRAL_MODELS,
@@ -20,6 +22,7 @@ import {
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { OllamaPublic } from "@cocalc/util/types/llm";
+import { Text } from "../../components";
 
 export { DEFAULT_MODEL };
 export type { LanguageModel };
@@ -72,11 +75,7 @@ export default function LLMSelector({
   const ollama = useTypedRedux("customize", "ollama");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
-  function makeLLMOption(
-    ret: NonNullable<SelectProps["options"]>,
-    btnModel: LanguageModel,
-    title: string,
-  ) {
+  function makeLLMOption(btnModel: LanguageModel, title: string) {
     if (!selectableLLMs.includes(btnModel as any)) return;
     if (typeof btnModel !== "string") return;
 
@@ -96,36 +95,71 @@ export default function LLMSelector({
         <LanguageModelVendorAvatar model={btnModel} /> {tooltip}
       </>
     );
-    ret.push({
+    return {
       value: btnModel,
       display,
       label: <Tooltip title={tooltip}>{display}</Tooltip>,
-    });
+    };
+  }
+
+  function makeLLMGroup(
+    ret: NonNullable<SelectProps["options"]>,
+    service: LLMServiceName,
+    options,
+  ) {
+    // there could be "undefined" in the list of options
+    options = options?.filter((o) => !!o) as SelectProps["options"];
+    if (options?.length === 0) return;
+    const info = LLM_PROVIDER[service];
+    const label = (
+      <>
+        <Text strong>{info.name}</Text> – {info.short}
+      </>
+    );
+    const title = info.desc;
+    ret.push({ label, title, options });
   }
 
   function appendOpenAI(ret: NonNullable<SelectProps["options"]>): void {
     if (!showOpenAI) return;
-    MODELS_OPENAI.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
+    makeLLMGroup(
+      ret,
+      "openai",
+      MODELS_OPENAI.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
   }
 
   function appendGoogle(ret: NonNullable<SelectProps["options"]>): void {
     if (!showGoogle) return;
-    GOOGLE_MODELS.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
+    makeLLMGroup(
+      ret,
+      "google",
+      GOOGLE_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
   }
 
   function appendMistral(ret: NonNullable<SelectProps["options"]>): void {
     if (!showMistral) return;
-    MISTRAL_MODELS.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
+    makeLLMGroup(
+      ret,
+      "mistralai",
+      MISTRAL_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
   }
 
   function appendAnthropic(ret: NonNullable<SelectProps["options"]>): void {
     if (!showAnthropic) return;
-    ANTHROPIC_MODELS.map((m) => makeLLMOption(ret, m, LLM_DESCR[m]));
+    makeLLMGroup(
+      ret,
+      "anthropic",
+      ANTHROPIC_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
   }
 
   function appendOllama(ret: NonNullable<SelectProps["options"]>): void {
     if (!showOllama || !ollama) return;
 
+    const options: NonNullable<SelectProps["options"]> = [];
     for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
       const { display, desc } = config;
       const ollamaModel = toOllamaModel(key);
@@ -135,7 +169,7 @@ export default function LLMSelector({
           {desc ?? "Ollama"}
         </>
       );
-      ret.push({
+      options.push({
         value: ollamaModel,
         display: (
           <>
@@ -151,6 +185,7 @@ export default function LLMSelector({
         ),
       });
     }
+    makeLLMGroup(ret, "ollama", options);
   }
 
   function getOptions(): SelectProps["options"] {
@@ -193,15 +228,30 @@ export function modelToMention(model: LanguageModel): string {
   )} >@${modelToName(model)}</span>`;
 }
 
-export function LLMModelPrice({ model }: { model: string }) {
+export function LLMModelPrice({
+  model,
+  floatRight = false,
+}: {
+  model: string;
+  floatRight?: boolean;
+}) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
 
   // on non-cocalc.com pages, all models are free, hence we do not need to show the price
   if (!is_cocalc_com) return null;
 
+  const props: { style?: CSS } = {};
+  if (floatRight) {
+    props.style = { float: "right", marginLeft: "20px" };
+  }
+
   return isFreeModel(model, is_cocalc_com) ? (
-    <Tag color="success">free</Tag>
+    <Tag color="success" {...props}>
+      free
+    </Tag>
   ) : (
-    <Tag color="error">paid</Tag>
+    <Tag color="error" {...props}>
+      paid
+    </Tag>
   );
 }

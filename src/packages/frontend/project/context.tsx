@@ -61,7 +61,7 @@ export const ProjectContext: Context<ProjectContextState> =
       openai: false,
       google: false,
       ollama: false,
-      mistral: false,
+      mistralai: false,
       anthropic: false,
     },
   });

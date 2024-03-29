@@ -1,6 +1,6 @@
 import {
   isFreeModel,
-  LANGUAGE_MODEL_VENDORS,
+  LANGUAGE_MODEL_SERVICES,
   LANGUAGE_MODELS,
   LLM_COST,
   model2vendor,
@@ -36,7 +36,7 @@ describe("llm", () => {
   test.each(USER_SELECTABLE_LANGUAGE_MODELS)(
     "model '%s' does not start with any vendor prefix",
     (model) => {
-      for (const prefix of LANGUAGE_MODEL_VENDORS) {
+      for (const prefix of LANGUAGE_MODEL_SERVICES) {
         expect(model.startsWith(prefix)).toBe(false);
       }
     },
@@ -46,7 +46,7 @@ describe("llm", () => {
     `check that model2vendor('%s') knows the model`,
     (model) => {
       const vendor = model2vendor(model);
-      expect(LANGUAGE_MODEL_VENDORS.includes(vendor)).toBe(true);
+      expect(LANGUAGE_MODEL_SERVICES.includes(vendor)).toBe(true);
     },
   );
 

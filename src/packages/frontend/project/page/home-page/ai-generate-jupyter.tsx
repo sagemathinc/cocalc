@@ -48,7 +48,7 @@ import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import { once } from "@cocalc/util/async-utils";
 import {
-  getVendorStatusCheckMD,
+  getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
@@ -168,7 +168,7 @@ export default function AIGenerateJupyterNotebook({
 
       await updateNotebook(llmStream);
     } catch (err) {
-      setError(`${err}\n\n${getVendorStatusCheckMD(model2vendor(model))}.`);
+      setError(`${err}\n\n${getLLMServiceStatusCheckMD(model2vendor(model))}.`);
       setQuerying(false);
     }
   }
@@ -390,7 +390,7 @@ export default function AIGenerateJupyterNotebook({
     llmStream.on("error", (err) => {
       setError(`${err}`);
       setQuerying(false);
-      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getLLMServiceStatusCheckMD(
         model2vendor(model),
       )}.`;
       if (ja == null) {

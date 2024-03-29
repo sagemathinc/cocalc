@@ -135,7 +135,8 @@ function mentionableUsers({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
-                <OpenAIAvatar size={avatarLLMSize} /> {LLM_USERNAMES[m]}
+                <OpenAIAvatar size={avatarLLMSize} /> {LLM_USERNAMES[m]}{" "}
+                <LLMModelPrice model={m} floatRight />
               </LLMTooltip>
             ),
             search: search_term,
@@ -155,7 +156,8 @@ function mentionableUsers({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
-                <GoogleGeminiLogo size={avatarLLMSize} /> {LLM_USERNAMES[m]}
+                <GoogleGeminiLogo size={avatarLLMSize} /> {LLM_USERNAMES[m]}{" "}
+                <LLMModelPrice model={m} floatRight />
               </LLMTooltip>
             ),
             search: search_term,
@@ -166,17 +168,18 @@ function mentionableUsers({
     }
   }
 
-  if (enabledLLMs.mistral) {
+  if (enabledLLMs.mistralai) {
     for (const m of MISTRAL_MODELS) {
       if (!selectableLLMs.includes(m)) continue;
       const name = LLM_USERNAMES[m] ?? m;
-      const search_term = `mistral ${m} ${name}`.toLowerCase();
+      const search_term = `mistral${m}${name}`.toLowerCase();
       if (!search || search_term.includes(search)) {
         v.push({
           value: model2service(m),
           label: (
             <LLMTooltip model={m}>
-              <MistralAvatar size={avatarLLMSize} /> {name}
+              <MistralAvatar size={avatarLLMSize} /> {name}{" "}
+              <LLMModelPrice model={m} floatRight />
             </LLMTooltip>
           ),
           search: search_term,
@@ -189,13 +192,14 @@ function mentionableUsers({
       for (const m of ANTHROPIC_MODELS) {
         if (!selectableLLMs.includes(m)) continue;
         const name = LLM_USERNAMES[m] ?? m;
-        const search_term = `anthropic ${m} ${name}`.toLowerCase();
+        const search_term = `anthropic${m}${name}`.toLowerCase();
         if (!search || search_term.includes(search)) {
           v.push({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
-                <AnthropicAvatar size={avatarLLMSize} /> {name}
+                <AnthropicAvatar size={avatarLLMSize} /> {name}{" "}
+                <LLMModelPrice model={m} floatRight />
               </LLMTooltip>
             ),
             search: search_term,
@@ -206,15 +210,16 @@ function mentionableUsers({
     }
 
     if (enabledLLMs.ollama && !isEmpty(ollama)) {
-      for (const [key, conf] of Object.entries(ollama)) {
-        const value = toOllamaModel(key);
-        const search_term = `${key} ${value} ${conf.display}`.toLowerCase();
+      for (const [model, conf] of Object.entries(ollama)) {
+        const value = toOllamaModel(model);
+        const search_term = `${model}${value}${conf.display}`.toLowerCase();
         if (!search || search_term.includes(search)) {
           v.push({
             value,
             label: (
               <span>
-                <OllamaAvatar size={avatarLLMSize} /> {conf.display}
+                <OllamaAvatar size={avatarLLMSize} /> {conf.display}{" "}
+                <LLMModelPrice model={model} floatRight />
               </span>
             ),
             search: search_term,
@@ -249,14 +254,10 @@ function LLMTooltip({
   children: React.ReactNode;
 }) {
   const descr = LLM_DESCR[model];
-  const title = (
-    <>
-      {descr} <LLMModelPrice model={model} />
-    </>
-  );
+  const title = <>{descr}</>;
   return (
     <Tooltip title={title} placement="right">
-      <div>{children}</div>
+      <div style={{ width: "100%" }}>{children}</div>
     </Tooltip>
   );
 }

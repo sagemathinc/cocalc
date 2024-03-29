@@ -43,6 +43,7 @@ import type {
   GoogleCloudImages,
   Images,
 } from "@cocalc/util/db-schema/compute-servers";
+import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
@@ -55,7 +56,6 @@ import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { OllamaPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
-import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -182,7 +182,7 @@ export class CustomizeStore extends Store<CustomizeState> {
       openai: this.get("openai_enabled"),
       google: this.get("google_vertexai_enabled"),
       ollama: this.get("ollama_enabled"),
-      mistral: this.get("mistral_enabled"),
+      mistralai: this.get("mistral_enabled"),
       anthropic: this.get("anthropic_enabled"),
     };
   }
