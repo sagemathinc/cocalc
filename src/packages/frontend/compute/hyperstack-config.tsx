@@ -13,13 +13,13 @@ import { SELECTOR_WIDTH } from "./google-cloud-config";
 import Proxy from "./proxy";
 import { useImages } from "./images-hook";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
-import { currency, field_cmp } from "@cocalc/util/misc";
+import { commas, currency, field_cmp, plural } from "@cocalc/util/misc";
 import {
   optionKey,
   markup,
   PurchaseOption,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
+import NVIDIA from "./nvidia";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -142,7 +142,8 @@ export default function HyperstackConfig({
   );
 }
 
-function gpuToLabel(gpu) {
+export function toGPU(gpu) {
+  gpu = gpu.replace("G-", "GB-");
   if (gpu.endsWith("-sm")) {
     return gpu.slice(0, -3);
   }
@@ -158,7 +159,7 @@ function MachineType({ disabled, setConfig, configuration, state, priceData }) {
     .sort(field_cmp("cost_per_hour"))
     .map((x: PurchaseOption) => {
       return {
-        label: `${x.gpu_count}x ${gpuToLabel(x.gpu)} - ${currency(
+        label: `${x.gpu_count}x ${toGPU(x.gpu)} - ${currency(
           markup({ cost: x.cost_per_hour, priceData }),
         )}/hour`,
         value: `${x.region_name}|${x.flavor_name}`,
@@ -170,7 +171,7 @@ function MachineType({ disabled, setConfig, configuration, state, priceData }) {
     <div>
       <Select
         disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-        style={{ width: SELECTOR_WIDTH }}
+        style={{ width: SELECTOR_WIDTH, marginBottom: "10px" }}
         value={value}
         options={options}
         onChange={(value) => {
@@ -178,6 +179,7 @@ function MachineType({ disabled, setConfig, configuration, state, priceData }) {
           setConfig({ region_name, flavor_name });
         }}
       />
+      <br />
       <Specs
         flavor_name={configuration.flavor_name}
         region_name={configuration.region_name}
@@ -197,15 +199,14 @@ function Specs({ flavor_name, region_name, priceData }) {
       </div>
     );
   }
-  const gpu = GPU_SPECS[gpuToLabel(data.gpu)] ?? {};
-
-  let d = `${data.gpu_count}x ${gpuToLabel(data.gpu)} in ${region_name}`;
-
   return (
-    <pre>
-      {d}
-      {JSON.stringify({ gpu, data }, undefined, 2)}
-    </pre>
+    <span>
+      Standard {flavor_name} with{" "}
+      <NVIDIA gpu={toGPU(data.gpu)} count={data.gpu_count} />, {data.cpu}{" "}
+      {plural(data.cpu, "vCPU")}, {commas(data.ram)}GB RAM,{" "}
+      {commas(data.disk + data.ephemeral)}
+      GB SSD disk in {region_name.toLowerCase()}.
+    </span>
   );
 }
 

@@ -1776,6 +1776,11 @@ export function to_money(n: number, d = 2): string {
   return n.toFixed(d).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
+// numbers with commas -- https://stackoverflow.com/questions/2901102/how-to-format-a-number-with-commas-as-thousands-separators
+export function commas(x) {
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
 // Display currency with a dollar sign, rounded to *nearest*.
 // If d is not given and n is less than 1 cent, will show 3 digits
 // instead of 2.

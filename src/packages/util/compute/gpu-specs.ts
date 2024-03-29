@@ -86,7 +86,7 @@ export const GPU_SPECS = {
     cuda_cores: 18176,
     tensor_cores: 568,
   },
-  "A100-40G-PCIe": {
+  "A100-40GB-PCIe": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf",
     memory: 40,
@@ -94,7 +94,7 @@ export const GPU_SPECS = {
     cuda_cores: 6912,
     tensor_cores: 432,
   },
-  "A100-80G-PCIe": {
+  "A100-80GB-PCIe": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf",
     memory: 80,
@@ -102,7 +102,7 @@ export const GPU_SPECS = {
     cuda_cores: 6912,
     tensor_cores: 432,
   },
-  "H100-80G-PCIe": {
+  "H100-80GB-PCIe": {
     datasheet:
       "https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet",
     memory: 80,
