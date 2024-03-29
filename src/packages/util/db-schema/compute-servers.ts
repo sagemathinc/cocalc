@@ -408,9 +408,9 @@ const CLOUDS: {
     image: "https://console.hyperstack.cloud/hyperstack-wordmark.svg",
     defaultConfiguration: {
       cloud: "hyperstack",
-      image: "anaconda",
+      image: "anaconda-gpu",
       region_name: "CANADA-01",
-      flavor_name: "n2-H100x1",
+      flavor_name: "n1-RTX-A6000x1",
       excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },

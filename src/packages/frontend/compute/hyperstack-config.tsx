@@ -4,7 +4,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { Divider, Select, Spin } from "antd";
 import { getHyperstackPriceData, setServerConfiguration } from "./api";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
@@ -14,8 +14,12 @@ import Proxy from "./proxy";
 import { useImages } from "./images-hook";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
-import { currency } from "@cocalc/util/misc";
-import { field_cmp } from "@cocalc/util/misc";
+import { currency, field_cmp } from "@cocalc/util/misc";
+import {
+  optionKey,
+  markup,
+  PurchaseOption,
+} from "@cocalc/util/compute/cloud/hyperstack/pricing";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -87,9 +91,11 @@ export default function HyperstackConfig({
 
   if (!editable || !project_id) {
     return (
-      <div>
-        {configuration0.flavor_name} in {configuration0.region_name}
-      </div>
+      <Specs
+        flavor_name={configuration.flavor_name}
+        region_name={configuration.region_name}
+        priceData={priceData}
+      />
     );
   }
 
@@ -147,15 +153,16 @@ function MachineType({ disabled, setConfig, configuration, state, priceData }) {
   if (!priceData) {
     return <Spin />;
   }
-  const options = priceData
-    .filter((x) => x.available)
+  const options = Object.values(priceData.options)
+    .filter((x: PurchaseOption) => (x.available ?? 0) > 0)
     .sort(field_cmp("cost_per_hour"))
-    .map((x) => {
+    .map((x: PurchaseOption) => {
       return {
         label: `${x.gpu_count}x ${gpuToLabel(x.gpu)} - ${currency(
-          x.cost_per_hour,
+          markup({ cost: x.cost_per_hour, priceData }),
         )}/hour`,
         value: `${x.region_name}|${x.flavor_name}`,
+        x,
       };
     });
   const value = `${configuration.region_name}|${configuration.flavor_name}`;
@@ -166,30 +173,40 @@ function MachineType({ disabled, setConfig, configuration, state, priceData }) {
         style={{ width: SELECTOR_WIDTH }}
         value={value}
         options={options}
-        onChange={(type) => {
-          const [region_name, flavor_name] = type.split("|");
+        onChange={(value) => {
+          const [region_name, flavor_name] = value.split("|");
           setConfig({ region_name, flavor_name });
         }}
       />
-      <Specs flavor_name={configuration.flavor_name} priceData={priceData} />
+      <Specs
+        flavor_name={configuration.flavor_name}
+        region_name={configuration.region_name}
+        priceData={priceData}
+      />
     </div>
   );
 }
 
-function Specs({ flavor_name, priceData }) {
-  const data = useMemo(() => {
-    for (const x of priceData) {
-      if (x.flavor_name == flavor_name) {
-        return x;
-      }
-    }
-    return null;
-  }, [flavor_name, priceData]);
+function Specs({ flavor_name, region_name, priceData }) {
+  const data = priceData?.options[optionKey({ flavor_name, region_name })];
+
   if (data == null) {
-    return null;
+    return (
+      <div>
+        {flavor_name} in {region_name}
+      </div>
+    );
   }
-  const gpuSpec = GPU_SPECS[gpuToLabel(data.gpu)];
-  return <pre>{JSON.stringify({ ...gpuSpec, ...data }, undefined, 2)}</pre>;
+  const gpu = GPU_SPECS[gpuToLabel(data.gpu)] ?? {};
+
+  let d = `${data.gpu_count}x ${gpuToLabel(data.gpu)} in ${region_name}`;
+
+  return (
+    <pre>
+      {d}
+      {JSON.stringify({ gpu, data }, undefined, 2)}
+    </pre>
+  );
 }
 
 function Image(props) {

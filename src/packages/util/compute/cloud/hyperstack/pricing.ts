@@ -21,4 +21,19 @@ export interface PurchaseOption {
   cost_per_hour: number | string;
 }
 
-export type HyperstackPriceData = PurchaseOption[];
+export function optionKey({ region_name, flavor_name }) {
+  return `${region_name}|${flavor_name}`;
+}
+
+export interface HyperstackPriceData {
+  markup: number;
+  // region_bar_flavor is `${region_name}|${flavor_name}` as in optionKey function above!
+  options: { [region_bar_flavor: string]: PurchaseOption };
+}
+
+export function markup({ cost, priceData }) {
+  if (priceData.markup) {
+    return cost * (1 + priceData.markup / 100.0);
+  }
+  return cost;
+}

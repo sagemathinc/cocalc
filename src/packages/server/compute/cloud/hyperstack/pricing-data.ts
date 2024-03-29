@@ -21,10 +21,15 @@ the current price of any VM.
 
 */
 
-import type { PurchaseOption } from "@cocalc/util/compute/cloud/hyperstack/pricing";
+import type {
+  HyperstackPriceData,
+  PurchaseOption,
+} from "@cocalc/util/compute/cloud/hyperstack/pricing";
+import { optionKey } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import type { Price } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { getFlavors, getPricebook, getStocks } from "./client";
 import TTLCache from "@isaacs/ttlcache";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 function getKey({ region_name, gpu, gpu_count }) {
   return `${region_name}-${gpu}-${gpu_count}`;
@@ -35,7 +40,7 @@ const ttlCache = new TTLCache({ ttl: CACHE_TIME_M * 60 * 1000 });
 
 export default async function getPricingData(
   cache = true,
-): Promise<PurchaseOption[]> {
+): Promise<HyperstackPriceData> {
   if (!cache) {
     ttlCache.delete("x");
   } else {
@@ -62,7 +67,7 @@ export default async function getPricingData(
 
   const flavorData = await getFlavors();
 
-  const options: PurchaseOption[] = [];
+  const options: { [region_bar_flavor: string]: PurchaseOption } = {};
   for (const { gpu, region_name, flavors } of flavorData) {
     if (!gpu) {
       // we do not bother with hyperstack for CPU only VM's.
@@ -97,7 +102,7 @@ export default async function getPricingData(
       } catch (err) {
         cost_per_hour = `${err}`;
       }
-      options.push({
+      options[optionKey({ region_name, flavor_name })] = {
         flavor_name,
         region_name,
         cpu,
@@ -108,12 +113,16 @@ export default async function getPricingData(
         gpu_count,
         available,
         cost_per_hour,
-      });
+      };
     }
   }
 
-  ttlCache.set("x", options);
-  return options;
+  const { compute_servers_markup_percentage: markup } =
+    await getServerSettings();
+  const x = { options, markup };
+
+  ttlCache.set("x", x);
+  return x;
 }
 
 // This is NOT correct for cpu only flavors.  We exclude them above!!!
