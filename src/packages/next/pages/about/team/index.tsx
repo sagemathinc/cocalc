@@ -191,17 +191,17 @@ export default function Help({ customize }) {
               }
               description={
                 <>
-                  SageMath, Inc. (the company behind SageMath and CoCalc) comprises a small yet
-                  diversified group of people worldwide who are unified behind the common goal of
-                  progressing open-source mathematical software and cloud-based technology for the
-                  scientific community.
+                  SageMath, Inc. (the company behind CoCalc) comprises a small yet diverse group
+                  of people worldwide who are unified behind the common goal of progressing
+                  open-source mathematical software and cloud-based technology for the scientific
+                  community.
 
                   Each team member brings unique perspectives and specializations that continue to
                   push the development of products like CoCalc and its features toward the frontier
                   of educational use and research.
 
-                  As you'll see, every one of our executive team members at SageMath, Inc. is a
-                  mathematician with their own research specialty.
+                  As you'll see, all of our executive team members at SageMath, Inc. are trained
+                  mathematicians, each with their own strengths.
                 </>
               }
               dataSource={dataSource}
