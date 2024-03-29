@@ -20,7 +20,7 @@ export const MODELS_OPENAI = [
 
 export type OpenAIModel = (typeof MODELS_OPENAI)[number];
 
-function isOpenAIModel(model: unknown): model is OpenAIModel {
+export function isOpenAIModel(model: unknown): model is OpenAIModel {
   return MODELS_OPENAI.includes(model as any);
 }
 
@@ -43,8 +43,8 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
   "gemini-pro",
-  "gemini-1.0-ultra-latest", // they give errors: wrong v1 api, countTokens not available, etc.
-  "gemini-1.5-pro-latest", // their genAI lib doesn't support it yet, or their API is really incomplete
+  "gemini-1.0-ultra-latest", // only works with langchain, not their GenAI JS lib
+  "gemini-1.5-pro-latest", // neither works with langchain (yet) nor GenAI JS
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
@@ -110,7 +110,9 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
       m !== "gpt-4-32k" && // this one is deliberately not selectable by users!
       m !== "text-embedding-ada-002", // shouldn't be in the list in the first place
   ),
-  ...GOOGLE_MODELS.filter((m) => m === "gemini-pro"),
+  ...GOOGLE_MODELS.filter(
+    (m) => m === "gemini-pro" || m === "gemini-1.0-ultra-latest",
+  ),
   ...MISTRAL_MODELS,
   ...ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the restricted models (to avoid high costs)

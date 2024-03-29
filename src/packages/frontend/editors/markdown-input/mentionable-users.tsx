@@ -24,6 +24,7 @@ import {
   MISTRAL_MODELS,
   MODELS_OPENAI,
   model2service,
+  model2vendor,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
@@ -121,7 +122,7 @@ function mentionableUsers({
   const project_users = getProjectUsers();
 
   const users_store = redux.getStore("users");
-  const v: Item[] = [];
+  const mentions: Item[] = [];
 
   if (enabledLLMs.openai) {
     // NOTE: all modes are included, including the 16k version, because:
@@ -129,9 +130,10 @@ function mentionableUsers({
     //       (2) this is a non-free BUT CHEAP model you can actually use after hitting your limit, which is muh cheaper than GPT-4.
     for (const m of MODELS_OPENAI) {
       if (selectableLLMs.includes(m)) {
-        const search_term = m.replace(/-/g, "").toLowerCase();
+        const v = "openai";
+        const search_term = `${v}chat${m.replace(/-/g, "").toLowerCase()}`;
         if (!search || search_term.includes(search)) {
-          v.push({
+          mentions.push({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
@@ -150,9 +152,10 @@ function mentionableUsers({
   if (enabledLLMs.google) {
     for (const m of GOOGLE_MODELS) {
       if (selectableLLMs.includes(m)) {
-        const search_term = m.replace(/-/g, "").toLowerCase();
+        const v = model2vendor(m);
+        const search_term = `${v}${m.replace(/-/g, "").toLowerCase()}`;
         if (!search || search_term.includes(search)) {
-          v.push({
+          mentions.push({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
@@ -172,9 +175,10 @@ function mentionableUsers({
     for (const m of MISTRAL_MODELS) {
       if (!selectableLLMs.includes(m)) continue;
       const name = LLM_USERNAMES[m] ?? m;
-      const search_term = `mistral${m}${name}`.toLowerCase();
+      const s = model2vendor(m);
+      const search_term = `${s}${m}${name}`.toLowerCase();
       if (!search || search_term.includes(search)) {
-        v.push({
+        mentions.push({
           value: model2service(m),
           label: (
             <LLMTooltip model={m}>
@@ -192,9 +196,10 @@ function mentionableUsers({
       for (const m of ANTHROPIC_MODELS) {
         if (!selectableLLMs.includes(m)) continue;
         const name = LLM_USERNAMES[m] ?? m;
-        const search_term = `anthropic${m}${name}`.toLowerCase();
+        const s = model2vendor(m);
+        const search_term = `${s}${m}${name}`.toLowerCase();
         if (!search || search_term.includes(search)) {
-          v.push({
+          mentions.push({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
@@ -214,7 +219,7 @@ function mentionableUsers({
         const value = toOllamaModel(model);
         const search_term = `${model}${value}${conf.display}`.toLowerCase();
         if (!search || search_term.includes(search)) {
-          v.push({
+          mentions.push({
             value,
             label: (
               <span>
@@ -240,10 +245,10 @@ function mentionableUsers({
         <Avatar account_id={account_id} size={avatarUserSize} /> {name}
       </span>
     );
-    v.push({ value: account_id, label, search: s, is_llm: false });
+    mentions.push({ value: account_id, label, search: s, is_llm: false });
   }
 
-  return v;
+  return mentions;
 }
 
 function LLMTooltip({

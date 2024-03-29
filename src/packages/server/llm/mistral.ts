@@ -5,12 +5,12 @@ import {
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isMistralModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { numTokens } from "./chatgpt-numtokens";
 
 const log = getLogger("llm:mistral");

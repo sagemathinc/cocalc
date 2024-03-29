@@ -13,6 +13,7 @@ High level summary:
 const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
 
 import { delay } from "awaiting";
+import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -28,9 +29,10 @@ import {
   isGoogleModel,
   isMistralModel,
   isOllamaLLM,
+  isOpenAIModel,
   isValidModel,
   model2service,
-  model2vendor,
+  model2vendor
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
@@ -38,10 +40,10 @@ import { checkForAbuse } from "./abuse";
 import { evaluateAnthropic } from "./anthropic";
 import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
+import { GoogleGenAIClient } from "./google-genai-client";
 import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
-import { GoogleGenAIClient } from "./google-genai-client";
 
 const log = getLogger("llm");
 
@@ -127,11 +129,30 @@ async function evaluateImpl({
           maxTokens,
           stream,
         });
-      } else {
-        return await evaluteCall({
+      } else if (isGoogleModel(model)) {
+        const client = await getClient(model);
+        if (!(client instanceof GoogleGenAIClient)) {
+          throw new Error("Wrong client. This should never happen. [GenAI]");
+        }
+        return await evaluateGoogleGenAI({
           system,
           history,
           input,
+          client,
+          maxTokens,
+          model,
+          stream,
+        });
+      } else {
+        const client = await getClient(model);
+        if (!(client instanceof OpenAI)) {
+          throw new Error("Wrong client. This should never happen. [OpenAI]");
+        }
+        return await evaluateOpenAI({
+          system,
+          history,
+          input,
+          client,
           model,
           maxTokens,
           stream,
@@ -199,39 +220,6 @@ async function evaluateImpl({
   return output;
 }
 
-async function evaluteCall({
-  system,
-  history,
-  input,
-  model,
-  maxTokens,
-  stream,
-}) {
-  const client = await getClient(model);
-
-  if (client instanceof GoogleGenAIClient) {
-    return await evaluateVertexAI({
-      system,
-      history,
-      input,
-      client,
-      maxTokens,
-      model,
-      stream,
-    });
-  }
-
-  return await evaluateOpenAI({
-    system,
-    history,
-    input,
-    client,
-    model,
-    maxTokens,
-    stream,
-  });
-}
-
 interface EvalVertexAIProps {
   client: GoogleGenAIClient;
   system?: string;
@@ -243,7 +231,7 @@ interface EvalVertexAIProps {
   maxTokens?: number; // only gemini-pro
 }
 
-async function evaluateVertexAI({
+async function evaluateGoogleGenAI({
   client,
   system,
   history,
@@ -265,7 +253,7 @@ async function evaluateVertexAI({
       return await client.chat({
         history: history ?? [],
         input,
-        context: system,
+        system,
         model,
         maxTokens,
         stream,
@@ -299,7 +287,19 @@ async function evaluateOpenAI({
   model,
   maxTokens,
   stream,
+}: {
+  system?: string;
+  history?: History;
+  input: string;
+  client: OpenAI;
+  model: any;
+  maxTokens?: number;
+  stream?: (output?: string) => void;
 }): Promise<ChatOutput> {
+  if (!isOpenAIModel(model)) {
+    throw new Error(`Model "${model}" not an OpenAI model.`);
+  }
+
   // the *-8k variant is artificial – the input is already limited/truncated to 8k
   if (model === "gpt-4-turbo-preview-8k") {
     model = "gpt-4-turbo-preview";

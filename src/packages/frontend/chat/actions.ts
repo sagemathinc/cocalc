@@ -591,7 +591,7 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
 
-    // keep updating that chatgpt is doing something:
+    // keep updating when the LLM is doing something:
     const project_id = store.get("project_id");
     const path = store.get("path");
     if (!tag && reply_to) {

@@ -14,7 +14,7 @@ interface CallChatGPTOpts {
   model: OpenAIModel;
   messages: OpenAIMessages;
   maxAttempts: number;
-  maxTokens: number;
+  maxTokens?: number;
   stream?: (text?: string) => void;
 }
 
