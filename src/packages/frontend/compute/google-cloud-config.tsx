@@ -1351,7 +1351,7 @@ function Image(props) {
           including commercial software.
         </div>
       )}
-      <SelectImage style={{ width: "500px" }} {...props} />
+      <SelectImage {...props} />
       {state != "deprovisioned" && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.

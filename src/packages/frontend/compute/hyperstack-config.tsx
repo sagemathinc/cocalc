@@ -4,7 +4,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { Divider, Select, Spin } from "antd";
 import { getHyperstackPriceData, setServerConfiguration } from "./api";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
@@ -14,6 +14,8 @@ import Proxy from "./proxy";
 import { useImages } from "./images-hook";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
+import { currency } from "@cocalc/util/misc";
+import { field_cmp } from "@cocalc/util/misc";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -97,16 +99,21 @@ export default function HyperstackConfig({
 
   return (
     <div style={{ marginBottom: "30px" }}>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>Machine Type</b>
+      <div style={{ color: "#666", marginBottom: "10px" }}>
+        <div style={{ marginBottom: "5px" }}>
+          <b>NVIDIA GPU's</b>
+          <br />
+          Select up to 8 GPU's for your compute server. Your selection also
+          determines the number of CPUs, RAM and disk of the underlying VM.
+        </div>
+        <MachineType
+          setConfig={setConfig}
+          configuration={configuration}
+          state={state}
+          disabled={disabled}
+          priceData={priceData}
+        />
       </div>
-      <MachineType
-        id={id}
-        setConfig={setConfig}
-        configuration={configuration}
-        state={state}
-        disabled={disabled}
-      />
       <Image
         state={state}
         disabled={loading || disabled}
@@ -125,31 +132,64 @@ export default function HyperstackConfig({
         IMAGES={IMAGES}
       />
       {loading && <Spin style={{ marginLeft: "15px" }} />}
-      <pre>{JSON.stringify(priceData ?? [], undefined, 2)}</pre>
-      <pre>{JSON.stringify(GPU_SPECS, undefined, 2)}</pre>
     </div>
   );
 }
 
-function MachineType({ id, disabled, setConfig, configuration, state }) {
+function gpuToLabel(gpu) {
+  if (gpu.endsWith("-sm")) {
+    return gpu.slice(0, -3);
+  }
+  return gpu;
+}
+
+function MachineType({ disabled, setConfig, configuration, state, priceData }) {
   if (!priceData) {
     return <Spin />;
   }
   const options = priceData
     .filter((x) => x.available)
+    .sort(field_cmp("cost_per_hour"))
     .map((x) => {
-      return { label: x.gpu, value: `${x.region_name}|${x.flavor_name}` };
+      return {
+        label: `${x.gpu_count}x ${gpuToLabel(x.gpu)} - ${currency(
+          x.cost_per_hour,
+        )}/hour`,
+        value: `${x.region_name}|${x.flavor_name}`,
+      };
     });
+  const value = `${configuration.region_name}|${configuration.flavor_name}`;
   return (
-    <Select
-      disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-      style={{ width: SELECTOR_WIDTH }}
-      options={options}
-      onChange={(type) => {
-        setConfig({ acceleratorType: type });
-      }}
-    />
+    <div>
+      <Select
+        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+        style={{ width: SELECTOR_WIDTH }}
+        value={value}
+        options={options}
+        onChange={(type) => {
+          const [region_name, flavor_name] = type.split("|");
+          setConfig({ region_name, flavor_name });
+        }}
+      />
+      <Specs flavor_name={configuration.flavor_name} priceData={priceData} />
+    </div>
   );
+}
+
+function Specs({ flavor_name, priceData }) {
+  const data = useMemo(() => {
+    for (const x of priceData) {
+      if (x.flavor_name == flavor_name) {
+        return x;
+      }
+    }
+    return null;
+  }, [flavor_name, priceData]);
+  if (data == null) {
+    return null;
+  }
+  const gpuSpec = GPU_SPECS[gpuToLabel(data.gpu)];
+  return <pre>{JSON.stringify({ ...gpuSpec, ...data }, undefined, 2)}</pre>;
 }
 
 function Image(props) {
@@ -163,14 +203,11 @@ function Image(props) {
         <div style={{ color: "#666", marginBottom: "5px" }}>
           Select compute server image. You will be able to use sudo with no
           password and can easily install anything into the Ubuntu Linux image.
+          Click "advanced" for more options, which may be less tested or take
+          MUCH longer to start up the first time, depending on image size.
         </div>
       )}
-      <SelectImage
-        style={{ width: SELECTOR_WIDTH }}
-        {...props}
-        gpu={!!props.configuration.gpu}
-        arch={props.configuration.arch}
-      />
+      <SelectImage {...props} gpu={true} arch={"x86_64"} maxDockerSizeGb={2} />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
         <ImageLinks

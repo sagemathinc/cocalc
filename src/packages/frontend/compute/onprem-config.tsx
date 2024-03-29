@@ -163,10 +163,10 @@ function Image(props) {
         </div>
       )}
       <SelectImage
-        style={{ width: SELECTOR_WIDTH }}
         {...props}
         gpu={!!props.configuration.gpu}
         arch={props.configuration.arch}
+        maxDockerSizeGb={3}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />

@@ -77,7 +77,7 @@ export default function SelectVersion({
         disabled={refreshing}
       >
         <Icon name="refresh" /> Refresh{refreshing ? "ing..." : ""} Images
-        {refreshing && <Spin />}
+        {refreshing && <Spin style={{ marginLeft: "10px" }} />}
       </Button>
       <ShowError error={error} setError={setError} />
       <SelectTag

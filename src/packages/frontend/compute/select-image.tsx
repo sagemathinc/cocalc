@@ -29,6 +29,9 @@ interface Props {
   // view otherwise (explicitly saying images aren't actually available)
   googleImages?: GoogleCloudImages;
   arch: Architecture;
+  // if specified, only show images with dockerSizeGb set and <= maxDockerSizeGb
+  // Ignored if advanced is selected
+  maxDockerSizeGb?: number;
 }
 
 export default function SelectImage({
@@ -40,6 +43,7 @@ export default function SelectImage({
   gpu,
   googleImages,
   arch,
+  maxDockerSizeGb,
 }: Props) {
   const [advanced, setAdvanced] = useState<boolean>(false);
   const [IMAGES, ImagesError] = useImages();
@@ -61,6 +65,7 @@ export default function SelectImage({
       value,
       selectedTag: configuration.tag,
       arch,
+      maxDockerSizeGb,
     });
   }, [IMAGES, gpu, advanced, value, configuration.tag]);
 
@@ -89,7 +94,7 @@ export default function SelectImage({
         placeholder="Select compute server image..."
         defaultOpen={!value && state == "deprovisioned"}
         value={value}
-        style={style}
+        style={{ width: "500px", ...style }}
         options={options}
         onChange={(val) => {
           setValue(val);
@@ -127,6 +132,7 @@ function getOptions({
   value,
   selectedTag,
   arch,
+  maxDockerSizeGb,
 }: {
   IMAGES: Images;
   advanced?: boolean;
@@ -135,6 +141,7 @@ function getOptions({
   selectedTag?: string;
   googleImages?: GoogleCloudImages;
   arch: Architecture;
+  maxDockerSizeGb?: number;
 }) {
   const options: {
     key: string;
@@ -146,7 +153,7 @@ function getOptions({
   }[] = [];
   for (const name in IMAGES) {
     const image = IMAGES[name];
-    let { label, icon, versions, priority = 0 } = image;
+    let { label, icon, versions, priority = 0, dockerSizeGb } = image;
     if (image.system) {
       continue;
     }
@@ -155,6 +162,11 @@ function getOptions({
     }
     if (gpu != null && gpu != image.gpu) {
       continue;
+    }
+    if (!advanced && maxDockerSizeGb != null) {
+      if (dockerSizeGb == null || dockerSizeGb > maxDockerSizeGb) {
+        continue;
+      }
     }
     if (!advanced) {
       // restrict to only tested versions.
@@ -203,6 +215,9 @@ function getOptions({
           extra = " (not tested)";
         }
       }
+    }
+    if (advanced && dockerSizeGb) {
+      extra += ` - ${dockerSizeGb}GB`;
     }
 
     options.push({

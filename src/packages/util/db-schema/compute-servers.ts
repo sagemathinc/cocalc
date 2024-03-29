@@ -43,6 +43,10 @@ export interface Image {
   // Root filesystem image must be at least this big in GB.
   minDiskSizeGb?: number;
   // Description in MARKDOWN to show user of this image.  Can include links.
+  // Rough estimate of compressed size of Docker image; useful
+  // to get a sense of how long it will take to download image
+  // on clouds without pregenerated images.
+  dockerSizeGb?: number;
   description?: string;
   // Upstream URL for this image, e.g., https://julialang.org/ for the Julia image.
   url: string;

@@ -6,8 +6,9 @@ import type {
   State,
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { getGoogleCloudPriceData } from "./api";
+import { getGoogleCloudPriceData, getHyperstackPriceData } from "./api";
 import computeGoogleCloudCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import computeHyperstackCost from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
 
 export default async function costPerHour({
   configuration,
@@ -25,12 +26,18 @@ export default async function costPerHour({
     // this has a management layer
     return 0;
   }
-  if (configuration.cloud != "google-cloud") {
-    throw Error("cost computation only implemented for google cloud");
-  }
   if (state != "running" && state != "off" && state != "suspended") {
     throw Error("state must be stable");
   }
-  const priceData = await getGoogleCloudPriceData();
-  return computeGoogleCloudCost({ configuration, priceData, state });
+  if (configuration.cloud == "google-cloud") {
+    const priceData = await getGoogleCloudPriceData();
+    return computeGoogleCloudCost({ configuration, priceData, state });
+  } else if (configuration.cloud == "hyperstack") {
+    const priceData = await getHyperstackPriceData();
+    return computeHyperstackCost({ configuration, priceData, state });
+  } else {
+    throw Error(
+      `cost computation not yet implemented for '${configuration.cloud}'`,
+    );
+  }
 }
