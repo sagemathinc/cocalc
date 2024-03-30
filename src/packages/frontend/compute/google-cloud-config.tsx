@@ -37,7 +37,6 @@ import {
   setServerConfiguration,
 } from "./api";
 import { useEffect, useState } from "react";
-import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
@@ -52,6 +51,7 @@ import AllowCollaboratorControl from "./allow-collaborator-control";
 import NestedVirtualization from "./nested-virtualization";
 import ShowError from "@cocalc/frontend/components/error";
 import Proxy from "./proxy";
+import CostOverview from "./cost-overview";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -500,22 +500,27 @@ export default function GoogleCloudConfiguration({
         </div>
       )}
       {errDisplay}
-      {cost ? (
-        <div style={{ textAlign: "center" }}>
-          <MoneyStatistic
-            value={cost}
-            title={<b>Total Cost Per Hour While Running</b>}
-            costPerMonth={730 * cost}
-          />
-          <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
-            You pay the above rate while the computer server VM is running. The
-            rate is <b>much cheaper</b> when the server is suspended or off, and
-            there is no cost when it is deprovisioned. Network data transfer out
-            charges are not included in the above cost, and depend on exactly
-            how much data leaves the server. All incoming networking is free.
-          </div>
-        </div>
-      ) : null}
+      {cost != null && (
+        <CostOverview
+          cost={cost}
+          description={
+            <>
+              You pay <b>{currency(cost)}/hour</b> while the computer server is
+              running. The rate is{" "}
+              <b>
+                {currency(
+                  computeCost({ configuration, priceData, state: "off" }),
+                )}
+                /hour
+              </b>{" "}
+              when the server is off, and there is no cost when it is
+              deprovisioned. Network data transfer out charges are not included
+              in the above cost, and depend on how much data leaves the server
+              (see the Network section below). Incoming networking is free.
+            </>
+          }
+        />
+      )}
       <Table
         style={{ marginTop: "5px" }}
         columns={columns}

@@ -4,15 +4,15 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { Divider, Select, Spin } from "antd";
 import { getHyperstackPriceData, setServerConfiguration } from "./api";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
-import { SELECTOR_WIDTH } from "./google-cloud-config";
 import Proxy from "./proxy";
 import { useImages } from "./images-hook";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
+import computeCost from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
 import { commas, currency, field_cmp, plural } from "@cocalc/util/misc";
 import {
   optionKey,
@@ -20,6 +20,8 @@ import {
   PurchaseOption,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import NVIDIA from "./nvidia";
+import CostOverview from "./cost-overview";
+import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -50,6 +52,68 @@ export default function HyperstackConfig({
   const [error, setError] = useState<string>("");
   const [configuration, setLocalConfiguration] =
     useState<HyperstackConfiguration>(configuration0);
+  const [cost, setCost] = useState<number | null>(null);
+
+  const options = useMemo(() => {
+    if (priceData == null) {
+      return null;
+    }
+    return Object.values(priceData.options)
+      .filter((x: PurchaseOption) => (x.available ?? 0) > 0)
+      .sort(field_cmp("cost_per_hour"))
+      .map((x: PurchaseOption) => {
+        const gpu = toGPU(x.gpu);
+        const gpuSpec = GPU_SPECS[gpu];
+        return {
+          label: (
+            <div style={{ display: "flex", minWidth:'700px', overflow:'hidden' }}>
+              <div
+                style={{
+                  flex: 1,
+                }}
+              >
+                {x.gpu_count} × {gpu.replace("-PCIe", "")}
+              </div>
+              <div style={{ flex: 1 }}>
+                {currency(markup({ cost: x.cost_per_hour, priceData }))}/hour
+              </div>
+              <div style={{ flex: 1.2 }}>
+                <b style={{ color: "#666" }}>GPU RAM:</b>{" "}
+                {x.gpu_count * gpuSpec.memory} GB
+              </div>
+              {/* <div style={{ flex: 1 }}>
+                <b style={{ color: "#666" }}>CUDA cores:</b>{" "}
+                {gpuSpec.cuda_cores ? x.gpu_count * gpuSpec.cuda_cores : "-"}
+              </div>*/}
+              <div style={{ flex: 1 }}>
+                <b style={{ color: "#666" }}>vCPUs:</b> {x.cpu}
+              </div>
+              <div style={{ flex: 1 }}>
+                <b style={{ color: "#666" }}>RAM:</b> {x.ram} GB
+              </div>
+              <div style={{ flex: 1 }}>
+                <b style={{ color: "#666" }}>Disk:</b> {x.disk + x.ephemeral} GB
+              </div>
+            </div>
+          ),
+          value: `${x.region_name}|${x.flavor_name}`,
+          x,
+        };
+      });
+  }, [priceData]);
+
+  useEffect(() => {
+    if (!editable || configuration == null || priceData == null) {
+      return;
+    }
+    try {
+      const cost = computeCost({ configuration, priceData });
+      setCost(cost);
+    } catch (err) {
+      setError(`${err}`);
+      setCost(null);
+    }
+  }, [configuration, priceData]);
 
   useEffect(() => {
     if (!editable) {
@@ -106,19 +170,48 @@ export default function HyperstackConfig({
   return (
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "10px" }}>
-        <div style={{ marginBottom: "5px" }}>
-          <b>NVIDIA GPU's</b>
-          <br />
-          Select up to 8 GPU's for your compute server. Your selection also
-          determines the number of CPUs, RAM and disk of the underlying VM.
-        </div>
-        <MachineType
-          setConfig={setConfig}
-          configuration={configuration}
-          state={state}
-          disabled={disabled}
-          priceData={priceData}
-        />
+        <ShowError error={error} setError={setError} />
+        {cost != null && priceData != null && (
+          <CostOverview
+            cost={cost}
+            description={
+              <>
+                You pay <b>{currency(cost)}/hour</b> while the computer server
+                is running. The rate is{" "}
+                <b>
+                  {currency(
+                    computeCost({ configuration, priceData, state: "off" }),
+                  )}
+                  /hour
+                </b>{" "}
+                when the server is off, and there is no cost when it is
+                deprovisioned. All incoming and outgoing network data transfer
+                is free. This is a standard instance and won't be interrupted
+                when running; however, when it is off, there is no guarantee
+                that you will be able to run it.
+              </>
+            }
+          />
+        )}{" "}
+        {options != null && (
+          <>
+            <div style={{ marginBottom: "5px" }}>
+              <b>Machine Type</b>
+              <br />
+              There are {options.length} models available right now. Select your
+              model, which includes at least one NVIDIA GPU. Your selection
+              determines the number of CPUs, RAM and disk space.
+            </div>
+            <MachineType
+              options={options}
+              setConfig={setConfig}
+              configuration={configuration}
+              state={state}
+              disabled={disabled}
+              priceData={priceData}
+            />
+          </>
+        )}
       </div>
       <Image
         state={state}
@@ -126,7 +219,6 @@ export default function HyperstackConfig({
         setConfig={setConfig}
         configuration={configuration}
       />
-      <ShowError error={error} setError={setError} />
       <Divider />
       <Proxy
         id={id}
@@ -138,6 +230,7 @@ export default function HyperstackConfig({
         IMAGES={IMAGES}
       />
       {loading && <Spin style={{ marginLeft: "15px" }} />}
+      <ShowError error={error} setError={setError} />
     </div>
   );
 }
@@ -150,28 +243,23 @@ export function toGPU(gpu) {
   return gpu;
 }
 
-function MachineType({ disabled, setConfig, configuration, state, priceData }) {
-  if (!priceData) {
+function MachineType({
+  options,
+  disabled,
+  setConfig,
+  configuration,
+  state,
+  priceData,
+}) {
+  if (!priceData || options == null) {
     return <Spin />;
   }
-  const options = Object.values(priceData.options)
-    .filter((x: PurchaseOption) => (x.available ?? 0) > 0)
-    .sort(field_cmp("cost_per_hour"))
-    .map((x: PurchaseOption) => {
-      return {
-        label: `${x.gpu_count}x ${toGPU(x.gpu)} - ${currency(
-          markup({ cost: x.cost_per_hour, priceData }),
-        )}/hour`,
-        value: `${x.region_name}|${x.flavor_name}`,
-        x,
-      };
-    });
   const value = `${configuration.region_name}|${configuration.flavor_name}`;
   return (
     <div>
       <Select
         disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-        style={{ width: SELECTOR_WIDTH, marginBottom: "10px" }}
+        style={{ width: "100%", marginBottom: "10px" }}
         value={value}
         options={options}
         onChange={(value) => {

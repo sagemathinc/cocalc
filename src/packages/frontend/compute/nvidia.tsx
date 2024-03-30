@@ -42,7 +42,7 @@ export default function NVIDIA({
           borderRadius: "2.5px 5px",
         }}
       >
-        {count} NVIDIA {gpu} {plural(count, "GPU")}
+        {count} × NVIDIA {gpu} {plural(count, "GPU")}
       </span>
     </Popover>
   );

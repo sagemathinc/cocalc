@@ -29,6 +29,10 @@ export interface HyperstackPriceData {
   markup: number;
   // region_bar_flavor is `${region_name}|${flavor_name}` as in optionKey function above!
   options: { [region_bar_flavor: string]: PurchaseOption };
+  // cost per hour of an external ip address
+  external_ip_cost_per_hour: number;
+  // cost per hour per GB of disk storage (for storage volumes)
+  sdd_cost_per_hour: number;
 }
 
 export function markup({ cost, priceData }) {

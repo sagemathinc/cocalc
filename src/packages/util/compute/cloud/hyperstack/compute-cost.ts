@@ -15,6 +15,9 @@ export default function computeCost({
   priceData,
   state = "running",
 }: Options): number {
+  if (priceData == null) {
+    throw Error("priceData must not be null");
+  }
   if (state == "off") {
     return computeOffCost({ configuration, priceData });
   } else if (state == "suspended") {
@@ -26,21 +29,32 @@ export default function computeCost({
   }
 }
 
-function computeOffCost(x /*{ configuration, priceData }*/) {
-  console.log("off cost TODO", x.configuration);
-  // TODO -- it's supposed to be a cost for disk, but I don't know
-  // what that cost is! It's definitely at least $0.01 based on
-  // experiment.
-  return 0.03;
-}
-
-function computeRunningCost({ configuration, priceData }) {
-  const data = priceData?.options[optionKey(configuration)];
-  if (data != null) {
-    return markup({ cost: data.cost_per_hour, priceData });
-  }
+function costNotKnown(configuration) {
   const { flavor_name, region_name } = configuration ?? {};
   throw Error(
     `no price known for flavor_name=${flavor_name}, region_name=${region_name}`,
   );
+}
+
+function computeOffCost({ configuration, priceData }) {
+  const data = priceData?.options[optionKey(configuration)];
+  if (data == null) {
+    costNotKnown(configuration);
+  }
+  // TODO! What happens to data.ephemeral disk? Right now they just delete it!
+  // They tell you to copy it to a normal volume at https://infrahub-doc.nexgencloud.com/docs/hyperstack/
+  // so we need to make this clear and/or implement automating this!
+  const cost =
+    priceData.external_ip_cost_per_hour +
+    data.disk * priceData.sdd_cost_per_hour;
+  return markup({ cost, priceData });
+}
+
+function computeRunningCost({ configuration, priceData }) {
+  const data = priceData?.options[optionKey(configuration)];
+  if (data == null) {
+    costNotKnown(configuration);
+  }
+  const cost = data.cost_per_hour; // this *includes* storage and external ip
+  return markup({ cost, priceData });
 }
