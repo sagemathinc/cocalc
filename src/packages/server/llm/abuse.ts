@@ -22,6 +22,7 @@ where they limit per minute, not per hour (like below):
     TPM = tokens per minute
 */
 
+import { newCounter, newHistogram } from "@cocalc/backend/metrics";
 import { process_env_int } from "@cocalc/backend/misc";
 import getPool, { CacheTime } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -35,11 +36,33 @@ import {
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
+// These are tokens over a given period of time – summed by account/analytics_cookie or global.
 const QUOTAS = {
   noAccount: process_env_int("COCALC_LLM_QUOTA_NO_ACCOUNT", 0),
   account: process_env_int("COCALC_LLM_QUOTA_ACCOUNT", 10 ** 5),
   global: process_env_int("COCALC_LLM_QUOTA_GLOBAL", 10 ** 6),
 } as const;
+
+const prom_quotas = newHistogram(
+  "llm",
+  "abuse_usage",
+  "Language model abuse usage",
+  {
+    buckets:
+      // 10 buckets evenly spaced from 0 to QUOTAS.global
+      Array.from({ length: 10 }, (_, i) =>
+        Math.floor((i * QUOTAS.global) / 10),
+      ),
+    labels: ["usage"],
+  },
+);
+
+const prom_rejected = newCounter(
+  "llm",
+  "abuse_rejected_total",
+  "Language model requests rejected",
+  ["quota"],
+);
 
 // Throws an exception if the request should not be allowed.
 export async function checkForAbuse({
@@ -93,10 +116,13 @@ export async function checkForAbuse({
     analytics_cookie,
   });
 
+  prom_quotas.labels("recent").observe(usage);
+
   // console.log("usage = ", usage);
   if (account_id) {
     if (usage > QUOTAS.account) {
-      throw Error(
+      prom_rejected.labels("account").inc();
+      throw new Error(
         `You may use at most ${
           QUOTAS.account
         } tokens per hour. Please try again later${
@@ -105,7 +131,8 @@ export async function checkForAbuse({
       );
     }
   } else if (usage > QUOTAS.noAccount) {
-    throw Error(
+    prom_rejected.labels("no_account").inc();
+    throw new Error(
       `You may use at most ${QUOTAS.noAccount} tokens per hour. Sign in to increase your quota.`,
     );
   }
@@ -113,9 +140,11 @@ export async function checkForAbuse({
   // Prevent more sophisticated abuse, e.g., changing analytics_cookie or account frequently,
   // or just a general huge surge in usage.
   const overallUsage = await recentUsage({ cache: "long", period: "1 hour" });
+  prom_quotas.labels("global").observe(overallUsage);
   // console.log("overallUsage = ", usage);
   if (overallUsage > QUOTAS.global) {
-    throw Error(
+    prom_rejected.labels("global").inc();
+    throw new Error(
       `There is too much usage of language models right now.  Please try again later ${
         is_cocalc_com ? " or use a non-free language model such as GPT-4" : ""
       }.`,

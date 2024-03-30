@@ -105,6 +105,9 @@ importers:
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
+      prom-client:
+        specifier: ^13.0.0
+        version: 13.2.0
       rimraf:
         specifier: ^5.0.5
         version: 5.0.5
@@ -218,9 +221,6 @@ importers:
       pg:
         specifier: ^8.7.1
         version: 8.8.0
-      prom-client:
-        specifier: ^13.0.0
-        version: 13.2.0
       random-key:
         specifier: ^0.3.2
         version: 0.3.2
