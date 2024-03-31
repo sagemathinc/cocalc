@@ -97,12 +97,24 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: LLM_USERNAMES["claude-3-opus"],
     color: "#181818",
   },
+  "anthropic-claude-3-opus-8k": {
+    display: LLM_USERNAMES["claude-3-opus-8k"],
+    color: "#181818",
+  },
   "anthropic-claude-3-sonnet": {
     display: LLM_USERNAMES["claude-3-sonnet"],
     color: "#181818",
   },
+  "anthropic-claude-3-sonnet-4k": {
+    display: LLM_USERNAMES["claude-3-sonnet-4k"],
+    color: "#181818",
+  },
   "anthropic-claude-3-haiku": {
     display: LLM_USERNAMES["claude-3-haiku"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-haiku-8k": {
+    display: LLM_USERNAMES["claude-3-haiku-8k"],
     color: "#181818",
   },
   "mistralai-mistral-small-latest": {

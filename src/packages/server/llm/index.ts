@@ -22,6 +22,7 @@ import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
+  LanguageServiceCore,
   OpenAIMessages,
   getLLMCost,
   isAnthropicModel,
@@ -32,7 +33,7 @@ import {
   isOpenAIModel,
   isValidModel,
   model2service,
-  model2vendor
+  model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ChatOptions, ChatOutput, History } from "@cocalc/util/types/llm";
@@ -177,14 +178,16 @@ async function evaluateImpl({
         c.prompt_tokens * prompt_tokens +
         c.completion_tokens * completion_tokens;
 
+      // we can exclude Ollama, because these are only non-free ones
+      const service = model2service(model) as LanguageServiceCore;
       try {
         await createPurchase({
           account_id,
           project_id,
           cost,
-          service: model2service(model),
+          service,
           description: {
-            type: model2service(model),
+            type: service,
             prompt_tokens,
             completion_tokens,
           },

@@ -29,6 +29,7 @@ import { getServerSettings } from "@cocalc/database/settings";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import {
   LanguageModel,
+  LanguageServiceCore,
   isFreeModel,
   isLanguageModel,
   model2service,
@@ -97,11 +98,10 @@ export async function checkForAbuse({
     (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
 
   if (!isFreeModel(model, is_cocalc_com)) {
+    // we exclude Ollama (string), because it is free.
+    const service = model2service(model) as LanguageServiceCore;
     // This is a for-pay product, so let's make sure user can purchase it.
-    await assertPurchaseAllowed({
-      account_id,
-      service: model2service(model),
-    });
+    await assertPurchaseAllowed({ account_id, service });
     // We always allow usage of for pay models, since the user is paying for
     // them.  Only free models need to be throttled.
     return;

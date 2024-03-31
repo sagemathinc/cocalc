@@ -16,6 +16,7 @@ import {
 } from "@cocalc/util/db-schema/llm";
 import {
   LanguageModel,
+  LanguageServiceCore,
   getSystemPrompt,
   isFreeModel,
   model2service,
@@ -105,7 +106,7 @@ export class LLMClient {
 
     if (!isFreeModel(model, is_cocalc_com)) {
       // Ollama and others are treated as "free"
-      const service = model2service(model);
+      const service = model2service(model) as LanguageServiceCore;
       // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
       const { allowed, reason } =
         await this.client.purchases_client.isPurchaseAllowed(service);

@@ -1,6 +1,5 @@
 // this contains bits and pieces from the wrongly named openai.ts file
 
-import type { Service } from "@cocalc/util/db-schema/purchases";
 import { unreachable } from "@cocalc/util/misc";
 
 const OPENAI_PREFIX = "openai-";
@@ -57,6 +56,7 @@ export const ANTHROPIC_MODELS = [
   "claude-3-haiku-8k", // limited context window, offered for free
   "claude-3-sonnet",
   "claude-3-sonnet-4k", // limited context window, offered for free
+  "claude-3-opus-8k", // same issue as the large GPT models, limit the context window to limit spending
   "claude-3-opus",
 ] as const;
 const CLAUDE_SONNET_VERSION = "20240229";
@@ -65,6 +65,7 @@ const CLAUDE_OPUS_VERSION = "20240229";
 // ... and we add a version number (there is no "*-latest") when dispatching on the backend
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string } = {
   "claude-3-opus": CLAUDE_OPUS_VERSION,
+  "claude-3-opus-8k": CLAUDE_OPUS_VERSION,
   "claude-3-sonnet": CLAUDE_SONNET_VERSION,
   "claude-3-sonnet-4k": CLAUDE_SONNET_VERSION,
   "claude-3-haiku": CLAUDE_HAIKU_VERSION,
@@ -115,9 +116,10 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
   ),
   ...MISTRAL_MODELS,
   ...ANTHROPIC_MODELS.filter((m) => {
-    // we show opus and the restricted models (to avoid high costs)
+    // we show opus and the context restricted models (to avoid high costs)
     return (
       m === "claude-3-opus" ||
+      m === "claude-3-opus-8k" ||
       m === "claude-3-sonnet-4k" ||
       m === "claude-3-haiku-8k"
     );
@@ -251,7 +253,7 @@ const GOOGLE_PREFIX = "google-";
 // we encode the in the frontend and elsewhere with the service name as a prefix
 // ATTN: don't change the encoding pattern of [vendor]-[model]
 //       for whatever reason, it's also described that way in purchases/close.ts
-export type LanguageService =
+export type LanguageServiceCore =
   | `${typeof OPENAI_PREFIX}${OpenAIModel}`
   | `${typeof GOOGLE_PREFIX}${
       | "text-bison-001"
@@ -259,8 +261,9 @@ export type LanguageService =
       | "embedding-gecko-001"}`
   | `${typeof GOOGLE_PREFIX}${GoogleModel}`
   | AnthropicService
-  | MistralService
-  | OllamaService;
+  | MistralService;
+
+export type LanguageService = LanguageServiceCore | OllamaService;
 
 // used e.g. for checking "account-id={string}" and other things like that
 export const LANGUAGE_MODEL_PREFIXES = [
@@ -423,6 +426,7 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-3-sonnet": "Claude 3 Sonnet",
   "claude-3-sonnet-4k": "Claude 3 Sonnet 4k",
   "claude-3-opus": "Claude 3 Opus",
+  "claude-3-opus-8k": "Claude 3 Opus 8k",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -466,6 +470,8 @@ export const LLM_DESCR: LLM2String = {
     "Best combination of performance and speed (Anthropic, 4k token context)",
   "claude-3-opus":
     "Most intelligent, complex analysis, higher-order math and coding (Anthropic, 200k token context)",
+  "claude-3-opus-8k":
+    "Most intelligent, complex analysis, higher-order math and coding (Anthropic, 8k token context)",
 } as const;
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
@@ -485,7 +491,7 @@ export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
 // this is used in purchases/get-service-cost
 // we only need to check for the vendor prefixes, no special cases!
 export function isLanguageModelService(
-  service: Service,
+  service: string,
 ): service is LanguageService {
   for (const v of LANGUAGE_MODEL_SERVICES) {
     if (service.startsWith(`${v}-`)) {
@@ -636,6 +642,12 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     prompt_tokens: usd1Mtokens(15),
     completion_tokens: usd1Mtokens(75),
     max_tokens: 200_000,
+    free: false,
+  },
+  "claude-3-opus-8k": {
+    prompt_tokens: usd1Mtokens(15),
+    completion_tokens: usd1Mtokens(75),
+    max_tokens: 8_000, // limited to 8k tokens, to reduce the necessary spend limit to commit to
     free: false,
   },
   "claude-3-sonnet": {

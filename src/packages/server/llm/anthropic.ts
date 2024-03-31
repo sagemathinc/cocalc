@@ -25,6 +25,8 @@ function getModelName(model: AnthropicModel): string {
     model = "claude-3-sonnet";
   } else if (model === "claude-3-haiku-8k") {
     model = "claude-3-haiku";
+  } else if (model === "claude-3-opus-8k") {
+    model = "claude-3-opus";
   }
   // now we have a valid name, and we have to append their static version number
   return `${model}-${ANTHROPIC_VERSION[model]}`;
