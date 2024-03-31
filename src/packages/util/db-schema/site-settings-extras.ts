@@ -9,7 +9,13 @@
 
 // You can use markdown in the descriptions below and it is rendered properly!
 
-import { isValidUUID } from "@cocalc/util/misc";
+import { isEmpty } from "lodash";
+
+import {
+  expire_time,
+  isValidUUID,
+  is_valid_email_address,
+} from "@cocalc/util/misc";
 import {
   Config,
   SiteSettings,
@@ -32,9 +38,6 @@ import {
   to_int,
   to_trimmed_str,
 } from "./site-defaults";
-
-import { expire_time, is_valid_email_address } from "@cocalc/util/misc";
-import { isEmpty } from "lodash";
 
 export const pii_retention_parse = (retention: string): number | false => {
   if (retention == "never" || retention == null) return false;
@@ -131,7 +134,7 @@ function ollama_valid(value: string): boolean {
 
 function ollama_display(value: string): string {
   const structure =
-    "Must be {[key : string] : {model: string, baseUrL: string, cocalc?: {display?: string, desc?: string, ...}, ...}";
+    "Must be {[key : string] : {model: string, baseUrl: string, cocalc?: {display?: string, desc?: string, ...}, ...}";
   if (isEmpty(value)) {
     return `Empty. ${structure}`;
   }
@@ -261,7 +264,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: any_llm_enabled,
     type: "header",
-    tags: ["ai-llm", "openai"],
+    tags: ["AI LLM", "OpenAI"],
   },
   openai_api_key: {
     name: "OpenAI API Key",
@@ -269,7 +272,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: openai_enabled,
-    tags: ["ai-llm", "openai"],
+    tags: ["AI LLM", "OpenAI"],
   },
   google_vertexai_key: {
     name: "Google Generative AI API Key",
@@ -277,7 +280,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: vertexai_enabled,
-    tags: ["ai-llm", "openai"],
+    tags: ["AI LLM", "OpenAI"],
   },
   mistral_api_key: {
     name: "Mistral AI API Key",
@@ -285,7 +288,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: mistral_enabled,
-    tags: ["ai-llm"],
+    tags: ["AI LLM"],
   },
   anthropic_api_key: {
     name: "Anthropic API Key",
@@ -293,7 +296,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: anthropic_enabled,
-    tags: ["ai-llm"],
+    tags: ["AI LLM"],
   },
   ollama_configuration: {
     name: "Ollama Configuration",
@@ -304,7 +307,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: from_json,
     valid: ollama_valid,
     to_display: ollama_display,
-    tags: ["ai-llm"],
+    tags: ["AI LLM"],
   },
   qdrant_section: {
     name: "Qdrant Configuration",
@@ -325,7 +328,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: neural_search_enabled,
-    tags: ["openai"],
+    tags: ["OpenAI"],
   },
   salesloft_section: {
     name: "Salesloft Configuration",
@@ -347,7 +350,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: jupyter_api_enabled,
     type: "header",
-    tags: ["jupyter"],
+    tags: ["Jupyter"],
   },
   jupyter_account_id: {
     name: "Jupyter API Account Id",
@@ -355,7 +358,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     valid: isValidUUID,
     show: jupyter_api_enabled,
-    tags: ["jupyter"],
+    tags: ["Jupyter"],
   },
   jupyter_project_pool_size: {
     name: "Jupyter API Project Pool Size",
@@ -364,7 +367,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_int,
     valid: only_pos_int,
     show: jupyter_api_enabled,
-    tags: ["jupyter"],
+    tags: ["Jupyter"],
   },
   pii_retention: {
     name: "PII Retention",
@@ -391,7 +394,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: only_commercial,
     type: "header",
-    tags: ["stripe"],
+    tags: ["Stripe"],
   },
   stripe_publishable_key: {
     name: "Stripe Publishable",
@@ -399,7 +402,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: false,
     show: only_commercial,
-    tags: ["stripe"],
+    tags: ["Stripe"],
   },
   stripe_secret_key: {
     name: "Stripe Secret",
@@ -407,7 +410,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: only_commercial,
     password: true,
-    tags: ["stripe"],
+    tags: ["Stripe"],
   },
   stripe_webhook_secret: {
     name: "Stripe Webhook Secret",
@@ -415,7 +418,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: only_commercial,
     password: true,
-    tags: ["stripe"],
+    tags: ["Stripe"],
   },
   re_captcha_v3_heading: {
     // this is cosmetic, otherwise it looks weird.
@@ -447,7 +450,7 @@ export const EXTRAS: SettingsExtras = {
     desc: "",
     default: "",
     type: "header",
-    tags: ["zendesk"],
+    tags: ["Zendesk"],
   },
   zendesk_token: {
     name: "Zendesk Token",
@@ -455,42 +458,42 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: () => true,
-    tags: ["zendesk"],
+    tags: ["Zendesk"],
   },
   zendesk_username: {
     name: "Zendesk Username",
     desc: "This is the username for Zendesk.  E.g., for `cocalc.com` it is `support-agent@cocalc.com`",
     default: "",
     show: () => true,
-    tags: ["zendesk"],
+    tags: ["Zendesk"],
   },
   zendesk_uri: {
     name: "Zendesk Subdomain",
     desc: "This is the Subdomain of your Zendesk server.  E.g., for `cocalc.com` it is `sagemathcloud`",
     default: "",
     show: () => true,
-    tags: ["zendesk"],
+    tags: ["Zendesk"],
   },
   github_heading: {
     name: "GitHub API Configuration",
     desc: "CoCalc can mirror content from  GitHub at `https://yoursite.com/github/[url to github]`. This is just like what https://nbviewer.org does.",
     default: "",
     type: "header",
-    tags: ["github"],
+    tags: ["GitHub"],
   },
   github_project_id: {
     name: "GitHub Project ID",
     desc: "If this is set to a `project_id` (a UUID v4 of a project on your server), then the share server will proxy GitHub URL's.  For example, when a user visits https://yoursite.com/github/sagemathinc/cocalc they see a rendered version.  They can star the repo from cocalc, edit it in cocalc, etc.  This extends your CoCalc server to provide similar functionality to what nbviewer.org provides.  Optionally set a GitHub username and personal access token below to massively increase GitHub's API rate limits.",
     default: "",
     valid: isValidUUID,
-    tags: ["github"],
+    tags: ["GitHub"],
   },
   github_username: {
     name: "GitHub Username",
     desc: "This is a username for a GitHub Account.",
     default: "",
     show: () => true,
-    tags: ["github"],
+    tags: ["GitHub"],
   },
   github_token: {
     name: "GitHub Token",
@@ -498,14 +501,14 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: () => true,
-    tags: ["github"],
+    tags: ["GitHub"],
   },
   email_section: {
     name: "Email Configuration",
     desc: "",
     default: "",
     type: "header",
-    tags: ["email"],
+    tags: ["Email"],
   },
   email_backend: {
     name: "Email backend type",
@@ -513,7 +516,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     valid: ["none", "sendgrid", "smtp"],
     show: () => true,
-    tags: ["email"],
+    tags: ["Email"],
   },
   sendgrid_key: {
     name: "Sendgrid API key (for email)",
@@ -521,14 +524,14 @@ export const EXTRAS: SettingsExtras = {
     password: true,
     default: "",
     show: only_for_sendgrid,
-    tags: ["email"],
+    tags: ["Email"],
   },
   email_smtp_server: {
     name: "SMTP server (for email)",
     desc: "the hostname to talk to",
     default: "",
     show: only_for_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   email_smtp_from: {
     name: "SMTP server FROM (for email)",
@@ -536,14 +539,14 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     valid: is_valid_email_address,
     show: only_for_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   email_smtp_login: {
     name: "SMTP username (for email)",
     desc: "the username, for PLAIN login",
     default: "",
     show: only_for_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   email_smtp_password: {
     name: "SMTP password (for email)",
@@ -551,7 +554,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: only_for_smtp,
     password: true,
-    tags: ["email"],
+    tags: ["Email"],
   },
   email_smtp_port: {
     name: "SMTP port (for email)",
@@ -560,7 +563,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_int,
     valid: only_nonneg_int,
     show: only_for_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   email_smtp_secure: {
     name: "SMTP secure (for email)",
@@ -569,7 +572,7 @@ export const EXTRAS: SettingsExtras = {
     valid: only_booleans,
     to_val: to_bool,
     show: only_for_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   // bad name, historic baggage, used in packages/hub/email.ts
   password_reset_override: {
@@ -578,14 +581,14 @@ export const EXTRAS: SettingsExtras = {
     default: "default",
     valid: ["default", "smtp"],
     show: is_email_enabled,
-    tags: ["email"],
+    tags: ["Email"],
   },
   password_reset_smtp_server: {
     name: "Secondary SMTP server (for email)",
     desc: "hostname sending password reset emails",
     default: "",
     show: only_for_password_reset_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   password_reset_smtp_from: {
     name: "Secondary SMTP FROM (for email)",
@@ -593,14 +596,14 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     valid: is_valid_email_address,
     show: only_for_password_reset_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   password_reset_smtp_login: {
     name: "Secondary SMTP username (for email)",
     desc: "username, PLAIN auth",
     default: "",
     show: only_for_password_reset_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   password_reset_smtp_password: {
     name: "Secondary SMTP password (for email)",
@@ -608,7 +611,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: only_for_password_reset_smtp,
     password: true,
-    tags: ["email"],
+    tags: ["Email"],
   },
   password_reset_smtp_port: {
     name: "Secondary SMTP port (for email)",
@@ -617,7 +620,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_int,
     valid: only_nonneg_int,
     show: only_for_password_reset_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   password_reset_smtp_secure: {
     name: "Secondary SMTP secure (for email)",
@@ -626,7 +629,7 @@ export const EXTRAS: SettingsExtras = {
     valid: only_booleans,
     to_val: to_bool,
     show: only_for_password_reset_smtp,
-    tags: ["email"],
+    tags: ["Email"],
   },
   prometheus_metrics: {
     name: "Prometheus Metrics",
@@ -636,12 +639,12 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_bool,
   },
   pay_as_you_go_section: {
-    name: "Pay As You Go",
+    name: "Pay as you Go",
     desc: "",
     default: "",
     show: only_commercial,
     type: "header",
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   pay_as_you_go_spending_limit: {
     name: "Initial Pay As You Go Spending Limit",
@@ -650,7 +653,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   pay_as_you_go_min_payment: {
     name: "Pay As You Go - Minimum Payment",
@@ -659,7 +662,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyPosFloat,
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   pay_as_you_go_openai_markup_percentage: {
     name: "Pay As You Go - OpenAI Markup Percentage",
@@ -668,7 +671,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
-    tags: ["ai-llm", "openai", "pay as you go"],
+    tags: ["AI LLM", "OpenAI", "Pay as you Go"],
   },
   pay_as_you_go_max_project_upgrades: {
     name: "Pay As You Go - Max Project Upgrade Quotas",
@@ -679,7 +682,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: from_json,
     to_display: displayJson,
     valid: parsableJson,
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   pay_as_you_go_price_project_upgrades: {
     name: "Pay As You Go - Price for Project Upgrades",
@@ -689,7 +692,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: from_json,
     to_display: displayJson,
     valid: parsableJson,
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   subscription_maintenance: {
     name: "Pay As You Go - Subscription Maintenance Parameters",
@@ -699,7 +702,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: from_json,
     to_display: displayJson,
     valid: parsableJson,
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   pay_as_you_go_spending_limit_with_verified_email: {
     name: "Pay As You Go Spending Limit with Verified Email",
@@ -708,7 +711,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   pay_as_you_go_spending_limit_with_credit: {
     name: "Pay As You Go Spending Limit with Credit",
@@ -717,7 +720,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
-    tags: ["pay as you go"],
+    tags: ["Pay as you Go"],
   },
   compute_servers_section: {
     name: "Cloud Compute Service Providers",
@@ -725,7 +728,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: compute_servers_enabled,
     type: "header",
-    tags: ["compute servers"],
+    tags: ["Compute Servers"],
   },
   compute_servers_markup_percentage: {
     name: "Compute Servers -- Markup Percentage",
@@ -734,7 +737,7 @@ export const EXTRAS: SettingsExtras = {
     show: (conf) => only_commercial(conf) && compute_servers_enabled(conf),
     to_val: toFloat,
     valid: onlyNonnegFloat,
-    tags: ["compute servers"],
+    tags: ["Compute Servers"],
   },
   //   lambda_cloud_api_key: {
   //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
@@ -758,7 +761,7 @@ export const EXTRAS: SettingsExtras = {
     multiline: 5,
     password: true,
     show: compute_servers_google_enabled,
-    tags: ["compute servers"],
+    tags: ["Compute Servers"],
   },
   google_cloud_compute_servers_prefix: {
     name: "Compute Servers: Google Cloud - Resource Prefix",
@@ -766,7 +769,7 @@ export const EXTRAS: SettingsExtras = {
     default: "cocalc-compute-server",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
-    tags: ["compute servers"],
+    tags: ["Compute Servers"],
   },
   google_cloud_compute_servers_image_prefix: {
     name: "Compute Servers: Google Cloud - Image Prefix",
@@ -774,7 +777,7 @@ export const EXTRAS: SettingsExtras = {
     default: "cocalc",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
-    tags: ["compute servers"],
+    tags: ["Compute Servers"],
   },
 
   compute_servers_cloudflare_api_key: {
@@ -783,21 +786,21 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: (conf) => to_bool(conf.compute_servers_dns_enabled),
-    tags: ["compute servers"],
+    tags: ["Compute Servers"],
   },
   compute_servers_images_spec_url: {
     name: "Compute Servers: Images Spec URL",
     desc: `The URL of the compute server "images.json" spec file.  By default this is [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here), which is managed by SageMath, Inc.  However, you may replace this with your own json spec file, if you want to manage your own compute server images.  [Click here to update the database cache of the spec file and see the latest version.](api/v2/compute/get-images?ttl=0)`,
     default: DEFAULT_COMPUTE_SERVER_IMAGES_JSON,
     show: compute_servers_enabled,
-    tags: ["compute servers"],
+    tags: ["Compute Servers"],
   },
   //   fluidstack_api_key: {
   //     name: "Compute Servers: FluidStack - API Key (not implemented)",
   //     desc: "Your [FluidStack](https://www.fluidstack.io/) API Key from https://console2.fluidstack.io/.  Be sure to also enter your API token below. This supports managing compute servers on FluidStack Cloud.",
   //     default: "",
   //     show: compute_servers_enabled,
-  //     tags: ["compute servers"],
+  //     tags: ["Compute Servers"],
   //   },
   //   fluidstack_api_token: {
   //     name: "Compute Servers: FluidStack - API Token (not implemented)",
@@ -805,7 +808,7 @@ export const EXTRAS: SettingsExtras = {
   //     default: "",
   //     password: true,
   //     show: compute_servers_enabled,
-  //     tags: ["compute servers"],
+  //     tags: ["Compute Servers"],
   //   },
   //   amazon_web_services_access_key: {
   //     name: "Compute Servers: Amazon Web Services - IAM Access Key (not implemented)",
@@ -813,7 +816,7 @@ export const EXTRAS: SettingsExtras = {
   //     default: "",
   //     password: true,
   //     show: compute_servers_enabled,
-  //     tags: ["compute servers"],
+  //     tags: ["Compute Servers"],
   //   },
   //   amazon_web_services_secret_access_key: {
   //     name: "Compute Servers: Amazon Web Services - IAM Secret Access Key",
@@ -821,6 +824,6 @@ export const EXTRAS: SettingsExtras = {
   //     default: "",
   //     password: true,
   //     show: compute_servers_enabled,
-  //     tags: ["compute servers"],
+  //     tags: ["Compute Servers"],
   //   },
 } as const;
