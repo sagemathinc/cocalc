@@ -1,4 +1,4 @@
-import { Divider, Flex, Layout, Typography } from "antd";
+import { Button, Divider, Flex, Layout, Typography } from "antd";
 import { GetServerSidePropsContext } from "next";
 
 import {
@@ -41,7 +41,7 @@ const TitleComponent = ({ newsItem, showHelpTicket }: TitleComponentProps) => (
         }}
       >
         <span style={{ color: COLORS.GRAY }}>
-          [{`${useDateStr(newsItem, false, "MMM YYYY")}`}]
+          {`${useDateStr(newsItem, false, "MMM YYYY")}`}
         </span> {newsItem.title}
       </Typography.Title>
     </Flex>
@@ -55,7 +55,9 @@ const TitleComponent = ({ newsItem, showHelpTicket }: TitleComponentProps) => (
           type: "question",
         })}`}
       >
-        👋 Come say hi!
+        <Button style={{
+          fontSize: "14px"
+        }}>👋 Come say hi!</Button>
       </A>
     )}
   </Flex>
@@ -109,12 +111,12 @@ export default function Events({ customize, upcomingEvents, pastEvents}: EventsP
               }
               description={
                 <>
-                  We are committed to engaging with the academic community this upcoming year. Here,
-                  you can stay updated with where to find us "out in the wild." We have recently
-                  participated as exhibitors for CoCalc at popular events such as the {" "}
+                  We are committed to engaging with the scientific community this upcoming year.
+                  Here, you can stay updated with where to find us "out in the wild." We have
+                  recently participated as exhibitors for CoCalc at popular events such as the
                   Joint Mathematics Meeting and SIAM's Conference on Computational Science and
                   Engineering. We are beyond excited to catch up with you and tell you all about
-                  CoCalc's latest features and our innovative plans for the future!
+                  CoCalc's latest features and our innovative plans for the future!!
                 </>
               }
               dataSource={upcomingEventsDataSource}
