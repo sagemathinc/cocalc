@@ -195,7 +195,7 @@ export default function AllNews(props: Props) {
     return (
       <Alert
         banner={true}
-        type="error"
+        type="warning"
         message={
           <>
             Admin only: <A href="/news/edit/new">Create News Item</A>
@@ -235,7 +235,7 @@ export default function AllNews(props: Props) {
           <Paragraph>
             <div style={{ float: "right" }}>{renderSlicer("small")}</div>
             Recent news about {siteName}. You can also subscribe via{" "}
-            {/* This is intentonally a regular link, to "break out" of next.js */}
+            {/* This is intentionally a regular link, to "break out" of next.js */}
             <A href="/news/rss.xml" external>
               <Image src={rssIcon} width={16} height={16} alt="RSS Feed" /> RSS
               Feed
@@ -337,9 +337,9 @@ export default function AllNews(props: Props) {
 
   return (
     <Customize value={customize}>
-      <Head title={`${siteName} News`} />
+      <Head title={`${siteName} News`}/>
       <Layout>
-        <Header />
+        <Header page="news" />
         <Layout.Content
           style={{
             backgroundColor: "white",

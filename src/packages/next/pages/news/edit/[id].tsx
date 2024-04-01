@@ -138,8 +138,8 @@ export default function EditNews(props: Props) {
         return "Updates, modified features, general news, etc. The default category for all news.";
       case "announcement":
         return "Use this rarely, only once or twice a month.";
-      case "about":
-        return "This is the meta-level category.";
+      case "event":
+        return "Let users know about upcoming company/conference events.";
       default:
         return CHANNELS_DESCRIPTIONS[channel];
     }

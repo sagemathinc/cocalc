@@ -4,6 +4,7 @@
  */
 
 import {
+  Channel,
   NewsItem,
   NewsPrevNext,
   RecentHeadline,
@@ -143,4 +144,36 @@ export async function getRecentHeadlines(
   const headlines = await C.query(Q_RECENT, [n]);
   if (headlines.length === 0) return null;
   return headlines;
+}
+
+// Query upcoming events from a particular channel
+const Q_UPCOMING_NEWS_CHANNEL_ITEMS = `
+SELECT
+  id, channel, title, text, url,
+  extract(epoch from date::timestamp)::integer as date
+FROM news
+WHERE date >= NOW()
+  AND news.channel = $1
+  AND hide IS NOT TRUE
+ORDER BY date
+LIMIT 100`;
+
+export async function getUpcomingNewsChannelItems(channel: Channel): Promise<NewsItem[]> {
+  return await C.query(Q_UPCOMING_NEWS_CHANNEL_ITEMS, [channel]);
+}
+
+// Query past events from a particular channel
+const Q_PAST_NEWS_CHANNEL_ITEMS = `
+SELECT
+  id, channel, title, text, url,
+  extract(epoch from date::timestamp)::integer as date
+FROM news
+WHERE date <= NOW()
+  AND news.channel = $1
+  AND hide IS NOT TRUE
+ORDER BY date DESC
+LIMIT 100`;
+
+export async function getPastNewsChannelItems(channel: Channel): Promise<NewsItem[]> {
+  return await C.query(Q_PAST_NEWS_CHANNEL_ITEMS, [channel]);
 }
