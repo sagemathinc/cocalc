@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Card, Space, Tag, Tooltip } from "antd";
+import { Alert, Button, Card, Flex, Space, Tag, Tooltip } from "antd";
 import { useRouter } from "next/router";
 import { Fragment } from "react";
 
@@ -145,7 +145,17 @@ export function News(props: Props) {
           )}`}
           style={{ ...bottomLinkStyle }}
         >
-          <Icon name="facebook" />
+          <Icon name="facebook-filled" />
+          {text ? " Share" : ""}
+        </A>
+        <A
+          key="linkedin"
+          href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+              `https://${dns}${permalink}`
+          )}`}
+          style={{ ...bottomLinkStyle }}
+        >
+          <Icon name="linkedin-filled" />
           {text ? " Share" : ""}
         </A>
       </Space>
@@ -281,25 +291,31 @@ export function News(props: Props) {
         </Title>
         {renderFuture()}
         {renderHidden()}
-        <Markdown value={text} style={{ ...style, minHeight: "30vh" }} />
-        {url && (
-          <Paragraph style={{ textAlign: "center" }}>
-            {readMoreLink(false, true)}
-          </Paragraph>
-        )}
-        <Paragraph
-          style={{
-            fontSize: "150%",
-            fontWeight: "bold",
-            textAlign: "center",
-          }}
+        <Markdown value={text} style={{ ...style, minHeight: "20vh" }} />
+
+        <Flex
+          align="baseline"
+          justify="space-between"
+          wrap="wrap"
         >
-          <Space size="middle" direction="horizontal">
-            {showEdit ? editLink() : undefined}
-            {showShareLinks ? shareLinks(true) : undefined}
-          </Space>
-        </Paragraph>
-        {renderHistory()}
+          {url && (
+            <Paragraph style={{ textAlign: "center" }}>
+              {readMoreLink(false, true)}
+            </Paragraph>
+          )}
+          <Paragraph
+            style={{
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
+          >
+            <Space size="middle" direction="horizontal">
+              {showEdit ? editLink() : undefined}
+              {showShareLinks ? shareLinks(true) : undefined}
+            </Space>
+          </Paragraph>
+          {renderHistory()}
+        </Flex>
       </>
     );
   } else {
