@@ -309,7 +309,19 @@ export function service2model(
   if (service === "chatgpt") {
     return "gpt-3.5-turbo";
   }
+  const lm = service2model_core(service);
+  if (lm == null) {
+    // We don't throw an error, since the frontend would crash
+    // throw new Error(`unknown service: ${service}`);
+    console.warn(`service2model: unknown service: ${service}`);
+    return "gpt-3.5-turbo";
+  }
+  return lm;
+}
 
+export function service2model_core(
+  service: LanguageService,
+): LanguageModel | null {
   // split off the first part of service, e.g., "openai-" or "google-"
   const s = service.split("-")[0];
   const hasPrefix = LANGUAGE_MODEL_SERVICES.some((v) => s === v);
@@ -318,13 +330,11 @@ export function service2model(
   if (hasPrefix && s === "ollama") {
     return toOllamaModel(m);
   }
-  if (!LANGUAGE_MODELS.includes(m as any)) {
-    // We don't throw an error, since the frontend would crash
-    // throw new Error(`unknown service: ${service}`);
-    console.warn(`service2model: unknown service: ${service}`);
-    return "gpt-3.5-turbo";
+
+  if (LANGUAGE_MODELS.includes(m as any)) {
+    return m;
   }
-  return m as LanguageModel;
+  return null;
 }
 
 // Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
@@ -561,17 +571,17 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     max_tokens: 16384,
     free: false,
   },
-  "gpt-4-turbo-preview": {
-    prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
-    completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
-    max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
-    free: false,
-  },
   // like above, but we limit the tokens to reduce how much money user has to commit to
   "gpt-4-turbo-preview-8k": {
     prompt_tokens: usd1Mtokens(10),
     completion_tokens: usd1Mtokens(30),
     max_tokens: 8192, // the actual reply is 8k, and we use this to truncate the input prompt!
+    free: false,
+  },
+  "gpt-4-turbo-preview": {
+    prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
+    completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
+    max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
     free: false,
   },
   // also OpenAI
@@ -637,22 +647,16 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: false,
   },
-  // Anthropic: pricing somewhere on that page: https://www.anthropic.com/api
-  "claude-3-opus": {
-    prompt_tokens: usd1Mtokens(15),
-    completion_tokens: usd1Mtokens(75),
-    max_tokens: 200_000,
-    free: false,
-  },
   "claude-3-opus-8k": {
     prompt_tokens: usd1Mtokens(15),
     completion_tokens: usd1Mtokens(75),
     max_tokens: 8_000, // limited to 8k tokens, to reduce the necessary spend limit to commit to
     free: false,
   },
-  "claude-3-sonnet": {
-    prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(15),
+  // Anthropic: pricing somewhere on that page: https://www.anthropic.com/api
+  "claude-3-opus": {
+    prompt_tokens: usd1Mtokens(15),
+    completion_tokens: usd1Mtokens(75),
     max_tokens: 200_000,
     free: false,
   },
@@ -662,9 +666,9 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     max_tokens: 4_000, // limited to 4k tokens, offered for free
     free: true,
   },
-  "claude-3-haiku": {
-    prompt_tokens: usd1Mtokens(0.25),
-    completion_tokens: usd1Mtokens(1.25),
+  "claude-3-sonnet": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
     max_tokens: 200_000,
     free: false,
   },
@@ -673,6 +677,12 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     completion_tokens: usd1Mtokens(1.25),
     max_tokens: 8_000, // limited to 8k tokens, offered for free
     free: true,
+  },
+  "claude-3-haiku": {
+    prompt_tokens: usd1Mtokens(0.25),
+    completion_tokens: usd1Mtokens(1.25),
+    max_tokens: 200_000,
+    free: false,
   },
 } as const;
 

@@ -14,37 +14,10 @@ interface Spec {
 
 export type QuotaSpec = Record<Service, Spec>;
 
+// NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true, color: "green" },
   refund: { display: "Refund", noSet: true, color: "red" },
-  "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
-  "openai-gpt-3.5-turbo": {
-    display: "OpenAI GPT-3.5",
-    color: "#10a37f",
-    noSet: true, // because this model is not charged for
-  },
-  "openai-gpt-3.5-turbo-16k": {
-    display: "OpenAI GPT-3.5 16k",
-    color: "#10a37f",
-  },
-  "openai-text-embedding-ada-002": {
-    display: "OpenAI Text Embedding Ada 002",
-    color: "#10a37f",
-    noSet: true, // because this model is not user visible yet
-  },
-  "openai-gpt-4-32k": {
-    display: "OpenAI GPT-4 32k",
-    color: "#10a37f",
-    noSet: true, // because this is not user visible yet
-  },
-  "openai-gpt-4-turbo-preview": {
-    display: "OpenAI GPT-4 Turbo 128k",
-    color: "#10a37f",
-  },
-  "openai-gpt-4-turbo-preview-8k": {
-    display: "OpenAI GPT-4 Turbo 8k",
-    color: "#10a37f",
-  },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   "compute-server": { display: "Compute Server", color: "#2196f3" },
   "compute-server-network-usage": {
@@ -65,6 +38,33 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "Voucher",
     color: "#00238b",
     noSet: true,
+  },
+  // ATTN: LLMs comes below this line, the quotas above are the important ones to show first!
+  "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
+  "openai-gpt-3.5-turbo": {
+    display: "OpenAI GPT-3.5",
+    color: "#10a37f",
+  },
+  "openai-gpt-3.5-turbo-16k": {
+    display: "OpenAI GPT-3.5 16k",
+    color: "#10a37f",
+  },
+  "openai-text-embedding-ada-002": {
+    display: "OpenAI Text Embedding Ada 002",
+    color: "#10a37f",
+    noSet: true, // because this model is not user visible yet
+  },
+  "openai-gpt-4-32k": {
+    display: "OpenAI GPT-4 32k",
+    color: "#10a37f",
+  },
+  "openai-gpt-4-turbo-preview": {
+    display: "OpenAI GPT-4 Turbo 128k",
+    color: "#10a37f",
+  },
+  "openai-gpt-4-turbo-preview-8k": {
+    display: "OpenAI GPT-4 Turbo 8k",
+    color: "#10a37f",
   },
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
