@@ -8,7 +8,9 @@ import { List } from "immutable";
 import { isEmpty } from "lodash";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import AnthropicAvatar from "@cocalc/frontend/components/anthropic-avatar";
 import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
 import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
@@ -21,6 +23,7 @@ import {
   LLMServicesAvailable,
   LLM_DESCR,
   LLM_USERNAMES,
+  LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
   model2service,
@@ -29,8 +32,10 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { OllamaPublic } from "@cocalc/util/types/llm";
-import AnthropicAvatar from "../../components/anthropic-avatar";
-import { Item } from "./complete";
+import { Item as CompleteItem } from "./complete";
+
+// we make the show_llm_main_menu field required, to avoid forgetting to set it ;-)
+type Item = CompleteItem & Required<Pick<CompleteItem, "show_llm_main_menu">>;
 
 interface Opts {
   avatarUserSize?: number;
@@ -44,8 +49,10 @@ export function useMentionableUsers(): (
   const { project_id, enabledLLMs } = useProjectContext();
 
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
-
   const ollama = useTypedRedux("customize", "ollama");
+
+  // the current default model. This is always a valid LLM, even if none has ever been selected.
+  const [model] = useLanguageModelSetting();
 
   return useMemo(() => {
     return (search: string | undefined, opts?: Opts) => {
@@ -53,17 +60,19 @@ export function useMentionableUsers(): (
         search,
         project_id,
         enabledLLMs,
+        model,
         ollama: ollama?.toJS() ?? {},
         selectableLLMs,
         opts,
       });
     };
-  }, [project_id, JSON.stringify(enabledLLMs), ollama]);
+  }, [project_id, JSON.stringify(enabledLLMs), ollama, model]);
 }
 
 interface Props {
   search: string | undefined;
   project_id: string;
+  model: LanguageModel;
   ollama: { [key: string]: OllamaPublic };
   enabledLLMs: LLMServicesAvailable;
   selectableLLMs: List<string>;
@@ -74,6 +83,7 @@ function mentionableUsers({
   search,
   project_id,
   enabledLLMs,
+  model,
   ollama,
   selectableLLMs,
   opts,
@@ -130,6 +140,8 @@ function mentionableUsers({
     //       (2) this is a non-free BUT CHEAP model you can actually use after hitting your limit, which is muh cheaper than GPT-4.
     for (const m of MODELS_OPENAI) {
       if (selectableLLMs.includes(m)) {
+        const show_llm_main_menu = m === model;
+        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
         const v = "openai";
         const search_term = `${v}chat${m.replace(/-/g, "").toLowerCase()}`;
         if (!search || search_term.includes(search)) {
@@ -137,12 +149,13 @@ function mentionableUsers({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
-                <OpenAIAvatar size={avatarLLMSize} /> {LLM_USERNAMES[m]}{" "}
+                <OpenAIAvatar size={size} /> {LLM_USERNAMES[m]}{" "}
                 <LLMModelPrice model={m} floatRight />
               </LLMTooltip>
             ),
             search: search_term,
             is_llm: true,
+            show_llm_main_menu,
           });
         }
       }
@@ -152,6 +165,8 @@ function mentionableUsers({
   if (enabledLLMs.google) {
     for (const m of GOOGLE_MODELS) {
       if (selectableLLMs.includes(m)) {
+        const show_llm_main_menu = m === model;
+        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
         const v = model2vendor(m);
         const search_term = `${v}${m.replace(/-/g, "").toLowerCase()}`;
         if (!search || search_term.includes(search)) {
@@ -159,12 +174,13 @@ function mentionableUsers({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
-                <GoogleGeminiLogo size={avatarLLMSize} /> {LLM_USERNAMES[m]}{" "}
+                <GoogleGeminiLogo size={size} /> {LLM_USERNAMES[m]}{" "}
                 <LLMModelPrice model={m} floatRight />
               </LLMTooltip>
             ),
             search: search_term,
             is_llm: true,
+            show_llm_main_menu,
           });
         }
       }
@@ -174,6 +190,8 @@ function mentionableUsers({
   if (enabledLLMs.mistralai) {
     for (const m of MISTRAL_MODELS) {
       if (!selectableLLMs.includes(m)) continue;
+      const show_llm_main_menu = m === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
       const name = LLM_USERNAMES[m] ?? m;
       const s = model2vendor(m);
       const search_term = `${s}${m}${name}`.toLowerCase();
@@ -182,12 +200,13 @@ function mentionableUsers({
           value: model2service(m),
           label: (
             <LLMTooltip model={m}>
-              <MistralAvatar size={avatarLLMSize} /> {name}{" "}
+              <MistralAvatar size={size} /> {name}{" "}
               <LLMModelPrice model={m} floatRight />
             </LLMTooltip>
           ),
           search: search_term,
           is_llm: true,
+          show_llm_main_menu,
         });
       }
     }
@@ -195,6 +214,8 @@ function mentionableUsers({
     if (enabledLLMs.anthropic) {
       for (const m of ANTHROPIC_MODELS) {
         if (!selectableLLMs.includes(m)) continue;
+        const show_llm_main_menu = m === model;
+        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
         const name = LLM_USERNAMES[m] ?? m;
         const s = model2vendor(m);
         const search_term = `${s}${m}${name}`.toLowerCase();
@@ -203,32 +224,36 @@ function mentionableUsers({
             value: model2service(m),
             label: (
               <LLMTooltip model={m}>
-                <AnthropicAvatar size={avatarLLMSize} /> {name}{" "}
+                <AnthropicAvatar size={size} /> {name}{" "}
                 <LLMModelPrice model={m} floatRight />
               </LLMTooltip>
             ),
             search: search_term,
             is_llm: true,
+            show_llm_main_menu,
           });
         }
       }
     }
 
     if (enabledLLMs.ollama && !isEmpty(ollama)) {
-      for (const [model, conf] of Object.entries(ollama)) {
-        const value = toOllamaModel(model);
-        const search_term = `${model}${value}${conf.display}`.toLowerCase();
+      for (const [m, conf] of Object.entries(ollama)) {
+        const show_llm_main_menu = m === model;
+        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+        const value = toOllamaModel(m);
+        const search_term = `${m}${value}${conf.display}`.toLowerCase();
         if (!search || search_term.includes(search)) {
           mentions.push({
             value,
             label: (
               <span>
-                <OllamaAvatar size={avatarLLMSize} /> {conf.display}{" "}
-                <LLMModelPrice model={model} floatRight />
+                <OllamaAvatar size={size} /> {conf.display}{" "}
+                <LLMModelPrice model={m} floatRight />
               </span>
             ),
             search: search_term,
             is_llm: true,
+            show_llm_main_menu,
           });
         }
       }
@@ -245,7 +270,13 @@ function mentionableUsers({
         <Avatar account_id={account_id} size={avatarUserSize} /> {name}
       </span>
     );
-    mentions.push({ value: account_id, label, search: s, is_llm: false });
+    mentions.push({
+      value: account_id,
+      label,
+      search: s,
+      is_llm: false,
+      show_llm_main_menu: true, // irrelevant, but that's what it will do for standard user accouns
+    });
   }
 
   return mentions;

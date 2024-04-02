@@ -12,7 +12,7 @@ rewrote this to use the Antd dropdown, which is more dynamic.
 
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
-import { FC, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { CSS, ReactDOM } from "@cocalc/frontend/app-framework";
 import { MenuItems } from "@cocalc/frontend/components";
@@ -24,6 +24,7 @@ export interface Item {
   value: string;
   search?: string; // useful for clients
   is_llm?: boolean; // if true, then this is an LLM in a sub-menu
+  show_llm_main_menu?: boolean; // if true, then this LLM is also show in the main menu (not just the sub-menu)
 }
 interface Props0 {
   items: Item[]; // we assume at least one item
@@ -46,16 +47,32 @@ type Props = Props1 | Props2;
 // WARNING: Complete closing when clicking outside the complete box
 // is handled in cell-list on_click.  This is ugly code (since not localized),
 // but seems to work well for now.  Could move.
-export const Complete: FC<Props> = (props: Props) => {
+export function Complete(props: Props) {
   const { items, onSelect, onCancel, offset, position } = props;
 
   const items_user = items.filter((item) => !(item.is_llm ?? false));
-  const items_llm = items.filter((item) => item.is_llm ?? false);
+
+  // All other LLMs that should not show up in the main menu
+  const items_llm = items.filter(
+    (item) =>
+      (item.is_llm ?? false) &&
+      // if search elimites all users, we show all LLMs
+      (items_user.length === 0 || !item.show_llm_main_menu),
+  );
 
   const haveLLMs = items_llm.length > 0;
   // note: if onlyLLMs is true, we treat LLMs as if they're users and do not show a submenu
   // this causes the submenu to "collapse" if there are no users left to show
   const onlyLLMs = haveLLMs && items_user.length === 0;
+
+  // If we render a sub-menu, add LLMs that should should show up in the main menu
+  if (!onlyLLMs) {
+    for (const item of items) {
+      if (item.is_llm && item.show_llm_main_menu) {
+        items_user.unshift(item);
+      }
+    }
+  }
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedLLM, setSelectedLLM] = useState<number>(0);
@@ -118,13 +135,15 @@ export const Complete: FC<Props> = (props: Props) => {
           break;
 
         case 39: // right arrow key
-          if (haveLLMs) {
-            setLLM(true);
-          }
+          if (haveLLMs) setLLM(true);
+          // @ts-ignore
+          $(".ant-menu-item-selected").scrollintoview();
           break;
 
         case 37: // left arrow key
           setLLM(false);
+          // @ts-ignore
+          $(".ant-menu-item-selected").scrollintoview();
           break;
       }
     },
@@ -149,8 +168,9 @@ export const Complete: FC<Props> = (props: Props) => {
       : items_user[selectedUser % (items_user.length ? items_user.length : 1)]
           ?.value;
 
-  const style: CSS = { fontSize: "120%" } as const;
+  const style: CSS = { fontSize: "115%" } as const;
 
+  // we collapse to just showing the LLMs if the search ended up only showing LLMs
   const menuItems: MenuItems = (onlyLLMs ? items_llm : items_user).map(
     ({ label, value }) => {
       return {
@@ -162,12 +182,12 @@ export const Complete: FC<Props> = (props: Props) => {
   );
 
   if (haveLLMs && !onlyLLMs) {
-    // add a category "test" in the beginning of the menuItems list as a submenu
-    menuItems.unshift({
+    // we put this at the very end – the default LLM (there is always one) is at the start, then are the users, then this
+    menuItems.push({
       key: "sub_llm",
       label: (
         <span style={style}>
-          <AIAvatar size={22} /> AI Language Models
+          <AIAvatar size={22} /> More Language Models
         </span>
       ),
       style,
@@ -175,7 +195,7 @@ export const Complete: FC<Props> = (props: Props) => {
         return {
           key: value,
           label: label ?? value,
-          style: { fontSize: "90%" }, // not so large as the normal user items
+          style: { fontSize: "90%" }, // not as large as the normal user items
         };
       }),
     });
@@ -232,7 +252,7 @@ export const Complete: FC<Props> = (props: Props) => {
   } else {
     throw Error("bug -- not possible");
   }
-};
+}
 
 const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body);

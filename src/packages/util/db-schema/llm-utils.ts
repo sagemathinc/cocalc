@@ -425,7 +425,7 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-3-haiku-8k": "Claude 3 Haiku 8k",
   "claude-3-sonnet": "Claude 3 Sonnet",
   "claude-3-sonnet-4k": "Claude 3 Sonnet 4k",
-  "claude-3-opus": "Claude 3 Opus",
+  "claude-3-opus": "Claude 3 Opus 200k",
   "claude-3-opus-8k": "Claude 3 Opus 8k",
 } as const;
 
