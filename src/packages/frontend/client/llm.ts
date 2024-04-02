@@ -18,7 +18,6 @@ import {
   LanguageModel,
   LanguageServiceCore,
   getSystemPrompt,
-  isClientModel,
   isFreeModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -104,14 +103,6 @@ export class LLMClient {
     }
 
     const is_cocalc_com = redux.getStore("customize").get("is_cocalc_com");
-
-    if (isClientModel(model)) {
-      // do not import until needed -- it is HUGE!
-      const { queryClientLLM } = await import(
-        "@cocalc/frontend/misc/llm-client"
-      );
-      return queryClientLLM({ input, history, system, model, chatStream });
-    }
 
     if (!isFreeModel(model, is_cocalc_com)) {
       // Ollama and others are treated as "free"
