@@ -18,12 +18,13 @@ import {
   LanguageModel,
   LanguageServiceCore,
   getSystemPrompt,
+  isClientModel,
   isFreeModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
-import type { History } from "./types"; // do not import until needed -- it is HUGE!
+import type { History } from "./types";
 
 interface EmbeddingsQuery {
   scope: string | string[];
@@ -104,6 +105,14 @@ export class LLMClient {
 
     const is_cocalc_com = redux.getStore("customize").get("is_cocalc_com");
 
+    if (isClientModel(model)) {
+      // do not import until needed -- it is HUGE!
+      const { queryClientLLM } = await import(
+        "@cocalc/frontend/misc/llm-client"
+      );
+      return queryClientLLM({ input, history, system, model, chatStream });
+    }
+
     if (!isFreeModel(model, is_cocalc_com)) {
       // Ollama and others are treated as "free"
       const service = model2service(model) as LanguageServiceCore;
@@ -125,12 +134,14 @@ export class LLMClient {
       }
     }
 
+    // do not import until needed -- it is HUGE!
     const {
       numTokensUpperBound,
       truncateHistory,
       truncateMessage,
       getMaxTokens,
     } = await import("@cocalc/frontend/misc/llm");
+
     // We always leave some room for output:
     const maxTokens = getMaxTokens(model) - 1000;
     input = truncateMessage(input, maxTokens);

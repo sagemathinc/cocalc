@@ -2,6 +2,21 @@
 
 import { unreachable } from "@cocalc/util/misc";
 
+// "Client LLMs" are defined in the user's account settings
+// They directly query an external LLM service.
+export interface ClientLLM {
+  type: "ollama"; // only one type for now
+  model: string; // non-empty string
+  display: string; // short user-visible string
+  endpoint: string; // URL to the LLM service
+}
+
+const CLIENT_PREFIX = "client-";
+
+export function isClientModel(model: string): boolean {
+  return model.startsWith(CLIENT_PREFIX);
+}
+
 const OPENAI_PREFIX = "openai-";
 
 // NOTE: all arrays of model names should order them by the "simples and fastest" to the "complex, slowest, most expensive"
