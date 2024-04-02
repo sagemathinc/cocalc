@@ -1338,8 +1338,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@cocalc/gcloud-pricing-calculator':
-        specifier: ^1.8.0
-        version: 1.8.0
+        specifier: ^1.9.1
+        version: 1.9.1
       '@cocalc/mistralai':
         specifier: ^0.0.2
         version: 0.0.2(encoding@0.1.13)
@@ -3219,14 +3219,14 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /@cocalc/gcloud-pricing-calculator@1.8.0:
-    resolution: {integrity: sha512-Z4jjAyeLJNGA1qsh66TzlhymQagcWbGvh1+RYnjMDYo8hd4M91kTdBeVoq18Z6T5qOdL1Z0rTz99+n6zApTrpg==}
+  /@cocalc/gcloud-pricing-calculator@1.9.1:
+    resolution: {integrity: sha512-c+UZTwxF3CofrgEpflC7eJU4jPLU+Ms3viMzbiaQr5NHqGphEiNSzKonbmm97UWfmr2raYQuW28esMjyQ62ewg==}
     engines: {node: '>=0.18.0'}
     requiresBuild: true
     dependencies:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
-      csv-parse: 5.5.2
+      csv-parse: 5.5.5
       debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
@@ -7735,7 +7735,7 @@ packages:
       css-what: 6.1.0
       domelementtype: 2.3.0
       domhandler: 5.0.3
-      domutils: 3.1.0
+      domutils: 3.0.1
     dev: false
 
   /cheerio@1.0.0-rc.12:
@@ -8494,8 +8494,8 @@ packages:
     resolution: {integrity: sha512-WI330GjCuEioK/ii8HM2YE/eV+ynpeLvU+RXw4R8bRU8R0laK5zO3fDsc4gH8s472e3Ga38rbIjCAiQh+tEHkw==}
     dev: false
 
-  /csv-parse@5.5.2:
-    resolution: {integrity: sha512-YRVtvdtUNXZCMyK5zd5Wty1W6dNTpGKdqQd4EQ8tl/c6KW1aMBB1Kg1ppky5FONKmEqGJ/8WjLlTNLPne4ioVA==}
+  /csv-parse@5.5.5:
+    resolution: {integrity: sha512-erCk7tyU3yLWAhk6wvKxnyPtftuy/6Ak622gOO7BCJ05+TYffnPCJF905wmOQm+BpkX54OdAl8pveJwUdpnCXQ==}
     dev: false
 
   /csv-stringify@6.3.0:
@@ -18459,7 +18459,7 @@ packages:
       jest-worker: 27.5.1
       schema-utils: 3.3.0
       serialize-javascript: 6.0.2
-      terser: 5.29.2
+      terser: 5.30.0
       uglify-js: 3.17.4
       webpack: 5.91.0(uglify-js@3.17.4)
     dev: false
@@ -18484,7 +18484,7 @@ packages:
       jest-worker: 27.5.1
       schema-utils: 3.3.0
       serialize-javascript: 6.0.2
-      terser: 5.29.2
+      terser: 5.30.0
       webpack: 5.91.0
     dev: false
 
@@ -18535,8 +18535,8 @@ packages:
       source-map-support: 0.5.21
     dev: true
 
-  /terser@5.29.2:
-    resolution: {integrity: sha512-ZiGkhUBIM+7LwkNjXYJq8svgkd+QK3UUr0wJqY4MieaezBSAIPgbSPZyIx0idM6XWK5CMzSWa8MJIzmRcB8Caw==}
+  /terser@5.30.0:
+    resolution: {integrity: sha512-Y/SblUl5kEyEFzhMAQdsxVHh+utAxd4IuRNJzKywY/4uzSogh3G219jqbDDxYu4MXO9CzY3tSEqmZvW6AoEDJw==}
     engines: {node: '>=10'}
     hasBin: true
     dependencies:

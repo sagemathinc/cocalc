@@ -208,6 +208,15 @@ export default function Header(props: Props) {
         >
           News
         </A>{" "}
+        {landingPages && (
+          <A
+            style={page == "about" ? SelectedStyle : LinkStyle}
+            href="/about"
+            title={`About ${siteName}`}
+          >
+            About
+          </A>
+        )}
         {account ? (
           <AccountNavTab
             style={page == "account" ? SelectedStyle : LinkStyle}

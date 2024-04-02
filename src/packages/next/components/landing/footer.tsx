@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Layout, Space } from "antd";
+import { Flex, Layout, Space } from "antd";
 
 import A from "components/misc/A";
 import Logo from "components/logo";
 import { useCustomize } from "lib/customize";
 import Contact from "./contact";
 import { CSS, Paragraph } from "components/misc";
+import SocialMediaIconList from "./social-media-icon-list";
 
 const STYLE: CSS = {
   textAlign: "center",
@@ -81,7 +82,7 @@ export default function Footer() {
           )}
           {contactEmail && (
             <Item>
-              <Contact showEmail={false} />
+              <Contact showEmail={false}/>
             </Item>
           )}
           {imprint && (
@@ -109,7 +110,27 @@ export default function Footer() {
           </Item>
         </Paragraph>
         <Paragraph>
-          <Logo type="rectangular" width={200} />
+          <Flex
+            align="center"
+            justify="space-around"
+            vertical
+          >
+            <Logo type="rectangular" width={200}/>
+            {
+              isCommercial && (
+                <SocialMediaIconList
+                  links={{
+                    facebook: "https://www.facebook.com/CoCalcOnline",
+                    github: "https://github.com/sagemathinc/cocalc",
+                    linkedin: "https://www.linkedin.com/company/sagemath-inc./",
+                    twitter: "https://twitter.com/cocalc_com",
+                    youtube: "https://www.youtube.com/c/SagemathCloud",
+                  }}
+                  iconFontSize={32}
+                />
+              )
+            }
+          </Flex>
         </Paragraph>
       </Space>
     </Layout.Footer>
