@@ -34,10 +34,6 @@ import {
 
 const DELETE_BUTTON = false;
 
-// 5 minutes -- how long to show the "regenerate button" for chatgpt.
-// Don't show it forever, since we want to avoid clutter.
-const regenerateCutoff = 1000 * 60 * 5;
-
 const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
 
 const MARKDOWN_STYLE = undefined;
@@ -601,76 +597,78 @@ export default function Message(props: Props) {
     return REPLY_STYLE;
   }
 
-  let cols;
+  function renderRegenerateLLM() {
+    if (!isLLMThread || !props.actions) return;
+
+    return (
+      <Button
+        style={{ color: COLORS.GRAY_M, marginLeft: "15px" }}
+        onClick={() => {
+          props.actions?.languageModelRegenerate(new Date(date));
+        }}
+      >
+        <Icon name="refresh" /> Regenerate
+      </Button>
+    );
+  }
+
+  function renderReplyRow() {
+    if (
+      replying ||
+      generating ||
+      !props.message.get("reply_to") ||
+      !props.allowReply
+    )
+      return;
+    return (
+      <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
+        <Tooltip
+          title={
+            isLLMThread
+              ? `Reply to ${modelToName(
+                  isLLMThread,
+                )}, sending the entire thread as context.`
+              : "Reply in this thread."
+          }
+        >
+          <Button
+            type="text"
+            onClick={() => setReplying(true)}
+            style={{ color: COLORS.GRAY_M }}
+          >
+            <Icon name="reply" /> Reply
+            {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
+            {isLLMThread ? (
+              <Avatar
+                account_id={isLLMThread}
+                size={16}
+                style={{ marginLeft: "10px", marginBottom: "2.5px" }}
+              />
+            ) : undefined}
+          </Button>
+        </Tooltip>
+        {renderRegenerateLLM()}
+      </div>
+    );
+  }
+
+  const cols = [content_column(), BLANK_COLUMN];
+  // we optionally add the avatar column
   if (props.include_avatar_col) {
-    cols = [avatar_column(), content_column(), BLANK_COLUMN];
-    // mirror right-left for sender's view
-    if (
-      !props.message.get("reply_to") &&
-      sender_is_viewer(props.account_id, props.message)
-    ) {
-      cols = cols.reverse();
-    }
-  } else {
-    cols = [content_column(), BLANK_COLUMN];
-    // mirror right-left for sender's view
-    if (
-      !props.message.get("reply_to") &&
-      sender_is_viewer(props.account_id, props.message)
-    ) {
-      cols = cols.reverse();
-    }
+    cols.unshift(avatar_column());
+  }
+  // … and mirror right-left for sender's view
+  if (
+    !props.message.get("reply_to") &&
+    sender_is_viewer(props.account_id, props.message)
+  ) {
+    cols.reverse();
   }
 
   return (
     <Row style={getStyle()}>
       {cols}
-      {!replying && props.message.get("reply_to") && props.allowReply && (
-        <div
-          style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
-        >
-          {!generating && (
-            <Tooltip
-              title={
-                isLLMThread
-                  ? `Reply to ${modelToName(
-                      isLLMThread,
-                    )}, sending the entire thread as context.`
-                  : "Reply in this thread."
-              }
-            >
-              <Button
-                type="text"
-                onClick={() => setReplying(true)}
-                style={{ color: COLORS.GRAY_M }}
-              >
-                <Icon name="reply" /> Reply
-                {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
-                {isLLMThread && (
-                  <Avatar
-                    account_id={isLLMThread}
-                    size={16}
-                    style={{ marginLeft: "10px", marginBottom: "2.5px" }}
-                  />
-                )}
-              </Button>
-            </Tooltip>
-          )}
-          {!generating &&
-            isLLMThread &&
-            props.actions &&
-            Date.now() - date <= regenerateCutoff && (
-              <Button
-                style={{ color: COLORS.GRAY_M, marginLeft: "15px" }}
-                onClick={() => {
-                  props.actions?.languageModelRegenerate(new Date(date));
-                }}
-              >
-                <Icon name="refresh" /> Regenerate response
-              </Button>
-            )}
-        </div>
-      )}
+      {renderReplyRow()}
     </Row>
   );
 }
