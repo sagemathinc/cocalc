@@ -598,13 +598,14 @@ export default function Message(props: Props) {
   }
 
   function renderRegenerateLLM() {
-    if (!isLLMThread || !props.actions) return;
+    const { actions } = props;
+    if (!isLLMThread || !actions) return;
 
     return (
       <Button
         style={{ color: COLORS.GRAY_M, marginLeft: "15px" }}
         onClick={() => {
-          props.actions?.languageModelRegenerate(new Date(date));
+          actions.languageModelRegenerate(new Date(date));
         }}
       >
         <Icon name="refresh" /> Regenerate

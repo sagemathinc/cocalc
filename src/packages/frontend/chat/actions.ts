@@ -23,6 +23,7 @@ import {
   model2vendor,
   toOllamaModel,
   type LanguageModel,
+  isLanguageModelService,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { getSortedDates } from "./chat-log";
@@ -509,10 +510,10 @@ export class ChatActions extends Actions<ChatState> {
         .getProjectsStore()
         .hasLanguageModelEnabled(this.store?.get("project_id"))
     ) {
-      // No need to check whether chatgpt is enabled at all.
+      // No need to check whether a language model is enabled at all.
       // We only do this check if tag is not set, e.g., directly typing @chatgpt
       // into the input box.  If the tag is set, then the request to use
-      // chatgpt came from some place, e.g., the "Explain" button, so
+      // an LLM came from some place, e.g., the "Explain" button, so
       // we trust that.
       // We also do the check when replying.
       return;
@@ -607,15 +608,16 @@ export class ChatActions extends Actions<ChatState> {
       tag,
     });
 
-    // submit question to chatgpt
+    // submit question to the given language model
     const id = uuid();
     this.chatStreams.add(id);
     setTimeout(() => {
       this.chatStreams.delete(id);
     }, 3 * 60 * 1000);
+    const history = reply_to ? this.getLLMHistory(reply_to) : undefined;
     const chatStream = webapp_client.openai_client.queryStream({
       input,
-      history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
+      history,
       project_id,
       path,
       model,
@@ -677,9 +679,9 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   // the input and output for the thread ending in the
-  // given message, formatted for chatgpt, and heuristically
+  // given message, formatted for querying a langauge model, and heuristically
   // truncated to not exceed a limit in size.
-  private getChatGPTHistory(reply_to: Date): LanguageModelHistory {
+  private getLLMHistory(reply_to: Date): LanguageModelHistory {
     const messages = this.store?.get("messages");
     const history: LanguageModelHistory = [];
     if (!messages) return history;
@@ -696,12 +698,9 @@ export class ChatActions extends Actions<ChatState> {
       const content = stripMentions(
         message.get("history").last().get("content"),
       );
-      history.push({
-        content,
-        role: message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")
-          ? "assistant"
-          : "user",
-      });
+      const author_id = message.getIn(["history", 0, "author_id"]);
+      const role = isLanguageModelService(author_id) ? "assistant" : "user";
+      history.push({ content, role });
     }
 
     return history;
@@ -722,15 +721,18 @@ export class ChatActions extends Actions<ChatState> {
     const date = date0.toISOString();
     const cur = this.syncdb.get_one({ event: "chat", date });
     if (cur == null) return;
-    const reply_to = cur.get("reply_to");
+    const reply_to: string | undefined = cur.get("reply_to");
     if (!reply_to) return;
     const message = this.syncdb.get_one({ event: "chat", date: reply_to });
     if (!message) return;
-    this.syncdb.delete({
-      event: "chat",
-      date,
-    });
-    this.processLanguageModel(message, undefined, "regenerate");
+    // console.log("regenerate message:", {
+    //   date,
+    //   reply_to,
+    //   message: message.toJS(),
+    //   cur: cur.toJS(),
+    // });
+    this.syncdb.delete({ event: "chat", date });
+    this.processLanguageModel(message, new Date(reply_to), "regenerate");
   }
 }
 
