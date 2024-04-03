@@ -98,14 +98,16 @@ const ITEMS = [
           </>
         ),
       },
-      ...CHANNELS.map((c) => ({
-        key: c,
-        label: (
-          <>
-            <Icon name={CHANNELS_ICONS[c] as IconName} /> {capitalize(c)}
-          </>
-        ),
-      })),
+      ...CHANNELS
+        .filter((c) => c !== "event")
+        .map((c) => ({
+          key: c,
+          label: (
+            <>
+              <Icon name={CHANNELS_ICONS[c] as IconName}/> {capitalize(c)}
+            </>
+          ),
+        })),
     ],
     type: "group",
   },

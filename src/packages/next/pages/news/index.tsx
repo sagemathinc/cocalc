@@ -130,13 +130,17 @@ export default function AllNews(props: Props) {
             onChange={(e) => setChannel(e.target.value)}
           >
             <Radio.Button value="all">Show All</Radio.Button>
-            {CHANNELS.map((c) => (
-              <Tooltip key={c} title={CHANNELS_DESCRIPTIONS[c]}>
-                <Radio.Button key={c} value={c}>
-                  <Icon name={CHANNELS_ICONS[c] as IconName} /> {capitalize(c)}
-                </Radio.Button>
-              </Tooltip>
-            ))}
+            {
+              CHANNELS
+                .filter((c) => c !== "event")
+                .map((c) => (
+                  <Tooltip key={c} title={CHANNELS_DESCRIPTIONS[c]}>
+                    <Radio.Button key={c} value={c}>
+                      <Icon name={CHANNELS_ICONS[c] as IconName}/> {capitalize(c)}
+                    </Radio.Button>
+                  </Tooltip>
+                ))
+            }
           </Radio.Group>
         </Col>
         <Col>
