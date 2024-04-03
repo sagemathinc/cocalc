@@ -8,11 +8,10 @@ import { CSSProperties } from "react";
 
 import { Icon, LabeledRow, Markdown } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { Config, RowType } from "@cocalc/util/db-schema/site-defaults";
+import { Config, RowType, Tag } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { Data, IsReadonly } from "./types";
 import { RowEntry } from "./row-entry";
-import { search_match } from "@cocalc/util/misc";
 
 interface RenderRowProps {
   name: string;
@@ -22,7 +21,8 @@ interface RenderRowProps {
   isReadonly: IsReadonly | null;
   onChangeEntry: (name: string, value: string) => void;
   onJsonEntryChange: (name: string, value: string) => void;
-  filter: (string | RegExp)[];
+  filterStr: string;
+  filterTag: Tag | null;
   isModified: (name: string) => boolean;
   isHeader: boolean;
   saveSingleSetting: (name: string) => void;
@@ -36,15 +36,32 @@ export function RenderRow({
   isReadonly,
   onChangeEntry,
   onJsonEntryChange,
-  filter,
+  filterStr,
+  filterTag,
   isModified,
   isHeader,
   saveSingleSetting,
 }: RenderRowProps) {
   if (data == null) return null;
-  if (filter.length > 0) {
-    const x = JSON.stringify(conf).toLowerCase().replace(/-/g, " ");
-    if (!search_match(x, filter)) {
+
+  // if tags are used, we're strictly filtering by them
+  if (filterTag) {
+    if (!conf.tags) return null;
+    if (!conf.tags.includes(filterTag)) {
+      return null;
+    }
+  }
+  // otherwise we're (additionally) filtering by the search string
+  if (filterStr) {
+    const { tags, name: title, desc } = conf;
+    const f = filterStr.toLowerCase();
+    const match_any_tag = tags && tags.includes(f as any);
+    const x = [name, title, desc]
+      .join(" ")
+      .toLowerCase()
+      .replace(/-/g, " ")
+      .replace(/_/g, " ");
+    if (!x.includes(f) && !match_any_tag) {
       return null;
     }
   }

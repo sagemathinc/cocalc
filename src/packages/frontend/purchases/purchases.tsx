@@ -29,6 +29,7 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import getSupportURL from "@cocalc/frontend/support/url";
 import {
+  ANTHROPIC_PREFIX,
   LLM_USERNAMES,
   MISTRAL_PREFIX,
   service2model,
@@ -623,6 +624,7 @@ function Description({ description, period_end, service }) {
       </Tooltip>
     );
   }
+
   if (service.startsWith(MISTRAL_PREFIX)) {
     return (
       <Tooltip
@@ -638,6 +640,23 @@ function Description({ description, period_end, service }) {
       </Tooltip>
     );
   }
+
+  if (service.startsWith(ANTHROPIC_PREFIX)) {
+    return (
+      <Tooltip
+        title={() => (
+          <div>
+            Prompt tokens: {description.prompt_tokens}
+            <br />
+            Completion tokens: {description.completion_tokens}
+          </div>
+        )}
+      >
+        {LLM_USERNAMES[service2model(service)] ?? service}
+      </Tooltip>
+    );
+  }
+
   //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
   if (service === "license") {
     const { license_id } = description;

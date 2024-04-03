@@ -3,7 +3,7 @@ import { getClient as getDB } from "@cocalc/database/pool";
 import * as qdrant from "@cocalc/database/qdrant";
 import { getClient } from "./client";
 import checkForAbuse from "./embeddings-abuse";
-import { VertexAIClient } from "./vertex-ai-client";
+import { GoogleGenAIClient } from "./google-genai-client";
 
 // the vectors we compute using openai's embeddings api get cached for this long
 // in our database since they were last accessed.  Also, this is how long we
@@ -198,7 +198,7 @@ async function createEmbeddings(
   await checkForAbuse(account_id);
   // compute embeddings of everythig
   const openai = await getClient();
-  if (openai instanceof VertexAIClient) {
+  if (openai instanceof GoogleGenAIClient) {
     throw Error("VertexAI not supported");
   }
   const response = await openai.embeddings.create({

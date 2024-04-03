@@ -3,24 +3,33 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Col, Input, InputRef, Modal, Row, Tag } from "antd";
+import {
+  Alert,
+  Tag as AntdTag,
+  Button,
+  Col,
+  Input,
+  InputRef,
+  Modal,
+  Row,
+} from "antd";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { search_split } from "@cocalc/util/misc";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Gap, Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
+import { TAGS, Tag } from "@cocalc/util/db-schema/site-defaults";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
 import { RenderRow } from "./render-row";
 import { Data, IsReadonly, State } from "./types";
 
-const { CheckableTag } = Tag;
+const { CheckableTag } = AntdTag;
 
 export default function SiteSettings({ close }) {
   const { inc: change } = useCounter();
@@ -29,7 +38,8 @@ export default function SiteSettings({ close }) {
   const [state, setState] = useState<State>("load");
   const [error, setError] = useState<string>("");
   const [data, setData] = useState<Data | null>(null);
-  const [filter, setFilter] = useState<string>("");
+  const [filterStr, setFilterStr] = useState<string>("");
+  const [filterTag, setFilterTag] = useState<Tag | null>(null);
   const editedRef = useRef<Data | null>(null);
   const savedRef = useRef<Data | null>(null);
   const [isReadonly, setIsReadonly] = useState<IsReadonly | null>(null);
@@ -375,13 +385,13 @@ export default function SiteSettings({ close }) {
   }
 
   const editRows = useMemo(() => {
-    const filter0 = search_split(filter.toLowerCase());
     return (
       <>
         {[site_settings_conf, EXTRAS].map((configData) =>
           keys(configData).map((name) => (
             <RenderRow
-              filter={filter0}
+              filterStr={filterStr}
+              filterTag={filterTag}
               key={name}
               name={name}
               conf={configData[name]}
@@ -398,7 +408,9 @@ export default function SiteSettings({ close }) {
         )}
       </>
     );
-  }, [state, data, filter]);
+  }, [state, data, filterStr, filterTag]);
+
+  const activeFilter = !filterStr.trim() || filterTag;
 
   return (
     <div>
@@ -441,54 +453,39 @@ export default function SiteSettings({ close }) {
             <Input.Search
               style={{ marginBottom: "5px" }}
               allowClear
-              value={filter}
+              value={filterStr}
               placeholder="Filter Site Settings..."
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={(e) => setFilterStr(e.target.value)}
             />
-            {[
-              "openai",
-              "gemini",
-              "jupyter",
-              "email",
-              "logo",
-              "version",
-              "stripe",
-              "captcha",
-              "zendesk",
-              "github",
-              "pay as you go",
-              "compute servers",
-            ]
-              .sort()
-              .map((name) => (
-                <CheckableTag
-                  key={name}
-                  style={{ cursor: "pointer" }}
-                  checked={!!filter?.includes(name)}
-                  onChange={(checked) => {
-                    if (checked) {
-                      setFilter(name);
-                    } else {
-                      setFilter("");
-                    }
-                  }}
-                >
-                  {name}
-                </CheckableTag>
-              ))}
+            {[...TAGS].sort().map((name) => (
+              <CheckableTag
+                key={name}
+                style={{ cursor: "pointer" }}
+                checked={filterTag === name}
+                onChange={(checked) => {
+                  if (checked) {
+                    setFilterTag(name);
+                  } else {
+                    setFilterTag(null);
+                  }
+                }}
+              >
+                {name}
+              </CheckableTag>
+            ))}
           </Col>
         </Row>
         {editRows}
         <Gap />
-        {!filter.trim() && <Tests />}
-        {!filter.trim() && <Buttons />}
-        {filter.trim() && (
+        {!activeFilter && <Tests />}
+        {!activeFilter && <Buttons />}
+        {activeFilter ? (
           <Alert
             showIcon
             type="warning"
-            message={`Some items may be hidden by the filter.`}
+            message={`Some items may be hidden by the search filter or a selected tag.`}
           />
-        )}
+        ) : undefined}
       </Well>
     </div>
   );

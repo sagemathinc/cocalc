@@ -113,7 +113,7 @@ export default function Footer() {
           <Flex
             align="center"
             justify="space-around"
-            wrap="wrap"
+            vertical
           >
             <Logo type="rectangular" width={200}/>
             {

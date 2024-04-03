@@ -2,7 +2,7 @@ import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { capitalize } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
-import { modelToMention, type LanguageModel } from "./model-switch";
+import { modelToMention, type LanguageModel } from "./llm-selector";
 
 export interface Options {
   codegen?: boolean;

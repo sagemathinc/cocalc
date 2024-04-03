@@ -91,7 +91,7 @@ interface Flavor {
 }
 
 export function parseFlavor(flavor_name): Flavor {
-  const i = flavor_name.lastIndexOf("x");
+  const i = flavor_name.lastIndexOf("x"); // assumes "-NVLink-v2" and "-a" don't contain an "x".
   const model = flavor_name.slice(0, i);
   const count = flavor_name.slice(i + 1);
   return { model, count };
@@ -140,6 +140,28 @@ export function getModelOptions(priceData): {
     });
   }
   return options.sort(field_cmp("cost_per_hour"));
+}
+
+export function getCountOptions({
+  flavor_name,
+  region_name,
+  priceData,
+}): { count: string; quantity: number }[] {
+  const { model } = parseFlavor(flavor_name);
+  const options: { count: string; quantity: number }[] = [];
+  for (const key in priceData.options) {
+    const [region, flavor] = key.split("|");
+    if (region != region_name) continue;
+    const x = parseFlavor(flavor);
+    if (x.model == model) {
+      options.push({
+        count: x.count,
+        quantity: parseFloat(x.count.split("-")[0]),
+      });
+    }
+  }
+  options.sort(field_cmp("quantity"));
+  return options;
 }
 
 // return total number of GPUs of the given model that are currently available

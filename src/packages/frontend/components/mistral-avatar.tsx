@@ -28,7 +28,7 @@ export default function MistralAvatar({
           backgroundColor,
           color: "white",
           height: size,
-          top: "0px",
+          top: "1px",
         }}
       >
         <img

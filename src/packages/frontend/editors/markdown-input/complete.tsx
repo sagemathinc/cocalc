@@ -12,16 +12,19 @@ rewrote this to use the Antd dropdown, which is more dynamic.
 
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
-import { FC, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { CSS, ReactDOM } from "@cocalc/frontend/app-framework";
 import { MenuItems } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { COLORS } from "@cocalc/util/theme";
 
 export interface Item {
   label?: ReactNode;
   value: string;
   search?: string; // useful for clients
+  is_llm?: boolean; // if true, then this is an LLM in a sub-menu
+  show_llm_main_menu?: boolean; // if true, then this LLM is also show in the main menu (not just the sub-menu)
 }
 interface Props0 {
   items: Item[]; // we assume at least one item
@@ -44,18 +47,58 @@ type Props = Props1 | Props2;
 // WARNING: Complete closing when clicking outside the complete box
 // is handled in cell-list on_click.  This is ugly code (since not localized),
 // but seems to work well for now.  Could move.
-export const Complete: FC<Props> = (props: Props) => {
+export function Complete(props: Props) {
   const { items, onSelect, onCancel, offset, position } = props;
-  const [selected, set_selected] = useState<number>(0);
-  const selected_ref = useRef<number>(selected);
+
+  const items_user = items.filter((item) => !(item.is_llm ?? false));
+
+  // All other LLMs that should not show up in the main menu
+  const items_llm = items.filter(
+    (item) =>
+      (item.is_llm ?? false) &&
+      // if search elimites all users, we show all LLMs
+      (items_user.length === 0 || !item.show_llm_main_menu),
+  );
+
+  const haveLLMs = items_llm.length > 0;
+  // note: if onlyLLMs is true, we treat LLMs as if they're users and do not show a submenu
+  // this causes the submenu to "collapse" if there are no users left to show
+  const onlyLLMs = haveLLMs && items_user.length === 0;
+
+  // If we render a sub-menu, add LLMs that should should show up in the main menu
+  if (!onlyLLMs) {
+    for (const item of items) {
+      if (item.is_llm && item.show_llm_main_menu) {
+        items_user.unshift(item);
+      }
+    }
+  }
+
+  const [selectedUser, setSelectedUser] = useState<number>(0);
+  const [selectedLLM, setSelectedLLM] = useState<number>(0);
+  const [llm, setLLM] = useState<boolean>(false);
+
+  const llm_ref = useRef<boolean>(llm);
+  const selected_user_ref = useRef<number>(selectedUser);
+  const selected_llm_ref = useRef<number>(selectedLLM);
+
   useEffect(() => {
-    selected_ref.current = selected;
-  }, [selected]);
-  const selected_keys_ref = useRef<string>();
+    selected_user_ref.current = selectedUser;
+  }, [selectedUser]);
+
+  useEffect(() => {
+    selected_llm_ref.current = selectedLLM;
+  }, [selectedLLM]);
+
+  useEffect(() => {
+    llm_ref.current = llm || onlyLLMs;
+  }, [llm, onlyLLMs]);
+
+  const selected_key_ref = useRef<string>();
 
   const select = useCallback(
     (e?) => {
-      const key = e?.key ?? selected_keys_ref.current;
+      const key = e?.key ?? selected_key_ref.current;
       if (typeof key === "string") {
         // best to just cancel.
         onSelect(key);
@@ -63,33 +106,48 @@ export const Complete: FC<Props> = (props: Props) => {
         onCancel();
       }
     },
-    [onSelect, onCancel]
+    [onSelect, onCancel],
   );
 
   const onKeyDown = useCallback(
     (e) => {
+      const isLLM = llm_ref.current;
+      const n = (isLLM ? selected_llm_ref : selected_user_ref).current;
       switch (e.keyCode) {
-        case 27:
+        case 27: // escape key
           onCancel();
           break;
-        case 13:
+
+        case 13: // enter key
           select();
           break;
-        case 38: // up arrow
-          if (selected_ref.current >= 1) {
-            set_selected(selected_ref.current - 1);
-            // @ts-ignore
-            $(".ant-menu-item-selected").scrollintoview();
-          }
+
+        case 38: // up arrow key
+          (isLLM ? setSelectedLLM : setSelectedUser)(n - 1);
+          // @ts-ignore
+          $(".ant-menu-item-selected").scrollintoview();
           break;
+
         case 40: // down arrow
-          set_selected(selected_ref.current + 1);
+          (isLLM ? setSelectedLLM : setSelectedUser)(n + 1);
+          // @ts-ignore
+          $(".ant-menu-item-selected").scrollintoview();
+          break;
+
+        case 39: // right arrow key
+          if (haveLLMs) setLLM(true);
+          // @ts-ignore
+          $(".ant-menu-item-selected").scrollintoview();
+          break;
+
+        case 37: // left arrow key
+          setLLM(false);
           // @ts-ignore
           $(".ant-menu-item-selected").scrollintoview();
           break;
       }
     },
-    [onCancel, onSelect]
+    [onCancel, onSelect],
   );
 
   useEffect(() => {
@@ -101,26 +159,60 @@ export const Complete: FC<Props> = (props: Props) => {
     };
   }, [onKeyDown, onCancel]);
 
-  if (items.length == 0) return null;
+  if (items.length === 0) return null;
 
-  // The bottom margin wrapper below is so the current
-  // line is not obscured if antd makes the menu *above*
-  // the current line instead of below it.
-  selected_keys_ref.current =
-    items[selected % (items.length ? items.length : 1)]?.value;
+  selected_key_ref.current =
+    llm || onlyLLMs
+      ? items_llm[selectedLLM % (items_llm.length ? items_llm.length : 1)]
+          ?.value
+      : items_user[selectedUser % (items_user.length ? items_user.length : 1)]
+          ?.value;
 
-  const menuItems: MenuItems = items.map(({ label, value }) => {
-    return {
-      key: value,
-      label: label ?? value,
-      style: { fontSize: "120%" },
-    };
-  });
+  const style: CSS = { fontSize: "115%" } as const;
 
+  // we collapse to just showing the LLMs if the search ended up only showing LLMs
+  const menuItems: MenuItems = (onlyLLMs ? items_llm : items_user).map(
+    ({ label, value }) => {
+      return {
+        key: value,
+        label: label ?? value,
+        style,
+      };
+    },
+  );
+
+  if (haveLLMs && !onlyLLMs) {
+    // we put this at the very end – the default LLM (there is always one) is at the start, then are the users, then this
+    menuItems.push({
+      key: "sub_llm",
+      label: (
+        <span style={style}>
+          <AIAvatar size={22} /> More Language Models
+        </span>
+      ),
+      style,
+      children: items_llm.map(({ label, value }) => {
+        return {
+          key: value,
+          label: label ?? value,
+          style: { fontSize: "90%" }, // not as large as the normal user items
+        };
+      }),
+    });
+  }
+
+  // NOTE: the AI LLM submenu is either opened by hovering (clicking closes immediately) or by right-arrow key
   const menu: MenuProps = {
-    selectedKeys: [selected_keys_ref.current],
+    selectedKeys: [selected_key_ref.current],
     onClick: select,
     items: menuItems,
+    openKeys: llm ? ["sub_llm"] : [],
+    onOpenChange: (openKeys) => {
+      // this, and the right-left-arrow keys control opening the llm submenu
+      setLLM(openKeys.includes("sub_llm"));
+    },
+    mode: "vertical",
+    subMenuCloseDelay: 1.5,
     style: {
       border: `1px solid ${COLORS.GRAY_L}`,
       maxHeight: "45vh", // so can always position menu above/below current line not obscuring it.
@@ -160,13 +252,13 @@ export const Complete: FC<Props> = (props: Props) => {
   } else {
     throw Error("bug -- not possible");
   }
-};
+}
 
 const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body);
 };
 
-const STYLE = {
+const STYLE: CSS = {
   top: "-9999px",
   left: "-9999px",
   position: "absolute",
@@ -177,4 +269,4 @@ const STYLE = {
   boxShadow: "0 1px 5px rgba(0,0,0,.2)",
   overflowY: "auto",
   maxHeight: "50vh",
-} as CSS;
+} as const;

@@ -9,7 +9,12 @@ import {
   DEFAULT_FLAVOR,
   DEFAULT_REGION,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
-import { getModelOptions, parseFlavor, encodeFlavor } from "./flavor";
+import {
+  getModelOptions,
+  getCountOptions,
+  parseFlavor,
+  encodeFlavor,
+} from "./flavor";
 import { currency } from "@cocalc/util/misc";
 
 export default function GPU({
@@ -33,8 +38,7 @@ export default function GPU({
     if (priceData == null) {
       return null;
     }
-    let x = getModelOptions(priceData);
-    return x
+    return getModelOptions(priceData)
       .filter((x) => x.available > 0 || state != "deprovisioned")
       .map(({ region, model, available, cost_per_hour }) => {
         const disabled =
@@ -46,8 +50,10 @@ export default function GPU({
           label: (
             <div style={{ display: "flex" }}>
               <div style={{ flex: 1 }}>NVIDIA {display}</div>
-              <div style={{ flex: 1 }}>{currency(cost_per_hour)}/hour per GPU</div>
-              <div style={{ flex: 1 }}>{available} available</div>
+              <div style={{ flex: 1 }}>
+                {currency(cost_per_hour)}/hour per GPU
+              </div>
+              <div style={{ flex: 1 }}>{available} GPUs available</div>
               <div style={{ flex: 1 }}>{region.toLowerCase()} 🍃</div>
             </div>
           ),
@@ -56,6 +62,19 @@ export default function GPU({
         };
       });
   }, [priceData, configuration.region_name]);
+
+  const countOptions = useMemo(() => {
+    if (priceData == null) {
+      return null;
+    }
+    return getCountOptions({
+      flavor_name: configuration.flavor_name,
+      priceData,
+      region_name,
+    }).map(({ count }) => {
+      return { value: count, label: count, search: count };
+    });
+  }, [priceData, configuration.region_name, configuration.flavor_name]);
 
   if (priceData == null || links == null || modelOptions == null) {
     return null;
@@ -72,11 +91,10 @@ export default function GPU({
         )}
       </b>
       <br />
-      Hyperstack servers come equipped with at least one NVIDIA GPU. Select
-      which GPU model to include:
+      Servers are equipped with at least one NVIDIA GPU:
       <Select
-        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-        style={{ width: "100%" }}
+        disabled={disabled}
+        style={{ width: "100%", marginTop: "5px" }}
         options={modelOptions as any}
         value={`${region_name}|${parseFlavor(flavor_name).model}`}
         onChange={(value) => {
@@ -87,6 +105,20 @@ export default function GPU({
               model,
               count: parseFlavor(flavor_name).count,
             }),
+          });
+        }}
+        showSearch
+        optionFilterProp="children"
+        filterOption={filterOption}
+      />
+      <Select
+        disabled={disabled}
+        style={{ width: "100%", marginTop: "5px" }}
+        options={countOptions as any}
+        value={parseFlavor(flavor_name).count}
+        onChange={(count) => {
+          setConfig({
+            flavor_name: encodeFlavor({ ...parseFlavor(flavor_name), count }),
           });
         }}
         showSearch
