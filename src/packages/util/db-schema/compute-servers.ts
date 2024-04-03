@@ -487,6 +487,18 @@ export interface HyperstackConfiguration extends BaseConfiguration {
   cloud: "hyperstack";
   flavor_name: string;
   region_name: string;
+  // diskSizeGb is an integer >= 1.  It defaults to 10.
+  // It's the size of the /data partition.  It's implemented
+  // using 1 or more hyperstack (=ceph) volumes, which are combined
+  // together as a ZFS pool.  If the compute server is
+  // named "foo", the volumes are named "foo-1", "foo-2",
+  // "foo-3", etc.
+  // There is also always a separate 50GB root volume, which
+  // is named "foo-0", and whose size is not configurable.
+  // NOTE: users install packages "systemwide" inside of
+  // a docker container and we configure docker to store
+  // its data in the zpool, so that's in here too.
+  diskSizeGb?: number;
 }
 
 const COREWEAVE_CPU_TYPES = [

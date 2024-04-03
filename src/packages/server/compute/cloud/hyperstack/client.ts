@@ -38,6 +38,7 @@ import type {
   VolumeType,
   VolumeDetails,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { SECURITY_RULE_DEFAULTS } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 const log = getLogger("hyperstack:client");
 
@@ -252,7 +253,8 @@ export async function getImages(
 export async function createVirtualMachines(params: {
   name: string;
   environment_name: string;
-  image_name: string;
+  image_name?: string;
+  volume_name?: string;
   flavor_name: string;
   key_name: string;
   count?: number;
@@ -270,6 +272,13 @@ export async function createVirtualMachines(params: {
   log.debug("createVirtualMachines", params);
   if (!params.count) {
     params.count = 1;
+  }
+  if (params.security_rules != null) {
+    const security_rules: SecurityRule[] = [];
+    for (const rule of params.security_rules) {
+      security_rules.push({ ...SECURITY_RULE_DEFAULTS, ...rule });
+    }
+    params = { ...params, security_rules };
   }
   const { instances } = await call({
     method: "post",
@@ -342,6 +351,10 @@ export async function deleteVirtualMachine(id: number) {
 // You can only resize a virtual machine when the status
 // is ACTIVE, SHUTOFF.  I think it has to be stopped but
 // not hibernated.
+// You can't change GPU.
+// Also as of April 1, 2024, it doesn't work, just erroring
+// after a few minutes -- the docs say "coming soon", so that's
+// not surprising that it doesn't work!
 export async function resizeVirtualMachine(id: number, flavor_name: string) {
   await call({
     method: "post",
@@ -658,11 +671,12 @@ export async function createVolume(params: {
   name: string;
   size: number; // in GB
   environment_name: string;
+  // volume_type defaults to "Cloud-SSD", which is the only option right now
   volume_type?: VolumeType;
   description?: string;
   image_id?: number;
 }) {
-  params = { volume_type: "Cloud-SSD", ...params };
+  params = { volume_type: "Cloud-SSD", description: "", ...params };
   const { volume } = await call({
     method: "post",
     url: "core/volumes",

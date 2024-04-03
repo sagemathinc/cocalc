@@ -116,17 +116,25 @@ export interface VolumeAttachment {
   created_at: string;
 }
 
+// for defaults, see below.
 export interface SecurityRule {
-  id: number;
-  direction: string;
-  protocol: string;
+  direction?: "ingress" | "egress";
+  protocol?: Protocol;
   port_range_min: number;
   port_range_max: number;
-  ethertype: string;
-  remote_ip_prefix: string;
-  status: string;
-  created_at: string;
+  ethertype?: Ethertype;
+  remote_ip_prefix?: string;
+  status?: string;
+  id?: number;
+  created_at?: string;
 }
+
+export const SECURITY_RULE_DEFAULTS: Partial<SecurityRule> = {
+  direction: "ingress",
+  protocol: "tcp",
+  ethertype: "IPv4",
+  remote_ip_prefix: "0.0.0.0/0", //  = everything
+};
 
 // ACTIVE = when its running
 // HIBERNATING = when it is being hibernated
@@ -224,13 +232,43 @@ export interface Price {
   end_time: string | null;
 }
 
+export type Protocol =
+  | "any"
+  | "ah"
+  | "dccp"
+  | "egp"
+  | "esp"
+  | "gre"
+  | "hopopt"
+  | "icmp"
+  | "igmp"
+  | "ip"
+  | "ipip"
+  | "ipv6-encap"
+  | "ipv6-frag"
+  | "ipv6-icmp"
+  | "icmpv6"
+  | "ipv6-nonxt"
+  | "ipv6-opts"
+  | "ipv6-route"
+  | "ospf"
+  | "pgm"
+  | "rsvp"
+  | "sctp"
+  | "tcp"
+  | "udp"
+  | "udplite"
+  | "vrrp";
+
+type Ethertype = "IPv4" | "IPv6";
+
 export interface FirewallRule {
   virtual_machine_id: number; // virtual machine id
   port_range_min: number;
   port_range_max: number;
   direction?: "ingress" | "egress";
-  protocol?: string;
-  ethertype?: "IPv4" | "IPv6";
+  protocol?: Protocol;
+  ethertype?: Ethertype;
   remote_ip_prefix?: string;
   status: "SUCCESS"; // todo
   created_at: string;
@@ -265,8 +303,8 @@ export interface FirewallRuleDesc {
   port_range_min: number;
   port_range_max: number;
   direction?: "ingress" | "egress";
-  protocol?: string;
-  ethertype?: "IPv4" | "IPv6";
+  protocol?: Protocol;
+  ethertype?: Ethertype;
   remote_ip_prefix?: string;
 }
 
