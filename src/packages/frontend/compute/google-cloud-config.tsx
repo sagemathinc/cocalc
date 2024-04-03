@@ -158,38 +158,41 @@ export default function GoogleCloudConfiguration({
     return <Spin />;
   }
 
+  const gpu = configuration.acceleratorType
+    ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
+        configuration.acceleratorType,
+      )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
+    : "";
+
+  const summary = (
+    <div>
+      {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
+      with {gpu}
+      {priceData ? (
+        <span>
+          <RamAndCpu
+            machineType={configuration.machineType}
+            priceData={priceData}
+            inline
+          />
+        </span>
+      ) : (
+        ""
+      )}
+      , and a{" "}
+      {configuration.diskSizeGb ??
+        `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
+      GB
+      {(configuration.diskType ?? "pd-standard") != "pd-standard"
+        ? " SSD "
+        : " HDD "}{" "}
+      disk in {configuration.zone}.
+    </div>
+  );
+
   if (!editable || !project_id) {
-    const gpu = configuration.acceleratorType
-      ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
-          configuration.acceleratorType,
-        )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
-      : "";
-    // short summary
-    return (
-      <div>
-        {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
-        with {gpu}
-        {priceData ? (
-          <span>
-            <RamAndCpu
-              machineType={configuration.machineType}
-              priceData={priceData}
-              inline
-            />
-          </span>
-        ) : (
-          ""
-        )}
-        , and a{" "}
-        {configuration.diskSizeGb ??
-          `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
-        GB
-        {(configuration.diskType ?? "pd-standard") != "pd-standard"
-          ? " SSD "
-          : " HDD "}{" "}
-        disk in {configuration.zone}.
-      </div>
-    );
+    // short summary only
+    return summary;
   }
 
   if (priceData == null) {
@@ -521,6 +524,10 @@ export default function GoogleCloudConfiguration({
           }
         />
       )}
+      <Divider />
+      <div style={{ textAlign: "center", margin: "10px 80px" }}>
+        {summary}
+      </div>
       <Table
         showHeader={false}
         style={{ marginTop: "5px" }}
@@ -528,11 +535,6 @@ export default function GoogleCloudConfiguration({
         dataSource={dataSource}
         pagination={false}
       />
-      {loading && (
-        <div style={{ float: "right" }}>
-          <Spin delay={1000} />
-        </div>
-      )}
       {errDisplay}
     </div>
   );
