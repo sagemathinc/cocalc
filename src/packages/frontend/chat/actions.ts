@@ -181,7 +181,7 @@ export class ChatActions extends Actions<ChatState> {
     input?: string;
     sender_id?: string;
     reply_to?: Date;
-    tag?: "regenerate" | "reply";
+    tag?: string;
     noNotification?: boolean;
   }): string {
     if (this.syncdb == null || this.store == null) {
@@ -206,7 +206,7 @@ export class ChatActions extends Actions<ChatState> {
       event: "chat",
       history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
-      reply_to: reply_to?.toISOString(),
+      reply_to,
     };
     this.syncdb.set(message);
     if (!reply_to) {
@@ -302,19 +302,21 @@ export class ChatActions extends Actions<ChatState> {
     content: string,
     author_id: string,
     generating: boolean = false,
-  ): string {
+  ): {
+    date: string;
+    prevHistory: { author_id; content; date }[];
+  } {
     const date: string = message.get("date");
     if (this.syncdb == null) {
-      return date;
+      return { date, prevHistory: [] };
     }
+    const prevHistory = message.get("history").toJS();
     this.syncdb.set({
-      history: [{ author_id, content, date }].concat(
-        message.get("history").toJS(),
-      ),
+      history: [{ author_id, content, date }].concat(prevHistory),
       date,
       generating,
     });
-    return date;
+    return { date, prevHistory };
   }
 
   send_reply({
@@ -526,7 +528,7 @@ export class ChatActions extends Actions<ChatState> {
   private async processLanguageModel(
     message: immutableMap<string, any>,
     reply_to?: Date,
-    tag?: "regenerate" | "reply",
+    tag?: string,
   ) {
     if (
       !tag &&
@@ -571,7 +573,7 @@ export class ChatActions extends Actions<ChatState> {
         return;
       }
     } else {
-      // it mentions chatgpt or palm2 -- which model?
+      // it mentions a language model -- which one?
       model = getLanguageModel(input);
     }
 
@@ -581,7 +583,7 @@ export class ChatActions extends Actions<ChatState> {
 
     // without any mentions, of course:
     input = stripMentions(input);
-    // also important to strip details, since they tend to confuse chatgpt:
+    // also important to strip details, since they tend to confuse an LLM:
     //input = stripDetails(input);
     const sender_id = (function () {
       try {
@@ -592,19 +594,22 @@ export class ChatActions extends Actions<ChatState> {
     })();
 
     const thinking = ":robot: Thinking...";
-    const date: string =
+    // prevHistory: in case of regenerate, it's the history *before* we added the "Thinking..." message (which we ignore)
+    const { date, prevHistory = [] } =
       tag === "regenerate"
         ? this.save_history(message, thinking, sender_id, true)
-        : this.send_reply({
-            message,
-            reply: thinking,
-            from: sender_id,
-            noNotification: true,
-          });
+        : {
+            date: this.send_reply({
+              message,
+              reply: thinking,
+              from: sender_id,
+              noNotification: true,
+            }),
+          };
 
     if (this.chatStreams.size > MAX_CHATSTREAM) {
       console.trace(
-        `processChatGPT called when ${MAX_CHATSTREAM} streams active`,
+        `processLanguageModel called when ${MAX_CHATSTREAM} streams active`,
       );
       if (this.syncdb != null) {
         // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
@@ -613,7 +618,7 @@ export class ChatActions extends Actions<ChatState> {
           history: [
             {
               author_id: sender_id,
-              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHATSTREAM} ChatGPT response being written. Please try again once one finishes.</span>\n\n`,
+              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHATSTREAM} language model responses being written. Please try again once one finishes.</span>\n\n`,
               date,
             },
           ],
@@ -632,13 +637,14 @@ export class ChatActions extends Actions<ChatState> {
       tag = "reply";
     }
 
-    // record that we're about to submit message to chatgpt.
+    // record that we're about to submit message to a language model.
     track("chatgpt", {
       project_id,
       path,
       type: "chat",
       is_reply: !!reply_to,
       tag,
+      model,
     });
 
     // submit question to the given language model
@@ -647,6 +653,8 @@ export class ChatActions extends Actions<ChatState> {
     setTimeout(() => {
       this.chatStreams.delete(id);
     }, 3 * 60 * 1000);
+
+    // construct the LLM history for the given thread
     const history = reply_to ? this.getLLMHistory(reply_to) : undefined;
     if (tag === "regenerate") {
       if (history && history.length >= 2) {
@@ -654,8 +662,6 @@ export class ChatActions extends Actions<ChatState> {
         input = stripMentions(history.pop()?.content ?? ""); // the last user message is the input
       }
     }
-
-    const existingHistory = message.get("history")?.toJS() ?? [];
 
     const chatStream = webapp_client.openai_client.queryStream({
       input,
@@ -676,35 +682,33 @@ export class ChatActions extends Actions<ChatState> {
         this.chatStreams.delete(id);
         return;
       }
+
+      // collect more of the output
       if (token != null) {
         content += token;
-        this.syncdb.set({
-          event: "chat",
-          sender_id,
-          date,
-          history: existingHistory.concat({
+        console.log("content:", content);
+      }
+      // save it
+      this.syncdb.set({
+        event: "chat",
+        sender_id,
+        date,
+        history: [
+          {
             author_id: sender_id,
             content,
             date,
-          }),
-          generating: true,
-        });
-      } else {
+          },
+        ].concat(prevHistory),
+        generating: token != null, // it's generating as token is not null
+      });
+      // if it was the last output, close this
+      if (token == null) {
         this.chatStreams.delete(id);
-        this.syncdb.set({
-          event: "chat",
-          sender_id,
-          date,
-          history: existingHistory.concat({
-            author_id: sender_id,
-            content,
-            date,
-          }),
-          generating: false,
-        });
         this.syncdb.commit();
       }
     });
+
     chatStream.on("error", (err) => {
       this.chatStreams.delete(id);
       if (this.syncdb == null || halted) return;
@@ -719,10 +723,17 @@ export class ChatActions extends Actions<ChatState> {
       const statusCheck = getLLMServiceStatusCheckMD(vendor);
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
       this.syncdb.set({
-        date,
-        history: [{ author_id: sender_id, content, date }],
         event: "chat",
         sender_id,
+        date,
+        history: [
+          {
+            author_id: sender_id,
+            content,
+            date,
+          },
+        ].concat(prevHistory),
+        generating: false,
       });
       this.syncdb.commit();
     });
@@ -745,10 +756,9 @@ export class ChatActions extends Actions<ChatState> {
       )
       .valueSeq()
       .sort((a, b) => cmp(a.get("date"), b.get("date")))) {
-      const content = stripMentions(
-        message.get("history").first().get("content"),
-      );
-      const author_id = message.getIn(["history", 0, "author_id"]);
+      const mostRecent = message.get("history").first();
+      const content = stripMentions(mostRecent.get("content"));
+      const author_id = mostRecent.get("author_id");
       const role = isLanguageModelService(author_id) ? "assistant" : "user";
       history.push({ content, role });
     }
@@ -773,12 +783,6 @@ export class ChatActions extends Actions<ChatState> {
     if (cur == null) return;
     const reply_to: string | undefined = cur.get("reply_to");
     if (!reply_to) return;
-    // console.log("regenerate message:", {
-    //   date,
-    //   reply_to,
-    //   message: message.toJS(),
-    //   cur: cur.toJS(),
-    // });
     this.processLanguageModel(cur, new Date(reply_to), "regenerate");
   }
 }

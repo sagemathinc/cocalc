@@ -626,9 +626,10 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
   // },
   // you can learn details about the google models via
   // curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY"
+  // Pricing, at least Gemini Pro: https://cloud.google.com/vertex-ai/generative-ai/pricing#google_foundational_models
   "gemini-pro": {
-    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
-    completion_tokens: usd1Mtokens(1),
+    prompt_tokens: usd1Mtokens(1_000 * 0.000125),
+    completion_tokens: usd1Mtokens(1_000 * 0.000375),
     max_tokens: 30720,
     free: true,
   },

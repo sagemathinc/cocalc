@@ -150,6 +150,20 @@ export default function HelpMeFix({
   );
 }
 
+interface GetHelpOpts {
+  project_id: string;
+  path: string;
+  tag?: string;
+  error: string;
+  input?: string;
+  task?: string;
+  language?: string;
+  extraFileInfo?: string;
+  redux;
+  prioritizeLastInput?: boolean;
+  model: string;
+}
+
 const CUTOFF = 3000;
 
 export async function getHelp({
@@ -164,7 +178,7 @@ export async function getHelp({
   redux,
   prioritizeLastInput,
   model,
-}) {
+}: GetHelpOpts) {
   const message = createMessage({
     error,
     language,
