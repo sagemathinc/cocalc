@@ -3,19 +3,19 @@
  *  License: MIT (same as slate uses https://github.com/ianstormtaylor/slate/blob/master/License.md)
  */
 
+import { debounce } from "lodash";
+import React, { useCallback, useMemo, useState } from "react";
 import { Editor, Range, Text, Transforms } from "slate";
-import { ReactEditor } from "../slate-react";
-import React from "react";
+
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
-import { useCallback, useMemo, useState } from "react";
 import {
   Complete,
   Item,
 } from "@cocalc/frontend/editors/markdown-input/complete";
-import { debounce } from "lodash";
+import { field_cmp } from "@cocalc/util/misc";
 import emojis from "markdown-it-emoji/lib/data/full.json";
 import lite from "markdown-it-emoji/lib/data/light.json";
-import { field_cmp } from "@cocalc/util/misc";
+import { ReactEditor } from "../slate-react";
 
 const MAX_MATCHES = 200;
 const EMOJIS_ALL: Item[] = [];
@@ -93,7 +93,7 @@ export const useEmojis: (Options) => EmojisControl = ({
           break;
       }
     },
-    [target]
+    [target],
   );
 
   // we debounce this onChange, since it is VERY expensive and can make typing feel
@@ -148,7 +148,7 @@ export const useEmojis: (Options) => EmojisControl = ({
         console.log("WARNING -- slate.emojis", err);
       }
     }, 250),
-    [editor]
+    [editor],
   );
 
   const renderEmojis = useCallback(() => {

@@ -36,9 +36,9 @@ import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import ModelSwitch, {
+import LLMSelector, {
   modelToName,
-} from "@cocalc/frontend/frame-editors/llm/model-switch";
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import { StartButton } from "@cocalc/frontend/project/start-button";
@@ -48,7 +48,7 @@ import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import { once } from "@cocalc/util/async-utils";
 import {
-  getVendorStatusCheckMD,
+  getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
@@ -168,7 +168,7 @@ export default function AIGenerateJupyterNotebook({
 
       await updateNotebook(llmStream);
     } catch (err) {
-      setError(`${err}\n\n${getVendorStatusCheckMD(model2vendor(model))}.`);
+      setError(`${err}\n\n${getLLMServiceStatusCheckMD(model2vendor(model))}.`);
       setQuerying(false);
     }
   }
@@ -390,7 +390,7 @@ export default function AIGenerateJupyterNotebook({
     llmStream.on("error", (err) => {
       setError(`${err}`);
       setQuerying(false);
-      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getLLMServiceStatusCheckMD(
         model2vendor(model),
       )}.`;
       if (ja == null) {
@@ -435,7 +435,7 @@ export default function AIGenerateJupyterNotebook({
     <Block style={{ padding: "0 15px" }}>
       <Title level={4}>
         <LanguageModelVendorAvatar model={model} /> Create Notebook Using{" "}
-        <ModelSwitch
+        <LLMSelector
           project_id={project_id}
           model={model}
           setModel={setModel}

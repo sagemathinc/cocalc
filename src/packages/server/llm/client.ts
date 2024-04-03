@@ -5,26 +5,27 @@ You do not have to worry too much about throwing an exception, because they're c
 */
 
 import { Ollama } from "@langchain/community/llms/ollama";
-import * as _ from "lodash";
+import { omit } from "lodash";
 import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import {
   LanguageModel,
+  isGoogleModel,
   isOllamaLLM,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
-import { VertexAIClient } from "./vertex-ai-client";
+import { GoogleGenAIClient } from "./google-genai-client";
 
 const log = getLogger("llm:client");
 
-const clientCache: { [key: string]: OpenAI | VertexAIClient } = {};
+const clientCache: { [key: string]: OpenAI | GoogleGenAIClient } = {};
 
 export async function getClient(
   model?: LanguageModel,
-): Promise<OpenAI | VertexAIClient> {
+): Promise<OpenAI | GoogleGenAIClient> {
   const vendor = model == null ? "openai" : model2vendor(model);
 
   switch (vendor) {
@@ -50,18 +51,21 @@ export async function getClient(
         throw Error("google vertexai not configured");
       }
 
-      if (!model) {
+      if (!isGoogleModel(model)) {
         throw Error("this should never happen");
       }
 
       // ATTN: do not cache the instance. I saw suspicious errors, better to clean up the memory each time.
-      return new VertexAIClient({ apiKey: google_vertexai_key }, model);
+      return new GoogleGenAIClient({ apiKey: google_vertexai_key }, model);
 
     case "ollama":
       throw new Error("Use the getOllama function instead");
 
     case "mistralai":
-      throw new Error("Use the getMistral function instead");
+      throw new Error("Use the evaluateMistral function instead");
+
+    case "anthropic":
+      throw new Error("Use the evaluateAnthropic function instead");
 
     default:
       unreachable(vendor);
@@ -109,7 +113,7 @@ export async function getOllama(model: string) {
   const keepAlive: string = config.keepAlive ?? "24h";
 
   // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
-  const other = _.omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
+  const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
   const ollamaConfig = {
     baseUrl,
     model: config.model ?? model,

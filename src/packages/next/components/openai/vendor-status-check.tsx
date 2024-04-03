@@ -1,13 +1,13 @@
-import { LLMVendor } from "@cocalc/util/db-schema/llm-utils";
+import { LLMServiceName } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 
-export function VendorStatusCheck({
-  vendor,
+export function LLMServiceStatusCheck({
+  service,
 }: {
-  vendor: LLMVendor;
+  service: LLMServiceName;
 }): JSX.Element {
-  switch (vendor) {
+  switch (service) {
     case "openai":
       return (
         <>
@@ -15,6 +15,7 @@ export function VendorStatusCheck({
           <A href="https://downdetector.com/status/openai/">downdetector</A>.
         </>
       );
+
     case "google":
       return (
         <>
@@ -25,6 +26,7 @@ export function VendorStatusCheck({
           .
         </>
       );
+
     case "ollama":
       return (
         <>
@@ -33,6 +35,7 @@ export function VendorStatusCheck({
           try again later.
         </>
       );
+
     case "mistralai":
       return (
         <>
@@ -40,8 +43,16 @@ export function VendorStatusCheck({
           are experiencing issues, use another model or try again later.
         </>
       );
+
+    case "anthropic":
+      return (
+        <>
+          Anthropic <A href="https://status.anthropic.com/">status</A>.
+        </>
+      );
+
     default:
-      unreachable(vendor);
+      unreachable(service);
   }
   return <></>;
 }

@@ -2,7 +2,6 @@ import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   LLMServicesAvailable,
   LanguageService,
-  USER_SELECTABLE_LANGUAGE_MODELS,
   fromOllamaModel,
   getValidLanguageModelName,
   isOllamaLLM,
@@ -17,6 +16,7 @@ export function useLanguageModelSetting(
 ): [LanguageService, (llm: LanguageService) => void] {
   const other_settings = useTypedRedux("account", "other_settings");
   const ollama = useTypedRedux("customize", "ollama");
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   const haveOpenAI = useTypedRedux("customize", "openai_enabled");
   const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
@@ -33,11 +33,12 @@ export function useLanguageModelSetting(
       other_settings?.get("language_model"),
       enabledLLMs,
       Object.keys(ollama?.toJS() ?? {}),
+      selectableLLMs?.toJS() ?? [],
     );
   }, [other_settings]);
 
   function setLLM(llm: LanguageService) {
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes(llm as any)) {
+    if (selectableLLMs.includes(llm as any)) {
       redux
         .getActions("account")
         .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
