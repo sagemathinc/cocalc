@@ -17,6 +17,7 @@ export const GPU_SPECS = {
   "RTX-A4000": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs21/rtx-a4000/nvidia-rtx-a4000-datasheet.pdf",
+    hyperstack: "https://www.hyperstack.cloud/rtx-a4000",
     memory: 16,
     memory_bw: 448,
     cuda_cores: 6144,
@@ -25,6 +26,7 @@ export const GPU_SPECS = {
   "RTX-A5000": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs21/rtx-a5000/nvidia-rtx-a5000-datasheet.pdf",
+    hyperstack: "https://www.hyperstack.cloud/rtx-a5000",
     memory: 20,
     memory_bw: 640,
     cuda_cores: 7168,
@@ -33,6 +35,7 @@ export const GPU_SPECS = {
   "RTX-A6000": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/proviz-print-nvidia-rtx-a6000-datasheet-us-nvidia-1454980-r9-web%20(1).pdf",
+    hyperstack: "https://www.hyperstack.cloud/rtx-a6000",
     memory: 48,
     memory_bw: 768,
     cuda_cores: 10752,
@@ -41,6 +44,7 @@ export const GPU_SPECS = {
   "RTX-A6000-ada": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/proviz-print-nvidia-rtx-a6000-datasheet-us-nvidia-1454980-r9-web%20(1).pdf",
+    hyperstack: "https://www.hyperstack.cloud/rtx-a6000",
     memory: 48,
     memory_bw: 768,
     cuda_cores: 10752,
@@ -81,6 +85,7 @@ export const GPU_SPECS = {
   L40: {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/support-guide/NVIDIA-L40-Datasheet-January-2023.pdf",
+    hyperstack: "https://www.hyperstack.cloud/l40",
     memory: 48,
     memory_bw: 864,
     cuda_cores: 18176,
@@ -97,6 +102,7 @@ export const GPU_SPECS = {
   "A100-80GB-PCIe": {
     datasheet:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf",
+    hyperstack: "https://www.hyperstack.cloud/a100",
     memory: 80,
     memory_bw: 1935,
     cuda_cores: 6912,
@@ -105,6 +111,7 @@ export const GPU_SPECS = {
   "H100-80GB-PCIe": {
     datasheet:
       "https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet",
+    hyperstack: "https://www.hyperstack.cloud/h100-pcie",
     memory: 80,
     memory_bw: 2000,
     cuda_cores: 14592,

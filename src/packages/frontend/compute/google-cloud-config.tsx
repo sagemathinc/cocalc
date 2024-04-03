@@ -538,7 +538,7 @@ export default function GoogleCloudConfiguration({
 }
 
 // Filter `option.label` match the user type `input`
-const filterOption = (
+export const filterOption = (
   input: string,
   option: { label: string; value: string; search: string },
 ) => (option?.search ?? "").toLowerCase().includes(input.toLowerCase());
@@ -1397,9 +1397,9 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
     <div style={{ color: "#666", marginBottom: "5px" }}>
       <b>
         <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" />
-        <Icon name="cube" /> NVIDIA GPUs:{" "}
+        <Icon name="cube" /> NVIDIA GPU:{" "}
         <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>, and{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
         <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
           T4
         </A>

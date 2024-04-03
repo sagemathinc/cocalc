@@ -2,7 +2,7 @@ import type {
   State,
   HyperstackConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Divider, Select, Spin } from "antd";
+import { Divider, Select, Spin, Table } from "antd";
 import { getHyperstackPriceData, setServerConfiguration } from "./api";
 import { useEffect, useMemo, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
@@ -22,6 +22,15 @@ import {
 import NVIDIA from "./nvidia";
 import CostOverview from "./cost-overview";
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
+import { r_join } from "@cocalc/frontend/components/r_join";
+import {
+  getModelLinks,
+  getModelOptions,
+  toGPU,
+} from "@cocalc/frontend/compute/hyperstack/util";
+import { filterOption, SELECTOR_WIDTH } from "./google-cloud-config";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -66,7 +75,9 @@ export default function HyperstackConfig({
         const gpuSpec = GPU_SPECS[gpu];
         return {
           label: (
-            <div style={{ display: "flex", minWidth:'700px', overflow:'hidden' }}>
+            <div
+              style={{ display: "flex", minWidth: "700px", overflow: "hidden" }}
+            >
               <div
                 style={{
                   flex: 1,
@@ -78,8 +89,12 @@ export default function HyperstackConfig({
                 {currency(markup({ cost: x.cost_per_hour, priceData }))}/hour
               </div>
               <div style={{ flex: 1.2 }}>
-                <b style={{ color: "#666" }}>GPU RAM:</b>{" "}
-                {x.gpu_count * gpuSpec.memory} GB
+                {gpuSpec != null && (
+                  <>
+                    <b style={{ color: "#666" }}>GPU RAM:</b>{" "}
+                    {x.gpu_count * gpuSpec.memory} GB
+                  </>
+                )}
               </div>
               {/* <div style={{ flex: 1 }}>
                 <b style={{ color: "#666" }}>CUDA cores:</b>{" "}
@@ -167,6 +182,34 @@ export default function HyperstackConfig({
     return ImagesError;
   }
 
+  const columns = [
+    {
+      dataIndex: "value",
+      key: "value",
+    },
+    { dataIndex: "label", key: "label", width: 130 },
+  ];
+
+  const dataSource = [
+    {
+      key: "provisioning",
+      value: <Provisioning />,
+    },
+    {
+      key: "gpu",
+
+      value: (
+        <GPU
+          state={state}
+          disabled={loading || disabled}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
+  ];
+
   return (
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "10px" }}>
@@ -176,8 +219,8 @@ export default function HyperstackConfig({
             cost={cost}
             description={
               <>
-                You pay <b>{currency(cost)}/hour</b> while the computer server
-                is running. The rate is{" "}
+                You pay <b>{currency(cost)}/hour</b> while the server is
+                running. The rate is{" "}
                 <b>
                   {currency(
                     computeCost({ configuration, priceData, state: "off" }),
@@ -185,14 +228,21 @@ export default function HyperstackConfig({
                   /hour
                 </b>{" "}
                 when the server is off, and there is no cost when it is
-                deprovisioned. All incoming and outgoing network data transfer
-                is free. This is a standard instance and won't be interrupted
-                when running; however, when it is off, there is no guarantee
-                that you will be able to run it.
+                deprovisioned. All incoming and outgoing{" "}
+                <b>network data transfer is free</b>. This is a standard
+                instance and <b>won't be interrupted</b> when running.
               </>
             }
           />
-        )}{" "}
+        )}
+
+        <Table
+          style={{ marginTop: "5px" }}
+          columns={columns}
+          dataSource={dataSource}
+          pagination={false}
+        />
+
         {options != null && (
           <>
             <div style={{ marginBottom: "5px" }}>
@@ -233,14 +283,6 @@ export default function HyperstackConfig({
       <ShowError error={error} setError={setError} />
     </div>
   );
-}
-
-export function toGPU(gpu) {
-  gpu = gpu.replace("G-", "GB-");
-  if (gpu.endsWith("-sm")) {
-    return gpu.slice(0, -3);
-  }
-  return gpu;
 }
 
 function MachineType({
@@ -331,4 +373,94 @@ function Image(props) {
       <Ephemeral style={{ marginTop: "30px" }} {...props} />
     </div>
   );
+}
+
+function Provisioning({}) {
+  return (
+    <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>
+          <Icon name="sliders" /> Provisioning: Standard
+        </b>
+      </div>
+      <div style={{ color: "#666", marginTop: "5px" }}>
+        All Hyperstack VM's stay run until you stop them, and{" "}
+        <b>will NOT automatically stop</b> even if there is a surge in demand.
+      </div>
+    </div>
+  );
+}
+
+function GPU({ priceData, setConfig, configuration, disabled, state }) {
+  const links = useMemo(
+    () => (priceData == null ? null : getModelLinks(priceData)),
+    [priceData],
+  );
+
+  const options = useMemo(
+    () => (priceData == null ? null : getModelOptions(priceData)),
+    [priceData],
+  );
+
+  if (priceData == null || links == null || options == null) {
+    return null;
+  }
+
+  const head = (
+    <div style={{ color: "#666", marginBottom: "5px" }}>
+      <b>
+        <Icon name="cube" /> NVIDIA GPU:{" "}
+        {r_join(
+          links.map(({ name, url }) => {
+            return url ? <A href={url}>{name}</A> : name;
+          }),
+        )}
+      </b>
+      <br />
+      Hyperstack servers come equipped with at least one NVIDIA GPU. Select
+      which GPU model to include:
+      <Select
+        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+        style={{ width: SELECTOR_WIDTH }}
+        options={options as any}
+        value={flavorToGPU(configuration.flavor_name)}
+        onChange={(model) => {
+          setConfig({
+            flavor_name: changeFlavorModel(configuration.flavor_name, model),
+          });
+        }}
+        showSearch
+        optionFilterProp="children"
+        filterOption={filterOption}
+      />
+      <Select
+        style={{ marginLeft: "15px", width: "75px" }}
+        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+        options={[]}
+        value={flavorToCount(configuration.flavor_name)}
+        onChange={(count) => {
+          setConfig({
+            flavor_name: changeFlavorCount(configuration.flavor_name, count),
+          });
+        }}
+      />
+    </div>
+  );
+  return head;
+}
+
+function flavorToGPU(flavor_name) {
+  return flavor_name;
+}
+
+function flavorToCount(flavor_name) {
+  return 1;
+}
+
+function changeFlavorModel(flavor_name, model) {
+  return flavor_name;
+}
+
+function changeFlavorCount(flavor_name, count) {
+  return flavor_name;
 }
