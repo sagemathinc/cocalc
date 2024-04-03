@@ -522,6 +522,7 @@ export default function GoogleCloudConfiguration({
         />
       )}
       <Table
+        showHeader={false}
         style={{ marginTop: "5px" }}
         columns={columns}
         dataSource={dataSource}

@@ -111,6 +111,7 @@ export function getModelOptions(priceData): {
   model: string;
   available: number;
   cost_per_hour: number;
+  gpu: string;
 }[] {
   const seen = new Set<string>([]);
   const options: {
@@ -118,6 +119,7 @@ export function getModelOptions(priceData): {
     model: string;
     available: number;
     cost_per_hour: number;
+    gpu: string;
   }[] = [];
   for (const key in priceData.options) {
     const [region, flavor] = key.split("|");
@@ -125,11 +127,15 @@ export function getModelOptions(priceData): {
       continue;
     }
     const { model, count } = parseFlavor(flavor);
-    if (seen.has(model)) {
+    if (count != "1") {
       continue;
     }
-    seen.add(model);
-    const { cost_per_hour } = priceData.options[key];
+    const x = `${region}|${model}`;
+    if (seen.has(x)) {
+      continue;
+    }
+    seen.add(x);
+    const { cost_per_hour, gpu } = priceData.options[key];
     const n = countToNumber(count);
     const available = modelAvailability({ region, model, priceData });
     options.push({
@@ -137,26 +143,41 @@ export function getModelOptions(priceData): {
       model,
       cost_per_hour: cost_per_hour / n,
       available,
+      gpu,
     });
   }
   return options.sort(field_cmp("cost_per_hour"));
 }
 
-export function getCountOptions({
-  flavor_name,
-  region_name,
-  priceData,
-}): { count: string; quantity: number }[] {
+export function getCountOptions({ flavor_name, region_name, priceData }): {
+  count: string;
+  quantity: number;
+  available: number;
+  cost_per_hour: number;
+  gpu: string;
+}[] {
   const { model } = parseFlavor(flavor_name);
-  const options: { count: string; quantity: number }[] = [];
+  const options: {
+    count: string;
+    quantity: number;
+    available: number;
+    cost_per_hour: number;
+    gpu: string;
+  }[] = [];
   for (const key in priceData.options) {
     const [region, flavor] = key.split("|");
-    if (region != region_name) continue;
+    if (region != region_name || !isSupportedFlavor(flavor)) {
+      continue;
+    }
     const x = parseFlavor(flavor);
+    const { cost_per_hour, gpu } = priceData.options[key];
     if (x.model == model) {
       options.push({
         count: x.count,
         quantity: parseFloat(x.count.split("-")[0]),
+        available: priceData.options[key]?.available ?? 0,
+        cost_per_hour,
+        gpu,
       });
     }
   }
@@ -179,4 +200,23 @@ export function modelAvailability({ region, model, priceData }) {
     available += priceData.options[key]?.available ?? 0;
   }
   return available;
+}
+
+export function bestCount({ model, region, count, priceData }): string {
+  const opts = getCountOptions({
+    flavor_name: encodeFlavor({ model, count }),
+    region_name: region,
+    priceData,
+  });
+  for (const x of opts) {
+    if (x.count == count && x.available) {
+      return x.count;
+    }
+  }
+  for (const x of opts) {
+    if (x.available) {
+      return x.count;
+    }
+  }
+  return opts[0]?.count ?? "1";
 }

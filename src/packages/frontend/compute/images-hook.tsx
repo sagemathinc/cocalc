@@ -20,7 +20,8 @@ export async function reloadImages(name: Name, reload?: boolean) {
       await actions.updateComputeServerImagesGoogle(reload);
       return;
     default:
-      throw Error(`uknown images -- ${name}`);
+      // non-fatal, since reloading something uknown is trivial.
+      console.warn(`uknown images -- "${name}"`);
   }
 }
 
