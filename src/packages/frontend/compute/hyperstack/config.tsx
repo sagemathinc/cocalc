@@ -3,14 +3,20 @@ import type {
   HyperstackConfiguration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { Divider, Select, Spin, Table } from "antd";
-import { getHyperstackPriceData, setServerConfiguration } from "./api";
+import {
+  getHyperstackPriceData,
+  setServerConfiguration,
+} from "@cocalc/frontend/compute/api";
 import { useEffect, useMemo, useState } from "react";
-import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
-import ExcludeFromSync from "./exclude-from-sync";
+import SelectImage, {
+  ImageDescription,
+  ImageLinks,
+} from "@cocalc/frontend/compute/select-image";
+import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
-import Ephemeral from "./ephemeral";
-import Proxy from "./proxy";
-import { useImages } from "./images-hook";
+import Ephemeral from "@cocalc/frontend/compute/ephemeral";
+import Proxy from "@cocalc/frontend/compute/proxy";
+import { useImages } from "@cocalc/frontend/compute/images-hook";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import computeCost from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
 import { commas, currency, field_cmp, plural } from "@cocalc/util/misc";
@@ -19,18 +25,12 @@ import {
   markup,
   PurchaseOption,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-import NVIDIA from "./nvidia";
-import CostOverview from "./cost-overview";
+import NVIDIA from "@cocalc/frontend/compute/nvidia";
+import CostOverview from "@cocalc/frontend/compute/cost-overview";
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { A } from "@cocalc/frontend/components/A";
-import { r_join } from "@cocalc/frontend/components/r_join";
-import {
-  getModelLinks,
-  getModelOptions,
-  toGPU,
-} from "@cocalc/frontend/compute/hyperstack/util";
-import { filterOption, SELECTOR_WIDTH } from "./google-cloud-config";
+import { toGPU } from "./util";
+import GPU from "./gpu";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -62,6 +62,21 @@ export default function HyperstackConfig({
   const [configuration, setLocalConfiguration] =
     useState<HyperstackConfiguration>(configuration0);
   const [cost, setCost] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await getHyperstackPriceData();
+        //window.x = { priceData: data };
+        setPriceData(data);
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const options = useMemo(() => {
     if (priceData == null) {
@@ -135,20 +150,6 @@ export default function HyperstackConfig({
       setLocalConfiguration(configuration0);
     }
   }, [configuration0]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const data = await getHyperstackPriceData();
-        setPriceData(data);
-      } catch (err) {
-        setError(`${err}`);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   const setConfig = async (changes) => {
     try {
@@ -389,78 +390,4 @@ function Provisioning({}) {
       </div>
     </div>
   );
-}
-
-function GPU({ priceData, setConfig, configuration, disabled, state }) {
-  const links = useMemo(
-    () => (priceData == null ? null : getModelLinks(priceData)),
-    [priceData],
-  );
-
-  const options = useMemo(
-    () => (priceData == null ? null : getModelOptions(priceData)),
-    [priceData],
-  );
-
-  if (priceData == null || links == null || options == null) {
-    return null;
-  }
-
-  const head = (
-    <div style={{ color: "#666", marginBottom: "5px" }}>
-      <b>
-        <Icon name="cube" /> NVIDIA GPU:{" "}
-        {r_join(
-          links.map(({ name, url }) => {
-            return url ? <A href={url}>{name}</A> : name;
-          }),
-        )}
-      </b>
-      <br />
-      Hyperstack servers come equipped with at least one NVIDIA GPU. Select
-      which GPU model to include:
-      <Select
-        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-        style={{ width: SELECTOR_WIDTH }}
-        options={options as any}
-        value={flavorToGPU(configuration.flavor_name)}
-        onChange={(model) => {
-          setConfig({
-            flavor_name: changeFlavorModel(configuration.flavor_name, model),
-          });
-        }}
-        showSearch
-        optionFilterProp="children"
-        filterOption={filterOption}
-      />
-      <Select
-        style={{ marginLeft: "15px", width: "75px" }}
-        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-        options={[]}
-        value={flavorToCount(configuration.flavor_name)}
-        onChange={(count) => {
-          setConfig({
-            flavor_name: changeFlavorCount(configuration.flavor_name, count),
-          });
-        }}
-      />
-    </div>
-  );
-  return head;
-}
-
-function flavorToGPU(flavor_name) {
-  return flavor_name;
-}
-
-function flavorToCount(flavor_name) {
-  return 1;
-}
-
-function changeFlavorModel(flavor_name, model) {
-  return flavor_name;
-}
-
-function changeFlavorCount(flavor_name, count) {
-  return flavor_name;
 }

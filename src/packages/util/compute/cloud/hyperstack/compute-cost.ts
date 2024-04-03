@@ -2,6 +2,9 @@ import type { HyperstackConfiguration } from "@cocalc/util/db-schema/compute-ser
 import type { HyperstackPriceData } from "./pricing";
 import { optionKey, markup } from "./pricing";
 
+// This is what we intend to use and charge for the boot disk.
+export const BOOT_DISK_SIZE_GB = 50;
+
 interface Options {
   configuration: HyperstackConfiguration;
   // output of getData from this package -- https://www.npmjs.com/package/@cocalc/gcloud-pricing-calculator
@@ -29,32 +32,38 @@ export default function computeCost({
   }
 }
 
-function costNotKnown(configuration) {
+function throwCostNotKnownError(configuration) {
   const { flavor_name, region_name } = configuration ?? {};
   throw Error(
     `no price known for flavor_name=${flavor_name}, region_name=${region_name}`,
   );
 }
 
-function computeOffCost({ configuration, priceData }) {
-  const data = priceData?.options[optionKey(configuration)];
-  if (data == null) {
-    costNotKnown(configuration);
+function computeVolumeCost({ configuration, priceData }): number {
+  if (priceData == null) {
+    throwCostNotKnownError(configuration);
   }
-  // TODO! What happens to data.ephemeral disk? Right now they just delete it!
-  // They tell you to copy it to a normal volume at https://infrahub-doc.nexgencloud.com/docs/hyperstack/
-  // so we need to make this clear and/or implement automating this!
-  const cost =
-    priceData.external_ip_cost_per_hour +
-    data.disk * priceData.sdd_cost_per_hour;
-  return markup({ cost, priceData });
+  const boot = BOOT_DISK_SIZE_GB * priceData.sdd_cost_per_hour;
+  const data = (configuration?.diskSizeGb ?? 10) * priceData.sdd_cost_per_hour;
+  return boot + data;
+}
+
+// For the cocalc integration "off" means that we 100% delete the VM
+// and *ONLY* keep the associated storage volumes.
+function computeOffCost({ configuration, priceData }) {
+  return markup({
+    cost: computeVolumeCost({ configuration, priceData }),
+    priceData,
+  });
 }
 
 function computeRunningCost({ configuration, priceData }) {
   const data = priceData?.options[optionKey(configuration)];
   if (data == null) {
-    costNotKnown(configuration);
+    throwCostNotKnownError(configuration);
   }
-  const cost = data.cost_per_hour; // this *includes* storage and external ip
+  // data.cost_per_hour *includes* GPUs, any ephemeral storage and external ip (assume: not cpu only!)
+  const cost =
+    data.cost_per_hour + computeVolumeCost({ configuration, priceData });
   return markup({ cost, priceData });
 }

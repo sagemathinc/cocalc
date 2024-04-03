@@ -7,6 +7,11 @@ import { Table } from "./types";
 import { ID } from "./crm";
 import { NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
+import type { Region as HyperstackRegion } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import {
+  DEFAULT_REGION as DEFAULT_HYPERSTACK_REGION,
+  DEFAULT_FLAVOR as DEFAULT_HYPERSTACK_FLAVOR,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 // These are just fallbacks in case something is wrong with the image configuration.
 export const STANDARD_DISK_SIZE = 20;
@@ -409,8 +414,8 @@ const CLOUDS: {
     defaultConfiguration: {
       cloud: "hyperstack",
       image: "anaconda-gpu",
-      region_name: "CANADA-01",
-      flavor_name: "n1-RTX-A6000x1",
+      region_name: DEFAULT_HYPERSTACK_REGION,
+      flavor_name: DEFAULT_HYPERSTACK_FLAVOR,
       excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
@@ -486,7 +491,7 @@ interface LambdaConfiguration extends BaseConfiguration {
 export interface HyperstackConfiguration extends BaseConfiguration {
   cloud: "hyperstack";
   flavor_name: string;
-  region_name: string;
+  region_name: HyperstackRegion;
   // diskSizeGb is an integer >= 1.  It defaults to 10.
   // It's the size of the /data partition.  It's implemented
   // using 1 or more hyperstack (=ceph) volumes, which are combined

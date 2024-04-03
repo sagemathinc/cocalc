@@ -33,10 +33,6 @@ export function getModelLinks(priceData) {
   return models;
 }
 
-export function getModelOptions(priceData) {
-  return [];
-}
-
 export function toGPU(gpu) {
   gpu = gpu.replace("G-", "GB-");
   if (gpu.endsWith("-sm")) {

@@ -1510,7 +1510,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
             <b>
               {priceData.accelerators[acceleratorType].memory *
                 acceleratorCount}
-              GB RAM
+              GB GPU RAM
             </b>
             .{" "}
             {acceleratorCount > 1 && (

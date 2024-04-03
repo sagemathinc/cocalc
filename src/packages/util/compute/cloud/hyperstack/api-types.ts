@@ -6,6 +6,9 @@ or data that comes out of it.
 */
 
 export type Region = "CANADA-1" | "NORWAY-1";
+export const REGIONS = ["CANADA-1", "NORWAY-1"] as const;
+export const DEFAULT_REGION = REGIONS[0];
+export const DEFAULT_FLAVOR = "n1-RTX-A6000x1";
 
 export interface RegionInfo {
   id: number;
