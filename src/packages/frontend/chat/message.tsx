@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Col, Popconfirm, Row, Tooltip } from "antd";
+import type { MenuProps } from "antd";
+import { Button, Col, Dropdown, Popconfirm, Row, Tooltip } from "antd";
 import { Map } from "immutable";
 import { CSSProperties } from "react";
 
@@ -13,12 +14,15 @@ import {
   useMemo,
   useRef,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { LANGUAGE_MODEL_SERVICES } from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../project/context";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
@@ -92,7 +96,7 @@ export default function Message(props: Props) {
   );
 
   // date as ms since epoch or 0
-  const date = useMemo(() => {
+  const date: number = useMemo(() => {
     return props.message?.get("date")?.valueOf() ?? 0;
   }, [props.message.get("date")]);
 
@@ -597,22 +601,6 @@ export default function Message(props: Props) {
     return REPLY_STYLE;
   }
 
-  function renderRegenerateLLM() {
-    const { actions } = props;
-    if (!isLLMThread || !actions) return;
-
-    return (
-      <Button
-        style={{ color: COLORS.GRAY_M, marginLeft: "15px" }}
-        onClick={() => {
-          actions.languageModelRegenerate(new Date(date));
-        }}
-      >
-        <Icon name="refresh" /> Regenerate
-      </Button>
-    );
-  }
-
   function renderReplyRow() {
     if (
       replying ||
@@ -648,7 +636,9 @@ export default function Message(props: Props) {
             ) : undefined}
           </Button>
         </Tooltip>
-        {renderRegenerateLLM()}
+        {isLLMThread ? (
+          <RegenerateLLM actions={props.actions} date={date} />
+        ) : undefined}
       </div>
     );
   }
@@ -681,4 +671,47 @@ export function message_to_markdown(message): string {
   const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
+}
+
+interface RegenerateLLMProps {
+  actions?: ChatActions;
+  date: number; // ms since epoch
+}
+
+function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
+  const { enabledLLMs } = useProjectContext();
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+
+  if (!actions) return null;
+
+  const entries: MenuProps["items"] = [];
+
+  // iterate over all key,values in USER_SELECTABLE_LLMS_BY_VENDOR
+  for (const [vendor, llms] of Object.entries(LANGUAGE_MODEL_SERVICES)) {
+    if (!enabledLLMs[vendor]) continue;
+    for (const llm of llms) {
+      if (!selectableLLMs.includes(llm)) continue;
+      entries.push({
+        key: llm,
+        label: modelToName(llm),
+        onClick: () => {
+          actions.languageModelRegenerate(new Date(date), llm);
+        },
+      });
+    }
+  }
+
+  return (
+    <Dropdown.Button
+      menu={{ items: entries }}
+      size="small"
+      style={{ display: "inline" }}
+      icon={<Icon name="angle-down" />}
+      onClick={() => {
+        actions.languageModelRegenerate(new Date(date));
+      }}
+    >
+      <Icon name="refresh" /> Regenerate
+    </Dropdown.Button>
+  );
 }

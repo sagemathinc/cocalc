@@ -692,7 +692,7 @@ export class ChatActions extends Actions<ChatState> {
       // collect more of the output
       if (token != null) {
         content += token;
-        console.log("content:", content);
+        // console.log("content:", content);
       }
       // save it
       this.syncdb.set({
@@ -778,7 +778,8 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.commit();
   }
 
-  public languageModelRegenerate(date0: Date) {
+  public languageModelRegenerate(date0: Date, llm?: LanguageModel) {
+    console.log("regenerate", date0, llm);
     if (this.syncdb == null) return;
     const date = date0.toISOString();
     const cur = this.syncdb.get_one({ event: "chat", date });

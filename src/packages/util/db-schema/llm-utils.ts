@@ -117,20 +117,19 @@ export const LANGUAGE_MODELS = [
   ...ANTHROPIC_MODELS,
 ] as const;
 
-// This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
-// Make sure to update this when adding new models.
-// This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
-export const USER_SELECTABLE_LANGUAGE_MODELS = [
-  ...MODELS_OPENAI.filter(
+export const USER_SELECTABLE_LLMS_BY_VENDOR: {
+  [vendor in LLMServiceName]: Readonly<CoreLanguageModel[]>;
+} = {
+  openai: MODELS_OPENAI.filter(
     (m) =>
       m !== "gpt-4-32k" && // this one is deliberately not selectable by users!
       m !== "text-embedding-ada-002", // shouldn't be in the list in the first place
   ),
-  ...GOOGLE_MODELS.filter(
+  google: GOOGLE_MODELS.filter(
     (m) => m === "gemini-pro", // for now, that's the only one working robustly
   ),
-  ...MISTRAL_MODELS,
-  ...ANTHROPIC_MODELS.filter((m) => {
+  mistralai: MISTRAL_MODELS,
+  anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
       m === "claude-3-opus" ||
@@ -139,6 +138,17 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
       m === "claude-3-haiku-8k"
     );
   }),
+  ollama: [], // this is empty, because these models are not hardcoded
+} as const;
+
+// This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
+// Make sure to update this when adding new models.
+// This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
+export const USER_SELECTABLE_LANGUAGE_MODELS = [
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.openai,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.google,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.mistralai,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.anthropic,
 ] as const;
 
 export type OllamaLLM = string;
@@ -158,9 +168,9 @@ export function isLanguageModel(model?: unknown): model is LanguageModel {
 export const LANGUAGE_MODEL_SERVICES = [
   "openai",
   "google",
-  "ollama",
   "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
   "anthropic",
+  "ollama",
 ] as const;
 export type LLMServiceName = (typeof LANGUAGE_MODEL_SERVICES)[number];
 

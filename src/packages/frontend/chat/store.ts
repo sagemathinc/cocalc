@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Map as immutableMap, fromJS } from "immutable";
-import { Store, TypedMap, redux } from "../app-framework";
+import { List, fromJS, Map as immutableMap } from "immutable";
+
+import { Store, TypedMap, redux } from "@cocalc/frontend/app-framework";
 import type { HashtagState } from "@cocalc/frontend/editors/task-editor/types";
 
 type Mention = TypedMap<{
