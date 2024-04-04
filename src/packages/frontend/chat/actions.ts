@@ -287,9 +287,11 @@ export class ChatActions extends Actions<ChatState> {
     const date = webapp_client.server_time().toISOString();
 
     this.syncdb.set({
-      history: [{ author_id, content, date }].concat(
-        message.get("history").toJS(),
-      ),
+      history: addToHistory(message.get("history").toJS(), {
+        author_id,
+        content,
+        date,
+      }),
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
     });
@@ -312,7 +314,11 @@ export class ChatActions extends Actions<ChatState> {
     }
     const prevHistory = message.get("history").toJS();
     this.syncdb.set({
-      history: [{ author_id, content, date }].concat(prevHistory),
+      history: addToHistory(prevHistory, {
+        author_id,
+        content,
+        date,
+      }),
       date,
       generating,
     });
@@ -693,13 +699,11 @@ export class ChatActions extends Actions<ChatState> {
         event: "chat",
         sender_id,
         date,
-        history: [
-          {
-            author_id: sender_id,
-            content,
-            date,
-          },
-        ].concat(prevHistory),
+        history: addToHistory(prevHistory, {
+          author_id: sender_id,
+          content,
+          date,
+        }),
         generating: token != null, // it's generating as token is not null
       });
       // if it was the last output, close this
@@ -726,13 +730,11 @@ export class ChatActions extends Actions<ChatState> {
         event: "chat",
         sender_id,
         date,
-        history: [
-          {
-            author_id: sender_id,
-            content,
-            date,
-          },
-        ].concat(prevHistory),
+        history: addToHistory(prevHistory, {
+          author_id: sender_id,
+          content,
+          date,
+        }),
         generating: false,
       });
       this.syncdb.commit();
@@ -854,4 +856,18 @@ function getLanguageModel(input?: string): false | LanguageModel {
     }
   }
   return false;
+}
+
+interface MessageHistory {
+  author_id: string; // account UUID or language model service
+  content: string; // markdown
+  date: string; // date.toISOString()
+}
+
+function addToHistory(
+  history: MessageHistory[],
+  next: MessageHistory,
+): MessageHistory[] {
+  // inserted at the beginning of the history, without modifying the array
+  return [next, ...history];
 }
