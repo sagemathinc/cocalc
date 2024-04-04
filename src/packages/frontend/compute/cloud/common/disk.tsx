@@ -1,7 +1,15 @@
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Button, Divider, InputNumber, Select, Space } from "antd";
+import {
+  Alert,
+  Button,
+  Divider,
+  InputNumber,
+  Select,
+  Space,
+  Switch,
+} from "antd";
 import { SELECTOR_WIDTH } from "@cocalc/frontend/compute/google-cloud-config";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { currency } from "@cocalc/util/misc";
@@ -19,6 +27,8 @@ export default function Disk(props) {
     state = "deprovisioned",
     IMAGES,
   } = props;
+
+  const [help, setHelp] = useState<boolean>(false);
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
   );
@@ -55,10 +65,50 @@ export default function Disk(props) {
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
+        <Switch
+          size="small"
+          checkedChildren={"Help"}
+          unCheckedChildren={"Help"}
+          style={{ float: "right" }}
+          checked={help}
+          onChange={(val) => setHelp(val)}
+        />
         <b>
-          <Icon name="disk-drive" /> Disk
+          <Icon name="disk-drive" /> Persistent Disk Storage
         </b>
       </div>
+      {help && (
+        <Alert
+          showIcon
+          style={{ margin: "15px 0" }}
+          type="info"
+          message={"Persistent Disk Storage"}
+          description={
+            <div style={{ color: "#666", margin: "10px 0" }}>
+              <p>
+                You are charged for storage as long as the server is provisioned
+                (even if it is off), but if you run out of credit or hit your
+                spending limit and don't pay, then the disk will be
+                automatically deleted.
+              </p>
+              <p>
+                While the server is running,{" "}
+                <i>
+                  you can increase the disk size <b>without</b> restarting the
+                  server
+                </i>
+                , and it will resize within a minute. You do not have to
+                manually do anything (e.g., reboot or use command line tools)
+                after increasing the disk size.
+              </p>
+            </div>
+          }
+        />
+      )}{" "}
+      <p>
+        Configure the size of the disk and the type of storage, which determines
+        how fast the disk is.
+      </p>
       <Space direction="vertical">
         <InputNumber
           style={{ width: SELECTOR_WIDTH }}
@@ -241,15 +291,7 @@ export default function Disk(props) {
             /month
           </div>
         </Space>
-        <div style={{ color: "#666", margin: "10px 0" }}>
-          You are charged for storage as long as the server is provisioned (even
-          if it is off), but if you run out of credit and don't pay, then the
-          disk is automatically deleted. While the server is running,{" "}
-          <i>
-            you can increase the disk size <b>without</b> restarting the server
-          </i>
-          .
-        </div>
+
         {newDiskType == "pd-standard" && (
           <div style={{ marginTop: "10px", color: "#666" }}>
             <b>WARNING:</b> Small standard disks are slow. Expect an extra
