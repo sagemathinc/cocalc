@@ -82,7 +82,7 @@ export default function GPU({
       flavor_name: configuration.flavor_name,
       priceData,
       region_name,
-    }).map(({ count, available, cost_per_hour, gpu, quantity }) => {
+    }).map(({ count, available = 0, cost_per_hour, gpu, quantity }) => {
       const gpuSpec = GPU_SPECS[toGPU(gpu)];
       return {
         value: count,

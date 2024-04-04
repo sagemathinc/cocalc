@@ -72,7 +72,7 @@ export default function MachineType({
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
-                    {x.available} {plural(x.available, "GPU")} available in{" "}
+                    {x.available ?? 0} {plural(x.available ?? 0, "GPU")} available in{" "}
                     {capitalize(x.region_name.toLowerCase().split("-")[0])} 🍃
                   </div>
                 </div>
