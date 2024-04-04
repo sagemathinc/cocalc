@@ -3,10 +3,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Alert, Button, InputNumber, Select, Space, Switch } from "antd";
 import { SELECTOR_WIDTH } from "@cocalc/frontend/compute/google-cloud-config";
 import { commas, currency } from "@cocalc/util/misc";
-import {
-  computeDiskCost,
-  markup,
-} from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 interface Props {
   setConfig;
@@ -18,6 +15,7 @@ interface Props {
   noType?: boolean;
   minSizeGb: number;
   maxSizeGb: number;
+  computeDiskCost;
 }
 
 export default function Disk(props: Props) {
@@ -30,6 +28,7 @@ export default function Disk(props: Props) {
     noType,
     minSizeGb,
     maxSizeGb,
+    computeDiskCost,
   } = props;
 
   const [help, setHelp] = useState<boolean>(false);

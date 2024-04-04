@@ -23,6 +23,7 @@ import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
 import * as lambdaCloud from "./cloud/lambda-cloud";
 import * as googleCloud from "./cloud/google-cloud";
+import * as hyperstackCloud from "./cloud/hyperstack";
 import type {
   Architecture,
   Cloud,
@@ -288,6 +289,8 @@ async function doState(server: ComputeServer): Promise<State> {
       return await googleCloud.state(server);
     case "lambda-cloud":
       return await lambdaCloud.state(server);
+    case "hyperstack":
+      return await hyperstackCloud.state(server);
     case "onprem":
       // for onprem all state is self-reported.
       return server.state ?? "unknown";
@@ -408,6 +411,8 @@ export async function computeCost({
       return await fluidStack.cost(server, state);
     case "google-cloud":
       return await googleCloud.cost(server, state);
+    case "hyperstack":
+      return await hyperstackCloud.cost(server, state);
     case "lambda-cloud":
       return await lambdaCloud.cost(server, state);
     default:

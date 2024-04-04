@@ -391,7 +391,7 @@ export default function ComputeServer({
             <ShowError
               error={error}
               setError={setError}
-              style={{ margin: "15px 0" }}
+              style={{ margin: "15px 0", width: "100%" }}
             />
           </div>
         }
@@ -496,7 +496,7 @@ function BackendError({ error, id, project_id }) {
     <div style={{ marginTop: "10px", display: "flex", fontWeight: "normal" }}>
       <ShowError
         error={error}
-        style={{ fontSize: "10pt" }}
+        style={{ margin: "15px 0", width: "100%" }}
         setError={async () => {
           try {
             await webapp_client.async_query({

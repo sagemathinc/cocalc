@@ -27,6 +27,7 @@ import computeCost, {
   markup,
   computeAcceleratorCost,
   computeInstanceCost,
+  computeDiskCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import {
   getGoogleCloudPriceData,
@@ -1106,7 +1107,12 @@ function RamAndCpu({
 
 function BootDisk(props) {
   return (
-    <Disk {...props} minSizeGb={getMinDiskSizeGb(props)} maxSizeGb={65536} />
+    <Disk
+      {...props}
+      minSizeGb={getMinDiskSizeGb(props)}
+      maxSizeGb={65536}
+      computeDiskCost={computeDiskCost}
+    />
   );
 }
 
@@ -1891,7 +1897,9 @@ function Admin({ id, configuration, loading }) {
             {calling && <Spin style={{ marginLeft: "15px" }} />}
           </Button>
         </Tooltip>
-        <pre>id={id}, configuration={JSON.stringify(configuration, undefined, 2)}</pre>
+        <pre>
+          id={id}, configuration={JSON.stringify(configuration, undefined, 2)}
+        </pre>
       </div>
     </div>
   );

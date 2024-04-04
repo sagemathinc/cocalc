@@ -235,15 +235,23 @@ export default function HyperstackConfig({
     },
   ];
 
+  const showError = (
+    <ShowError
+      error={error}
+      setError={setError}
+      style={{ width: "100%", margin: "5px 0" }}
+    />
+  );
+
   return (
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "10px" }}>
+        {showError}
         {loading && (
           <div style={{ textAlign: "center" }}>
             <Spin style={{ marginLeft: "15px" }} />
           </div>
         )}
-        <ShowError error={error} setError={setError} />
         {cost != null && priceData != null && (
           <CostOverview
             cost={cost}
@@ -282,7 +290,7 @@ export default function HyperstackConfig({
         />
       </div>
 
-      <ShowError error={error} setError={setError} />
+      {showError}
     </div>
   );
 }
