@@ -49,6 +49,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import Proxy from "./proxy";
 import CostOverview from "./cost-overview";
 import Disk from "@cocalc/frontend/compute/cloud/common/disk";
+import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -388,10 +389,26 @@ export default function GoogleCloudConfiguration({
         />
       ),
     },
-
+    {
+      key: "exclude",
+      value: (
+        <ExcludeFromSync
+          id={id}
+          disabled={loading}
+          setConfig={setConfig}
+          configuration={configuration}
+          state={state}
+          style={{ marginTop: "10px", color: "#666" }}
+        />
+      ),
+    },
     {
       key: "network",
-      label: <></>,
+      label: (
+        <A href="https://cloud.google.com/compute/docs/network-bandwidth">
+          <Icon name="external-link" /> Network
+        </A>
+      ),
       value: (
         <Network
           setConfig={setConfig}
@@ -1086,7 +1103,9 @@ function RamAndCpu({
 }
 
 function BootDisk(props) {
-  return <Disk {...props} />;
+  return (
+    <Disk {...props} minSizeGb={getMinDiskSizeGb(props)} maxSizeGb={65536} />
+  );
 }
 
 function Image(props) {
@@ -1627,7 +1646,7 @@ function Network({ setConfig, configuration, loading, priceData }) {
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>
-          <Icon name="network-server" /> Network
+          <Icon name="network" /> Network
         </b>
         <br />
         All compute servers on Google cloud have full network access with

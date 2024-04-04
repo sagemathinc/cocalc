@@ -1,10 +1,7 @@
-import { Divider } from "antd";
 import SelectImage, {
   ImageDescription,
   ImageLinks,
 } from "@cocalc/frontend/compute/select-image";
-import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
-import Ephemeral from "@cocalc/frontend/compute/ephemeral";
 
 export default function Image(props) {
   const { state = "deprovisioned" } = props;
@@ -34,9 +31,6 @@ export default function Image(props) {
           </div>
         )}
       </div>
-      <ExcludeFromSync {...props} />
-      <Divider />
-      <Ephemeral style={{ marginTop: "30px" }} {...props} />
     </div>
   );
 }

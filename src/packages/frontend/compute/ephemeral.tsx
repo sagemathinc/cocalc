@@ -18,7 +18,7 @@ export default function Ephemeral({ setConfig, configuration, loading }) {
               checked={help}
               onChange={(val) => setHelp(val)}
             />
-            <Icon name="disk-snapshot" /> Ephemeral Storage Only
+            <Icon name="disk-snapshot" /> Ephemeral Compute Server
           </b>
         </div>
         {help && (

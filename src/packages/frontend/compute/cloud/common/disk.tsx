@@ -1,44 +1,53 @@
-import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   Alert,
   Button,
-  Divider,
   InputNumber,
   Select,
   Space,
   Switch,
 } from "antd";
 import { SELECTOR_WIDTH } from "@cocalc/frontend/compute/google-cloud-config";
-import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
-import { currency } from "@cocalc/util/misc";
+import { commas, currency } from "@cocalc/util/misc";
 import {
   computeDiskCost,
   markup,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
-export default function Disk(props) {
+interface Props {
+  setConfig;
+  configuration;
+  disabled?: boolean;
+  priceData;
+  state;
+  // if noType is shown, do not render anything related to disk types
+  noType?: boolean;
+  minSizeGb: number;
+  maxSizeGb: number;
+}
+
+export default function Disk(props: Props) {
   const {
     setConfig,
     configuration,
     disabled,
     priceData,
     state = "deprovisioned",
-    IMAGES,
+    noType,
+    minSizeGb,
+    maxSizeGb,
   } = props;
 
   const [help, setHelp] = useState<boolean>(false);
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
-    configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
+    configuration.diskSizeGb ?? minSizeGb,
   );
   const [newDiskType, setNewDiskType] = useState<string | null>(
     configuration.diskType ?? "pd-standard",
   );
   useEffect(() => {
-    setNewDiskSizeGb(
-      configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
-    );
+    setNewDiskSizeGb(configuration.diskSizeGb ?? minSizeGb);
     setNewDiskType(configuration.diskType ?? "pd-standard");
   }, [configuration.diskSizeGb]);
 
@@ -46,14 +55,14 @@ export default function Disk(props) {
     if (newDiskSizeGb == null) {
       return;
     }
-    const min = getMinDiskSizeGb({ configuration, IMAGES });
+    const min = minSizeGb;
     if (newDiskSizeGb < min) {
       setNewDiskSizeGb(min);
     }
   }, [configuration.image]);
 
   useEffect(() => {
-    const min = getMinDiskSizeGb({ configuration, IMAGES });
+    const min = minSizeGb;
     if ((newDiskSizeGb ?? 0) < min) {
       setConfig({
         diskSizeGb: min,
@@ -106,8 +115,11 @@ export default function Disk(props) {
         />
       )}{" "}
       <p>
-        Configure the size of the disk and the type of storage, which determines
-        how fast the disk is.
+        Configure the size of the disk
+        {noType
+          ? ""
+          : " and the type of storage, which determines how fast the disk is"}
+        .
       </p>
       <Space direction="vertical">
         <InputNumber
@@ -115,10 +127,10 @@ export default function Disk(props) {
           disabled={disabled}
           min={
             state == "deprovisioned"
-              ? getMinDiskSizeGb({ configuration, IMAGES })
-              : configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)
+              ? minSizeGb
+              : configuration.diskSizeGb ?? minSizeGb
           }
-          max={65536}
+          max={maxSizeGb}
           value={newDiskSizeGb}
           addonAfter="GB"
           onChange={(diskSizeGb) => {
@@ -128,8 +140,7 @@ export default function Disk(props) {
             if (state == "deprovisioned") {
               // only set on blur or every keystroke rerenders and cause loss of focus.
               setConfig({
-                diskSizeGb:
-                  newDiskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
+                diskSizeGb: newDiskSizeGb ?? minSizeGb,
               });
             }
           }}
@@ -169,16 +180,16 @@ export default function Disk(props) {
             size="small"
             onClick={() => {
               setConfig({
-                diskSizeGb: getMinDiskSizeGb({ configuration, IMAGES }),
+                diskSizeGb: minSizeGb,
               });
             }}
           >
-            {getMinDiskSizeGb({ configuration, IMAGES })} GB
+            {minSizeGb} GB
           </Button>
         ) : (
-          <>{getMinDiskSizeGb({ configuration, IMAGES })} GB</>
+          <>{minSizeGb} GB</>
         )}{" "}
-        and 65,536 GB.
+        and {commas(maxSizeGb)} GB.
         {state != "deprovisioned" && (
           <>
             {" "}
@@ -191,120 +202,119 @@ export default function Disk(props) {
           </>
         )}
       </div>
-      <div>
-        <Space>
-          <Select
-            style={{ width: SELECTOR_WIDTH }}
-            disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-            value={newDiskType}
-            onChange={(diskType) => {
-              setNewDiskType(diskType);
-              setConfig({ diskType: diskType ?? "pd-standard" });
-            }}
-            options={[
-              {
-                value: "pd-balanced",
-                label: (
-                  <div>
-                    Balanced (SSD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-balanced"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
+      {!noType && (
+        <div>
+          <Space>
+            <Select
+              style={{ width: SELECTOR_WIDTH }}
+              disabled={
+                disabled || (state ?? "deprovisioned") != "deprovisioned"
+              }
+              value={newDiskType}
+              onChange={(diskType) => {
+                setNewDiskType(diskType);
+                setConfig({ diskType: diskType ?? "pd-standard" });
+              }}
+              options={[
+                {
+                  value: "pd-balanced",
+                  label: (
+                    <div>
+                      Balanced (SSD) disk{" "}
+                      <div style={{ fontFamily: "monospace", float: "right" }}>
+                        {currency(
+                          markup({
+                            cost:
+                              priceData.disks["pd-balanced"]?.prices[
+                                configuration.region
+                              ] * 730,
+                            priceData,
+                          }),
+                        )}
+                        /GB per month
+                      </div>
                     </div>
-                  </div>
-                ),
-              },
-              {
-                value: "pd-ssd",
-                label: (
-                  <div>
-                    Performance (SSD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-ssd"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
+                  ),
+                },
+                {
+                  value: "pd-ssd",
+                  label: (
+                    <div>
+                      Performance (SSD) disk{" "}
+                      <div style={{ fontFamily: "monospace", float: "right" }}>
+                        {currency(
+                          markup({
+                            cost:
+                              priceData.disks["pd-ssd"]?.prices[
+                                configuration.region
+                              ] * 730,
+                            priceData,
+                          }),
+                        )}
+                        /GB per month
+                      </div>
                     </div>
-                  </div>
-                ),
-              },
-              {
-                value: "pd-standard",
-                label: (
-                  <div>
-                    Standard (HDD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-standard"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
+                  ),
+                },
+                {
+                  value: "pd-standard",
+                  label: (
+                    <div>
+                      Standard (HDD) disk{" "}
+                      <div style={{ fontFamily: "monospace", float: "right" }}>
+                        {currency(
+                          markup({
+                            cost:
+                              priceData.disks["pd-standard"]?.prices[
+                                configuration.region
+                              ] * 730,
+                            priceData,
+                          }),
+                        )}
+                        /GB per month
+                      </div>
                     </div>
-                  </div>
-                ),
-              },
-            ]}
-          ></Select>
-          <div style={{ marginLeft: "15px" }}>
-            <b>Total Cost for {configuration.diskSizeGb}GB:</b>{" "}
-            {currency(
-              markup({
-                cost:
-                  configuration.diskSizeGb *
-                  priceData.disks[configuration.diskType]?.prices[
-                    configuration.region
-                  ],
-                priceData,
-              }),
-            )}
-            /hour or{" "}
-            {currency(
-              markup({
-                cost:
-                  configuration.diskSizeGb *
-                  priceData.disks[configuration.diskType]?.prices[
-                    configuration.region
-                  ] *
-                  730,
-                priceData,
-              }),
-            )}
-            /month
-          </div>
-        </Space>
+                  ),
+                },
+              ]}
+            ></Select>
+            <div style={{ marginLeft: "15px" }}>
+              <b>Total Cost for {commas(configuration.diskSizeGb)}GB:</b>{" "}
+              {currency(
+                markup({
+                  cost:
+                    configuration.diskSizeGb *
+                    priceData.disks[configuration.diskType]?.prices[
+                      configuration.region
+                    ],
+                  priceData,
+                }),
+              )}
+              /hour or{" "}
+              {currency(
+                markup({
+                  cost:
+                    configuration.diskSizeGb *
+                    priceData.disks[configuration.diskType]?.prices[
+                      configuration.region
+                    ] *
+                    730,
+                  priceData,
+                }),
+              )}
+              /month
+            </div>
+          </Space>
 
-        {newDiskType == "pd-standard" && (
-          <div style={{ marginTop: "10px", color: "#666" }}>
-            <b>WARNING:</b> Small standard disks are slow. Expect an extra
-            10s-30s of startup time and slower application start. Balanced disks
-            are much faster.
-          </div>
-        )}
-        <Divider />
-        <ExcludeFromSync
-          {...props}
-          style={{ marginTop: "10px", color: "#666" }}
-        />
-      </div>
+          {newDiskType == "pd-standard" && (
+            <div style={{ marginTop: "10px", color: "#666" }}>
+              <b>WARNING:</b> Small standard disks are slow. Expect an extra
+              10s-30s of startup time and slower application start. Balanced
+              disks are much faster.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

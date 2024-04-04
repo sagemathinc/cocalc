@@ -32,16 +32,16 @@ export default function computeCost({
   }
 }
 
-function throwCostNotKnownError(configuration) {
+function throwCostNotKnownError(configuration, priceData) {
   const { flavor_name, region_name } = configuration ?? {};
   throw Error(
     `no price known for flavor_name=${flavor_name}, region_name=${region_name}`,
   );
 }
 
-function computeVolumeCost({ configuration, priceData }): number {
+export function computeVolumeCost({ configuration, priceData }): number {
   if (priceData == null) {
-    throwCostNotKnownError(configuration);
+    throwCostNotKnownError(configuration, priceData);
   }
   const boot = BOOT_DISK_SIZE_GB * priceData.sdd_cost_per_hour;
   const data = (configuration?.diskSizeGb ?? 10) * priceData.sdd_cost_per_hour;
@@ -60,7 +60,7 @@ function computeOffCost({ configuration, priceData }) {
 function computeRunningCost({ configuration, priceData }) {
   const data = priceData?.options[optionKey(configuration)];
   if (data == null) {
-    throwCostNotKnownError(configuration);
+    throwCostNotKnownError(configuration, priceData);
   }
   // data.cost_per_hour *includes* GPUs, any ephemeral storage and external ip (assume: not cpu only!)
   const cost =

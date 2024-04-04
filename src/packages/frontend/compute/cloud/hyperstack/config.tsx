@@ -20,6 +20,9 @@ import GPU from "./gpu";
 import MachineType from "./machine-type";
 import Specs from "./specs";
 import Image from "./image";
+import Disk from "./disk";
+import Ephemeral from "@cocalc/frontend/compute/ephemeral";
+import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -173,6 +176,33 @@ export default function HyperstackConfig({
       ),
     },
     {
+      key: "disk",
+      value: (
+        <Disk
+          id={id}
+          disabled={loading}
+          setConfig={setConfig}
+          configuration={configuration}
+          priceData={priceData}
+          state={state}
+          IMAGES={IMAGES}
+        />
+      ),
+    },
+    {
+      key: "exclude",
+      value: (
+        <ExcludeFromSync
+          id={id}
+          disabled={loading}
+          setConfig={setConfig}
+          configuration={configuration}
+          state={state}
+          style={{ marginTop: "10px", color: "#666" }}
+        />
+      ),
+    },
+    {
       key: "proxy",
       value: (
         <Proxy
@@ -183,6 +213,17 @@ export default function HyperstackConfig({
           data={data}
           state={state}
           IMAGES={IMAGES}
+        />
+      ),
+    },
+    {
+      key: "ephemeral",
+      label: <></>,
+      value: (
+        <Ephemeral
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
         />
       ),
     },

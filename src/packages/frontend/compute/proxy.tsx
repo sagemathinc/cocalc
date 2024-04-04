@@ -42,7 +42,7 @@ export default function Proxy({
               checked={help}
               onChange={(val) => setHelp(val)}
             />
-            <Icon name="global" /> Applications
+            <Icon name="global" /> Web Applications: VS Code, JupyterLab, etc.
           </b>
         </div>
         {help && (
