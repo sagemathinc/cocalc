@@ -23,6 +23,7 @@ import Image from "./image";
 import Disk from "./disk";
 import Ephemeral from "@cocalc/frontend/compute/ephemeral";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -227,6 +228,11 @@ export default function HyperstackConfig({
         />
       ),
     },
+    {
+      key: "admin",
+      label: <></>,
+      value: <Admin id={id} configuration={configuration} />,
+    },
   ];
 
   return (
@@ -295,6 +301,28 @@ function Provisioning({}) {
           <i>will NOT automatically stop</i>
         </b>{" "}
         even if there is a surge in demand.
+      </div>
+    </div>
+  );
+}
+
+function Admin({ id, configuration }) {
+  const isAdmin = useTypedRedux("account", "is_admin");
+  if (!isAdmin) {
+    return null;
+  }
+  return (
+    <div>
+      <div style={{ color: "#666", marginBottom: "5px" }}>
+        <b>
+          <Icon name="users" /> Admin
+        </b>
+        <br />
+        Settings and functionality only available to admins.
+        <br />
+        <pre>
+          id={id}, configuration={JSON.stringify(configuration, undefined, 2)}
+        </pre>
       </div>
     </div>
   );

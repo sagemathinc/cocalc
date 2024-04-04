@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  Alert,
-  Button,
-  InputNumber,
-  Select,
-  Space,
-  Switch,
-} from "antd";
+import { Alert, Button, InputNumber, Select, Space, Switch } from "antd";
 import { SELECTOR_WIDTH } from "@cocalc/frontend/compute/google-cloud-config";
 import { commas, currency } from "@cocalc/util/misc";
 import {
@@ -115,7 +108,7 @@ export default function Disk(props: Props) {
         />
       )}{" "}
       <p>
-        Configure the size of the disk
+        Configure the size of the persistent disk
         {noType
           ? ""
           : " and the type of storage, which determines how fast the disk is"}

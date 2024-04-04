@@ -451,7 +451,6 @@ function ComputeServerEdit({
         }
         footer={
           <>
-            <Divider />
             <div style={{ display: "flex" }}>
               {buttons}
               <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />

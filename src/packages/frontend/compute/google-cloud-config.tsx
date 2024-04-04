@@ -297,7 +297,9 @@ export default function GoogleCloudConfiguration({
     },
     {
       key: "image",
-      label: <ImageLinks image={configuration.image} />,
+      label: (
+        <ImageLinks image={configuration.image} style={{ height: "90px" }} />
+      ),
       value: (
         <Image
           state={state}
@@ -1889,7 +1891,7 @@ function Admin({ id, configuration, loading }) {
             {calling && <Spin style={{ marginLeft: "15px" }} />}
           </Button>
         </Tooltip>
-        <pre>configuration={JSON.stringify(configuration, undefined, 2)}</pre>
+        <pre>id={id}, configuration={JSON.stringify(configuration, undefined, 2)}</pre>
       </div>
     </div>
   );

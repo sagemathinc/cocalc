@@ -258,7 +258,6 @@ export function ImageLinks({ image, style }: { image; style? }) {
         display: "flex",
         flexDirection: "column",
         marginTop: "10px",
-        height: "90px", // so not squished vertically
         ...style,
       }}
     >
