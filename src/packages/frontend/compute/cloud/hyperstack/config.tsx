@@ -191,7 +191,11 @@ export default function HyperstackConfig({
   return (
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "10px" }}>
-        {loading && <Spin style={{ marginLeft: "15px" }} />}
+        {loading && (
+          <div style={{ textAlign: "center" }}>
+            <Spin style={{ marginLeft: "15px" }} />
+          </div>
+        )}
         <ShowError error={error} setError={setError} />
         {cost != null && priceData != null && (
           <CostOverview

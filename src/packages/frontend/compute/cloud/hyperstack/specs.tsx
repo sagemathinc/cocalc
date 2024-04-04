@@ -21,7 +21,7 @@ export default function Specs({ flavor_name, region_name, priceData }) {
       {plural(data.cpu, "vCPU")}, {commas(data.ram)}GB RAM,{" "}
       {commas(data.diskSizeGb ?? DEFAULT_DISK)} GB persistent SSD disk
       {data.ephemeral ? (
-        <> and {commas(data.ephemeral)} GB ephemeral SSD disk </>
+        <> and {commas(data.ephemeral)} GB ephemeral disk </>
       ) : undefined}{" "}
       in {capitalize(region_name.toLowerCase().split("-")[0])}.
     </span>

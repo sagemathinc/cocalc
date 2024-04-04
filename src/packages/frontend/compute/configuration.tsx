@@ -4,7 +4,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import GoogleCloudConfiguration from "./google-cloud-config";
 import OnPremConfiguration from "./onprem-config";
-import HyperstackConfiguration from "./hyperstack/config";
+import HyperstackConfiguration from "./cloud/hyperstack/config";
 
 interface Props {
   configuration: ConfigurationType;

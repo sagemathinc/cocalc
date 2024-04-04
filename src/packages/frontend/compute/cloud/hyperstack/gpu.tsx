@@ -17,7 +17,7 @@ import {
   parseFlavor,
   encodeFlavor,
 } from "./flavor";
-import { capitalize, currency } from "@cocalc/util/misc";
+import { capitalize, currency, plural } from "@cocalc/util/misc";
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { toGPU } from "./util";
 
@@ -59,21 +59,16 @@ export default function GPU({
                 ~{currency(markup({ cost: cost_per_hour, priceData }))}/hour per
                 GPU
               </div>
+              <div style={{ flex: 1 }}>
+                {gpuSpec != null && <>GPU RAM: {gpuSpec.memory} GB</>}
+              </div>
               <div style={{ flex: 0.75 }}>
                 {capitalize(region.toLowerCase().split("-")[0])} 🍃
-              </div>
-              <div style={{ flex: 1 }}>
-                {gpuSpec != null && (
-                  <>
-                    <b style={{ color: "#666" }}>GPU RAM:</b> {gpuSpec.memory}{" "}
-                    GB
-                  </>
-                )}
               </div>
             </div>
           ),
           value: `${region}|${model}`,
-          search: display,
+          search: `${display} ${region.toLowerCase()} ram:${gpuSpec?.memory}`,
         };
       },
     );
@@ -93,22 +88,23 @@ export default function GPU({
         value: count,
         label: (
           <div style={{ display: "flex" }}>
-            <div style={{ flex: 0.5 }}>× {count} </div>
+            <div style={{ flex: 1 }}>× {count} </div>
             <div style={{ flex: 1 }}>
               {currency(markup({ cost: cost_per_hour, priceData }))}/hour
             </div>
             <div style={{ flex: 1 }}>
               {gpuSpec?.memory != null && (
-                <>
-                  <b style={{ color: "#666" }}>GPU RAM:</b>{" "}
-                  {quantity * gpuSpec.memory} GB
-                </>
+                <>GPU RAM: {quantity * gpuSpec.memory} GB</>
               )}
             </div>
-            <div style={{ flex: 1 }}>({available} available)</div>
+            <div style={{ flex: 1 }}>
+              {available} {plural(available, "GPU")} available
+            </div>
           </div>
         ),
-        search: count,
+        search: `${count} available:${available} ram:${
+          quantity * (gpuSpec?.memory ?? 0)
+        }`,
         disabled: !available,
       };
     });
