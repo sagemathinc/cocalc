@@ -200,8 +200,8 @@ export default function AllQuotasConfig() {
       </div>
 
       <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
-        These are your personal monthly spending caps to prevent overspending.
-        You can change them to whatever you want at any time.
+        <b>Your Budget</b>: these are your monthly spending limits to prevent
+        overspending. You can change them eat any time.
       </div>
 
       <div style={{ marginBottom: "15px" }}>

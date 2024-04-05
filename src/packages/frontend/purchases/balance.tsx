@@ -9,7 +9,7 @@ import Next from "@cocalc/frontend/components/next";
 interface Props {
   balance?: number | null;
   style?: CSSProperties;
-  refresh?: () => void;
+  refresh?: () => Promise<void>;
   cost?: number; // optional amount of money we want right now
   pendingBalance?: number | null;
 }

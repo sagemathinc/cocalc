@@ -4,7 +4,7 @@ Functions for interfacing with the purchases functionality.
 TODO/DEPRECATE: this module is mostly pointess since I moved essentially
 all of this code to @cocalc/frontend/purchases/api, which is much better
 since it can also be used directly by our nextjs app, and also is
-scoped better.
+scoped better.  That said quotaModal is here.
 */
 
 import type { Service } from "@cocalc/util/db-schema/purchases";
@@ -13,6 +13,7 @@ import { once } from "@cocalc/util/async-utils";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
+import { round2up } from "@cocalc/util/misc";
 
 export class PurchasesClient {
   api: typeof purchasesApi;
@@ -96,7 +97,7 @@ export class PurchasesClient {
       pay_as_you_go: {
         showModal: true,
         service,
-        cost,
+        cost: cost != null ? round2up(cost) : cost,
         reason,
         allowed,
         cost_per_hour,
