@@ -621,7 +621,9 @@ export type Configuration =
   | OnPremCloudConfiguration;
 
 interface BaseData {
-  cloudflareId: string;
+  cloudflareId?: string;
+  externalIp?: string;
+  internalIp?: string;
 }
 
 export interface LambdaCloudData extends BaseData {
@@ -639,8 +641,6 @@ export interface HyperstackData extends BaseData {
   // disks are named {name}-0, {name}-1, {name}-2, etc.,
   // with {name}-0 being the boot disk.
   disks?: number[];
-  internalIp?: string;
-  externalIp?: string;
   creationTimestamp?: Date;
 }
 
@@ -648,8 +648,6 @@ export interface GoogleCloudData extends BaseData {
   cloud: "google-cloud";
   name?: string;
   state?: State;
-  externalIp?: string;
-  internalIp?: string;
   cpuPlatform?: string;
   creationTimestamp?: Date;
   lastStartTimestamp?: Date;

@@ -25,7 +25,7 @@ import {
   importKeyPair,
   startVirtualMachine,
 } from "./client";
-import { setData } from "@cocalc/server/compute/util";
+import { setData as setData0 } from "@cocalc/server/compute/util";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { delay } from "awaiting";
 export * from "./make-configuration-change";
@@ -44,6 +44,19 @@ const SECURITY_RULES = [
 ];
 
 const logger = getLogger("server:compute:hyperstack");
+
+async function setData({ id, data }) {
+  if (data.vm != null) {
+    data = { ...data, externalIp: data.vm.floating_ip };
+  } else if (data.vm === null) {
+    data = { ...data, externalIp: "" };
+  }
+  await setData0({
+    cloud: "hyperstack",
+    id,
+    data,
+  });
+}
 
 function getData(server: ComputeServer): HyperstackData | null {
   const data: Data | undefined = server.data;
@@ -159,7 +172,6 @@ export async function start(server: ComputeServer) {
       await setData({
         id: server.id,
         data: { disks },
-        cloud: "hyperstack",
       });
     }
     // [ ] TODO: we need to check that total size of existing disks equals diskSizeGb
@@ -182,7 +194,6 @@ export async function start(server: ComputeServer) {
       await setData({
         id: server.id,
         data: { disks },
-        cloud: "hyperstack",
       });
     }
     if (!data?.vm?.id) {
@@ -227,7 +238,6 @@ export async function start(server: ComputeServer) {
       await setData({
         id: server.id,
         data: { vm },
-        cloud: "hyperstack",
       });
       if (disks.length > 1) {
         logger.debug(`start: attach the other ${disks.length} disks`);
@@ -282,7 +292,6 @@ export async function stop(server: ComputeServer) {
       await setData({
         id: server.id,
         data: { vm: null, externalIp: null },
-        cloud: "hyperstack",
       });
     }
   } finally {
@@ -338,7 +347,6 @@ export async function deprovision(server: ComputeServer) {
   await setData({
     id: server.id,
     data: { disks: null },
-    cloud: "hyperstack",
   });
 }
 
@@ -396,7 +404,6 @@ export async function state(server: ComputeServer): Promise<State> {
         await setData({
           id: server.id,
           data: { vm: null, externalIp: null },
-          cloud: "hyperstack",
         });
       } catch (err2) {
         logger.debug(
@@ -415,7 +422,6 @@ export async function state(server: ComputeServer): Promise<State> {
   await setData({
     id: server.id,
     data: { vm, externalIp: vm.floating_ip },
-    cloud: "hyperstack",
   });
   if (
     vm.status == "ACTIVE" &&
