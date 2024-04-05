@@ -21,7 +21,6 @@ import Quotas, {
   STEP,
 } from "./all-quotas-config";
 import Balance from "./balance";
-import MinBalance from "./min-balance";
 import ServiceTag from "./service";
 
 interface Props {
@@ -52,10 +51,18 @@ export default function QuotaConfig({
     setQuotas(await webapp_client.purchases_client.getQuotas());
   };
 
+  const update = async () => {
+    try {
+      await updateQuotas();
+      await updateAllowed();
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
   useEffect(() => {
-    updateQuotas();
-    updateAllowed();
-  }, []);
+    update();
+  }, [cost]);
 
   const saveServiceQuota = async () => {
     if (inputValue == null) {
@@ -65,7 +72,7 @@ export default function QuotaConfig({
       setError("");
       await webapp_client.purchases_client.setQuota(service, inputValue);
       setSavedValue(inputValue);
-      await updateAllowed();
+      await update();
     } catch (err) {
       setError(`${err}`);
     }
@@ -141,20 +148,19 @@ export default function QuotaConfig({
                   minPayment: 0,
                 }).amountDue
           }
-          refresh={updateAllowed}
+          refresh={update}
         />
-        <MinBalance minBalance={quotas?.minBalance} />
         {!showAll && (
           <div style={{ marginTop: "15px", textAlign: "center" }}>
             <Button type="link" onClick={() => setShowAll(true)}>
-              (show all limits...)
+              View your spending limits...
             </Button>
           </div>
         )}
         {showAll && (
           <SettingBox
             icon={QUOTA_LIMIT_ICON_NAME}
-            title="Quota limits"
+            title="Spending limits"
             style={{ marginTop: "30px" }}
           >
             <Quotas />

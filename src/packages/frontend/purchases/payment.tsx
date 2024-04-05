@@ -15,7 +15,7 @@ const DEFAULT_AMOUNT = 10;
 
 interface Props {
   balance: number;
-  update?: () => void;
+  update?: () => Promise<void>;
   cost?: number; // optional amount that we want to encourage the user to pay
 }
 
@@ -29,6 +29,8 @@ export default function Payment({ balance, update, cost }: Props) {
   >("loading");
   const [cancelling, setCancelling] = useState<boolean>(false);
   const [paying, setPaying] = useState<boolean>(false);
+  const [updating, setUpdating] = useState<boolean>(false);
+  const [syncing, setSyncing] = useState<boolean>(false);
 
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
@@ -44,62 +46,78 @@ export default function Payment({ balance, update, cost }: Props) {
     setSession(await api.getCurrentCheckoutSession());
   };
 
+  const doUpdate = async () => {
+    if (update == null) return;
+    try {
+      setUpdating(true);
+      await update();
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   useEffect(() => {
     updateSession();
   }, [isModalVisible]);
 
   const paymentPopup = async (url: string) => {
-    // create pop-up window with the payment info
-    const popup = open_new_tab(url, true);
-    if (popup == null) {
-      // popup was blocked
-      return;
-    }
-    while (true) {
-      if (popup.closed) {
-        // user explicitly closed it, so done.
-        break;
+    try {
+      setSyncing(true);
+      // create pop-up window with the payment info
+      const popup = open_new_tab(url, true);
+      if (popup == null) {
+        // popup was blocked
+        return;
       }
-      try {
-        if (popup.location.href == window.location.href) {
+      while (true) {
+        if (popup.closed) {
+          // user explicitly closed it, so done.
           break;
         }
-      } catch (_) {
-        // due to security, when on the stripe page, just looking at
-        // popup.location.href should throw an exception.
-      }
-      await delay(500);
-    }
-    // attempt to close the popup, if possible
-    try {
-      popup.close();
-    } catch (_) {}
-    setIsModalVisible(false);
-    updateSession();
-    update?.();
-
-    // Have the backend call stripe and sync recent paid invoices.
-    // **This should only be relevant in case webhooks aren't configured or working.**
-    (async () => {
-      for (const d of [5, 30, 60]) {
         try {
-          if ((await api.getBalance()) > balance) {
-            // very unlikely to need to do any sync, so don't bother
-            // wasting resources calling stripe.
-            return;
+          if (popup.location.href == window.location.href) {
+            break;
           }
-          const count = await api.syncPaidInvoices();
-          if (count > 0) {
-            update?.();
-            return;
-          }
-          await delay(d * 1000);
-        } catch (err) {
-          console.warn(err);
-          return;
+        } catch (_) {
+          // due to security, when on the stripe page, just looking at
+          // popup.location.href should throw an exception.
         }
+        await delay(500);
       }
-    })();
+      // attempt to close the popup, if possible
+      try {
+        popup.close();
+      } catch (_) {}
+      updateSession();
+      await doUpdate();
+      setIsModalVisible(false);
+
+      // Have the backend call stripe and sync recent paid invoices.
+      // **This should only be relevant in case webhooks aren't configured or working.**
+      const sync = async () => {
+        for (const d of [5, 30, 60]) {
+          try {
+            if ((await api.getBalance()) > balance) {
+              // very unlikely to need to do any sync, so don't bother
+              // wasting resources calling stripe.
+              return;
+            }
+            const count = await api.syncPaidInvoices();
+            if (count > 0) {
+              await doUpdate();
+              return;
+            }
+            await delay(d * 1000);
+          } catch (err) {
+            console.warn(err);
+            return;
+          }
+        }
+      };
+      await sync();
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const showModal = () => {
@@ -169,6 +187,16 @@ export default function Payment({ balance, update, cost }: Props) {
     if (session == "loading") {
       return <Spin />;
     }
+    if (syncing) {
+      return (
+        <div>
+          Waiting for your payment...
+          <div style={{ textAlign: "center" }}>
+            <Spin />
+          </div>
+        </div>
+      );
+    }
     if (session != null) {
       return (
         <div style={{ fontSize: "12pt" }}>
@@ -201,7 +229,7 @@ export default function Payment({ balance, update, cost }: Props) {
       <Button.Group>
         <Button
           size="large"
-          disabled={balance == null || cancelling}
+          disabled={balance == null || cancelling || updating || syncing}
           onClick={showModal}
           type={
             (cost ?? 0) > 0 || (typeof session == "object" && session?.id)
@@ -210,22 +238,17 @@ export default function Payment({ balance, update, cost }: Props) {
           }
         >
           <Icon name="credit-card" style={{ marginRight: "5px" }} />
-          {session == "loading" && <Spin />}
+          {session == "loading" && <Spin style={{ margin: "0 15px" }} />}
           {typeof session == "object" && session?.id
-            ? "Finish Payment..."
+            ? `Finish ${cost ? currency(cost) : ""} Payment...`
             : cost
-            ? `Add at least ${currency(cost)} (plus tax) to your account`
+            ? `Add at least ${currency(cost)} (plus tax) to your account...`
             : "Add Money..."}
         </Button>
         {typeof session == "object" && session?.id && (
           <Button size="large" disabled={cancelling} onClick={cancelPayment}>
             Cancel
-            {cancelling && (
-              <>
-                {" "}
-                <Spin />
-              </>
-            )}
+            {cancelling && <Spin style={{ marginLeft: "15px" }} />}
           </Button>
         )}
       </Button.Group>
@@ -234,9 +257,9 @@ export default function Payment({ balance, update, cost }: Props) {
         okText={
           session != null ? (
             ""
-          ) : paying ? (
+          ) : paying || syncing ? (
             <>
-              Adding money... <Spin />
+              Adding Money... <Spin />
             </>
           ) : (
             "Add Money..."
