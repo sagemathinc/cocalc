@@ -201,7 +201,7 @@ export default function AllQuotasConfig() {
 
       <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
         <b>Your Budget</b>: these are your monthly spending limits to prevent
-        overspending. You can change them eat any time.
+        overspending. You can change them at any time.
       </div>
 
       <div style={{ marginBottom: "15px" }}>
