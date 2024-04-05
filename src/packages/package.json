@@ -19,7 +19,7 @@
     "overrides": {
       "follow-redirects@<1.15.4": "^1.15.6",
       "es5-ext@<0.10.63": "^0.10.63",
-      "undici@<5.28.3": "^5.28.3",
+      "undici@<5.28.3": "^5.28.4",
       "postcss@<8.4.31": "^8.4.31",
       "retry-request@<7.0.1": "^7.0.2",
       "@langchain/core": "^0.1.52",
