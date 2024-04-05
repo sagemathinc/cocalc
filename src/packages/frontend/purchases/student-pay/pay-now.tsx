@@ -9,6 +9,7 @@ import { isPurchaseAllowed, studentPay } from "../api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
 import PayLink from "./pay-link";
+import { currency } from "@cocalc/util/misc";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -28,11 +29,17 @@ export default function PayNow({
   const [purchasing, setPurchasing] = useState<boolean>(false);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [reason, setReason] = useState<string | undefined | null>(null);
+  const [chargeAmount, setChargeAmount] = useState<number | undefined>(
+    undefined,
+  );
   const [error, setError] = useState<string>("");
   const update = async (addBalance = false) => {
     const cost = getCost(purchaseInfo);
     try {
-      let { allowed, reason } = await isPurchaseAllowed("license", cost);
+      let { allowed, reason, chargeAmount } = await isPurchaseAllowed(
+        "license",
+        cost,
+      );
       if (open && addBalance) {
         if (!allowed) {
           await webapp_client.purchases_client.quotaModal({
@@ -42,10 +49,14 @@ export default function PayNow({
             cost,
           });
         }
-        ({ allowed, reason } = await isPurchaseAllowed("license", cost));
+        ({ allowed, reason, chargeAmount } = await isPurchaseAllowed(
+          "license",
+          cost,
+        ));
       }
       setAllowed(allowed);
       setReason(reason);
+      setChargeAmount(chargeAmount);
     } catch (err) {
       setError(`${err}`);
     }
@@ -105,19 +116,22 @@ export default function PayNow({
                   type="primary"
                   onClick={completePurchase}
                 >
-                  Complete Purchase... {purchasing && <Spin />}
+                  Complete Purchase...{" "}
+                  {purchasing && <Spin style={{ marginLeft: "15px" }} />}
                 </Button>
                 <Alert
                   showIcon
                   style={{ marginTop: "15px " }}
                   type="success"
-                  message="You have enough credit to complete this purchase."
+                  message="You have enough credits to complete this purchase."
                 />
               </div>
             )}
             {!allowed && (
               <Button size="large" onClick={() => update(true)} type="primary">
-                <Icon name="credit-card" /> Add Credit to Your Account...
+                <Icon name="credit-card" /> Add{" "}
+                {chargeAmount ? currency(chargeAmount) : ""} Credit to Your
+                Account...
               </Button>
             )}
           </div>
