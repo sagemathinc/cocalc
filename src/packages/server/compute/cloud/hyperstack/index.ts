@@ -16,6 +16,8 @@ import {
   createVolume,
   createEnvironment,
   createVirtualMachines,
+  deleteVirtualMachine,
+  deleteVolume,
   getEnvironments,
   getKeyPairs,
   getVirtualMachine,
@@ -119,117 +121,205 @@ export async function ensureEnvironment(region_name: Region): Promise<string> {
   return name;
 }
 
+// these are the servers that are currently starting.
+const starting = new Set<number>();
+
 export async function start(server: ComputeServer) {
-  logger.debug("start", server);
-  if (server.configuration?.cloud != "hyperstack") {
-    throw Error("must have a hyperstack configuration");
+  if (starting.has(server.id)) {
+    return;
   }
-  const data = getData(server);
-  // If the disk doesn't exist, create it.
-  const disks = data?.disks ?? [];
-  let environment_name: null | string = null;
-  if (disks.length == 0) {
-    logger.debug("start: creating boot disk");
-    environment_name = await ensureEnvironment(
-      server.configuration.region_name,
-    );
-    // ATTN: could have disk get created by setData below fails (e.g., our database is down),
-    // and then we just have a wasted disk floating around.  This illustrates the importance
-    // of periodic garbage collection.
-    const volume = await createVolume({
-      name: await getDiskName(server, 0),
-      size: BOOT_DISK_SIZE_GB,
-      environment_name,
-      image_id: BOOT_IMAGE_ID[server.configuration.region_name],
-    });
-    disks.push(volume.id);
-    await setData({
-      id: server.id,
-      data: { disks },
-      cloud: "hyperstack",
-    });
-  }
-  if (disks.length == 1) {
-    // TODO: **always** need to ensure there are two disks -- the boot disk and the user data disk
-    environment_name = await ensureEnvironment(
-      server.configuration.region_name,
-    );
-    // ATTN: could have disk get created by setData below fails (e.g., our database is down),
-    // and then we just have a wasted disk floating around.  This illustrates the importance
-    // of periodic garbage collection.
-    const volume = await createVolume({
-      name: await getDiskName(server, 1),
-      size: server.configuration.diskSizeGb ?? DEFAULT_DISK,
-      environment_name,
-    });
-    disks.push(volume.id);
-    await setData({
-      id: server.id,
-      data: { disks },
-      cloud: "hyperstack",
-    });
-  }
-  if (!data?.vm?.id) {
-    logger.debug("start: no existing VM, so create one");
-    // [vm] since returns a LIST of vm's
-    if (!environment_name) {
+  try {
+    starting.add(server.id);
+    logger.debug("start", server);
+    if (server.configuration?.cloud != "hyperstack") {
+      throw Error("must have a hyperstack configuration");
+    }
+    const data = getData(server);
+    // If the disk doesn't exist, create it.
+    const disks = data?.disks ?? [];
+    let environment_name: null | string = null;
+    if (disks.length == 0) {
+      logger.debug("start: creating boot disk");
       environment_name = await ensureEnvironment(
         server.configuration.region_name,
       );
-    }
-    const [vm] = await createVirtualMachines({
-      name: await getServerName(server),
-      environment_name,
-      volume_name: await getDiskName(server, 0),
-      key_name: await ensureKeyPair(
-        server.configuration.region_name,
+      // ATTN: could have disk get created by setData below fails (e.g., our database is down),
+      // and then we just have a wasted disk floating around.  This illustrates the importance
+      // of periodic garbage collection.
+      // Unfortunately, this takes a LONG time.
+      const volume = await createVolume({
+        name: await getDiskName(server, 0),
+        size: BOOT_DISK_SIZE_GB,
         environment_name,
-      ),
-      assign_floating_ip: true,
-      flavor_name: server.configuration.flavor_name,
-      security_rules: SECURITY_RULES,
-    });
-    await setData({
-      id: server.id,
-      data: { vm },
-      cloud: "hyperstack",
-    });
-    if (disks.length > 1) {
-      logger.debug(`start: attach the other ${disks.length} disks`);
-      // this is painful since you can't attach disks until the VM is getting going sufficiently.
+        image_id: BOOT_IMAGE_ID[server.configuration.region_name],
+      });
+      disks.push(volume.id);
+      await setData({
+        id: server.id,
+        data: { disks },
+        cloud: "hyperstack",
+      });
+    }
+    if (disks.length == 1) {
+      // TODO: **always** need to ensure there are two disks -- the boot disk and the user data disk
+      environment_name = await ensureEnvironment(
+        server.configuration.region_name,
+      );
+      // ATTN: could have disk get created by setData below fails (e.g., our database is down),
+      // and then we just have a wasted disk floating around.  This illustrates the importance
+      // of periodic garbage collection.
+      const volume = await createVolume({
+        name: await getDiskName(server, 1),
+        size: server.configuration.diskSizeGb ?? DEFAULT_DISK,
+        environment_name,
+      });
+      disks.push(volume.id);
+      await setData({
+        id: server.id,
+        data: { disks },
+        cloud: "hyperstack",
+      });
+    }
+    if (!data?.vm?.id) {
+      logger.debug("start: no existing VM, so create one");
+      // [vm] since returns a LIST of vm's
+      if (!environment_name) {
+        environment_name = await ensureEnvironment(
+          server.configuration.region_name,
+        );
+      }
+      let vm;
       const t0 = Date.now();
       let d = 3000;
-      while (Date.now() - t0 <= 1000 * 60 * 5) {
+      // wait up to 30 minutes until the boot volume exists (we get an error)
+      // trying to create the VM until it exists.  This is VERY SLOW for the
+      // norway data center, but much faster for canada-1.
+      const volume_name = await getDiskName(server, 0);
+      while (Date.now() - t0 <= 1000 * 60 * 30) {
         try {
-          await attachVolume({
-            virtual_machine_id: vm.id,
-            volume_ids: disks.slice(1),
+          [vm] = await createVirtualMachines({
+            name: await getServerName(server),
+            environment_name,
+            volume_name,
+            key_name: await ensureKeyPair(
+              server.configuration.region_name,
+              environment_name,
+            ),
+            assign_floating_ip: true,
+            flavor_name: server.configuration.flavor_name,
+            security_rules: SECURITY_RULES,
           });
-          logger.debug("start: successfully attached volumes");
           break;
         } catch (err) {
-          logger.debug(
-            "WARNING: waiting for VM to start so we can attach disks",
-            err,
-          );
+          if (err.message.includes(`Volume ${volume_name} does not exist`)) {
+            d = Math.min(10000, d * 1.3);
+            await delay(d);
+          } else {
+            throw err;
+          }
         }
-        d = Math.min(7500, d * 1.3);
-        await delay(d);
       }
+      await setData({
+        id: server.id,
+        data: { vm },
+        cloud: "hyperstack",
+      });
+      if (disks.length > 1) {
+        logger.debug(`start: attach the other ${disks.length} disks`);
+        // this is painful since you can't attach disks until the VM is getting going sufficiently.
+        const t0 = Date.now();
+        let d = 3000;
+        while (Date.now() - t0 <= 1000 * 60 * 5) {
+          try {
+            await attachVolume({
+              virtual_machine_id: vm.id,
+              volume_ids: disks.slice(1),
+            });
+            logger.debug("start: successfully attached volumes");
+            break;
+          } catch (err) {
+            logger.debug(
+              "WARNING: waiting for VM to start so we can attach disks",
+              err,
+            );
+          }
+          d = Math.min(7500, d * 1.3);
+          await delay(d);
+        }
+      }
+    } else {
+      logger.debug("start: using existing VM with id", data.vm.id);
+      // todo: what happens if vm already running or starting?
+      await startVirtualMachine(data.vm.id);
     }
-  } else {
-    logger.debug("start: using existing VM with id", data.vm.id);
-    // todo: what happens if vm already running or starting?
-    await startVirtualMachine(data.vm.id);
+  } finally {
+    starting.delete(server.id);
   }
 }
 
+const stopping = new Set<number>();
+
 export async function stop(server: ComputeServer) {
-  logger.debug("stop", server);
-  if (server.configuration?.cloud != "hyperstack") {
+  if (stopping.has(server.id)) {
+    return;
+  }
+  try {
+    stopping.add(server.id);
+    logger.debug("stop", server);
+    if (server.configuration?.cloud != "hyperstack") {
+      throw Error("must have a hyperstack configuration");
+    }
+    const data = getData(server);
+    if (data?.vm?.id) {
+      logger.debug("stop: deleting vm... ", data.vm.id);
+      await deleteVirtualMachine(data.vm.id);
+      logger.debug("stop: deleted vm... ", data.vm.id);
+      await setData({
+        id: server.id,
+        data: { vm: null, externalIp: null },
+        cloud: "hyperstack",
+      });
+    }
+  } finally {
+    stopping.delete(server.id);
+  }
+}
+
+export async function deprovision(server: ComputeServer) {
+  if (stopping.has(server.id) || starting.has(server.id)) {
+    return;
+  }
+  logger.debug("deprovision", server);
+  const conf = server.configuration;
+  if (conf?.cloud != "hyperstack") {
     throw Error("must have a hyperstack configuration");
   }
-  throw Error("not implemented");
+  // Delete the VM = stop
+  await stop(server);
+  // Then delete all of the disks:
+  const data = getData(server);
+  const disks = data?.disks ?? [];
+  for (const id of disks) {
+    const t0 = Date.now();
+    let d = 5000;
+    while (Date.now() - t0 <= 1000 * 60 * 15) {
+      // give up after 15 min...?
+      try {
+        await deleteVolume(id);
+        logger.debug("deprovision: successfully deleted volume ", id);
+        break;
+      } catch (err) {
+        logger.debug("deprovision: have to keep trying to delete volume", err);
+        d = Math.min(15000, d * 1.3);
+        await delay(d);
+      }
+    }
+  }
+  await setData({
+    id: server.id,
+    data: { disks: null },
+    cloud: "hyperstack",
+  });
 }
 
 export async function state(server: ComputeServer): Promise<State> {
@@ -237,6 +327,12 @@ export async function state(server: ComputeServer): Promise<State> {
   const conf = server.configuration;
   if (conf?.cloud != "hyperstack") {
     throw Error("must have a hyperstack configuration");
+  }
+  if (starting.has(server.id)) {
+    return "starting";
+  }
+  if (stopping.has(server.id)) {
+    return "stopping";
   }
   let data;
   try {
@@ -249,7 +345,7 @@ export async function state(server: ComputeServer): Promise<State> {
     return "deprovisioned";
   }
   if (!data.vm?.id) {
-    logger.debug("state: no VM", data);
+    logger.debug("state: no VM", { data });
     // definitely no known VM resource, so not running or starting.
     // It is either deprovisioned or off.
     const disks = data.disks ?? [];
@@ -276,9 +372,10 @@ export async function state(server: ComputeServer): Promise<State> {
     if (err.message.includes("not_found")) {
       // delete id from database since it is not valid:
       try {
+        logger.debug("state: clearing data.vm");
         await setData({
           id: server.id,
-          data: { vm: undefined },
+          data: { vm: null, externalIp: null },
           cloud: "hyperstack",
         });
       } catch (err2) {
@@ -295,6 +392,11 @@ export async function state(server: ComputeServer): Promise<State> {
     throw err;
   }
   logger.debug("state: got vm", vm);
+  await setData({
+    id: server.id,
+    data: { vm, externalIp: vm.floating_ip },
+    cloud: "hyperstack",
+  });
   if (
     vm.status == "ACTIVE" &&
     vm.power_state == "RUNNING" &&
