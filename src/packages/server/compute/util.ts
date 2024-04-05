@@ -68,8 +68,8 @@ export async function setError(id: number, error: string) {
   }
 }
 
-// merges the object newData into the current data in the database
-// (i.e., doesn't delete keys not mentioned in newData)
+// merges the object 'data' into the current data in the database
+// (i.e., doesn't delete keys not mentioned in 'data')
 
 export async function setData({
   cloud,
@@ -77,7 +77,7 @@ export async function setData({
   data,
 }: {
   id: number;
-  cloud: "lambda-cloud" | "google-cloud";
+  cloud: "lambda-cloud" | "google-cloud" | "hyperstack";
   data: Partial<Data>;
 }) {
   const pool = getPool();

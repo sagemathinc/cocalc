@@ -113,6 +113,8 @@ async function doStart(server: ComputeServer) {
       return await fluidStack.start(server);
     case "google-cloud":
       return await googleCloud.start(server);
+    case "hyperstack":
+      return await hyperstackCloud.start(server);
     case "lambda-cloud":
       return await lambdaCloud.start(server);
     default:

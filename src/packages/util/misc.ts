@@ -1777,8 +1777,11 @@ export function to_money(n: number, d = 2): string {
 }
 
 // numbers with commas -- https://stackoverflow.com/questions/2901102/how-to-format-a-number-with-commas-as-thousands-separators
-export function commas(x) {
-  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+export function commas(n: number) : string {
+  if (n == null) { // in case of bugs, at least fail with empty in prod
+    return "";
+  }
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 // Display currency with a dollar sign, rounded to *nearest*.

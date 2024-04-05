@@ -7,7 +7,10 @@ import { Table } from "./types";
 import { ID } from "./crm";
 import { NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
-import type { Region as HyperstackRegion } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import type {
+  Region as HyperstackRegion,
+  VirtualMachine as HyperstackVirtualMachine,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import {
   DEFAULT_REGION as DEFAULT_HYPERSTACK_REGION,
   DEFAULT_FLAVOR as DEFAULT_HYPERSTACK_FLAVOR,
@@ -622,21 +625,27 @@ interface BaseData {
 }
 
 export interface LambdaCloudData extends BaseData {
-  type: "lambda-cloud";
+  cloud: "lambda-cloud";
   instance_id: string;
 }
 
 export interface HyperstackData extends BaseData {
-  type: "hyperstack";
-  id: number;
+  cloud: "hyperstack";
+  // name we are using for the vm
   name?: string;
+  // hyperstack description of this vm.  
+  vm?: HyperstackVirtualMachine;
+  // id's of persistent storage, with first id the boot disk.
+  // disks are named {name}-0, {name}-1, {name}-2, etc.,
+  // with {name}-0 being the boot disk.
+  disks?: number[];
   internalIp?: string;
   externalIp?: string;
   creationTimestamp?: Date;
 }
 
 export interface GoogleCloudData extends BaseData {
-  type: "google-cloud";
+  cloud: "google-cloud";
   name?: string;
   state?: State;
   externalIp?: string;
@@ -720,6 +729,8 @@ Table({
         },
       },
       set: {
+        // ATTN: It's assumed that users can't set the data field.  Doing so would be very bad and could allow
+        // them to maybe abuse the system and not pay for something.
         fields: {
           project_id: "project_write",
           id: true,

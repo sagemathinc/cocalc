@@ -241,6 +241,8 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_markup_percentage"
   //  | "lambda_cloud_api_key"
   | "hyperstack_api_key"
+  | "hyperstack_compute_servers_prefix"
+  | "hyperstack_ssh_public_key"
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
   | "google_cloud_compute_servers_image_prefix"
@@ -744,10 +746,27 @@ export const EXTRAS: SettingsExtras = {
   },
   hyperstack_api_key: {
     name: "Compute Servers: Hyperstack - API Key",
-    desc: "Your [Hyperstack API Key](https://console.hyperstack.cloud/api-keys).  This supports managing compute servers on the [Hyperstack Cloud](https://www.hyperstack.cloud/).",
+    desc: "Your [Hyperstack API Key](https://console.hyperstack.cloud/api-keys).  This supports managing compute servers on the [Hyperstack Cloud](https://www.hyperstack.cloud/).  REQUIRED or Hyperstack will not work.",
     default: "",
     password: true,
     show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+  hyperstack_compute_servers_prefix: {
+    name: "Compute Servers: Hyperstack - Resource Prefix",
+    desc: "Prepend this string to all Hyperstack resources that are created, e.g., VM names, disks, etc.  If the prefix is 'cocalc', then the compute server with id 17 will be called 'cocalc-17'.  REQUIRED or Hyperstack will not work.",
+    default: "cocalc",
+    to_val: to_trimmed_str,
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+  hyperstack_ssh_public_key: {
+    name: "Compute Servers: Hyperstack - Public SSH Key",
+    desc: "A public SSH key that grants access to all Hyperstack VM's for admin and debugging purposes.  REQUIRED or Hyperstack will not work.",
+    default: "",
+    password: true,
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
   },
   //   lambda_cloud_api_key: {
   //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
