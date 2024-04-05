@@ -21,12 +21,14 @@ import {
   getEnvironments,
   getKeyPairs,
   getVirtualMachine,
+  hardRebootVirtualMachine,
   importKeyPair,
   startVirtualMachine,
 } from "./client";
 import { setData } from "@cocalc/server/compute/util";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { delay } from "awaiting";
+export * from "./make-configuration-change";
 
 // TODO: This 29 comes from the following -- it should be computed dynamically
 // probably once per server start (?).
@@ -160,6 +162,9 @@ export async function start(server: ComputeServer) {
         cloud: "hyperstack",
       });
     }
+    // [ ] TODO: we need to check that total size of existing disks equals diskSizeGb
+
+    //
     if (disks.length == 1) {
       // TODO: **always** need to ensure there are two disks -- the boot disk and the user data disk
       environment_name = await ensureEnvironment(
@@ -282,6 +287,21 @@ export async function stop(server: ComputeServer) {
     }
   } finally {
     stopping.delete(server.id);
+  }
+}
+
+export async function reboot(server: ComputeServer) {
+  if (stopping.has(server.id) || starting.has(server.id)) {
+    return;
+  }
+  logger.debug("reboot", server);
+  if (server.configuration?.cloud != "hyperstack") {
+    throw Error("must have a hyperstack configuration");
+  }
+  const data = getData(server);
+  if (data?.vm?.id) {
+    logger.debug("reboot", data.vm.id);
+    await hardRebootVirtualMachine(data.vm.id);
   }
 }
 

@@ -118,7 +118,9 @@ async function doStart(server: ComputeServer) {
     case "lambda-cloud":
       return await lambdaCloud.start(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'start'`,
+      );
   }
 }
 
@@ -168,10 +170,12 @@ async function doStop(server: ComputeServer) {
       return await fluidStack.stop(server);
     case "google-cloud":
       return await googleCloud.stop(server);
+    case "hyperstack":
+      return await hyperstackCloud.stop(server);
     case "lambda-cloud":
       return await lambdaCloud.stop(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(`cloud '${server.cloud}' not currently supported for 'stop'`);
   }
 }
 
@@ -212,7 +216,9 @@ async function doDeprovision(server: ComputeServer) {
       // just a no-op
       return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'deprovision'`,
+      );
   }
 }
 
@@ -299,7 +305,9 @@ async function doState(server: ComputeServer): Promise<State> {
       // for onprem all state is self-reported.
       return server.state ?? "unknown";
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'state'`,
+      );
   }
 }
 
@@ -421,7 +429,7 @@ export async function computeCost({
       return await lambdaCloud.cost(server, state);
     default:
       throw Error(
-        `cost for cloud '${server.cloud}' and state '${state}' not currently supported`,
+        `cost for cloud '${server.cloud}' and state '${state}' not currently supported for 'cost'`,
       );
   }
 }
@@ -445,7 +453,9 @@ async function doSuspend(server: ComputeServer) {
     case "google-cloud":
       return await googleCloud.suspend(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'suspend'`,
+      );
   }
 }
 
@@ -468,7 +478,9 @@ async function doResume(server: ComputeServer) {
     case "google-cloud":
       return await googleCloud.resume(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'resume'`,
+      );
   }
 }
 
@@ -489,8 +501,12 @@ async function doReboot(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.reboot(server);
+    case "hyperstack":
+      return await hyperstackCloud.reboot(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'reboot'`,
+      );
   }
 }
 
@@ -632,6 +648,15 @@ export async function makeConfigurationChange({
   switch (cloud) {
     case "google-cloud":
       return await googleCloud.makeConfigurationChange({
+        id,
+        state,
+        // @ts-ignore
+        currentConfiguration,
+        // @ts-ignore
+        newConfiguration,
+      });
+    case "hyperstack":
+      return await hyperstackCloud.makeConfigurationChange({
         id,
         state,
         // @ts-ignore
@@ -823,7 +848,9 @@ export async function setImageTested(opts: {
       await googleCloud.setImageTested(server, opts.tested);
       return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for setting image tested`,
+      );
   }
 }
 

@@ -178,7 +178,7 @@ export const ACTION_INFO: {
       "I understand that this can lead to filesystem corruption and is slightly dangerous.",
     danger: true,
     target: "running",
-    clouds: ["google-cloud"],
+    clouds: ["google-cloud", "hyperstack"],
   },
   suspend: {
     label: "Suspend",
@@ -633,7 +633,7 @@ export interface HyperstackData extends BaseData {
   cloud: "hyperstack";
   // name we are using for the vm
   name?: string;
-  // hyperstack description of this vm.  
+  // hyperstack description of this vm.
   vm?: HyperstackVirtualMachine;
   // id's of persistent storage, with first id the boot disk.
   // disks are named {name}-0, {name}-1, {name}-2, etc.,

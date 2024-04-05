@@ -14,14 +14,16 @@ import { Select } from "antd";
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { toGPU } from "./util";
 import { filterOption } from "@cocalc/frontend/compute/google-cloud-config";
+import { DEFAULT_REGION } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 export default function MachineType({
   disabled,
   setConfig,
   configuration,
-  state,
   priceData,
+  state,
 }) {
+  const region_name = configuration.region_name ?? DEFAULT_REGION;
   const value0 = `${configuration.region_name}|${configuration.flavor_name}`;
   const options = useMemo(() => {
     if (priceData == null) {
@@ -35,8 +37,11 @@ export default function MachineType({
           const value = `${x.region_name}|${x.flavor_name}`;
           const gpu = toGPU(x.gpu);
           const gpuSpec = GPU_SPECS[gpu];
+          const disabled =
+            (state != "deprovisioned" && region_name != x.region_name) ||
+            !x.available;
           return {
-            disabled: !x.available,
+            disabled,
             search: `ram:${
               x.gpu_count * (gpuSpec?.memory ?? 0)
             } ${x.region_name.toLowerCase()} cpu:${x.cpu} cpus:${x.cpu} ram:${
@@ -72,7 +77,8 @@ export default function MachineType({
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
-                    {x.available ?? 0} {plural(x.available ?? 0, "GPU")} available in{" "}
+                    {x.available ?? 0} {plural(x.available ?? 0, "GPU")}{" "}
+                    available in{" "}
                     {capitalize(x.region_name.toLowerCase().split("-")[0])} 🍃
                   </div>
                 </div>
@@ -112,10 +118,11 @@ export default function MachineType({
 
   return (
     <div style={{ color: "#666" }}>
-      You can alternatively configure your server by machine type, which
-      provides more information about total RAM and cores.
+      {state == "running"
+        ? "You can only change the type when the compute server is off or deprovisioned."
+        : "You can alternatively configure your server by machine type, which provides more information about total RAM and cores."}
       <Select
-        disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
+        disabled={disabled}
         style={{ width: "100%", margin: "10px 0" }}
         value={value0}
         options={options as any}

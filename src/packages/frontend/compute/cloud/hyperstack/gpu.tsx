@@ -30,7 +30,6 @@ export default function GPU({
 }) {
   const region_name = configuration.region_name ?? DEFAULT_REGION;
   const flavor_name = configuration.flavor_name ?? DEFAULT_FLAVOR;
-  state = state ?? "deprovisioned";
 
   // Links is cosmetic to give an overview for users of what range of GPU models
   // are available.
@@ -131,9 +130,13 @@ export default function GPU({
         )}
       </b>
       <br />
-      Configure your server by selecting your GPU and quantity here, or select a
-      machine type below.
-      <div style={{ marginTop: "5px" }}>
+      {state == "running"
+        ? "You can only change the GPU model or quantity when the compute server is off or deprovisioned."
+        : "Configure your server by selecting your GPU and quantity here, or select a machine type below."}
+      {state == "off"
+        ? " You can only change the region if your compute server is deprovisioned."
+        : ""}
+      <div style={{ marginTop: "10px" }}>
         <Select
           disabled={disabled}
           style={{ width: "100%" }}

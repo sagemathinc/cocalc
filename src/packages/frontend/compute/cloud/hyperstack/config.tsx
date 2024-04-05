@@ -55,6 +55,7 @@ export default function HyperstackConfig({
   const [configuration, setLocalConfiguration] =
     useState<HyperstackConfiguration>(configuration0);
   const [cost, setCost] = useState<number | null>(null);
+  state = state ?? "deprovisioned";
 
   useEffect(() => {
     (async () => {
@@ -140,7 +141,9 @@ export default function HyperstackConfig({
       value: (
         <GPU
           state={state}
-          disabled={loading || disabled}
+          disabled={
+            loading || disabled || (state != "deprovisioned" && state != "off")
+          }
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
@@ -159,7 +162,11 @@ export default function HyperstackConfig({
             setConfig={setConfig}
             configuration={configuration}
             state={state}
-            disabled={disabled}
+            disabled={
+              loading ||
+              disabled ||
+              (state != "deprovisioned" && state != "off")
+            }
             priceData={priceData}
           />
         </>
