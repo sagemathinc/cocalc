@@ -29,6 +29,7 @@ import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { Name } from "./name";
 import { Time } from "./time";
+import { ChatMessageTyped } from "./types";
 import {
   is_editing,
   message_colors,
@@ -59,8 +60,8 @@ interface Props {
   index: number;
   actions?: ChatActions;
 
-  get_user_name: (account_id: string) => string;
-  message: Map<string, any>; // immutable.js message object
+  get_user_name: (account_id?: string) => string;
+  message: ChatMessageTyped;
   account_id: string;
   user_map?: Map<string, any>;
   project_id?: string; // improves relative links if given
@@ -137,6 +138,7 @@ export default function Message(props: Props) {
     const other_editors = props.message
       .get("editing")
       .remove(props.account_id)
+      // @ts-ignore – not sure why this error shows up
       .keySeq();
     if (is_editing) {
       if (other_editors.size === 1) {
@@ -189,6 +191,7 @@ export default function Message(props: Props) {
     ) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
+      const msg_date = props.message.get("history").first()?.get("date");
       return (
         <div
           style={{
@@ -197,9 +200,11 @@ export default function Message(props: Props) {
           }}
         >
           {edit}
-          <TimeAgo
-            date={new Date(props.message.get("history").first()?.get("date"))}
-          />
+          {msg_date != null ? (
+            <TimeAgo date={new Date(msg_date)} />
+          ) : (
+            "unknown time"
+          )}
           {name}
         </div>
       );
@@ -532,7 +537,7 @@ export default function Message(props: Props) {
   function sendReply() {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
-    props.actions.send_reply({ message: props.message, reply });
+    props.actions.send_reply({ message: props.message.toJS(), reply });
     props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
@@ -695,7 +700,7 @@ function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
         key: llm,
         label: modelToName(llm),
         onClick: () => {
-          actions.languageModelRegenerate(new Date(date), llm);
+          actions.regenerateLLMResponse(new Date(date), llm);
         },
       });
     }
@@ -708,7 +713,7 @@ function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
       style={{ display: "inline" }}
       icon={<Icon name="angle-down" />}
       onClick={() => {
-        actions.languageModelRegenerate(new Date(date));
+        actions.regenerateLLMResponse(new Date(date));
       }}
     >
       <Icon name="refresh" /> Regenerate

@@ -392,7 +392,8 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
 
   function render_custom_llm(): Rendered {
     // This is disabled for now, will be enabled in a future PR
-    if (1 == 1) return undefined;
+    return;
+    // @ts-ignore
     return <CustomLLM on_change={on_change} />;
   }
 
