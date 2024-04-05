@@ -271,6 +271,7 @@ export const state: (opts: {
       await setConfiguration(id, { autoRestartDisabled: false });
     }
     //lastCalled[id] = { time: now, state };
+    updateDNS(server, state);
     return state;
   },
 );
@@ -284,6 +285,44 @@ async function getCloudServerState(server: ComputeServer): Promise<State> {
     await setError(server.id, `${err}`);
     await setState(server.id, "unknown");
     return "unknown";
+  }
+}
+
+// this won't throw an exception
+async function updateDNS(server: ComputeServer, state: State) {
+  if (
+    server.configuration?.dns &&
+    (state == "running" || state == "deprovisioned")
+  ) {
+    // We only mess with DNS when the instance is running (in which case we make sure it is properly set),
+    // or the instance is deprovisioned, in which case we delete the DNS.
+    // In all other cases, we just leave it alone.  It turns out if you delete the DNS record
+    // whenever the machine stops, it can often take a very long time after you create the
+    // record for clients to become aware of it again, which is very annoying.
+    // TODO: we may want to change dns records for off machines to point to some special
+    // status page (?).
+    try {
+      if (await hasDNS()) {
+        await makeDnsChange({
+          id: server.id,
+          cloud: server.cloud,
+          name: state == "running" ? server.configuration.dns : "",
+        });
+      } else {
+        if (server.configuration.dns) {
+          logger.debug(
+            `WARNING -- not setting dns subdomain ${server.configuration.dns} because cloudflare api token and compute server dns not fully configured.  Please configure it.`,
+          );
+          await setError(
+            server.id,
+            `WARNING -- unable to set DNS since it is not fully configured by the site admins`,
+          );
+        }
+      }
+    } catch (err) {
+      logger.debug("WARNING -- issue setting dns: ", err);
+      await setError(server.id, `WARNING -- issue setting dns: ${err}`);
+    }
   }
 }
 

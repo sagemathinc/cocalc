@@ -24,6 +24,7 @@ import Disk from "./disk";
 import Ephemeral from "@cocalc/frontend/compute/ephemeral";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -208,6 +209,19 @@ export default function HyperstackConfig({
           state={state}
           style={{ marginTop: "10px", color: "#666" }}
         />
+      ),
+    },
+    {
+      key: "dns",
+      value: (
+        <div>
+          <Icon name="network" /> <b style={{ color: "#666" }}>Domain Name</b>
+          <DNS
+            setConfig={setConfig}
+            configuration={configuration}
+            loading={loading}
+          />
+        </div>
       ),
     },
     {
