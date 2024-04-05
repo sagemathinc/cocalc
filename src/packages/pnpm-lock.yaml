@@ -7,7 +7,7 @@ settings:
 overrides:
   follow-redirects@<1.15.4: ^1.15.6
   es5-ext@<0.10.63: ^0.10.63
-  undici@<5.28.3: ^5.28.3
+  undici@<5.28.3: ^5.28.4
   postcss@<8.4.31: ^8.4.31
   retry-request@<7.0.1: ^7.0.2
   '@langchain/core': ^0.1.52
@@ -5129,7 +5129,7 @@ packages:
       '@qdrant/openapi-typescript-fetch': 1.2.1
       '@sevinf/maybe': 0.5.0
       typescript: 5.4.3
-      undici: 5.28.3
+      undici: 5.28.4
     dev: false
 
   /@qdrant/openapi-typescript-fetch@1.2.1:
@@ -19064,8 +19064,8 @@ packages:
   /undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
-  /undici@5.28.3:
-    resolution: {integrity: sha512-3ItfzbrhDlINjaP0duwnNsKpDQk3acHI3gVJ1z4fmwMK31k5G9OVIAMLSIaP6w4FaGkaAkN6zaQO9LUvZ1t7VA==}
+  /undici@5.28.4:
+    resolution: {integrity: sha512-72RFADWFqKmUb2hmmvNODKL3p9hcB6Gt2DOQMis1SEBaV6a4MH8soBvzg+95CYhCKPFedut2JY9bMfrDl9D23g==}
     engines: {node: '>=14.0'}
     dependencies:
       '@fastify/busboy': 2.1.0
