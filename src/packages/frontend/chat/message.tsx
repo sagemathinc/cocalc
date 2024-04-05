@@ -6,7 +6,7 @@
 import type { MenuProps } from "antd";
 import { Button, Col, Dropdown, Popconfirm, Row, Tooltip } from "antd";
 import { Map } from "immutable";
-import { CSSProperties } from "react";
+import { CSSProperties, useLayoutEffect } from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
@@ -141,6 +141,12 @@ export default function Message(props: Props) {
     () => props.actions?.isLanguageModelThread(props.message.get("date")),
     [props.message, props.actions != null],
   );
+
+  useLayoutEffect(() => {
+    if (replying) {
+      props.scroll_into_view();
+    }
+  }, [replying]);
 
   function editing_status(is_editing: boolean) {
     let text;
