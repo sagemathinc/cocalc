@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { fromJS, Map as immutableMap } from "immutable";
+import { Seq, fromJS, Map as immutableMap } from "immutable";
 
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -22,6 +22,7 @@ import {
   isLanguageModelService,
   model2service,
   model2vendor,
+  service2model,
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -204,12 +205,19 @@ export class ChatActions extends Actions<ChatState> {
       // do not send while uploading or there is nothing to send.
       return "";
     }
-    const time_stamp = webapp_client.server_time().toISOString();
+    const time_stamp: Date = webapp_client.server_time();
+    const time_stamp_str = time_stamp.toISOString();
     const message: ChatMessage = {
       sender_id,
       event: "chat",
-      history: [{ author_id: sender_id, content: input, date: time_stamp }],
-      date: time_stamp,
+      history: [
+        {
+          author_id: sender_id,
+          content: input,
+          date: time_stamp_str,
+        },
+      ],
+      date: time_stamp_str,
       reply_to: reply_to?.toISOString(),
       editing: {},
     };
@@ -254,11 +262,11 @@ export class ChatActions extends Actions<ChatState> {
     (async () => {
       await this.processLLM({
         message,
-        reply_to,
+        reply_to: reply_to ?? time_stamp,
         tag,
       });
     })();
-    return time_stamp;
+    return time_stamp_str;
   }
 
   public set_editing(message: ChatMessageTyped, is_editing: boolean) {
@@ -320,7 +328,10 @@ export class ChatActions extends Actions<ChatState> {
     date: string;
     prevHistory: MessageHistory[];
   } {
-    const date: string = message.date?.toISOString();
+    const date: string =
+      typeof message.date === "string"
+        ? message.date
+        : message.date?.toISOString();
     if (this.syncdb == null) {
       return { date, prevHistory: [] };
     }
@@ -525,27 +536,32 @@ export class ChatActions extends Actions<ChatState> {
   /**
    * This checks a thread of messages to see if it is a language model thread and if so, returns it.
    */
-  isLanguageModelThread(date?: Date): false | LanguageModel {
+  public isLanguageModelThread(date?: Date): false | LanguageModel {
     if (date == null) {
       return false;
     }
-    const messages = this.store?.get("messages");
-    if (!messages) return false;
-    let message = messages.get(`${date.valueOf()}`) as
-      | ChatMessageTyped
-      | undefined;
-    let i = 0;
-    while (message != null && i < 1000) {
-      i += 1; // just in case some weird corrupted file has a time loop in it.
+    const messages = this.getMessagesInThread(date.toISOString());
+    if (messages == null) {
+      return false;
+    }
+
+    // We deliberately start at the last most recent message.
+    // Why? If we use the LLM regenerate dropdown button to change the LLM, we want to keep it.
+    for (const message of messages.reverse()) {
+      const lastHistory = message.get("history")?.first();
+      // this must be an invalid message, because there is no history
+      if (lastHistory == null) continue;
+      const sender_id = lastHistory.get("author_id");
+      if (isLanguageModelService(sender_id)) {
+        return service2model(sender_id);
+      }
       const input = message.getIn(["history", 0, "content"])?.toLowerCase();
       if (mentionsLanguageModel(input)) {
         return getLanguageModel(input);
       }
-      const reply_to: string | undefined = message.get("reply_to");
-      if (reply_to == null) return false;
-      message = messages.get(`${new Date(reply_to).valueOf()}`);
     }
-    return false; // never reached
+
+    return false;
   }
 
   private async processLLM({
@@ -594,8 +610,13 @@ export class ChatActions extends Actions<ChatState> {
     const store = this.store;
     if (!store) return;
 
-    let model: LanguageModel | false;
-    if (!mentionsLanguageModel(input)) {
+    let model: LanguageModel | false = false;
+    if (llm != null) {
+      // This is a request to regerenate the last message with a specific model.
+      // The message.tsx/RegenerateLLM component already checked if the LLM is enabled and selectable by the user.
+      // ATTN: we trust that information!
+      model = llm;
+    } else if (!mentionsLanguageModel(input)) {
       // doesn't mention a language model explicitly, but might be a reply to something that does:
       if (reply_to == null) {
         return;
@@ -711,7 +732,7 @@ export class ChatActions extends Actions<ChatState> {
 
     chatStream.on("token", (token) => {
       if (halted || this.syncdb == null) return;
-      const cur = this.syncdb.get_one({ event: "chat", sender_id, date });
+      const cur = this.syncdb.get_one({ event: "chat", date });
       if (cur?.get("generating") === false) {
         halted = true;
         this.chatStreams.delete(id);
@@ -722,18 +743,21 @@ export class ChatActions extends Actions<ChatState> {
       if (token != null) {
         content += token;
       }
-      // save it
-      this.syncdb.set({
+
+      const msg: ChatMessage = {
         event: "chat",
         sender_id,
-        date,
+        date: new Date(date),
         history: addToHistory(prevHistory, {
           author_id: sender_id,
           content,
           date,
         }),
         generating: token != null, // it's generating as token is not null
-      });
+        reply_to: reply_to?.toISOString(),
+      };
+      this.syncdb.set(msg);
+
       // if it was the last output, close this
       if (token == null) {
         this.chatStreams.delete(id);
@@ -755,43 +779,60 @@ export class ChatActions extends Actions<ChatState> {
       const vendor = model2vendor(model);
       const statusCheck = getLLMServiceStatusCheckMD(vendor);
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
-      this.syncdb.set({
+      const msg: ChatMessage = {
         event: "chat",
         sender_id,
-        date,
+        date: new Date(date),
         history: addToHistory(prevHistory, {
           author_id: sender_id,
           content,
           date,
         }),
         generating: false,
-      });
+        reply_to: reply_to?.toISOString(),
+      };
+      this.syncdb.set(msg);
       this.syncdb.commit();
       this.scrollToBottom();
     });
+  }
+
+  /**
+   * @param dateStr - the ISO date of the message to get the thread for
+   * @returns  - the messages in the thread, sorted by date
+   */
+  private getMessagesInThread(
+    dateStr: string,
+  ): Seq.Indexed<ChatMessageTyped> | undefined {
+    const messages = this.store?.get("messages");
+    if (messages == null) return;
+    return (
+      messages // @ts-ignore -- immutablejs typings are wrong (?)
+        .filter(
+          (message) =>
+            message.get("reply_to") == dateStr ||
+            message.get("date").toISOString() == dateStr,
+        )
+        // @ts-ignore -- immutablejs typings are wrong (?)
+        .valueSeq()
+        .sort((a, b) => cmp(a.get("date"), b.get("date")))
+    );
   }
 
   // the input and output for the thread ending in the
   // given message, formatted for querying a langauge model, and heuristically
   // truncated to not exceed a limit in size.
   private getLLMHistory(reply_to: Date): LanguageModelHistory {
-    const messages = this.store?.get("messages");
     const history: LanguageModelHistory = [];
-    if (!messages) return history;
     // Next get all of the messages with this reply_to or that are the root of this reply chain:
     const d = reply_to.toISOString();
-    const threadMessages = messages // @ts-ignore -- immutablejs typings are wrong (?)
-      .filter(
-        (message) =>
-          message.get("reply_to") == d ||
-          message.get("date").toISOString() == d,
-      )
-      // @ts-ignore -- immutablejs typings are wrong (?)
-      .valueSeq()
-      .sort((a, b) => cmp(a.get("date"), b.get("date")));
+    const threadMessages = this.getMessagesInThread(d);
+    if (!threadMessages) return history;
 
     for (const message of threadMessages) {
       const mostRecent = message.get("history").first();
+      // there must be at least one history entry, otherwise the message is broken
+      if (!mostRecent) continue;
       const content = stripMentions(mostRecent.get("content"));
       const author_id = mostRecent.get("author_id");
       const role = isLanguageModelService(author_id) ? "assistant" : "user";

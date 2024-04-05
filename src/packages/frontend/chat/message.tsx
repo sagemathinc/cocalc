@@ -17,11 +17,20 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { LANGUAGE_MODEL_SERVICES } from "@cocalc/util/db-schema/llm-utils";
+import {
+  LLMModelPrice,
+  modelToName,
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import {
+  CoreLanguageModel,
+  USER_SELECTABLE_LLMS_BY_VENDOR,
+  toOllamaModel,
+} from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
+import { OllamaPublic } from "@cocalc/util/types/llm";
 import { useProjectContext } from "../project/context";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
@@ -130,7 +139,7 @@ export default function Message(props: Props) {
 
   const isLLMThread = useMemo(
     () => props.actions?.isLanguageModelThread(props.message.get("date")),
-    [props.message],
+    [props.message, props.actions != null],
   );
 
   function editing_status(is_editing: boolean) {
@@ -614,6 +623,7 @@ export default function Message(props: Props) {
       !props.allowReply
     )
       return;
+
     return (
       <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
         <Tooltip
@@ -686,19 +696,26 @@ interface RegenerateLLMProps {
 function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
   const { enabledLLMs } = useProjectContext();
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+  const ollama = useTypedRedux("customize", "ollama");
 
   if (!actions) return null;
 
   const entries: MenuProps["items"] = [];
 
   // iterate over all key,values in USER_SELECTABLE_LLMS_BY_VENDOR
-  for (const [vendor, llms] of Object.entries(LANGUAGE_MODEL_SERVICES)) {
+  for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
     if (!enabledLLMs[vendor]) continue;
+    const llms: CoreLanguageModel[] = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
     for (const llm of llms) {
       if (!selectableLLMs.includes(llm)) continue;
       entries.push({
         key: llm,
-        label: modelToName(llm),
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={llm} /> {modelToName(llm)}{" "}
+            <LLMModelPrice model={llm} floatRight />
+          </>
+        ),
         onClick: () => {
           actions.regenerateLLMResponse(new Date(date), llm);
         },
@@ -706,12 +723,32 @@ function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
     }
   }
 
+  if (ollama) {
+    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+      const { display } = config;
+      const ollamaModel = toOllamaModel(key);
+      entries.push({
+        key: ollamaModel,
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={ollamaModel} /> {display}{" "}
+            <LLMModelPrice model={ollamaModel} floatRight />
+          </>
+        ),
+        onClick: () => {
+          actions.regenerateLLMResponse(new Date(date), ollamaModel);
+        },
+      });
+    }
+  }
+
   return (
     <Dropdown.Button
-      menu={{ items: entries }}
+      menu={{ items: entries, style: { overflow: "auto", maxHeight: "50vh" } }}
       size="small"
       style={{ display: "inline" }}
       icon={<Icon name="angle-down" />}
+      trigger={["click"]}
       onClick={() => {
         actions.regenerateLLMResponse(new Date(date));
       }}

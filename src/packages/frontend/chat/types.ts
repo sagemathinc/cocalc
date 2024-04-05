@@ -22,10 +22,10 @@ export interface ChatMessage {
   sender_id: string;
   event: "chat";
   history: MessageHistory[];
-  date: Date;
+  date: Date | string; // string is used to create it
   reply_to?: string;
   generating?: boolean;
-  editing: { [author_id: string]: "FUTURE" | null };
+  editing?: { [author_id: string]: "FUTURE" | null };
 }
 
 export type ChatMessageTyped = TypedMap<{
