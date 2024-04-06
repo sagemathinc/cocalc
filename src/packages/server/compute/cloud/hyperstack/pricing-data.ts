@@ -1,20 +1,9 @@
 /*
-Returns array of objects
+Returns data about pricing of all VM configurations ("flavors") that hyperstack offers.
 
-{
-    "flavor_name": "n1-RTX-A6000x2",
-    "region_name": "CANADA-1",
-    "cpu": 32,
-    "ram": 119,
-    "disk": 850,
-    "ephemeral": 0,
-    "gpu": "RTX-A6000",
-    "gpu_count": 2,
-    "available": 61,
-    "cost_per_hour": 2.2889783300000004
-}
+For the data structure see the types defined in
 
-for all VM configurations ("flavors") that hyperstack offers.
+util/compute/cloud/hyperstack/pricing.ts
 
 We of course include not-available options so that we can compute
 the current price of any VM.
@@ -69,11 +58,6 @@ export default async function getPricingData(
 
   const options: { [region_bar_flavor: string]: PurchaseOption } = {};
   for (const { gpu, region_name, flavors } of flavorData) {
-    if (!gpu) {
-      // we do not bother with hyperstack for CPU only VM's.
-      // !!WARNING: Also cost computation below excludes these!!
-      continue;
-    }
     for (const {
       name: flavor_name,
       cpu,
@@ -84,7 +68,11 @@ export default async function getPricingData(
       stock_available,
     } of flavors) {
       let available = 0;
-      if (stock_available && !flavor_name.toLowerCase().endsWith("k8s")) {
+      if (
+        gpu &&
+        stock_available &&
+        !flavor_name.toLowerCase().endsWith("k8s")
+      ) {
         // This is about availability of the GPU in the given region, but doesn't
         // distinguish between k8s and not, so is misleading in that case.
         // That's why we check stock_available above, and we always throw
@@ -97,6 +85,8 @@ export default async function getPricingData(
           priceMap,
           disk,
           gpu,
+          cpu,
+          ram,
           gpu_count,
         });
       } catch (err) {
@@ -127,13 +117,27 @@ export default async function getPricingData(
   return x;
 }
 
-// This is NOT correct for cpu only flavors.  We exclude them above!!!
-
 // Returns cost per hour for this configuration.
-function computeCost({ priceMap, disk, gpu, gpu_count }): number | string {
-  return (
+function computeCost({
+  priceMap,
+  disk,
+  gpu,
+  cpu,
+  ram,
+  gpu_count,
+}): number | string {
+  let cost =
     Number(priceMap["Cloud-SSD"].value) * disk +
-    Number(priceMap["PublicIP"].value) +
-    Number(priceMap[gpu].value) * gpu_count
-  );
+    Number(priceMap["PublicIP"].value);
+  if (gpu) {
+    // for machines with GPU's, the cost seems to be the internal disk (which we do not use at all)
+    // plus the cost of an ip address, plus the gpu cost.
+    cost += Number(priceMap[gpu].value) * gpu_count;
+  } else {
+    // for NON-GPU machines (cpu only) the cost is a function of the number of cpu's and the amount of ram.
+    cost +=
+      Number(priceMap["vCPU (cpu-only-flavors)"].value) * cpu +
+      Number(priceMap["RAM (cpu-only-flavors)"].value) * ram;
+  }
+  return cost;
 }

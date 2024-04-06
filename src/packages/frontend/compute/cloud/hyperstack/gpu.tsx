@@ -1,3 +1,9 @@
+/*
+NOT USED RIGHT NOW -- It's in compeition with machine-types.tsx
+but that made more progress and is perhaps better overall, with
+a filter, than this.
+*/
+
 import { Select } from "antd";
 import { getModelLinks } from "./util";
 import { useMemo } from "react";
@@ -197,3 +203,5 @@ export default function GPU({
   );
   return head;
 }
+
+

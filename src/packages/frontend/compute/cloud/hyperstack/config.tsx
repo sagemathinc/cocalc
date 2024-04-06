@@ -16,7 +16,7 @@ import computeCost from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
 import { currency } from "@cocalc/util/misc";
 import CostOverview from "@cocalc/frontend/compute/cost-overview";
 import { Icon } from "@cocalc/frontend/components/icon";
-import GPU from "./gpu";
+//import GPU from "./gpu";
 import MachineType from "./machine-type";
 import Specs from "./specs";
 import Image from "./image";
@@ -63,7 +63,7 @@ export default function HyperstackConfig({
       try {
         setLoading(true);
         const data = await getHyperstackPriceData();
-        // window.x = { priceData: data };
+        //window.x = { priceData: data };
         setPriceData(data);
       } catch (err) {
         setError(`${err}`);
@@ -136,21 +136,21 @@ export default function HyperstackConfig({
       key: "provisioning",
       value: <Provisioning />,
     },
-    {
-      key: "gpu",
+//     {
+//       key: "gpu",
 
-      value: (
-        <GPU
-          state={state}
-          disabled={
-            loading || disabled || (state != "deprovisioned" && state != "off")
-          }
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
+//       value: (
+//         <GPU
+//           state={state}
+//           disabled={
+//             loading || disabled || (state != "deprovisioned" && state != "off")
+//           }
+//           priceData={priceData}
+//           setConfig={setConfig}
+//           configuration={configuration}
+//         />
+//       ),
+//     },
     {
       key: "machine",
       value: (
