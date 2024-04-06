@@ -913,6 +913,12 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   const machineTypes = Object.keys(priceData.machineTypes);
   let allOptions = machineTypes
     .filter((machineType) => {
+      if (machineType.startsWith("n4-")) {
+        // TODO: we must add support for hyperdisk extreme
+        // to support n4 machine types.  The pricing data
+        // is ready, and we'll do this soon.
+        return false;
+      }
       const { acceleratorType } = configuration;
       if (!acceleratorType) {
         if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
