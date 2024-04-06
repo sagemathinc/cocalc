@@ -106,6 +106,9 @@ export default function MachineType({
   state,
 }) {
   const [showUnavailable, setShowUnavailable] = useState<boolean>(false);
+  const [showCpuOnly, setShowCpuOnly] = useState<boolean>(
+    humanFlavor(configuration.flavor_name).includes("cpu"),
+  );
 
   // Links is cosmetic to give an overview for users of what range of GPU models
   // are available.
@@ -120,7 +123,6 @@ export default function MachineType({
     if (priceData == null) {
       return null;
     }
-    console.log("updating options with ", { showUnavailable });
     return (
       Object.values(priceData.options)
         //.filter((x: PurchaseOption) => (x.available ?? 0) > 0)
@@ -128,6 +130,9 @@ export default function MachineType({
         .filter((x: PurchaseOption) => {
           if (x.flavor_name == "s") {
             // the "s" flavor is totally broken, so filter it out.
+            return false;
+          }
+          if (!x.gpu_count && !showCpuOnly) {
             return false;
           }
           if (
@@ -169,7 +174,7 @@ export default function MachineType({
           };
         })
     );
-  }, [priceData, value0, showUnavailable]);
+  }, [priceData, value0, showUnavailable, showCpuOnly]);
 
   if (options == null) {
     return null;
@@ -178,24 +183,37 @@ export default function MachineType({
   return (
     <div style={{ color: "#666" }}>
       <div>
-        <Tooltip
-          title={
-            <>
-              Show servers that are not available
-              {state != "deprovisioned" ? " or in a different region" : ""}.
-            </>
-          }
-        >
-          <Checkbox
-            style={{ float: "right" }}
-            checked={showUnavailable}
-            onChange={() => setShowUnavailable(!showUnavailable)}
-          >
-            Show All
-          </Checkbox>
-        </Tooltip>
+        {(state == "off" || state == "deprovisioned") && (
+          <div style={{ float: "right", display: "flex" }}>
+            <Tooltip
+              title={
+                <>
+                  Includes servers that are not currently available
+                  {state != "deprovisioned" ? " or in a different region" : ""}.
+                </>
+              }
+            >
+              <Checkbox
+                style={{ float: "right" }}
+                checked={showUnavailable}
+                onChange={() => setShowUnavailable(!showUnavailable)}
+              >
+                Include Unavailable
+              </Checkbox>
+            </Tooltip>
+            <Tooltip title="Include CPU only machine types.">
+              <Checkbox
+                style={{ float: "right" }}
+                checked={showCpuOnly}
+                onChange={() => setShowCpuOnly(!showCpuOnly)}
+              >
+                Include CPU Only
+              </Checkbox>
+            </Tooltip>
+          </div>
+        )}
         {state == "running"
-          ? "You can change the type when the compute server is off or deprovisioned."
+          ? "You can change the machine type when the compute server is off or deprovisioned."
           : "Select the type of compute server, which determines the GPU, RAM, and fast ephemeral disk."}
         <Select
           disabled={disabled}
