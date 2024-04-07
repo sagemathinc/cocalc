@@ -256,8 +256,6 @@ export default function costToEditLicense(
   if (modifiedInfo.subscription != "no") {
     modifiedInfo.start = originalInfo.start;
   }
-  console.log({currentValue,modifiedValue});
-
   return { cost, modifiedInfo };
 }
 
@@ -280,17 +278,27 @@ function currentLicenseValue(info: PurchaseInfo): number {
     // infinite value?
     return 0;
   }
-  if (info.cost_per_hour) {
-    // if this is set, we use it to compute the value
-    // The value is cost_per_hour times the number of hours left until info.end.
-    const end = dayjs(info.end);
-    const start = dayjs(info.start);
-    const hoursRemaining = end.diff(start, "hours", true);
-    // the hoursRemaining can easily be *negative* if info.end is
-    // in the past.
-    // However the value of a license is never negative, so we max with 0.
-    return Math.max(0, hoursRemaining * info.cost_per_hour);
-  }
+
+  // Depending on cost_per_hour being set properly is a nightmare -- it can
+  // be very subtly wrong or have rounding issues, and this can expose us to abuse.
+  // Instead for NOW we are using the current value of the license.
+  // However, we never change our costs.  When we do, we should
+  // keep our old cost params and use it to compute the value of the
+  // license, based on the date when it was last purchased.
+  // Perhaps we won't raise rates before switching to a full
+  // pay as you go model....
+
+//   if (info.cost_per_hour) {
+//     // if this is set, we use it to compute the value
+//     // The value is cost_per_hour times the number of hours left until info.end.
+//     const end = dayjs(info.end);
+//     const start = dayjs(info.start);
+//     const hoursRemaining = end.diff(start, "hours", true);
+//     // the hoursRemaining can easily be *negative* if info.end is
+//     // in the past.
+//     // However the value of a license is never negative, so we max with 0.
+//     return Math.max(0, hoursRemaining * info.cost_per_hour);
+//   }
 
   // fall back to computing value using the current rate.
   // TODO: we want to make it so this NEVER is used.

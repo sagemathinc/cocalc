@@ -108,7 +108,8 @@ export default async function purchaseShoppingCartItem(
 
   const purchase_id = await createPurchase({
     account_id: item.account_id,
-    cost: round2up(licenseCost.discounted_cost),
+    cost: round2up(licenseCost.cost),
+    unrounded_cost: licenseCost.cost,
     service: "license",
     description: { type: "license", item, info, license_id },
     tag: "license-purchase",
