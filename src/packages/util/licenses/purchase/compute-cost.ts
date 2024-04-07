@@ -148,6 +148,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     // In all cases -- subscription or not -- if the start and end dates are
     // explicitly set, then we compute the cost over the given period.  This
     // does not impact cost_sub_month or cost_sub_year.
+    // It is used for computing the cost to edit a license.
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
     base_cost = months * cost_per_project_per_month;
   }
