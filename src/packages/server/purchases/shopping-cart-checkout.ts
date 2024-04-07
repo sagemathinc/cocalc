@@ -285,16 +285,12 @@ export const getCheckoutCart = async (
       cartItem.description.period != "range"
     ) {
       // it's a subscription
-      // cost is assumed to be set by getInitialCostForSubscription
-      const x = await getInitialCostForSubscription({
-        ...cartItem,
-        cost: itemCost,
-      });
-      const firstPeriodCost = x.cost.discounted_cost;
+      const x = await getInitialCostForSubscription(cartItem);
+      const firstPeriodCost = x.cost.cost;
       itemCost.cost_sub_first_period = firstPeriodCost;
       total += round2up(firstPeriodCost);
     } else {
-      total += round2up(itemCost.discounted_cost);
+      total += round2up(itemCost.cost);
     }
 
     chargeableCart.push({

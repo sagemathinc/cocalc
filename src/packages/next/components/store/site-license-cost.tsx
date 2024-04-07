@@ -15,7 +15,7 @@ import type {
   PurchaseInfo,
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
-import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round2, round2up } from "@cocalc/util/misc";
 import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
 import {
@@ -28,6 +28,7 @@ import { useTimeFixer } from "./util";
 import { Tooltip, Typography } from "antd";
 import { currency } from "@cocalc/util/misc";
 const { Text } = Typography;
+import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 interface Props {
   cost: CostInputPeriod;
@@ -43,21 +44,12 @@ export function DisplayCost({
   simple = false,
   oneLine = false,
   simpleShowPeriod = true,
-  discountTooltip = false,
-  noDiscount = false,
 }: Props) {
-  if (cost == null || isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
+  if (cost == null || isNaN(cost.cost)) {
     return <>&ndash;</>;
   }
 
-  const discount_pct = percent_discount(cost);
   if (simple) {
-    const discount = discount_pct > 0 && (
-      <>
-        Price includes {discount_pct}% self-service discount, only if you buy
-        now.
-      </>
-    );
     return (
       <>
         {cost.cost_sub_first_period != null &&
@@ -68,7 +60,7 @@ export function DisplayCost({
               {oneLine ? <>, </> : <br />}
             </>
           )}
-        {money(round2up(noDiscount ? cost.cost : cost.discounted_cost))}
+        {money(round2up(periodicCost(cost)))}
         {cost.period != "range" ? (
           <>
             {oneLine ? " " : <br />}
@@ -78,30 +70,12 @@ export function DisplayCost({
           ""
         )}
         {oneLine ? null : <br />}{" "}
-        {!noDiscount && discount && !discountTooltip && discount}
       </>
     );
   }
-  let desc;
-  if (cost.discounted_cost < cost.cost) {
-    desc = (
-      <>
-        <span style={{ textDecoration: "line-through" }}>
-          {money(round2up(cost.cost))}
-        </span>
-        {" or "}
-        <b>
-          {money(round2up(cost.discounted_cost))}
-          {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
-        </b>
-        , if you purchase right now ({discount_pct}% self-service discount).
-      </>
-    );
-  } else {
-    desc = `${money(round2up(cost.cost))} ${
-      cost.period != "range" ? cost.period : ""
-    }`;
-  }
+  const desc = `${money(round2up(cost.cost))} ${
+    cost.period != "range" ? cost.period : ""
+  }`;
 
   return (
     <span>

@@ -18,7 +18,7 @@ import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import type { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 
 function computeDedicatedDiskCost(
-  props: ComputeCostProps
+  props: ComputeCostProps,
 ): CostInputPeriod | undefined {
   if (props.type !== "disk") {
     throw new Error("compute cost for disk only");
@@ -43,7 +43,7 @@ function computeDedicatedDiskCost(
 }
 
 function computeDedicatedVMCost(
-  props: ComputeCostProps
+  props: ComputeCostProps,
 ): CostInputPeriod | undefined {
   if (props.type !== "vm") {
     throw new Error("compute cost for VM only");
@@ -72,6 +72,7 @@ function computeDedicatedVMCost(
       end: range?.[1],
     },
     period: "range",
+    quantity: 1,
   };
 }
 
@@ -93,11 +94,12 @@ function computeCashVoucherPrice(props: ComputeCostProps) {
     cost_per_project_per_month: 0,
     cost_sub_month: 0,
     cost_sub_year: 0,
+    quantity: 1,
   } as const;
 }
 
 export function computeCost(
-  props: ComputeCostProps
+  props: ComputeCostProps,
 ): CostInputPeriod | undefined {
   const type = props.type ?? "quota";
   switch (type) {

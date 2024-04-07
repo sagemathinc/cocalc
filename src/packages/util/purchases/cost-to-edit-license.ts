@@ -256,6 +256,7 @@ export default function costToEditLicense(
   if (modifiedInfo.subscription != "no") {
     modifiedInfo.start = originalInfo.start;
   }
+  console.log({currentValue,modifiedValue});
 
   return { cost, modifiedInfo };
 }

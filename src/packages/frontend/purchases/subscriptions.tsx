@@ -69,6 +69,7 @@ function SubscriptionActions({
   status,
   refresh,
   cost,
+  interval,
 }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -86,10 +87,15 @@ function SubscriptionActions({
   const [costToResume, setCostToResume] = useState<number | undefined>(
     undefined,
   );
+  const [periodicCost, setPeriodicCost] = useState<number | undefined>(
+    undefined,
+  );
   const updateCostToResume = async () => {
     try {
-      const cost = await costToResumeSubscription(subscription_id);
+      const { cost, periodicCost } =
+        await costToResumeSubscription(subscription_id);
       setCostToResume(cost);
+      setPeriodicCost(periodicCost);
       return cost;
     } catch (err) {
       setError(`${err}`);
@@ -315,6 +321,16 @@ function SubscriptionActions({
                 The corresponding license will become active again, and{" "}
                 <b>you will be charged {currency(costToResume)}</b> for the
                 remainder of the current period.
+                {periodicCost != null && (
+                  <span>
+                    {" "}
+                    The cost will then be{" "}
+                    <b>
+                      {currency(periodicCost)}/{interval}
+                    </b>{" "}
+                    at the current rate.
+                  </span>
+                )}
               </div>
             );
           }}
@@ -440,7 +456,11 @@ export default function Subscriptions() {
         title: "Cost",
         dataIndex: "cost",
         key: "cost",
-        render: (cost, record) => `${currency(cost)}/${record.interval}`,
+        render: (cost, record) => {
+          if (record.status == "active") {
+            return `${currency(cost)}/${record.interval}`;
+          }
+        },
       },
 
       {
@@ -464,13 +484,14 @@ export default function Subscriptions() {
       {
         title: "Action",
         key: "action",
-        render: (_, { cost, id, metadata, status }) => (
+        render: (_, { cost, id, metadata, status, interval }) => (
           <SubscriptionActions
             subscription_id={id}
             license_id={metadata.license_id}
             status={status}
             refresh={getSubscriptions}
             cost={cost}
+            interval={interval}
           />
         ),
       },

@@ -67,7 +67,8 @@ describe("create a subscription, cancel it, then resume it", () => {
     expect(license.expires).toBe(license.activates);
 
     const balanceBeforeResume = await getBalance(account_id);
-    const costToResume = await costToResumeSubscription(subscription_id);
+    const { cost: costToResume } =
+      await costToResumeSubscription(subscription_id);
     // now resume:
     await resumeSubscription({ account_id, subscription_id });
     // and it is active
