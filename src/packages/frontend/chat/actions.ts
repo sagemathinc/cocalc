@@ -575,6 +575,11 @@ export class ChatActions extends Actions<ChatState> {
     tag?: string;
     llm?: LanguageModel;
   }) {
+    const store = this.store;
+    if (this.syncdb == null || !store) {
+      console.warn("processLLM called before chat actions initialized");
+      return;
+    }
     if (
       !tag &&
       !reply_to &&
@@ -606,9 +611,6 @@ export class ChatActions extends Actions<ChatState> {
     }
     let input = message.history?.[0]?.content as string | undefined;
     if (!input) return;
-
-    const store = this.store;
-    if (!store) return;
 
     let model: LanguageModel | false = false;
     if (llm != null) {
@@ -726,12 +728,29 @@ export class ChatActions extends Actions<ChatState> {
       tag,
     });
 
+    // The sender_id might change if we explicitly set the LLM model.
+    if (tag === "regenerate" && llm != null) {
+      if (message.sender_id !== sender_id) {
+        // if that happens, create a new message with the existing history and the new sender_id
+        const cur = this.syncdb.get_one({ event: "chat", date });
+        this.syncdb.delete({ event: "chat", date });
+        this.syncdb.set({
+          date,
+          history: cur?.get("history") ?? [],
+          event: "chat",
+          sender_id,
+        });
+      }
+    }
+
     this.scrollToBottom();
     let content: string = "";
     let halted = false;
 
     chatStream.on("token", (token) => {
       if (halted || this.syncdb == null) return;
+
+      // we check if user clicked on the "stop generating" button
       const cur = this.syncdb.get_one({ event: "chat", date });
       if (cur?.get("generating") === false) {
         halted = true;
