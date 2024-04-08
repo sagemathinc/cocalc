@@ -28,6 +28,7 @@ export interface MainCapabilities {
   jupyter: boolean | Capabilities;
   formatting: Capabilities; // yapf & co.
   hashsums: Capabilities;
+  rserver: boolean;
   latex: boolean;
   sage: boolean;
   sage_version?: number[];
@@ -49,6 +50,7 @@ export interface Available {
   jupyter_lab: boolean;
   jupyter_notebook: boolean;
   jupyter: boolean;
+  rserver: boolean; // RStudio Server
   x11: boolean;
   latex: boolean;
   sage: boolean;
@@ -69,6 +71,7 @@ export const NO_AVAIL: Readonly<Available> = {
   jupyter_lab: false,
   jupyter_notebook: false,
   jupyter: false,
+  rserver: false,
   sage: false,
   latex: false,
   rmd: false,
@@ -89,6 +92,7 @@ export const ALL_AVAIL: Readonly<Available> = {
   jupyter_lab: true,
   jupyter_notebook: true,
   jupyter: true,
+  rserver: true,
   sage: true,
   latex: true,
   rmd: true,

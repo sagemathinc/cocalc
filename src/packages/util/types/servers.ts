@@ -4,4 +4,13 @@
  */
 
 // used by frontend and project backend
-export type NamedServerName = "jupyter" | "jupyterlab" | "code" | "pluto";
+
+export const NAMED_SERVER_NAMES = [
+  "jupyter",
+  "jupyterlab",
+  "code",
+  "pluto",
+  "rserver",
+] as const;
+
+export type NamedServerName = (typeof NAMED_SERVER_NAMES)[number];

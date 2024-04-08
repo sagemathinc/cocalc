@@ -52,6 +52,37 @@ const JUPYTERLAB_DATA =
 const JUPYTERLAB_MSGS =
   process.env.COCALC_JUPYTER_LAB_iopub_msg_rate_limit ?? 50;
 
+function rserver(ip: string, port: number, basePath: string) {
+  // tmp: this is used to write a small config file and then use it
+  const tmp = `${process.env.TMP ?? "/tmp"}/rserver`;
+
+  // watch out, this will be prefixed with #!/bin/sh and piped into stdout/stderr
+  return `\
+PORT="${port}"
+TMP="${tmp}"
+DATA="$HOME/.config/rserver"
+mkdir -p "$TMP/rserver"
+mkdir -p "$DATA"
+
+cat <<EOF > "$TMP/db.conf"
+provider=sqlite
+directory=$DATA/db
+EOF
+
+exec env DISABLE_AUTH=true rserver \\
+    --server-daemonize=0 \\
+    --auth-none=1 \\
+    --auth-encrypt-password=0 \\
+    --server-user=$USER \\
+    --database-config-file="$TMP/db.conf" \\
+    --server-data-dir="$DATA" \\
+    --server-working-dir="$HOME" \\
+    --www-address=${ip} \\
+    --www-port=$PORT \\
+    --www-root-path="${basePath}/" \\
+    --server-pid-file="$TMP/rserver.pid"`;
+}
+
 const SPEC: { [name in NamedServerName]: CommandFunction } = {
   code: (ip: string, port: number) =>
     `code-server --bind-addr=${ip}:${port} --auth=none`,
@@ -89,6 +120,7 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
     ].join(" "),
   pluto: (ip: string, port: number) =>
     `echo 'import Pluto; Pluto.run(launch_browser=false, require_secret_for_access=false, host="${ip}", port=${port})' | julia`,
+  rserver,
 } as const;
 
 export default function getSpec(name: NamedServerName): CommandFunction {

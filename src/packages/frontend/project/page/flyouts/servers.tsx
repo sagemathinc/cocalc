@@ -6,23 +6,21 @@
 import { Divider, Space } from "antd";
 
 import { Icon, Paragraph, Title } from "@cocalc/frontend/components";
-import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
-import { SagewsControl } from "../../settings/sagews-control";
-import { FIX_BORDER } from "../common";
-import { FLYOUT_PADDING } from "./consts";
 import {
-  computeServersEnabled,
-  ComputeServers,
   ComputeServerDocs,
+  ComputeServers,
+  computeServersEnabled,
 } from "@cocalc/frontend/compute";
+import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
+import { FIX_BORDER } from "@cocalc/frontend/project/page/common";
+import { SagewsControl } from "@cocalc/frontend/project/settings/sagews-control";
+import { NAMED_SERVER_NAMES } from "@cocalc/util/types/servers";
+import { FLYOUT_PADDING } from "./consts";
 
 export function ServersFlyout({ project_id, wrap }) {
-  const servers = [
-    <ServerLink key="jupyterlab" name="jupyterlab" project_id={project_id} />,
-    <ServerLink key="jupyter" name="jupyter" project_id={project_id} />,
-    <ServerLink key="code" name="code" project_id={project_id} />,
-    <ServerLink key="pluto" name="pluto" project_id={project_id} />,
-  ].filter((s) => s != null);
+  const servers = NAMED_SERVER_NAMES.map((name) => (
+    <ServerLink key={name} name={name} project_id={project_id} />
+  )).filter((s) => s != null);
 
   function renderEmbeddedServers() {
     return (
