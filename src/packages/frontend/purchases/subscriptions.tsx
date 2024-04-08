@@ -42,7 +42,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { License } from "@cocalc/util/db-schema/site-licenses";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
-import { capitalize, currency } from "@cocalc/util/misc";
+import { capitalize, currency, round2up } from "@cocalc/util/misc";
 import {
   cancelSubscription,
   getLicense,
@@ -319,16 +319,16 @@ function SubscriptionActions({
             return (
               <div style={{ maxWidth: "450px" }}>
                 The corresponding license will become active again, and{" "}
-                <b>you will be charged {currency(costToResume)}</b> for the
+                <b>you will be charged {currency(round2up(costToResume))}</b> for the
                 remainder of the current period.
                 {periodicCost != null && (
                   <span>
                     {" "}
                     The cost will then be{" "}
                     <b>
-                      {currency(periodicCost)}/{interval}
-                    </b>{" "}
-                    at the current rate.
+                      {currency(round2up(periodicCost))}/{interval}
+                    </b>,{" "}
+                    which is the current rate.
                   </span>
                 )}
               </div>
@@ -458,7 +458,7 @@ export default function Subscriptions() {
         key: "cost",
         render: (cost, record) => {
           if (record.status == "active") {
-            return `${currency(cost)}/${record.interval}`;
+            return `${currency(round2up(cost))}/${record.interval}`;
           }
         },
       },
