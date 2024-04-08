@@ -5,12 +5,14 @@ import {
   currency,
   field_cmp,
   plural,
+  search_match,
 } from "@cocalc/util/misc";
 import {
   markup,
   PurchaseOption,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-import { Checkbox, Select, Tooltip } from "antd";
+import { Checkbox, Tag, Select, Tooltip } from "antd";
+const { CheckableTag } = Tag;
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { getModelLinks, humanFlavor, toGPU } from "./util";
 import { filterOption } from "@cocalc/frontend/compute/google-cloud-config";
@@ -18,6 +20,18 @@ import { DEFAULT_REGION } from "@cocalc/util/compute/cloud/hyperstack/api-types"
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
+const TAGS = {
+  H100: { search: ["h100"], desc: "an H100 GPU", group: 0 },
+  A100: { search: ["a100"], desc: "an A100 GPU", group: 0 },
+  L40: { search: ["l40"], desc: "an L40 GPU", group: 0 },
+  "RTX-A6000": { search: ["rtx-a6000"], desc: "an RTX-A6000 GPU", group: 0 },
+  "RTX-A5000": { search: ["rtx-a5000"], desc: "an RTX-A5000 GPU", group: 0 },
+  "RTX-A4000": { search: ["rtx-a4000"], desc: "an RTX-A4000 GPU", group: 0 },
+  "1 × GPU": { search: ["quantity:1"], desc: "only one GPU", group: 1 },
+  "CPU Only": { search: ["cpu only"], desc: "no GPUs", group: 1 },
+  Canada: { search: ["canada"], desc: "in Canada", group: 2 },
+  Norway: { search: ["norway"], desc: "in Norway", group: 2 },
+};
 
 function getLabel(x: PurchaseOption, priceData) {
   const cpuOnly = !x.gpu_count;
@@ -109,6 +123,7 @@ export default function MachineType({
   const [showCpuOnly, setShowCpuOnly] = useState<boolean>(
     humanFlavor(configuration.flavor_name).includes("cpu"),
   );
+  const [filterTags, setFilterTags] = useState<Set<string>>(new Set());
 
   // Links is cosmetic to give an overview for users of what range of GPU models
   // are available.
@@ -123,58 +138,66 @@ export default function MachineType({
     if (priceData == null) {
       return null;
     }
-    return (
-      Object.values(priceData.options)
-        //.filter((x: PurchaseOption) => (x.available ?? 0) > 0)
-        .sort(field_cmp("cost_per_hour"))
-        .filter((x: PurchaseOption) => {
-          if (x.flavor_name == "s") {
-            // the "s" flavor is totally broken, so filter it out.
-            return false;
-          }
-          if (!x.gpu_count && !showCpuOnly) {
-            return false;
-          }
-          if (
-            !showUnavailable &&
-            state != "deprovisioned" &&
-            region_name != x.region_name
-          ) {
-            return false;
-          }
-          if (showUnavailable) {
-            return true;
-          } else {
-            return !x.gpu_count || x.available;
-          }
-        })
-        .map((x: PurchaseOption) => {
-          const value = `${x.region_name}|${x.flavor_name}`;
-          const cpuOnly = !x.gpu_count;
-          const gpu = toGPU(x.gpu);
-          const gpuSpec = GPU_SPECS[gpu];
-          const disabled =
-            !cpuOnly &&
-            ((state != "deprovisioned" && region_name != x.region_name) ||
-              !x.available);
-          return {
-            disabled,
-            search: `ram:${
-              x.gpu_count * (gpuSpec?.memory ?? 0)
-            } ${x.region_name.toLowerCase()} cpu:${x.cpu} cpus:${x.cpu} ram:${
-              x.ram
-            } disk:${x.ephemeral} ephemeral:${
-              x.ephemeral
-            } gpu:${x.gpu.toLowerCase()} ${gpu} cores:${
-              x.gpu_count * (gpuSpec?.cuda_cores ?? 0)
-            } available:${x.available} ${humanFlavor(x.flavor_name)}`,
-            label: getLabel(x, priceData),
-            value,
-            x,
-          };
-        })
-    );
-  }, [priceData, value0, showUnavailable, showCpuOnly]);
+    let opts = Object.values(priceData.options)
+      //.filter((x: PurchaseOption) => (x.available ?? 0) > 0)
+      .sort(field_cmp("cost_per_hour"))
+      .filter((x: PurchaseOption) => {
+        if (x.flavor_name == "s") {
+          // the "s" flavor is totally broken, so filter it out.
+          return false;
+        }
+        if (!x.gpu_count && !showCpuOnly) {
+          return false;
+        }
+        if (
+          !showUnavailable &&
+          state != "deprovisioned" &&
+          region_name != x.region_name
+        ) {
+          return false;
+        }
+        if (showUnavailable) {
+          return true;
+        } else {
+          return !x.gpu_count || x.available;
+        }
+      })
+      .map((x: PurchaseOption) => {
+        const value = `${x.region_name}|${x.flavor_name}`;
+        const cpuOnly = !x.gpu_count;
+        const gpu = toGPU(x.gpu);
+        const gpuSpec = GPU_SPECS[gpu];
+        const disabled =
+          !cpuOnly &&
+          ((state != "deprovisioned" && region_name != x.region_name) ||
+            !x.available);
+        const search = `ram:${
+          x.gpu_count * (gpuSpec?.memory ?? 0)
+        } ${x.region_name.toLowerCase()} cpu:${x.cpu} cpus:${x.cpu} ram:${
+          x.ram
+        } disk:${x.ephemeral} ephemeral:${
+          x.ephemeral
+        } gpu:${x.gpu.toLowerCase()} ${gpu} cores:${
+          x.gpu_count * (gpuSpec?.cuda_cores ?? 0)
+        } available:${x.available} ${humanFlavor(x.flavor_name)} ${
+          cpuOnly ? "cpu only" : ""
+        } quantity:${x.gpu_count}`;
+        return {
+          disabled,
+          search,
+          label: getLabel(x, priceData),
+          value,
+          x,
+        };
+      });
+    if (filterTags.size > 0) {
+      for (const tag of filterTags) {
+        const f = TAGS[tag].search;
+        opts = opts.filter(({ search }) => search_match(search, f));
+      }
+    }
+    return opts;
+  }, [priceData, value0, showUnavailable, showCpuOnly, filterTags]);
 
   if (options == null) {
     return null;
@@ -184,7 +207,7 @@ export default function MachineType({
     <div style={{ color: "#666" }}>
       <div>
         {(state == "off" || state == "deprovisioned") && (
-          <div style={{ float: "right", display: "flex" }}>
+          <div style={{ float: "right", display: "flex", marginLeft: "15px" }}>
             <Tooltip
               title={
                 <>
@@ -213,8 +236,44 @@ export default function MachineType({
           </div>
         )}
         {state == "running"
-          ? "You can change the machine type when the compute server is off or deprovisioned."
-          : "Select the type of compute server, which determines the GPU, RAM, and fast ephemeral disk."}
+          ? "You can only change the machine type when the compute server is off or deprovisioned."
+          : "The machine type determines the GPU, RAM, and ephemeral disk size."}
+        <div>
+          <div style={{ textAlign:'center', marginTop: "5px" }}>
+            {Object.keys(TAGS)
+              .filter((name) => {
+                if (name == "CPU Only") {
+                  return showCpuOnly;
+                } else return true;
+              })
+              .map((name) => (
+                <Tooltip
+                  key={name}
+                  title={<>Only show servers with {TAGS[name].desc}.</>}
+                >
+                  <CheckableTag
+                    key={name}
+                    style={{ cursor: "pointer" }}
+                    checked={filterTags.has(name)}
+                    onChange={(checked) => {
+                      let v = Array.from(filterTags);
+                      if (checked) {
+                        v.push(name);
+                        v = v.filter(
+                          (x) => x == name || TAGS[x].group != TAGS[name].group,
+                        );
+                      } else {
+                        v = v.filter((x) => x != name);
+                      }
+                      setFilterTags(new Set(v));
+                    }}
+                  >
+                    {name}
+                  </CheckableTag>
+                </Tooltip>
+              ))}
+          </div>
+        </div>
         <Select
           disabled={disabled}
           style={{ width: "100%", height: "55px", margin: "10px 0" }}

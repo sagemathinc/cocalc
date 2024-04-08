@@ -758,6 +758,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   //   "compute_servers_lambda-cloud_enabled": {
   //     name: "Enable Compute Servers - Lambda Cloud",
