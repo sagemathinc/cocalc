@@ -199,7 +199,6 @@ export async function getInitialCostForSubscription(
     throw Error(`invalid period -- "${item.description.period}"`);
   }
   const cost = compute_cost({ ...info, start, end });
-  console.log({ cost, start, end });
   return { cost, start, end };
 }
 

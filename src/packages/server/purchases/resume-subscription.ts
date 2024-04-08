@@ -114,6 +114,5 @@ export async function costToResumeSubscription(
     changes: { end },
     isSubscriptionRenewal: true,
   });
-  console.log("cost to change license to end at ", end, " is ", cost);
   return { cost, periodicCost };
 }

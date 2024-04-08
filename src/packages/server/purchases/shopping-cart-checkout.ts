@@ -288,10 +288,8 @@ export const getCheckoutCart = async (
       const x = await getInitialCostForSubscription(cartItem);
       const firstPeriodCost = x.cost.cost;
       itemCost.cost_sub_first_period = firstPeriodCost;
-      console.log("A", { firstPeriodCost });
       total += round2up(firstPeriodCost);
     } else {
-      console.log("B", { a: itemCost });
       total += round2up(itemCost.cost);
     }
 
