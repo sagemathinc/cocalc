@@ -14,8 +14,7 @@ to use.
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { money } from "@cocalc/util/licenses/purchase/utils";
-import { capitalize, currency, isValidUUID, round2up } from "@cocalc/util/misc";
+import { capitalize, currency, isValidUUID } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -229,9 +228,6 @@ export default function ShoppingCart() {
     return (
       <>
         <div style={{ float: "right" }}>
-          <span style={{ fontSize: "13pt", marginRight: "15px" }}>
-            <TotalCost items={items} />
-          </span>
           <Proceed />
         </div>
         <h3>
@@ -257,18 +253,6 @@ export default function ShoppingCart() {
             pagination={{ hideOnSinglePage: true }}
           />
         </div>
-        <div
-          style={{
-            float: "right",
-            fontSize: "12pt",
-            margin: "15px 15px 0 0",
-          }}
-        >
-          <div style={{ float: "right" }}>
-            <TotalCost items={cart.result} />
-          </div>
-          <br />
-        </div>
       </>
     );
   }
@@ -286,25 +270,6 @@ export default function ShoppingCart() {
       >
         <OtherItems onChange={reload} cart={cart} />
       </div>
-    </>
-  );
-}
-
-function TotalCost({ items }) {
-  let total = 0;
-  let n = 0;
-  for (const { cost, checked } of items) {
-    if (checked && cost != null) {
-      total += cost.cost;
-      n += 1;
-    }
-  }
-  if (n == 0) {
-    return <>No items selected</>;
-  }
-  return (
-    <>
-      Subtotal ({n} items): <b>{money(round2up(total))}</b>
     </>
   );
 }
@@ -433,14 +398,7 @@ export function DescriptionColumn(props: DCProps) {
 }
 
 function DescriptionColumnSiteLicense(props: DCProps) {
-  const {
-    id,
-    cost,
-    description,
-    compact,
-    project_id,
-    readOnly,
-  } = props;
+  const { id, cost, description, compact, project_id, readOnly } = props;
   if (
     !(
       description.type == "disk" ||
@@ -479,9 +437,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
     if (input.type == "cash-voucher") return null;
     return (
       <div>
-        <div>
-          {describeQuotaFromInfo(input)}
-        </div>
+        <div>{describeQuotaFromInfo(input)}</div>
         {renderProjectID()}
       </div>
     );
@@ -507,21 +463,21 @@ function DescriptionColumnSiteLicense(props: DCProps) {
         </div>
       )}
       {description.description && <div>{description.description}</div>}
-      <div style={ DESCRIPTION_STYLE }>
-        <div style={{ marginBottom: '8px' }}>
+      <div style={DESCRIPTION_STYLE}>
+        <div style={{ marginBottom: "8px" }}>
           <b>
-            { input.subscription == "no"
+            {input.subscription == "no"
               ? describePeriod({ quota: input })
-              : capitalize(input.subscription) + " subscription" }
+              : capitalize(input.subscription) + " subscription"}
           </b>
         </div>
-        { compact || readOnly ? describeItem({ info: input }) : editableQuota() }{ " " }
+        {compact || readOnly ? describeItem({ info: input }) : editableQuota()}{" "}
       </div>
-      { !readOnly && (
+      {!readOnly && (
         <>
           <Button
-            style={ { marginRight: "5px" } }
-            onClick={ () => {
+            style={{ marginRight: "5px" }}
+            onClick={() => {
               const page = editPage();
               router.push(`/store/${page}?id=${id}`);
             }}
