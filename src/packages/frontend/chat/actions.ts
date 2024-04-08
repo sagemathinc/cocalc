@@ -743,7 +743,8 @@ export class ChatActions extends Actions<ChatState> {
       }
     }
 
-    this.scrollToBottom();
+    // FIXME: these scrollToBottoms are a good idea, but they need an index number – not the date/timestamp
+    // this.scrollToBottom(reply_to?.valueOf());
     let content: string = "";
     let halted = false;
 
@@ -781,7 +782,7 @@ export class ChatActions extends Actions<ChatState> {
       if (token == null) {
         this.chatStreams.delete(id);
         this.syncdb.commit();
-        this.scrollToBottom();
+        // this.scrollToBottom(reply_to?.valueOf());
       }
     });
 
@@ -812,7 +813,7 @@ export class ChatActions extends Actions<ChatState> {
       };
       this.syncdb.set(msg);
       this.syncdb.commit();
-      this.scrollToBottom();
+      // this.scrollToBottom(reply_to?.valueOf());
     });
   }
 
@@ -891,12 +892,13 @@ function getReplyToRoot(
   message: ChatMessage,
   messages: ChatMessages,
 ): Date | undefined {
-  while (true) {
-    const { reply_to } = message;
-    if (!reply_to) break;
-    message = messages.get(`${new Date(reply_to).valueOf()}`).toJS();
-  }
-  const { date } = message;
+  const { reply_to } = message;
+  // we can't find the original message, if there is no reply_to
+  if (!reply_to) return;
+  // All messages in a thread have the same reply_to, which points to the root.
+  const root = messages.get(`${new Date(reply_to).valueOf()}`);
+  const date = root?.get("date");
+  // date is a "Date" object, but we're just double checking it is not a string by accident
   return date ? new Date(date) : undefined;
 }
 
