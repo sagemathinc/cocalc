@@ -327,7 +327,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 1.0,
+            cost: 1.0,
           },
           description: {
             type: "disk",
@@ -422,7 +422,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 1.0,
+            cost: 1.0,
           },
           description: {
             type: "disk",
@@ -479,7 +479,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 4.5,
+            cost: 4.5,
           },
           description: {
             type: "disk",
@@ -535,7 +535,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 1.5,
+            cost: 1.5,
           },
           description: {
             type: "disk",
@@ -588,7 +588,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 1.5,
+            cost: 1.5,
           },
           description: {
             type: "disk",
@@ -597,7 +597,7 @@ describe("shopping-cart-checkout", () => {
         },
         {
           cost: {
-            discounted_cost: 3.0,
+            cost: 3.0,
           },
           description: {
             type: "disk",
@@ -654,7 +654,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 1.5,
+            cost: 1.5,
           },
           description: {
             type: "disk",
@@ -709,7 +709,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 1.5,
+            cost: 1.5,
           },
           description: {
             type: "disk",
@@ -718,7 +718,7 @@ describe("shopping-cart-checkout", () => {
         },
         {
           cost: {
-            discounted_cost: 3.0,
+            cost: 3.0,
           },
           description: {
             type: "disk",
@@ -727,7 +727,7 @@ describe("shopping-cart-checkout", () => {
         },
         {
           cost: {
-            discounted_cost: 1.5,
+            cost: 1.5,
           },
           description: {
             type: "disk",
@@ -788,7 +788,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           cost: {
-            discounted_cost: 1.5,
+            cost: 1.5,
           },
           description: {
             type: "disk",
@@ -797,7 +797,7 @@ describe("shopping-cart-checkout", () => {
         },
         {
           cost: {
-            discounted_cost: 3.0,
+            cost: 3.0,
           },
           description: {
             type: "disk",
@@ -806,7 +806,7 @@ describe("shopping-cart-checkout", () => {
         },
         {
           cost: {
-            discounted_cost: 1.5,
+            cost: 1.5,
           },
           description: {
             type: "disk",
@@ -815,7 +815,7 @@ describe("shopping-cart-checkout", () => {
         },
       ];
       const cartTotal = testCart.reduce(
-        (total, item) => total + item.cost.discounted_cost,
+        (total, item) => total + item.cost.cost,
         0.0,
       );
 
@@ -907,7 +907,7 @@ describe("shopping-cart-checkout", () => {
         },
       ] as any[];
       const testComputedCost = {
-        discounted_cost: 1.5,
+        cost: 1.5,
       };
 
       mockGetCart.mockReturnValue(Promise.resolve(testCart));
@@ -958,7 +958,7 @@ describe("shopping-cart-checkout", () => {
       mockComputeCost.mockImplementation(
         (item) =>
           ({
-            discounted_cost: (item as any).amount,
+            cost: (item as any).amount,
           }) as any,
       );
 
@@ -997,7 +997,7 @@ describe("shopping-cart-checkout", () => {
       mockComputeCost.mockImplementation(
         (item) =>
           ({
-            discounted_cost: (item as any).amount,
+            cost: (item as any).amount,
           }) as any,
       );
 
@@ -1036,7 +1036,7 @@ describe("shopping-cart-checkout", () => {
       mockComputeCost.mockImplementation(
         (item) =>
           ({
-            discounted_cost: (item as any).amount,
+            cost: (item as any).amount,
           }) as any,
       );
 
@@ -1075,7 +1075,7 @@ describe("shopping-cart-checkout", () => {
       mockComputeCost.mockImplementation(
         (item) =>
           ({
-            discounted_cost: (item as any).amount,
+            cost: (item as any).amount,
           }) as any,
       );
 

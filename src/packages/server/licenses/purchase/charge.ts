@@ -10,7 +10,6 @@
 import { getLogger } from "@cocalc/backend/logger";
 import { Stripe, StripeClient } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
-import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { getProductId } from "./product-id";
@@ -70,12 +69,6 @@ async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
   }
 }
 
-/** subscription prices:
- * - for "quota" licenses, the online discount is baked into the price.
- *   i.e. see in compute_cost(...) the discounted_cost is the total price with discounts,
- *   while all other costs don't have the online discount.
- * - dedicated resources do not have an online discount.
- */
 async function stripeCreatePriceSubscriptions({
   conn,
   info,
@@ -92,21 +85,15 @@ async function stripeCreatePriceSubscriptions({
     product,
   } as const;
   if (type === "quota") {
-    // create the two recurring subscription costs. Build
-    // in the self-service discount, which is:
-    //    COSTS.online_discount
+    // create the two recurring subscription costs.
     await conn.prices.create({
       ...common,
-      unit_amount: Math.round(
-        COSTS.online_discount * info.cost.cost_sub_month * 100,
-      ),
+      unit_amount: Math.round(info.cost.cost_sub_month * 100),
       recurring: { interval: "month" },
     });
     await conn.prices.create({
       ...common,
-      unit_amount: Math.round(
-        COSTS.online_discount * info.cost.cost_sub_year * 100,
-      ),
+      unit_amount: Math.round(info.cost.cost_sub_year * 100),
       recurring: { interval: "year" },
     });
   } else if (type === "disk" || type === "vm") {
@@ -268,13 +255,6 @@ async function stripePurchaseProduct(
 
   logger.debug("stripePurchaseProduct options=", JSON.stringify(options));
 
-  // coupons are only for quota license upgrades, not dedicated VMs
-  if (info.type === "quota") {
-    logger.debug("stripePurchaseProduct -- applying coupon");
-    const coupon = await getSelfServiceDiscountCoupon(conn);
-    await conn.customers.update(customer, { coupon });
-  }
-
   const invoice_id = (await conn.invoices.create(options)).id;
   logger.debug("stripePurchaseProduct -- finalizeInvoice");
   await conn.invoices.finalizeInvoice(invoice_id, {
@@ -403,29 +383,6 @@ async function stripeCreateSubscription(
   return { type: "subscription", id, tax_percent };
 }
 
-// Gets a coupon that matches the current online discount.
-const knownCoupons: { [coupon_id: string]: boolean } = {};
-async function getSelfServiceDiscountCoupon(conn: Stripe): Promise<string> {
-  const percent_off = Math.round(100 * (1 - COSTS.online_discount));
-  const id = `coupon_self_service_${percent_off}`;
-  if (knownCoupons[id]) {
-    return id;
-  }
-  try {
-    await conn.coupons.retrieve(id);
-  } catch (_) {
-    // coupon doesn't exist, so we have to create it.
-    await conn.coupons.create({
-      id,
-      percent_off,
-      name: "Self-service discount",
-      duration: "forever",
-    });
-  }
-  knownCoupons[id] = true;
-  return id;
-}
-
 export async function setPurchaseMetadata(
   info: PurchaseInfo,
   purchase: Purchase,
@@ -448,11 +405,7 @@ export async function setPurchaseMetadata(
     if (typeof info.cost == "number") {
       cost = info.cost;
     } else {
-      if (info.cost.discounted_cost) {
-        cost = info.cost.discounted_cost;
-      } else {
-        cost = info.cost.cost;
-      }
+      cost = info.cost.cost;
       // sales tax
       cost *= 1 + purchase.tax_percent;
     }

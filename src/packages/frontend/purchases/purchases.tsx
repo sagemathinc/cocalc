@@ -285,6 +285,12 @@ export function PurchasesTable({
       const cost = getCost(row);
       // Compute incremental balance
       purchases.push({ ...row, balance: b });
+
+      if (row.pending) {
+        // pending transactions are not include in the total
+        // or the balance
+        continue;
+      }
       b += cost;
 
       // Compute total cost
@@ -376,10 +382,10 @@ export function PurchasesTable({
         }}
       >
         {showTotal && total != null && (
-          <span>Total of Displayed Costs: ${(-total).toFixed(2)}</span>
+          <span>Total of Displayed Costs: {currency(-total)}</span>
         )}
         {showBalance && balance != null && (
-          <span>Current Balance: ${round2down(balance)}</span>
+          <span>Current Balance: {currency(round2down(balance))}</span>
         )}
       </div>
     </div>
@@ -920,7 +926,14 @@ function Amount({ record }) {
     const amount = -cost;
     return (
       <Tooltip title={` (USD): $${round4(amount)}`}>
-        <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>
+        <span
+          style={{
+            ...getAmountStyle(amount),
+            ...(record.pending ? { color: "#999" } : undefined),
+          }}
+        >
+          {currency(amount, 2)}
+        </span>
       </Tooltip>
     );
   }
@@ -931,7 +944,16 @@ function Pending({ record }) {
   if (!record.pending) return null;
   return (
     <div>
-      <Tooltip title="The transaction does not yet count against your spending limits.">
+      <Tooltip
+        title={
+          <>
+            The transaction has not yet completed and is{" "}
+            <b>thus not included in your running balance</b>. Ensure you have
+            automatic payments configured or add credit to your account to pay
+            this.
+          </>
+        }
+      >
         <Tag style={{ marginRight: 0 }} color="red">
           Pending
         </Tag>
