@@ -8,9 +8,13 @@ Resume a canceled subscription, which does all of the following in a single ATOM
   credit.
 */
 
-import { getTransactionClient } from "@cocalc/database/pool";
+import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import editLicense, { costToChangeLicense } from "./edit-license";
 import { getSubscription, intervalContainingNow } from "./renew-subscription";
+import {
+  compute_cost,
+  periodicCost as getPeriodicCost,
+} from "@cocalc/util/licenses/purchase/compute-cost";
 
 interface Options {
   account_id: string;
@@ -55,29 +59,60 @@ export default async function resumeSubscription({
   }
 }
 
-async function getSubscriptionRenewalData(
-  subscription_id,
-): Promise<{ license_id: string; start: Date; end: Date }> {
-  const { current_period_end, interval, metadata, status } =
-    await getSubscription(subscription_id);
+async function getSubscriptionRenewalData(subscription_id): Promise<{
+  license_id: string;
+  start: Date;
+  end: Date;
+  periodicCost: number;
+}> {
+  const {
+    cost: currentCost,
+    current_period_end,
+    interval,
+    metadata,
+    status,
+  } = await getSubscription(subscription_id);
   if (status != "canceled") {
     throw Error(
       `You can only resume a canceled subscription, but this subscription is "${status}"`,
     );
   }
   const { license_id } = metadata;
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT info FROM site_licenses where id=$1",
+    [license_id],
+  );
+  const purchaseInfo = rows[0]?.info?.purchased;
+  let periodicCost = currentCost;
+  if (purchaseInfo != null) {
+    const computedCost = compute_cost({
+      ...purchaseInfo,
+      start: null,
+      end: null,
+    });
+    const newCost = getPeriodicCost(computedCost);
+    if (newCost != currentCost) {
+      await pool.query(`UPDATE subscriptions SET cost=$1 WHERE id=$2`, [
+        newCost,
+        subscription_id,
+      ]);
+      periodicCost = newCost;
+    }
+  }
   const { start, end } = intervalContainingNow(current_period_end, interval);
-  return { license_id, start, end };
+  return { license_id, start, end, periodicCost };
 }
 
 export async function costToResumeSubscription(
   subscription_id,
-): Promise<number> {
-  const { license_id, end } = await getSubscriptionRenewalData(subscription_id);
+): Promise<{ cost: number; periodicCost: number }> {
+  const { license_id, end, periodicCost } =
+    await getSubscriptionRenewalData(subscription_id);
   const { cost } = await costToChangeLicense({
     license_id,
     changes: { end },
     isSubscriptionRenewal: true,
   });
-  return cost;
+  return { cost, periodicCost };
 }

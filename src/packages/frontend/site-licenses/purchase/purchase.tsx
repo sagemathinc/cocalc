@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* 
+/*
 
-Purchasing a license in the frontend app. 
+Purchasing a license in the frontend app.
 
 DEPRECATED -- this is no longer used anywhere in the frontend code base.
-Instead, use the nextjs app... unless we want to bring back frontend 
+Instead, use the nextjs app... unless we want to bring back frontend
 purchases of licenses (maybe we do!) and then maybe this will be useful.
 
 */
@@ -49,7 +49,7 @@ import {
   Upgrade,
   User,
 } from "@cocalc/util/licenses/purchase/types";
-import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { COLORS } from "@cocalc/util/theme";
@@ -111,17 +111,17 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [custom_ram, set_custom_ram] = useState<number>(COSTS.basic.ram);
   const [custom_cpu, set_custom_cpu] = useState<number>(COSTS.basic.cpu);
   const [custom_dedicated_ram, set_custom_dedicated_ram] = useState<number>(
-    COSTS.basic.dedicated_ram
+    COSTS.basic.dedicated_ram,
   );
   const [custom_dedicated_cpu, set_custom_dedicated_cpu] = useState<number>(
-    COSTS.basic.dedicated_cpu
+    COSTS.basic.dedicated_cpu,
   );
   const [custom_disk, set_custom_disk] = useState<number>(COSTS.basic.disk);
   const [custom_always_running, set_custom_always_running] = useState<boolean>(
-    !!COSTS.basic.always_running
+    !!COSTS.basic.always_running,
   );
   const [custom_member, set_custom_member] = useState<boolean>(
-    !!COSTS.basic.member
+    !!COSTS.basic.member,
   );
   const [custom_idle_timeout, set_custom_idle_timeout] =
     useState<keyof typeof LicenseIdleTimeouts>("short");
@@ -159,13 +159,13 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     undefined | "active" | "success" | "failed"
   >(undefined);
   const [purchase_resp, set_purchase_resp] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const disabled: boolean = useMemo(() => {
     return sending == "success" || sending == "active";
   }, [sending]);
   const [payment_method, set_payment_method] = useState<string | undefined>(
-    undefined
+    undefined,
   );
 
   const cost = useMemo<Cost | undefined>(() => {
@@ -404,7 +404,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       dayjs(start)
         .subtract(1, "day")
         .add(x.n as any, x.key)
-        .toDate()
+        .toDate(),
     );
   }
 
@@ -425,7 +425,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       presets.push(
         <Menu.Item key={label}>
           <a onClick={() => set_end_date(desc)}>{label}</a>
-        </Menu.Item>
+        </Menu.Item>,
       );
     }
     const menu = <Menu>{presets}</Menu>;
@@ -498,23 +498,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   function render_cost() {
     if (cost == null) return;
-
-    let desc;
-    if (cost.discounted_cost < cost.cost) {
-      desc = (
-        <>
-          <span style={{ textDecoration: "line-through" }}>
-            {money(cost.cost)}
-          </span>
-          {" or "}
-          {money(cost.discounted_cost)}
-          {subscription != "no" ? " " + subscription : ""}, if you purchase
-          online now ({percent_discount(cost)}% off!)
-        </>
-      );
-    } else {
-      desc = `${money(cost.cost)} ${subscription != "no" ? subscription : ""}`;
-    }
+    const desc = `${money(cost.cost)} ${
+      subscription != "no" ? subscription : ""
+    }`;
 
     return (
       <div style={{ fontSize: "12pt" }}>
@@ -539,15 +525,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           options={[
             {
               label: "Purchase online",
-              desc:
-                "purchase now with a credit card " +
-                (cost.discounted_cost < cost.cost
-                  ? `and save ${money(cost.cost - cost.discounted_cost)} ${
-                      subscription != "no"
-                        ? subscription + " for the life of your subscription!"
-                        : ""
-                    }`
-                  : ""),
+              desc: "purchase now with a credit card ",
               value: false,
             },
             {
@@ -580,7 +558,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             <Icon name="credit-card" /> Payment
           </h4>
           <PurchaseMethod
-            amount={money(cost.discounted_cost)}
+            amount={money(cost.cost)}
             description={`${quantity} × ${describe_quota({
               ram: custom_ram,
               cpu: custom_cpu,

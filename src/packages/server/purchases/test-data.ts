@@ -26,6 +26,12 @@ export const license0 = {
   description: "xxxx",
 } as const;
 
+const license1 = {
+  ...license0,
+  range: undefined,
+  period: "monthly",
+} as const;
+
 export async function createTestAccount(account_id: string) {
   await createAccount({
     email: `${uuid()}@test.com`,
@@ -38,7 +44,7 @@ export async function createTestAccount(account_id: string) {
 
 export async function createTestSubscription(account_id: string) {
   const cost = 10; // cost is technically arbitrary and not related to actual cost of prorated license so making this up should be fine.
-  const info = getPurchaseInfo(license0);
+  const info = getPurchaseInfo(license1);
   const license_id = await createLicense(account_id, info);
   const subscription_id = await createSubscription(
     {

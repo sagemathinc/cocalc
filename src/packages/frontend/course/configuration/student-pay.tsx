@@ -55,7 +55,7 @@ export default function StudentPay({ actions, settings }) {
   const [when, setWhen] = useState<dayjs.Dayjs>(getWhenFromSettings);
   const cost = useMemo(() => {
     try {
-      return compute_cost(info).discounted_cost;
+      return compute_cost(info).cost;
     } catch (_) {
       return null;
     }

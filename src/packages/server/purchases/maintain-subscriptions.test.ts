@@ -230,7 +230,7 @@ describe("testing cancelAllPendingSubscriptions works as it should", () => {
   it("creates a license", async () => {
     const info = getPurchaseInfo(license0);
     x.license_id = await createLicense(account_id, info);
-    x.cost = compute_cost(info).discounted_cost;
+    x.cost = compute_cost(info).cost;
   });
 
   it("creates purchase of that license", async () => {

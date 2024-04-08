@@ -68,12 +68,12 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_disk = MAX.disk;
     custom_always_running = !!MAX.always_running;
     custom_member = !!MAX.member;
-  } else {
-    custom_always_running = custom_uptime === "always_running";
+  } else if (custom_uptime == "always_running") {
+    custom_always_running = true;
   }
 
   // member hosting is controlled by uptime
-  if (custom_always_running !== true && requiresMemberhosting(custom_uptime)) {
+  if (!custom_always_running && requiresMemberhosting(custom_uptime)) {
     custom_member = true;
   }
 
@@ -84,7 +84,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_cpu * COSTS.custom_cost.cpu +
     custom_dedicated_ram * COSTS.custom_cost.dedicated_ram +
     custom_dedicated_cpu * COSTS.custom_cost.dedicated_cpu;
-  // If the project is always one, multiply the RAM/CPU cost by a factor.
+  // If the project is always running, multiply the RAM/CPU cost by a factor.
   if (custom_always_running) {
     cost_per_project_per_month *= COSTS.custom_cost.always_running;
     if (custom_member) {
@@ -117,9 +117,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
 
-  // It's convenient in all cases to have the actual amount we will be
-  // for both monthly and yearly available (used by backend for setting up
-  // stripe products).
+  // It's convenient in all cases to have the actual amount we will be charging
+  // for both monthly and yearly available.
   const cost_sub_month = cost_per_project_per_month;
   const cost_sub_year = cost_per_project_per_month * 12;
 
@@ -162,13 +161,25 @@ export function compute_cost(info: PurchaseInfo): Cost {
   return {
     cost_per_unit,
     cost: cost_total,
-    discounted_cost: cost_total * COSTS.online_discount,
     cost_per_project_per_month,
-    // attn: cost_sub* will be multiplied by the online discount in
-    // server/licenses/purchase/charge.ts
+
+    // The following are the cost for a subscription for ONE unit for
+    // the given period of time.
     cost_sub_month,
     cost_sub_year,
+    quantity,
+    period: subscription == "no" ? "range" : subscription,
   };
+}
+
+export function periodicCost(cost: Cost): number {
+  if (cost.period == "monthly") {
+    return cost.quantity * cost.cost_sub_month;
+  } else if (cost.period == "yearly") {
+    return cost.quantity * cost.cost_sub_year;
+  } else {
+    return cost.cost;
+  }
 }
 
 // cost-object for dedicated resource – there are no discounts whatsoever
@@ -177,10 +188,10 @@ export function compute_cost_dedicated(info) {
   return {
     cost: price,
     cost_per_unit: price,
-    discounted_cost: price,
     cost_per_project_per_month: monthly, // dedicated is always only 1 project
     cost_sub_month: monthly,
     cost_sub_year: 12 * monthly,
     period: info.subscription,
+    quantity: 1,
   };
 }

@@ -7,6 +7,7 @@
 Add a cash voucher to your shopping cart.
 */
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { round2up } from "@cocalc/util/misc";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { Alert, Button } from "antd";
 import { addToCart } from "./add-to-cart";
@@ -51,7 +52,7 @@ export function AddBox(props: Props) {
     }
     if (dedicatedItem || cost.input.quantity == null) return;
     return (
-      <div>{money(cost.discounted_cost / cost.input.quantity)} per project</div>
+      <div>{money(round2up(cost.cost / cost.input.quantity))} per project</div>
     );
   }
 
@@ -88,7 +89,7 @@ export function AddBox(props: Props) {
       <div
         style={{
           display: "inline-block",
-          maxWidth: "400px",
+          maxWidth: "550px",
           background: "white",
           border: "1px solid #ccc",
           padding: "10px 20px",

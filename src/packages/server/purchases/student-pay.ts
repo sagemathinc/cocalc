@@ -161,13 +161,13 @@ export function getCost(
 ): number {
   const cost = purchaseInfo?.cost;
   if (cost == null) {
-    return compute_cost(purchaseInfo).discounted_cost;
+    return compute_cost(purchaseInfo).cost;
   }
   if (typeof cost == "number") {
     // should never happen
     return cost;
   }
-  return cost.discounted_cost;
+  return cost.cost;
 }
 
 export async function studentPayLink({
