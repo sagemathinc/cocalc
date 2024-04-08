@@ -555,7 +555,7 @@ export class ChatActions extends Actions<ChatState> {
       if (isLanguageModelService(sender_id)) {
         return service2model(sender_id);
       }
-      const input = message.getIn(["history", 0, "content"])?.toLowerCase();
+      const input = lastHistory.get("content")?.toLowerCase();
       if (mentionsLanguageModel(input)) {
         return getLanguageModel(input);
       }
@@ -716,6 +716,11 @@ export class ChatActions extends Actions<ChatState> {
       if (history && history.length >= 2) {
         history.pop(); // remove the last LLM message, which is the one we're regenerating
         input = stripMentions(history.pop()?.content ?? ""); // the last user message is the input
+      } else {
+        console.warn(
+          `chat/llm: regenerate called without enough history for thread starting at ${reply_to}`,
+        );
+        return;
       }
     }
 
@@ -850,7 +855,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!threadMessages) return history;
 
     for (const message of threadMessages) {
-      const mostRecent = message.get("history").first();
+      const mostRecent = message.get("history")?.first();
       // there must be at least one history entry, otherwise the message is broken
       if (!mostRecent) continue;
       const content = stripMentions(mostRecent.get("content"));
