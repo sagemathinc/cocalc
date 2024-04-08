@@ -67,7 +67,7 @@ export default function ShoppingCart() {
         continue;
       }
       if (item.checked) {
-        subTotal += item.cost.discounted_cost;
+        subTotal += item.cost.cost;
       }
       x.push(item);
     }
@@ -291,11 +291,11 @@ export default function ShoppingCart() {
 }
 
 function TotalCost({ items }) {
-  let discounted_cost = 0;
+  let total = 0;
   let n = 0;
   for (const { cost, checked } of items) {
     if (checked && cost != null) {
-      discounted_cost += cost.discounted_cost;
+      total += cost.cost;
       n += 1;
     }
   }
@@ -304,7 +304,7 @@ function TotalCost({ items }) {
   }
   return (
     <>
-      Subtotal ({n} items): <b>{money(round2up(discounted_cost))}</b>
+      Subtotal ({n} items): <b>{money(round2up(total))}</b>
     </>
   );
 }

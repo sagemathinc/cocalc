@@ -88,7 +88,7 @@ export const LicenseExamples: React.FC<Props> = ({
         {render_price_number(price.cost, 14, 30, false, false, "retail price")}
         <br />
         {render_price_number(
-          price.discounted_cost,
+          price.cost,
           14,
           30,
           true,
@@ -139,7 +139,7 @@ export const LicenseExamples: React.FC<Props> = ({
               </td>
               <td>
                 {render_price_number(
-                  price_monthly.discounted_cost,
+                  price_monthly.cost,
                   14,
                   large,
                   true,
@@ -160,7 +160,7 @@ export const LicenseExamples: React.FC<Props> = ({
               </td>
               <td>
                 {render_price_number(
-                  price_yearly.discounted_cost,
+                  price_yearly.cost,
                   14,
                   large,
                   true,

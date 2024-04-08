@@ -61,7 +61,6 @@ function computeDedicatedVMCost(
   return {
     cost: price,
     cost_per_unit: price,
-    discounted_cost: price,
     cost_per_project_per_month: AVG_MONTH_DAYS * price_day,
     cost_sub_month: AVG_MONTH_DAYS * price_day,
     cost_sub_year: 12 * AVG_MONTH_DAYS * price_day,
@@ -85,7 +84,6 @@ function computeCashVoucherPrice(props: ComputeCostProps) {
     // a lot of this is mainly for typescript.
     cost,
     cost_per_unit: cost,
-    discounted_cost: cost,
     input: {
       ...props,
       subscription: "no",

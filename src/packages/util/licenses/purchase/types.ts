@@ -13,7 +13,6 @@ export type CustomUpgrades =
 export interface Cost {
   cost: number;
   cost_per_unit: number;
-  discounted_cost: number;
   cost_per_project_per_month: number;
   cost_sub_month: number;
   cost_sub_year: number;

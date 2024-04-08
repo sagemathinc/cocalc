@@ -38,7 +38,6 @@ Here's what a typical shopping cart item looks like:
   "cost": {
     "cost": 112.78032786885247,
     "cost_per_unit": 112.78032786885247,
-    "discounted_cost": 112.78032786885247,
     "cost_per_project_per_month": 687.96,
     "cost_sub_month": 687.96,
     "cost_sub_year": 8255.52,

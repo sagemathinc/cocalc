@@ -161,7 +161,6 @@ export function compute_cost(info: PurchaseInfo): Cost {
   return {
     cost_per_unit,
     cost: cost_total,
-    discounted_cost: cost_total * COSTS.online_discount,
     cost_per_project_per_month,
 
     // The following are the cost for a subscription for ONE unit for
@@ -189,7 +188,6 @@ export function compute_cost_dedicated(info) {
   return {
     cost: price,
     cost_per_unit: price,
-    discounted_cost: price,
     cost_per_project_per_month: monthly, // dedicated is always only 1 project
     cost_sub_month: monthly,
     cost_sub_year: 12 * monthly,

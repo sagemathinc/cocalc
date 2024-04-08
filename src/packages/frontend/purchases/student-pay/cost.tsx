@@ -5,13 +5,13 @@ import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 export function getCost(purchaseInfo: PurchaseInfo): number {
   const { cost } = purchaseInfo;
   if (cost == null) {
-    return round2up(compute_cost(purchaseInfo).discounted_cost);
+    return round2up(compute_cost(purchaseInfo).cost);
   }
   if (typeof cost == "number") {
     // should never happen
     return round2up(cost);
   }
-  return round2up(cost.discounted_cost);
+  return round2up(cost.cost);
 }
 
 export default function Cost({ purchaseInfo }: { purchaseInfo: PurchaseInfo }) {

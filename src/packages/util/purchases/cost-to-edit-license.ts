@@ -300,8 +300,9 @@ function currentLicenseValue(info: PurchaseInfo): number {
 //     return Math.max(0, hoursRemaining * info.cost_per_hour);
 //   }
 
-  // fall back to computing value using the current rate.
-  // TODO: we want to make it so this NEVER is used.
+  // Compute value using the current rate.
+  // As mentioned above, we can keep old rates if/when we change the rate,
+  // and compute costs for refunds using that, when applicable.
   const price = compute_cost(info);
-  return price.discounted_cost;
+  return price.cost;
 }

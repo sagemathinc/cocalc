@@ -51,7 +51,7 @@ export function AddBox(props: Props) {
     }
     if (dedicatedItem || cost.input.quantity == null) return;
     return (
-      <div>{money(cost.discounted_cost / cost.input.quantity)} per project</div>
+      <div>{money(cost.cost / cost.input.quantity)} per project</div>
     );
   }
 
