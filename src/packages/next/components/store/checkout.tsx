@@ -355,16 +355,6 @@ export function fullCost(items) {
   return full_cost;
 }
 
-export function discountedCost(items) {
-  let total = 0;
-  for (const { cost, checked } of items) {
-    if (checked) {
-      total += cost.cost_sub_first_period ?? cost.total;
-    }
-  }
-  return total;
-}
-
 function TotalCost({ totalCost }) {
   return (
     <>

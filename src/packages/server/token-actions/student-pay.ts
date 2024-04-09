@@ -1,5 +1,5 @@
 import createStripeCheckoutSession from "@cocalc/server/purchases/create-stripe-checkout-session";
-import { currency, round2up } from "@cocalc/util/misc";
+import { currency, round2up, round2down } from "@cocalc/util/misc";
 import getName from "@cocalc/server/accounts/get-name";
 import { getTokenUrl } from "./create";
 import studentPayPurchase from "@cocalc/server/purchases/student-pay";
@@ -124,9 +124,9 @@ export async function extraInfo(description: Description, account_id?: string) {
             due,
             2,
           )} to your account.`
-    } \n\n- Your balance is \\${currency(balance, 2)}${
+    } \n\n- Your balance is \\${currency(round2down(balance), 2)}${
       minBalance < 0
-        ? `, which must stay above \\${currency(minBalance, 2)}`
+        ? `, which must stay above \\${currency(round2down(minBalance), 2)}`
         : "."
     }
     ${minPayment}
