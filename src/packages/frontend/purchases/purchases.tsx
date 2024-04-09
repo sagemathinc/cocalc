@@ -966,7 +966,9 @@ function Balance({ balance }) {
   if (balance != null) {
     return (
       <Tooltip title={` (USD): $${round4(balance)}`}>
-        <span style={getAmountStyle(balance)}>{currency(balance, 2)}</span>
+        <span style={getAmountStyle(balance)}>
+          {currency(round2down(balance), 2)}
+        </span>
       </Tooltip>
     );
   }
