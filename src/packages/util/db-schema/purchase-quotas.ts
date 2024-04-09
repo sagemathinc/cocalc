@@ -1,8 +1,8 @@
-import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
+import { LLM_USERNAMES } from "./llm-utils";
 import type { Service } from "./purchases";
-import { isFreeModel } from "./openai";
+import { Table } from "./types";
 
 export type { Service };
 
@@ -14,29 +14,10 @@ interface Spec {
 
 export type QuotaSpec = Record<Service, Spec>;
 
+// NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true, color: "green" },
   refund: { display: "Refund", noSet: true, color: "red" },
-  "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
-  "openai-gpt-3.5-turbo": {
-    display: "OpenAI GPT-3.5",
-    color: "#10a37f",
-    noSet: true, // because this model is not charged for
-  },
-  "openai-gpt-3.5-turbo-16k": {
-    display: "OpenAI GPT-3.5 16k",
-    color: "#10a37f",
-  },
-  "openai-text-embedding-ada-002": {
-    display: "OpenAI Text Embedding Ada 002",
-    color: "#10a37f",
-    noSet: true, // because this model is not user visible yet
-  },
-  "openai-gpt-4-32k": {
-    display: "OpenAI GPT-4 32k",
-    color: "#10a37f",
-    noSet: true, // because this is not user visible yet
-  },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   "compute-server": { display: "Compute Server", color: "#2196f3" },
   "compute-server-network-usage": {
@@ -58,6 +39,33 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: "#00238b",
     noSet: true,
   },
+  // ATTN: LLMs comes below this line, the quotas above are the important ones to show first!
+  "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
+  "openai-gpt-3.5-turbo": {
+    display: "OpenAI GPT-3.5",
+    color: "#10a37f",
+  },
+  "openai-gpt-3.5-turbo-16k": {
+    display: "OpenAI GPT-3.5 16k",
+    color: "#10a37f",
+  },
+  "openai-text-embedding-ada-002": {
+    display: "OpenAI Text Embedding Ada 002",
+    color: "#10a37f",
+    noSet: true, // because this model is not user visible yet
+  },
+  "openai-gpt-4-32k": {
+    display: "OpenAI GPT-4 32k",
+    color: "#10a37f",
+  },
+  "openai-gpt-4-turbo-preview": {
+    display: "OpenAI GPT-4 Turbo 128k",
+    color: "#10a37f",
+  },
+  "openai-gpt-4-turbo-preview-8k": {
+    display: "OpenAI GPT-4 Turbo 8k",
+    color: "#10a37f",
+  },
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: "#4285f4",
@@ -74,9 +82,52 @@ export const QUOTA_SPEC: QuotaSpec = {
     noSet: true, // deprecated, will be removed
   },
   "google-gemini-pro": {
-    display: "Google Gemini Pro",
+    display: "Google Gemini 1.0 Pro",
     color: "#4285f4",
-    noSet: isFreeModel("gemini-pro"),
+  },
+  "google-gemini-1.0-ultra-latest": {
+    display: "Google Gemini 1.0 Ultra",
+    color: "#4285f4",
+  },
+  "google-gemini-1.5-pro-latest": {
+    display: "Google Gemini 1.5 Pro",
+    color: "#4285f4",
+  },
+  "anthropic-claude-3-opus": {
+    display: LLM_USERNAMES["claude-3-opus"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-opus-8k": {
+    display: LLM_USERNAMES["claude-3-opus-8k"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-sonnet": {
+    display: LLM_USERNAMES["claude-3-sonnet"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-sonnet-4k": {
+    display: LLM_USERNAMES["claude-3-sonnet-4k"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-haiku": {
+    display: LLM_USERNAMES["claude-3-haiku"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-haiku-8k": {
+    display: LLM_USERNAMES["claude-3-haiku-8k"],
+    color: "#181818",
+  },
+  "mistralai-mistral-small-latest": {
+    display: LLM_USERNAMES["mistral-small-latest"],
+    color: "#ff7000", // the orange from their website
+  },
+  "mistralai-mistral-medium-latest": {
+    display: LLM_USERNAMES["mistral-medium-latest"],
+    color: "#ff7000", // the orange from their website
+  },
+  "mistralai-mistral-large-latest": {
+    display: LLM_USERNAMES["mistral-large-latest"],
+    color: "#ff7000", // the orange from their website
   },
 };
 

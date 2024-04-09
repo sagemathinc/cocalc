@@ -112,7 +112,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
         }
         subInfo.start = null;
         subInfo.end = null;
-        setModifiedSubscriptionCost(compute_cost(subInfo).discounted_cost);
+        setModifiedSubscriptionCost(compute_cost(subInfo).cost);
       }
     } catch (err) {
       setEditError(`${err}`);

@@ -19,7 +19,7 @@ import {
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ChatStream } from "@cocalc/frontend/client/openai";
+import { ChatStream } from "@cocalc/frontend/client/llm";
 import {
   A,
   HelpIcon,
@@ -34,13 +34,13 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import ModelSwitch, {
-  modelToName,
-} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import { splitCells } from "@cocalc/frontend/jupyter/chatgpt/split-cells";
+import LLMSelector, {
+  modelToName,
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -48,9 +48,9 @@ import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import { once } from "@cocalc/util/async-utils";
 import {
-  getVendorStatusCheckMD,
+  getLLMServiceStatusCheckMD,
   model2vendor,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm-utils";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ensure_project_running } from "../../project-start-warning";
@@ -86,7 +86,7 @@ export default function AIGenerateJupyterNotebook({
   onSuccess,
   project_id,
 }: Props) {
-  const [model, setModel] = useLanguageModelSetting();
+  const [model, setModel] = useLanguageModelSetting(project_id);
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null,
   );
@@ -158,7 +158,7 @@ export default function AIGenerateJupyterNotebook({
     try {
       setQuerying(true);
 
-      const llmStream = webapp_client.openai_client.languageModelStream({
+      const llmStream = webapp_client.openai_client.queryStream({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
@@ -168,7 +168,7 @@ export default function AIGenerateJupyterNotebook({
 
       await updateNotebook(llmStream);
     } catch (err) {
-      setError(`${err}\n\n${getVendorStatusCheckMD(model2vendor(model))}.`);
+      setError(`${err}\n\n${getLLMServiceStatusCheckMD(model2vendor(model))}.`);
       setQuerying(false);
     }
   }
@@ -390,7 +390,7 @@ export default function AIGenerateJupyterNotebook({
     llmStream.on("error", (err) => {
       setError(`${err}`);
       setQuerying(false);
-      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getLLMServiceStatusCheckMD(
         model2vendor(model),
       )}.`;
       if (ja == null) {
@@ -435,7 +435,7 @@ export default function AIGenerateJupyterNotebook({
     <Block style={{ padding: "0 15px" }}>
       <Title level={4}>
         <LanguageModelVendorAvatar model={model} /> Create Notebook Using{" "}
-        <ModelSwitch
+        <LLMSelector
           project_id={project_id}
           model={model}
           setModel={setModel}

@@ -4,22 +4,30 @@
  */
 
 /*
-React component that describes a single cella
+React component that describes a single cell
 */
 
 import { Map } from "immutable";
-import { React, Rendered, useDelayedRender } from "../app-framework";
-import { clear_selection } from "../misc/clear-selection";
+import { useState } from "react";
+
+import {
+  React,
+  Rendered,
+  useDelayedRender,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Tip } from "@cocalc/frontend/components";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { COLORS } from "@cocalc/util/theme";
-import { INPUT_PROMPT_COLOR } from "./prompt/base";
-import { Icon, Tip } from "../components";
+import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
-
-import { JupyterActions } from "./browser-actions";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-
+import { InsertCell } from "./insert-cell";
+import { Position } from "./insert-cell/types";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
+import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
@@ -44,8 +52,11 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
-  chatgpt?;
+  llmTools?: LLMTools;
   computeServerId?: number;
+  is_visible?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -61,21 +72,27 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.mode !== props.mode ||
     nextProps.font_size !== props.font_size ||
     nextProps.is_focused !== props.is_focused ||
+    nextProps.is_visible !== props.is_visible ||
     nextProps.more_output !== props.more_output ||
     nextProps.cell_toolbar !== props.cell_toolbar ||
     nextProps.trust !== props.trust ||
     nextProps.is_scrolling !== props.is_scrolling ||
     nextProps.height !== props.height ||
+    nextProps.isFirst !== props.isFirst ||
+    nextProps.isLast !== props.isLast ||
     nextProps.computeServerId !== props.computeServerId ||
+    (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current))
   );
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
+  const [showAICellGen, setShowAICellGen] = useState<Position>(null);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   const render = useDelayedRender(props.delayRendering ?? 0);
+
   if (!render) {
     return <></>;
   }
@@ -112,8 +129,9 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         trust={props.trust}
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
-        chatgpt={props.chatgpt}
+        llmTools={props.llmTools}
         computeServerId={props.computeServerId}
+        setShowAICellGen={setShowAICellGen}
       />
     );
   }
@@ -136,7 +154,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
-        chatgpt={props.chatgpt}
+        llmTools={props.llmTools}
       />
     );
   }
@@ -147,6 +165,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       frameActions.current?.select_cell_range(id);
       return;
     }
+    frameActions.current?.set_mode("escape");
     frameActions.current?.set_cur_id(id);
     frameActions.current?.unselect_all_cells();
   }
@@ -169,12 +188,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   function render_not_deletable(): Rendered {
     if (is_deletable()) return;
     return (
-      <Tip
-        title={"Protected from deletion"}
-        placement={"right"}
-        size={"small"}
-        style={{ marginRight: "5px" }}
-      >
+      <Tip title={"Protected from deletion"} placement={"right"} size={"small"}>
         <Icon name="ban" />
       </Tip>
     );
@@ -187,7 +201,6 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         title={"Protected from modifications"}
         placement={"right"}
         size={"small"}
-        style={{ marginRight: "5px" }}
       >
         <Icon name="lock" />
       </Tip>
@@ -229,8 +242,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       // in the condition above.
       style = {
         position: "absolute",
-        top: "2px",
-        left: "5px",
+        top: "-2px",
+        left: 0,
         whiteSpace: "nowrap",
         color: COLORS.GRAY_L,
       };
@@ -289,12 +302,39 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     // The bigger top margin when in fully read only mode (no props.actions, e.g., timetravel view)
     // is to deal with the fact that the insert cell bar isn't rendered, but some of the controls off
     // to the right assume it is.
-    margin: props.actions != null ? "2px 15px 2px 5px" : "20px 15px 2px 5px",
+    margin: props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
     position: "relative",
   };
 
   if (props.is_selected) {
     style.background = "#e3f2fd";
+  }
+
+  function render_insert_cell(
+    position: "above" | "below" = "above",
+  ): JSX.Element | null {
+    if (props.actions == null || IS_TOUCH) {
+      return null;
+    }
+    return (
+      <InsertCell
+        project_id={props.project_id}
+        hide={!props.is_visible}
+        id={id}
+        llmTools={props.llmTools}
+        key={id + "insert" + position}
+        position={position}
+        actions={props.actions}
+        showAICellGen={
+          showAICellGen === position ||
+          (position === "below" && showAICellGen === "replace")
+            ? showAICellGen
+            : null
+        }
+        setShowAICellGen={setShowAICellGen}
+        alwaysShow={position === "below" && props.isLast}
+      />
+    );
   }
 
   // Note that the cell id is used for scroll functionality, so *is* important.
@@ -306,9 +346,11 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       id={id}
       cocalc-test={"jupyter-cell"}
     >
+      {props.isFirst ? render_insert_cell("above") : undefined}
       {render_metadata_state()}
       {render_cell_input(props.cell)}
       {render_cell_output(props.cell)}
+      {render_insert_cell("below")}
     </div>
   );
 }, areEqual);

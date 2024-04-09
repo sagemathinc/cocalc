@@ -36,6 +36,7 @@ interface MesgExec {
 interface MesgDeleteFiles {
   cmd: "delete_files";
   paths: string[];
+  compute_server_id?: number;
 }
 
 interface MesgFormatterString {
@@ -59,18 +60,21 @@ interface MesgListing {
   cmd: "listing";
   path: string;
   hidden: boolean;
+  compute_server_id?: number;
 }
 
 interface MesgMoveFiles {
   cmd: "move_files";
   paths: string[];
   dest: string;
+  compute_server_id: number | undefined;
 }
 
 interface MesgRenameFile {
   cmd: "rename_file";
   src: string;
   dest: string;
+  compute_server_id: number | undefined;
 }
 
 interface MesgCanonicalPaths {
@@ -199,6 +203,11 @@ interface MesgComputeServerSyncRegister {
   opts: { compute_server_id: number };
 }
 
+interface MesgComputeServerComputeRegister {
+  cmd: "compute_server_compute_register";
+  opts: { compute_server_id: number };
+}
+
 interface MesgComputeServerSyncRequest {
   cmd: "compute_server_sync_request";
   opts: { compute_server_id: number };
@@ -206,12 +215,24 @@ interface MesgComputeServerSyncRequest {
 
 interface MesgCopyFromProjectToComputeServer {
   cmd: "copy_from_project_to_compute_server";
-  opts: { compute_server_id: number; paths: string[]; timeout?: number };
+  opts: {
+    compute_server_id: number;
+    paths: string[];
+    home?: string; // alternate home directory -- if relative, then is relative to actual HOME
+    dest?: string;
+    timeout?: number;
+  };
 }
 
 interface MesgCopyFromComputeServerToProject {
   cmd: "copy_from_compute_server_to_project";
-  opts: { compute_server_id: number; paths: string[]; timeout?: number };
+  opts: {
+    compute_server_id: number;
+    paths: string[];
+    home?: string; // alternate home directory -- if relative, then is relative to actual HOME
+    dest?: string;
+    timeout?: number;
+  };
 }
 
 export type Mesg =
@@ -244,6 +265,7 @@ export type Mesg =
   | MesgComputeFilesystemCache
   | MesgSyncFS
   | MesgComputeServerSyncRegister
+  | MesgComputeServerComputeRegister
   | MesgComputeServerSyncRequest
   | MesgCopyFromProjectToComputeServer
   | MesgCopyFromComputeServerToProject;

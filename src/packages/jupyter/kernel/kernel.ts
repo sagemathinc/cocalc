@@ -27,7 +27,7 @@ if (DEBUG) {
 // Also exit-hook is hard to import from commonjs.
 import nodeCleanup from "node-cleanup";
 import type { Channels, MessageType } from "@nteract/messaging";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
@@ -150,6 +150,13 @@ export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
   syncdb.once("ready", () =>
     logger.debug("initJupyterRedux", path, "syncdb ready"),
   );
+}
+
+export async function getJupyterRedux(syncdb: SyncDB) {
+  const project_id = syncdb.project_id;
+  const path = original_path(syncdb.get_path());
+  const name = redux_name(project_id, path);
+  return { actions: redux.getActions(name), store: redux.getStore(name) };
 }
 
 // Remove the store/actions for a given Jupyter notebook,

@@ -73,11 +73,11 @@ export class NotebookFrameActions {
     this.update_cur_id();
     this.init_syncdb_change_hook();
 
-    this.commands = commands(
-      this.jupyter_actions,
-      { current: this },
-      this.frame_tree_actions,
-    );
+    this.commands = commands({
+      jupyter_actions: this.jupyter_actions,
+      frame_actions: this,
+      editor_actions: this.frame_tree_actions,
+    });
 
     this.setState({ scroll: "", scroll_seq: -1 });
   }
@@ -295,6 +295,21 @@ export class NotebookFrameActions {
 
     const cell_list = this.jupyter_actions.store.get_cell_list();
     if (cell_list.get(cell_list.size - 1) === last_id) {
+      const new_id = this.insert_cell(1);
+      this.set_cur_id(new_id);
+      this.set_mode("edit");
+    } else {
+      this.set_mode("escape");
+      this.move_cursor(1);
+    }
+  }
+
+  public shift_enter_run_current_cell(): void {
+    this.save_input_editor();
+    const cur_id = this.store.get("cur_id");
+    this.run_cell(cur_id);
+    const cell_list = this.jupyter_actions.store.get_cell_list();
+    if (cell_list.get(cell_list.size - 1) === cur_id) {
       const new_id = this.insert_cell(1);
       this.set_cur_id(new_id);
       this.set_mode("edit");
@@ -870,6 +885,16 @@ export class NotebookFrameActions {
     this.jupyter_actions.toggle_write_protection_on_cells(cell_ids);
   }
 
+  write_protect_selected_cells = (value: boolean = true) => {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.write_protect_cells(cell_ids, value);
+  };
+
+  delete_protect_selected_cells = (value: boolean = true) => {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.delete_protect_cells(cell_ids, value);
+  };
+
   public toggle_delete_protection_on_selected_cells(): void {
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_delete_protection_on_cells(cell_ids);
@@ -1036,4 +1061,49 @@ export class NotebookFrameActions {
     });
     this.scroll("cell visible");
   }
+
+  setScrolled = ({ all, scrolled }: { all: boolean; scrolled: boolean }) => {
+    const ids = all
+      ? this.jupyter_actions.store.get_cell_list().toJS()
+      : Object.keys(this.store.get_selected_cell_ids());
+    const cells = this.jupyter_actions.store.get("cells");
+    for (const id of ids) {
+      const cell = cells.get(id);
+      if (cell?.get("cell_type", "code") == "code") {
+        this.jupyter_actions._set(
+          {
+            type: "cell",
+            id,
+            scrolled,
+          },
+          false,
+        );
+      }
+    }
+    this.jupyter_actions.syncdb.commit();
+  };
+
+  setExpandCollapse = ({
+    target,
+    expanded,
+    all,
+  }: {
+    target: "source" | "outputs";
+    expanded?: boolean;
+    all?: boolean; // true = everything; false = selected
+  }) => {
+    const ids = all
+      ? this.jupyter_actions.store.get_cell_list().toJS()
+      : Object.keys(this.store.get_selected_cell_ids());
+
+    for (const id of ids) {
+      this.jupyter_actions.set_jupyter_metadata(
+        id,
+        `${target}_hidden`,
+        !expanded,
+        false,
+      );
+    }
+    this.jupyter_actions.syncdb.commit();
+  };
 }

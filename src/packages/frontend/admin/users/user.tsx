@@ -19,6 +19,7 @@ import { Ban } from "./ban";
 import PayAsYouGoMinBalance from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-min-balance";
 import { PurchasesButton } from "@cocalc/frontend/purchases/purchases";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
+import Money from "./money";
 
 interface State {
   projects: boolean;
@@ -93,9 +94,11 @@ export class UserResult extends Component<Props, State> {
     }
     return (
       <div style={{ margin: "15px 0" }}>
+        <Money account_id={this.props.account_id} />
+        <div style={{ height: "15px" }} />
         <PayAsYouGoMinBalance account_id={this.props.account_id} />
-        <div style={{height:'15px'}}/>
-        <PurchasesButton account_id={this.props.account_id}/>
+        <div style={{ height: "15px" }} />
+        <PurchasesButton account_id={this.props.account_id} />
       </div>
     );
   }
@@ -137,7 +140,11 @@ export class UserResult extends Component<Props, State> {
       return;
     }
     return (
-      <Ban account_id={this.props.account_id} banned={this.props.banned} />
+      <Ban
+        account_id={this.props.account_id}
+        banned={this.props.banned}
+        name={`${this.props.first_name} ${this.props.last_name} ${this.props.email_address}`}
+      />
     );
   }
 
@@ -230,11 +237,11 @@ export class UserResult extends Component<Props, State> {
             </div>
           </Col>
         </Row>
-        {this.render_purchases()}
-        {this.render_projects()}
         {this.render_impersonate()}
         {this.render_password()}
         {this.render_ban()}
+        {this.render_projects()}
+        {this.render_purchases()}
       </div>
     );
   }

@@ -3,29 +3,46 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useActions, redux } from "@cocalc/frontend/app-framework";
-import { useEffect } from "react";
+import { redux } from "@cocalc/frontend/app-framework";
+import { useEffect, useState } from "react";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { EditorDescription } from "../frame-tree/types";
-import { init as initChat } from "@cocalc/frontend/chat/register";
+import { initChat } from "@cocalc/frontend/chat/register";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { hidden_meta_file } from "@cocalc/util/misc";
 import { set } from "@cocalc/util/misc";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
+
+export function chatFile(path: string): string {
+  return hidden_meta_file(path, "sage-chat");
+}
 
 interface Props {
   font_size: number;
 }
 
 function Chat({ font_size }: Props) {
-  const { project_id, path: path0 } = useFrameContext();
-  const path = hidden_meta_file(path0, "sage-chat");
-  initChat(project_id, path);
-  const actions = useActions(project_id, path);
+  const { project_id, path: path0, actions } = useFrameContext();
+  const path = chatFile(path0);
+  const [initialized, setInitialized] = useState<boolean>(false);
   useEffect(() => {
-    actions.setState({ font_size });
+    (async () => {
+      // properly set the side chat compute server, if necessary
+      await redux
+        .getProjectActions(project_id)
+        .setSideChatComputeServerId(path0);
+      initChat(project_id, path);
+      setInitialized(true);
+    })();
+  }, []);
+
+  useEffect(() => {
+    actions?.setState({ font_size } as any);
   }, [font_size]);
 
+  if (!initialized) {
+    return null;
+  }
   return <SideChat project_id={project_id} path={path} />;
 }
 
@@ -33,7 +50,7 @@ export const chat = {
   short: "Chat",
   name: "Chat",
   icon: "comment",
-  buttons: set([
+  commands: set([
     "decrease_font_size",
     "increase_font_size",
     "undo",

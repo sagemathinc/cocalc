@@ -69,6 +69,7 @@ export default function HomePage() {
             style={{ height: "200px" }}
           />
         </Col>
+        {renderGPTGenerator()}
         {computeServersEnabled() && (
           <Col {...SPAN}>
             <Card
@@ -92,9 +93,8 @@ export default function HomePage() {
             </Card>
           </Col>
         )}
-        {renderGPTGenerator()}
         {commercial && (
-          <Col {...SPAN}>
+          <Col md={24}>
             <AccountStatus compact style={{ border: "1px solid #ddd" }} />
           </Col>
         )}

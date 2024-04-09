@@ -67,7 +67,7 @@ export async function ensure_project_running(
     content: `You must start the project '${project_title}' before you can ${what}.  Start this project?`,
   });
   if (result == "ok") {
-    explicitly_started[project_id] = new Date().valueOf();
+    explicitly_started[project_id] = Date.now();
     redux.getActions("projects").start_project(project_id);
     return true;
   }

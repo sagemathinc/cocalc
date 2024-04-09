@@ -10,9 +10,9 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput",
-    "test": "npx jest ./dist",
+    "build": "../node_modules/.bin/tsc --build",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
+    "test": "../node_modules/.bin/jest ./dist",
     "prepublishOnly": "pnpm test"
   },
   "files": [
@@ -30,10 +30,9 @@
   "dependencies": {
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/debug": "^4.1.7",
+    "@types/debug": "^4.1.12",
     "@types/lodash": "^4.14.202",
     "async": "^1.5.2",
-    "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "debug": "^4.3.4",
     "events": "3.3.0",

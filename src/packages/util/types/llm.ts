@@ -1,4 +1,4 @@
-import { LanguageModel } from "@cocalc/util/db-schema/openai";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 
 export type History = {
   role: "assistant" | "user" | "system";
@@ -29,4 +29,11 @@ export interface ChatOptions {
   //   might be off: https://community.openai.com/t/openai-api-get-usage-tokens-in-response-when-set-stream-true/141866
   stream?: (output?: string) => void;
   maxTokens?: number;
+}
+
+export interface OllamaPublic {
+  model: string;
+  display: string; // name of the model
+  desc?: string; // additional description
+  icon?: string; // fallback to OllamaAvatar
 }

@@ -39,7 +39,7 @@ export default function Julia({ customize }) {
           <Content
             landing
             startup={component}
-            logo={logo}
+            body={logo}
             title={title}
             subtitleBelow={true}
             subtitle={

@@ -35,7 +35,7 @@ export default function getActions({
   type,
   project_id,
 }): JSX.Element[] {
-  if (!editable) {
+  if (!editable && !configuration?.allowCollaboratorControl) {
     return [];
   }
   const s = STATE_INFO[state ?? "off"];
@@ -47,10 +47,33 @@ export default function getActions({
   }
   const v: JSX.Element[] = [];
   for (const action of s.actions) {
+    if (
+      !editable &&
+      action != "stop" &&
+      action != "deprovision" &&
+      action != "start" &&
+      action != "suspend" &&
+      action != "resume" &&
+      action != "reboot"
+    ) {
+      // non-owner can only do start/stop/suspend/resume -- NOT delete or deprovision.
+      continue;
+    }
+    if (!editable && action == "deprovision" && !configuration.ephemeral) {
+      // also do not allow NON ephemeral deprovision by collaborator.
+      // For ephemeral, collab is encouraged to delete server.
+      continue;
+    }
     const a = ACTION_INFO[action];
     if (!a) continue;
     if (action == "suspend") {
       if (configuration.cloud != "google-cloud") {
+        continue;
+      }
+      if (configuration.machineType.startsWith("t2a-")) {
+        // TODO: suspend/resume breaks the clock badly on ARM64, and I haven't
+        // figured out a workaround, so don't support it for now.  I guess this
+        // is a GCP bug.
         continue;
       }
       // must have no gpu and <= 208GB of RAM -- https://cloud.google.com/compute/docs/instances/suspend-resume-instance
@@ -87,6 +110,7 @@ export default function getActions({
         label={label}
         icon={icon}
         tip={tip}
+        editable={editable}
         description={description}
         setError={setError}
         confirm={confirm}
@@ -107,6 +131,7 @@ function ActionButton({
   action,
   icon,
   label,
+  editable,
   description,
   tip,
   setError,
@@ -183,7 +208,7 @@ function ActionButton({
     try {
       setError("");
       setDoing(true);
-      if (action == "start" || action == "resume") {
+      if (editable && (action == "start" || action == "resume")) {
         let c = cost_per_hour;
         if (c == null) {
           c = await updateCost();
@@ -252,9 +277,9 @@ function ActionButton({
                 showIcon
                 style={{ margin: "15px 0" }}
                 type="info"
-                message={
-                  "This will safely turn off the VM, and allow you to edit its configuration."
-                }
+                message={`This will safely turn off the VM${
+                  editable ? ", and allow you to edit its configuration." : "."
+                }`}
               />
             )}
             {!configuration.ephemeral && danger && (
@@ -344,7 +369,8 @@ function ActionButton({
       }
       content={
         <div style={{ width: "400px" }}>
-          {description}{" "}
+          {description} {editable && <>You will be charged:</>}
+          {!editable && <>The owner of this compute server will be charged:</>}
           {cost_per_hour != null && (
             <div style={{ textAlign: "center" }}>
               <MoneyStatistic
@@ -398,29 +424,41 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
             style={{ margin: "15px 0" }}
             type="warning"
             showIcon
-            message={<b>USE AN ACTUAL UBUNTU 22.04 VIRTUAL MACHINE</b>}
+            message={<b>USE AN UBUNTU 22.04 VIRTUAL MACHINE</b>}
             description={
-              <div>
-                Install a Virtual Machine on your compute using{" "}
-                <A href="https://www.virtualbox.org/">VirtualBox</A> or{" "}
-                <A href="https://mac.getutm.app/">UTM</A> or some other
-                virtualization software, or create a VM on a cloud hosting
-                provider. Do not try to run the command below directly on your
-                computer or just using Docker, since that is insecure and not
-                likely to work.
-              </div>
+              <ul>
+                <li>
+                  You can use any{" "}
+                  <u>
+                    <b>
+                      <A href="https://multipass.run/">
+                        UBUNTU VIRTUAL MACHINE
+                      </A>
+                    </b>
+                  </u>{" "}
+                  that you have a root acount on.
+                </li>
+                <li>
+                  <A href="https://multipass.run/">
+                    Multipass is the easiest way to get a free Ubuntu VM on your
+                    computer.
+                  </A>{" "}
+                  After you install Multipass, create a VM:
+                  <CopyToClipBoard value="multipass launch --name cocalc --cpus 2 --memory 8G --disk 20G" />
+                  <br />
+                  Get a shell and start your compute server:
+                  <CopyToClipBoard value="multipass shell cocalc" />
+                  <br />
+                  If you need to enlarge the disk:
+                  <CopyToClipBoard value="multipass stop cocalc && multipass set local.cocalc.disk=30G" />
+                </li>
+              </ul>
             }
           />
           {configuration.gpu && (
             <span>
               Since you clicked GPU, you must also have an NVIDIA GPU and the
               Cuda drivers installed and working.{" "}
-            </span>
-          )}
-          {configuration.arch == "arm64" && (
-            <span>
-              Since you selected ARM 64, your VM should be an ARM64 architecture
-              VM, e.g., that's what you would have on an M1 mac.
             </span>
           )}
         </div>
@@ -443,8 +481,8 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
         {apiKey && (
           <div>
             <div style={{ marginBottom: "10px" }}>
-              Copy and paste the following into a terminal in your{" "}
-              <b>Virtual Machine</b>:
+              Copy and paste the following into a shell on your{" "}
+              <b>Ubuntu Virtual Machine</b>:
             </div>
             <CopyToClipBoard
               inputWidth={"700px"}

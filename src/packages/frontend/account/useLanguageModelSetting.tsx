@@ -1,23 +1,51 @@
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
-  LanguageModel,
-  USER_SELECTABLE_LANGUAGE_MODELS,
+  LLMServicesAvailable,
+  LanguageService,
+  fromOllamaModel,
   getValidLanguageModelName,
-} from "@cocalc/util/db-schema/openai";
+  isOllamaLLM,
+} from "@cocalc/util/db-schema/llm-utils";
 
 export const SETTINGS_LANGUAGE_MODEL_KEY = "language_model";
 
-export function useLanguageModelSetting(): [
-  LanguageModel,
-  (llm: LanguageModel) => void,
-] {
+// ATTN: it is tempting to use the `useProjectContext` hook here, but it is not possible
+// The "AI Formula" dialog is outside the project context (unfortunately)
+export function useLanguageModelSetting(
+  project_id?: string,
+): [LanguageService, (llm: LanguageService) => void] {
   const other_settings = useTypedRedux("account", "other_settings");
-  const llm = useMemo(() => {
-    return getValidLanguageModelName(other_settings?.get("language_model"));
+  const ollama = useTypedRedux("customize", "ollama");
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+
+  const haveOpenAI = useTypedRedux("customize", "openai_enabled");
+  const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
+  const haveOllama = useTypedRedux("customize", "ollama_enabled");
+  const haveMistral = useTypedRedux("customize", "mistral_enabled");
+
+  const enabledLLMs: LLMServicesAvailable = useMemo(() => {
+    const projectsStore = redux.getStore("projects");
+    return projectsStore.whichLLMareEnabled(project_id);
+  }, [haveOpenAI, haveGoogle, haveOllama, haveMistral]);
+
+  const llm: LanguageService = useMemo(() => {
+    return getValidLanguageModelName(
+      other_settings?.get("language_model"),
+      enabledLLMs,
+      Object.keys(ollama?.toJS() ?? {}),
+      selectableLLMs?.toJS() ?? [],
+    );
   }, [other_settings]);
 
-  function setLLM(llm: LanguageModel) {
-    if (USER_SELECTABLE_LANGUAGE_MODELS.includes(llm as any)) {
+  function setLLM(llm: LanguageService) {
+    if (selectableLLMs.includes(llm as any)) {
+      redux
+        .getActions("account")
+        .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+    }
+
+    // check if llm is a key in the ollama typedmap
+    if (isOllamaLLM(llm) && ollama?.get(fromOllamaModel(llm))) {
       redux
         .getActions("account")
         .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);

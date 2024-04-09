@@ -1,4 +1,4 @@
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { COCALC_MINIMAL } from "../fullscreen";
 import { parse_query } from "@cocalc/sync/table/util";
 import { once } from "@cocalc/util/async-utils";

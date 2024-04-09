@@ -800,13 +800,39 @@ export function round4(num: number): number {
   return Math.round((num + 0.0000001) * 10000) / 10000;
 }
 
-// Round given number up to 2 decimal places
+// Round given number up to 2 decimal places, for the
+// purposes of dealing with money.  We use toFixed to
+// accomplish this, because we care about the decimal
+// representation, not the exact internal binary number.
+// Doing ' Math.ceil(num * 100) / 100', is wrong because
+// e.g., numbers like 4.73 are not representable in binary, e.g.,
+//  >  4.73 = 100.101110101110000101000111101011100001010001111011... forever
 export function round2up(num: number): number {
-  return Math.ceil(num * 100) / 100;
+  // This rounds the number to the closest 2-digit decimal representation.
+  // It can be LESS than num, e.g., (0.356).toFixed(2) == '0.36'
+  const rnd = parseFloat(num.toFixed(2));
+  if (rnd >= num) {
+    // it  rounded up.
+    return rnd;
+  }
+  // It rounded down, so we add a penny to num first,
+  // to ensure that rounding is up.
+  return parseFloat((num + 0.01).toFixed(2));
 }
-// Round given number down to 2 decimal places
+
+// Round given number down to 2 decimal places, suitable for
+// dealing with money.
 export function round2down(num: number): number {
-  return Math.floor(num * 100) / 100;
+  // This rounds the number to the closest 2-digit decimal representation.
+  // It can be LESS than num, e.g., (0.356).toFixed(2) == '0.36'
+  const rnd = parseFloat(num.toFixed(2));
+  if (rnd <= num) {
+    // it rounded down: good.
+    return rnd;
+  }
+  // It rounded up, so we subtract a penny to num first,
+  // to ensure that rounding is down.
+  return parseFloat((num - 0.01).toFixed(2));
 }
 
 // returns the number parsed from the input text, or undefined if invalid

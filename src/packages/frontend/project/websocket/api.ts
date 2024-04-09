@@ -22,7 +22,7 @@ import type {
 } from "@cocalc/util/code-formatter";
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Channel, Mesg, NbconvertParams } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 
@@ -64,30 +64,54 @@ export class API {
     return this.cachedVersion;
   }
 
-  async delete_files(paths: string[]): Promise<void> {
-    return await this.call({ cmd: "delete_files", paths }, 60000);
+  async delete_files(
+    paths: string[],
+    compute_server_id?: number,
+  ): Promise<void> {
+    return await this.call(
+      { cmd: "delete_files", paths, compute_server_id },
+      60000,
+    );
   }
 
   // Move the given paths to the dest.  The folder dest must exist
   // already and be a directory, or this is in an error.
-  async move_files(paths: string[], dest: string): Promise<void> {
-    return await this.call({ cmd: "move_files", paths, dest }, 60000);
+  async move_files(
+    paths: string[],
+    dest: string,
+    compute_server_id?: number,
+  ): Promise<void> {
+    return await this.call(
+      { cmd: "move_files", paths, dest, compute_server_id },
+      60000,
+    );
   }
 
   // Rename the file src to be the file dest.  The dest may be
   // in a different directory or may even exist already (in which)
   // case it is overwritten if it is a file. If dest exists and
   // is a directory, it is an error.
-  async rename_file(src: string, dest: string): Promise<void> {
-    return await this.call({ cmd: "rename_file", src, dest }, 30000);
+  async rename_file(
+    src: string,
+    dest: string,
+    compute_server_id?: number,
+  ): Promise<void> {
+    return await this.call(
+      { cmd: "rename_file", src, dest, compute_server_id },
+      30000,
+    );
   }
 
   async listing(
     path: string,
     hidden: boolean = false,
     timeout: number = 15000,
+    compute_server_id: number = 0,
   ): Promise<DirectoryListingEntry[]> {
-    return await this.call({ cmd: "listing", path, hidden }, timeout);
+    return await this.call(
+      { cmd: "listing", path, hidden, compute_server_id },
+      timeout,
+    );
   }
 
   /* Normalize the given paths relative to the HOME directory.
@@ -342,7 +366,7 @@ export class API {
   // very useful when using a project-specific api key.
   async query(opts: any): Promise<any> {
     if (opts.timeout == null) {
-      opts.timeout = 30000;
+      opts.timeout = 30;
     }
     const timeout_ms = opts.timeout * 1000 + 2000;
     return await this.call({ cmd: "query", opts }, timeout_ms);
@@ -364,22 +388,24 @@ export class API {
   async copyFromProjectToComputeServer(opts: {
     compute_server_id: number;
     paths: string[];
+    dest?: string;
     timeout?: number;
   }) {
     await this.call(
       { cmd: "copy_from_project_to_compute_server", opts },
-      opts.timeout ?? 30000,
+      (opts.timeout ?? 60) * 1000,
     );
   }
 
   async copyFromComputeServerToProject(opts: {
     compute_server_id: number;
     paths: string[];
+    dest?: string;
     timeout?: number;
   }) {
     await this.call(
       { cmd: "copy_from_compute_server_to_project", opts },
-      opts.timeout ?? 30000,
+      (opts.timeout ?? 60) * 1000,
     );
   }
 }

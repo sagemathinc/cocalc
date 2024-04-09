@@ -36,8 +36,8 @@ const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
    getting collected and not missing the last few changes.  It turns
    out this is what people expect.
    Set to 0 to disable. (But don't do that.) */
-const LOCAL_HUB_AUTOSAVE_S = 45;
-// const LOCAL_HUB_AUTOSAVE_S = 5;
+const FILE_SERVER_AUTOSAVE_S = 45;
+// const FILE_SERVER_AUTOSAVE_S = 5;
 
 // How big of files we allow users to open using syncstrings.
 const MAX_FILE_SIZE_MB = 8;
@@ -47,9 +47,19 @@ const MAX_FILE_SIZE_MB = 8;
 // cursors less responsive.
 const CURSOR_THROTTLE_MS = 750;
 
+// Ignore file changes for this long after save to disk.
+const RECENT_SAVE_TO_DISK_MS = 2000;
+
+import {
+  COMPUTE_THRESH_MS,
+  COMPUTER_SERVER_CURSOR_TYPE,
+  decodeUUIDtoNum,
+  SYNCDB_PARAMS as COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
+} from "@cocalc/util/compute/manager";
+
 type XPatch = any;
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import {
   callback2,
@@ -60,6 +70,7 @@ import {
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
+  auxFileToOriginal,
   ISO_to_Date,
   assertDefined,
   close,
@@ -151,7 +162,7 @@ export class SyncDoc extends EventEmitter {
 
   // This is what's actually output by setInterval -- it's
   // not an amount of time.
-  private project_autosave_timer: number = 0;
+  private fileserver_autosave_timer: number = 0;
 
   // throttling of change events -- e.g., is useful for course
   // editor where we have hundreds of changes and the UI gets
@@ -225,6 +236,9 @@ export class SyncDoc extends EventEmitter {
   private sync_is_disabled: boolean = false;
   private delay_sync_timer: any;
 
+  // static because we want exactly one across all docs!
+  private static computeServerManagerDoc?: SyncDoc;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -285,6 +299,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     this.setMaxListeners(100);
+
     this.init();
   }
 
@@ -305,7 +320,7 @@ export class SyncDoc extends EventEmitter {
       //const t0 = new Date();
       await this.init_all();
       //console.log(  // TODO remove at some point.
-      //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
+      //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
       //);
     } catch (err) {
       if (this.state == "closed") {
@@ -329,6 +344,211 @@ export class SyncDoc extends EventEmitter {
     this.init_watch();
     this.emit_change(); // from nothing to something.
   }
+
+  // True if this client is responsible for managing
+  // the state of this document with respect to
+  // the filesystem.  By default, the project is responsible,
+  // but it could be something else (e.g., a compute server!).  It's
+  // important that whatever algorithm determines this, it is
+  // a function of state that is eventually consistent.
+  // IMPORTANT: whether or not we are the file server can
+  // change over time, so if you call isFileServer and
+  // set something up (e.g., autosave or a watcher), based
+  // on the result, you need to clear it when the state
+  // changes. See the function handleComputeServerManagerChange.
+  private isFileServer = reuseInFlight(async () => {
+    const log = this.dbg("isFileServer");
+    if (this.client.is_browser()) {
+      // browser is never the file server (yet), and doesn't need to do
+      // anything related to watching for changes in state.
+      // Someday via webassembly or browsers making users files availabl,
+      // etc., we will have this. Not today.
+      return false;
+    }
+    const computeServerManagerDoc = this.getComputeServerManagerDoc();
+    if (computeServerManagerDoc == null) {
+      log("not using compute server manager for this doc");
+      return this.client.is_project();
+    }
+
+    const state = computeServerManagerDoc.get_state();
+    log("compute server manager doc state: ", state);
+    if (state == "closed") {
+      log("compute server manager is closed");
+      // something really messed up
+      return this.client.is_project();
+    }
+    if (state != "ready") {
+      try {
+        log(
+          "waiting for compute server manager doc to be ready; current state=",
+          state,
+        );
+        await once(computeServerManagerDoc, "ready", 15000);
+        log("compute server manager is ready");
+      } catch (err) {
+        log(
+          "WARNING -- failed to initialize computeServerManagerDoc -- err=",
+          err,
+        );
+        return this.client.is_project();
+      }
+    }
+
+    // id of who the user *wants* to be the file server.
+    const path = this.getFileServerPath();
+    const fileServerId =
+      computeServerManagerDoc.get_one({ path })?.get("id") ?? 0;
+    if (this.client.is_project()) {
+      log(
+        "we are project, so we are fileserver if fileServerId=0 and it is ",
+        fileServerId,
+      );
+      return fileServerId == 0;
+    }
+    // at this point we have to be a compute server
+    const computeServerId = decodeUUIDtoNum(this.client.client_id());
+    // this is usually true -- but might not be if we are switching
+    // directly from one compute server to another.
+    log("we are compute server and ", { fileServerId, computeServerId });
+    return fileServerId == computeServerId;
+  });
+
+  private getFileServerPath = () => {
+    // id of who the user *wants* to be the file server.
+    this.path;
+    if (this.path?.endsWith(".sage-jupyter2")) {
+      // treating jupyter as a weird special case here.
+      return auxFileToOriginal(this.path);
+    }
+    return this.path;
+  };
+
+  private getComputeServerManagerDoc = () => {
+    if (this.path == COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path) {
+      // don't want to recursively explode!
+      return null;
+    }
+    if (SyncDoc.computeServerManagerDoc == null) {
+      if (this.client.is_project()) {
+        // @ts-ignore: TODO!
+        SyncDoc.computeServerManagerDoc = this.client.syncdoc({
+          path: COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path,
+        });
+      } else {
+        // @ts-ignore: TODO!
+        SyncDoc.computeServerManagerDoc = this.client.sync_client.sync_db({
+          project_id: this.project_id,
+          ...COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
+        });
+      }
+      if (
+        SyncDoc.computeServerManagerDoc != null &&
+        !this.client.is_browser()
+      ) {
+        // start watching for state changes
+        SyncDoc.computeServerManagerDoc.on(
+          "change",
+          this.handleComputeServerManagerChange,
+        );
+      }
+    }
+    return SyncDoc.computeServerManagerDoc;
+  };
+
+  private handleComputeServerManagerChange = async (keys) => {
+    if (SyncDoc.computeServerManagerDoc == null) {
+      return;
+    }
+    let relevant = false;
+    for (const key of keys ?? []) {
+      if (key.get("path") == this.path) {
+        relevant = true;
+        break;
+      }
+    }
+    if (!relevant) {
+      return;
+    }
+    const path = this.getFileServerPath();
+    const fileServerId =
+      SyncDoc.computeServerManagerDoc.get_one({ path })?.get("id") ?? 0;
+    const ourId = this.client.is_project()
+      ? 0
+      : decodeUUIDtoNum(this.client.client_id());
+    // we are considering ourself the file server already if we have
+    // either a watcher or autosave on.
+    const thinkWeAreFileServer =
+      this.file_watcher != null || this.fileserver_autosave_timer;
+    const weAreFileServer = fileServerId == ourId;
+    if (thinkWeAreFileServer != weAreFileServer) {
+      // life has changed!  Let's adapt.
+      if (thinkWeAreFileServer) {
+        // we were acting as the file server, but now we are not.
+        await this.save_to_disk_filesystem_owner();
+        // Stop doing things we are no longer supposed to do.
+        clearInterval(this.fileserver_autosave_timer as any);
+        this.fileserver_autosave_timer = 0;
+        // stop watching filesystem
+        await this.update_watch_path();
+      } else {
+        // load our state from the disk
+        await this.load_from_disk();
+        // we were not acting as the file server, but now we need. Let's
+        // step up to the plate.
+        // start watching filesystem
+        await this.update_watch_path(this.path);
+        // enable autosave
+        await this.init_file_autosave();
+      }
+    }
+  };
+
+  // Return id of ACTIVE remote compute server, if one is connected and pinging, or 0
+  // if none is connected.  This is used by Jupyter to determine who
+  // should evaluate code.
+  // We always take the smallest id of the remote
+  // compute servers, in case there is more than one, so exactly one of them
+  // takes control.  Always returns 0 if cursors are not enabled for this
+  // document, since the cursors table is used to coordinate the compute
+  // server.
+  getComputeServerId = (): number => {
+    if (!this.cursors) {
+      return 0;
+    }
+    // This info is in the "cursors" table instead of the document itself
+    // to avoid wasting space in the database longterm.  Basically a remote
+    // Jupyter client that can provide compute announces this by reporting it's
+    // cursor to look a certain way.
+    const cursors = this.get_cursors({
+      maxAge: COMPUTE_THRESH_MS,
+      // don't exclude self since getComputeServerId called from the compute
+      // server also to know if it is the chosen one.
+      excludeSelf: false,
+    });
+    const dbg = this.dbg("getComputeServerId");
+    dbg("num cursors = ", cursors.size);
+    let minId = Infinity;
+    // NOTE: similar code is in frontend/jupyter/cursor-manager.ts
+    for (const [client_id, cursor] of cursors) {
+      if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
+        try {
+          minId = Math.min(minId, decodeUUIDtoNum(client_id));
+        } catch (err) {
+          // this should never happen unless a client were being malicious.
+          dbg(
+            "WARNING -- client_id should encode server id, but is",
+            client_id,
+          );
+        }
+      }
+    }
+    return isFinite(minId) ? minId : 0;
+  };
+
+  registerAsComputeServer = () => {
+    this.setCursorLocsNoThrottle([{ type: COMPUTER_SERVER_CURSOR_TYPE }]);
+  };
 
   /* Set this user's cursors to the given locs. */
   setCursorLocsNoThrottle = async (
@@ -376,7 +596,7 @@ export class SyncDoc extends EventEmitter {
       this.file_use_interval = 60 * 1000;
     }
 
-    if (!this.file_use_interval || this.client.is_project()) {
+    if (!this.file_use_interval || !this.client.is_browser()) {
       // file_use_interval has to be nonzero, and we only do
       // this for browser user.
       return;
@@ -686,15 +906,15 @@ export class SyncDoc extends EventEmitter {
 
   /* Make it so the local hub project will automatically save
      the file to disk periodically. */
-  private init_project_autosave(): void {
+  private async init_file_autosave() {
     // Do not autosave sagews until we resolve
     //   https://github.com/sagemathinc/cocalc/issues/974
     // Similarly, do not autosave ipynb because of
     //   https://github.com/sagemathinc/cocalc/issues/5216
     if (
-      !LOCAL_HUB_AUTOSAVE_S ||
-      !this.client.is_project() ||
-      this.project_autosave_timer ||
+      !FILE_SERVER_AUTOSAVE_S ||
+      !(await this.isFileServer()) ||
+      this.fileserver_autosave_timer ||
       endswith(this.path, ".sagews") ||
       endswith(this.path, ".ipynb.sage-jupyter2")
     ) {
@@ -702,10 +922,10 @@ export class SyncDoc extends EventEmitter {
     }
 
     // Explicit cast due to node vs browser typings.
-    this.project_autosave_timer = <any>(
+    this.fileserver_autosave_timer = <any>(
       setInterval(
         this.save_to_disk_autosave.bind(this),
-        LOCAL_HUB_AUTOSAVE_S * 1000,
+        FILE_SERVER_AUTOSAVE_S * 1000,
       )
     );
   }
@@ -812,7 +1032,7 @@ export class SyncDoc extends EventEmitter {
 
   private init_table_close_handlers(): void {
     for (const x of ["syncstring", "patches", "cursors"]) {
-      const t = this[`${x}_table`];
+      const t = this[x + "_table"];
       if (t != null) {
         t.on("close", () => this.close());
       }
@@ -827,7 +1047,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    if (!this.client.is_project() && this.state == "ready") {
+    if (this.client.is_browser() && this.state == "ready") {
       try {
         await this.save_to_disk();
       } catch (err) {
@@ -836,6 +1056,10 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
+    SyncDoc.computeServerManagerDoc?.removeListener(
+      "change",
+      this.handleComputeServerManagerChange,
+    );
     //
     // SYNC STUFF
     //
@@ -865,9 +1089,9 @@ export class SyncDoc extends EventEmitter {
       cancel_scheduled(this.emit_change);
     }
 
-    if (this.project_autosave_timer) {
-      clearInterval(this.project_autosave_timer as any);
-      this.project_autosave_timer = 0;
+    if (this.fileserver_autosave_timer) {
+      clearInterval(this.fileserver_autosave_timer as any);
+      this.fileserver_autosave_timer = 0;
     }
 
     this.patch_update_queue = [];
@@ -876,9 +1100,7 @@ export class SyncDoc extends EventEmitter {
     // do this *before* all the await's below, since
     // this syncdoc can't do anything in response to a
     // a file change in its current state.
-    if (this.client.is_project()) {
-      this.update_watch_path(); // no input = closes it
-    }
+    this.update_watch_path(); // no input = closes it, if open
 
     if (this.patch_list != null) {
       // not async -- just a data structure in memory
@@ -963,7 +1185,8 @@ export class SyncDoc extends EventEmitter {
       await once(this.client, "connected");
     }
 
-    if (!this.client.is_project() && !this.client.is_signed_in()) {
+    if (this.client.is_browser() && !this.client.is_signed_in()) {
+      // the browser has to sign in, unlike the project (and compute servers)
       await once(this.client, "signed_in");
     }
 
@@ -1122,7 +1345,7 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-    if (this.client.is_project()) {
+    if (await this.isFileServer()) {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
       // We keep trying this load from disk until sync-doc is closed
@@ -1144,9 +1367,9 @@ export class SyncDoc extends EventEmitter {
 
     this.assert_not_closed("init_all -- after waiting until fully ready");
 
-    if (this.client.is_project()) {
-      log("init autosave");
-      this.init_project_autosave();
+    if (await this.isFileServer()) {
+      log("init file autosave");
+      this.init_file_autosave();
     }
     this.update_has_unsaved_changes();
     log("done");
@@ -1171,7 +1394,7 @@ export class SyncDoc extends EventEmitter {
     dbg();
     this.assert_not_closed("wait_until_fully_ready");
 
-    if (!this.client.is_project() && this.init_error()) {
+    if (this.client.is_browser() && this.init_error()) {
       // init is set and is in error state.  Give the backend a few seconds
       // to try to fix this error before giving up.  The browser client
       // can close and open the file to retry this (as instructed).
@@ -1330,6 +1553,7 @@ export class SyncDoc extends EventEmitter {
       // no error -- it is NOT read only
       return false;
     } catch (err) {
+      this.dbg("file_is_read_only")(err);
       // error -- it is read only.
       return true;
     }
@@ -2171,7 +2395,7 @@ export class SyncDoc extends EventEmitter {
     );
     if (
       this.state === "ready" &&
-      this.client.is_project() &&
+      (await this.isFileServer()) &&
       this.syncstring_save_state !== "requested" &&
       state === "requested"
     ) {
@@ -2317,7 +2541,9 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async init_watch(): Promise<void> {
-    if (!this.client.is_project()) {
+    if (!(await this.isFileServer())) {
+      // ensures we are NOT watching anything
+      await this.update_watch_path();
       return;
     }
 
@@ -2331,7 +2557,7 @@ export class SyncDoc extends EventEmitter {
 
   private async pending_save_to_disk(): Promise<void> {
     this.assert_table_is_ready("syncstring");
-    if (!this.client.is_project()) {
+    if (!(await this.isFileServer())) {
       return;
     }
 
@@ -2410,10 +2636,10 @@ export class SyncDoc extends EventEmitter {
     if (
       this.save_to_disk_start_ctime == null ||
       (this.save_to_disk_end_ctime != null &&
-        time - this.save_to_disk_end_ctime >= 7 * 1000)
+        time - this.save_to_disk_end_ctime >= RECENT_SAVE_TO_DISK_MS)
     ) {
       // Either we never saved to disk, or the last attempt
-      // to save was at least 7s ago, and it finished,
+      // to save was at least RECENT_SAVE_TO_DISK_MS ago, and it finished,
       // so definitely this change event was not caused by it.
       dbg("load_from_disk since no recent save to disk");
       await this.load_from_disk();
@@ -2474,7 +2700,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
-    x.time = new Date().valueOf();
+    x.time = Date.now();
     this.syncstring_table.set(
       this.syncstring_table_get_one().set("save", fromJS(x)),
     );
@@ -2514,12 +2740,18 @@ export class SyncDoc extends EventEmitter {
      commited to the database yet.  Returns *undefined* if
      initialization not even done yet. */
   public has_unsaved_changes(): boolean | undefined {
+    const dbg = this.dbg("has_unsaved_changes");
     if (this.state !== "ready") {
+      dbg("state not ready", this.state);
       return;
     }
     try {
       return this.hash_of_saved_version() !== this.hash_of_live_version();
     } catch (err) {
+      dbg(
+        "exception computing hash_of_saved_version and hash_of_live_version",
+        err,
+      );
       // This could happen, e.g. when syncstring_table isn't connected
       // in some edge case. Better to just say we don't know then crash
       // everything. See https://github.com/sagemathinc/cocalc/issues/3577
@@ -2635,7 +2867,7 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    if (!this.client.is_project()) {
+    if (!(await this.isFileServer())) {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
@@ -2647,12 +2879,12 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       const error = `save to disk failed -- ${err}`;
       dbg(error);
-      if (this.client.is_project()) {
+      if (await this.isFileServer()) {
         this.set_save({ error, state: "done" });
       }
     }
 
-    if (!this.client.is_project()) {
+    if (!(await this.isFileServer())) {
       dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
@@ -2764,20 +2996,20 @@ export class SyncDoc extends EventEmitter {
   private async save_to_disk_aux(): Promise<void> {
     this.assert_is_ready("save_to_disk_aux");
 
-    if (!this.client.is_project()) {
-      return await this.save_to_disk_user();
+    if (!(await this.isFileServer())) {
+      return await this.save_to_disk_non_filesystem_owner();
     }
 
     try {
-      return await this.save_to_disk_project();
+      return await this.save_to_disk_filesystem_owner();
     } catch (err) {
-      this.emit("save_to_disk_project", err);
+      this.emit("save_to_disk_filesystem_owner", err);
       throw err;
     }
   }
 
-  private async save_to_disk_user(): Promise<void> {
-    this.assert_is_ready("save_to_disk_user");
+  private async save_to_disk_non_filesystem_owner(): Promise<void> {
+    this.assert_is_ready("save_to_disk_non_filesystem_owner");
 
     if (!this.has_unsaved_changes()) {
       /* Browser client has no unsaved changes,
@@ -2799,9 +3031,9 @@ export class SyncDoc extends EventEmitter {
     await this.set_save({ state: "requested", error: "", expected_hash });
   }
 
-  private async save_to_disk_project(): Promise<void> {
-    this.assert_is_ready("save_to_disk_project");
-    const dbg = this.dbg("save_to_disk_project");
+  private async save_to_disk_filesystem_owner(): Promise<void> {
+    this.assert_is_ready("save_to_disk_filesystem_owner");
+    const dbg = this.dbg("save_to_disk_filesystem_owner");
 
     // check if on-disk version is same as in memory, in
     // which case no save is needed.
@@ -2840,9 +3072,9 @@ export class SyncDoc extends EventEmitter {
     this.save_to_disk_end_ctime = undefined;
     try {
       await callback2(this.client.write_file, { path, data });
-      this.assert_is_ready("save_to_disk_project -- after write_file");
+      this.assert_is_ready("save_to_disk_filesystem_owner -- after write_file");
       const stat = await callback2(this.client.path_stat, { path });
-      this.assert_is_ready("save_to_disk_project -- after path_state");
+      this.assert_is_ready("save_to_disk_filesystem_owner -- after path_state");
       this.save_to_disk_end_ctime = stat.ctime.valueOf() + 1500;
       this.set_save({
         state: "done",

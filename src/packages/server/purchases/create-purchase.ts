@@ -19,6 +19,7 @@ interface Options {
   project_id?: string;
   // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
   cost?: number;
+  unrounded_cost?: number; // if given and we compute cost_per_hour, this will be used, since cost itself may be rounded!
   cost_per_hour?: number;
   cost_so_far?: number;
   period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.
@@ -34,6 +35,7 @@ export default async function createPurchase(opts: Options): Promise<number> {
   const {
     account_id,
     project_id,
+    unrounded_cost,
     cost,
     period_start,
     period_end,
@@ -61,10 +63,15 @@ export default async function createPurchase(opts: Options): Promise<number> {
       );
     }
   }
-  if (cost != null && period_start != null && period_end != null) {
+  if (
+    cost_per_hour == null &&
+    cost != null &&
+    period_start != null &&
+    period_end != null
+  ) {
     const hours = dayjs(period_end).diff(dayjs(period_start), "hour", true);
     if (hours > 0) {
-      cost_per_hour = cost / hours;
+      cost_per_hour = (unrounded_cost ?? cost) / hours;
     }
   } else {
     // TODO: I don't know if there is something meaningful to do if there is no period, e.g., with GPT-4.

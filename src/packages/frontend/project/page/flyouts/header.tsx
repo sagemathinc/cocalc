@@ -18,8 +18,10 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_PADDING } from "./consts";
-import { LogHeader } from "./log";
+import { LogHeader } from "./log-header";
 import { ActiveHeader } from "./active-header";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -32,6 +34,7 @@ interface Props {
 export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
   const { actions, project_id, is_active } = useProjectContext();
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
   const [highlightFullpage, setHighlightFullpage] = useState<boolean>(false);
@@ -150,12 +153,36 @@ export function FlyoutHeader(_: Readonly<Props>) {
     switch (flyout) {
       case "files":
         return (
-          <PathNavigator
-            style={{ flex: 1 }}
-            mode={"flyout"}
-            project_id={project_id}
-            className={"cc-project-flyout-path-navigator"}
-          />
+          <div style={{ width: "100%" }}>
+            <div>
+              <SelectComputeServerForFileExplorer
+                size="small"
+                project_id={project_id}
+                key="compute-server"
+                noLabel={true}
+                style={{
+                  borderRadius: "5px",
+                  marginRight: "5px",
+                }}
+              />
+              <PathNavigator
+                style={{ flex: 1 }}
+                mode={"flyout"}
+                project_id={project_id}
+                className={"cc-project-flyout-path-navigator"}
+              />
+            </div>
+            {!!compute_server_id && (
+              <div style={{ fontSize: "10pt" }}>
+                <ComputeServerDocStatus
+                  id={compute_server_id}
+                  requestedId={compute_server_id}
+                  project_id={project_id}
+                  noSync
+                />
+              </div>
+            )}
+          </div>
         );
       case "log":
         return <LogHeader />;

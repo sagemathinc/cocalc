@@ -21,6 +21,7 @@ nextjs friendly code editor to make it editable.  (This is NOT codemirror.)
 */
 
 import React, { ReactNode } from "react";
+
 import CodeMirror from "@cocalc/frontend/codemirror/static";
 import CodeEditor from "@cocalc/frontend/components/code-editor";
 

@@ -99,7 +99,7 @@ const workgroup: Item = (() => {
     dedicated_cores: 0,
     academic: false,
     retail: profPrice.cost,
-    online: profPrice.discounted_cost,
+    online: profPrice.cost,
     conf,
   };
 })();
@@ -149,7 +149,7 @@ const uniMedium: Item = (() => {
     shared_cores: conf.cpu,
     academic: true,
     retail: price.cost,
-    online: price.discounted_cost,
+    online: price.cost,
     conf,
   };
 })();
@@ -199,7 +199,7 @@ const uniLarge: Item = (() => {
     shared_cores: conf.cpu,
     academic: true,
     retail: price.cost,
-    online: price.discounted_cost,
+    online: price.cost,
     conf,
   };
 })();

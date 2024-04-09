@@ -4,10 +4,9 @@
  */
 
 import { throttle } from "lodash";
+
+import { redux } from "@cocalc/frontend/app-framework";
 import { original_path } from "@cocalc/util/misc";
-
-import { redux } from "../app-framework";
-
 import { MentionList } from "./store";
 import { Message } from "./types";
 
@@ -36,7 +35,7 @@ const SINGLE_MENTION_OFFSET = USER_MENTION_MARKUP_WITHOUT_PLACEHOLDERS.length;
 */
 export function compute_cursor_offset_position(
   cursor_plain_text_index: number,
-  mentions: MentionList
+  mentions: MentionList,
 ) {
   let index_offset = 0;
   let usuable_cursor_index = cursor_plain_text_index;
@@ -78,14 +77,14 @@ export function newest_content(message: Message): string {
 
 export function sender_is_viewer(
   account_id: string,
-  message: Message
+  message: Message,
 ): boolean {
   return account_id == message.get("sender_id");
 }
 
 export function message_colors(
   account_id: string,
-  message: Message
+  message: Message,
 ): {
   background: string;
   color: string;
@@ -114,7 +113,7 @@ export function is_editing(message: Message, account_id: string): boolean {
 
 export const markChatAsReadIfUnseen: (
   project_id: string,
-  path: string
+  path: string,
 ) => void = throttle((project_id: string, path: string) => {
   const info = redux
     ?.getStore("file_use")

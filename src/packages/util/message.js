@@ -473,44 +473,6 @@ message({
   id: undefined,
 });
 
-// client --> hub
-API(
-  message2({
-    event: "change_password",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      account_id: {
-        init: required,
-        desc: "account id of the account whose password is being changed",
-      },
-      old_password: {
-        init: "",
-        desc: "",
-      },
-      new_password: {
-        init: required,
-        desc: "must be between 6 and 64 characters in length",
-      },
-    },
-    desc: `\
-Given account_id and old password for an account, set a new password.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=... \\
-    -d old_password=... \\
-    -d new_password=... \\
-    https://cocalc.com/api/v1/change_password
-  ==> {"event":"changed_password","id":"41ff89c3-348e-4361-ad1d-372b55e1544a"}
-\`\`\`\
-`,
-  })
-);
-
 message({
   event: "send_verification_email",
   id: undefined,
@@ -518,86 +480,6 @@ message({
   only_verify: undefined,
 }); // usually true, if false the full "welcome" email is sent
 
-// hub --> client
-// if error is true, that means the password was not changed; would
-// happen if password is wrong (message:'invalid password').
-message({
-  event: "changed_password",
-  id: undefined,
-  error: undefined,
-});
-
-// client --> hub: "please send a password reset email"
-message2({
-  event: "forgot_password",
-  fields: {
-    id: {
-      init: undefined,
-      desc: "A unique UUID for the query",
-    },
-    email_address: {
-      init: required,
-      desc: "email address for account requesting password reset",
-    },
-  },
-  desc: `\
-Given the email address of an existing account, send password reset email.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d email_address=... \\
-    https://cocalc.com/api/v1/forgot_password
-  ==> {"event":"forgot_password_response",
-       "id":"26ed294b-922b-47e1-8f3f-1e54d8c8e558",
-       "error":false}
-\`\`\`\
-`,
-});
-
-// hub --> client  "a password reset email was sent, or there was an error"
-message({
-  event: "forgot_password_response",
-  id: undefined,
-  error: false,
-});
-
-// client --> hub: "reset a password using this id code that was sent in a password reset email"
-message2({
-  event: "reset_forgot_password",
-  fields: {
-    id: {
-      init: undefined,
-      desc: "A unique UUID for the query",
-    },
-    reset_code: {
-      init: required,
-      desc: "id code that was sent in a password reset email",
-    },
-    new_password: {
-      init: required,
-      desc: "must be between 6 and 64 characters in length",
-    },
-  },
-  desc: `\
-Reset password, given reset code.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d reset_code=35a0eea6-370a-45c3-ab2f-3210df68748f \\
-    -d new_password=qjqhddfsfj \\
-    https://cocalc.com/api/v1/reset_forgot_password
-  ==> {"event":"reset_forgot_password_response","id":"85bd6027-644d-4859-9e17-5e835bd47570","error":false}
-\`\`\`\
-`,
-});
-
-message({
-  event: "reset_forgot_password_response",
-  id: undefined,
-  error: false,
-});
 
 // client --> hub
 API(
@@ -3001,13 +2883,6 @@ message({
   id: undefined,
   email_address: required,
   link: undefined,
-});
-
-message({
-  event: "admin_ban_user",
-  id: undefined,
-  account_id: required,
-  ban: required, // if true ban; if false, unban
 });
 
 // Request to purchase a license (either via stripe or a quote)

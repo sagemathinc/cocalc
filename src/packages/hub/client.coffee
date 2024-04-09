@@ -746,29 +746,6 @@ class exports.Client extends EventEmitter
                     @push_to_client(message.signed_out(id:mesg.id))
 
     # Messages: Password/email address management
-    mesg_change_password: (mesg) =>
-        password.change_password
-            mesg       : mesg
-            account_id : @account_id
-            ip_address : @ip_address
-            database   : @database
-            cb         : (err) =>
-                @push_to_client(message.changed_password(id:mesg.id, error:err))
-
-    mesg_forgot_password: (mesg) =>
-        password.forgot_password
-            mesg       : mesg
-            ip_address : @ip_address
-            database   : @database
-            cb         : (err) =>
-                @push_to_client(message.forgot_password_response(id:mesg.id, error:err))
-
-    mesg_reset_forgot_password: (mesg) =>
-        password.reset_forgot_password
-            mesg       : mesg
-            database   : @database
-            cb         : (err) =>
-                @push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
 
     mesg_change_email_address: (mesg) =>
         password.change_email_address
@@ -2088,22 +2065,6 @@ class exports.Client extends EventEmitter
             id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:24*60*60});
             mesg.link = "#{PW_RESET_ENDPOINT}/#{id}"
             @push_to_client(mesg)
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
-
-    mesg_admin_ban_user: (mesg) =>
-        dbg = @dbg("mesg_admin_ban_user")
-        dbg(mesg.account_id)
-        try
-            if mesg.ban
-                dbg("banning the user")
-                await callback2(@database.ban_user, {account_id:mesg.account_id})
-                await callback2(@database.invalidate_all_remember_me, {account_id:mesg.account_id})
-            else
-                dbg("unbanning the user")
-                await callback2(@database.unban_user, {account_id:mesg.account_id})
-            @push_to_client(message.success(id:mesg.id))
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")

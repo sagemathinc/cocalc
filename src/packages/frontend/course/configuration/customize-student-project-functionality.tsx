@@ -3,11 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { isEqual } from "lodash";
-import { Button, Card, Checkbox } from "antd";
 import {
-  redux,
   React,
+  redux,
   useEffect,
   useIsMountedRef,
   useState,
@@ -15,6 +13,8 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+import { Button, Card, Checkbox } from "antd";
+import { isEqual } from "lodash";
 export type { StudentProjectFunctionality };
 
 interface Option {
@@ -108,15 +108,15 @@ const OPTIONS: Option[] = [
   },
   {
     name: "disableChatGPT",
-    title: "all AI (ChatGPT & co.) integration",
+    title: "all AI integration (ChatGPT & co.)",
     description:
-      "Remove *all* AI (ChatGPT & co.) integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+      "Remove *all* AI integrations (ChatGPT & co.) from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
   },
   {
     name: "disableSomeChatGPT",
-    title: "some AI (ChatGPT & co.) integration",
+    title: "some AI integration (ChatGPT & co.)",
     description:
-      "Disable AI (ChatGPT & co.) integration except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to use AI assistance to get unstuck.",
+      "Disable AI integration (ChatGPT & co.) except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to use AI assistance to get unstuck.",
   },
   {
     name: "disableSharing",

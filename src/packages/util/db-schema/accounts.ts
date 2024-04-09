@@ -578,7 +578,7 @@ export const TAGS_FEATURES: Tag[] = [
     color: "red",
   },
   {
-    label: "AI / GPU's",
+    label: "AI / GPUs",
     tag: "gpu",
     color: "volcano",
     icon: "gpu",

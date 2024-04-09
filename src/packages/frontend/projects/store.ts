@@ -12,6 +12,10 @@ import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
+  LLMServicesAvailable,
+  LLMServiceName,
+} from "@cocalc/util/db-schema/llm-utils";
+import {
   cmp,
   coerce_codomain_to_numbers,
   copy,
@@ -30,7 +34,10 @@ import { Upgrades } from "@cocalc/util/upgrades/types";
 
 export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 
-const openAICache = new LRU<string, boolean>({ max: 50, ttl: 1000 * 60 });
+const aiEnabledCache = new LRU<string, boolean>({
+  max: 50,
+  ttl: 1000 * 60,
+});
 
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0]),
@@ -731,77 +738,117 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   clearOpenAICache() {
-    openAICache.clear();
+    aiEnabledCache.clear();
+  }
+
+  // ATTN: the useLanguageModelSetting hook computes this dynamically, with dependencies
+  public whichLLMareEnabled(
+    project_id: string = "global",
+    tag?: string,
+  ): LLMServicesAvailable {
+    const haveOpenAI = this.hasLanguageModelEnabled(project_id, tag, "openai");
+    const haveGoogle = this.hasLanguageModelEnabled(project_id, tag, "google");
+    const haveOllama = this.hasLanguageModelEnabled(project_id, tag, "ollama");
+    const haveMistral = this.hasLanguageModelEnabled(
+      project_id,
+      tag,
+      "mistralai",
+    );
+    const haveAnthropic = this.hasLanguageModelEnabled(
+      project_id,
+      tag,
+      "anthropic",
+    );
+
+    return {
+      openai: haveOpenAI,
+      google: haveGoogle,
+      ollama: haveOllama,
+      mistralai: haveMistral,
+      anthropic: haveAnthropic,
+    };
+  }
+
+  /**
+   * Returns true for those "tags", which might be restricted by the instructor in a student project.
+   */
+  private limitAIinCourseProject(tag?: string): boolean {
+    // Regarding the aiEnabledCache:
+    // We only care about 'explain' or 'help-me-fix' or 'reply' in the tags
+    // right now regarding disabling AI integration, hence to make our cache
+    // better we base the key only on those possibilities.
+    if (!tag) return false; // no tag, all good
+    const allowed_tags = ["explain", "help-me-fix", "reply"];
+    for (const allowed of allowed_tags) {
+      // we match more, e.g. "help-me-fix:[somethinge else]" or "jupyter-explain"
+      if (tag.includes(allowed)) return false;
+    }
+    return true;
   }
 
   hasLanguageModelEnabled(
     project_id: string = "global",
     tag?: string,
-    vendor: "openai" | "google" | "any" = "any",
+    vendor: LLMServiceName | "any" = "any",
   ): boolean {
-    // cache answer for a few seconds, in case this gets called a lot:
+    const courseLimited = this.limitAIinCourseProject(tag);
 
-    let courseLimited = false;
-    if (
-      tag &&
-      (tag.includes("explain") ||
-        tag.includes("help-me-fix") ||
-        tag.includes("reply"))
-    ) {
-      // We only care about 'explain' or 'help-me-fix' or 'reply' for the tags
-      // right now regarding disabling chatgpt, hence to make our cache
-      // better we base the key only on those possibilities.
-      courseLimited = true;
-    }
+    // cache answer for a few seconds, in case this gets called a lot:
     const key = `${project_id}-${courseLimited}-${vendor}`;
-    if (openAICache.has(key)) {
-      return !!openAICache.get(key);
+    if (aiEnabledCache.has(key)) {
+      return !!aiEnabledCache.get(key);
     }
     const value = this._hasLanguageModelEnabled(
       project_id,
       courseLimited,
       vendor,
     );
-    openAICache.set(key, value);
+    aiEnabledCache.set(key, value);
     return value;
   }
 
   private _hasLanguageModelEnabled(
     project_id: string | "global" = "global",
-    courseLimited?: boolean,
-    vendor: "openai" | "google" | "any" = "any",
+    courseLimited: boolean,
+    vendor: LLMServiceName | "any" = "any",
   ): boolean {
+    // First, check which ones are actually available
     const customize = redux.getStore("customize");
-    const haveOpenAI = customize.get("openai_enabled");
-    const haveGoogle = customize.get("google_vertexai_enabled");
+    const { openai, google, ollama, mistralai, anthropic } =
+      customize.getEnabledLLMs();
 
-    if (!haveOpenAI && !haveGoogle) return false; // the vendor == "any" case
-    if (vendor === "openai" && !haveOpenAI) return false;
-    if (vendor === "google" && !haveGoogle) return false;
+    // if none are available, we can't enable any – that's the "any" case
+    if (!openai && !google && !ollama && !mistralai && !anthropic) return false;
 
-    // this customization accounts for disabling any language model vendor
+    // check by specific vendor
+    if (vendor === "openai" && !openai) return false;
+    if (vendor === "google" && !google) return false;
+    if (vendor === "ollama" && !ollama) return false;
+    if (vendor === "mistralai" && !mistralai) return false;
+    if (vendor === "anthropic" && !anthropic) return false;
+
+    // the "openai_disabled" account setting disabled **any** language model vendor!
     const openai_disabled = redux
       .getStore("account")
       .getIn(["other_settings", "openai_disabled"]);
     if (openai_disabled) {
       return false;
     }
-    if (project_id != "global") {
-      const s = this.getIn([
+
+    // Finally, if we're in a specific project, we check if some/all are disabled for students
+    if (project_id !== "global") {
+      const studentProjectSettings = this.getIn([
         "project_map",
         project_id,
         "course",
         "student_project_functionality",
       ]);
-      if (s?.get("disableChatGPT")) {
+
+      if (studentProjectSettings?.get("disableChatGPT")) {
         return false;
       }
-      if (s?.get("disableSomeChatGPT")) {
-        if (courseLimited) {
-          return true;
-        } else {
-          return false;
-        }
+      if (studentProjectSettings?.get("disableSomeChatGPT")) {
+        return !courseLimited;
       }
     }
     return true;

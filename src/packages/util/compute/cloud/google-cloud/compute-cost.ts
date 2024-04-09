@@ -95,8 +95,13 @@ export function computeInstanceCost({ configuration, priceData }) {
   const cost =
     data[configuration.spot ? "spot" : "prices"]?.[configuration.region];
   if (cost == null) {
+    if (configuration.spot && Object.keys(data["spot"]).length == 0) {
+      throw Error(
+        `spot instance pricing for ${configuration.machineType} is not available`,
+      );
+    }
     throw Error(
-      `unable to determine cost since region pricing for machine type ${configuration.machineType} is unknown. Select a different region.`,
+      `unable to determine cost since machine type ${configuration.machineType} is not available in the region '${configuration.region}'. Select a different region.`,
     );
   }
   return markup({ cost, priceData });
@@ -180,7 +185,7 @@ export function computeAcceleratorCost({ configuration, priceData }) {
   if (!configuration.acceleratorType) {
     return 0;
   }
-  // we have 1 or more GPU's:
+  // we have 1 or more GPUs:
   const acceleratorCount = configuration.acceleratorCount ?? 1;
   // sometimes google has "tesla-" in the name, sometimes they don't,
   // but our pricing data doesn't.

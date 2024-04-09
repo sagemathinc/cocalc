@@ -51,6 +51,15 @@ export default async function getServers({
 export async function getServer({ account_id, id }): Promise<ComputeServer> {
   const x = await getServers({ account_id, id });
   if (x.length != 1) {
+    const server = await getServerNoCheck(id);
+    if (server.configuration?.allowCollaboratorControl) {
+      if (
+        !(await isCollaborator({ project_id: server.project_id, account_id }))
+      ) {
+        throw Error("user must be collaborator on project");
+      }
+      return server;
+    }
     throw Error("permission denied");
   }
   return x[0];
@@ -75,11 +84,18 @@ export async function getTitle({
     return { title: "The Project", color: "#666" };
   }
   const { rows } = await getPool().query(
-    "SELECT title, color FROM compute_servers WHERE id=$1 AND account_id=$2",
-    [id, account_id],
+    "SELECT title, color, project_id, account_id FROM compute_servers WHERE id=$1",
+    [id],
   );
   if (rows.length == 0) {
-    throw Error(`users does not own a server with id=${id}`);
+    throw Error(`no server with id=${id}`);
+  }
+  if (rows[0].account_id != account_id) {
+    if (
+      !(await isCollaborator({ project_id: rows[0].project_id, account_id }))
+    ) {
+      throw Error("user must be collaborator on project");
+    }
   }
   return { title: rows[0].title ?? "", color: rows[0].color ?? "" };
 }

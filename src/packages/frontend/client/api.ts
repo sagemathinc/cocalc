@@ -33,19 +33,18 @@ async function callApi(endpoint: string, args?: object) {
     ...(args != null ? { body: JSON.stringify(args) } : undefined),
   });
   const respClone = resp.clone();
+  let json: any = null;
   try {
-    const json = await resp.json();
-    if (json == null) {
-      throw Error("timeout -- please try again");
-    }
-    if (json.error) {
-      throw Error(json.error);
-    }
-    return json;
+    json = await resp.json();
   } catch (e) {
-    console.error(`Error parsing response JSON from ${url}. Response text:`, {
-      text: await respClone.text(),
-    });
-    throw e; // rethrow the original error
+    const e2 = `Error -- invalid JSON: ${await respClone.text()}`;
+    throw Error(e2);
   }
+  if (json == null) {
+    throw Error("timeout -- please try again");
+  }
+  if (typeof json == "object" && json.error) {
+    throw Error(json.error);
+  }
+  return json;
 }

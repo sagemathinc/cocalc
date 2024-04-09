@@ -6,11 +6,33 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
 import jsonic from "jsonic";
+
 import { is_valid_email_address } from "@cocalc/util/misc";
+import { USER_SELECTABLE_LANGUAGE_MODELS } from "./llm-utils";
+import { isEqual } from "lodash";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
 export type RowType = "header" | "setting";
+
+// for filtering, exact matches
+export const TAGS = [
+  "OpenAI",
+  "Jupyter",
+  "Email",
+  "Logo",
+  "Version",
+  "Stripe",
+  "captcha",
+  "Zendesk",
+  "GitHub",
+  "Pay as you Go",
+  "Compute Servers",
+  "AI LLM",
+  "Theme",
+  "On-Prem",
+] as const;
+export type Tag = (typeof TAGS)[number];
 
 export type SiteSettingsKeys =
   | "theming"
@@ -26,6 +48,10 @@ export type SiteSettingsKeys =
   | "policies"
   | "openai_enabled"
   | "google_vertexai_enabled"
+  | "mistral_enabled"
+  | "anthropic_enabled"
+  | "ollama_enabled"
+  | "selectable_llms"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -90,13 +116,14 @@ export interface Config {
   // this optional function derives the actual value of this setting from current value or from a global (unprocessed) setting.
   readonly to_val?: ToValFunc<ToVal>;
   // this optional function derives the visual representation for the admin (fallback: to_val)
-  readonly to_display?: (val: string) => string;
+  readonly to_display?: (val: string | string[]) => string;
   readonly hint?: (val: string) => string; // markdown
   readonly type?: RowType;
   readonly clearable?: boolean; // default false
   readonly multiline?: number;
   readonly cocalc_only?: boolean; // only for use on cocalc.com (or subdomains)
   readonly help?: string; // markdown formatted help text
+  readonly tags?: Readonly<Tag[]>; // tags for filtering
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
@@ -146,6 +173,20 @@ export const onlyNonnegFloat = (val) =>
   ((v) => onlyFloats(v) && v >= 0)(toFloat(val));
 export const onlyPosFloat = (val) =>
   ((v) => onlyFloats(v) && v > 0)(toFloat(val));
+export function to_list_of_llms(val?: string, fallbackAll = true): string[] {
+  if (!val?.trim())
+    return fallbackAll ? [...USER_SELECTABLE_LANGUAGE_MODELS] : [];
+  return val
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => USER_SELECTABLE_LANGUAGE_MODELS.includes(v as any));
+}
+
+export const is_list_of_llms = (val: string) =>
+  val
+    .split(",")
+    .map((s) => s.trim())
+    .every((s) => USER_SELECTABLE_LANGUAGE_MODELS.includes(s as any));
 
 export const from_json = (conf): Mapping => {
   try {
@@ -271,6 +312,7 @@ export const site_settings_conf: SiteSettings = {
     default: "yes",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Theme"],
   },
   site_name: {
     name: "Site name",
@@ -278,6 +320,7 @@ export const site_settings_conf: SiteSettings = {
     default: "Open CoCalc",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   site_description: {
     name: "Site description",
@@ -285,6 +328,7 @@ export const site_settings_conf: SiteSettings = {
     default: "Collaborative Calculation",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   help_email: {
     name: help_email_name,
@@ -293,6 +337,7 @@ export const site_settings_conf: SiteSettings = {
     valid: is_valid_email_address,
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   terms_of_service_url: {
     name: "Terms of Service URL",
@@ -300,6 +345,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   terms_of_service: {
     name: "ToS information",
@@ -307,6 +353,7 @@ export const site_settings_conf: SiteSettings = {
     default: "You agree to the <em>Terms of Service</em>.",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   account_creation_email_instructions: {
     name: "Account creation",
@@ -314,6 +361,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   organization_name: {
     name: "Organization name",
@@ -321,6 +369,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   organization_email: {
     name: "Contact email address",
@@ -329,6 +378,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     valid: is_valid_email_address,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   organization_url: {
     name: "Organization website",
@@ -336,6 +386,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   logo_square: {
     name: "Logo (square)",
@@ -343,6 +394,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Logo", "Theme"],
   },
   logo_rectangular: {
     name: "Logo (rectangular)",
@@ -350,6 +402,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Logo", "Theme"],
   },
   splash_image: {
     name: "Index page picture",
@@ -357,6 +410,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   index_info_html: {
     name: "Index page info",
@@ -365,6 +419,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
+    tags: ["Theme"],
   },
   imprint: {
     name: "Imprint page",
@@ -373,6 +428,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
+    tags: ["Theme"],
   },
   policies: {
     name: "Policies page",
@@ -381,6 +437,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
+    tags: ["Theme"],
   },
   // ============== END THEMING ============
 
@@ -389,6 +446,7 @@ export const site_settings_conf: SiteSettings = {
     desc: "",
     default: "",
     type: "header",
+    tags: ["Version"],
   },
   version_min_project: {
     name: "Required project version",
@@ -396,6 +454,7 @@ export const site_settings_conf: SiteSettings = {
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+    tags: ["Version"],
   },
   version_min_browser: {
     name: "Required browser version",
@@ -403,6 +462,7 @@ export const site_settings_conf: SiteSettings = {
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+    tags: ["Version"],
   },
   version_recommended_browser: {
     name: "Recommended version",
@@ -410,12 +470,14 @@ export const site_settings_conf: SiteSettings = {
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+    tags: ["Version"],
   },
   kucalc: {
     name: "KuCalc UI",
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises Kubernetes, or '${KUCALC_DISABLED}' for Docker`,
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS,
+    tags: ["On-Prem"],
   },
   google_analytics: {
     name: "Google Analytics",
@@ -460,6 +522,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     show: only_onprem,
     type: "header",
+    tags: ["On-Prem"],
   },
   default_quotas: {
     name: "Default Quotas",
@@ -470,6 +533,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: from_json,
     to_display: displayJson,
     valid: parsableJson,
+    tags: ["On-Prem"],
   },
   max_upgrades: {
     name: "Maximum Quota Upgrades",
@@ -480,6 +544,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: from_json,
     to_display: displayJson,
     valid: parsableJson,
+    tags: ["On-Prem"],
   },
   ssh_gateway: {
     name: "SSH Gateway",
@@ -516,6 +581,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Email"],
   },
   verify_emails: {
     name: "Verify email addresses",
@@ -524,6 +590,7 @@ export const site_settings_conf: SiteSettings = {
     show: is_email_enabled,
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Email"],
   },
   email_signup: {
     name: "Allow email signup",
@@ -587,13 +654,53 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["OpenAI", "AI LLM"],
   },
   google_vertexai_enabled: {
-    name: "Google GenerativeAI UI",
-    desc: "Controls visibility of UI elements related to Google's **Generative AI** integration.  You must **also set your Google Generative AI key** below for this functionality to work.",
+    name: "Google Generative AI UI",
+    desc: "Controls visibility of UI elements related to Google's **Gemini Generative AI** integration.  You must **also set your Gemini Generative AI API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  mistral_enabled: {
+    name: "Mistral AI UI",
+    desc: "Controls visibility of UI elements related to Mistral AI integration.  You must **also set your Mistral API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  anthropic_enabled: {
+    name: "Anthropic AI UI",
+    desc: "Controls visibility of UI elements related to Anthropic AI integration.  You must **also set your Anthropic API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  ollama_enabled: {
+    name: "Ollama LLM UI",
+    desc: "Controls visibility of UI elements related to Ollama integration.  To make this actually work, configure the list of API/model endpoints in the Ollama configuration.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  selectable_llms: {
+    name: "User Selectable LLMs",
+    desc: "If this is empty, all available LLMs by enabled services will be selectable by your users. If you select one or more, only those LLMs will be shown. This does not affect the availibiltiy of Ollama models.",
+    default: "",
+    valid: is_list_of_llms,
+    to_val: (v) => to_list_of_llms(v), // note: we store this as a comma separated list of model strings
+    to_display: (val: string | string[]) => {
+      const list = Array.isArray(val) ? val : to_list_of_llms(val);
+      return isEqual(list, USER_SELECTABLE_LANGUAGE_MODELS)
+        ? "All LLMs of enabled services will be selectable"
+        : list.join(", ");
+    },
+    tags: ["AI LLM"],
   },
   neural_search_enabled: {
     name: "OpenAI Neural Search UI",
@@ -601,6 +708,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["OpenAI"],
   },
   jupyter_api_enabled: {
     name: "Jupyter API",
@@ -608,6 +716,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Jupyter"],
   },
   compute_servers_enabled: {
     name: "Enable Compute Servers",
@@ -615,6 +724,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   version_compute_server_min_project: {
     name: "Required project version for compute server",
@@ -622,6 +732,8 @@ export const site_settings_conf: SiteSettings = {
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+
+    tags: ["Compute Servers"],
   },
   "compute_servers_google-cloud_enabled": {
     name: "Enable Compute Servers - Google Cloud",
@@ -629,6 +741,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   compute_servers_onprem_enabled: {
     name: "Enable Compute Servers - On Prem",
@@ -636,6 +749,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   //   "compute_servers_lambda-cloud_enabled": {
   //     name: "Enable Compute Servers - Lambda Cloud",
@@ -643,6 +757,7 @@ export const site_settings_conf: SiteSettings = {
   //     default: "no",
   //     valid: only_booleans,
   //     to_val: to_bool,
+  //     tags: ["Compute Servers"],
   //   },
   compute_servers_dns_enabled: {
     name: "Enable Compute Servers - Cloudflare DNS",
@@ -650,6 +765,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   compute_servers_dns: {
     name: "Compute Servers: Domain name",
@@ -660,5 +776,6 @@ export const site_settings_conf: SiteSettings = {
     show: (conf) =>
       to_bool(conf.compute_servers_enabled) &&
       to_bool(conf.compute_servers_dns_enabled),
+    tags: ["Compute Servers"],
   },
 } as const;

@@ -11,6 +11,7 @@ import getClient, {
   suspendInstance,
   resumeInstance,
   setMetadata,
+  getSerialPortOutput as getSerialPortOutput0,
 } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
@@ -20,7 +21,7 @@ import computeCost, {
   computeNetworkCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
-import { getArchitecture } from "./images";
+import { getArchitecture, setTested } from "./images";
 import { getInstanceDataTransferOut } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { hasDNS, makeDnsChange } from "@cocalc/server/compute/dns";
@@ -34,6 +35,12 @@ export async function getGoogleCloudPrefix() {
   const { google_cloud_compute_servers_prefix = "cocalc-compute-server" } =
     await getServerSettings();
   return google_cloud_compute_servers_prefix;
+}
+
+export async function getGoogleCloudImagePrefix() {
+  const { google_cloud_compute_servers_image_prefix = "cocalc-image" } =
+    await getServerSettings();
+  return google_cloud_compute_servers_image_prefix;
 }
 
 export async function getServerName(server: { id: number }) {
@@ -50,7 +57,6 @@ export function getStartupParams(server: ComputeServer) {
     project_id: server.project_id,
     gpu: !!configuration.acceleratorType,
     arch: getArchitecture(configuration.machineType),
-    image: configuration.image ?? "python",
   };
 }
 
@@ -247,4 +253,24 @@ export async function getNetworkUsage({
   const instanceName = await getServerName(server);
   const amount = await getInstanceDataTransferOut({ instanceName, start, end });
   return { cost: computeNetworkCost(amount), amount };
+}
+
+export async function setImageTested(server: ComputeServer, tested: boolean) {
+  const { configuration } = server;
+  if (configuration?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  await setTested(configuration, tested);
+}
+
+export async function getSerialPortOutput(
+  server: ComputeServer,
+): Promise<string> {
+  const { configuration } = server;
+  if (configuration?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const name = await getServerName(server);
+  const { zone } = configuration;
+  return await getSerialPortOutput0({ name, zone });
 }

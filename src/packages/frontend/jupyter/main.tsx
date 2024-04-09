@@ -17,13 +17,17 @@ import {
   useRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-
 // Support for all the MIME types
+import { Button, Tooltip } from "antd";
 import "./output-messages/mime-types/init-frontend";
-
 // React components that implement parts of the Jupyter notebook.
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { ErrorDisplay } from "@cocalc/frontend/components";
+import { A } from "@cocalc/frontend/components/A";
 import { Loading } from "@cocalc/frontend/components/loading";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
@@ -36,17 +40,12 @@ import { FindAndReplace } from "./find-and-replace";
 import { InsertImage } from "./insert-image";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
+import KernelWarning from "./kernel-warning";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-import { TopButtonbar } from "./top-buttonbar";
-import { TopMenubar } from "./top-menubar";
-import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
-import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
-import * as chatgpt from "./chatgpt";
-import KernelWarning from "./kernel-warning";
-import ComputeServerDocStatus from "@cocalc/frontend/compute/doc-status";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -67,6 +66,7 @@ interface Props {
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
   is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
+  is_visible?: boolean;
   mode: NotebookMode;
   font_size?: number;
 
@@ -88,6 +88,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     is_focused,
     is_fullscreen,
+    is_visible,
     font_size,
     mode,
     cur_id,
@@ -126,7 +127,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   // *FATAL* error; user must edit file to fix.
   const fatal: undefined | string = useRedux([name, "fatal"]);
-  const toolbar: undefined | boolean = useRedux([name, "toolbar"]);
   // const has_unsaved_changes: undefined | boolean = useRedux([
   //   name,
   //   "has_unsaved_changes",
@@ -189,6 +189,23 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const requestedComputeServerId =
     useRedux([name, "requestedComputeServerId"]) ?? 0;
 
+  // this is confusing: it's here because the "nbviewer" code reuses a subset of components
+  // and this is here to pass down AI tools related functionality to those, which are used by the frontend
+  const [model, setModel] = useLanguageModelSetting(project_id);
+  // ATTN: if you add values here, make sure to check the memoize check functions in the components –
+  // otherwise they will not re-render as expected.
+  const llmEnabled = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id);
+  // This only checks if we can use the LLM tools at all – details checks like "for this project in a course" are by component
+  const llmTools: LLMTools | undefined = llmEnabled
+    ? {
+        model,
+        setModel,
+        toolComponents,
+      }
+    : undefined;
+
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
   // what comes up with Jupyter notebooks.
@@ -227,68 +244,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       <div>
         <h2 style={{ marginLeft: "10px" }}>Fatal Error loading ipynb file</h2>
         <ErrorDisplay error={fatal} style={{ margin: "1ex" }} />
-      </div>
-    );
-  }
-
-  function render_kernel() {
-    return (
-      <Kernel
-        is_fullscreen={is_fullscreen}
-        actions={actions}
-        usage={usage}
-        expected_cell_runtime={expected_cell_runtime}
-        mode={mode}
-        computeServerId={computeServerId}
-      />
-    );
-  }
-
-  function render_menubar() {
-    if (actions == null || cells == null || sel_ids == null || cur_id == null) {
-      return;
-    } else {
-      return (
-        <TopMenubar
-          actions={actions}
-          name={name}
-          cells={cells}
-          cur_id={cur_id}
-        />
-      );
-    }
-  }
-
-  function render_buttonbar() {
-    if (
-      actions == null ||
-      cells == null ||
-      sel_ids == null ||
-      cur_id == null ||
-      name == null
-    ) {
-      return;
-    } else {
-      return (
-        <TopButtonbar
-          project_id={project_id}
-          name={name}
-          cells={cells}
-          cur_id={cur_id}
-          sel_ids={sel_ids}
-          cell_toolbar={cell_toolbar}
-          usage={usage}
-        />
-      );
-    }
-  }
-
-  function render_heading() {
-    return (
-      <div>
-        {render_kernel()}
-        {render_menubar()}
-        {toolbar ? render_buttonbar() : undefined}
       </div>
     );
   }
@@ -339,6 +294,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         font_size={font_size}
         hook_offset={hook_offset}
         is_focused={is_focused}
+        is_visible={is_visible}
         md_edit_ids={md_edit_ids}
         mode={mode}
         more_output={more_output}
@@ -350,7 +306,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        chatgpt={chatgpt}
+        llmTools={llmTools}
         computeServerId={computeServerId}
       />
     );
@@ -502,7 +458,44 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         <KernelWarning name={name} actions={actions} />
         {render_error()}
         {render_modals()}
-        {render_heading()}
+        <Kernel
+          is_fullscreen={is_fullscreen}
+          actions={actions}
+          usage={usage}
+          expected_cell_runtime={expected_cell_runtime}
+          computeServerId={computeServerId}
+        />
+        {cell_toolbar == "create_assignment" && (
+          <div
+            style={{
+              paddingLeft: "30px",
+              marginBottom: "5px",
+              borderBottom: "1px solid #ddd",
+            }}
+          >
+            Toolbar:{" "}
+            <A href="https://doc.cocalc.com/teaching-nbgrader.html">
+              Create Assignment Using NBGrader
+            </A>
+            <Tooltip title="Generate the student version of this document, which strips out the extra instructor tests and cells.">
+              <Button
+                style={{ margin: "5px 15px" }}
+                onClick={() => {
+                  props.actions.nbgrader_actions.confirm_assign();
+                }}
+              >
+                NBGrader: Export Student Version...
+              </Button>
+            </Tooltip>
+            <Button
+              onClick={() => {
+                props.actions.cell_toolbar();
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        )}
         {render_main()}
       </div>
     </JupyterContext.Provider>

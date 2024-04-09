@@ -29,6 +29,7 @@ const isUTC = new Date().getTimezoneOffset() === 0;
 describe("product id and compute cost", () => {
   // This test I think hardcodes that the online_discount is 0.75, so
   // (since it isn't!) we set it back to run this test.
+  // @ts-ignore
   COSTS.online_discount = 0.75;
   const info1: Omit<PurchaseInfoQuota, "quantity"> = {
     type: "quota",
@@ -51,11 +52,6 @@ describe("product id and compute cost", () => {
     const cost = compute_cost({ ...info1, quantity });
     const cexp = round2(base * quantity);
     expect(round2(cost.cost)).toEqual(cexp);
-    expect(
-      Math.abs(
-        round2(cost.discounted_cost) - round2(COSTS.online_discount * cexp)
-      )
-    ).toBeLessThan(0.01);
   });
 
   it.each([
@@ -76,7 +72,7 @@ describe("product id and compute cost", () => {
       ...info1,
       quantity,
       end: endOfDay(
-        new Date((info1.start as Date).getTime() + days * ONE_DAY_MS)
+        new Date((info1.start as Date).getTime() + days * ONE_DAY_MS),
       ),
     };
     info2.cost = compute_cost(info2);
@@ -129,25 +125,25 @@ describe("roundToMidnight", () => {
 
   it("am/side=start", () => {
     expect(roundToMidnight(am, "start")).toEqual(
-      new Date("2022-04-04T00:00:00.000Z")
+      new Date("2022-04-04T00:00:00.000Z"),
     );
   });
 
   it("am/side=end", () => {
     expect(roundToMidnight(am, "end")).toEqual(
-      new Date("2022-04-03T23:59:59.999Z")
+      new Date("2022-04-03T23:59:59.999Z"),
     );
   });
 
   it("pm/side=start", () => {
     expect(roundToMidnight(pm, "start")).toEqual(
-      new Date("2022-04-05T00:00:00.000Z")
+      new Date("2022-04-05T00:00:00.000Z"),
     );
   });
 
   it("pm/side=end", () => {
     expect(roundToMidnight(pm, "end")).toEqual(
-      new Date("2022-04-04T23:59:59.999Z")
+      new Date("2022-04-04T23:59:59.999Z"),
     );
   });
 });
@@ -174,8 +170,8 @@ describe("dedicated disk", () => {
       cost_per_unit: 8,
       cost_sub_month: 8,
       cost_sub_year: 96,
-      discounted_cost: 8,
       period: "monthly",
+      quantity: 1,
     });
   });
 });

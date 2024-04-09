@@ -4,22 +4,21 @@
  */
 
 // help users selecting a kernel
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import type { TabsProps } from "antd";
 import {
   Alert,
   Button,
   Card,
   Checkbox,
-  Col,
   Descriptions,
   Popover,
-  Row,
   Spin,
   Tabs,
   Typography,
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
-import { sortBy } from "lodash";
+import { useImages } from "@cocalc/frontend/compute/images-hook";
 
 import {
   CSS,
@@ -28,7 +27,7 @@ import {
   useActions,
   useRedux,
   useTypedRedux,
-} from "@cocalc/frontend//app-framework";
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -39,7 +38,6 @@ import {
 import { SiteName } from "@cocalc/frontend/customize";
 import track from "@cocalc/frontend/user-tracking";
 import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { KernelStar } from "../components/run-button/kernel-star";
@@ -69,8 +67,7 @@ interface KernelSelectorProps {
 }
 
 export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
-  (props: KernelSelectorProps) => {
-    const { actions } = props;
+  ({ actions }: KernelSelectorProps) => {
     const editor_settings = useTypedRedux("account", "editor_settings");
 
     const redux_kernel: undefined | string = useRedux([actions.name, "kernel"]);
@@ -313,7 +310,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         },
       ];
 
-      showComputeServersTab(items);
+      if (!IS_MOBILE) {
+        showComputeServersTab(items);
+      }
 
       return (
         <Tabs
@@ -379,7 +378,14 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           msg = (
             <>
               Your notebook kernel <code>"{kernel}"</code> does not exist on{" "}
-              <SiteName />.
+              {actions.getComputeServerId() ? (
+                "this compute server"
+              ) : (
+                <>
+                  the <SiteName /> shared environment
+                </>
+              )}
+              .
             </>
           );
         } else {
@@ -443,14 +449,23 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       );
     }
 
-    function render_close_button(): Rendered | undefined {
+    function renderCloseButton(): Rendered | undefined {
       if (kernel == null || kernel_info == null) return;
       return (
         <Button
-          style={{ float: "right", marginTop: "10px" }}
+          style={{ marginRight: "5px" }}
           onClick={() => actions.hide_select_kernel()}
         >
           Close
+        </Button>
+      );
+    }
+
+    function renderRefreshButton(): Rendered | undefined {
+      if (kernel == null || kernel_info == null) return;
+      return (
+        <Button onClick={() => actions.fetch_jupyter_kernels()}>
+          <Icon name="refresh" /> Refresh
         </Button>
       );
     }
@@ -476,12 +491,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_head(): Rendered {
       return (
-        <Row justify="space-between">
-          <Col flex={1}>
-            <h3>Select a Kernel</h3>
-          </Col>
-          <Col flex={"auto"}>{render_close_button()}</Col>
-        </Row>
+        <div>
+          <div style={{ float: "right" }}>
+            {renderCloseButton()}
+            {renderRefreshButton()}
+          </div>
+          <h3>Select a Kernel</h3>
+        </div>
       );
     }
 
@@ -493,6 +509,29 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       // a sage worksheet to jupyter via the "Jupyter" button.
       setTimeout(() => actions.select_kernel(name), 0);
       return true;
+    }
+
+    if (IS_MOBILE) {
+      /*
+NOTE: I tried viewing this on mobile and it is so HORRIBLE!
+Something about the CSS and Typography components are just truly
+a horrific disaster.  This one component though is maybe usable.
+*/
+      return (
+        <div
+          style={{
+            overflow: "auto",
+            padding: "20px 10px",
+          }}
+          className={"smc-vfill"}
+        >
+          <div style={{ float: "right" }}>
+            {renderCloseButton()}
+            {renderRefreshButton()}
+          </div>
+          {render_select_all()}
+        </div>
+      );
     }
 
     if (checkObvious()) {
@@ -515,20 +554,51 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 function ComputeServerInfo() {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
+  const [IMAGES, ImagesError] = useImages();
+  if (ImagesError) {
+    return ImagesError;
+  }
+  if (IMAGES == null) {
+    return <Spin />;
+  }
 
-  // sort all images with a jupyter kernel by IMAGES[key].label
-  const sortedImageKeys = sortBy(
-    Object.keys(IMAGES).filter((key) => IMAGES[key].jupyterKernels !== false),
-    (key) => IMAGES[key].label,
-  );
+  // sort all enabled non-system images with a jupyter kernel by priority first, then
+  // IMAGES[key].label
+  const sortedImageKeys = Object.keys(IMAGES)
+    .filter(
+      (key) =>
+        !IMAGES[key].disabled &&
+        !IMAGES[key].system &&
+        IMAGES[key].jupyterKernels !== false,
+    )
+    .sort((x, y) => {
+      const xp = IMAGES[x].priority ?? 0;
+      const yp = IMAGES[y].priority ?? 0;
+      if (xp > yp) {
+        return -1;
+      }
+      if (xp < yp) {
+        return 1;
+      }
+      const xl = IMAGES[x].label;
+      const yl = IMAGES[y].label;
+      if (xl < yl) {
+        return -1;
+      }
+      if (xl > yl) {
+        return 1;
+      }
+      return 0;
+    });
 
   const computeImages: Rendered[] = sortedImageKeys.map((key) => {
     const image = IMAGES[key];
 
     const label = (
-      <span style={ALL_LANGS_LABEL_STYLE}>
-        <Icon name={image.icon} /> {image.label}
-      </span>
+      <div style={{ ...ALL_LANGS_LABEL_STYLE, textAlign: "center" }}>
+        <Icon name={image.icon} style={{ fontSize: "24pt" }} />
+        <br /> {image.label}
+      </div>
     );
 
     return (

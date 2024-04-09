@@ -10,13 +10,13 @@ Paths to temporary files used by the project.
 import { join } from "path";
 import { data } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { pidFilename } from "@cocalc/util/project-info";
 
 export const infoJson = join(data, "info.json");
-
 export const hubPortFile = join(data, "hub-server.port");
 export const apiServerPortFile = join(data, "api-server.port");
 export const browserPortFile = join(data, "browser-server.port");
-export const projectPidFile = join(data, "project.pid");
+export const projectPidFile = join(data, pidFilename);
 export const startTimestampFile = join(data, "start-timestamp.txt");
 export const sessionIDFile = join(data, "session-id.txt");
 export const rootSymlink = join(data, "root");

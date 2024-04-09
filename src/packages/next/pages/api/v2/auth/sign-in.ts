@@ -53,17 +53,22 @@ export default async function signIn(req: Request, res: Response) {
 
 export async function getAccount(
   email_address: string,
-  password: string
+  password: string,
 ): Promise<string> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT account_id, password_hash FROM accounts WHERE email_address=$1",
-    [email_address]
+    "SELECT account_id, password_hash, banned FROM accounts WHERE email_address=$1",
+    [email_address],
   );
   if (rows.length == 0) {
     throw Error(`no account with email address '${email_address}'`);
   }
-  const { account_id, password_hash } = rows[0];
+  const { account_id, password_hash, banned } = rows[0];
+  if (banned) {
+    throw Error(
+      `'${email_address}' is banned -- if you think this is a mistake, please email help@cocalc.com and explain.`,
+    );
+  }
   if (!verify(password, password_hash)) {
     throw Error(`password for '${email_address}' is incorrect`);
   }

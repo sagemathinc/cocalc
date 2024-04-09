@@ -91,11 +91,11 @@ describe("test renewSubscriptions", () => {
         subs[0].current_period_end.valueOf() -
           dayjs().add(1, "month").toDate().valueOf(),
       ),
-    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    ).toBeLessThan(1000 * 3600 * 24 * 3);
     // within 3 days of now:
     expect(
       Math.abs(subs[0].current_period_start.valueOf() - Date.now()),
-    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    ).toBeLessThan(1000 * 3600 * 24 * 3);
     // the purchase should be pending, since we don't have any money.
     const pool = getPool();
     const { rows } = await pool.query(
@@ -230,7 +230,7 @@ describe("testing cancelAllPendingSubscriptions works as it should", () => {
   it("creates a license", async () => {
     const info = getPurchaseInfo(license0);
     x.license_id = await createLicense(account_id, info);
-    x.cost = compute_cost(info).discounted_cost;
+    x.cost = compute_cost(info).cost;
   });
 
   it("creates purchase of that license", async () => {
@@ -366,11 +366,11 @@ describe("test renewSubscriptions doesn't cancel tiny subscription", () => {
         subs[0].current_period_end.valueOf() -
           dayjs().add(1, "month").toDate().valueOf(),
       ),
-    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    ).toBeLessThan(1000 * 3600 * 24 * 3);
     // within 3 days of now:
     expect(
       Math.abs(subs[0].current_period_start.valueOf() - Date.now()),
-    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    ).toBeLessThan(1000 * 3600 * 24 * 3);
     // the purchase should be pending, since we don't have any money.
     const pool = getPool();
     const { rows } = await pool.query(

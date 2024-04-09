@@ -2,7 +2,7 @@ import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-se
 import getClient, { waitUntilOperationComplete } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { supportsStandardNetworkTier } from "./util";
-import { getNewestSourceImage } from "./images";
+import { getSourceImage } from "./images";
 
 const logger = getLogger("server:compute:google-cloud:create-instance");
 
@@ -66,6 +66,8 @@ export default async function createInstance({
 
   const schedulingModel = getSchedulingModel(configuration);
 
+  const advancedMachineFeatures = getAdvancedMachineFeatures(configuration);
+
   const maxRunDuration = configuration.maxRunDurationSeconds
     ? {
         seconds: configuration.maxRunDurationSeconds,
@@ -92,6 +94,7 @@ export default async function createInstance({
     scheduling,
     guestAccelerators,
     tags,
+    advancedMachineFeatures,
   };
 
   logger.debug("create instance", instanceResource);
@@ -189,13 +192,7 @@ async function getDisks(
 ) {
   let diskSizeGb = 10;
   if (!sourceImage) {
-    // use prod=true, unless configuration.test is set, in which case
-    // make no constraint on prod
-    const prod = configuration.test ? undefined : true;
-    ({ diskSizeGb, sourceImage } = await getNewestSourceImage({
-      ...configuration,
-      prod,
-    }));
+    ({ diskSizeGb, sourceImage } = await getSourceImage(configuration));
   }
 
   diskSizeGb = Math.max(diskSizeGb, configuration.diskSizeGb ?? diskSizeGb);
@@ -244,5 +241,13 @@ export function getSchedulingModel(configuration: GoogleCloudConfiguration) {
       provisioningModel: "STANDARD",
       preemptible: false,
     };
+  }
+}
+
+function getAdvancedMachineFeatures(configuration) {
+  if (configuration.enableNestedVirtualization) {
+    return { enableNestedVirtualization: true };
+  } else {
+    return {};
   }
 }

@@ -8,7 +8,7 @@ Convert Quarto Markdown file (similar to Rmd) to html or pdf
 */
 
 import { path_split } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { exec, ExecOutput } from "../generic/client";
 
 export const convert: (opts: Opts) => Promise<ExecOutput> =

@@ -29,7 +29,7 @@ const log = getLogger("execute-code");
 
 // Async/await interface to executing code.
 export async function executeCode(
-  opts: ExecuteCodeOptions
+  opts: ExecuteCodeOptions,
 ): Promise<ExecuteCodeOutput> {
   return await callback_opts(execute_code)(opts);
 }
@@ -45,12 +45,12 @@ export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
         opts.cb?.(err);
       }
     })();
-  }
+  },
 );
 
 // actual implementation, without the aggregate wrapper
 async function executeCodeNoAggregate(
-  opts: ExecuteCodeOptions
+  opts: ExecuteCodeOptions,
 ): Promise<ExecuteCodeOutput> {
   if (opts.args == null) opts.args = [];
   if (opts.timeout == null) opts.timeout = 10;
@@ -84,6 +84,7 @@ async function executeCodeNoAggregate(
   let tempDir: string | undefined = undefined;
 
   try {
+    let origCommand = "";
     if (opts.bash) {
       // using bash, which (for better or worse), we do by writing the command to run
       // under bash to a file, then executing that file.
@@ -103,6 +104,7 @@ async function executeCodeNoAggregate(
       // We write the cmd to a file, and replace the command and args
       // with bash and the filename, then do everything below as we would
       // have done anyways.
+      origCommand = opts.command;
       opts.command = "bash";
       tempDir = await mkdtemp(join(tmpdir(), "cocalc-"));
       const tempPath = join(tempDir, "a.sh");
@@ -113,7 +115,7 @@ async function executeCodeNoAggregate(
       await writeFile(tempPath, cmd);
       await chmod(tempPath, 0o700);
     }
-    return await callback(doSpawn, opts);
+    return await callback(doSpawn, { ...opts, origCommand });
   } finally {
     // clean up
     if (tempDir) {
@@ -133,7 +135,7 @@ function doSpawn(opts, cb) {
       opts.args,
       "and timeout",
       opts.timeout,
-      "seconds"
+      "seconds",
     );
   }
   const spawnOptions = {
@@ -254,34 +256,33 @@ function doSpawn(opts, cb) {
         opts.command,
         "took",
         walltime(start_time),
-        "seconds"
+        "seconds",
       );
-      log.debug(
-        "stdout=",
-        trunc(stdout, 512),
-        "stderr=",
-        trunc(stderr, 512),
-        "exit_code=",
-        exit_code
-      );
+      log.debug({
+        stdout: trunc(stdout, 512),
+        stderr: trunc(stderr, 512),
+        exit_code,
+      });
     }
     if (err) {
       cb(err);
     } else if (opts.err_on_exit && exit_code != 0) {
+      const x = opts.origCommand
+        ? opts.origCommand
+        : `'${opts.command}' (args=${opts.args?.join(" ")})`;
       cb(
-        `command '${opts.command}' (args=${opts.args?.join(
-          " "
-        )}) exited with nonzero code ${exit_code} -- stderr='${trunc(
+        `command '${x}' exited with nonzero code ${exit_code} -- stderr='${trunc(
           stderr,
-          1024
-        )}'`
+          1024,
+        )}'`,
       );
     } else if (!ran_code) {
       // regardless of opts.err_on_exit !
+      const x = opts.origCommand
+        ? opts.origCommand
+        : `'${opts.command}' (args=${opts.args?.join(" ")})`;
       cb(
-        `command '${opts.command}' (args=${opts.args?.join(
-          " "
-        )}) was not able to run -- stderr='${trunc(stderr, 1024)}'`
+        `command '${x}' was not able to run -- stderr='${trunc(stderr, 1024)}'`,
       );
     } else {
       if (opts.max_output != null) {
@@ -312,7 +313,7 @@ function doSpawn(opts, cb) {
         log.debug(
           "subprocess did not exit after",
           opts.timeout,
-          "seconds, so killing with SIGKILL"
+          "seconds, so killing with SIGKILL",
         );
       }
       try {

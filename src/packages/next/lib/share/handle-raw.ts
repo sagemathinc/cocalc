@@ -96,7 +96,7 @@ export function staticHandler(
   fsPath: string,
   req: Request,
   res: Response,
-  next: Function
+  next: Function,
 ) {
   //console.log("staticHandler", { fsPath, url: req.url });
   const handler = getStaticFileHandler(fsPath);
@@ -105,7 +105,25 @@ export function staticHandler(
     // Static handler didn't work, so try the directory listing handler.
     //console.log("directoryHandler", { fsPath, url: req.url });
     const handler = getDirectoryHandler(fsPath);
-    handler(req, res, next);
+    try {
+      handler(req, res, next);
+    } catch (err) {
+      // I noticed in logs that if reeq.url is malformed then this directory listing handler --
+      // which is just some old middleware not updated in 6+ years -- can throw an exception
+      // which is not caught.  So we catch it here and respond with some sort of generic
+      // server error, but without crashing the server.
+      // Respond with a 500 Internal Server Error status code.
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .send(
+            `Something went wrong on the server, please try again later. -- ${err}`,
+          );
+      } else {
+        // In case headers were already sent, end the response without sending any data.
+        res.end();
+      }
+    }
   });
 }
 

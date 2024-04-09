@@ -5,8 +5,8 @@
 
 import { Button } from "antd";
 import { useMemo } from "react";
-
 import { Paragraph, Text } from "@cocalc/frontend/components";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
@@ -14,6 +14,7 @@ import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   name: string;
@@ -35,6 +36,7 @@ export default function NoFiles({
   configuration_main,
 }: Props) {
   const availableFeatures = useAvailableFeatures(project_id);
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const { buttonText, actualNewFilename } = useMemo(() => {
     const actualNewFilename =
       file_search.length === 0
@@ -42,11 +44,21 @@ export default function NoFiles({
         : full_path_text(file_search, configuration_main?.disabled_ext ?? []);
 
     const buttonText =
-      file_search.length === 0
-        ? "Create or Upload Files..."
-        : `Create ${actualNewFilename}`;
+      file_search.length === 0 ? (
+        "Create or Upload Files..."
+      ) : (
+        <>
+          Create {actualNewFilename}{" "}
+          {!!compute_server_id && (
+            <>
+              {" on "}
+              <ComputeServer id={compute_server_id} />
+            </>
+          )}
+        </>
+      );
     return { buttonText, actualNewFilename };
-  }, [file_search.length]);
+  }, [file_search.length, compute_server_id]);
 
   if (configuration_main == null) return null;
 
@@ -60,7 +72,9 @@ export default function NoFiles({
       }}
       className="smc-vfill"
     >
-      <span style={{ fontSize: "20px" }}>No files found</span>
+      <h4 style={{ color: "#666" }}>
+        No files {file_search?.trim() ? `matching '${file_search}'` : ""} found
+      </h4>
       <hr />
       <Button
         size="large"
@@ -68,7 +82,7 @@ export default function NoFiles({
         style={{
           margin: "0 auto",
           height: "80px",
-          fontSize: "40px",
+          fontSize: "24px",
         }}
         onClick={(): void => {
           if (file_search.length === 0) {
@@ -94,7 +108,7 @@ export default function NoFiles({
       />
       {file_search.length > 0 && (
         <div style={{ marginTop: "15px" }}>
-          <h4 style={{ color: "#666" }}>Or select a file type</h4>
+          <h4 style={{ color: "#666" }}>Or Select a File Type</h4>
           <FileTypeSelector
             create_file={create_file}
             create_folder={create_folder}

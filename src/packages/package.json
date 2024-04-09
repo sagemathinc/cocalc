@@ -10,6 +10,21 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@cocalc/mistralai": "^0.0.2",
+    "@mistralai/mistralai": "link:node_modules/@cocalc/mistralai",
     "encoding": "^0.1.13"
+  },
+  "pnpm": {
+    "overrides-doc": "retry-request is because some other google api library in the server depends on an old broken version, which broke due to somebody deleting the request dependency of retry-request",
+    "overrides": {
+      "follow-redirects@<1.15.4": "^1.15.6",
+      "es5-ext@<0.10.63": "^0.10.63",
+      "undici@<5.28.3": "^5.28.4",
+      "postcss@<8.4.31": "^8.4.31",
+      "retry-request@<7.0.1": "^7.0.2",
+      "@langchain/core": "^0.1.52",
+      "@mistralai/mistralai": "node_modules/@cocalc/mistralai",
+      "katex@<0.16.9": "^0.16.10"
+    }
   }
 }

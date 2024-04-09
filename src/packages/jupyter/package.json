@@ -20,9 +20,9 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
+    "build": "../node_modules/.bin/tsc --build",
     "test": "pnpm exec jest dist",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "files": [
     "dist/**",
@@ -45,7 +45,6 @@
     "@nteract/messaging": "^7.0.20",
     "@types/better-sqlite3": "^7.6.4",
     "@types/node-cleanup": "^2.1.2",
-    "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^8.3.0",
     "debug": "^4.3.2",

@@ -28,18 +28,17 @@ import type {
   Cloud,
   ComputeServer,
   Configuration,
-  ImageName,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getTargetState } from "@cocalc/util/db-schema/compute-servers";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";
 import updatePurchase from "./update-purchase";
-import { changedKeys } from "@cocalc/server/compute/util";
+import { changedKeys, setConfiguration } from "@cocalc/server/compute/util";
 import { checkValidDomain } from "@cocalc/util/compute/dns";
 import { hasDNS, makeDnsChange } from "./dns";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
@@ -48,8 +47,10 @@ import {
   deprovisionScript,
 } from "@cocalc/server/compute/cloud/off-scripts";
 import setDetailedState from "@cocalc/server/compute/set-detailed-state";
-
+import isBanned from "@cocalc/server/accounts/is-banned";
 import getLogger from "@cocalc/backend/logger";
+import { getImages } from "@cocalc/server/compute/images";
+import { defaultProxyConfig } from "@cocalc/util/compute/images";
 
 const logger = getLogger("server:compute:control");
 
@@ -75,6 +76,10 @@ export const start: (opts: {
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
   try {
+    if (await isBanned(account_id)) {
+      // they should never get this far, but just in case.
+      throw Error("user is banned");
+    }
     await setError(id, "");
     await setProjectApiKey({ account_id, server });
   } catch (err) {
@@ -131,7 +136,20 @@ export const stop: (opts: { account_id: string; id: number }) => Promise<void> =
     await setError(id, "");
     runTasks({ account_id, id }, async () => {
       await setState(id, "stopping");
-      await deleteProjectApiKey({ account_id, server });
+      if (server.configuration?.autoRestart) {
+        // If we are explicitly stopping an auto-restart server, we disable auto restart,
+        // so there is no chance of it being accidentally triggered.
+        await setConfiguration(id, { autoRestartDisabled: true });
+      }
+      try {
+        await deleteProjectApiKey({ account_id, server });
+      } catch (err) {
+        logger.debug(
+          "WARNING -- unable to delete api key used by server",
+          server,
+          err,
+        );
+      }
       await doStop(server);
       await setState(id, "off");
     });
@@ -163,7 +181,19 @@ export const deprovision: (opts: {
 
   runTasks({ account_id, id }, async () => {
     await setState(id, "stopping");
-    await deleteProjectApiKey({ account_id, server });
+    try {
+      await deleteProjectApiKey({ account_id, server });
+    } catch (err) {
+      // This can happen if the user is no longer a collaborator on the
+      // project that contains the compute server and they run out of money,
+      // so the system automatically deletes their compute server.  It's
+      // bad for this to block the actual compute server delete below!
+      logger.debug(
+        "WARNING -- unable to delete api key used by server",
+        server,
+        err,
+      );
+    }
     await doDeprovision(server);
     await setState(id, "deprovisioned");
   });
@@ -186,22 +216,53 @@ async function doDeprovision(server: ComputeServer) {
 export const state: (opts: {
   account_id: string;
   id: number;
-}) => Promise<State> = reuseInFlight(async ({ account_id, id }) => {
-  //const now = Date.now();
-  //   const last = lastCalled[id];
-  //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
-  //     return last.state;
-  //   }
-  const server = await getServer({ account_id, id });
-  const state = await getCloudServerState(server);
-  doPurchaseUpdate({ server, state });
-  if (state == "deprovisioned") {
-    // don't need it anymore.
-    await deleteProjectApiKey({ account_id, server });
-  }
-  //lastCalled[id] = { time: now, state };
-  return state;
-});
+
+  // maintenance = true -- means we are getting this state as part of
+  // a maintenance loop, NOT as part of a user or api initiated action.
+  // An impact of this is that auto restart could be triggered.
+  maintenance?: boolean;
+}) => Promise<State> = reuseInFlight(
+  async ({ account_id, id, maintenance }) => {
+    //const now = Date.now();
+    //   const last = lastCalled[id];
+    //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
+    //     return last.state;
+    //   }
+    const server = await getServer({ account_id, id });
+    const state = await getCloudServerState(server);
+    doPurchaseUpdate({ server, state });
+    if (state == "deprovisioned") {
+      // don't need it anymore.
+      try {
+        await deleteProjectApiKey({ account_id, server });
+      } catch (err) {
+        logger.debug(
+          "WARNING -- unable to delete api key used by server",
+          server,
+          err,
+        );
+      }
+    } else if (
+      maintenance &&
+      server.configuration?.autoRestart &&
+      !server.configuration?.autoRestartDisabled &&
+      state == "off"
+    ) {
+      // compute server got killed so launch the compute server running again.
+      start({ account_id, id });
+    } else if (
+      server.configuration?.autoRestart &&
+      server.configuration?.autoRestartDisabled &&
+      state == "running"
+    ) {
+      // This is an auto-restart server and it's running,
+      // so re-enable auto restart.
+      await setConfiguration(id, { autoRestartDisabled: false });
+    }
+    //lastCalled[id] = { time: now, state };
+    return state;
+  },
+);
 
 async function getCloudServerState(server: ComputeServer): Promise<State> {
   try {
@@ -462,9 +523,6 @@ export async function validateConfigurationChange({
   }
 
   if (changed.has("authToken")) {
-    if (state == "running" || state == "suspended" || state == "suspending") {
-      throw Error("cannot change authToken while server is running");
-    }
     if (typeof newConfiguration.authToken != "string") {
       throw Error("authToken must be a string");
     }
@@ -548,6 +606,15 @@ export async function makeConfigurationChange({
     }
     changed.delete("dns");
   }
+  if (changed.has("authToken")) {
+    // this is handled directly by the client right now
+    // TODO: we might change to do it here instead at some point.
+    changed.delete("authToken");
+  }
+  if (changed.has("proxy")) {
+    // same comment as for authToken
+    changed.delete("proxy");
+  }
   if (changed.size == 0) {
     // nothing else to change
     return;
@@ -565,7 +632,9 @@ export async function makeConfigurationChange({
       });
     default:
       throw Error(
-        `makeConfigurationChange not implemented for cloud '${cloud}'`,
+        `makeConfigurationChange not implemented for cloud '${cloud}' and changed=${JSON.stringify(
+          changed,
+        )}`,
       );
   }
 }
@@ -628,39 +697,57 @@ async function getStartupParams(id: number): Promise<{
   project_id: string;
   gpu?: boolean;
   arch: Architecture;
-  image: ImageName;
+  image: string;
   exclude_from_sync: string;
   auth_token: string;
+  proxy;
 }> {
   const server = await getServerNoCheck(id);
+  const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
+  const image = configuration.image ?? "python";
+  const proxy =
+    server.configuration?.proxy ??
+    defaultProxyConfig({ IMAGES: await getImages(), image });
   const exclude_from_sync = excludeFromSync.join("|");
+
+  let x;
   switch (server.cloud) {
     case "google-cloud":
-      return {
+      x = {
         ...(await googleCloud.getStartupParams(server)),
+        image,
         exclude_from_sync,
         auth_token,
+        proxy,
       };
+      break;
     case "onprem":
-      const { configuration } = server;
       if (configuration.cloud != "onprem") {
         throw Error("inconsistent configuration -- must be onprem");
       }
-      return {
+      x = {
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
-        image: configuration.image ?? "python",
+        image,
         exclude_from_sync,
         auth_token,
+        proxy,
       };
+      break;
     default:
       throw Error(
         `getStartupParams for '${server.cloud}' not currently implemented`,
       );
   }
+  return {
+    tag: configuration.tag,
+    tag_cocalc: configuration.tag_cocalc,
+    tag_filesystem: configuration.tag_filesystem,
+    ...x,
+  };
 }
 
 export async function getHostname(id: number): Promise<string> {
@@ -711,4 +798,34 @@ export async function getDeprovisionScript({
     compute_server_id: id,
     api_key,
   });
+}
+
+// Set the tested status of the image that the given server is using.
+// This is currently only meaningful on Google cloud.
+// This is something that only admins should use.
+export async function setImageTested(opts: {
+  id: number;
+  account_id: string;
+  tested: boolean;
+}) {
+  const server = await getServer(opts);
+  switch (server.cloud) {
+    case "google-cloud":
+      await googleCloud.setImageTested(server, opts.tested);
+      return;
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}
+
+export async function getSerialPortOutput({ account_id, id }): Promise<string> {
+  const server = await getServer({ account_id, id });
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.getSerialPortOutput(server);
+    default:
+      throw Error(
+        `serial port output not implemented on cloud '${server.cloud}'`,
+      );
+  }
 }

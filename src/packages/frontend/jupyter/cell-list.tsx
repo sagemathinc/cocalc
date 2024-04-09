@@ -12,7 +12,9 @@ import * as immutable from "immutable";
 import { debounce } from "lodash";
 import {
   MutableRefObject,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -20,26 +22,22 @@ import {
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { useDebounce } from "use-debounce";
-import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
+import {
+  DragHandle,
+  SortableItem,
+  SortableList,
+} from "@cocalc/frontend/components/sortable-list";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
-import { InsertCell } from "./insert-cell";
-import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
-
-import {
-  SortableList,
-  SortableItem,
-  DragHandle,
-} from "@cocalc/frontend/components/sortable-list";
-
-import { createContext, useContext } from "react";
 interface IFrameContextType {
   iframeDivRef?: MutableRefObject<any>;
   iframeOnScrolls?: { [key: string]: () => void };
@@ -86,6 +84,7 @@ interface CellListProps {
   font_size: number;
   hook_offset?: number;
   is_focused?: boolean;
+  is_visible?: boolean;
   md_edit_ids?: immutable.Set<string>;
   mode: NotebookMode;
   more_output?: immutable.Map<string, any>;
@@ -97,7 +96,7 @@ interface CellListProps {
   sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
   use_windowed_list?: boolean;
-  chatgpt?;
+  llmTools?: LLMTools;
   computeServerId?: number;
 }
 
@@ -114,6 +113,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     font_size,
     hook_offset,
     is_focused,
+    is_visible,
     md_edit_ids,
     mode,
     more_output,
@@ -125,7 +125,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     sel_ids,
     trust,
     use_windowed_list,
-    chatgpt,
+    llmTools,
     computeServerId,
   } = props;
 
@@ -347,11 +347,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
         });
         // hack which seems necessary for jupyter at least.
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_TOP_CELLS,
+          }),
         );
       }
     } else if (scroll.startsWith("list")) {
@@ -361,12 +360,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "end",
         });
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
-              align: "end",
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_TOP_CELLS,
+            align: "end",
+          }),
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
@@ -374,12 +372,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "start",
         });
-        requestAnimationFrame(
-          () =>
-            virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
-              align: "start",
-            }),
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_TOP_CELLS,
+            align: "start",
+          }),
         );
       }
     }
@@ -418,28 +415,21 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }
 
-  function render_insert_cell(
-    id: string,
-    position: "above" | "below" = "above",
-  ): JSX.Element | null {
-    if (actions == null) return null;
-    return (
-      <InsertCell
-        id={id}
-        chatgpt={chatgpt}
-        key={id + "insert" + position}
-        position={position}
-        actions={actions}
-      />
-    );
-  }
-
-  function render_cell(
-    id: string,
-    isScrolling?: boolean,
-    index?: number,
-    delayRendering?: number,
-  ) {
+  function render_cell({
+    id,
+    isScrolling,
+    index,
+    delayRendering, // seems not used anywhere!
+    isFirst,
+    isLast,
+  }: {
+    id: string;
+    isScrolling?: boolean;
+    index?: number;
+    delayRendering?: number;
+    isFirst?: boolean;
+    isLast?: boolean;
+  }) {
     const cell = cells.get(id);
     if (cell == null) return null;
     if (index == null) {
@@ -479,13 +469,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           directory={directory}
           complete={complete}
           is_focused={is_focused}
+          is_visible={is_visible}
           more_output={more_output?.get(id)}
           cell_toolbar={cell_toolbar}
           trust={trust}
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
-          chatgpt={chatgpt}
+          llmTools={llmTools}
           computeServerId={computeServerId}
+          isFirst={isFirst}
+          isLast={isLast}
         />
       </div>
     );
@@ -654,17 +647,24 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             }
             const id = cell_list.get(index - EXTRA_TOP_CELLS);
             if (id == null) return null;
-            const is_last: boolean = id === cell_list.get(-1);
             const h = virtuosoHeightsRef.current[index];
             if (actions == null) {
-              return render_cell(id, false, index - EXTRA_TOP_CELLS);
+              return render_cell({
+                id,
+                isScrolling: false,
+                index: index - EXTRA_TOP_CELLS,
+              });
             }
             return (
               <SortableItem id={id} key={id}>
                 <DivTempHeight height={h ? `${h}px` : undefined}>
-                  {render_insert_cell(id, "above")}
-                  {render_cell(id, false, index - EXTRA_TOP_CELLS)}
-                  {is_last ? render_insert_cell(id, "below") : undefined}
+                  {render_cell({
+                    id,
+                    isScrolling: false,
+                    index: index - EXTRA_TOP_CELLS,
+                    isFirst: id === cell_list.get(0),
+                    isLast: id === cell_list.get(-1),
+                  })}
                 </DivTempHeight>
               </SortableItem>
             );
@@ -682,21 +682,22 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     // non-windowed mode, which we will always support as an option.
     const v: (JSX.Element | null)[] = [];
     let index: number = 0;
+    let isFirst = true;
     cell_list.forEach((id: string) => {
       v.push(
         <SortableItem id={id} key={id}>
-          {actions != null && render_insert_cell(id)}
-          {render_cell(id, false, index, index)}
+          {render_cell({
+            id,
+            isScrolling: false,
+            index,
+            isFirst,
+            isLast: cell_list.get(-1) == id,
+          })}
         </SortableItem>,
       );
+      isFirst = false;
       index += 1;
     });
-    if (actions != null && v.length > 0) {
-      const id = cell_list.get(cell_list.size - 1);
-      if (id != null) {
-        v.push(render_insert_cell(id, "below"));
-      }
-    }
     v.push(BOTTOM_PADDING_CELL);
 
     body = (
@@ -735,8 +736,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               fontSize: `${font_size}px`,
             }}
           >
-            {render_insert_cell(id, "above")}
-            {render_cell(id)}
+            {render_cell({ id })}
           </div>
         )}
         onDragStart={(id) => {

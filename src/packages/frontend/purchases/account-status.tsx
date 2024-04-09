@@ -99,12 +99,6 @@ export default function AccountStatus({
             refresh={handleRefresh}
           />
           <div style={{ width: "30px" }} />
-          {!compact && (
-            <>
-              <MinBalance minBalance={minBalance} />
-              <div style={{ width: "30px" }} />
-            </>
-          )}
           <Card>
             <div style={{ color: "#888", marginBottom: "10px" }}>
               Subscription Payments
@@ -113,6 +107,12 @@ export default function AccountStatus({
           </Card>
           <div style={{ width: "30px" }} />
           <SpendRate spendRate={spendRate} />
+          {!compact && (
+            <>
+              <MinBalance minBalance={minBalance} />
+              <div style={{ width: "30px" }} />
+            </>
+          )}
         </Space>
       </div>
     </SettingBox>

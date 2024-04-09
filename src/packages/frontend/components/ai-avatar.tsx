@@ -2,9 +2,8 @@ import { CSSProperties } from "react";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 
-// I copied this straight from the openai website html, and modified it for react.
 interface Props {
-  size?;
+  size: number; // e.g. 16 or 24
   backgroundColor?;
   style?: CSSProperties;
   innerStyle?: CSSProperties;
@@ -33,7 +32,7 @@ export default function AIAvatar({
         height: size,
         display: "inline-block",
         position: "relative",
-        ...style,
+        ...{ marginRight: "3px", ...style },
       }}
     >
       <div

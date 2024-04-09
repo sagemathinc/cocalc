@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Col, Row, Tooltip } from "antd";
+import { Button, Col, Popconfirm, Row, Tooltip } from "antd";
 import { Map } from "immutable";
 import { CSSProperties } from "react";
 
@@ -17,7 +17,7 @@ import {
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import { modelToName } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
@@ -31,6 +31,8 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
+
+const DELETE_BUTTON = false;
 
 // 5 minutes -- how long to show the "regenerate button" for chatgpt.
 // Don't show it forever, since we want to avoid clutter.
@@ -125,7 +127,7 @@ export default function Message(props: Props) {
   const is_viewers_message = sender_is_viewer(props.account_id, props.message);
   const verb = show_history ? "Hide" : "Show";
 
-  const isChatGPTThread = useMemo(
+  const isLLMThread = useMemo(
     () => props.actions?.isLanguageModelThread(props.message.get("date")),
     [props.message],
   );
@@ -203,7 +205,7 @@ export default function Message(props: Props) {
       );
     }
     return (
-      <div style={{ marginTop: "5px" }}>
+      <div>
         {text}
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
@@ -356,7 +358,7 @@ export default function Message(props: Props) {
               <div>
                 {Date.now() - date < SHOW_EDIT_BUTTON_MS && (
                   <Tooltip
-                    title="Edit this message. You can edit any past message by anybody at any time by double clicking on it."
+                    title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
                     placement="left"
                   >
                     <Button
@@ -374,6 +376,36 @@ export default function Message(props: Props) {
                     </Button>
                   </Tooltip>
                 )}
+                {DELETE_BUTTON &&
+                  newest_content(props.message).trim().length > 0 && (
+                    <Tooltip
+                      title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+                      placement="left"
+                    >
+                      <Popconfirm
+                        title="Delete this message"
+                        description="Are you sure you want to delete this message?"
+                        onConfirm={() => {
+                          props.actions?.set_editing(props.message, true);
+                          setTimeout(
+                            () => props.actions?.send_edit(props.message, ""),
+                            1,
+                          );
+                        }}
+                      >
+                        <Button
+                          disabled={replying}
+                          style={{
+                            color: is_viewers_message ? "white" : "#555",
+                          }}
+                          type="text"
+                          size="small"
+                        >
+                          <Icon name="trash" /> Delete
+                        </Button>
+                      </Popconfirm>
+                    </Tooltip>
+                  )}
                 {!props.message.get("reply_to") &&
                   props.allowReply &&
                   !replying && (
@@ -600,9 +632,9 @@ export default function Message(props: Props) {
           {!generating && (
             <Tooltip
               title={
-                isChatGPTThread
+                isLLMThread
                   ? `Reply to ${modelToName(
-                      isChatGPTThread,
+                      isLLMThread,
                     )}, sending the entire thread as context.`
                   : "Reply in this thread."
               }
@@ -613,10 +645,10 @@ export default function Message(props: Props) {
                 style={{ color: COLORS.GRAY_M }}
               >
                 <Icon name="reply" /> Reply
-                {isChatGPTThread ? ` to ${modelToName(isChatGPTThread)}` : ""}
-                {isChatGPTThread && (
+                {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
+                {isLLMThread && (
                   <Avatar
-                    account_id={isChatGPTThread}
+                    account_id={isLLMThread}
                     size={16}
                     style={{ marginLeft: "10px", marginBottom: "2.5px" }}
                   />
@@ -625,7 +657,7 @@ export default function Message(props: Props) {
             </Tooltip>
           )}
           {!generating &&
-            isChatGPTThread &&
+            isLLMThread &&
             props.actions &&
             Date.now() - date <= regenerateCutoff && (
               <Button

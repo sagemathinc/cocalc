@@ -8,26 +8,17 @@
 import { createRoot } from "react-dom/client";
 
 import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
-import {
-  DropdownMenu,
-  HiddenXS,
-  Icon,
-  IconName,
-  Gap,
-} from "@cocalc/frontend/components";
+import { DropdownMenu, Icon, IconName } from "@cocalc/frontend/components";
 import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_actions } from "@cocalc/frontend/project_store";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   filename: string; // expects the full path name
   project_id: string;
   is_public?: boolean;
-  label?: string;
   style?: CSS;
-  title?: JSX.Element;
   button?: boolean;
   mode?: "explorer" | "flyout";
 }
@@ -38,10 +29,8 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
       filename,
       project_id,
       is_public,
-      label,
       style,
-      title,
-      button = true,
+      button,
       mode = "explorer",
     } = props;
     const actions = useActions({ project_id });
@@ -84,11 +73,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         onClick: () => handle_click(name),
         label: (
           <>
-            <Icon
-              name={icon}
-              style={{ width: "1.125em", color: COLORS.FILE_ICON }}
-            />{" "}
-            {`${capitalize(name)}...`}
+            <Icon name={icon} style={{ width: "25px" }} /> {capitalize(name)}
           </>
         ),
       };
@@ -123,32 +108,18 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
       return v;
     }
 
-    function render_title() {
-      return (
-        <span>
-          <Icon name={"file"} />
-          {label && (
-            <HiddenXS>
-              <Gap />
-              {label}
-            </HiddenXS>
-          )}
-        </span>
-      );
-    }
-
     return (
       <DropdownMenu
         button={button}
         style={{ ...{ height: "100%" }, ...style }}
         id="file_info_button"
-        title={title ?? render_title()}
+        title={"File"}
         items={render_menu_items()}
       />
     );
   },
   (prev, next) =>
-    prev.filename == next.filename && prev.is_public == next.is_public
+    prev.filename == next.filename && prev.is_public == next.is_public,
 );
 
 // This is for sage worksheets...
@@ -156,7 +127,7 @@ export function render_file_info_dropdown(
   filename: string,
   project_id: string,
   dom_node,
-  is_public?
+  is_public?,
 ) {
   const root = createRoot(dom_node);
   root.render(
@@ -164,8 +135,7 @@ export function render_file_info_dropdown(
       filename={filename}
       project_id={project_id}
       is_public={is_public}
-      label={"Action"}
       style={{ height: "34px" }}
-    />
+    />,
   );
 }

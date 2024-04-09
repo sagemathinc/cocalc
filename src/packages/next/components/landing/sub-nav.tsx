@@ -52,6 +52,11 @@ const INNER_STYLE: CSS = {
   whiteSpace: "nowrap",
 };
 
+const about = {
+  index: {},
+  team: { label: "Team" },
+} as const;
+
 const software = {
   index: {},
   executables: { label: "Executables" },
@@ -90,8 +95,8 @@ const pricing = {
   subscriptions: { label: "Subscriptions" },
   courses: { label: "Courses" },
   institutions: { label: "Institutions" },
-  dedicated: { label: "Dedicated" },
   onprem: { label: "OnPrem" },
+  dedicated: { label: "Dedicated" },
 } as const;
 
 const policies = {
@@ -113,11 +118,6 @@ const info = {
   run: { label: "Run CoCalc" },
 } as const;
 
-const sign_in = {
-  "sign-in": { label: "Sign In", href: "/auth/sign-in" },
-  "password-reset": { label: "Password Reset", href: "/auth/password-reset" },
-} as const;
-
 const support = {
   index: {},
   community: { label: "Community" },
@@ -131,6 +131,7 @@ const news = {
 };
 
 const PAGES = {
+  about,
   features,
   software,
   pricing,
@@ -138,7 +139,7 @@ const PAGES = {
   share: {},
   info,
   "sign-up": {},
-  "sign-in": sign_in,
+  "sign-in": {},
   try: {},
   support,
   news,
@@ -152,8 +153,8 @@ export type SubPage =
   | keyof typeof pricing
   | keyof typeof policies
   | keyof typeof info
-  | keyof typeof sign_in
-  | keyof typeof support;
+  | keyof typeof support
+  | keyof typeof about;
 
 interface Props {
   page?: Page;

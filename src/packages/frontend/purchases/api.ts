@@ -402,11 +402,10 @@ export async function resumeSubscription(subscription_id: number) {
 
 export async function costToResumeSubscription(
   subscription_id: number,
-): Promise<number> {
-  const { cost } = await api("purchases/cost-to-resume-subscription", {
+): Promise<{ cost: number; periodicCost: number }> {
+  return await api("purchases/cost-to-resume-subscription", {
     subscription_id,
   });
-  return cost;
 }
 
 export async function creditToCancelSubscription(

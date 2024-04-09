@@ -15,7 +15,7 @@ import {
   defaults,
   coerce_codomain_to_numbers,
 } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import * as message from "@cocalc/util/message";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { connection_to_project } from "../project/websocket/connect";
@@ -39,6 +39,8 @@ import computeServers from "@cocalc/frontend/compute/manager";
 
 export interface ExecOpts {
   project_id: string;
+  compute_server_id?: number; // if true, run on the compute server (if available)
+  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
   path?: string;
   command: string;
   args?: string[];
@@ -192,7 +194,7 @@ export class ProjectClient {
   }
 
   /*
-    Execute code in a given project.
+    Execute code in a given project or associated compute server.
 
     Aggregate option -- use like this:
 
@@ -209,6 +211,8 @@ export class ProjectClient {
   public async exec(opts: ExecOpts): Promise<ExecOutput> {
     opts = defaults(opts, {
       project_id: required,
+      compute_server_id: undefined,
+      filesystem: undefined,
       path: "",
       command: required,
       args: [],
@@ -272,6 +276,7 @@ export class ProjectClient {
   public async directory_listing(opts: {
     project_id: string;
     path: string;
+    compute_server_id: number;
     timeout?: number;
     hidden?: boolean;
   }): Promise<{ files: DirectoryListingEntry[] }> {
@@ -281,6 +286,7 @@ export class ProjectClient {
       opts.path,
       opts.hidden,
       opts.timeout * 1000,
+      opts.compute_server_id,
     );
     return { files: listing };
   }
@@ -345,7 +351,7 @@ export class ProjectClient {
       project_id: opts.project_id,
       command,
       timeout: 60,
-      aggregate: Math.round(new Date().valueOf() / 5000), // aggregate calls into 5s windows, in case multiple clients ask for same find at once...
+      aggregate: Math.round(Date.now() / 5000), // aggregate calls into 5s windows, in case multiple clients ask for same find at once...
     });
     const n = opts.path.length + 1;
     let v = result.stdout.split("\n");
@@ -398,10 +404,10 @@ export class ProjectClient {
     // Do not make the timeout long, since that can mess up
     // getting the hub-websocket to connect to the project.
     const last = this.touch_throttle[project_id];
-    if (last != null && new Date().valueOf() - last <= 3000) {
+    if (last != null && Date.now() - last <= 3000) {
       return;
     }
-    this.touch_throttle[project_id] = new Date().valueOf();
+    this.touch_throttle[project_id] = Date.now();
     try {
       await this.call(message.touch_project({ project_id }));
     } catch (err) {
@@ -544,7 +550,14 @@ export class ProjectClient {
     return (await this.call(message.api_keys(opts2))).response;
   }
 
-  public computeServers(project_id) {
+  computeServers = (project_id) => {
     return computeServers(project_id);
-  }
+  };
+
+  getServerIdForPath = async ({
+    project_id,
+    path,
+  }): Promise<number | undefined> => {
+    return await computeServers(project_id)?.getServerIdForPath(path);
+  };
 }

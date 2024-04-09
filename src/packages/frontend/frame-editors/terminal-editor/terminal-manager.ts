@@ -82,7 +82,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
         id,
         parent,
         command,
-        args
+        args,
       );
       this.terminals[id].connect();
     }
@@ -99,7 +99,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_terminal(id: string): void {
-    if (this.terminals[id] == null) {
+    if (this.terminals?.[id] == null) {
       // graceful no-op if no such terminal.
       return;
     }
@@ -121,22 +121,21 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
   }
 
   get(id: string): Terminal<T> | undefined {
-    return this.terminals[id];
+    return this.terminals?.[id];
   }
 
   kill(id: string): void {
-    if (this.terminals[id] == null) {
+    if (this.terminals?.[id] == null) {
       // graceful no-op if no such terminal.
       return;
     }
     this.terminals[id].kill();
   }
 
-
   set_command(
     id: string,
     command: string | undefined,
-    args: string[] | undefined
+    args: string[] | undefined,
   ): void {
     if (this.terminals[id] == null) {
       // graceful no-op if no such terminal.

@@ -72,21 +72,21 @@ const dataSource: DataSource = [
       </>
     ),
   },
-  {
-    link: "/pricing/dedicated",
-    title: "Dedicated Resources",
-    logo: "server",
-    description: (
-      <>
-        How to{" "}
-        <A href="/pricing/dedicated">
-          rent a dedicated powerful virtual machine or large dedicated disk
-        </A>
-        , which can greatly improve collaboration and scalability in your
-        research group.
-      </>
-    ),
-  },
+  //   {
+  //     link: "/pricing/dedicated",
+  //     title: "Dedicated Resources",
+  //     logo: "server",
+  //     description: (
+  //       <>
+  //         How to{" "}
+  //         <A href="/pricing/dedicated">
+  //           rent a dedicated powerful virtual machine
+  //         </A>
+  //         , which can greatly improve collaboration and scalability in your
+  //         research group.
+  //       </>
+  //     ),
+  //   },
   {
     link: "/pricing/onprem",
     title: "On-Premises Installations",
@@ -94,7 +94,9 @@ const dataSource: DataSource = [
     description: (
       <>
         You can run CoCalc on{" "}
-        <A href="/pricing/onprem">your own laptop, server or cluster.</A>
+        <A href="/pricing/onprem">
+          your own Kubernetes cluster, starting at $3,000/year.
+        </A>
       </>
     ),
   },

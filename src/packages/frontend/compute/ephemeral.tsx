@@ -62,7 +62,8 @@ export default function Ephemeral({ setConfig, configuration, loading }) {
             setEphemeral(!ephemeral);
           }}
         >
-          Discard local disk and data by default to avoid paying for storage
+          Ephemeral: I do not want to store data on this compute server between
+          sessions
         </Checkbox>
       </div>
     </div>

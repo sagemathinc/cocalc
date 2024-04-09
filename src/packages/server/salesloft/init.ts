@@ -10,6 +10,7 @@ We will add additional sync mechanisms later.
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getLogger from "@cocalc/backend/logger";
 import { addNewUsers } from "./sync";
+import { updateMoney } from "./money";
 
 const log = getLogger("salesloft:init");
 const UPDATE_INTERVAL_MS = 1000 * 60 * 60 * 6; // once every 6 hours.
@@ -23,6 +24,8 @@ export default async function init() {
     }
     try {
       running = true;
+      log.debug("Doing a salesloft MONEY update...");
+      await updateMoney("1 day");
       log.debug("Doing a salesloft sync update...");
       await update();
     } catch (err) {
@@ -43,7 +46,7 @@ async function update() {
     return;
   }
   log.debug(
-    "Salesloft periodic sync -- adding new users who made an account during the last day"
+    "Salesloft periodic sync -- adding new users who made an account during the last day",
   );
   await addNewUsers("1 day");
 }

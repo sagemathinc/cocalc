@@ -48,7 +48,7 @@ const SYMBOLS = {
   delete: "DEL",
 };
 
-function shortcut_to_string(shortcut: KeyboardCommand): string {
+export function shortcut_to_string(shortcut: KeyboardCommand): string {
   const v: string[] = [];
   if (shortcut.shift) {
     v.push(SYMBOLS.shift);
@@ -108,7 +108,7 @@ interface KeyboardShortcutProps {
 }
 
 export const KeyboardShortcut: React.FC<KeyboardShortcutProps> = (
-  props: KeyboardShortcutProps
+  props: KeyboardShortcutProps,
 ) => {
   const { shortcut } = props;
 
@@ -278,7 +278,7 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
         {taken && enable_hover ? render_taken_note() : undefined}
       </div>
     );
-  }
+  },
 );
 
 function capitalize_each_word(s: string): string {
@@ -387,8 +387,13 @@ const CommandList: React.FC<CommandListProps> = React.memo(
     const frameActions = useNotebookFrameActions();
 
     function render_commands(): Rendered[] {
-      const v: any[] = [];
-      const obj = create_commands(actions, frameActions, editor_actions);
+      const v: { name: string; val: CommandDescription }[] = [];
+      const allActions = {
+        jupyter_actions: actions,
+        frame_actions: frameActions.current,
+        editor_actions,
+      };
+      const obj = create_commands(allActions);
       for (const name in obj) {
         const val = obj[name];
         if (val != null) {
@@ -397,8 +402,7 @@ const CommandList: React.FC<CommandListProps> = React.memo(
       }
       v.sort(field_cmp("name"));
       const cmds: Rendered[] = [];
-      const search_str =
-        search != null ? search.toLowerCase() || "" : undefined;
+      const search_str = search?.toLowerCase() ?? "";
       for (const x of v) {
         if (x.val.f == null) {
           continue;
@@ -421,7 +425,7 @@ const CommandList: React.FC<CommandListProps> = React.memo(
             icon={icon}
             shortcuts={shortcuts}
             taken={taken[x.name]}
-          />
+          />,
         );
       }
       return cmds;
@@ -429,7 +433,7 @@ const CommandList: React.FC<CommandListProps> = React.memo(
 
     return <div style={COMMAND_LIST_STYLE}>{render_commands()}</div>;
   },
-  should_memoize
+  should_memoize,
 );
 
 interface KeyboardShortcutsProps {
@@ -443,11 +447,13 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
     const { actions, editor_actions, keyboard_shortcuts } = props;
     const frameActions = useNotebookFrameActions();
     const [search, set_search] = useState<string>("");
-    const commands: { [name: string]: CommandDescription } = create_commands(
-      actions,
-      frameActions,
-      editor_actions
-    );
+    const allActions = {
+      jupyter_actions: actions,
+      frame_actions: frameActions.current,
+      editor_actions,
+    };
+    const commands: { [name: string]: CommandDescription } =
+      create_commands(allActions);
 
     const taken: { [name: string]: string } = {};
     for (const name in commands) {
@@ -561,5 +567,5 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
         </Grid>
       </Modal>
     );
-  }
+  },
 );

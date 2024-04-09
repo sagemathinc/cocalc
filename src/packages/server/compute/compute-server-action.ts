@@ -1,5 +1,4 @@
 import type { Action } from "@cocalc/util/db-schema/compute-servers";
-import { getPool } from "@cocalc/database";
 import { start, stop, suspend, resume, reboot, deprovision } from "./control";
 
 interface Options {
@@ -13,15 +12,6 @@ export default async function computeServerAction({
   account_id,
   action,
 }: Options): Promise<void> {
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT COUNT(*) AS count FROM compute_servers WHERE id=$1 AND account_id=$2",
-    [id, account_id],
-  );
-  if (rows[0].count != 1) {
-    throw Error("must be the owner of the compute server");
-  }
-
   switch (action) {
     case "start":
       return await start({ id, account_id });

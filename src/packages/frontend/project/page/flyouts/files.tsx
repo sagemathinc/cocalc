@@ -108,7 +108,11 @@ export function FilesFlyout({
   );
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
-  const directoryListings = useTypedRedux({ project_id }, "directory_listings");
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const directoryListings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  )?.get(compute_server_id);
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
@@ -355,7 +359,7 @@ export function FilesFlyout({
     })();
   }
 
-  if (directoryListings.get(current_path) == null) {
+  if (directoryListings?.get(current_path) == null) {
     (async () => {
       // Must happen in a different render loop, hence the delay, because
       // fetch can actually update the store in the same render loop.
@@ -392,6 +396,7 @@ export function FilesFlyout({
         actions?.open_file({
           path: fullPath,
           foreground,
+          explicit: true,
         });
       }
     }
@@ -585,10 +590,6 @@ export function FilesFlyout({
           }
         }}
         itemStyle={fileItemStyle(age ?? 0, mask)}
-        onClose={(e: React.MouseEvent, name: string) => {
-          e.stopPropagation();
-          actions?.close_tab(path_to_file(current_path, name));
-        }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
         showCheckbox={
@@ -634,7 +635,7 @@ export function FilesFlyout({
   }
 
   function renderListing(): JSX.Element {
-    const files = directoryListings.get(current_path);
+    const files = directoryListings?.get(current_path);
     if (files == null) {
       return renderLoadingOrStartProject();
     }

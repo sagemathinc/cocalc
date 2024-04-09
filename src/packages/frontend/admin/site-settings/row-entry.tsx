@@ -22,20 +22,24 @@ const FIELD_DEFAULTS = {
   max_upgrades: MAX_UPGRADES,
 } as const;
 
-interface RowEntryProps {
+export interface RowEntryInnerProps {
   name: string;
-  value: string;
-  password: boolean;
-  displayed_val?: string;
+  value: string; // value is the rawValue (a string)
   valid?: ConfigValid;
-  hint?;
-  rowType?: RowType;
+  password: boolean;
   multiline?: number;
   isReadonly: IsReadonly | null;
+  onChangeEntry: (name: string, value: string) => void;
+  clearable?: boolean;
+  update: () => void;
+}
+
+interface RowEntryProps extends RowEntryInnerProps {
+  displayed_val?: string; // the processed rawValue
+  hint?: JSX.Element;
+  rowType?: RowType;
   onJsonEntryChange: (name: string, value?: string) => void;
   onChangeEntry: (name: string, value: string) => void;
-  clearable;
-  update;
 }
 
 export function RowEntry({
@@ -86,15 +90,7 @@ export function RowEntry({
               readonly={ro}
               onJsonEntryChange={onJsonEntryChange}
             />
-            {ro && (
-              <>
-                Value controlled via{" "}
-                <code>
-                  ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-                </code>
-                .
-              </>
-            )}
+            <ReadOnly readonly={ro} />
           </>
         );
       default:
@@ -112,15 +108,17 @@ export function RowEntry({
               update={update}
             />
             <div style={{ fontSize: "90%", display: "inlineBlock" }}>
-              {name == "version_recommended_browser" && (
+              {!Array.isArray(value) &&
+              name === "version_recommended_browser" ? (
                 <VersionHint value={value} />
-              )}
+              ) : undefined}
               {hint}
               <ReadOnly readonly={isReadonly[name]} />
               {displayed_val != null && (
                 <span>
                   {" "}
-                  Interpreted as <code>{displayed_val}</code>.{" "}
+                  {valid ? "Interpreted as" : "Invalid:"}{" "}
+                  <code>{displayed_val}</code>.{" "}
                 </span>
               )}
               {valid != null && Array.isArray(valid) && (

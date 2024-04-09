@@ -23,6 +23,10 @@ export default function init(
   const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
+    socket.on("error", (err) => {
+      // server will crash sometimes without this:
+      logger.debug("WARNING -- websocket socket error", err);
+    });
     const dbg = (...args) => {
       logger.silly(req.url, ...args);
     };
@@ -111,7 +115,7 @@ export default function init(
   if (listenersHack) {
     // This is an insane horrible hack to fix https://github.com/sagemathinc/cocalc/issues/7067
     // The problem is that there are four separate websocket "upgrade" handlers when we are doing
-    // development, and nodejs just doesn't hav a good solution to multiple websocket handlers,
+    // development, and nodejs just doesn't have a good solution to multiple websocket handlers,
     // as explained here: https://github.com/nodejs/node/issues/6339
     // The four upgrade handlers are:
     //   - this proxy here
@@ -123,12 +127,18 @@ export default function init(
     // What's worse is that getEventListeners only seems to ever return *two*
     // listeners.  By extensive trial and error, it seems to return first the primus
     // listener, then the nextjs one.  I have no idea why the order is that way; I would
-    // expect the reverse.   And I don't know why this handler here isn't in the list.
+    // expect the reverse.  (Update: it's because nextjs uses a hack -- it only installs
+    // a listener once a request comes in. Until there is a request, nextjs does not have
+    // access to the server and can't mess with it.)
+    // And I don't know why this handler here isn't in the list.
     // In any case, once we get a failed request *and* we see there are at least two
     // other handlers (it's exactly two), we completely steal handling of the upgrade
     // event here.  We then call the appropriate other handler when needed.
     // I have no idea how the HMR reloader for that static webpack plays into this,
     // but it appears to just work for some reason.
+
+    // NOTE: I had to do something similar that is in packages/next/lib/init.js,
+    // and is NOT a hack.  That technique could probably be used to fix this properly.
 
     let listeners: any[] = [];
     handler = async (req, socket, head) => {

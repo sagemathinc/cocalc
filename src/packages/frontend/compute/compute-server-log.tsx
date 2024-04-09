@@ -36,7 +36,10 @@ export default function ComputeServerLog({
         style={{ color: "#666", ...style }}
         onClick={async () => {
           setShow(!show);
-          setLog(await getLog({ id }));
+          if (!show) {
+            // showing log, so update it:
+            setLog(await getLog({ id }));
+          }
         }}
       >
         <Icon name="history" /> Log

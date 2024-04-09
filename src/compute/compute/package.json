@@ -9,8 +9,8 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "make": "pnpm install && pnpm run build",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "build": "../../packages/node_modules/.bin/tsc --build",
+    "tsc": "../../packages/node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "bin": {
     "cocalc-compute-start": "./bin/start.js"
@@ -38,11 +38,10 @@
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/ws": "^8.5.9",
-    "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "cookie": "^0.5.0",
     "debug": "^4.3.2",
-    "websocketfs": "^0.17.0",
+    "websocketfs": "^0.17.2",
     "ws": "^8.13.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",

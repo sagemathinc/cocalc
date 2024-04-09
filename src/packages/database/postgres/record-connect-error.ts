@@ -4,14 +4,15 @@
  */
 
 import getLogger from "@cocalc/backend/logger";
-import { newGauge } from "../metrics";
+import { newGauge } from "@cocalc/backend/metrics";
 import { PostgreSQL } from "./types";
 
 function getStatusGauge() {
   return newGauge(
+    "database",
     "db_latest_connection_ts_total",
     "Last time the connect/disconnect event was emitted",
-    ["status"]
+    ["status"],
   );
 }
 

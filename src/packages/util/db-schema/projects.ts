@@ -104,7 +104,7 @@ Table({
             old_val,
             new_val,
             account_id,
-            cb
+            cb,
           );
         },
 
@@ -113,7 +113,7 @@ Table({
             old_val,
             new_val,
             account_id,
-            cb
+            cb,
           );
         },
       },
@@ -490,7 +490,7 @@ Table({
           _old_value,
           new_val,
           account_id,
-          cb
+          cb,
         ): Promise<void> {
           try {
             // to delete an entry, pretend to set the datastore = {delete: [name]}
@@ -498,7 +498,7 @@ Table({
               await db.project_datastore_del(
                 account_id,
                 new_val.project_id,
-                new_val.addons.datastore.delete
+                new_val.addons.datastore.delete,
               );
               cb(undefined);
             } else {
@@ -508,7 +508,7 @@ Table({
               const res = await db.project_datastore_set(
                 account_id,
                 new_val.project_id,
-                new_val.addons.datastore
+                new_val.addons.datastore,
               );
               cb(undefined, res);
             }
@@ -531,7 +531,7 @@ Table({
             // check if opts.query.addons === null ?!
             const data = await db.project_datastore_get(
               opts.account_id,
-              opts.query.project_id
+              opts.query.project_id,
             );
             cb(undefined, data);
           } catch (err) {
@@ -546,6 +546,7 @@ Table({
     addons: true,
   },
 });
+
 
 export interface ProjectStatus {
   "project.pid"?: number; // pid of project server process

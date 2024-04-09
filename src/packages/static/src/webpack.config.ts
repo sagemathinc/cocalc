@@ -237,7 +237,7 @@ export default function getConfig({ middleware }: Options = {}) {
         "../../../../node_modules/fflate/umd/index": resolve(
           "..",
           "node_modules",
-          ".pnpm/fflate@0.7.4/node_modules/fflate/umd/index"
+          ".pnpm/fflate@0.7.3/node_modules/fflate/umd/index"
         ),
       },
       // So we can "import 'file'" instead of "import 'file.tsx'"
@@ -257,8 +257,6 @@ export default function getConfig({ middleware }: Options = {}) {
       fallback: {
         stream: require.resolve("stream-browserify"),
         path: require.resolve("path-browserify"),
-        crypto:
-          require.resolve("crypto-browserify") /* for @phosphor/widgets */,
         util: require.resolve("util/"),
         assert: require.resolve("assert/"),
       },

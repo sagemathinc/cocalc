@@ -2,12 +2,14 @@
 This all assume Ubuntu 22.04.
 */
 
-import { CudaVersion } from "@cocalc/util/db-schema/compute-servers";
 import getSshKeys from "@cocalc/server/projects/get-ssh-keys";
+import { getImageField } from "@cocalc/util/db-schema/compute-servers";
+import { getTag } from "@cocalc/server/compute/cloud/startup-script";
+import type { Images } from "@cocalc/server/compute/images";
 import {
-  Architecture,
-  getImagePostfix,
-} from "@cocalc/util/db-schema/compute-servers";
+  PROXY_CONFIG,
+  PROXY_AUTH_TOKEN_FILE,
+} from "@cocalc/util/compute/constants";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -86,12 +88,131 @@ fi
 `;
 }
 
-export function installCoCalc(arch: Architecture) {
+export function installCoCalc({
+  IMAGES,
+  tag,
+}: {
+  IMAGES: Images;
+  tag?: string;
+}) {
+  const pkg_x86_64 = IMAGES["cocalc"][getImageField("x86_64")];
+  const pkg_arm64 = IMAGES["cocalc"][getImageField("arm64")];
+  const npmTag = getTag({ image: "cocalc", IMAGES, tag });
+
   return `
 set +v
 NVM_DIR=/cocalc/nvm source /cocalc/nvm/nvm.sh
-npx -y @cocalc/compute-server${getImagePostfix(arch)} /cocalc
+if [ $(uname -m) = "aarch64" ]; then
+    npx -y ${pkg_arm64}@${npmTag} /cocalc
+else
+    npx -y ${pkg_x86_64}@${npmTag} /cocalc
+fi;
 set -v
+`;
+}
+
+export function installMicroK8s({
+  image,
+  IMAGES,
+  gpu,
+}: {
+  image: string;
+  IMAGES: Images;
+  gpu?: boolean;
+}) {
+  const microk8s = IMAGES[image]?.microk8s;
+  if (!microk8s) {
+    // not required for this image
+    return "";
+  }
+  return `
+setState install install-k8s '' 120 70
+
+snap install microk8s --classic
+
+if [ $? -ne 0 ]; then
+    echo "FAILED to install microk8s!"
+    exit 1;
+fi
+
+mkdir -p /data/.cache/.kube
+microk8s config > /data/.cache/.kube/config
+chown -R user. /data/.cache/.kube
+chown user. /data/.cache /data
+chmod og-rwx -R  /data/.cache/.kube
+
+${gpu ? "microk8s enable gpu" : ""}
+
+# Wait until Microk8s cluster is up and running
+microk8s status --wait-ready
+if [ $? -ne 0 ]; then
+    echo "FAILED to install microk8s."
+    exit 1;
+fi
+
+setState install install-k8s '' 120 75
+
+if microk8s helm list  -n longhorn-system | grep -q "longhorn"; then
+
+  echo "Longhorn distributed block storage for Kubernetes already installed"
+
+else
+
+  echo "Install Longhorn distributed block storage for Kubernetes"
+  microk8s helm repo add longhorn https://charts.longhorn.io
+  microk8s helm repo update
+  microk8s kubectl create namespace longhorn-system
+  microk8s helm install longhorn longhorn/longhorn --namespace longhorn-system \
+    --set defaultSettings.defaultDataPath="/data/.longhorn" \
+    --set csi.kubeletRootDir="/var/snap/microk8s/common/var/lib/kubelet"
+  if [ $? -ne 0 ]; then
+      echo "FAILED to install longhorm helm chart"
+      exit 1;
+  fi
+
+  setState install install-k8s '' 120 80
+
+  until microk8s kubectl get storageclass longhorn; do
+    echo "Waiting for longhorn storageclass..."
+    sleep 1
+  done
+
+  setState install install-k8s '' 120 85
+
+  # Set longhorn storageclass to not be the default
+  microk8s kubectl patch storageclass longhorn -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+
+  # Create default storage class for longhorn with only 1 replica, which
+  # makes sense for our single-node compute servers that are backed by
+  # GCP disks (which are redundant), and soon will have instant snapshots.
+
+cat <<EOF | microk8s kubectl apply -f -
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: longhorn1
+  annotations: {"storageclass.kubernetes.io/is-default-class":"true"}
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: "Delete"
+volumeBindingMode: Immediate
+parameters:
+  numberOfReplicas: "1"
+  staleReplicaTimeout: "30"
+  fromBackup: ""
+  fsType: "ext4"
+EOF
+
+  # Install nfs-common, which is needed for read-write-many support
+  apt-get update
+  apt-get install -y nfs-common
+
+fi
+
+echo "Kubernetes installation complete."
+
+setState install install-k8s '' 120 87
+
 `;
 }
 
@@ -103,8 +224,17 @@ export async function installConf({
   hostname,
   exclude_from_sync,
   auth_token,
+  proxy,
 }) {
   const auth = await authorizedKeys(project_id);
+
+  // We take care to base64 encode proxy config, so there
+  // is no possible weird bash string escaping issue.  Since
+  // proxy config could contain regexp's, this is a good idea.
+  const base64ProxyConfig = Buffer.from(
+    JSON.stringify(proxy, undefined, 2),
+  ).toString("base64");
+
   return `
 # Setup Current CoCalc Connection Configuration --
 mkdir -p /cocalc/conf
@@ -114,7 +244,8 @@ echo "${project_id}" > /cocalc/conf/project_id
 echo "${compute_server_id}" > /cocalc/conf/compute_server_id
 echo "${hostname}" > /cocalc/conf/hostname
 echo '${auth}' > /cocalc/conf/authorized_keys
-echo '${auth_token}' > /cocalc/conf/auth_token
+echo '${auth_token}' > ${PROXY_AUTH_TOKEN_FILE}
+echo '${base64ProxyConfig}' | base64 --decode > ${PROXY_CONFIG}
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
 `;
 }
@@ -126,31 +257,31 @@ https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&D
 
 (NOTE: K80's don't work since they are too old and not supported!)
 
-It takes about 10 minutes and 15GB of disk space are used on / afterwards.  The other approaches don't
-seem to work.
+It takes about 10 minutes and 15GB of disk space are used on / afterwards.
+The other approaches don't seem to work.
 
-NOTE: We also install nvidia-container-toolkit, which isn't in the instructions linked to above,
-because we want to support using Nvidia inside of Docker.
+NOTE: We also install nvidia-container-toolkit, which isn't in the instructions
+linked to above, because we want to support using Nvidia inside of Docker.
 
 Links to all versions: https://developer.nvidia.com/cuda-toolkit-archive
 
-Can see the versions from Ubuntu via: apt-cache madison cuda
-
-Code below with awk works pretty generically regarding supporting many cuda versions.
-
+**We always install the newest available version** of CUDA toolkits and kernel drivers.
 */
 
-export function installCuda(cudaVersion: CudaVersion) {
+export function installCuda() {
   return `
 curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring.deb
 rm cuda-keyring.deb
 apt-get update -y
-export CUDA_VERSION=$(apt-cache madison cuda | awk '/${cudaVersion}/ { print $3 }' | head -1)
+export CUDA_VERSION=$(apt-cache madison cuda | awk '{ print $3 }' | head -1)
 apt-get -y install cuda=$CUDA_VERSION nvidia-container-toolkit
-apt-get --purge -y remove  nvidia-kernel-source-545
+export NVIDIA_KERNEL_SOURCE=$(apt-cache search nvidia-kernel-source | awk '{ print $1 }' | tail -1)
+apt-get --purge -y remove  $NVIDIA_KERNEL_SOURCE
 apt-get -y autoremove
-apt-get -y install nvidia-kernel-open-545 cuda-drivers-545
+export NVIDIA_KERNEL_OPEN=$(apt-cache search nvidia-kernel-open | awk '{ print $1 }' | tail -1)
+export CUDA_DRIVERS=$(apt-cache search cuda-drivers | grep CUDA | awk '{ print $1 }' | tail -1)
+apt-get -y install $NVIDIA_KERNEL_OPEN $CUDA_DRIVERS
 `;
 }
 

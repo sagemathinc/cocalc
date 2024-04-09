@@ -21,12 +21,11 @@ const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
 import type { TourProps } from "antd";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { List, Map, fromJS, Set as iSet } from "immutable";
 import { debounce } from "lodash";
-
 import {
   Actions as BaseActions,
   Rendered,
@@ -65,8 +64,8 @@ import {
   len,
   uuid,
 } from "@cocalc/util/misc";
-import languageModelCreateChat, { Options } from "../chatgpt/create-chat";
-import type { Scope as LanguageModelScope } from "../chatgpt/types";
+import languageModelCreateChat, { Options } from "../llm/create-chat";
+import type { Scope as LanguageModelScope } from "../llm/types";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
@@ -220,7 +219,7 @@ export class Actions<
       this as unknown as Actions<CodeEditorState>,
     );
 
-    this.format = reuseInFlight(this.format);
+    this.format = reuseInFlight(this.format.bind(this));
 
     this.set_resize = debounce(this.set_resize.bind(this), 20, {
       leading: false,
@@ -1996,7 +1995,7 @@ export class Actions<
       // format bar only makes sense when some cm is there...
       return;
     }
-    await cm.edit_selection({ cmd, args });
+    await cm.edit_selection({ cmd, args, project_id: this.project_id });
     if (this._state !== "closed") {
       cm.focus();
       this.set_syncstring_to_codemirror();
@@ -2563,7 +2562,7 @@ export class Actions<
       }
       await t.wait_for_next_render();
       await delay(1); // also wait a little bit
-      t.conn_write("reset\n");
+      t.conn_write("\nreset\n");
     } else {
       throw Error(`"clear" for type="${type}" not implemented`);
     }
@@ -2705,12 +2704,19 @@ export class Actions<
 
   Returns the id of the frame with the code editor in it.
   */
-  public open_code_editor_frame(
-    path: string,
-    dir: FrameDirection = "col",
-    first: boolean = false,
-    pos: number | undefined = undefined,
-  ): string {
+  open_code_editor_frame = ({
+    path,
+    dir = "col",
+    first = false,
+    pos,
+    compute_server_id,
+  }: {
+    path: string;
+    dir?: FrameDirection;
+    first?: boolean;
+    pos?: number;
+    compute_server_id?: number;
+  }): string => {
     // See if there is already a frame for path, and if so show
     // display and focus it.
     for (let id in this._get_leaf_ids()) {
@@ -2739,7 +2745,7 @@ export class Actions<
     if (id == null) {
       throw Error("BUG -- failed to make frame");
     }
-    this.set_frame_to_code_editor(id, path);
+    this.setFrameToCodeEditor({ id, path, compute_server_id });
 
     if (pos != null) {
       const parent_id = this.get_parent_id(id);
@@ -2749,7 +2755,7 @@ export class Actions<
     }
     this.set_active_id(id);
     return id;
-  }
+  };
 
   public async switch_to_file(path: string, id?: string): Promise<string> {
     if (id != null) {
@@ -2757,7 +2763,7 @@ export class Actions<
       if (node == null) return id;
       if (node.get("path") == path) return id; // already done;
       // Change it --
-      await this.set_frame_to_code_editor(id, path);
+      await this.setFrameToCodeEditor({ id, path });
       return id;
     }
 
@@ -2777,17 +2783,24 @@ export class Actions<
     }
     if (node.get("path") == path) return id; // already done.
 
-    this.set_frame_to_code_editor(id, path);
+    this.setFrameToCodeEditor({ id, path });
     return id;
   }
 
   // Init actions and set our new cm frame to the given path.
-  private async set_frame_to_code_editor(
-    id: string,
-    path: string,
-  ): Promise<void> {
+  private setFrameToCodeEditor = async ({
+    id,
+    path,
+    compute_server_id,
+  }: {
+    id: string;
+    path: string;
+    compute_server_id?: number;
+  }): Promise<void> => {
     const node = this._get_frame_node(id);
-    if (node == null) throw Error(`no frame with id ${id}`);
+    if (node == null) {
+      throw Error(`no frame with id ${id}`);
+    }
 
     // This call to init_code_editor ensures the
     // actions/manager is initialized.  We need
@@ -2796,11 +2809,15 @@ export class Actions<
     // while rendering, as that causes a state transition which
     // react does NOT appreciate.
     await this.code_editors.init_code_editor(id, path);
+    await this._get_project_actions().setComputeServerIdForFile({
+      path,
+      compute_server_id,
+    });
 
     // Now actually change the path field of the frame tree, which causes
     // a render.
     this.set_frame_tree({ id, path, type: "cm" });
-  }
+  };
 
   public get_code_editor(id: string): CodeEditor | undefined {
     return this.code_editors.get_code_editor(id);

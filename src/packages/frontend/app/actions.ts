@@ -20,6 +20,7 @@ export class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
+  private popconfirmIsOpen: boolean = false;
 
   /* Expects a func which takes a browser keydown event
      Only allows one keyhandler to be active at a time.
@@ -57,7 +58,6 @@ export class PageActions extends Actions<PageState> {
 
     if (this.active_key_handler != null && !this.suppress_key_handlers) {
       $(window).on("keydown", this.active_key_handler);
-    } else {
     }
   }
 
@@ -228,19 +228,27 @@ export class PageActions extends Actions<PageState> {
     this.setState({ show_connection });
   }
 
+  // Suppress the activation of any new key handlers
+  disableGlobalKeyHandler = () => {
+    this.suppress_key_handlers = true;
+    this.unattach_active_key_handler();
+  };
+  // Enable whatever the current key handler should be
+  enableGlobalKeyHandler = () => {
+    this.suppress_key_handlers = false;
+    this.set_active_key_handler();
+  };
+
   // Toggles visibility of file use widget
   // Temporarily disables window key handlers until closed
   // FUTURE: Develop more general way to make key mappings
   toggle_show_file_use() {
     const currently_shown = redux.getStore("page").get("show_file_use");
     if (currently_shown) {
-      // Enable whatever the current key handler should be
-      this.suppress_key_handlers = false; // HACK: Terrible way to do this.
-      this.set_active_key_handler();
+      this.enableGlobalKeyHandler(); // HACK: Terrible way to do this.
     } else {
       // Suppress the activation of any new key handlers until file_use closes
-      this.suppress_key_handlers = true;
-      this.unattach_active_key_handler();
+      this.disableGlobalKeyHandler(); // HACK: Terrible way to do this.
     }
 
     this.setState({ show_file_use: !currently_shown });
@@ -379,14 +387,36 @@ export class PageActions extends Actions<PageState> {
     return false;
   }
 
+  // The code below is complicated and tricky because multiple parts of our codebase could
+  // call it at the "same time".  This happens, e.g., when opening several Jupyter notebooks
+  // on a compute server from the terminal using the open command.
+  // By "same time", I mean a second call to popconfirm comes in while the first is async
+  // awaiting to finish.  We handle that below by locking while waiting.  Since only one
+  // thing actually happens at a time in Javascript, the below should always work with
+  // no deadlocks.  It's tricky looking code, but MUCH simpler than alternatives I considered.
   popconfirm = async (opts): Promise<boolean> => {
-    // this causes the modal to appear
-    this.setState({ popconfirm: { open: true, ...opts } });
     const store = redux.getStore("page");
-    while (store.getIn(["popconfirm", "open"])) {
+    // wait for any currently open modal to be done.
+    while (this.popconfirmIsOpen) {
       await once(store, "change");
     }
-    return !!store.getIn(["popconfirm", "ok"]);
+    // we got it, so let's take the lock
+    try {
+      this.popconfirmIsOpen = true;
+      // now we do it -- this causes the modal to appear
+      this.setState({ popconfirm: { open: true, ...opts } });
+      // wait for our to be done
+      while (store.getIn(["popconfirm", "open"])) {
+        await once(store, "change");
+      }
+      // report result of ours.
+      return !!store.getIn(["popconfirm", "ok"]);
+    } finally {
+      // give up the lock
+      this.popconfirmIsOpen = false;
+      // trigger a change, so other code has a chance to get the lock
+      this.setState({ popconfirm: { open: false } });
+    }
   };
 }
 

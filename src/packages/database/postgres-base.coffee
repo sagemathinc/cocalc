@@ -42,14 +42,15 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { primaryKey, primaryKeys } = require('./postgres/schema/table')
 
 misc_node = require('@cocalc/backend/misc_node')
-data = require("@cocalc/backend/data")
+{ sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
+
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
 {SCHEMA, client_db} = require('@cocalc/util/schema')
 
-metrics = require('./metrics')
+metrics = require('@cocalc/backend/metrics')
 
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
@@ -61,9 +62,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         super()
         opts = defaults opts,
-            host            : data.pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
-            database        : data.pgdatabase
-            user            : data.pguser
+            host            : pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
+            database        : pgdatabase
+            user            : pguser
+            ssl             : pgssl
             debug           : exports.DEBUG
             connect         : true
             password        : undefined
@@ -96,6 +98,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_concurrent_heavily_loaded = opts.concurrent_heavily_loaded
         @_user = opts.user
         @_database = opts.database
+        @_ssl = opts.ssl
         @_password = opts.password ? dbPassword()
         @_init_metrics()
 
@@ -265,6 +268,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         port             : @_port
                         password         : @_password
                         database         : @_database
+                        ssl              : @_ssl
                         statement_timeout: DEFAULT_STATEMENT_TIMEOUT_MS # we set a statement_timeout, to avoid queries locking up PG
                     if @_notification?
                         client.on('notification', @_notification)
@@ -387,11 +391,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _init_metrics: =>
         # initialize metrics
         try
-            @query_time_histogram = metrics.newHistogram('db_query_ms_histogram', 'db queries'
+            @query_time_histogram = metrics.newHistogram('db', 'query_ms_histogram', 'db queries'
                 buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
                 labels: ['table']
             )
-            @concurrent_counter = metrics.newCounter('db_concurrent_total',
+            @concurrent_counter = metrics.newCounter('db', 'concurrent_total',
                 'Concurrent queries (started and finished)',
                 ['state']
             )
@@ -847,12 +851,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
         args = ['--user', @_user, '--host', @_host.split(',')[0], '--port', @_port, '--list', '--tuples-only']
+        sslEnv = sslConfigToPsqlEnv(@_ssl)
         dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
             args    : args
-            env     :
-                PGPASSWORD : @_password
+            env     : Object.assign sslEnv,
+                  PGPASSWORD : @_password
             cb      : (err, output) =>
                 if err
                     cb(err)

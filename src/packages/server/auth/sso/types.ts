@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Strategy as SAMLStrategyNew } from "@node-saml/passport-saml";
 import { Router } from "express";
-import { AuthenticateOptions, Strategy as PassportStrategy } from "passport";
-import { Strategy as SAMLStrategyOld } from "passport-saml";
-import { Strategy as TwitterStrategy } from "passport-twitter";
+
+import { Strategy as SAMLStrategyNew } from "@node-saml/passport-saml";
+import { Strategy as TwitterStrategy } from "@passport-js/passport-twitter";
 import { Strategy as GoogleStrategyOld } from "@passport-next/passport-google-oauth2";
+import { AuthenticateOptions, Strategy as PassportStrategy } from "passport";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Strategy as GithubStrategy } from "passport-github2";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
@@ -44,7 +44,6 @@ export class TwitterWrapper extends TwitterStrategy {
 export type PassportStrategyConstructorType =
   | typeof PassportStrategy
   | typeof SAMLStrategyNew
-  | typeof SAMLStrategyOld
   | typeof TwitterWrapper
   | typeof FacebookStrategy
   | typeof GithubStrategy

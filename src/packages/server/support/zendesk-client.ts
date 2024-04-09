@@ -1,16 +1,21 @@
-import { getServerSettings } from "@cocalc/database/settings";
+import type { ZendeskClient } from "node-zendesk";
 import { createClient } from "node-zendesk";
-import type { Client } from "node-zendesk";
 
-let client: Client | undefined = undefined;
+import { getServerSettings } from "@cocalc/database/settings";
+
+let client: ZendeskClient | undefined = undefined;
+
 let config = "";
-export default  async function getClient(): Promise<Client> {
+
+export default async function getClient(): Promise<ZendeskClient> {
   const {
     zendesk_token: token,
     zendesk_username: username,
-    zendesk_uri: remoteUri,
+    zendesk_uri,
   } = await getServerSettings();
-  const config0 = `${token + username + remoteUri}`;
+
+  const subdomain = extractSubdomain(zendesk_uri);
+  const config0 = `${token + username + subdomain}`;
   if (config == config0 && client != null) {
     return client;
   }
@@ -18,21 +23,31 @@ export default  async function getClient(): Promise<Client> {
     // Get the credential from the database.
     if (!token) {
       throw Error(
-        "Support not available -- admin must configure the Zendesk token"
+        "Support not available -- admin must configure the Zendesk token",
       );
     }
     if (!username) {
       throw Error(
-        "Support not available -- admin must configure the Zendesk username"
+        "Support not available -- admin must configure the Zendesk username",
       );
     }
-    if (!remoteUri) {
+    if (!subdomain) {
       throw Error(
-        "Support not available -- admin must configure the Zendesk Uri"
+        "Support not available -- admin must configure the Zendesk subdomain",
       );
     }
     config = config0;
-    client = createClient({ username, token, remoteUri });
+    client = createClient({ username, token, subdomain });
   }
   return client;
+}
+
+// newer client just wants the subdomain.
+// so, if the uri starts with "http", extract the subdomain – otherwise just return the uri.
+export function extractSubdomain(uri: string): string {
+  if (uri.startsWith("http")) {
+    return uri.split(".")[0].split("//")[1];
+  } else {
+    return uri;
+  }
 }

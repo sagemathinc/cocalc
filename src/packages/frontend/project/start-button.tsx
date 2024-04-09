@@ -125,24 +125,27 @@ export function StartButton() {
             style={{ margin: "10px 20%" }}
             message={
               <span style={{ fontWeight: 500, fontSize: "14pt" }}>
-                Too many trial projects!
+                Too Many Free Trial Projects
               </span>
             }
             type="error"
             description={
               <span style={{ fontSize: "12pt" }}>
-                Unfortunately, there are too many{" "}
-                <A href={DOC_TRIAL}>trial projects</A> running on CoCalc right
-                now and paying customers have priority. Try running your trial
-                project later or{" "}
+                There is no more capacity for{" "}
+                <A href={DOC_TRIAL}>Free Trial projects</A> on CoCalc right now.{" "}
+                <br />
                 <a
                   onClick={() => {
-                    redux.getActions("page").set_active_tab("account");
-                    redux.getActions("account").set_active_tab("licenses");
+                    redux
+                      .getProjectActions(project_id)
+                      .set_active_tab("upgrades");
                   }}
                 >
-                  <u>upgrade using a license</u>.
-                </a>
+                  Upgrade your project
+                </a>{" "}
+                using{" "}
+                <A href="https://doc.cocalc.com/licenses.html">a license</A> or{" "}
+                <A href="https://doc.cocalc.com/paygo.html">pay as you go</A>.
               </span>
             }
           />

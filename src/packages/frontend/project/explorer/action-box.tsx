@@ -13,10 +13,9 @@ import DirectorySelector from "../directory-selector";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
-
+import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import * as misc from "@cocalc/util/misc";
-
-import { Button as AntdButton } from "antd";
+import { Button as AntdButton, Radio } from "antd";
 
 import {
   Button,
@@ -30,7 +29,7 @@ import {
   Checkbox,
 } from "react-bootstrap";
 import * as account from "@cocalc/frontend/account";
-
+import SelectServer from "@cocalc/frontend/compute/select-server";
 import ConfigureShare from "@cocalc/frontend/share/config";
 
 type FileAction = undefined | keyof typeof file_actions;
@@ -44,31 +43,35 @@ interface ReactProps {
   actions: ProjectActions;
   displayed_listing?: object;
   new_name?: string;
+  name: string;
 }
 
 interface ReduxProps {
   site_name?: string;
   get_user_type: () => string;
   get_total_project_quotas: (
-    project_id: string
+    project_id: string,
   ) => { network: boolean } | undefined;
+  compute_server_id?: number;
 }
 
 interface State {
   copy_destination_directory: string;
   copy_destination_project_id: string;
+  copy_from_compute_server_to: "compute-server" | "project";
   move_destination: string;
   new_name?: string;
   show_different_project?: boolean;
   overwrite_newer?: boolean;
   delete_extra_files?: boolean;
+  dest_compute_server_id: number;
 }
 
 export const ActionBox = rclass<ReactProps>(
   class ActionBox extends React.Component<ReactProps & ReduxProps, State> {
     private pre_styles: React.CSSProperties;
 
-    static reduxProps = () => {
+    static reduxProps = ({ name }) => {
       return {
         projects: {
           // get_total_project_quotas relies on this data
@@ -82,6 +85,9 @@ export const ActionBox = rclass<ReactProps>(
         customize: {
           site_name: rtypes.string,
         },
+        [name]: {
+          compute_server_id: rtypes.number,
+        },
       };
     };
 
@@ -93,6 +99,8 @@ export const ActionBox = rclass<ReactProps>(
         move_destination: "",
         new_name: this.props.new_name,
         show_different_project: false,
+        copy_from_compute_server_to: "compute-server",
+        dest_compute_server_id: props.compute_server_id ?? 0,
       };
       this.pre_styles = {
         marginBottom: "15px",
@@ -176,7 +184,7 @@ export const ActionBox = rclass<ReactProps>(
                   type="text"
                   defaultValue={account.default_filename(
                     "zip",
-                    this.props.project_id
+                    this.props.project_id,
                   )}
                   placeholder="Result archive..."
                   onKeyDown={this.action_key}
@@ -235,18 +243,28 @@ export const ActionBox = rclass<ReactProps>(
           </Row>
           <Row style={{ marginBottom: "10px" }}>
             <Col sm={12}>
-              Deleting a file immediately deletes it from disk freeing up space;
-              however, older backups of your files may still be available in the{" "}
-              <a
-                href=""
-                onClick={(e) => {
-                  e.preventDefault();
-                  this.props.actions.open_directory(".snapshots");
-                }}
-              >
-                ~/.snapshots
-              </a>{" "}
-              directory.
+              Deleting a file immediately deletes it from the disk{" "}
+              {this.props.compute_server_id ? (
+                <>on the compute server</>
+              ) : (
+                <></>
+              )}{" "}
+              freeing up space.
+              {!this.props.compute_server_id && (
+                <div>
+                  Older backups of your files may still be available in the{" "}
+                  <a
+                    href=""
+                    onClick={(e) => {
+                      e.preventDefault();
+                      this.props.actions.open_directory(".snapshots");
+                    }}
+                  >
+                    ~/.snapshots
+                  </a>{" "}
+                  directory.
+                </div>
+              )}
             </Col>
           </Row>
           <Row>
@@ -270,7 +288,7 @@ export const ActionBox = rclass<ReactProps>(
 
     rename_or_duplicate_click(): void {
       const rename_dir = misc.path_split(
-        this.props.checked_files?.first() ?? ""
+        this.props.checked_files?.first() ?? "",
       ).head;
       const destination = (ReactDOM.findDOMNode(this.refs.new_name) as any)
         .value;
@@ -314,7 +332,7 @@ export const ActionBox = rclass<ReactProps>(
 
     render_rename_warning(): JSX.Element | undefined {
       const initial_ext = misc.filename_extension(
-        this.props.checked_files.first()
+        this.props.checked_files.first(),
       );
       const new_name = this.state.new_name ?? "";
       const current_ext = misc.filename_extension(new_name);
@@ -490,7 +508,7 @@ export const ActionBox = rclass<ReactProps>(
                   : this.state.move_destination}
               </h4>
               <DirectorySelector
-                title="Select Move Destination Directory"
+                title="Select Move Destination Folder"
                 key="move_destination"
                 onSelect={(move_destination: string) =>
                   this.setState({ move_destination })
@@ -517,7 +535,7 @@ export const ActionBox = rclass<ReactProps>(
       if (this.state.show_different_project) {
         return (
           <Col sm={4} style={{ color: "#666", marginBottom: "15px" }}>
-            <h4>In the project</h4>
+            <h4>Target Project</h4>
             <SelectProject
               at_top={[this.props.project_id]}
               value={this.state.copy_destination_project_id}
@@ -556,18 +574,6 @@ export const ActionBox = rclass<ReactProps>(
       }
     }
 
-    different_project_button(): JSX.Element {
-      return (
-        <Button
-          bsSize="large"
-          onClick={() => this.setState({ show_different_project: true })}
-          style={{ padding: "0px 5px 5px", fontWeight: 500 }}
-        >
-          A Possibly Different Project...
-        </Button>
-      );
-    }
-
     copy_click = (): void => {
       const destination_directory = this.state.copy_destination_directory;
       const destination_project_id = this.state.copy_destination_project_id;
@@ -588,10 +594,24 @@ export const ActionBox = rclass<ReactProps>(
           delete_missing: delete_extra_files,
         });
       } else {
-        this.props.actions.copy_paths({
-          src: paths,
-          dest: destination_directory,
-        });
+        if (this.props.compute_server_id) {
+          this.props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: this.props.compute_server_id,
+            dest_compute_server_id:
+              this.state.copy_from_compute_server_to == "compute-server"
+                ? this.props.compute_server_id
+                : 0,
+          });
+        } else {
+          this.props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: 0,
+            dest_compute_server_id: this.state.dest_compute_server_id,
+          });
+        }
       }
 
       this.props.actions.set_file_action();
@@ -621,7 +641,7 @@ export const ActionBox = rclass<ReactProps>(
       return true;
     }
 
-    render_copy_description(): JSX.Element {
+    render_copy_description() {
       for (const path of this.props.checked_files) {
         if (in_snapshot_path(path)) {
           return (
@@ -634,13 +654,51 @@ export const ActionBox = rclass<ReactProps>(
       }
       return (
         <>
-          <h4>
-            Copy to a folder or{" "}
-            {this.state.show_different_project
-              ? "project"
-              : this.different_project_button()}
-          </h4>
-          {this.render_selected_files_list()}
+          {!this.props.compute_server_id ? (
+            <div style={{ display: "flex" }}>
+              <h4>Items </h4>
+
+              <div style={{ flex: 1, textAlign: "right" }}>
+                <AntdButton
+                  onClick={() => {
+                    const show_different_project =
+                      !this.state.show_different_project;
+                    this.setState({
+                      show_different_project,
+                    });
+                    if (show_different_project) {
+                      this.setState({ dest_compute_server_id: 0 });
+                    }
+                  }}
+                >
+                  {this.state.show_different_project
+                    ? "Copy to this project..."
+                    : "Copy to a different project..."}
+                </AntdButton>
+              </div>
+            </div>
+          ) : (
+            <h4>
+              <div style={{ display: "inline-block", marginRight: "15px" }}>
+                Copy to{" "}
+              </div>
+              <Radio.Group
+                optionType="button"
+                buttonStyle="solid"
+                value={this.state.copy_from_compute_server_to}
+                onChange={(e) => {
+                  this.setState({
+                    copy_from_compute_server_to: e.target.value,
+                  });
+                }}
+                options={[
+                  { label: "Compute Server", value: "compute-server" },
+                  { label: "Project", value: "project" },
+                ]}
+              />
+            </h4>
+          )}
+          <div>{this.render_selected_files_list()}</div>
         </>
       );
     }
@@ -675,6 +733,7 @@ export const ActionBox = rclass<ReactProps>(
               >
                 {this.render_copy_description()}
                 <ButtonToolbar>
+                  <Button onClick={this.cancel_action}>Cancel</Button>
                   <Button
                     bsStyle="primary"
                     onClick={this.copy_click}
@@ -683,7 +742,6 @@ export const ActionBox = rclass<ReactProps>(
                     <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "Item")}
                   </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
                 </ButtonToolbar>
               </Col>
               {this.render_different_project_dialog()}
@@ -694,17 +752,42 @@ export const ActionBox = rclass<ReactProps>(
                 <h4
                   style={
                     !this.state.show_different_project
-                      ? { height: "25px" }
+                      ? { minHeight: "25px" }
                       : undefined
                   }
                 >
                   Destination:{" "}
                   {this.state.copy_destination_directory == ""
-                    ? "Home directory"
+                    ? "Home Directory"
                     : this.state.copy_destination_directory}
                 </h4>
                 <DirectorySelector
-                  title="Select Copy Destination Directory"
+                  title={
+                    this.props.compute_server_id ? (
+                      `Destination ${
+                        this.state.copy_from_compute_server_to ==
+                        "compute-server"
+                          ? "on the Compute Server"
+                          : "in the Project"
+                      }`
+                    ) : (
+                      <div style={{ display: "flex" }}>
+                        Destination{" "}
+                        {this.props.compute_server_id == 0 &&
+                          !this.state.show_different_project && (
+                            <div style={{ flex: 1, textAlign: "right" }}>
+                              <SelectServer
+                                project_id={this.props.project_id}
+                                value={this.state.dest_compute_server_id}
+                                setValue={(dest_compute_server_id) =>
+                                  this.setState({ dest_compute_server_id })
+                                }
+                              />
+                            </div>
+                          )}
+                      </div>
+                    )
+                  }
                   onSelect={(value: string) =>
                     this.setState({ copy_destination_directory: value })
                   }
@@ -713,6 +796,14 @@ export const ActionBox = rclass<ReactProps>(
                   project_id={this.state.copy_destination_project_id}
                   style={{ width: "100%" }}
                   bodyStyle={{ maxHeight: "250px" }}
+                  compute_server_id={
+                    this.props.compute_server_id
+                      ? this.state.copy_from_compute_server_to ==
+                        "compute-server"
+                        ? this.props.compute_server_id
+                        : 0
+                      : this.state.dest_compute_server_id
+                  }
                 />
               </Col>
             </Row>
@@ -739,12 +830,13 @@ export const ActionBox = rclass<ReactProps>(
         return <Loading />;
       }
       const total_quotas = this.props.get_total_project_quotas(
-        this.props.project_id
+        this.props.project_id,
       ) || { network: undefined };
       return (
         <ConfigureShare
           project_id={this.props.project_id}
           path={path}
+          compute_server_id={this.props.compute_server_id}
           isdir={public_data.isdir}
           size={public_data.size}
           mtime={public_data.mtime}
@@ -795,7 +887,7 @@ export const ActionBox = rclass<ReactProps>(
 
     render_download_single(single_item: string): JSX.Element {
       const target = (this.props.actions.get_store() as any).get_raw_link(
-        single_item
+        single_item,
       );
       return (
         <div>
@@ -821,7 +913,7 @@ export const ActionBox = rclass<ReactProps>(
               type="text"
               defaultValue={account.default_filename(
                 "zip",
-                this.props.project_id
+                this.props.project_id,
               )}
               placeholder="Result archive..."
               onKeyDown={this.action_key}
@@ -929,6 +1021,12 @@ export const ActionBox = rclass<ReactProps>(
                     <Icon name="times" />
                   </AntdButton>
                 </div>
+                {!!this.props.compute_server_id && (
+                  <ComputeServerTag
+                    id={this.props.compute_server_id}
+                    style={{ float: "right", top: "5px" }}
+                  />
+                )}
               </Col>
               <Col sm={12}>{this.render_action_box(action)}</Col>
             </Row>
@@ -936,5 +1034,5 @@ export const ActionBox = rclass<ReactProps>(
         );
       }
     }
-  }
+  },
 );

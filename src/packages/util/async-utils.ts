@@ -16,7 +16,8 @@ The two helpful async/await libraries I found are:
 */
 
 import * as awaiting from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
+
+import { reuseInFlight } from "./reuse-in-flight";
 
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
@@ -74,14 +75,14 @@ export async function retry_until_success<T>(
 
   let next_delay: number = opts.start_delay;
   let tries: number = 0;
-  const start_time: number = new Date().valueOf();
+  const start_time: number = Date.now();
   let last_exc: Error | undefined;
 
   // Return nonempty string if time or tries exceeded.
   function check_done(): string {
     if (
       opts.max_time &&
-      next_delay + new Date().valueOf() - start_time > opts.max_time
+      next_delay + Date.now() - start_time > opts.max_time
     ) {
       return "maximum time exceeded";
     }

@@ -26,7 +26,7 @@ import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
-import { PRESETS, Presets } from "./quota-config-presets";
+import { PRESET_MATCH_FIELDS, PRESETS, Presets } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
@@ -35,6 +35,8 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { Paragraph, Title } from "components/misc";
+
+const DEFAULT_PRESET: Presets = "standard";
 
 const STYLE: React.CSSProperties = {
   marginTop: "15px",
@@ -106,11 +108,7 @@ export default function SiteLicense(props: Props) {
             <PaygInfo what="a license" />
           </Paragraph>
           <Paragraph>
-            You might also be interested in a{" "}
-            <A href="/store/boost">license boost</A>,{" "}
-            <A href="/store/dedicated">dedicated VM</A>, or{" "}
-            <A href="/store/dedicated">dedicated disk</A>. It is also possible
-            to{" "}
+            It is also possible to{" "}
             <A href="https://doc.cocalc.com/vouchers.html">create vouchers</A>{" "}
             for resale or distribution.
           </Paragraph>
@@ -137,13 +135,48 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [form] = Form.useForm();
   const router = useRouter();
 
-  const [preset, setPreset] = useState<Presets | null>("standard");
+  const [preset, setPreset] = useState<Presets | null>(DEFAULT_PRESET);
   const [presetAdjusted, setPresetAdjusted] = useState<boolean>(false);
 
-  function onChange() {
+  /**
+   * Utility function to match current license configuration to a particular preset. If none is
+   * found, this function returns undefined.
+   */
+  function findPreset() {
+    const currentConfiguration = form.getFieldsValue(
+      Object.keys(PRESET_MATCH_FIELDS),
+    );
+    let foundPreset: Presets | undefined;
+
+    Object.keys(PRESETS).some((p) => {
+      const presetMismatch = Object.keys(PRESET_MATCH_FIELDS).some(
+        (formField) =>
+          !(PRESETS[p][formField] === currentConfiguration[formField]),
+      );
+
+      if (!presetMismatch) {
+        foundPreset = p as Presets;
+      }
+
+      return !presetMismatch;
+    });
+
+    return foundPreset;
+  }
+
+  function onLicenseChange() {
     const vals = form.getFieldsValue(true);
     encodeFormValues(router, vals, "regular");
     setCost(computeCost(vals));
+
+    const foundPreset = findPreset();
+
+    if (foundPreset) {
+      setPresetAdjusted(false);
+      setPreset(foundPreset);
+    } else {
+      setPresetAdjusted(true);
+    }
   }
 
   useEffect(() => {
@@ -169,21 +202,24 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         } finally {
           setLoading(false);
         }
-        onChange();
+        onLicenseChange();
       })();
     } else {
       const vals = decodeFormValues(router, "regular");
-      const dflt = PRESETS["standard"];
+      const dflt = PRESETS[DEFAULT_PRESET];
       if (isEmpty(vals)) {
-        form.setFieldsValue({ ...dflt, preset: "standard" });
+        form.setFieldsValue({
+          ...dflt,
+        });
       } else {
         // we have to make sure cpu, mem and disk are set, otherwise there is no "cost"
-        form.setFieldsValue({ ...dflt, ...vals });
-        setConfigMode("expert");
-        setPresetAdjusted(true);
+        form.setFieldsValue({
+          ...dflt,
+          ...vals,
+        });
       }
     }
-    onChange();
+    onLicenseChange();
   }, []);
 
   if (loading) {
@@ -221,7 +257,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
         autoComplete="off"
-        onValuesChange={onChange}
+        onValuesChange={onLicenseChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
         <ToggleExplanations
@@ -235,38 +271,38 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         <UsageAndDuration
           showExplanations={showExplanations}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
         />
         <RunLimit
           showExplanations={showExplanations}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
         />
         <QuotaConfig
           boost={false}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
           showExplanations={showExplanations}
           configMode={configMode}
           setConfigMode={setConfigMode}
           preset={preset}
           setPreset={setPreset}
           presetAdjusted={presetAdjusted}
-          setPresetAdjusted={setPresetAdjusted}
         />
-        <MemberHostingAndIdleTimeout
-          showExplanations={showExplanations}
-          form={form}
-          onChange={onChange}
-          shadowMember={shadowMember}
-          setShadowMember={setShadowMember}
-          setPresetAdjusted={setPresetAdjusted}
-        />
+        {configMode === "expert" && (
+          <MemberHostingAndIdleTimeout
+            showExplanations={showExplanations}
+            form={form}
+            onChange={onLicenseChange}
+            shadowMember={shadowMember}
+            setShadowMember={setShadowMember}
+          />
+        )}
         <TitleDescription showExplanations={showExplanations} form={form} />
         <Reset
           addBox={addBox}
           form={form}
-          onChange={onChange}
+          onChange={onLicenseChange}
           router={router}
         />
       </Form>

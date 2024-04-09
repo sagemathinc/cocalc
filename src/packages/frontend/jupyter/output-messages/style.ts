@@ -38,7 +38,8 @@ export const OUTPUT_STYLE: CSSProperties = {
 
 export const OUTPUT_STYLE_SCROLLED: CSSProperties = {
   ...OUTPUT_STYLE,
-  maxHeight: "40vh",
+  // see https://github.com/sagemathinc/cocalc/issues/7293 for something about this:
+  maxHeight: "max(24em,60vh)",
 };
 
 export const INPUT_STYLE: CSSProperties = {

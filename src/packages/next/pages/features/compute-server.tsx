@@ -36,7 +36,7 @@ export default function ComputeServer({ customize }) {
           <Content
             landing
             startup={component}
-            logo={<Icon name={logo} style={{ fontSize: "128px" }} />}
+            body={<Icon name={logo} style={{ fontSize: "128px" }} />}
             title={title}
             subtitleBelow={true}
             subtitle={
@@ -216,7 +216,7 @@ export default function ComputeServer({ customize }) {
               to 65TB of disk space.
             </Paragraph>
             <Paragraph>
-              You can choose one or more T4, L4, and A100 GPU's.
+              You can choose one or more T4, L4, and A100 GPUs.
             </Paragraph>
             <Paragraph>
               Many preconfigured software stacks are available, including

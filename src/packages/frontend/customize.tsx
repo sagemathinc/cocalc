@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Site Customize -- dynamically customize the look of CoCalc for the client.
+// Site Customize -- dynamically customize the look and configuration
+// of CoCalc for the client.
 
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
@@ -22,13 +23,14 @@ import {
 import {
   A,
   build_date,
+  Gap,
   Loading,
   r_join,
   smc_git_rev,
   smc_version,
-  Gap,
   UNIT,
 } from "@cocalc/frontend/components";
+import { getGoogleCloudImages, getImages } from "@cocalc/frontend/compute/api";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import {
@@ -37,6 +39,11 @@ import {
   FALLBACK_SOFTWARE_ENV,
 } from "@cocalc/util/compute-images";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
+import type {
+  GoogleCloudImages,
+  Images,
+} from "@cocalc/util/db-schema/compute-servers";
+import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
@@ -44,8 +51,10 @@ import {
   site_settings_conf,
 } from "@cocalc/util/db-schema/site-defaults";
 import { deep_copy, dict, YEAR } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
+import { OllamaPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
@@ -87,6 +96,10 @@ export type SoftwareEnvironments = TypedMap<{
 export interface CustomizeState {
   is_commercial: boolean;
   openai_enabled: boolean;
+  google_vertexai_enabled: boolean;
+  mistral_enabled: boolean;
+  anthropic_enabled: boolean;
+  ollama_enabled: boolean;
   neural_search_enabled: boolean;
   datastore: boolean;
   ssh_gateway: boolean;
@@ -136,10 +149,15 @@ export interface CustomizeState {
   jupyter_api_enabled?: boolean;
 
   compute_servers_enabled?: boolean;
-  compute_servers_google_enabled?: boolean;
+  ["compute_servers_google-cloud_enabled"]?: boolean;
   compute_servers_lambda_enabled?: boolean;
   compute_servers_dns_enabled?: boolean;
   compute_servers_dns?: string;
+  compute_servers_images?: TypedMap<Images> | string | null;
+  compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
+
+  ollama?: TypedMap<{ [key: string]: TypedMap<OllamaPublic> }>;
+  selectable_llms: List<string>;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -158,9 +176,49 @@ export class CustomizeStore extends Store<CustomizeState> {
     await this.until_configured();
     return this.getIn(["software", "default"]) ?? DEFAULT_COMPUTE_IMAGE;
   }
+
+  getEnabledLLMs(): LLMServicesAvailable {
+    return {
+      openai: this.get("openai_enabled"),
+      google: this.get("google_vertexai_enabled"),
+      ollama: this.get("ollama_enabled"),
+      mistralai: this.get("mistral_enabled"),
+      anthropic: this.get("anthropic_enabled"),
+    };
+  }
 }
 
-export class CustomizeActions extends Actions<CustomizeState> {}
+export class CustomizeActions extends Actions<CustomizeState> {
+  // reload is admin only
+  updateComputeServerImages = reuseInFlight(async (reload?) => {
+    if (!store.get("compute_servers_enabled")) {
+      this.setState({ compute_servers_images: fromJS({}) as any });
+      return;
+    }
+    try {
+      this.setState({
+        compute_servers_images: fromJS(await getImages(reload)) as any,
+      });
+    } catch (err) {
+      this.setState({ compute_servers_images: `${err}` });
+    }
+  });
+  updateComputeServerImagesGoogle = reuseInFlight(async (reload?) => {
+    if (!store.get("compute_servers_google-cloud_enabled")) {
+      this.setState({ compute_servers_images_google: fromJS({}) as any });
+      return;
+    }
+    try {
+      this.setState({
+        compute_servers_images_google: fromJS(
+          await getGoogleCloudImages(reload),
+        ) as any,
+      });
+    } catch (err) {
+      this.setState({ compute_servers_images_google: `${err}` });
+    }
+  });
+}
 
 export const store = redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize", CustomizeActions);
@@ -200,10 +258,12 @@ async function init_customize() {
     registration,
     strategies,
     software = null,
+    ollama = null, // the derived public information
   } = customize;
   process_kucalc(configuration);
   process_software(software, configuration.is_cocalc_com);
   process_customize(configuration); // this sets _is_configured to true
+  process_ollama(ollama);
   const actions = redux.getActions("account");
   // Which account creation strategies we support.
   actions.setState({ strategies });
@@ -212,6 +272,11 @@ async function init_customize() {
 }
 
 init_customize();
+
+function process_ollama(ollama?) {
+  if (!ollama) return;
+  actions.setState({ ollama: fromJS(ollama) });
+}
 
 function process_kucalc(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc

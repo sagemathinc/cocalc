@@ -14,7 +14,7 @@ import { TimeClient } from "./time";
 import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
-import { LLMClient } from "./openai";
+import { LLMClient } from "./llm";
 import { PurchasesClient } from "./purchases";
 import { JupyterClient } from "./jupyter";
 import { SyncClient } from "@cocalc/sync/client/sync-client";
@@ -89,6 +89,8 @@ export interface WebappClient extends EventEmitter {
   call: Function;
   dbg: (str: string) => Function;
   is_project: () => boolean;
+  is_browser: () => boolean;
+  is_compute_server: () => boolean;
   is_connected: () => boolean;
   query: Query; // TODO typing
   query_cancel: Function;
@@ -316,6 +318,14 @@ class Client extends EventEmitter implements WebappClient {
 
   // false since this client is not a project
   public is_project(): boolean {
+    return false;
+  }
+
+  public is_browser(): boolean {
+    return true;
+  }
+
+  public is_compute_server(): boolean {
     return false;
   }
 

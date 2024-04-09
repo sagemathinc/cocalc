@@ -4,12 +4,14 @@
  */
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { COLORS } from "@cocalc/util/theme";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
+import { StoreBalanceContext } from "lib/balance";
 import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
@@ -44,9 +46,26 @@ export default function StoreLayout({ page }: Props) {
   const router = useRouter();
   const profile = useProfile({ noCache: true });
 
+  const [balance, setBalance] = useState<number>();
+
+  const refreshBalance = async () => {
+    if (!profile || !profile.account_id) {
+      setBalance(undefined);
+      return;
+    }
+
+    // Set balance if user is logged in
+    //
+    setBalance(await purchasesApi.getBalance());
+  };
+
   useEffect(() => {
     router.prefetch("/store/site-license");
   }, []);
+
+  useEffect(() => {
+    refreshBalance();
+  }, [profile]);
 
   function renderNotCommercial(): JSX.Element {
     return (
@@ -106,7 +125,7 @@ export default function StoreLayout({ page }: Props) {
       case "site-license":
         return <SiteLicense noAccount={noAccount} />;
       case "boost":
-        return <Boost noAccount={noAccount} />;
+        return <Boost />;
       case "dedicated":
         return <DedicatedResource noAccount={noAccount} />;
       case "cart":
@@ -139,10 +158,10 @@ export default function StoreLayout({ page }: Props) {
           }}
         >
           <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
-            <>
+            <StoreBalanceContext.Provider value={{ balance, refreshBalance }}>
               <Menu main={main} />
               {body()}
-            </>
+            </StoreBalanceContext.Provider>
           </div>
         </Content>
       </Layout>

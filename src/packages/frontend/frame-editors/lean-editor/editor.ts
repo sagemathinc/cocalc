@@ -23,7 +23,7 @@ const EDITOR_SPEC = {
     name: "Input",
     icon: "code",
     component: LeanCodemirrorEditor,
-    buttons: set([
+    commands: set([
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -47,21 +47,21 @@ const EDITOR_SPEC = {
     name: "Info at Cursor", // more focused -- usually used in "tactic mode"
     icon: "info-circle",
     component: LeanInfo,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   "lean-messages": {
     short: "Mesages",
     name: "All Messages" /* less focused -- usually used in "term mode" */,
     icon: "eye",
     component: LeanMessages,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   "lean-help": {
     short: "Help",
     name: "Help at Cursor",
     icon: "question-circle",
     component: LeanHelp,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   terminal,
   time_travel,

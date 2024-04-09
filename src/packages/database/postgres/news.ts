@@ -28,7 +28,7 @@ ORDER BY date DESC
 LIMIT 100`;
 
 export async function getFeedData(): Promise<NewsItem[]> {
-  return await C.query<NewsItem>(Q_FEED);
+  return await C.query(Q_FEED);
 }
 
 // ::timestamptz because if your server is not in UTC, it will be converted to UTC
@@ -43,7 +43,7 @@ WHERE id = $1`;
 // This is used for editing a news item
 export async function getNewsItem(
   id: number,
-  cached = true
+  cached = true,
 ): Promise<NewsItem | null> {
   return await C.queryOne<NewsItem>(Q_BY_ID, [id], cached);
 }
@@ -106,9 +106,9 @@ OFFSET $2`;
 
 export async function getIndex(
   limit: number,
-  offset: number
+  offset: number,
 ): Promise<NewsItem[]> {
-  return await C.query<NewsItem>(Q_INDEX, [limit, offset]);
+  return await C.query(Q_INDEX, [limit, offset]);
 }
 
 // get the most recent news item
@@ -138,9 +138,9 @@ LIMIT $1`;
 
 // of the last n picked by Q_RECENT, select one deterministically different every 10 minutes
 export async function getRecentHeadlines(
-  n: number
+  n: number,
 ): Promise<RecentHeadline[] | null> {
-  const headlines = await C.query<RecentHeadline>(Q_RECENT, [n]);
+  const headlines = await C.query(Q_RECENT, [n]);
   if (headlines.length === 0) return null;
   return headlines;
 }

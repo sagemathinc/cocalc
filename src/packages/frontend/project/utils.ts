@@ -75,7 +75,7 @@ export class NewFilenames {
   // generate a new filename, by optionally avoiding the keys in the dictionary
   public gen(
     type?: NewFilenameTypes,
-    avoid?: { [name: string]: boolean }
+    avoid?: { [name: string]: boolean },
   ): string {
     type = this.sanitize_type(type);
     // reset the enumeration if type changes
@@ -87,7 +87,7 @@ export class NewFilenames {
       // ignore all extensions in avoid "set", if we do not know the file extension
       if (this.effective_ext == null) {
         const noexts = Object.keys(avoid).map(
-          (x) => separate_file_extension(x).name
+          (x) => separate_file_extension(x).name,
         );
         avoid = Object.assign({}, ...noexts.map((x) => ({ [x]: true })));
       }
@@ -142,7 +142,7 @@ export class NewFilenames {
         // e.g. for python, join using "_"
         let fn = tokens.join(this.filler());
         if (fullname && this.ext != null && this.ext !== "") {
-          fn += `.${this.ext}`;
+          fn += this.ext === "/" ? "/" : `.${this.ext}`;
         }
         return fn;
     }
@@ -176,7 +176,9 @@ export class NewFilenames {
         // the "Spec" for file associations makes sure that "name" != null
         // but for unkown files "name" == "" → fallback "file"
         const name = info.name;
-        return name === "" ? ["file"] : name.toLowerCase().split(" ");
+        return name === ""
+          ? ["file"]
+          : name.replace(/\//g, "_").toLowerCase().split(" ");
     }
   }
 
@@ -244,7 +246,7 @@ export function normalize(path: string): string {
 // test, if the given file exists and has nonzero size
 export async function file_nonzero_size(
   project_id: string,
-  path: string
+  path: string,
 ): Promise<boolean> {
   const f = path_split(path);
   try {
@@ -268,7 +270,7 @@ export function url_fullpath(project_id: string, path: string): string {
     "projects",
     project_id,
     "files",
-    `${encode_path(path)}`
+    `${encode_path(path)}`,
   );
 }
 

@@ -8,7 +8,6 @@ import * as immutable from "immutable";
 import React from "react";
 import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
 import * as underscore from "underscore";
-
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   TypedMap,
@@ -26,7 +25,6 @@ import {
   Loading,
   Paragraph,
   SettingBox,
-  VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
@@ -54,6 +52,8 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -123,6 +123,7 @@ interface ReduxProps {
   file_listing_scroll_top?: number;
   show_custom_software_reset?: boolean;
   explorerTour?: boolean;
+  compute_server_id: number;
 }
 
 interface State {
@@ -198,6 +199,7 @@ const Explorer0 = rclass(
           file_listing_scroll_top: rtypes.number,
           show_custom_software_reset: rtypes.bool,
           explorerTour: rtypes.bool,
+          compute_server_id: rtypes.number,
         },
       };
     };
@@ -337,6 +339,7 @@ const Explorer0 = rclass(
             new_name={this.props.new_name}
             actions={this.props.actions}
             displayed_listing={this.props.displayed_listing}
+            name={project_redux_name(this.props.project_id)}
           />
         </Col>
       );
@@ -557,15 +560,60 @@ const Explorer0 = rclass(
         <div
           style={{
             display: "flex",
-            flexFlow: "row wrap",
+            flexFlow: IS_MOBILE ? undefined : "row wrap",
             justifyContent: "space-between",
             alignItems: "stretch",
           }}
         >
+          <div>
+            <div style={{ display: "flex" }}>
+              <SelectComputeServerForFileExplorer
+                project_id={this.props.project_id}
+                key="compute-server"
+                style={{ marginRight: "5px", borderRadius: "5px" }}
+              />
+              <div
+                ref={this.currentDirectoryRef}
+                className="cc-project-files-path-nav"
+              >
+                <PathNavigator project_id={this.props.project_id} />
+              </div>
+            </div>
+            {!!this.props.compute_server_id && (
+              <div
+                style={{
+                  fontSize: "10pt",
+                  marginTop: "-10px",
+                  marginBottom: "5px",
+                }}
+              >
+                <ComputeServerDocStatus
+                  id={this.props.compute_server_id}
+                  requestedId={this.props.compute_server_id}
+                  project_id={this.props.project_id}
+                />
+              </div>
+            )}
+          </div>
+          {!IS_MOBILE && (
+            <div
+              style={{
+                flex: "0 1 auto",
+                margin: "0 10px",
+                marginBottom: "15px",
+              }}
+              className="cc-project-files-create-dropdown"
+            >
+              {this.render_new_file()}
+            </div>
+          )}
           {!IS_MOBILE && (
             <div
               ref={this.searchBarRef}
-              style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
+              style={{
+                flex: "1 0 20%",
+                minWidth: "15em",
+              }}
             >
               <SearchBar
                 project_id={this.props.project_id}
@@ -590,33 +638,16 @@ const Explorer0 = rclass(
               />
             </div>
           )}
-          <div
-            style={{
-              flex: "0 1 auto",
-              marginRight: "10px",
-              marginBottom: "15px",
-            }}
-            className="cc-project-files-create-dropdown"
-          >
-            {this.render_new_file()}
-          </div>
-          <div
-            ref={this.currentDirectoryRef}
-            className="cc-project-files-path-nav"
-          >
-            <PathNavigator project_id={this.props.project_id} />
-          </div>
           <>
             <div
               style={{
                 flex: "0 1 auto",
-                marginRight: "10px",
                 marginBottom: "15px",
               }}
             >
               <UsersViewing project_id={this.props.project_id} />
             </div>
-            <VisibleMDLG>
+            {!IS_MOBILE && (
               <div
                 ref={this.miniterminalRef}
                 style={{ flex: "1 0 auto", marginBottom: "15px" }}
@@ -628,7 +659,7 @@ const Explorer0 = rclass(
                   show_close_x={true}
                 />
               </div>
-            </VisibleMDLG>
+            )}
           </>
         </div>
       );
@@ -752,7 +783,7 @@ const Explorer0 = rclass(
               <div
                 style={{
                   flex: "1 0 auto",
-                  marginRight: "10px",
+                  marginRight: "5px",
                   minWidth: "20em",
                 }}
               >

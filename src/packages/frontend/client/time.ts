@@ -133,7 +133,7 @@ export class TimeClient {
       }
     }
     if (this.clock_skew_ms != null) {
-      return new Date(new Date().valueOf() - this.clock_skew_ms);
+      return new Date(Date.now() - this.clock_skew_ms);
     } else {
       return new Date();
     }
@@ -164,7 +164,7 @@ export class TimeClient {
           message: message.ping(),
           timeout: opts.timeout,
         });
-        ping_time = new Date().valueOf() - t.valueOf();
+        ping_time = Date.now() - t.valueOf();
         bar = "";
         for (let j = 0; j <= Math.floor(ping_time / 10); j++) {
           bar += "*";

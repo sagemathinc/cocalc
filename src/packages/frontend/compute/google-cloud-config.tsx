@@ -1,19 +1,17 @@
 import type {
+  Images,
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
 } from "@cocalc/util/db-schema/compute-servers";
+import { reloadImages, useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
-import {
-  getMinDiskSizeGb,
-  IMAGES,
-} from "@cocalc/util/db-schema/compute-servers";
+import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
   Button,
   Checkbox,
   Divider,
   Input,
   InputNumber,
-  Popconfirm,
   Radio,
   Select,
   Space,
@@ -33,7 +31,11 @@ import computeCost, {
   computeAcceleratorCost,
   computeInstanceCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
-import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
+import {
+  getGoogleCloudPriceData,
+  setImageTested,
+  setServerConfiguration,
+} from "./api";
 import { useEffect, useState } from "react";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { A } from "@cocalc/frontend/components/A";
@@ -45,8 +47,11 @@ import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
 import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
-import generateVouchers from "@cocalc/util/vouchers";
-import { CopyToClipBoard } from "@cocalc/frontend/components";
+import AutoRestart from "./auto-restart";
+import AllowCollaboratorControl from "./allow-collaborator-control";
+import NestedVirtualization from "./nested-virtualization";
+import ShowError from "@cocalc/frontend/components/error";
+import Proxy from "./proxy";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -75,20 +80,26 @@ interface Props {
   editable?: boolean;
   // if id not set, then doesn't try to save anything to the backend
   id?: number;
+  project_id?: string;
   // called whenever changes are made.
   onChange?: (configuration: ConfigurationType) => void;
   disabled?: boolean;
   state?: State;
+  data?;
 }
 
 export default function GoogleCloudConfiguration({
   configuration: configuration0,
   editable,
   id,
+  project_id,
   onChange,
   disabled,
   state,
+  data,
 }: Props) {
+  const [IMAGES, ImagesError] = useImages();
+  const [googleImages, ImagesErrorGoogle] = useGoogleImages();
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<GoogleCloudData | null>(null);
@@ -136,11 +147,22 @@ export default function GoogleCloudConfiguration({
     }
   }, [configuration, priceData]);
 
-  if (!editable) {
+  if (ImagesError != null) {
+    return ImagesError;
+  }
+  if (ImagesErrorGoogle != null) {
+    return ImagesErrorGoogle;
+  }
+
+  if (IMAGES == null || googleImages == null) {
+    return <Spin />;
+  }
+
+  if (!editable || !project_id) {
     const gpu = configuration.acceleratorType
       ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
           configuration.acceleratorType,
-        )} ${plural(configuration.acceleratorCount ?? 1, "GPU", "GPU's")}, `
+        )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
       : "";
     // short summary
     return (
@@ -160,7 +182,7 @@ export default function GoogleCloudConfiguration({
         )}
         , and a{" "}
         {configuration.diskSizeGb ??
-          `at least ${getMinDiskSizeGb(configuration)}`}{" "}
+          `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
         GB
         {(configuration.diskType ?? "pd-standard") != "pd-standard"
           ? " SSD "
@@ -187,7 +209,12 @@ export default function GoogleCloudConfiguration({
       return;
     }
 
-    changes = ensureConsistentConfiguration(priceData, configuration, changes);
+    changes = ensureConsistentConfiguration(
+      priceData,
+      configuration,
+      changes,
+      IMAGES,
+    );
     const newConfiguration = { ...configuration, ...changes };
 
     if (
@@ -232,7 +259,23 @@ export default function GoogleCloudConfiguration({
     { dataIndex: "label", key: "label", width: 130 },
   ];
 
-  const data = [
+  const dataSource = [
+    {
+      key: "provisioning",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/instances/spot">
+          <Icon name="external-link" /> Provisioning
+        </A>
+      ),
+      value: (
+        <Provisioning
+          disabled={loading || disabled}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
     {
       key: "gpu",
       label: (
@@ -247,6 +290,7 @@ export default function GoogleCloudConfiguration({
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
+          IMAGES={IMAGES}
         />
       ),
     },
@@ -261,6 +305,10 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           gpu={
             !!(configuration.acceleratorType && configuration.acceleratorCount)
+          }
+          googleImages={googleImages}
+          arch={
+            configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64"
           }
         />
       ),
@@ -322,23 +370,6 @@ export default function GoogleCloudConfiguration({
     },
 
     {
-      key: "provisioning",
-      label: (
-        <A href="https://cloud.google.com/compute/docs/instances/spot">
-          <Icon name="external-link" /> Provisioning
-        </A>
-      ),
-      value: (
-        <Provisioning
-          disabled={loading || disabled}
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-
-    {
       key: "disk",
       label: (
         <A href="https://cloud.google.com/compute/docs/disks/performance">
@@ -347,11 +378,13 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <BootDisk
+          id={id}
           disabled={loading}
           setConfig={setConfig}
           configuration={configuration}
           priceData={priceData}
           state={state}
+          IMAGES={IMAGES}
         />
       ),
     },
@@ -365,10 +398,25 @@ export default function GoogleCloudConfiguration({
           configuration={configuration}
           loading={loading}
           priceData={priceData}
-          state={state}
         />
       ),
     },
+    {
+      key: "proxy",
+      label: <></>,
+      value: (
+        <Proxy
+          setConfig={setConfig}
+          configuration={configuration}
+          data={data}
+          state={state}
+          IMAGES={IMAGES}
+          project_id={project_id}
+          id={id}
+        />
+      ),
+    },
+
     {
       key: "ephemeral",
       label: <></>,
@@ -381,15 +429,42 @@ export default function GoogleCloudConfiguration({
       ),
     },
     {
-      key: "admin",
+      key: "auto-restart",
       label: <></>,
       value: (
-        <Admin
+        <AutoRestart
           setConfig={setConfig}
           configuration={configuration}
           loading={loading}
         />
       ),
+    },
+    {
+      key: "allow-collaborator-control",
+      label: <></>,
+      value: (
+        <AllowCollaboratorControl
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
+      key: "nested-virtualization",
+      label: <></>,
+      value: (
+        <NestedVirtualization
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
+      key: "admin",
+      label: <></>,
+      value: <Admin id={id} configuration={configuration} loading={loading} />,
     },
   ];
 
@@ -444,7 +519,7 @@ export default function GoogleCloudConfiguration({
       <Table
         style={{ marginTop: "5px" }}
         columns={columns}
-        dataSource={data}
+        dataSource={dataSource}
         pagination={false}
       />
       {loading && (
@@ -548,7 +623,7 @@ function getRegions(priceData, configuration) {
       if (!zoneData.machineTypes.includes(machineType.split("-")[0])) {
         continue;
       }
-      if (spot != null) {
+      if (spot) {
         if (priceData.machineTypes[machineType]?.spot?.[region] == null) {
           continue;
         }
@@ -660,7 +735,7 @@ function getZones(priceData, configuration) {
 function Provisioning({ priceData, setConfig, configuration, disabled }) {
   const [newSpot, setNewSpot] = useState<boolean>(!!configuration.spot);
   const [prices, setPrices] = useState<{
-    spot: number;
+    spot: number | null;
     standard: number;
     discount: number;
   } | null>(getSpotAndStandardPrices(priceData, configuration));
@@ -669,6 +744,13 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
     setNewSpot(!!configuration.spot);
     setPrices(getSpotAndStandardPrices(priceData, configuration));
   }, [configuration]);
+
+  useEffect(() => {
+    if (configuration.spot && prices != null && !prices.spot) {
+      setNewSpot(false);
+      setConfig({ spot: false });
+    }
+  }, [prices, configuration.spot]);
 
   return (
     <div>
@@ -688,11 +770,11 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
           setConfig({ spot });
         }}
       >
-        <Radio.Button value="spot">
+        <Radio.Button value="spot" disabled={!prices?.spot}>
           Spot{" "}
-          {prices != null
+          {prices?.spot
             ? `${currency(prices.spot)}/hour (${prices.discount}% discount)`
-            : undefined}{" "}
+            : "(not available)"}{" "}
         </Radio.Button>
         <Radio.Button value="standard">
           Standard{" "}
@@ -702,7 +784,10 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
       <div style={{ color: "#666", marginTop: "5px" }}>
         Standard VM's stay running until you stop them, whereas spot VM's are up
         to 91% off, but{" "}
-        <b>will automatically stop when there is a surge in demand.</b>
+        <b>will automatically stop when there is a surge in demand.</b> They
+        might also not be available in a given region, so you may have to try
+        different regions.{" "}
+        {configuration.acceleratorType && <> Spot GPU's are in high demand.</>}
       </div>
     </div>
   );
@@ -714,14 +799,19 @@ function getSpotAndStandardPrices(priceData, configuration) {
       priceData,
       configuration: { ...configuration, spot: false },
     });
-    const spot = computeCost({
-      priceData,
-      configuration: { ...configuration, spot: true },
-    });
+    let spot: number | null = null;
+    try {
+      spot = computeCost({
+        priceData,
+        configuration: { ...configuration, spot: true },
+      });
+    } catch (_) {
+      // some machines have no spot instance support, eg h3's.
+    }
     return {
       standard,
       spot,
-      discount: Math.round((1 - spot / standard) * 100),
+      discount: spot != null ? Math.round((1 - spot / standard) * 100) : 0,
     };
   } catch (_) {
     return null;
@@ -801,6 +891,12 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   const machineTypes = Object.keys(priceData.machineTypes);
   let allOptions = machineTypes
     .filter((machineType) => {
+      if (machineType.startsWith("n4-")) {
+        // TODO: we must add support for hyperdisk extreme
+        // to support n4 machine types.  The pricing data
+        // is ready, and we'll do this soon.
+        return false;
+      }
       const { acceleratorType } = configuration;
       if (!acceleratorType) {
         if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
@@ -892,18 +988,20 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
               : "ARM64 architecture machines"
           }
         >
-          <Switch
+          <Radio.Group
             style={{ float: "right" }}
             disabled={
               disabled ||
               configuration.acceleratorType ||
               (state ?? "deprovisioned") != "deprovisioned"
             }
-            unCheckedChildren={"ARM64"}
-            checkedChildren={"X86"}
-            checked={archType == "x86_64"}
-            onChange={() => {
-              setArchType(archType == "x86_64" ? "arm64" : "x86_64");
+            options={[
+              { value: "x86_64", label: "X86_64" },
+              { value: "arm64", label: "ARM64" },
+            ]}
+            value={archType}
+            onChange={({ target: { value } }) => {
+              setArchType(value);
             }}
           />
         </Tooltip>
@@ -972,13 +1070,13 @@ function RamAndCpu({
   if (inline) {
     return (
       <span style={style}>
-        {vcpu} {plural(vcpu, "vCPU", "vCPU's")}, {memory} GB RAM
+        {vcpu} {plural(vcpu, "vCPU")}, {memory} GB RAM
       </span>
     );
   }
   return (
     <div style={{ color: "#666", ...style }}>
-      <b>{plural(vcpu, "vCPU", "vCPU's")}: </b>
+      <b>{plural(vcpu, "vCPU")}: </b>
       <div
         style={{ width: "65px", textAlign: "left", display: "inline-block" }}
       >
@@ -996,16 +1094,17 @@ function BootDisk(props) {
     disabled,
     priceData,
     state = "deprovisioned",
+    IMAGES,
   } = props;
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
-    configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
+    configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
   );
   const [newDiskType, setNewDiskType] = useState<string | null>(
     configuration.diskType ?? "pd-standard",
   );
   useEffect(() => {
     setNewDiskSizeGb(
-      configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
+      configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
     );
     setNewDiskType(configuration.diskType ?? "pd-standard");
   }, [configuration.diskSizeGb]);
@@ -1014,14 +1113,14 @@ function BootDisk(props) {
     if (newDiskSizeGb == null) {
       return;
     }
-    const min = getMinDiskSizeGb(configuration);
+    const min = getMinDiskSizeGb({ configuration, IMAGES });
     if (newDiskSizeGb < min) {
       setNewDiskSizeGb(min);
     }
   }, [configuration.image]);
 
   useEffect(() => {
-    const min = getMinDiskSizeGb(configuration);
+    const min = getMinDiskSizeGb({ configuration, IMAGES });
     if ((newDiskSizeGb ?? 0) < min) {
       setConfig({
         diskSizeGb: min,
@@ -1043,7 +1142,7 @@ function BootDisk(props) {
           disabled={disabled}
           min={
             state == "deprovisioned"
-              ? getMinDiskSizeGb(configuration)
+              ? getMinDiskSizeGb({ configuration, IMAGES })
               : configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)
           }
           max={65536}
@@ -1056,7 +1155,8 @@ function BootDisk(props) {
             if (state == "deprovisioned") {
               // only set on blur or every keystroke rerenders and cause loss of focus.
               setConfig({
-                diskSizeGb: newDiskSizeGb ?? getMinDiskSizeGb(configuration),
+                diskSizeGb:
+                  newDiskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
               });
             }
           }}
@@ -1096,14 +1196,14 @@ function BootDisk(props) {
             size="small"
             onClick={() => {
               setConfig({
-                diskSizeGb: getMinDiskSizeGb(configuration),
+                diskSizeGb: getMinDiskSizeGb({ configuration, IMAGES }),
               });
             }}
           >
-            {getMinDiskSizeGb(configuration)} GB
+            {getMinDiskSizeGb({ configuration, IMAGES })} GB
           </Button>
         ) : (
-          <>{getMinDiskSizeGb(configuration)} GB</>
+          <>{getMinDiskSizeGb({ configuration, IMAGES })} GB</>
         )}{" "}
         and 65,536 GB.
         {state != "deprovisioned" && (
@@ -1257,7 +1357,7 @@ function Image(props) {
           including commercial software.
         </div>
       )}
-      <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />
+      <SelectImage style={{ width: "500px" }} {...props} />
       {state != "deprovisioned" && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.
@@ -1270,17 +1370,15 @@ function Image(props) {
   );
 }
 
-// Putting L4 and A100 at top, since they are most
-// interesting, then T4 since very affordable.
 // We do NOT include the P4, P100, V100 or K80, which are older
 // and for which our base image and drivers don't work.
 // If for some reason we need them, we will have to switch to
 // different base drivers or have even more images
 const ACCELERATOR_TYPES = [
+  "nvidia-tesla-t4",
   "nvidia-l4",
   "nvidia-tesla-a100",
   "nvidia-a100-80gb",
-  "nvidia-tesla-t4",
   // "nvidia-tesla-v100",
   //"nvidia-tesla-p100",
   //"nvidia-tesla-p4",
@@ -1294,7 +1392,7 @@ const ACCELERATOR_TYPES = [
         </A>
 */
 
-function GPU({ priceData, setConfig, configuration, disabled, state }) {
+function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
@@ -1345,6 +1443,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
         priceData,
         config1,
         changes,
+        IMAGES,
       );
       cost = computeAcceleratorCost({
         priceData,
@@ -1408,7 +1507,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
           <div style={{ color: "#666", marginTop: "10px" }}>
             You have selected {acceleratorCount} dedicated{" "}
             <b>{displayAcceleratorType(acceleratorType)}</b>{" "}
-            {plural(acceleratorCount, "GPU", "GPU's")}, with a total of{" "}
+            {plural(acceleratorCount, "GPU")}, with a total of{" "}
             <b>
               {priceData.accelerators[acceleratorType].memory *
                 acceleratorCount}
@@ -1417,7 +1516,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
             .{" "}
             {acceleratorCount > 1 && (
               <>
-                The {acceleratorCount} GPU's will be available on the same
+                The {acceleratorCount} GPUs will be available on the same
                 server.
               </>
             )}
@@ -1460,11 +1559,12 @@ function ensureConsistentConfiguration(
   priceData,
   configuration: GoogleCloudConfigurationType,
   changes: Partial<GoogleCloudConfigurationType>,
+  IMAGES: Images,
 ) {
   const newConfiguration = { ...configuration, ...changes };
   const newChanges = { ...changes };
 
-  ensureConsistentImage(newConfiguration, newChanges);
+  ensureConsistentImage(newConfiguration, newChanges, IMAGES);
 
   ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
 
@@ -1478,13 +1578,13 @@ function ensureConsistentConfiguration(
 
   ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
 
-  ensureSufficientDiskSize(newConfiguration, newChanges);
+  ensureSufficientDiskSize(newConfiguration, newChanges, IMAGES);
 
   return newChanges;
 }
 
 // We make the image consistent with the gpu selection.
-function ensureConsistentImage(configuration, changes) {
+function ensureConsistentImage(configuration, changes, IMAGES) {
   const { gpu } = IMAGES[configuration.image] ?? {};
   const gpuSelected =
     configuration.acceleratorType && configuration.acceleratorCount > 0;
@@ -1501,8 +1601,8 @@ function ensureConsistentImage(configuration, changes) {
   }
 }
 
-function ensureSufficientDiskSize(configuration, changes) {
-  const min = getMinDiskSizeGb(configuration);
+function ensureSufficientDiskSize(configuration, changes, IMAGES) {
+  const min = getMinDiskSizeGb({ configuration, IMAGES });
   if ((configuration.diskSizeGb ?? 0) < min) {
     changes.diskSizeGb = min;
   }
@@ -1588,7 +1688,7 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
   // Ensure the region/zone is consistent with accelerator type
   const prices = data[configuration.spot ? "spot" : "prices"];
   if (prices[configuration.zone] == null) {
-    // there are no GPU's in the selected zone of the selected type.
+    // there are no GPUs in the selected zone of the selected type.
     // If you just explicitly changed the GPU type, then we fix this by changing the zone.
     if (changes["acceleratorType"] != null) {
       // fix the region and zone
@@ -1767,7 +1867,7 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({ setConfig, configuration, loading, priceData, state }) {
+function Network({ setConfig, configuration, loading, priceData }) {
   const [externalIp, setExternalIp] = useState<boolean>(
     configuration.externalIp ?? true,
   );
@@ -1782,8 +1882,8 @@ function Network({ setConfig, configuration, loading, priceData, state }) {
           <Icon name="network-server" /> Network
         </b>
         <br />
-        All compute servers have full network access with unlimited data
-        transfer in for free. Data transfer out{" "}
+        All compute servers on Google cloud have full network access with
+        unlimited data transfer in for free. Data transfer out{" "}
         <b>costs {currency(DATA_TRANSFER_OUT_COST_PER_GiB)}/GiB</b>.
       </div>
       <Checkbox
@@ -1830,66 +1930,6 @@ function Network({ setConfig, configuration, loading, priceData, state }) {
           loading={loading}
         />
       )}
-      {externalIp && (
-        <AuthToken
-          setConfig={setConfig}
-          configuration={configuration}
-          state={state}
-        />
-      )}
-    </div>
-  );
-}
-
-function createToken() {
-  return generateVouchers({ count: 1, length: 16 })[0];
-}
-
-function AuthToken({ setConfig, configuration, state }) {
-  const { authToken } = IMAGES[configuration.image] ?? {};
-  useEffect(() => {
-    // create token if it is not set but required
-    if (authToken && configuration.authToken == null) {
-      setConfig({ authToken: createToken() });
-    }
-  }, [authToken, configuration.authToken]);
-
-  if (!authToken) {
-    return null;
-  }
-  return (
-    <div style={{ color: "#666" }}>
-      <div style={{ marginTop: "15px", display: "flex" }}>
-        <div style={{ margin: "auto 30px auto 0" }}>
-          <b>Auth Token:</b>
-        </div>
-        <CopyToClipBoard value={configuration.authToken ?? ""} />
-        <Popconfirm
-          onConfirm={() => {
-            setConfig({ authToken: createToken() });
-          }}
-          okText="Change token"
-          title={"Change auth token?"}
-          description={
-            <div style={{ width: "400px" }}>
-              <b>
-                WARNING: Changing the auth token will prevent people who you
-                shared the old token with from using the site.
-              </b>
-            </div>
-          }
-        >
-          <Button
-            style={{ marginLeft: "30px" }}
-            disabled={state != "deprovisioned" && state != "off"}
-          >
-            <Icon name="refresh" />
-            Randomize...
-          </Button>
-        </Popconfirm>
-      </div>
-      Use this token to access the web server that will runs on your compute
-      server.
     </div>
   );
 }
@@ -1929,8 +1969,8 @@ function DNS({ setConfig, configuration, loading }) {
           }
         }}
       >
-        Custom Domain Name with SSL ({currency(DNS_COST_PER_HOUR)}/hour when VM
-        not deprovisioned)
+        DNS: Custom Subdomain with SSL ({currency(DNS_COST_PER_HOUR)}/hour when
+        running or stopped)
       </Checkbox>
       {showDns && (
         <A
@@ -2045,9 +2085,10 @@ function CostPerHour({
   );
 }
 
-function Admin({ setConfig, configuration, loading }) {
+function Admin({ id, configuration, loading }) {
   const isAdmin = useTypedRedux("account", "is_admin");
-  const [test, setTest] = useState<boolean>(configuration.test);
+  const [error, setError] = useState<string>("");
+  const [calling, setCalling] = useState<boolean>(false);
   if (!isAdmin) {
     return null;
   }
@@ -2060,18 +2101,28 @@ function Admin({ setConfig, configuration, loading }) {
         <br />
         Settings and functionality only available to admins.
         <br />
-        <Tooltip title="When you build a new image it is NOT used by default by compute servers until it gets labeled prod=true.  Check this box to test out the newest image.">
-          <Checkbox
-            disabled={loading}
-            checked={test}
-            onChange={() => {
-              setConfig({ test: !test });
-              setTest(!test);
+        <ShowError error={error} setError={setError} />
+        <Tooltip title="Once you have tested the currently selected image, click this button to mark it as tested.">
+          <Button
+            disabled={loading || !id || calling}
+            onClick={async () => {
+              try {
+                setCalling(true);
+                await setImageTested({ id, tested: true });
+                // force reload to database via GCP api call
+                await reloadImages("compute_servers_images_google", true);
+              } catch (err) {
+                setError(`${err}`);
+              } finally {
+                setCalling(false);
+              }
             }}
           >
-            Use newest (possibly) unreleased image
-          </Checkbox>
+            Mark Google Cloud Image Tested{" "}
+            {calling && <Spin style={{ marginLeft: "15px" }} />}
+          </Button>
         </Tooltip>
+        <pre>configuration={JSON.stringify(configuration, undefined, 2)}</pre>
       </div>
     </div>
   );

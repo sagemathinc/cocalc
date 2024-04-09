@@ -7,7 +7,7 @@ import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
-import { Component, Rendered, redux } from "@cocalc/frontend/app-framework";
+import { Rendered, redux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -19,17 +19,11 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
+import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
-import {
-  LLM_USERNAMES,
-  USER_SELECTABLE_LANGUAGE_MODELS,
-  getValidLanguageModelName,
-  isFreeModel,
-  model2vendor,
-} from "@cocalc/util/db-schema/openai";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
@@ -38,7 +32,7 @@ import {
 } from "../project/page/vbar";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
-import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
+import { useLanguageModelSetting } from "./useLanguageModelSetting";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -46,37 +40,39 @@ interface Props {
   kucalc: string;
 }
 
-export class OtherSettings extends Component<Props> {
-  private on_change(name: string, value: any): void {
+export function OtherSettings(props: Readonly<Props>): JSX.Element {
+  const [model, setModel] = useLanguageModelSetting();
+
+  function on_change(name: string, value: any): void {
     redux.getActions("account").set_other_settings(name, value);
   }
 
-  private toggle_global_banner(val: boolean): void {
+  function toggle_global_banner(val: boolean): void {
     if (val) {
       // this must be "null", not "undefined" – otherwise the data isn't stored in the DB.
-      this.on_change("show_global_info2", null);
+      on_change("show_global_info2", null);
     } else {
-      this.on_change("show_global_info2", webapp_client.server_time());
+      on_change("show_global_info2", webapp_client.server_time());
     }
   }
 
   //   private render_first_steps(): Rendered {
-  //     if (this.props.kucalc !== KUCALC_COCALC_COM) return;
+  //     if (props.kucalc !== KUCALC_COCALC_COM) return;
   //     return (
   //       <Checkbox
-  //         checked={!!this.props.other_settings.get("first_steps")}
-  //         onChange={(e) => this.on_change("first_steps", e.target.checked)}
+  //         checked={!!props.other_settings.get("first_steps")}
+  //         onChange={(e) => on_change("first_steps", e.target.checked)}
   //       >
   //         Offer the First Steps guide
   //       </Checkbox>
   //     );
   //   }
 
-  private render_global_banner(): Rendered {
+  function render_global_banner(): Rendered {
     return (
       <Checkbox
-        checked={!this.props.other_settings.get("show_global_info2")}
-        onChange={(e) => this.toggle_global_banner(e.target.checked)}
+        checked={!props.other_settings.get("show_global_info2")}
+        onChange={(e) => toggle_global_banner(e.target.checked)}
       >
         <strong>Show announcement banner</strong>: only shows up if there is a
         message
@@ -84,11 +80,11 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_time_ago_absolute(): Rendered {
+  function render_time_ago_absolute(): Rendered {
     return (
       <Checkbox
-        checked={!!this.props.other_settings.get("time_ago_absolute")}
-        onChange={(e) => this.on_change("time_ago_absolute", e.target.checked)}
+        checked={!!props.other_settings.get("time_ago_absolute")}
+        onChange={(e) => on_change("time_ago_absolute", e.target.checked)}
       >
         Display <strong>timestamps as absolute points in time</strong> instead
         of relative to the current time
@@ -96,12 +92,12 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_confirm(): Rendered {
+  function render_confirm(): Rendered {
     if (!IS_MOBILE) {
       return (
         <Checkbox
-          checked={!!this.props.other_settings.get("confirm_close")}
-          onChange={(e) => this.on_change("confirm_close", e.target.checked)}
+          checked={!!props.other_settings.get("confirm_close")}
+          onChange={(e) => on_change("confirm_close", e.target.checked)}
         >
           <strong>Confirm Close:</strong> always ask for confirmation before
           closing the browser window
@@ -110,11 +106,11 @@ export class OtherSettings extends Component<Props> {
     }
   }
 
-  private render_katex(): Rendered {
+  function render_katex(): Rendered {
     return (
       <Checkbox
-        checked={!!this.props.other_settings.get("katex")}
-        onChange={(e) => this.on_change("katex", e.target.checked)}
+        checked={!!props.other_settings.get("katex")}
+        onChange={(e) => on_change("katex", e.target.checked)}
       >
         <strong>KaTeX:</strong> attempt to render formulas with{" "}
         <A href={"https://katex.org/"}>KaTeX</A> (much faster, but missing
@@ -123,28 +119,28 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_standby_timeout(): Rendered {
+  function render_standby_timeout(): Rendered {
     if (IS_TOUCH) {
       return;
     }
     return (
       <LabeledRow label="Standby timeout">
         <NumberInput
-          on_change={(n) => this.on_change("standby_timeout_m", n)}
+          on_change={(n) => on_change("standby_timeout_m", n)}
           min={1}
           max={180}
           unit="minutes"
-          number={this.props.other_settings.get("standby_timeout_m")}
+          number={props.other_settings.get("standby_timeout_m")}
         />
       </LabeledRow>
     );
   }
 
-  private render_mask_files(): Rendered {
+  function render_mask_files(): Rendered {
     return (
       <Checkbox
-        checked={!!this.props.other_settings.get("mask_files")}
-        onChange={(e) => this.on_change("mask_files", e.target.checked)}
+        checked={!!props.other_settings.get("mask_files")}
+        onChange={(e) => on_change("mask_files", e.target.checked)}
       >
         <strong>Mask files:</strong> grey out files in the files viewer that you
         probably do not want to open
@@ -152,13 +148,11 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_hide_project_popovers(): Rendered {
+  function render_hide_project_popovers(): Rendered {
     return (
       <Checkbox
-        checked={!!this.props.other_settings.get("hide_project_popovers")}
-        onChange={(e) =>
-          this.on_change("hide_project_popovers", e.target.checked)
-        }
+        checked={!!props.other_settings.get("hide_project_popovers")}
+        onChange={(e) => on_change("hide_project_popovers", e.target.checked)}
       >
         <strong>Hide Project Tab Popovers:</strong> do not show the popovers
         over the project tabs
@@ -166,11 +160,11 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_hide_file_popovers(): Rendered {
+  function render_hide_file_popovers(): Rendered {
     return (
       <Checkbox
-        checked={!!this.props.other_settings.get("hide_file_popovers")}
-        onChange={(e) => this.on_change("hide_file_popovers", e.target.checked)}
+        checked={!!props.other_settings.get("hide_file_popovers")}
+        onChange={(e) => on_change("hide_file_popovers", e.target.checked)}
       >
         <strong>Hide File Tab Popovers:</strong> do not show the popovers over
         file tabs
@@ -178,13 +172,11 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_hide_button_tooltips(): Rendered {
+  function render_hide_button_tooltips(): Rendered {
     return (
       <Checkbox
-        checked={!!this.props.other_settings.get("hide_button_tooltips")}
-        onChange={(e) =>
-          this.on_change("hide_button_tooltips", e.target.checked)
-        }
+        checked={!!props.other_settings.get("hide_button_tooltips")}
+        onChange={(e) => on_change("hide_button_tooltips", e.target.checked)}
       >
         <strong>Hide Button Tooltips:</strong> hides some button tooltips (this
         is only partial)
@@ -192,57 +184,57 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_default_file_sort(): Rendered {
+  function render_default_file_sort(): Rendered {
     return (
       <LabeledRow label="Default file sort">
         <SelectorInput
-          selected={this.props.other_settings.get("default_file_sort")}
+          selected={props.other_settings.get("default_file_sort")}
           options={{ time: "Sort by time", name: "Sort by name" }}
-          on_change={(value) => this.on_change("default_file_sort", value)}
+          on_change={(value) => on_change("default_file_sort", value)}
         />
       </LabeledRow>
     );
   }
 
-  private render_new_filenames(): Rendered {
+  function render_new_filenames(): Rendered {
     const selected =
-      this.props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
+      props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
     return (
       <LabeledRow label="Generated filenames">
         <SelectorInput
           selected={selected}
           options={NewFilenameFamilies}
-          on_change={(value) => this.on_change(NEW_FILENAMES, value)}
+          on_change={(value) => on_change(NEW_FILENAMES, value)}
         />
       </LabeledRow>
     );
   }
 
-  private render_page_size(): Rendered {
+  function render_page_size(): Rendered {
     return (
       <LabeledRow label="Number of files per page">
         <NumberInput
-          on_change={(n) => this.on_change("page_size", n)}
+          on_change={(n) => on_change("page_size", n)}
           min={1}
           max={10000}
-          number={this.props.other_settings.get("page_size")}
+          number={props.other_settings.get("page_size")}
         />
       </LabeledRow>
     );
   }
 
-  private render_no_free_warnings(): Rendered {
+  function render_no_free_warnings(): Rendered {
     let extra;
-    if (!this.props.is_stripe_customer) {
+    if (!props.is_stripe_customer) {
       extra = <span>(only available to customers)</span>;
     } else {
       extra = <span>(thanks for being a customer)</span>;
     }
     return (
       <Checkbox
-        disabled={!this.props.is_stripe_customer}
-        checked={!!this.props.other_settings.get("no_free_warnings")}
-        onChange={(e) => this.on_change("no_free_warnings", e.target.checked)}
+        disabled={!props.is_stripe_customer}
+        checked={!!props.other_settings.get("no_free_warnings")}
+        onChange={(e) => on_change("no_free_warnings", e.target.checked)}
       >
         Hide free warnings: do{" "}
         <b>
@@ -253,15 +245,15 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_dark_mode(): Rendered {
-    const checked = !!this.props.other_settings.get("dark_mode");
-    const config = get_dark_mode_config(this.props.other_settings.toJS());
+  function render_dark_mode(): Rendered {
+    const checked = !!props.other_settings.get("dark_mode");
+    const config = get_dark_mode_config(props.other_settings.toJS());
     const label_style = { width: "100px", display: "inline-block" } as const;
     return (
       <div>
         <Checkbox
           checked={checked}
-          onChange={(e) => this.on_change("dark_mode", e.target.checked)}
+          onChange={(e) => on_change("dark_mode", e.target.checked)}
           style={{
             color: "rgba(229, 224, 216)",
             backgroundColor: "rgb(36, 37, 37)",
@@ -286,7 +278,7 @@ export class OtherSettings extends Component<Props> {
               min={dark_mode_mins.brightness}
               max={100}
               value={config.brightness}
-              onChange={(x) => this.on_change("dark_mode_brightness", x)}
+              onChange={(x) => on_change("dark_mode_brightness", x)}
             />
             <br />
             <span style={label_style}>Contrast</span>
@@ -294,7 +286,7 @@ export class OtherSettings extends Component<Props> {
               min={dark_mode_mins.contrast}
               max={100}
               value={config.contrast}
-              onChange={(x) => this.on_change("dark_mode_contrast", x)}
+              onChange={(x) => on_change("dark_mode_contrast", x)}
             />
             <br />
             <span style={label_style}>Sepia</span>
@@ -302,7 +294,7 @@ export class OtherSettings extends Component<Props> {
               min={dark_mode_mins.sepia}
               max={100}
               value={config.sepia}
-              onChange={(x) => this.on_change("dark_mode_sepia", x)}
+              onChange={(x) => on_change("dark_mode_sepia", x)}
             />
             <br />
             <span style={label_style}>Grayscale</span>
@@ -310,7 +302,7 @@ export class OtherSettings extends Component<Props> {
               min={dark_mode_mins.grayscale}
               max={100}
               value={config.grayscale}
-              onChange={(x) => this.on_change("dark_mode_grayscale", x)}
+              onChange={(x) => on_change("dark_mode_grayscale", x)}
             />
           </Card>
         )}
@@ -318,30 +310,30 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_antd(): Rendered {
+  function render_antd(): Rendered {
     return (
       <>
         <Checkbox
-          checked={this.props.other_settings.get("antd_rounded", true)}
-          onChange={(e) => this.on_change("antd_rounded", e.target.checked)}
+          checked={props.other_settings.get("antd_rounded", true)}
+          onChange={(e) => on_change("antd_rounded", e.target.checked)}
         >
           <b>Rounded Design</b>: use rounded corners for buttons, etc.
         </Checkbox>
         <Checkbox
-          checked={this.props.other_settings.get("antd_animate", true)}
-          onChange={(e) => this.on_change("antd_animate", e.target.checked)}
+          checked={props.other_settings.get("antd_animate", true)}
+          onChange={(e) => on_change("antd_animate", e.target.checked)}
         >
           <b>Animations</b>: briefly animate some aspects, e.g. buttons
         </Checkbox>
         <Checkbox
-          checked={this.props.other_settings.get("antd_brandcolors", false)}
-          onChange={(e) => this.on_change("antd_brandcolors", e.target.checked)}
+          checked={props.other_settings.get("antd_brandcolors", false)}
+          onChange={(e) => on_change("antd_brandcolors", e.target.checked)}
         >
           <b>Color Scheme</b>: use brand colors instead of default colors
         </Checkbox>
         <Checkbox
-          checked={this.props.other_settings.get("antd_compact", false)}
-          onChange={(e) => this.on_change("antd_compact", e.target.checked)}
+          checked={props.other_settings.get("antd_compact", false)}
+          onChange={(e) => on_change("antd_compact", e.target.checked)}
         >
           <b>Compact Design</b>: use a more compact design
         </Checkbox>
@@ -349,10 +341,8 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  render_vertical_fixed_bar_options(): Rendered {
-    const selected = getValidVBAROption(
-      this.props.other_settings.get(VBAR_KEY),
-    );
+  function render_vertical_fixed_bar_options(): Rendered {
+    const selected = getValidVBAROption(props.other_settings.get(VBAR_KEY));
     return (
       <LabeledRow label="Vertical Project Bar">
         <div>
@@ -361,7 +351,7 @@ export class OtherSettings extends Component<Props> {
             selected={selected}
             options={VBAR_OPTIONS}
             on_change={(value) => {
-              this.on_change(VBAR_KEY, value);
+              on_change(VBAR_KEY, value);
               track("flyout", { aspect: "layout", how: "account", value });
             }}
           />
@@ -376,127 +366,83 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  render_language_model(): Rendered {
-    const projectsStore = redux.getStore("projects");
-    const haveOpenAI = projectsStore.hasLanguageModelEnabled(
-      undefined,
-      undefined,
-      "openai",
-    );
-    const haveGoogle = projectsStore.hasLanguageModelEnabled(
-      undefined,
-      undefined,
-      "google",
-    );
-
-    const defaultModel = getValidLanguageModelName(
-      this.props.other_settings.get(SETTINGS_LANGUAGE_MODEL_KEY),
-      { openai: haveOpenAI, google: haveGoogle },
-    );
-
-    const options: { value: string; display: JSX.Element }[] = [];
-
-    for (const key of USER_SELECTABLE_LANGUAGE_MODELS) {
-      const vendor = model2vendor(key);
-      if (vendor === "google" && !haveGoogle) continue;
-      if (vendor === "openai" && !haveOpenAI) continue;
-
-      const txt = isFreeModel(key) ? " (free)" : "";
-      const display = (
-        <>
-          <strong>{LLM_USERNAMES[key]}</strong> {txt}
-        </>
-      );
-      options.push({ value: key, display });
-    }
-
+  function render_language_model(): Rendered {
     return (
       <LabeledRow
         label={
           <>
-            <AIAvatar size={22} /> Language model
+            <AIAvatar size={22} /> Default Language Model
           </>
         }
       >
-        <SelectorInput
-          selected={defaultModel}
-          options={options}
-          on_change={(value) => {
-            this.on_change(SETTINGS_LANGUAGE_MODEL_KEY, value);
-          }}
-        />
+        <LLMSelector model={model} setModel={setModel} />
       </LabeledRow>
     );
   }
 
-  render() {
-    if (this.props.other_settings == null) {
-      return <Loading />;
-    }
-    return (
-      <>
-        <Panel
-          header={
-            <>
-              <Icon name="highlighter" /> Theme
-            </>
-          }
-        >
-          {this.render_dark_mode()}
-          {this.render_antd()}
-        </Panel>
+  if (props.other_settings == null) {
+    return <Loading />;
+  }
+  return (
+    <>
+      <Panel
+        header={
+          <>
+            <Icon name="highlighter" /> Theme
+          </>
+        }
+      >
+        {render_dark_mode()}
+        {render_antd()}
+      </Panel>
 
-        <Panel
-          header={
-            <>
-              <Icon name="gear" /> Other
-            </>
-          }
-        >
-          {this.render_confirm()}
-          {this.render_katex()}
-          {this.render_time_ago_absolute()}
-          {this.render_global_banner()}
-          {this.render_mask_files()}
-          {this.render_hide_project_popovers()}
-          {this.render_hide_file_popovers()}
-          {this.render_hide_button_tooltips()}
-          {this.render_no_free_warnings()}
-          {redux.getStore("customize").get("openai_enabled") && (
-            <Checkbox
-              checked={!!this.props.other_settings.get("openai_disabled")}
-              onChange={(e) => {
-                this.on_change("openai_disabled", e.target.checked);
-                redux.getStore("projects").clearOpenAICache();
-              }}
-            >
-              <strong>Disable all AI integrations</strong>, e.g.,
-              code generation or explanation buttons in Jupyter, @chatgpt
-              mentions, etc.
-            </Checkbox>
-          )}
-          {this.render_language_model()}
+      <Panel
+        header={
+          <>
+            <Icon name="gear" /> Other
+          </>
+        }
+      >
+        {render_confirm()}
+        {render_katex()}
+        {render_time_ago_absolute()}
+        {render_global_banner()}
+        {render_mask_files()}
+        {render_hide_project_popovers()}
+        {render_hide_file_popovers()}
+        {render_hide_button_tooltips()}
+        {render_no_free_warnings()}
+        {redux.getStore("customize").get("openai_enabled") && (
           <Checkbox
-            checked={
-              !!this.props.other_settings.get("disable_markdown_codebar")
-            }
+            checked={!!props.other_settings.get("openai_disabled")}
             onChange={(e) => {
-              this.on_change("disable_markdown_codebar", e.target.checked);
+              on_change("openai_disabled", e.target.checked);
+              redux.getStore("projects").clearOpenAICache();
             }}
           >
-            <strong>Disable the markdown code bar</strong> in all markdown
-            documents. Checking this hides the extra run, copy, and explain
-            buttons in fenced code blocks.
+            <strong>Disable all AI integrations</strong>, e.g., code generation
+            or explanation buttons in Jupyter, @chatgpt mentions, etc.
           </Checkbox>
-          {this.render_vertical_fixed_bar_options()}
-          {this.render_new_filenames()}
-          {this.render_default_file_sort()}
-          {this.render_page_size()}
-          {this.render_standby_timeout()}
-          <div style={{ height: "10px" }} />
-          <Tours />
-        </Panel>
-      </>
-    );
-  }
+        )}
+        {render_language_model()}
+        <Checkbox
+          checked={!!props.other_settings.get("disable_markdown_codebar")}
+          onChange={(e) => {
+            on_change("disable_markdown_codebar", e.target.checked);
+          }}
+        >
+          <strong>Disable the markdown code bar</strong> in all markdown
+          documents. Checking this hides the extra run, copy, and explain
+          buttons in fenced code blocks.
+        </Checkbox>
+        {render_vertical_fixed_bar_options()}
+        {render_new_filenames()}
+        {render_default_file_sort()}
+        {render_page_size()}
+        {render_standby_timeout()}
+        <div style={{ height: "10px" }} />
+        <Tours />
+      </Panel>
+    </>
+  );
 }

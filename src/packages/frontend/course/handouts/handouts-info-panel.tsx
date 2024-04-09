@@ -84,7 +84,7 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
       <ButtonGroup key="open_recopy">
         {render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
-          <Tip title="Open Directory" tip={open_tip}>
+          <Tip title="Open Folder" tip={open_tip}>
             <Icon name="folder-open" /> Open directory...
           </Tip>
         </Button>

@@ -18,7 +18,7 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { DEFAULT_COLOR } from "@cocalc/frontend/users/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { service2model } from "@cocalc/util/db-schema/openai";
+import { service2model } from "@cocalc/util/db-schema/llm-utils";
 import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
 

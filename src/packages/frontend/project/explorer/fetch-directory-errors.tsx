@@ -27,15 +27,15 @@ export function FetchDirectoryErrors({
     case "no_dir":
       return (
         <ShowError
-          message="No such directory"
+          message="No such folder"
           error={`The path ${path} does not exist.`}
         />
       );
     case "not_a_dir":
       return (
         <ShowError
-          message="Not a directory"
-          error={`${path} is not a directory.`}
+          message="Not a folder"
+          error={`${path} is not a folder.`}
         />
       );
     case "not_running":
@@ -44,7 +44,7 @@ export function FetchDirectoryErrors({
         <ShowError
           message="Project still not running"
           error={
-            "The project was not running when this directory listing was requested.  Please try again in a moment."
+            "The project was not running when this listing was requested.  Please try again in a moment."
           }
         />
       );
@@ -65,7 +65,7 @@ export function FetchDirectoryErrors({
           />
         );
       } else {
-        return <ShowError message="Directory Listing Error" error={error} />;
+        return <ShowError message="Folder Listing Error" error={error} />;
       }
   }
 }

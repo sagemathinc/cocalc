@@ -25,6 +25,7 @@ interface Props {
   path: string;
   font_size: number;
   is_current: boolean;
+  is_visible: boolean;
   desc: Map<string, any>;
 }
 
@@ -42,6 +43,7 @@ export class CellNotebook extends Component<Props, {}> {
         editor_actions={this.props.actions}
         name={jupyter_actions.name}
         is_focused={this.props.is_current}
+        is_visible={this.props.is_visible}
         is_fullscreen={this.props.is_fullscreen}
         font_size={this.props.font_size}
         mode={this.data("mode", "escape")}

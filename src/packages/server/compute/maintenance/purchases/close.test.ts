@@ -2,20 +2,21 @@
 Test functions for closing purchases in various ways.
 */
 
+import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import createAccount from "@cocalc/server/accounts/create-account";
+import { setTestNetworkUsage } from "@cocalc/server/compute/control";
+import createServer from "@cocalc/server/compute/create-server";
+import { getServer } from "@cocalc/server/compute/get-servers";
+import createProject from "@cocalc/server/projects/create";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
+import { ComputeServerNetworkUsage } from "@cocalc/util/db-schema/purchases";
+import { uuid } from "@cocalc/util/misc";
 import {
-  closePurchase,
   closeAndContinuePurchase,
   closeAndPossiblyContinueNetworkPurchase,
+  closePurchase,
 } from "./close";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { uuid } from "@cocalc/util/misc";
-import createAccount from "@cocalc/server/accounts/create-account";
-import createProject from "@cocalc/server/projects/create";
-import createServer from "@cocalc/server/compute/create-server";
-import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { getPurchase } from "./util";
-import { getServer } from "@cocalc/server/compute/get-servers";
-import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -27,9 +28,9 @@ afterAll(async () => {
 
 describe("creates account, project, test compute server, and purchase, then close the purchase, and confirm it worked properly", () => {
   const account_id = uuid();
-  let project_id;
-  let server_id;
-  let purchase_id;
+  let project_id: string;
+  let server_id: number;
+  let purchase_id: number;
 
   it("creates account and project", async () => {
     await createAccount({
@@ -190,7 +191,9 @@ describe("creates account, project, test compute server, and purchase, then clos
     if (newPurchase.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
-    expect(newPurchase.description.compute_server_id).toBe(server_id);
+    expect(
+      (newPurchase.description as ComputeServerNetworkUsage).compute_server_id,
+    ).toBe(server_id);
     expect(newPurchase.description.amount).toBe(0);
   });
 });

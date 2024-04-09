@@ -12,7 +12,7 @@ wat once, and hence we make many Primus websocket connections
 simultaneously to the same domain.  It does work, but not without an ugly hack.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
 import { ajax, globalEval } from "jquery";
 import { join } from "path";

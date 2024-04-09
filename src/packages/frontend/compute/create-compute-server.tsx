@@ -1,12 +1,17 @@
 import { Button, Modal, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
-import { createServer, computeServerAction } from "./api";
+import {
+  createServer,
+  computeServerAction,
+  setServerConfiguration,
+} from "./api";
 import { useEffect, useState } from "react";
 import { availableClouds } from "./config";
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
 } from "@cocalc/util/db-schema/compute-servers";
+import { replace_all } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 import ComputeServer from "./compute-server";
 import { useTypedRedux, useRedux, redux } from "@cocalc/frontend/app-framework";
@@ -29,7 +34,13 @@ function defaultCloud() {
 }
 
 function defaultConfiguration() {
-  return CLOUDS_BY_NAME[availableClouds()[0]]?.defaultConfiguration ?? {};
+  return genericDefaults(
+    CLOUDS_BY_NAME[availableClouds()[0]]?.defaultConfiguration ?? {},
+  );
+}
+
+function genericDefaults(conf) {
+  return { ...conf, excludeFromSync: ["compute-server-[id]"] };
 }
 
 export default function CreateComputeServer({ project_id, onCreate }) {
@@ -62,7 +73,9 @@ export default function CreateComputeServer({ project_id, onCreate }) {
 
   useEffect(() => {
     if (configuration != null && configuration.cloud != cloud) {
-      setConfiguration(CLOUDS_BY_NAME[cloud].defaultConfiguration);
+      setConfiguration(
+        genericDefaults(CLOUDS_BY_NAME[cloud]?.defaultConfiguration),
+      );
     }
   }, [cloud]);
 
@@ -79,6 +92,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           color,
           configuration,
         });
+        await updateFastDataDirectoryId(id, configuration);
         setEditing(false);
         resetConfig();
         setCreating(false);
@@ -222,4 +236,17 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       </Modal>
     </div>
   );
+}
+
+async function updateFastDataDirectoryId(id: number, configuration) {
+  const { excludeFromSync } = configuration;
+  if (excludeFromSync == null || excludeFromSync.length == 0) {
+    return;
+  }
+  const changes = {
+    excludeFromSync: excludeFromSync.map((x) =>
+      replace_all(x, "[id]", `${id}`),
+    ),
+  };
+  await setServerConfiguration({ id, configuration: changes });
 }

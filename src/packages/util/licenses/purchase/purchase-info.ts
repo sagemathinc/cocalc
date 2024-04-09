@@ -7,7 +7,7 @@ import type { Date0 } from "@cocalc/util/types/store";
 import dayjs from "dayjs";
 
 export default function getPurchaseInfo(
-  conf: SiteLicenseDescriptionDB
+  conf: SiteLicenseDescriptionDB,
 ): PurchaseInfo {
   conf.type = conf.type ?? "quota"; // backwards compatibility
 
@@ -78,13 +78,24 @@ export default function getPurchaseInfo(
 // a portion of the start which is in the past.
 export function fixRange(
   rangeOrig: readonly [Date0 | string, Date0 | string] | undefined | null,
-  period: Period
+  period: Period,
 ): StartEndDates {
+  if (period != "range") {
+    // ATTN! -- we messed up and didn't deal with this case before, and a user
+    // could in theory:
+    //  1. set the period to 'range', and put in a week period via start and end
+    //  2. set the period to 'yearly'.
+    // Then rangeOrig is still a week, so they pay for one week instead of one year!
+    // Instead, in whenever the period is 'monthly' or 'yearly' (anything but 'range',
+    // we unset rangeOrig here so we use start=now and end=now + a year (say) for
+    // the price computation.
+    rangeOrig = null;
+  }
   const now = new Date();
   if (rangeOrig == null) {
     if (period == "range") {
       throw Error(
-        "if period is 'range', then start and end dates must be explicitly given"
+        "if period is 'range', then start and end dates must be explicitly given",
       );
     }
     return { start: now, end: addPeriod(now, period) };

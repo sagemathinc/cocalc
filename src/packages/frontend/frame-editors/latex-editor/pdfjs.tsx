@@ -7,30 +7,30 @@
 
 const HIGHLIGHT_TIME_S: number = 6;
 
-import { useCallback, useRef, useState } from "react";
-import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import { Alert } from "antd";
 import { delay } from "awaiting";
-import type { Set as iSet} from "immutable";
-import { seconds_ago, list_alternatives } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { dblclick } from "./mouse-click";
-import { useEffect } from "react";
+import type { Set as iSet } from "immutable";
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack.mjs";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import {
   redux,
   useActions,
-  useRedux,
   useIsMountedRef,
+  useRedux,
 } from "@cocalc/frontend/app-framework";
+import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { EditorState } from "../frame-tree/types";
+import { dblclick } from "./mouse-click";
+import { SyncHighlight } from "./pdfjs-annotation";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import Page, { BG_COL, PAGE_GAP } from "./pdfjs-page";
-import { SyncHighlight } from "./pdfjs-annotation";
-import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
-import { EditorState } from "../frame-tree/types";
-import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 
 interface PDFJSProps {
   id: string;
@@ -182,7 +182,7 @@ export function PDFJS({
     if (evt.key == "0" && (evt.metaKey || evt.ctrlKey)) {
       actions.set_font_size(
         id,
-        redux.getStore("account").get("font_size") ?? 14
+        redux.getStore("account").get("font_size") ?? 14,
       );
       return;
     }
@@ -231,7 +231,7 @@ export function PDFJS({
   async function loadDoc(reload: number): Promise<void> {
     try {
       const doc: PDFDocumentProxy = await getDocument(
-        url_to_pdf(project_id, path, reload)
+        url_to_pdf(project_id, path, reload),
       );
       if (!isMounted.current) return;
       setMissing(false);
@@ -277,7 +277,7 @@ export function PDFJS({
         await delay(3000);
         if (isMounted.current && missing && actions.update_pdf != null) {
           // try again, since there is function
-          actions.update_pdf(new Date().valueOf(), true);
+          actions.update_pdf(Date.now(), true);
         }
       }
     }
@@ -286,7 +286,7 @@ export function PDFJS({
   async function doScrollIntoView(
     page: number,
     y: number,
-    id2: string
+    id2: string,
   ): Promise<void> {
     if (id != id2) {
       // not set to *this* viewer, so ignore.
@@ -381,7 +381,7 @@ export function PDFJS({
   }
 
   const [curPageIndex, setCurPageIndex] = useState<number | string>(
-    desc.get("page") ?? 0
+    desc.get("page") ?? 0,
   );
   // This can be handy:
   const curPageHeightRef = useRef<number | undefined>(undefined);
@@ -420,7 +420,7 @@ export function PDFJS({
       curPagePosRef.current = { topOfPage, bottomOfPage, middle };
       actions.setPage(id, index + 1);
     },
-    [id, pages, font_size]
+    [id, pages, font_size],
   );
 
   const getPageIndex = useCallback(() => {
@@ -579,17 +579,22 @@ export function PDFJS({
   // probably the scroller just supports it.
   // For the "hand tool", which is what we're implementing by default now (select will be soon),
   // click and drag should move the scroll position.
-  const lastMousePosRef = useRef<null | number>(null);
+  const lastMousePosRef = useRef<null | { x: number; y: number }>(null);
+
   const onMouseDown = useCallback((e) => {
-    lastMousePosRef.current = e.clientY;
+    lastMousePosRef.current = getClientPos(e);
     setCursor("grabbing");
   }, []);
+
   const onMouseMove = useCallback((e) => {
     if (!e.buttons || lastMousePosRef.current == null) return;
-    const delta = lastMousePosRef.current - e.clientY;
-    virtuosoRef.current?.scrollBy({ top: delta });
-    lastMousePosRef.current = e.clientY;
+    const { x, y } = getClientPos(e);
+    const deltaX = lastMousePosRef.current.x - x;
+    const deltaY = lastMousePosRef.current.y - y;
+    virtuosoRef.current?.scrollBy({ top: deltaY, left: deltaX });
+    lastMousePosRef.current = { x, y };
   }, []);
+
   const onMouseUp = useCallback(() => {
     lastMousePosRef.current = null;
     setCursor("grab");
@@ -613,4 +618,8 @@ export function PDFJS({
       {renderContent()}
     </div>
   );
+}
+
+function getClientPos(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+  return { x: e.clientX, y: e.clientY };
 }

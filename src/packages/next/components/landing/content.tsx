@@ -9,12 +9,12 @@ import { ReactNode } from "react";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
-import SignIn from "components/landing/sign-in";
 import { CSS, Paragraph, Title } from "components/misc";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
 import Image from "./image";
+import SignIn from "./sign-in";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -33,10 +33,10 @@ interface Props {
   image?: string | StaticImageData;
   imageAlternative?: JSX.Element | string; // string as markdown, replaces the image
   landing?: boolean;
-  logo?: ReactNode | string | StaticImageData;
+  body?: ReactNode | string | StaticImageData;
   startup?: ReactNode;
   style?: React.CSSProperties;
-  subtitle: ReactNode;
+  subtitle?: ReactNode;
   subtitleBelow?: boolean;
   title: ReactNode;
 }
@@ -65,7 +65,7 @@ export default function Content(props: Props) {
     image,
     imageAlternative,
     landing = false, // for all pages on /landing/* – makes the splash content background at the top blue-ish
-    logo,
+    body,
     startup,
     style,
     subtitle,
@@ -171,10 +171,19 @@ export default function Content(props: Props) {
   }
 
   function renderLogo() {
-    if (typeof logo === "string" || (logo as StaticImageData)?.src != null) {
-      return <Logo logo={logo} title={title} />;
+    if (typeof body === "string" || (body as StaticImageData)?.src != null) {
+      return (
+        <Logo
+          logo={body}
+          title={title}
+        />
+      );
     } else {
-      return <>{logo}</>;
+      return (
+        <>
+          {body}
+        </>
+      );
     }
   }
 
@@ -188,7 +197,7 @@ export default function Content(props: Props) {
       <Row
         gutter={[20, 30]}
         style={{
-          padding: "30px 0",
+          paddingTop: "12px",
           maxWidth: MAX_WIDTH_LANDING,
           marginTop: "0",
           marginBottom: "0",
@@ -211,10 +220,16 @@ export default function Content(props: Props) {
           >
             {renderLogo()}
             {renderTitle()}
-            {renderSubtitleTop()}
-            <Title level={4} style={{ color: COLORS.GRAY }}>
-              {description}
-            </Title>
+            {subtitle && renderSubtitleTop()}
+            {description && (
+              <Title
+                level={4}
+                style={{ color: COLORS.GRAY }}
+              >
+                {description}
+              </Title>
+            )}
+            <SignIn startup={startup ?? title} hideFree={true} />
           </Space>
         </Col>
         <Col sm={14} xs={24}>
@@ -222,10 +237,7 @@ export default function Content(props: Props) {
           {renderImage()}
           {renderBelowImage()}
         </Col>
-        {renderSubtitleBelow()}
-        <Col lg={24}>
-          <SignIn startup={startup ?? title} hideFree={true} />
-        </Col>
+        {subtitle && renderSubtitleBelow()}
       </Row>
     </div>
   );

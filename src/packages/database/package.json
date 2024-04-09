@@ -26,7 +26,6 @@
     "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
-    "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^8.3.0",
     "debug": "^4.3.2",
@@ -36,7 +35,6 @@
     "lru-cache": "^7.14.1",
     "node-fetch": "2.6.7",
     "pg": "^8.7.1",
-    "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
     "read": "^1.0.7",
     "sql-string-escape": "^1.1.6",
@@ -49,10 +47,10 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc  --build && coffee -c -o dist/ ./",
+    "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
-    "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist/",
+    "tsc": "../node_modules/.bin/tsc --watch  --pretty --preserveWatchOutput",
+    "test": "../node_modules/.bin/jest dist/",
     "prepublishOnly": "pnpm test"
   },
   "repository": {

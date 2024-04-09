@@ -5,13 +5,14 @@ import {
   getMaxCost,
   isLanguageModelService,
   service2model,
-} from "@cocalc/util/db-schema/openai";
+} from "@cocalc/util/db-schema/llm-utils";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { currency, round2up, round2down } from "@cocalc/util/misc";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { getPurchaseQuotas } from "./purchase-quotas";
+import isBanned from "@cocalc/server/accounts/is-banned";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -50,6 +51,9 @@ export async function isPurchaseAllowed({
   }
   if (!(await isValidAccount(account_id))) {
     return { allowed: false, reason: `${account_id} is not a valid account` };
+  }
+  if (await isBanned(account_id)) {
+    return { allowed: false, reason: `${account_id} is banned` };
   }
   if (QUOTA_SPEC[service] == null) {
     return {
@@ -101,7 +105,9 @@ export async function isPurchaseAllowed({
   }
   const { services, minBalance } = await getPurchaseQuotas(account_id, client);
   // First check that making purchase won't reduce our balance below the minBalance.
-  const balance = (await getBalance(account_id, client)) + margin;
+  // Also, we round balance down since fractional pennies don't count, and
+  // can cause required to be off by 1 below.
+  const balance = round2down(await getBalance(account_id, client)) + margin;
   const amountAfterPurchase = balance - cost;
   // add 0.01 due to potential rounding errors
   if (amountAfterPurchase + 0.01 < minBalance) {

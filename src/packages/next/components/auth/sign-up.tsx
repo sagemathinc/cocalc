@@ -11,37 +11,39 @@ import {
 } from "react-google-recaptcha-v3";
 
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { CONTACT_TAG } from "@cocalc/util/db-schema/accounts";
 import {
   is_valid_email_address as isValidEmailAddress,
   len,
   plural,
   smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Strategy } from "@cocalc/util/types/sso";
-import Logo from "components/logo";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import { LOGIN_STYLE } from "./shared";
+import AuthPageContainer from "./fragments/auth-page-container";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import Tags from "./tags";
-import { COLORS } from "@cocalc/util/theme";
-import { CONTACT_TAG } from "@cocalc/util/db-schema/accounts";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
 const MIN_TAGS = 1;
 
-interface Props {
+interface SignUpProps {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
   onSuccess?: (opts?: {}) => void; // if given, call after sign up *succeeds*.
   has_site_license?: boolean;
   publicPathId?: string;
+  showSignIn?: boolean;
+  signInAction?: () => void; // if given, replaces the default sign-in link behavior.
+  onCoCalcCom?: boolean; // if true, show the tag selection.
 }
 
-export default function SignUp(props: Props) {
+export default function SignUp(props: SignUpProps) {
   const { reCaptchaKey } = useCustomize();
 
   const body = <SignUp0 {...props} />;
@@ -62,7 +64,10 @@ function SignUp0({
   onSuccess,
   has_site_license,
   publicPathId,
-}: Props) {
+  signInAction,
+  showSignIn,
+  onCoCalcCom,
+}: SignUpProps) {
   const {
     anonymousSignup,
     anonymousSignupLicensedShares,
@@ -70,7 +75,6 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
-    onCoCalcCom,
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
   const [signupReason, setSingupReason] = useState<string>("");
@@ -87,6 +91,8 @@ function SignUp0({
     registrationToken?: string;
     reCaptcha?: string;
   }>({});
+
+  const requestContact = tags.has(CONTACT_TAG);
 
   const submittable = useRef<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
@@ -115,8 +121,6 @@ function SignUp0({
     return <Loading />;
   }
 
-  const requestContact = tags.has(CONTACT_TAG);
-
   submittable.current = !!(
     requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
@@ -129,7 +133,6 @@ function SignUp0({
   );
 
   async function signUp() {
-    if (!submittable.current) return;
     if (signingUp) return;
     setIssues({});
     try {
@@ -201,218 +204,228 @@ function SignUp0({
   const needsTags = !minimal && onCoCalcCom && tagsSize < MIN_TAGS;
   const what = "role";
 
-  return (
-    <div style={{ margin: "30px", minHeight: "50vh" }}>
-      {!minimal && (
-        <div style={{ textAlign: "center", marginBottom: "15px" }}>
-          <Logo
-            type="icon"
-            style={{ width: "100px", height: "100px", marginBottom: "15px" }}
-            priority={true}
-          />
-          <h1>Create a {siteName} Account</h1>
-          <h2 style={{ color: COLORS.GRAY_M, marginBottom: "35px" }}>
-            Sign up for free and get started with {siteName} today!
-          </h2>
-          {accountCreationInstructions && (
-            <Markdown value={accountCreationInstructions} />
-          )}
-        </div>
-      )}
-
-      <div style={{ ...LOGIN_STYLE, maxWidth: "890px" }}>
-        <div>
-          By creating an account, you agree to the{" "}
-          <A external={true} href="/policies/terms">
-            Terms of Service
-          </A>
-          .
-        </div>
-        {!minimal && onCoCalcCom && (
-          <Tags
-            setTags={setTags}
-            signupReason={signupReason}
-            setSingupReason={setSingupReason}
-            tags={tags}
-            minTags={MIN_TAGS}
-            what={what}
-            style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
-            contact={true}
-          />
-        )}
-        <form>
-          {issues.reCaptcha && (
-            <Alert
-              style={LINE}
-              type="error"
-              showIcon
-              message={issues.reCaptcha}
-              description={<>You may have to contact the site administrator.</>}
-            />
-          )}
-
-          {issues.registrationToken && (
-            <Alert
-              style={LINE}
-              type="error"
-              showIcon
-              message={issues.registrationToken}
-              description={
-                <>
-                  You may have to contact the site administrator for a
-                  registration token.
-                </>
-              }
-            />
-          )}
-          {requiresToken2 && (
-            <div style={LINE}>
-              <p>Registration Token</p>
-              <Input
-                style={{ fontSize: "12pt" }}
-                value={registrationToken}
-                placeholder="Enter your secret registration token"
-                onChange={(e) => setRegistrationToken(e.target.value)}
-              />
-            </div>
-          )}
-          <EmailOrSSO
-            email={email}
-            setEmail={setEmail}
-            signUp={signUp}
-            strategies={strategies}
-            hideSSO={requiredSSO != null}
-          />
-          <RequiredSSO strategy={requiredSSO} />
-          {issues.email && (
-            <Alert
-              style={LINE}
-              type="error"
-              showIcon
-              message={issues.email}
-              description={
-                <>
-                  Choose a different email address,{" "}
-                  <A href="/auth/sign-in">sign in</A>, or{" "}
-                  <A href="/auth/password-reset">reset your password</A>.
-                </>
-              }
-            />
-          )}
-          {requiredSSO == null && (
-            <div style={LINE}>
-              <p>Password</p>
-              <Input.Password
-                style={{ fontSize: "12pt" }}
-                value={password}
-                placeholder="Password"
-                autoComplete="new-password"
-                onChange={(e) => setPassword(e.target.value)}
-                onPressEnter={signUp}
-              />
-            </div>
-          )}
-          {issues.password && (
-            <Alert style={LINE} type="error" showIcon message={issues.email} />
-          )}
-          {requiredSSO == null && (
-            <div style={LINE}>
-              <p>First name (Given name)</p>
-              <Input
-                style={{ fontSize: "12pt" }}
-                placeholder="First name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                onPressEnter={signUp}
-              />
-            </div>
-          )}
-          {requiredSSO == null && (
-            <div style={LINE}>
-              <p>Last name (Family name)</p>
-              <Input
-                style={{ fontSize: "12pt" }}
-                placeholder="Last name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                onPressEnter={signUp}
-              />
-            </div>
-          )}
-        </form>
-        <div style={LINE}>
-          <Button
-            shape="round"
-            size="large"
-            disabled={!submittable.current || signingUp}
-            type="primary"
-            style={{
-              width: "100%",
-              marginTop: "15px",
-              color:
-                !submittable.current || signingUp
-                  ? COLORS.ANTD_RED_WARN
-                  : undefined,
-            }}
-            onClick={signUp}
-          >
-            {needsTags && tagsSize < MIN_TAGS
-              ? `Select at least ${smallIntegerToEnglishWord(
-                  MIN_TAGS,
-                )} ${plural(MIN_TAGS, what)}`
-              : requestContact && !signupReason.trim()
-              ? "Tell us how you intend to use CoCalc."
-              : requiresToken2 && !registrationToken
-              ? "Enter the secret registration token"
-              : !email
-              ? "How will you sign in?"
-              : !isValidEmailAddress(email)
-              ? "Enter a valid email address above"
-              : requiredSSO != null
-              ? "You must sign up via SSO"
-              : !password || password.length < 6
-              ? "Choose password with at least 6 characters"
-              : !firstName?.trim()
-              ? "Enter your first name above"
-              : !lastName?.trim()
-              ? "Enter your last name above"
-              : signingUp
-              ? ""
-              : "Sign Up!"}
-            {signingUp && (
-              <span style={{ marginLeft: "15px" }}>
-                <Loading>Signing Up...</Loading>
-              </span>
+  function renderFooter() {
+    return (
+      (!minimal || showSignIn) && (
+        <>
+          <div>
+            Already have an account?{" "}
+            {signInAction ? (
+              <a onClick={signInAction}>Sign In</a>
+            ) : (
+              <A href="/auth/sign-in">Sign In</A>
+            )}{" "}
+            {anonymousSignup && (
+              <>
+                or{" "}
+                <A href="/auth/try">
+                  {" "}
+                  try {siteName} without creating an account.{" "}
+                </A>
+              </>
             )}
-          </Button>
-        </div>
-        {issues.error && (
-          <Alert style={LINE} type="error" showIcon message={issues.error} />
-        )}
-      </div>
+          </div>
+        </>
+      )
+    );
+  }
 
-      {!minimal && (
-        <div
-          style={{
-            ...LOGIN_STYLE,
-            backgroundColor: "white",
-            margin: "30px auto",
-            padding: "15px",
-          }}
-        >
-          Already have an account? <A href="/auth/sign-in">Sign In</A>
-          {anonymousSignup && (
-            <div style={{ marginTop: "15px" }}>
-              Don't want to provide any information?
-              <br />
-              <A href="/auth/try">
-                Try {siteName} without creating an account.
-              </A>
-            </div>
-          )}
-        </div>
+  function renderError() {
+    return (
+      issues.error && (
+        <Alert style={LINE} type="error" showIcon message={issues.error} />
+      )
+    );
+  }
+
+  function renderSubtitle() {
+    return (
+      <>
+        <h4 style={{ color: COLORS.GRAY_M, marginBottom: "35px" }}>
+          Start collaborating for free today.
+        </h4>
+        {accountCreationInstructions && (
+          <Markdown value={accountCreationInstructions} />
+        )}
+      </>
+    );
+  }
+
+  return (
+    <AuthPageContainer
+      error={renderError()}
+      footer={renderFooter()}
+      subtitle={renderSubtitle()}
+      minimal={minimal}
+      title={`Create a free account with ${siteName}`}
+    >
+      <div>
+        By creating an account, you agree to the{" "}
+        <A external={true} href="/policies/terms">
+          Terms of Service
+        </A>
+        .
+      </div>
+      {!minimal && onCoCalcCom && (
+        <Tags
+          setTags={setTags}
+          signupReason={signupReason}
+          setSingupReason={setSingupReason}
+          tags={tags}
+          minTags={MIN_TAGS}
+          what={what}
+          style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
+          contact={true}
+        />
       )}
-    </div>
+      <form>
+        {issues.reCaptcha && (
+          <Alert
+            style={LINE}
+            type="error"
+            showIcon
+            message={issues.reCaptcha}
+            description={<>You may have to contact the site administrator.</>}
+          />
+        )}
+
+        {issues.registrationToken && (
+          <Alert
+            style={LINE}
+            type="error"
+            showIcon
+            message={issues.registrationToken}
+            description={
+              <>
+                You may have to contact the site administrator for a
+                registration token.
+              </>
+            }
+          />
+        )}
+        {requiresToken2 && (
+          <div style={LINE}>
+            <p>Registration Token</p>
+            <Input
+              style={{ fontSize: "12pt" }}
+              value={registrationToken}
+              placeholder="Enter your secret registration token"
+              onChange={(e) => setRegistrationToken(e.target.value)}
+            />
+          </div>
+        )}
+        <EmailOrSSO
+          email={email}
+          setEmail={setEmail}
+          signUp={signUp}
+          strategies={strategies}
+          hideSSO={requiredSSO != null}
+        />
+        <RequiredSSO strategy={requiredSSO} />
+        {issues.email && (
+          <Alert
+            style={LINE}
+            type="error"
+            showIcon
+            message={issues.email}
+            description={
+              <>
+                Choose a different email address,{" "}
+                <A href="/auth/sign-in">sign in</A>, or{" "}
+                <A href="/auth/password-reset">reset your password</A>.
+              </>
+            }
+          />
+        )}
+        {requiredSSO == null && (
+          <div style={LINE}>
+            <p>Password</p>
+            <Input.Password
+              style={{ fontSize: "12pt" }}
+              value={password}
+              placeholder="Password"
+              autoComplete="new-password"
+              onChange={(e) => setPassword(e.target.value)}
+              onPressEnter={signUp}
+            />
+          </div>
+        )}
+        {issues.password && (
+          <Alert style={LINE} type="error" showIcon message={issues.password} />
+        )}
+        {requiredSSO == null && (
+          <div style={LINE}>
+            <p>First name (Given name)</p>
+            <Input
+              style={{ fontSize: "12pt" }}
+              placeholder="First name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              onPressEnter={signUp}
+            />
+          </div>
+        )}
+        {requiredSSO == null && (
+          <div style={LINE}>
+            <p>Last name (Family name)</p>
+            <Input
+              style={{ fontSize: "12pt" }}
+              placeholder="Last name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              onPressEnter={signUp}
+            />
+          </div>
+        )}
+      </form>
+      <div style={LINE}>
+        <Button
+          shape="round"
+          size="large"
+          disabled={!submittable.current || signingUp}
+          type="primary"
+          style={{
+            width: "100%",
+            marginTop: "15px",
+            color:
+              !submittable.current || signingUp
+                ? COLORS.ANTD_RED_WARN
+                : undefined,
+          }}
+          onClick={signUp}
+        >
+          {needsTags && tagsSize < MIN_TAGS
+            ? `Select at least ${smallIntegerToEnglishWord(MIN_TAGS)} ${plural(
+                MIN_TAGS,
+                what,
+              )}`
+            : requestContact && !signupReason.trim()
+            ? "Tell us how you intend to use CoCalc."
+            : requiresToken2 && !registrationToken
+            ? "Enter the secret registration token"
+            : !email
+            ? "How will you sign in?"
+            : !isValidEmailAddress(email)
+            ? "Enter a valid email address above"
+            : requiredSSO != null
+            ? "You must sign up via SSO"
+            : !password || password.length < 6
+            ? "Choose password with at least 6 characters"
+            : !firstName?.trim()
+            ? "Enter your first name above"
+            : !lastName?.trim()
+            ? "Enter your last name above"
+            : signingUp
+            ? ""
+            : "Sign Up!"}
+          {signingUp && (
+            <span style={{ marginLeft: "15px" }}>
+              <Loading>Signing Up...</Loading>
+            </span>
+          )}
+        </Button>
+      </div>
+    </AuthPageContainer>
   );
 }
 
@@ -461,7 +474,7 @@ function EmailOrSSO(props: EmailOrSSOProps) {
         </p>
       </div>
       {renderSSO()}
-      {emailSignup && (
+      {emailSignup ? (
         <p>
           <p>Email address</p>
           <Input
@@ -473,7 +486,7 @@ function EmailOrSSO(props: EmailOrSSOProps) {
             onPressEnter={signUp}
           />
         </p>
-      )}
+      ) : undefined}
     </div>
   );
 }

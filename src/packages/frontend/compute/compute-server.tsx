@@ -1,6 +1,5 @@
 import { Button, Card, Divider, Modal, Popconfirm } from "antd";
 import { CSSProperties, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
@@ -12,6 +11,7 @@ import { deleteServer, undeleteServer } from "./api";
 import Cloud from "./cloud";
 import Color, { randomColor } from "./color";
 import ComputeServerLog from "./compute-server-log";
+import SerialPortOutput from "./serial-port-output";
 import Configuration from "./configuration";
 import CurrentCost from "./current-cost";
 import Description from "./description";
@@ -76,7 +76,7 @@ export default function ComputeServer({
       type: "text",
       project_id,
     });
-    if (editable) {
+    if (editable || configuration?.allowCollaboratorControl) {
       actions.push(
         <Button
           key="edit"
@@ -90,7 +90,15 @@ export default function ComputeServer({
             setEdit(!edit);
           }}
         >
-          <Icon name="gears" /> {!edit ? "Edit" : "Editing..."}
+          {editable ? (
+            <>
+              <Icon name="gears" /> {!edit ? "Edit..." : "Editing..."}
+            </>
+          ) : (
+            <>
+              <Icon name="eye" /> Details...
+            </>
+          )}
         </Button>,
       );
     }
@@ -172,7 +180,9 @@ export default function ComputeServer({
         editable={editable}
         state={state}
         id={id}
+        project_id={project_id}
         configuration={configuration}
+        data={data}
         onChange={onConfigurationChange}
       />
 
@@ -189,7 +199,7 @@ export default function ComputeServer({
     <div>
       <div style={{ width: "100%", display: "flex" }}>
         <Button onClick={() => setEdit(false)} style={{ marginRight: "5px" }}>
-          <Icon name="save" /> Save
+          <Icon name="save" /> {editable ? "Save" : "Close"}
         </Button>
         <div style={{ marginRight: "5px" }}>
           {getActions({
@@ -273,6 +283,17 @@ export default function ComputeServer({
                 title={title}
               />
             )}
+            {id != null &&
+              configuration.cloud == "google-cloud" &&
+              (state == "starting" ||
+                state == "stopping" ||
+                state == "running") && (
+                <SerialPortOutput
+                  id={id}
+                  style={{ marginLeft: "-15px" }}
+                  title={title}
+                />
+              )}
             {id != null && (
               <div style={{ marginLeft: "-15px" }}>
                 <CurrentCost state={state} cost_per_hour={cost_per_hour} />
@@ -415,14 +436,18 @@ function ComputeServerEdit({
           <>
             {buttons}
             <Divider />
-            <Icon name="edit" /> Edit Compute Server With Id={id}
+            <Icon name="edit" style={{ marginRight: "15px" }} />{" "}
+            {editable ? "Edit" : ""} Compute Server With Id={id}
           </>
         }
         footer={
-          <div style={{ display: "flex" }}>
-            {buttons}
-            <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
-          </div>
+          <>
+            <Divider />
+            <div style={{ display: "flex" }}>
+              {buttons}
+              <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
+            </div>
+          </>
         }
       >
         <div

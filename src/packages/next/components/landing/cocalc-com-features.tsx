@@ -6,7 +6,6 @@
 import { Button, Col, Grid, Row } from "antd";
 import { join } from "path";
 import { useEffect, useState } from "react";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
@@ -16,9 +15,6 @@ import Info from "components/landing/info";
 import { CSS, Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
-import Loading from "components/share/loading";
-import ProxyInput from "components/share/proxy-input";
-import PublicPaths from "components/share/public-paths";
 import {
   Testimonial,
   TestimonialComponent,
@@ -26,11 +22,10 @@ import {
 } from "components/testimonials";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
-import useAPI from "lib/hooks/api";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
-import SignIn from "./sign-in";
 import RTC from "public/features/cocalc-real-time-jupyter.png";
 import ComputeServers from "./compute-servers";
+import { LANDING_HEADER_LEVEL } from "./constants";
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
 export function CoCalcComFeatures() {
@@ -42,7 +37,6 @@ export function CoCalcComFeatures() {
     shareServer = false,
   } = useCustomize();
   const width = Grid.useBreakpoint();
-  const [sharedExpanded, setSharedExpanded] = useState(false);
 
   // to avoid next-js hydration errors
   const [testimonials, setTestimonials] =
@@ -55,37 +49,38 @@ export function CoCalcComFeatures() {
   function renderCollaboration(): JSX.Element {
     return (
       <Info
-        title="Collaborative Jupyter, Terminals, LaTeX and more"
+        level={LANDING_HEADER_LEVEL}
+        title="Realtime Collaboration Using Your Favorite Tools"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
-        below={renderShareServer()}
         belowWide={true}
       >
         <Paragraph>
-          {siteName} makes it very easy to collaboratively edit computational
-          documents with your colleagues, students, or friends. Edit{" "}
+          With {siteName}, you can easily collaborate with colleagues, students,
+          and friends to edit computational documents. We support{" "}
           <A href={"/features/jupyter-notebook"}>
             <strong>Jupyter Notebooks</strong>
           </A>
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
           <A href="/features/sage">SageMath Worksheets</A>,{" "}
-          <A href={"/features/whiteboard"}>Computational Whiteboards</A> and
-          much more with your collaborators.
+          <A href={"/features/whiteboard"}>Computational Whiteboards</A>, and
+          much more.
         </Paragraph>
 
         <Paragraph>
-          The code code runs in the same environment for everyone, giving
-          consistent results, with all changes synchronized, and easy integrated
-          revision history, so you can easily find what happened.
+          Everyone's code runs in the same per-project environment, which
+          provides consistent results, synchronized file changes, and automatic
+          revision history so that you can go back in time when you need to
+          discover what changed and when. {renderShareServer()}
         </Paragraph>
 
         <Paragraph>
-          You can forget the frustration of sending files back and forth between
-          your collaborators. You no longer waste time reviewing changes and
-          merging documents.
+          Forget the frustration of sending files back and forth between your
+          collaborators, wasting time reviewing changes, and merging documents.{" "}
+          <A href={"/auth/sign-up"}>Get started with {siteName} today.</A>
         </Paragraph>
       </Info>
     );
@@ -94,6 +89,7 @@ export function CoCalcComFeatures() {
   function renderTeaching() {
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Integrated Course Management System"
         icon="graduation-cap"
         image={assignments}
@@ -143,8 +139,8 @@ export function CoCalcComFeatures() {
     if (!sandboxProjectId) return;
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title={<>The Public {siteName} Sandbox</>}
-        level={2}
         icon="share-square"
         anchor="a-sandbox"
         style={{ backgroundColor: COLORS.GRAY_LLL }}
@@ -161,19 +157,13 @@ export function CoCalcComFeatures() {
   function renderShareServer() {
     if (!shareServer) return;
 
-    if (sharedExpanded) {
-      return <PublishedPathsIndex />;
-    } else {
-      return (
-        <div style={{ textAlign: "center" }}>
-          <Button size="large" onClick={() => setSharedExpanded(true)}>
-            <Icon name="plus-square" /> Explore published documents on{" "}
-            {siteName}!
-          </Button>
-          <ProxyInput />
-        </div>
-      );
-    }
+    return (
+      <>
+        {" "}
+        You can even publish your {siteName} creations to share with anyone via
+        the built-in <A href={"/share/public_paths/page/1"}>share server</A>.
+      </>
+    );
   }
 
   function renderMore(): JSX.Element {
@@ -216,7 +206,8 @@ export function CoCalcComFeatures() {
     );
     return (
       <Info
-        title="And much more …"
+        level={LANDING_HEADER_LEVEL}
+        title="Much More …"
         icon="wrench"
         anchor="more"
         style={{ backgroundColor: COLORS.YELL_LLL }}
@@ -350,6 +341,7 @@ export function CoCalcComFeatures() {
 
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Solutions"
         icon="shopping-cart"
         anchor="products"
@@ -361,7 +353,7 @@ export function CoCalcComFeatures() {
             <Tool
               icon="server"
               href={urlProducts}
-              title="Online Service with GPU's"
+              title="Online Service with GPUs"
               alt="Online Service"
               textStyle={{ color: toolCol }}
             >
@@ -393,7 +385,7 @@ export function CoCalcComFeatures() {
                 <A style={link} href={"https://doc.cocalc.com/paygo.html"}>
                   pay-as-you-go
                 </A>{" "}
-                and use GPU's and HPC resources via{" "}
+                and use GPUs and HPC resources via{" "}
                 <A
                   style={link}
                   href={"https://doc.cocalc.com/compute_server.html"}
@@ -460,16 +452,6 @@ export function CoCalcComFeatures() {
                     .
                   </li>
                   <li>
-                    Run your own {siteName} server easily via{" "}
-                    <A
-                      style={link}
-                      href="https://github.com/sagemathinc/cocalc-docker#readme"
-                    >
-                      <strong>cocalc-docker</strong>
-                    </A>{" "}
-                    for a small group.
-                  </li>
-                  <li>
                     Deploy a highly scalable variant of {siteName} on your{" "}
                     <strong>Kubernetes cluster</strong> via{" "}
                     <A
@@ -502,6 +484,7 @@ export function CoCalcComFeatures() {
     const [t1, t2] = testimonials;
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Testimonials"
         icon="comment"
         anchor="testimonials"
@@ -533,6 +516,7 @@ export function CoCalcComFeatures() {
     if (!openaiEnabled) return;
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Extensive ChatGPT Integration"
         icon="robot"
         imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
@@ -557,6 +541,7 @@ export function CoCalcComFeatures() {
 
     return (
       <Info
+        level={LANDING_HEADER_LEVEL}
         title="Many Programming Languages"
         icon="flow-chart"
         imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
@@ -587,7 +572,6 @@ export function CoCalcComFeatures() {
       {renderMore()}
       {renderTestimonials()}
       {renderAvailableProducts()}
-      <SignIn startup={siteName} hideFree={true} />
     </>
   );
 }
@@ -601,7 +585,7 @@ export function Hero() {
         backgroundColor: COLORS.BLUE_D,
         paddingBottom: "30px",
         marginTop: "30px",
-        paddingTop: "45px",
+        paddingTop: "30px",
       }}
     >
       Realtime collaborative{" "}
@@ -612,55 +596,7 @@ export function Hero() {
       <A href="/features/latex-editor" style={{ color: "white" }}>
         LaTeX
       </A>
-      , Markdown, and Linux with GPU's
+      , Markdown, and Linux with GPUs
     </Info.Heading>
-  );
-}
-
-function PublishedPathsIndex() {
-  const { result: publicPaths, error } = useAPI("public-paths/listing-cached");
-
-  useEffect(() => {
-    if (error) console.log(error);
-  }, [error]);
-
-  const text = "All published  files …";
-
-  return (
-    <>
-      <div
-        style={{
-          maxHeight: "60vh",
-          overflow: "auto",
-          margin: "0 auto",
-          padding: "0",
-        }}
-      >
-        {publicPaths ? (
-          <PublicPaths publicPaths={publicPaths} />
-        ) : (
-          <Loading large center />
-        )}
-      </div>
-      <Paragraph
-        style={{
-          textAlign: "center",
-          marginTop: "15px",
-        }}
-      >
-        <Button
-          size="large"
-          onClick={() =>
-            (window.location.href = join(
-              basePath,
-              "/share/public_paths/page/1",
-            ))
-          }
-          title={text}
-        >
-          <Icon name="share-square" /> {text}
-        </Button>
-      </Paragraph>
-    </>
   );
 }

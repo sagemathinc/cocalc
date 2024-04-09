@@ -38,7 +38,6 @@ Here's what a typical shopping cart item looks like:
   "cost": {
     "cost": 112.78032786885247,
     "cost_per_unit": 112.78032786885247,
-    "discounted_cost": 112.78032786885247,
     "cost_per_project_per_month": 687.96,
     "cost_sub_month": 687.96,
     "cost_sub_year": 8255.52,
@@ -72,10 +71,11 @@ import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import getLogger from "@cocalc/backend/logger";
 import createSubscription from "./create-subscription";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
-import { getClosingDay } from "./closing-date";
-import dayjs from "dayjs";
 import { round2up } from "@cocalc/util/misc";
-import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
+import { getNextClosingDate, getNextClosingDateAfter } from "./closing-date";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import dayjs from "dayjs";
+import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 
@@ -107,7 +107,8 @@ export default async function purchaseShoppingCartItem(
 
   const purchase_id = await createPurchase({
     account_id: item.account_id,
-    cost: round2up(licenseCost.discounted_cost),
+    cost: round2up(licenseCost.cost),
+    unrounded_cost: licenseCost.cost,
     service: "license",
     description: { type: "license", item, info, license_id },
     tag: "license-purchase",
@@ -125,13 +126,17 @@ export default async function purchaseShoppingCartItem(
     if (interval.endsWith("ly")) {
       interval = interval.slice(0, -2); // get rid of the ly
     }
+    // cost = cost per interval of the subscription, i.e., per month or year.
+    const cost = periodicCost(licenseCost);
+    if (!cost || cost <= 0) {
+      throw Error(`invalid subscription cost=${cost}`);
+    }
     const subscription_id = await createSubscription(
       {
         account_id: item.account_id,
-        // cost = cost per interval of the subscription, i.e., per month or year.
-        cost: item.cost.discounted_cost,
+        cost,
         interval,
-        current_period_start: dayjs(info.end).subtract(1, interval).toDate(), // since info.end might have changed.
+        current_period_start: info.start,
         current_period_end: info.end,
         latest_purchase_id: purchase_id,
         status: "active",
@@ -158,8 +163,9 @@ export async function createLicenseFromShoppingCartItem(
 
   if (info.type != "vouchers" && item.description.period != "range") {
     // handle initial purchase of subscription:
-    const { cost, end } = await getInitialCostForSubscription(item);
+    const { cost, start, end } = await getInitialCostForSubscription(item);
     licenseCost = cost;
+    info.start = start;
     info.end = end;
   }
 
@@ -175,37 +181,25 @@ export async function createLicenseFromShoppingCartItem(
 
 export async function getInitialCostForSubscription(
   item,
-): Promise<{ cost: Cost; end: Date }> {
+): Promise<{ cost: Cost; start: Date; end: Date }> {
   const info = getPurchaseInfo(item.description);
-  let licenseCost = item.cost;
-
-  if (info.type != "vouchers" && item.description.period != "range") {
-    if (info.end == null || info.start == null) {
-      throw Error("start and end must be set");
-    }
-    let end = info.end;
-    // adjust end day to match user's closing day, since it's very nice for all the subscriptions
-    // to renew on the same day as the statement, so user's get one single bill rather than a mess.
-    const closingDay = await getClosingDay(item.account_id);
-    // the end > start+1 condition is to avoid any potential of an infinite loop, e.g., if closingDay
-    // were somehow corrupted.
-    while (end.getDate() != closingDay && end > info.start) {
-      end = dayjs(end).subtract(1, "day").toDate();
-    }
-    const interval = item.description.period;
-    const cost_per_hour = item.cost.discounted_cost / hoursInInterval(interval);
-    const num_hours = dayjs(end).diff(dayjs(info.start), "hour", true);
-    const cost_for_remaining_time = num_hours * cost_per_hour;
-    const cost = {
-      ...licenseCost,
-      cost: cost_for_remaining_time,
-      discounted_cost: cost_for_remaining_time,
-      cost_per_unit: cost_for_remaining_time / info.quantity,
-    };
-    return { cost, end };
-  } else {
-    throw Error("must be a subscription");
+  if (info.type != "quota") {
+    throw Error(`item must be a subscription, but type='${info.type}'`);
   }
+  const start = new Date();
+  let end;
+  if (item.description.period == "yearly") {
+    end = await getNextClosingDateAfter(
+      item.account_id,
+      dayjs(start).add(11, "month").add(1, "day").toDate(),
+    );
+  } else if (item.description.period == "monthly") {
+    end = await getNextClosingDate(item.account_id);
+  } else {
+    throw Error(`invalid period -- "${item.description.period}"`);
+  }
+  const cost = compute_cost({ ...info, start, end });
+  return { cost, start, end };
 }
 
 async function markItemPurchased(item, license_id: string, client: PoolClient) {

@@ -160,4 +160,10 @@ export default class API implements API_Interface {
       15000,
     );
   }
+  async computeServerComputeRegister(compute_server_id) {
+    return await this.call(
+      { cmd: "compute_server_compute_register", opts: { compute_server_id } },
+      15000,
+    );
+  }
 }

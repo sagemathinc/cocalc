@@ -8,10 +8,11 @@ Synctable that uses the project websocket rather than the database.
 */
 
 import { delay } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
-import { synctable_no_database, SyncTable } from "@cocalc/sync/table";
+
+import { SyncTable, synctable_no_database } from "@cocalc/sync/table";
 import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { assertDefined } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { AppClient } from "./types";
 
 // Always wait at least this long between connect attempts.  This
@@ -94,7 +95,7 @@ class SyncTableChannel extends EventEmitter {
     this.set_connected(false);
     this.clean_up_sockets();
 
-    const time_since_last_connect = new Date().valueOf() - this.last_connect;
+    const time_since_last_connect = Date.now() - this.last_connect;
     if (time_since_last_connect < MIN_CONNECT_WAIT_MS) {
       // Last attempt to connect was very recent, so we wait a little before
       // trying again.
@@ -108,7 +109,7 @@ class SyncTableChannel extends EventEmitter {
       log: this.log,
     });
 
-    this.last_connect = new Date().valueOf();
+    this.last_connect = Date.now();
   }
 
   private set_connected(connected: boolean): void {
@@ -221,7 +222,11 @@ class SyncTableChannel extends EventEmitter {
     }
     if (mesg.error != null) {
       const { alert_message } = this.client;
-      const message = `Error opening file -- ${mesg.error} -- wait, restart your project or refresh your browser`;
+      const message = `Error opening file -- ${
+        mesg.error
+      } -- wait, restart your project or refresh your browser. Query=${JSON.stringify(
+        this.query,
+      )}`;
       if (alert_message != null) {
         alert_message({ type: "info", message, timeout: 10 });
       } else {

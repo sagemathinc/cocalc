@@ -9,12 +9,13 @@
 // one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 
 import { Popover } from "antd";
-import { capitalize } from "@cocalc/util/misc";
+
 import { Icon } from "@cocalc/frontend/components";
-import { SPEC, SpecItem } from "./errors-and-warnings";
-import { IProcessedLatexLog, Error } from "./latex-log-parser";
-import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
+import { capitalize } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
+import { SPEC, SpecItem } from "./errors-and-warnings";
+import { Error, IProcessedLatexLog } from "./latex-log-parser";
 
 export function update_gutters(opts: {
   log: IProcessedLatexLog;
