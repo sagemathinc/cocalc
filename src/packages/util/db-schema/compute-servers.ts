@@ -163,7 +163,7 @@ export const ACTION_INFO: {
     description:
       "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
-    confirmMessage: "I understand that my compute server disk will be deleted.",
+    confirmMessage: "I understand that my compute server disks will be deleted.",
     danger: true,
     target: "deprovisioned",
   },
