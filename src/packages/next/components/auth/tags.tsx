@@ -1,4 +1,4 @@
-import { Checkbox, Input, Tag, Tooltip } from "antd";
+import { Checkbox, Col, Input, Row, Tag, Tooltip } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
 
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -20,6 +20,7 @@ interface Props {
   minTags: number;
   what: string;
   style?: CSS;
+  warning?: boolean;
   contact?: boolean; // if true, add checkbox to be "contacted" below, which adds a "contact" tag
 }
 
@@ -31,6 +32,7 @@ export default function Tags({
   minTags,
   style,
   what,
+  warning = false,
   contact = false,
 }: Props) {
   const handleTagChange = (tag: string, checked: boolean) => {
@@ -60,14 +62,15 @@ export default function Tags({
           checked={checked}
           onChange={onContact}
         >
-          Do you want us to contact you? We will help you getting started or
-          just introduce CoCalc to you!
+          Do you want to be contacted by us? We will help you getting started or
+          just introduce CoCalc to you – no spam and no strings attached.
         </Checkbox>
         {checked ? (
           <Input
             addonBefore="Intended use:"
             placeholder="Tell us how you intend to use CoCalc."
             style={{ width: "100%" }}
+            value={signupReason}
             status={!signupReason.trim() ? "error" : undefined}
             onChange={(e) => {
               setSingupReason(e.target.value);
@@ -79,40 +82,53 @@ export default function Tags({
   }
 
   function renderTags() {
-    return TAGS.map(({ label, tag, icon, color, description }) => {
+    return TAGS.map(({ label, tag, icon, color, description }, idx) => {
       const tagColor =
-        color ?? getRandomColor(tag, { min: 140, max: 170, diff: 0 });
+        color ?? getRandomColor(tag, { min: 200, max: 250, diff: 20, seed: 5 });
       const iconName = icon ?? file_associations[tag]?.icon;
       const tagElement = (
-        <Tag
-          style={{
-            fontSize: "14px",
-            width: "125px",
-            height: "auto",
-            padding: "4px",
-            margin: "4px",
-            cursor: "pointer",
-            ...(tags.has(tag)
-              ? { color: "white", background: COLORS.ANTD_LINK_BLUE }
-              : undefined),
-          }}
-          key={tag}
-          onClick={() => {
-            handleTagChange(tag, !tags.has(tag));
-          }}
-          color={tags.has(tag) ? undefined : tagColor}
-        >
-          {iconName && <Icon name={iconName} style={{ marginRight: "5px" }} />}
-          {label}
-        </Tag>
+        <Col md={12} key={tag}>
+          <Tag
+            key={tag}
+            style={{
+              fontSize: "14px",
+              height: "auto",
+              padding: "4px",
+              margin: "4px",
+              width: "100%",
+              cursor: "pointer",
+              ...(tags.has(tag)
+                ? { color: "white", background: COLORS.ANTD_LINK_BLUE }
+                : { color: "black" }),
+            }}
+            onClick={() => {
+              handleTagChange(tag, !tags.has(tag));
+            }}
+            color={tags.has(tag) ? undefined : tagColor}
+          >
+            {iconName && (
+              <Icon name={iconName} style={{ marginRight: "5px" }} />
+            )}
+            {label}
+          </Tag>
+        </Col>
       );
       return description ? (
-        <Tooltip title={description}>{tagElement}</Tooltip>
+        <Tooltip
+          title={description}
+          placement={idx % 2 === 0 ? "left" : "right"}
+        >
+          {tagElement}
+        </Tooltip>
       ) : (
         tagElement
       );
     });
   }
+
+  const warningStyle: CSS = warning
+    ? { border: `1px solid ${COLORS.ANTD_RED_WARN}` }
+    : {};
 
   return (
     <div style={style}>
@@ -120,16 +136,18 @@ export default function Tags({
         Select at least {smallIntegerToEnglishWord(minTags)}{" "}
         {plural(minTags, what)}
       </div>
-      <div
+      <Row
+        gutter={[10, 10]}
         style={{
           marginTop: "5px",
           background: "white",
           borderRadius: "5px",
           padding: "10px",
+          ...warningStyle,
         }}
       >
         {renderTags()}
-      </div>
+      </Row>
       {renderContact()}
     </div>
   );

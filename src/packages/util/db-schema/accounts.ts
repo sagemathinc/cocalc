@@ -666,78 +666,42 @@ int main() {
   { label: "Teaching", tag: "course", color: "green" },
 ];
 
+const professional = "professional";
+
 // Tags specific to user roles or if they want to be contacted
-export const TAGS_USERS: Tag[] = [
+export const TAGS_USERS: Readonly<Tag[]> = [
   {
     label: "Personal",
     tag: "personal",
     icon: "user",
-    description:
-      "You are interesting in using CoCalc for personal, non-commercial reasons",
+    description: "You are interesting in using CoCalc for personal use.",
   },
   {
-    label: "Commercial",
-    tag: "commercial",
+    label: "Professional",
+    tag: professional,
     icon: "coffee",
-    description:
-      "You're either using CoCalc as an emploee for commercial purposes or you're a self-employed freelancer",
+    description: "You're using CoCalc as an emploee or freelancer.",
   },
   {
     label: "Instructor",
     tag: "instructor",
     icon: "graduation-cap",
-    description: "You are teaching a course",
+    description: "You are teaching a course.",
   },
   {
     label: "Student",
     tag: "student",
     icon: "smile",
-    description: "You're a student in a course",
+    description: "You're a student in a course.",
   },
-  {
-    label: "Researcher",
-    tag: "researcher",
-    icon: "rocket",
-    description:
-      "You intend to use CoCalc for a research project at a university",
-  },
-  {
-    label: "Collaborator",
-    tag: "collaborator",
-    icon: "users",
-    description: "You were invited to CoCalc to collaborate on a project",
-  },
-  {
-    label: "Developer",
-    tag: "developer",
-    icon: "microchip",
-    description: "You're a software developer, IT professional, etc.",
-  },
-  {
-    label: "Artist",
-    tag: "artist",
-    icon: "highlighter",
-    description: "You make art using software",
-  },
-  {
-    label: "Government",
-    tag: "government",
-    icon: "bank",
-    description: "You're working for a government",
-  },
-  {
-    label: "Other",
-    tag: "other",
-    icon: "question-circle",
-    description: "We missed something. Please contact us!",
-  },
-];
+] as const;
 
 export const TAGS = TAGS_USERS;
 
-export const TAGS_MAP: { [key: string]: Tag } = {};
+export const TAGS_MAP: { [key: string]: Readonly<Tag> } = {};
 for (const x of TAGS) {
   TAGS_MAP[x.tag] = x;
 }
 
 export const CONTACT_TAG = "contact";
+export const CONTACT_THESE_TAGS = [professional];

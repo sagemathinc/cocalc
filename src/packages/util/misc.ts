@@ -2459,16 +2459,18 @@ const randomColorCache = new LRU<string, string>({ max: 100 });
  * - min: minimum value for each channel
  * - max: maxium value for each channel
  * - diff: mimimum difference across channels (increase, to avoid dull gray colors)
+ * - seed: seed for the random number generator
  */
 export function getRandomColor(
   s: string,
-  opts?: { min?: number; max?: number; diff?: number },
+  opts?: { min?: number; max?: number; diff?: number; seed?: number },
 ): string {
   const diff = opts?.diff ?? 0;
   const min = clip(opts?.min ?? 120, 0, 254);
   const max = Math.max(min, clip(opts?.max ?? 230, 1, 255));
+  const seed = opts?.seed ?? 0;
 
-  const key = `${s}-${min}-${max}-${diff}`;
+  const key = `${s}-${min}-${max}-${diff}-${seed}`;
   const cached = randomColorCache.get(key);
   if (cached) {
     return cached;
@@ -2479,7 +2481,9 @@ export function getRandomColor(
   const mod = max - min;
 
   while (true) {
-    const hash = sha1(s + String.fromCharCode("A".charCodeAt(0) + iter))
+    // seed + s + String.fromCharCode("A".charCodeAt(0) + iter)
+    const val = `${seed}-${s}-${String.fromCharCode("A".charCodeAt(0) + iter)}`;
+    const hash = sha1(val)
       .split("")
       .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
     const r = (((hash >> 0) & 0xff) % mod) + min;

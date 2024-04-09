@@ -11,7 +11,10 @@ import {
 } from "react-google-recaptcha-v3";
 
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { CONTACT_TAG } from "@cocalc/util/db-schema/accounts";
+import {
+  CONTACT_TAG,
+  CONTACT_THESE_TAGS,
+} from "@cocalc/util/db-schema/accounts";
 import {
   is_valid_email_address as isValidEmailAddress,
   len,
@@ -40,7 +43,6 @@ interface SignUpProps {
   publicPathId?: string;
   showSignIn?: boolean;
   signInAction?: () => void; // if given, replaces the default sign-in link behavior.
-  onCoCalcCom?: boolean; // if true, show the tag selection.
 }
 
 export default function SignUp(props: SignUpProps) {
@@ -66,7 +68,6 @@ function SignUp0({
   publicPathId,
   signInAction,
   showSignIn,
-  onCoCalcCom,
 }: SignUpProps) {
   const {
     anonymousSignup,
@@ -75,6 +76,7 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
+    onCoCalcCom,
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
   const [signupReason, setSingupReason] = useState<string>("");
@@ -92,7 +94,8 @@ function SignUp0({
     reCaptcha?: string;
   }>({});
 
-  const requestContact = tags.has(CONTACT_TAG);
+  const showContact = CONTACT_THESE_TAGS.some((t) => tags.has(t));
+  const requestContact = tags.has(CONTACT_TAG) && showContact;
 
   const submittable = useRef<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
@@ -121,6 +124,11 @@ function SignUp0({
     return <Loading />;
   }
 
+  // number of tags except for the one name "CONTACT_TAG"
+  const tagsSize = tags.size - (requestContact ? 1 : 0);
+  const needsTags = !minimal && onCoCalcCom && tagsSize < MIN_TAGS;
+  const what = "role";
+
   submittable.current = !!(
     requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
@@ -129,7 +137,8 @@ function SignUp0({
     password &&
     firstName?.trim() &&
     lastName?.trim() &&
-    (!requestContact || signupReason.trim())
+    !needsTags &&
+    (!showContact || !requestContact || signupReason.trim())
   );
 
   async function signUp() {
@@ -199,11 +208,6 @@ function SignUp0({
     );
   }
 
-  // number of tags except for the one name "CONTACT_TAG"
-  const tagsSize = tags.size - (requestContact ? 1 : 0);
-  const needsTags = !minimal && onCoCalcCom && tagsSize < MIN_TAGS;
-  const what = "role";
-
   function renderFooter() {
     return (
       (!minimal || showSignIn) && (
@@ -266,7 +270,7 @@ function SignUp0({
         </A>
         .
       </div>
-      {!minimal && onCoCalcCom && (
+      {!minimal && onCoCalcCom ? (
         <Tags
           setTags={setTags}
           signupReason={signupReason}
@@ -275,11 +279,12 @@ function SignUp0({
           minTags={MIN_TAGS}
           what={what}
           style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
-          contact={true}
+          contact={showContact}
+          warning={needsTags}
         />
-      )}
+      ) : undefined}
       <form>
-        {issues.reCaptcha && (
+        {issues.reCaptcha ? (
           <Alert
             style={LINE}
             type="error"
@@ -287,8 +292,7 @@ function SignUp0({
             message={issues.reCaptcha}
             description={<>You may have to contact the site administrator.</>}
           />
-        )}
-
+        ) : undefined}
         {issues.registrationToken && (
           <Alert
             style={LINE}
