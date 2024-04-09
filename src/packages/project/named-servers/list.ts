@@ -57,6 +57,7 @@ function rserver(ip: string, port: number, basePath: string) {
   const tmp = `${process.env.TMP ?? "/tmp"}/rserver`;
 
   // watch out, this will be prefixed with #!/bin/sh and piped into stdout/stderr
+  // www-root-path needs the trailing slash and it must be "server", not "port"
   return `\
 PORT="${port}"
 TMP="${tmp}"
@@ -69,18 +70,19 @@ provider=sqlite
 directory=$DATA/db
 EOF
 
-exec env DISABLE_AUTH=true rserver \\
-    --server-daemonize=0 \\
-    --auth-none=1 \\
-    --auth-encrypt-password=0 \\
-    --server-user=$USER \\
-    --database-config-file="$TMP/db.conf" \\
-    --server-data-dir="$DATA" \\
-    --server-working-dir="$HOME" \\
-    --www-address=${ip} \\
-    --www-port=$PORT \\
-    --www-root-path="${basePath}/" \\
-    --server-pid-file="$TMP/rserver.pid"`;
+export DISABLE_AUTH=true
+rserver \
+--server-daemonize=0 \
+--auth-none=1 \
+--auth-encrypt-password=0 \
+--server-user=$USER \
+--database-config-file="$TMP/db.conf" \
+--server-data-dir="$DATA" \
+--server-working-dir="$HOME" \
+--www-address=${ip} \
+--www-port=$PORT \
+--www-root-path="${basePath}/" \
+--server-pid-file="$TMP/rserver.pid"`;
 }
 
 const SPEC: { [name in NamedServerName]: CommandFunction } = {

@@ -35,16 +35,21 @@ export async function start(name: NamedServerName): Promise<number> {
   if (ip === "localhost") {
     ip = "127.0.0.1";
   }
+  // TODO that baseType should come from named-server-panel:SPEC[name].usesBasePath
   const baseType = name === "rserver" ? "server" : "port";
   const base = join(basePath, `/${project_id}/${baseType}/${name}`);
   const cmd = await getCommand(name, ip, port, base);
   winston.debug(`will start ${name} by running "${cmd}"`);
 
-  const child = exec(cmd, { cwd: process.env.HOME });
   const p = await paths(name);
   await writeFile(p.port, `${port}`);
-  await writeFile(p.pid, `${child.pid}`);
   await writeFile(p.command, `#!/bin/sh\n${cmd}\n`);
+  const child =
+    name === "rserver"
+      ? // this is a script, hence we run it with sh
+        exec(`/bin/sh ${p.command}`, { cwd: process.env.HOME })
+      : exec(cmd, { cwd: process.env.HOME });
+  await writeFile(p.pid, `${child.pid}`);
   return port;
 }
 
@@ -107,6 +112,8 @@ async function paths(name: NamedServerName): Promise<{
 
 function preferredPort(name: NamedServerName): number | undefined {
   const p = process.env[`COCALC_${name.toUpperCase()}_PORT`];
-  if (p == null) return p;
+  if (p == null) {
+    return p;
+  }
   return parseInt(p);
 }

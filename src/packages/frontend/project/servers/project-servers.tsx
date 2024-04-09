@@ -4,6 +4,7 @@
  */
 
 import { Col, Divider, Modal, Row } from "antd";
+import { Gutter } from "antd/es/grid/row";
 
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
@@ -14,7 +15,6 @@ import {
 } from "@cocalc/frontend/compute";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { NamedServerName } from "@cocalc/util/types/servers";
-import { Gutter } from "antd/es/grid/row";
 import { NamedServerPanel } from "../named-server-panel";
 import { NewFileButton } from "../new/new-file-button";
 import { SagewsControl } from "../settings/sagews-control";

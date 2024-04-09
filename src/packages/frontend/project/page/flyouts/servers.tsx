@@ -61,18 +61,26 @@ export function ServersFlyout({ project_id, wrap }) {
     );
   }
 
-  return wrap(
-    <>
-      {computeServersEnabled() && (
-        <div>
+  function renderComputeServers() {
+    if (!computeServersEnabled()) return;
+
+    return (
+      <>
+        <div style={{ padding: FLYOUT_PADDING }}>
           <Title level={5}>
             <ComputeServerDocs style={{ float: "right" }} />
             <Icon name="servers" /> Compute Servers
           </Title>
           <ComputeServers project_id={project_id} />
         </div>
-      )}
-      <Divider />
+        <Divider />
+      </>
+    );
+  }
+
+  return wrap(
+    <>
+      {renderComputeServers()}
       {renderEmbeddedServers()}
       {renderSageServerControl()}
     </>,
