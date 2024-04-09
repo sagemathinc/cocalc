@@ -38,7 +38,7 @@ function getLabel(x: PurchaseOption, priceData) {
   const gpu = toGPU(x.gpu);
   const gpuSpec = GPU_SPECS[gpu];
   return (
-    <div style={{ lineHeight: "20px" }}>
+    <div style={{ lineHeight: "20px", marginLeft: "10px" }}>
       <div
         style={{
           display: "flex",
@@ -84,12 +84,10 @@ function getLabel(x: PurchaseOption, priceData) {
           )}
         </div>{" "}
         <div style={{ flex: 1 }}>
-          {gpuSpec != null && (
+          {gpuSpec != null && gpuSpec.cuda_cores > 0 && (
             <>
-              CUDA cores:{" "}
-              {gpuSpec.cuda_cores
-                ? commas(x.gpu_count * gpuSpec.cuda_cores)
-                : "-"}
+              {commas(x.gpu_count * gpuSpec.cuda_cores)}
+              {" CUDA cores"}
             </>
           )}
         </div>
@@ -104,7 +102,7 @@ function getLabel(x: PurchaseOption, priceData) {
         </div>
         <div style={{ flex: 1 }}>
           {(x.ephemeral ?? 0) > 0 && (
-            <>{commas(x.ephemeral)} GB Ephemeral Disk</>
+            <>{commas(x.ephemeral)}GB Ephemeral Disk</>
           )}
         </div>
       </div>
@@ -239,7 +237,7 @@ export default function MachineType({
           ? "You can only change the machine type when the compute server is off or deprovisioned."
           : "The machine type determines the GPU, RAM, and ephemeral disk size."}
         <div>
-          <div style={{ textAlign:'center', marginTop: "5px" }}>
+          <div style={{ textAlign: "center", marginTop: "5px" }}>
             {Object.keys(TAGS)
               .filter((name) => {
                 if (name == "CPU Only") {
