@@ -73,7 +73,7 @@ export function DisplayCost({
       </>
     );
   }
-  const desc = `${money(round2up(cost.cost))} ${
+  const desc = `${money(round2up(periodicCost(cost)))} ${
     cost.period != "range" ? cost.period : ""
   }`;
 
