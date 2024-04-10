@@ -4,7 +4,7 @@ import Refresh from "@cocalc/frontend/components/refresh";
 import { getStatements } from "./api";
 import { useEffect, useState } from "react";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2down } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { PurchasesTable } from "./purchases";
 import EmailDailyStatements from "./email-daily-statements";
@@ -107,7 +107,7 @@ export default function Statements({
       dataIndex: "balance",
       key: "balance",
       align: "right" as "right",
-      render: (balance) => currency(balance, 2),
+      render: (balance) => currency(round2down(balance), 2),
     },
     { title: "ID", dataIndex: "id", key: "id" },
   ];
