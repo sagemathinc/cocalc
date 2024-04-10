@@ -44,11 +44,8 @@ export async function start(name: NamedServerName): Promise<number> {
   const p = await paths(name);
   await writeFile(p.port, `${port}`);
   await writeFile(p.command, `#!/bin/sh\n${cmd}\n`);
-  const child =
-    name === "rserver"
-      ? // this is a script, hence we run it with sh
-        exec(`/bin/sh ${p.command}`, { cwd: process.env.HOME })
-      : exec(cmd, { cwd: process.env.HOME });
+
+  const child = exec(cmd, { cwd: process.env.HOME });
   await writeFile(p.pid, `${child.pid}`);
   return port;
 }
@@ -61,7 +58,7 @@ async function getCommand(
 ): Promise<string> {
   const { stdout, stderr } = await paths(name);
   const spec = getSpec(name);
-  const cmd = spec(ip, port, base);
+  const cmd: string = await spec(ip, port, base);
   return `${cmd} 1>${stdout} 2>${stderr}`;
 }
 
