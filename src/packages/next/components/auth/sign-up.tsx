@@ -33,8 +33,6 @@ import Tags from "./tags";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
-const MIN_TAGS = 1;
-
 interface SignUpProps {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
@@ -43,6 +41,7 @@ interface SignUpProps {
   publicPathId?: string;
   showSignIn?: boolean;
   signInAction?: () => void; // if given, replaces the default sign-in link behavior.
+  requireTags: boolean;
 }
 
 export default function SignUp(props: SignUpProps) {
@@ -68,6 +67,7 @@ function SignUp0({
   publicPathId,
   signInAction,
   showSignIn,
+  requireTags,
 }: SignUpProps) {
   const {
     anonymousSignup,
@@ -94,6 +94,7 @@ function SignUp0({
     reCaptcha?: string;
   }>({});
 
+  const minTags = requireTags ? 1 : 0;
   const showContact = CONTACT_THESE_TAGS.some((t) => tags.has(t));
   const requestContact = tags.has(CONTACT_TAG) && showContact;
 
@@ -126,19 +127,22 @@ function SignUp0({
 
   // number of tags except for the one name "CONTACT_TAG"
   const tagsSize = tags.size - (requestContact ? 1 : 0);
-  const needsTags = !minimal && onCoCalcCom && tagsSize < MIN_TAGS;
+  const needsTags = !minimal && onCoCalcCom && tagsSize < minTags;
   const what = "role";
 
   submittable.current = !!(
-    requiredSSO == null &&
-    (!requiresToken2 || registrationToken) &&
-    email &&
-    isValidEmailAddress(email) &&
-    password &&
-    firstName?.trim() &&
-    lastName?.trim() &&
-    !needsTags &&
-    (!showContact || !requestContact || signupReason.trim())
+    (
+      requiredSSO == null &&
+      (!requiresToken2 || registrationToken) &&
+      email &&
+      isValidEmailAddress(email) &&
+      password &&
+      password.length >= 6 &&
+      firstName?.trim() &&
+      lastName?.trim() &&
+      !needsTags
+    )
+    // && (!showContact || !requestContact || signupReason.trim()) // optional for now
   );
 
   async function signUp() {
@@ -276,7 +280,7 @@ function SignUp0({
           signupReason={signupReason}
           setSingupReason={setSingupReason}
           tags={tags}
-          minTags={MIN_TAGS}
+          minTags={minTags}
           what={what}
           style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
           contact={showContact}
@@ -398,13 +402,11 @@ function SignUp0({
           }}
           onClick={signUp}
         >
-          {needsTags && tagsSize < MIN_TAGS
-            ? `Select at least ${smallIntegerToEnglishWord(MIN_TAGS)} ${plural(
-                MIN_TAGS,
+          {needsTags && tagsSize < minTags
+            ? `Select at least ${smallIntegerToEnglishWord(minTags)} ${plural(
+                minTags,
                 what,
               )}`
-            : requestContact && !signupReason.trim()
-            ? "Tell us how you intend to use CoCalc."
             : requiresToken2 && !registrationToken
             ? "Enter the secret registration token"
             : !email

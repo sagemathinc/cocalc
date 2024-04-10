@@ -19,7 +19,7 @@ import basePath from "lib/base-path";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
-export default function SignUpPage({ customize, requiresToken }) {
+export default function SignUpPage({ customize, requiresToken, requireTags }) {
   const { siteName, isCommercial } = customize;
   const router = useRouter();
 
@@ -61,7 +61,11 @@ export default function SignUpPage({ customize, requiresToken }) {
       <Layout>
         <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignUp requiresToken={requiresToken} onSuccess={onSuccess} />
+          <SignUp
+            requiresToken={requiresToken}
+            onSuccess={onSuccess}
+            requireTags={requireTags}
+          />
           <Footer />
         </Layout.Content>
       </Layout>
@@ -79,5 +83,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     return { props: { customize: {} } };
   }
   customize.props.requiresToken = await getRequiresToken();
+  // this field only has an effect, if we're on the cocalc.com site.
+  customize.props.requireTags =
+    process.env.COCALC_SIGNUP_REQUIRE_TAGS !== "false";
   return customize;
 }

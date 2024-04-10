@@ -10,7 +10,7 @@ import {
   smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { CSS } from "components/misc";
+import { CSS, Paragraph, Text } from "components/misc";
 
 interface Props {
   tags: Set<string>;
@@ -62,16 +62,19 @@ export default function Tags({
           checked={checked}
           onChange={onContact}
         >
-          Do you want to be contacted by us? We will help you getting started or
-          just introduce CoCalc to you – no spam and no strings attached.
+          <Paragraph>
+            <Text strong>Interested in a personal introduction to CoCalc?</Text>
+            <br />
+            We promise no spam or obligations.
+          </Paragraph>
         </Checkbox>
         {checked ? (
           <Input
-            addonBefore="Intended use:"
-            placeholder="Tell us how you intend to use CoCalc."
+            addonBefore="Your Goal:"
+            placeholder="How do you plan to use CoCalc?"
             style={{ width: "100%" }}
             value={signupReason}
-            status={!signupReason.trim() ? "error" : undefined}
+            // status={!signupReason.trim() ? "error" : undefined} // for now, this is optional
             onChange={(e) => {
               setSingupReason(e.target.value);
             }}
@@ -86,6 +89,7 @@ export default function Tags({
       const tagColor =
         color ?? getRandomColor(tag, { min: 200, max: 250, diff: 20, seed: 5 });
       const iconName = icon ?? file_associations[tag]?.icon;
+      const isChecked = tags.has(tag);
       const tagElement = (
         <Col md={12} key={tag}>
           <Tag
@@ -97,19 +101,25 @@ export default function Tags({
               margin: "4px",
               width: "100%",
               cursor: "pointer",
-              ...(tags.has(tag)
+              ...(isChecked
                 ? { color: "white", background: COLORS.ANTD_LINK_BLUE }
                 : { color: "black" }),
             }}
             onClick={() => {
-              handleTagChange(tag, !tags.has(tag));
+              handleTagChange(tag, !isChecked);
             }}
-            color={tags.has(tag) ? undefined : tagColor}
+            color={isChecked ? undefined : tagColor}
           >
-            {iconName && (
+            {iconName ? (
               <Icon name={iconName} style={{ marginRight: "5px" }} />
-            )}
+            ) : undefined}
             {label}
+            {isChecked ? (
+              <Icon
+                name="check"
+                style={{ marginRight: "5px", float: "right" }}
+              />
+            ) : undefined}
           </Tag>
         </Col>
       );
@@ -133,8 +143,14 @@ export default function Tags({
   return (
     <div style={style}>
       <div style={{ textAlign: "center" }}>
-        Select at least {smallIntegerToEnglishWord(minTags)}{" "}
-        {plural(minTags, what)}
+        {minTags > 0 ? (
+          <>
+            Select at least {smallIntegerToEnglishWord(minTags)}{" "}
+            {plural(minTags, what)}:
+          </>
+        ) : (
+          <>Select your {what}:</>
+        )}
       </div>
       <Row
         gutter={[10, 10]}
