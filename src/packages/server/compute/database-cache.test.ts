@@ -69,4 +69,12 @@ describe("create a cache and test it", () => {
     const third = await cache.get();
     expect(n).not.toBe(third.n);
   });
+
+  it("force not using cache", async () => {
+    const { n } = await cache.get();
+    const second = await cache.get();
+    expect(n).toBe(second.n);
+    const third = await cache.get({ noCache: true });
+    expect(n).not.toBe(third.n);
+  });
 });

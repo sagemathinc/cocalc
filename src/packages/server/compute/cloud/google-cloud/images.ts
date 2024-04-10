@@ -76,11 +76,12 @@ export async function getImagesClient() {
 const TTL_MS = 1000 * 60 * 60;
 const GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS = `${COMPUTE_SERVER_IMAGES}-google-cloud`;
 
-export const getAllImages = createDatabaseCache<{
+export const { get: getAllImages } = createDatabaseCache<{
   [name: string]: GoogleCloudImage;
 }>({
-  TTL_MS,
-  NAME: GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS,
+  ttl: TTL_MS,
+  cloud: "google",
+  key: GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS,
   fetchData: fetchImagesFromGoogleCloud,
 });
 

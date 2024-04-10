@@ -21,15 +21,14 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  let { ttl } = getParams(req, {
+  let { noCache } = getParams(req, {
     allowGet: true,
   });
-  if (ttl != null) {
-    // NOTE: only admins can specify a TTL
+  if (noCache) {
+    // NOTE: only admins can specify noCache
     if (!(await userIsInGroup(account_id, "admin"))) {
-      throw Error("only admin are allowed to specify the ttl");
+      throw Error("only admin are allowed to specify noCache");
     }
-    ttl = parseInt(ttl);
   }
-  return await getImages(ttl);
+  return await getImages({ noCache: !!noCache });
 }

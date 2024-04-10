@@ -10,6 +10,9 @@ const logger = getLogger("server:compute:database-cache");
 // If it ever succeeds it will always succeed afterwards, though **possibly
 // with stale data but only if there is an error.**
 //
+// To not get value from the cache:
+//      await get({noCache:true})
+//
 // This can be used for expensive grabbing of data, e.g., from an external source like github or
 // google cloud, which might be down sometimes, and for which the data is not frequently
 // updated.  E.g., a list of docker images that we've built, or the VM images in a cloud.
@@ -24,6 +27,8 @@ const logger = getLogger("server:compute:database-cache");
 //    -- list of all volumes defined in hyperstack
 //    -- hyperstack pricing data
 
+type GetFunction<T> = (opts?: { noCache?: boolean }) => Promise<T>;
+
 export function createDatabaseCache<T>({
   cloud,
   key,
@@ -34,10 +39,12 @@ export function createDatabaseCache<T>({
   key: string;
   ttl: number; // in milliseconds
   fetchData: () => Promise<T>;
-}): { get: () => Promise<T>; expire: () => Promise<void> } {
+}): { get: GetFunction<T>; expire: () => Promise<void> } {
   const db = getPool();
   // Used by everything else in cocalc to get access to the cached data.
-  const getData = async (): Promise<T> => {
+  const getData: GetFunction<T> = async ({
+    noCache,
+  }: { noCache?: boolean } = {}): Promise<T> => {
     logger.debug(cloud, key, "getData");
     const { rows } = await db.query(
       "SELECT value, expire FROM compute_servers_cache WHERE cloud=$1 AND key=$2",
@@ -46,6 +53,9 @@ export function createDatabaseCache<T>({
     if (rows.length == 0) {
       logger.debug(cloud, key, "data not in database at all, so we have fetch");
       return await fetchDataAndUpdateDatabase(true);
+    }
+    if (noCache) {
+      return await fetchDataAndUpdateDatabase();
     }
     const { value, expire } = rows[0];
     if (expire != null && expire.valueOf() >= Date.now()) {

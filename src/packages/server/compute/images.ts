@@ -43,9 +43,10 @@ export const COMPUTE_SERVER_IMAGES = "compute-server-images";
 const TTL_MS = 1000 * 60 * 60;
 
 // Used by everything else in cocalc to get access to the images.
-export const getImages = createDatabaseCache<Images>({
-  TTL_MS,
-  NAME: COMPUTE_SERVER_IMAGES,
+export const { get: getImages } = createDatabaseCache<Images>({
+  ttl: TTL_MS,
+  cloud: "all",
+  key: COMPUTE_SERVER_IMAGES,
   fetchData: fetchImagesFromRemote,
 });
 
