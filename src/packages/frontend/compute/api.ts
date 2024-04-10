@@ -194,7 +194,7 @@ async function getImagesFor({
       endpoint,
       // admin reload forces fetch data from github and/or google cloud - normal users just have their cache ignored above
       reload && redux.getStore("account").get("is_admin")
-        ? { noCache:true }
+        ? { noCache: true }
         : undefined,
     );
     cacheSet(cloud, images);

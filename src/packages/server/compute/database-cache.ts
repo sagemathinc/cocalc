@@ -1,7 +1,73 @@
+/*
+Database backed cache of data from external cloud providers.
+
+There are two different interfaces for using the same database
+table via a ttl-cache style api:
+
+- createTTLCache: cache with set/get/has/delete functions that is
+  similar to @isaacs/ttlcache, but using the database.
+
+- createDatabaseCachedResource<T>: caches one single piece of data of type T
+  (associated to a cloud and named key) and handles fetching it and automatically
+  keeps stale data in case of remote failure.
+
+In all cases the key can be any json-able object.
+*/
+
 import { getPool } from "@cocalc/database";
+import json from "json-stable-stringify";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:compute:database-cache");
+
+export interface Cache {
+  set: (key, value) => Promise<void>;
+  has: (key) => Promise<boolean>;
+  get: (key) => Promise<any>;
+  delete: (key) => Promise<void>;
+}
+
+export function createTTLCache({
+  cloud,
+  ttl,
+}: {
+  cloud: string;
+  ttl: number; // in milliseconds
+}): Cache {
+  const db = getPool();
+  return {
+    set: async (key, value) => {
+      const expire = new Date(Date.now() + ttl);
+      await db.query(
+        "INSERT INTO compute_servers_cache(cloud,key,value,expire) VALUES($1,$2,$3,$4) ON CONFLICT(cloud,key) DO UPDATE SET value=$3, expire=$4",
+        [cloud, json(key), JSON.stringify(value), expire],
+      );
+    },
+
+    get: async (key) => {
+      const { rows } = await db.query(
+        "SELECT value FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND expire > NOW()",
+        [cloud, json(key)],
+      );
+      return rows[0]?.value == null ? undefined : JSON.parse(rows[0]?.value);
+    },
+
+    has: async (key) => {
+      const { rows } = await db.query(
+        "SELECT COUNT(*) AS count FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND expire > NOW()",
+        [cloud, json(key)],
+      );
+      return (rows[0]?.count ?? 0) > 0;
+    },
+
+    delete: async (key) => {
+      await db.query(
+        "DELETE FROM compute_servers_cache WHERE cloud=$1 AND key=$2",
+        [cloud, json(key)],
+      );
+    },
+  };
+}
 
 // createDatabaseCache returns {get, expire}, where get is an async function get()
 // that caches its result in the compute_servers_cache and expire() expires the cache
@@ -29,18 +95,19 @@ const logger = getLogger("server:compute:database-cache");
 
 type GetFunction<T> = (opts?: { noCache?: boolean }) => Promise<T>;
 
-export function createDatabaseCache<T>({
+export function createDatabaseCachedResource<T>({
   cloud,
   key,
   ttl,
   fetchData,
 }: {
   cloud: string;
-  key: string;
+  key;
   ttl: number; // in milliseconds
   fetchData: () => Promise<T>;
 }): { get: GetFunction<T>; expire: () => Promise<void> } {
   const db = getPool();
+  key = json(key);
   // Used by everything else in cocalc to get access to the cached data.
   const getData: GetFunction<T> = async ({
     noCache,
@@ -61,7 +128,7 @@ export function createDatabaseCache<T>({
     if (expire != null && expire.valueOf() >= Date.now()) {
       // data is still valid
       try {
-        return JSON.parse(value);
+        return value == null ? value : JSON.parse(value);
       } catch (err) {
         logger.debug(
           cloud,

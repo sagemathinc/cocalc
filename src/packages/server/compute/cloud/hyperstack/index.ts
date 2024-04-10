@@ -29,6 +29,9 @@ import { setData as setData0 } from "@cocalc/server/compute/util";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { delay } from "awaiting";
 export * from "./make-configuration-change";
+import { initDatabaseCache } from "./client-cache";
+
+initDatabaseCache();
 
 // TODO: This 29 comes from the following -- it should be computed dynamically
 // probably once per server start (?).

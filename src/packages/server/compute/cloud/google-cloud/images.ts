@@ -18,7 +18,7 @@ train those models is available on github.  But oh my god what a nightmare.
 In any case, typescript for the win here.
 */
 
-import { createDatabaseCache } from "@cocalc/server/compute/database-cache";
+import { createDatabaseCachedResource } from "@cocalc/server/compute/database-cache";
 import { getCredentials } from "./client";
 import { ImagesClient } from "@google-cloud/compute";
 import type {
@@ -76,7 +76,7 @@ export async function getImagesClient() {
 const TTL_MS = 1000 * 60 * 60;
 const GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS = `${COMPUTE_SERVER_IMAGES}-google-cloud`;
 
-export const { get: getAllImages } = createDatabaseCache<{
+export const { get: getAllImages } = createDatabaseCachedResource<{
   [name: string]: GoogleCloudImage;
 }>({
   ttl: TTL_MS,

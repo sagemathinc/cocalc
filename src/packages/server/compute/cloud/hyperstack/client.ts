@@ -8,15 +8,12 @@ https://infrahub-doc.nexgencloud.com/docs/api-reference/
 
 There should be nothing CoCalc specific here.  Put that
 in other files.
-
-TODO: maybe the small amount of caching below should be removed.
 */
 
 import axios from "axios";
 import type { AxiosInstance } from "axios";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import TTLCache from "@isaacs/ttlcache";
 import type {
   Region,
   FlavorRegionData,
@@ -39,6 +36,7 @@ import type {
   VolumeDetails,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { SECURITY_RULE_DEFAULTS } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import type { Cache } from "@cocalc/server/compute/database-cache";
 
 const log = getLogger("hyperstack:client");
 
@@ -70,33 +68,16 @@ export default async function getClient(): Promise<any> {
   return client;
 }
 
-// NOTE: Their API can be SLOW, so we implement a caching layer in front of
-// their API so we can write code that doesn't have to work around this.
-// Also, this means we are better citizens when using their API.
-// We cache data in memory (not our database), since for sanity
-// we put run code for interacting with a cloud API in a single nodejs process
-// even in our big Kubernetes deploys.  Only a few things are cached.
-
-// We cache for 5 minutes.
-const CACHE_TIME_M = 5;
-
-const ttlCache = new TTLCache({ ttl: CACHE_TIME_M * 60 * 1000 });
-
-function getKey({ method, url, params }) {
-  return JSON.stringify({ method, url, params });
+let globalCache: Cache | null = null;
+export function initCache(cache: Cache) {
+  globalCache = cache;
 }
 
-function clearCache({
-  method,
-  url,
-  params,
-}: {
-  method: "get" | "post" | "delete" | "put";
-  url: string;
-  params?: object;
-}) {
-  const key = getKey({ method, url, params });
-  ttlCache.delete(key);
+function clearCache(key) {
+  if (globalCache == null) {
+    return;
+  }
+  globalCache.delete(key);
 }
 
 async function call({
@@ -110,13 +91,12 @@ async function call({
   params?: object;
   cache?: boolean; // if explicitly true use cache; if explicitly false, clear cache
 }) {
-  let key = "";
-  if (cache != null) {
-    key = getKey({ method, url, params });
+  const key = { method, url, params };
+  if (cache != null && globalCache != null) {
     if (!cache) {
-      ttlCache.delete(key);
-    } else if (ttlCache.has(key)) {
-      return ttlCache.get(key);
+      await globalCache.delete(key);
+    } else if (await globalCache.has(key)) {
+      return await globalCache.get(key);
     }
   }
   log.debug("call", { method, url, params });
@@ -145,8 +125,8 @@ async function call({
         })}`,
       );
     }
-    if (cache) {
-      ttlCache.set(key, data);
+    if (cache && globalCache != null) {
+      await globalCache.set(key, data);
     }
     return data;
   } catch (err) {

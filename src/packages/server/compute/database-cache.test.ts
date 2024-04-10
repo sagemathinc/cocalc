@@ -1,5 +1,5 @@
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { createDatabaseCache } from "./database-cache";
+import { createDatabaseCachedResource, createTTLCache } from "./database-cache";
 import { delay } from "awaiting";
 
 beforeAll(async () => {
@@ -10,13 +10,49 @@ afterAll(async () => {
   await getPool().end();
 });
 
-describe("create a cache and test it", () => {
+describe("create a database backed TTLCache cache and test it", () => {
+  let cache;
+  const ttl = 300;
+  it("creates a ttl cache", () => {
+    cache = createTTLCache({ ttl, cloud: `cloud-${Math.random()}` });
+  });
+
+  it("standard use of the ttl cache", async () => {
+    expect(await cache.has("foo")).toBe(false);
+    await cache.set("foo", "bar");
+    expect(await cache.has("foo")).toBe(true);
+    expect(await cache.get("foo")).toBe("bar");
+    await delay(ttl - 50);
+    expect(await cache.has("foo")).toBe(true);
+    await delay(100);
+    expect(await cache.has("foo")).toBe(false);
+    await cache.set("foo2", "bar2");
+    expect(await cache.get("foo2")).toBe("bar2");
+    await cache.delete("foo2");
+    expect(await cache.has("foo2")).toBe(false);
+  });
+
+  it("keys and values do not have to be strings", async () => {
+    const key = { foo: "bar", stuff: [1, 2] };
+    const value = { a: [4, 5], b: { x: 1 } };
+    expect(await cache.has(key)).toBe(false);
+    await cache.set(key, value);
+    expect(await cache.get(key)).toEqual(value);
+    expect(await cache.get(key)).toEqual({ b: { x: 1 }, a: [4, 5] });
+    // and key is stable!
+    expect(await cache.has({ stuff: [1, 2], foo: "bar" })).toBe(true);
+    expect(await cache.delete({ stuff: [1, 2], foo: "bar" }));
+    expect(await cache.has(key)).toBe(false);
+  });
+});
+
+describe("create a DatabaseCachedResource cache and test it", () => {
   let cache;
   const ttl = 300; // keep short so that unit testing is fast...
   let broken = false;
 
-  it("creates a cache", () => {
-    cache = createDatabaseCache<{ n: number }>({
+  it("creates a DatabaseCachedResource cache", () => {
+    cache = createDatabaseCachedResource<{ n: number }>({
       cloud: "test",
       key: `foo-${Math.random()}`,
       ttl,

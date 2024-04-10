@@ -30,4 +30,5 @@ export async function increaseDiskSize({
   // Later we will rewrite to use a webhook approach,
   // which will make this more efficient, hopefully.
   const volumes = await getVolumes();
+  console.log({ id, state, volumes });
 }
