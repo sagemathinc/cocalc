@@ -14,6 +14,7 @@ import type {
 import {
   DEFAULT_REGION as DEFAULT_HYPERSTACK_REGION,
   DEFAULT_FLAVOR as DEFAULT_HYPERSTACK_FLAVOR,
+  DEFAULT_DISK as DEFAULT_HYPERSTACK_DISK,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 // These are just fallbacks in case something is wrong with the image configuration.
@@ -163,7 +164,8 @@ export const ACTION_INFO: {
     description:
       "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
-    confirmMessage: "I understand that my compute server disks will be deleted.",
+    confirmMessage:
+      "I understand that my compute server disks will be deleted.",
     danger: true,
     target: "deprovisioned",
   },
@@ -420,6 +422,7 @@ const CLOUDS: {
       region_name: DEFAULT_HYPERSTACK_REGION,
       flavor_name: DEFAULT_HYPERSTACK_FLAVOR,
       excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+      diskSizeGb: DEFAULT_HYPERSTACK_DISK,
     },
   },
   onprem: {

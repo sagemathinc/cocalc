@@ -16,6 +16,7 @@ interface Props {
   minSizeGb: number;
   maxSizeGb: number;
   computeDiskCost;
+  extraHelp?;
 }
 
 export default function Disk(props: Props) {
@@ -29,6 +30,7 @@ export default function Disk(props: Props) {
     minSizeGb,
     maxSizeGb,
     computeDiskCost,
+    extraHelp,
   } = props;
 
   const [help, setHelp] = useState<boolean>(false);
@@ -88,9 +90,11 @@ export default function Disk(props: Props) {
             <div style={{ color: "#666", margin: "10px 0" }}>
               <p>
                 You are charged for storage as long as the server is provisioned
-                (even if it is off), but if you run out of credit or hit your
-                spending limit and don't pay, then the disk will be
-                automatically deleted.
+                (even if it is off).{" "}
+                <b>
+                  If you run out of credit or hit your spending limit and don't
+                  pay, then the disk will be automatically deleted.
+                </b>
               </p>
               <p>
                 While the server is running,{" "}
@@ -102,6 +106,7 @@ export default function Disk(props: Props) {
                 manually do anything (e.g., reboot or use command line tools)
                 after increasing the disk size.
               </p>
+              {extraHelp}
             </div>
           }
         />

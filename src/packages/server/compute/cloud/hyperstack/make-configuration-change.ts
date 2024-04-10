@@ -55,6 +55,8 @@ export async function makeConfigurationChange({
     (currentConfiguration.diskSizeGb ?? DEFAULT_DISK) <
       (newConfiguration.diskSizeGb ?? DEFAULT_DISK)
   ) {
-    throw Error("live resizing of disk is not implemented yet");
+    // await increaseDiskSize({ id, wait: true, configuration: newConfiguration });
+    console.log("TODO: ");
+    return;
   }
 }

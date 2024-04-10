@@ -10,6 +10,7 @@ import {
 import {
   markup,
   PurchaseOption,
+  optionKey,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import { Checkbox, Tag, Select, Tooltip } from "antd";
 const { CheckableTag } = Tag;
@@ -110,6 +111,7 @@ function getLabel(x: PurchaseOption, priceData) {
   );
 }
 
+
 export default function MachineType({
   disabled,
   setConfig,
@@ -131,7 +133,7 @@ export default function MachineType({
   );
 
   const region_name = configuration.region_name ?? DEFAULT_REGION;
-  const value0 = `${configuration.region_name}|${configuration.flavor_name}`;
+  const value0 = optionKey(configuration);
   const options = useMemo(() => {
     if (priceData == null) {
       return null;
