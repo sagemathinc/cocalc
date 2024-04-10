@@ -82,6 +82,23 @@ const CACHE_TIME_M = 5;
 
 const ttlCache = new TTLCache({ ttl: CACHE_TIME_M * 60 * 1000 });
 
+function getKey({ method, url, params }) {
+  return JSON.stringify({ method, url, params });
+}
+
+function clearCache({
+  method,
+  url,
+  params,
+}: {
+  method: "get" | "post" | "delete" | "put";
+  url: string;
+  params?: object;
+}) {
+  const key = getKey({ method, url, params });
+  ttlCache.delete(key);
+}
+
 async function call({
   method,
   url,
@@ -95,7 +112,7 @@ async function call({
 }) {
   let key = "";
   if (cache != null) {
-    key = JSON.stringify({ method, url, params });
+    key = getKey({ method, url, params });
     if (!cache) {
       ttlCache.delete(key);
     } else if (ttlCache.has(key)) {
@@ -226,8 +243,10 @@ export async function importKeyPair(params: {
     url: "/core/keypairs",
     params,
   });
-  // update cache to have new key in it
-  await getKeyPairs(false);
+  clearCache({
+    method: "get",
+    url: "/core/keypairs",
+  });
   return keypair;
 }
 
@@ -659,10 +678,11 @@ export async function getVolumeTypes(cache = true): Promise<VolumeType[]> {
   return volume_types;
 }
 
-export async function getVolumes(): Promise<VolumeDetails[]> {
+export async function getVolumes(cache = true): Promise<VolumeDetails[]> {
   const { volumes } = await call({
     method: "get",
     url: "core/volumes",
+    cache,
   });
   return volumes;
 }
@@ -677,16 +697,28 @@ export async function createVolume(params: {
   image_id?: number;
 }) {
   params = { volume_type: "Cloud-SSD", description: "", ...params };
+  clearCache({
+    method: "get",
+    url: "core/volumes",
+  });
   const { volume } = await call({
     method: "post",
     url: "core/volumes",
     params,
+  });
+  clearCache({
+    method: "get",
+    url: "core/volumes",
   });
   return volume;
 }
 
 export async function deleteVolume(id: number) {
   await call({ method: "delete", url: `/core/volumes/${id}` });
+  clearCache({
+    method: "get",
+    url: "core/volumes",
+  });
 }
 
 export async function attachVolume({

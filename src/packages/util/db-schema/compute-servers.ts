@@ -896,3 +896,30 @@ Table({
     },
   },
 });
+
+Table({
+  name: "compute_servers_cache",
+  fields: {
+    cloud: {
+      type: "string",
+      desc: "The cloud that we're caching information about",
+    },
+    key: {
+      type: "string",
+      desc: "The key for whatever we're caching.",
+    },
+    value: {
+      type: "string",
+      desc: "The cached data.",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "When this action should be expired.",
+    },
+  },
+  rules: {
+    durability: "soft", // it's just a cache
+    desc: "Cache data about what's going on in various clouds that are used to implement compute servers.",
+    primary_key: ["cloud", "key"],
+  },
+});

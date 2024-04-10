@@ -4,6 +4,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { DEFAULT_DISK } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import getLogger from "@cocalc/backend/logger";
+import { increaseDiskSize } from "./disk";
 
 const logger = getLogger("server:compute:make-configuration-change");
 
@@ -48,15 +49,16 @@ export async function makeConfigurationChange({
     // nothing to do since everything happens only when we start
     return;
   }
-  // TODO: will need to implement something!
-  // [ ] disk enlarge when running is the tricky one.  I think everything else is automatic.
   if (
     state == "running" &&
     (currentConfiguration.diskSizeGb ?? DEFAULT_DISK) <
       (newConfiguration.diskSizeGb ?? DEFAULT_DISK)
   ) {
-    // await increaseDiskSize({ id, wait: true, configuration: newConfiguration });
-    console.log("TODO: ");
+    await increaseDiskSize({
+      id,
+      diskSizeGb: newConfiguration.diskSizeGb ?? DEFAULT_DISK,
+      state,
+    });
     return;
   }
 }
