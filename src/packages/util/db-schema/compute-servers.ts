@@ -309,7 +309,8 @@ export function getMinDiskSizeGb({
       return minDiskSizeGb;
     }
   }
-  // TODO: will have to do something based on actual image size, maybe, unless I come up with a clever trick involving
+  // TODO: will have to do something based on actual image size,
+  // maybe, unless I come up with a clever trick involving
   // one PD mounted on many machines (?).
   if (configuration?.acceleratorType) {
     return CUDA_DISK_SIZE;

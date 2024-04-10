@@ -98,6 +98,7 @@ export default function HyperstackConfig({
         flavor_name={configuration.flavor_name}
         region_name={configuration.region_name}
         priceData={priceData}
+        diskSizeGb={configuration.diskSizeGb}
       />
     );
   }
@@ -136,21 +137,21 @@ export default function HyperstackConfig({
       key: "provisioning",
       value: <Provisioning />,
     },
-//     {
-//       key: "gpu",
+    //     {
+    //       key: "gpu",
 
-//       value: (
-//         <GPU
-//           state={state}
-//           disabled={
-//             loading || disabled || (state != "deprovisioned" && state != "off")
-//           }
-//           priceData={priceData}
-//           setConfig={setConfig}
-//           configuration={configuration}
-//         />
-//       ),
-//     },
+    //       value: (
+    //         <GPU
+    //           state={state}
+    //           disabled={
+    //             loading || disabled || (state != "deprovisioned" && state != "off")
+    //           }
+    //           priceData={priceData}
+    //           setConfig={setConfig}
+    //           configuration={configuration}
+    //         />
+    //       ),
+    //     },
     {
       key: "machine",
       value: (
@@ -299,6 +300,7 @@ export default function HyperstackConfig({
             flavor_name={configuration.flavor_name}
             region_name={configuration.region_name}
             priceData={priceData}
+            diskSizeGb={configuration.diskSizeGb}
           />
         </div>
         <Divider />

@@ -32,7 +32,7 @@ export interface HyperstackPriceData {
   // cost per hour of an external ip address
   external_ip_cost_per_hour: number;
   // cost per hour per GB of disk storage (for storage volumes)
-  sdd_cost_per_hour: number;
+  ssd_cost_per_hour: number;
 }
 
 export function markup({ cost, priceData }) {

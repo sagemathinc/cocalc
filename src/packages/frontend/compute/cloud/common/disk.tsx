@@ -17,6 +17,7 @@ interface Props {
   maxSizeGb: number;
   computeDiskCost;
   extraHelp?;
+  rate?;
 }
 
 export default function Disk(props: Props) {
@@ -31,8 +32,8 @@ export default function Disk(props: Props) {
     maxSizeGb,
     computeDiskCost,
     extraHelp,
+    rate,
   } = props;
-
   const [help, setHelp] = useState<boolean>(false);
   const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
     configuration.diskSizeGb ?? minSizeGb,
@@ -145,23 +146,25 @@ export default function Disk(props: Props) {
         {state != "deprovisioned" &&
           !disabled &&
           newDiskSizeGb != null &&
-          configuration.diskSizeGb != null && (
+          (configuration.diskSizeGb ?? minSizeGb) != newDiskSizeGb && (
             <Button
               type="primary"
-              disabled={configuration.diskSizeGb == newDiskSizeGb}
               onClick={() => {
                 setConfig({
                   diskSizeGb: newDiskSizeGb,
                 });
               }}
             >
-              Enlarge by {newDiskSizeGb - configuration.diskSizeGb}GB{" "}
-              (additional cost --{" "}
+              Enlarge by{" "}
+              {newDiskSizeGb - (configuration.diskSizeGb ?? minSizeGb)}
+              GB (additional cost{" "}
+              {rate ? <>&nbsp;at {rate}&nbsp;</> : undefined} is{" "}
               {currency(
                 computeDiskCost({
                   configuration: {
                     ...configuration,
-                    diskSizeGb: newDiskSizeGb - configuration.diskSizeGb,
+                    diskSizeGb:
+                      newDiskSizeGb - (configuration.diskSizeGb ?? minSizeGb),
                   },
                   priceData,
                 }) * 730,
@@ -194,8 +197,8 @@ export default function Disk(props: Props) {
               You can increase the disk size at any time, even while the VM is
               running.{" "}
             </b>
-            You cannot decrease the disk size after you increase it, without
-            first deprovisioning the server.
+            You <b>cannot decrease the size</b>, without first deprovisioning
+            the server.
           </>
         )}
       </div>

@@ -110,8 +110,8 @@ export default async function getPricingData(
   const { compute_servers_markup_percentage: markup } =
     await getServerSettings();
   const external_ip_cost_per_hour = Number(priceMap["PublicIP"].value);
-  const sdd_cost_per_hour = Number(priceMap["Cloud-SSD"].value);
-  const x = { options, markup, external_ip_cost_per_hour, sdd_cost_per_hour };
+  const ssd_cost_per_hour = Number(priceMap["Cloud-SSD"].value);
+  const x = { options, markup, external_ip_cost_per_hour, ssd_cost_per_hour };
 
   ttlCache.set("x", x);
   return x;

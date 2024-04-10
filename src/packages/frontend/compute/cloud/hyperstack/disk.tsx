@@ -1,14 +1,19 @@
 import DiskGeneric from "@cocalc/frontend/compute/cloud/common/disk";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import { commas, currency } from "@cocalc/util/misc";
-import { computeVolumeCost } from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
+import {
+  BOOT_DISK_SIZE_GB,
+  computeBootVolumeCost,
+  computeDiskCost,
+} from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
 import { optionKey } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 
 export default function Disk(props) {
   if (props.priceData == null || props.IMAGES == null) {
     return null;
   }
-  const cost_per_hour = computeVolumeCost(props);
+  const cost_per_hour_data = computeDiskCost(props);
+  const cost_per_hour_boot = computeBootVolumeCost(props);
   const data = props.priceData.options[optionKey(props.configuration)];
   return (
     <div>
@@ -17,7 +22,7 @@ export default function Disk(props) {
         noType
         minSizeGb={getMinDiskSizeGb(props)}
         maxSizeGb={1048576}
-        computeDiskCost={computeVolumeCost}
+        computeDiskCost={computeDiskCost}
         extraHelp={
           <>
             <p>
@@ -37,18 +42,29 @@ export default function Disk(props) {
             )}
           </>
         }
+        rate={
+          <>{currency(props.priceData.ssd_cost_per_hour * 730)}/GB per month</>
+        }
       />
-      {cost_per_hour != null && (
+      {cost_per_hour_data != null && (
         <div>
-          <b>Total Cost for {commas(props.configuration.diskSizeGb)}GB:</b>{" "}
-          {currency(cost_per_hour)}/hour or {currency(cost_per_hour * 730)}
+          <b>Data Disk:</b> Cost for {commas(props.configuration.diskSizeGb)}GB:{" "}
+          {currency(cost_per_hour_data)}/hour or{" "}
+          {currency(cost_per_hour_data * 730)}
           /month.
         </div>
       )}
+      <div>
+        <b>Boot Disk Cost:</b> Your compute server has a fixed{" "}
+        {BOOT_DISK_SIZE_GB}GB boot disk that costs{" "}
+        {currency(cost_per_hour_boot)}/hour or{" "}
+        {currency(cost_per_hour_boot * 730)}
+        /month.
+      </div>
       {(data.ephemeral ?? 0) > 0 && (
         <div>
-          <b>NOTE:</b> Some of your {data.ephemeral}GB local SSD is used for
-          caching to make the persistent disk storage much faster.
+          <b>Caching:</b> Some of your {data.ephemeral}GB local SSD is used for
+          caching to make the data disk much faster.
         </div>
       )}
     </div>

@@ -4,7 +4,12 @@ import { toGPU, humanFlavor } from "./util";
 import { optionKey } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import { DEFAULT_DISK } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
-export default function Specs({ flavor_name, region_name, priceData }) {
+export default function Specs({
+  diskSizeGb,
+  flavor_name,
+  region_name,
+  priceData,
+}) {
   const data = priceData?.options[optionKey({ flavor_name, region_name })];
 
   if (data == null) {
@@ -25,7 +30,7 @@ export default function Specs({ flavor_name, region_name, priceData }) {
         ""
       )}
       {data.cpu} {plural(data.cpu, "vCPU")}, {commas(data.ram)}GB RAM,{" "}
-      {commas(data.diskSizeGb ?? DEFAULT_DISK)}GB persistent SSD disk
+      {commas(diskSizeGb ?? DEFAULT_DISK)}GB persistent SSD disk
       {data.ephemeral ? (
         <> and {commas(data.ephemeral)}GB ephemeral disk </>
       ) : undefined}{" "}
