@@ -38,26 +38,22 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   //   much as possible, while still supporting 3d graphics.
   return {
     stripIgnoreTagBody: true,
+    // SECURITY: whitelist note -- we had tried to explicitly allow mathjax script tags in sanitized html
+    // by whitelisting and scanning.  However, this didn't properly work (perhaps due to some update)
+    // and resulted in a security vulnerability:
+    //    https://github.com/sagemathinc/cocalc/security/advisories/GHSA-8w44-hggw-p5rf
+    // The fix is completley removing any whitelisting of any script tags.  The feature of
+    // mathjax in html is not important enough to support, and too dangerous -- even if it worked,
+    // it would probably be an easy attack vector by just making up fake mathjax.
     whiteList: {
       ...whiteList,
       iframe: ["src", "srcdoc", "width", "height"],
-      script: ["type"],
       html: [],
     },
     safeAttrValue: (tag, name, value) => {
       if (tag == "iframe" && name == "srcdoc") {
         // important not to mangle this or it won't work.
         return value;
-      }
-      if (tag == "script" && name == "type") {
-        if (value.toLowerCase().startsWith("math/tex")) {
-          if (value.includes("display")) {
-            return "math/tex; mode=display";
-          } else {
-            return "math/tex";
-          }
-        }
-        return "";
       }
       if (urlTransform && URL_TAGS.includes(name)) {
         // use the url transform
@@ -180,7 +176,7 @@ export default function HTML({
               props,
               children && children?.length > 0
                 ? domToReact(children, options)
-                : undefined
+                : undefined,
             );
           }
         }
