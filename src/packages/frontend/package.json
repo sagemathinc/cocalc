@@ -126,7 +126,7 @@
     "nyc": "^15.1.0",
     "octicons": "^3.5.0",
     "onecolor": "^3.1.0",
-    "pdfjs-dist": "^4.0.379",
+    "pdfjs-dist": "^4.1.392",
     "pegjs": "^0.10.0",
     "pica": "^7.1.0",
     "plotly.js": "^2.29.1",
@@ -178,7 +178,7 @@
   "devDependencies": {
     "@types/codemirror": "^5.60.15",
     "@types/jquery": "^3.5.5",
-    "@types/katex": "^0.16.0",
+    "@types/katex": "^0.16.7",
     "@types/lodash": "^4.14.202",
     "@types/markdown-it": "12.2.3",
     "@types/mathjax": "0.0.36",
