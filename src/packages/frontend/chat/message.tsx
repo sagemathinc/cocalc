@@ -49,7 +49,7 @@ import {
 
 const DELETE_BUTTON = false;
 
-const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
+const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
 
 const MARKDOWN_STYLE = undefined;
 // const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
@@ -58,32 +58,37 @@ const BORDER = "2px solid #ccc";
 
 const SHOW_EDIT_BUTTON_MS = 45000;
 
-const TRHEAD_STYLE_SINGLE = {
-  borderLeft: BORDER,
-  borderRight: BORDER,
-} as const;
-
-const THREAD_STYLE = {
-  ...TRHEAD_STYLE_SINGLE,
+const TRHEAD_STYLE_SINGLE: CSS = {
   marginLeft: "15px",
   marginRight: "15px",
   paddingLeft: "15px",
 } as const;
 
-const THREAD_STYLE_BOTTOM = {
+const THREAD_STYLE: CSS = {
+  ...TRHEAD_STYLE_SINGLE,
+  borderLeft: BORDER,
+  borderRight: BORDER,
+} as const;
+
+const THREAD_STYLE_BOTTOM: CSS = {
   ...THREAD_STYLE,
-  borderBottom: BORDER,
   borderBottomLeftRadius: "10px",
   borderBottomRightRadius: "10px",
+  borderBottom: BORDER,
   marginBottom: "10px",
 } as const;
 
-const THREAD_STYLE_TOP = {
+const THREAD_STYLE_TOP: CSS = {
   ...THREAD_STYLE,
   borderTop: BORDER,
   borderTopLeftRadius: "10px",
   borderTopRightRadius: "10px",
   marginTop: "10px",
+} as const;
+
+const THREAD_STYLE_FOLDED: CSS = {
+  ...THREAD_STYLE_TOP,
+  ...THREAD_STYLE_BOTTOM,
 } as const;
 
 const MARGIN_TOP_VIEWER = "17px";
@@ -116,10 +121,11 @@ interface Props {
 
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
+  is_thread_body: boolean;
 }
 
 export default function Message(props: Props) {
-  const { is_thread, is_folded } = props;
+  const { is_thread, is_folded, is_thread_body } = props;
 
   const [edited_message, set_edited_message] = useState<string>(
     newest_content(props.message),
@@ -158,8 +164,10 @@ export default function Message(props: Props) {
     );
   }, [props.message]);
 
-  const isThreadBody: boolean = useMemo(() => {
-    return !!props.message.get("reply_to");
+  // const isFolded = props.message.get("folding")?.includes(props.account_id);
+
+  const isFolded: boolean = useMemo(() => {
+    return props.message.get("folding")?.includes(props.account_id) ?? false;
   }, [props.message]);
 
   const submitMentionsRef = useRef<Function>();
@@ -293,7 +301,8 @@ export default function Message(props: Props) {
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
     }
-    if (!isThreadBody) {
+
+    if (!is_thread_body) {
       if (sender_is_viewer(props.account_id, props.message)) {
         style.marginLeft = AVATAR_MARGIN_LEFTRIGHT;
       } else {
@@ -352,8 +361,10 @@ export default function Message(props: Props) {
       padding: "9px",
     } as const;
 
+    const mainXS = props.include_avatar_col ? 20 : 22;
+
     return (
-      <Col key={1} xs={21}>
+      <Col key={1} xs={mainXS}>
         <div style={{ display: "flex" }}>
           {!props.is_prev_sender &&
           !is_viewers_message &&
@@ -431,36 +442,36 @@ export default function Message(props: Props) {
                   </Tooltip>
                 )}
                 {DELETE_BUTTON &&
-                  newest_content(props.message).trim().length > 0 && (
-                    <Tooltip
-                      title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                      placement="left"
+                newest_content(props.message).trim().length > 0 ? (
+                  <Tooltip
+                    title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+                    placement="left"
+                  >
+                    <Popconfirm
+                      title="Delete this message"
+                      description="Are you sure you want to delete this message?"
+                      onConfirm={() => {
+                        props.actions?.set_editing(props.message, true);
+                        setTimeout(
+                          () => props.actions?.send_edit(props.message, ""),
+                          1,
+                        );
+                      }}
                     >
-                      <Popconfirm
-                        title="Delete this message"
-                        description="Are you sure you want to delete this message?"
-                        onConfirm={() => {
-                          props.actions?.set_editing(props.message, true);
-                          setTimeout(
-                            () => props.actions?.send_edit(props.message, ""),
-                            1,
-                          );
+                      <Button
+                        disabled={replying}
+                        style={{
+                          color: is_viewers_message ? "white" : "#555",
                         }}
+                        type="text"
+                        size="small"
                       >
-                        <Button
-                          disabled={replying}
-                          style={{
-                            color: is_viewers_message ? "white" : "#555",
-                          }}
-                          type="text"
-                          size="small"
-                        >
-                          <Icon name="trash" /> Delete
-                        </Button>
-                      </Popconfirm>
-                    </Tooltip>
-                  )}
-                {!isThreadBody && props.allowReply && !replying ? (
+                        <Icon name="trash" /> Delete
+                      </Button>
+                    </Popconfirm>
+                  </Tooltip>
+                ) : undefined}
+                {/* {!is_thread_body && props.allowReply && !replying ? (
                   <Button
                     type="text"
                     disabled={replying}
@@ -472,7 +483,7 @@ export default function Message(props: Props) {
                   >
                     <Icon name="reply" /> Reply
                   </Button>
-                ) : undefined}
+                ) : undefined} */}
               </div>
               {(props.message.get("history").size > 1 ||
                 props.message.get("editing").size > 0) &&
@@ -511,7 +522,7 @@ export default function Message(props: Props) {
             <HistoryFooter />
           </div>
         )}
-        {replying && renderComposeReply()}
+        {replying ? renderComposeReply() : undefined}
       </Col>
     );
   }
@@ -640,8 +651,16 @@ export default function Message(props: Props) {
   }
 
   function getStyle(): CSS {
-    if (!isThreadBody) {
-      return is_thread ? THREAD_STYLE_TOP : TRHEAD_STYLE_SINGLE;
+    if (!is_thread_body) {
+      if (is_thread) {
+        if (isFolded) {
+          return THREAD_STYLE_FOLDED;
+        } else {
+          return THREAD_STYLE_TOP;
+        }
+      } else {
+        return TRHEAD_STYLE_SINGLE;
+      }
     } else if (props.allowReply) {
       return THREAD_STYLE_BOTTOM;
     } else {
@@ -650,31 +669,33 @@ export default function Message(props: Props) {
   }
 
   function getThreadfoldOrBlank() {
-    if (isThreadBody) {
+    if (is_thread_body || (!is_thread_body && !is_thread)) {
       return BLANK_COLUMN;
     } else {
-      const isFolded = props.message.get("folding")?.includes(props.account_id);
       return (
-        <Button
-          type="text"
-          style={{
-            marginTop: MARGIN_TOP_VIEWER,
-            marginRight: AVATAR_MARGIN_LEFTRIGHT,
-          }}
-          onClick={() => props.actions?.foldThread(props.message.get("date"))}
-          icon={
-            <Icon
-              name={isFolded ? "plus-square" : "minus-square"}
-              style={{ fontSize: "22px" }}
-            />
-          }
-        />
+        <Col key={"blankcolumn"} xs={2}>
+          <Button
+            type="text"
+            style={{
+              marginTop: MARGIN_TOP_VIEWER,
+              marginRight: AVATAR_MARGIN_LEFTRIGHT,
+              marginLeft: AVATAR_MARGIN_LEFTRIGHT,
+            }}
+            onClick={() => props.actions?.foldThread(props.message.get("date"))}
+            icon={
+              <Icon
+                name={isFolded ? "plus-square" : "minus-square"}
+                style={{ fontSize: "22px" }}
+              />
+            }
+          />
+        </Col>
       );
     }
   }
 
   function renderReplyRow() {
-    if (replying || generating || isThreadBody || !props.allowReply) return;
+    if (replying || generating || !props.allowReply) return;
 
     return (
       <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
@@ -711,7 +732,8 @@ export default function Message(props: Props) {
   }
 
   function getCols() {
-    if (is_thread && is_folded && isThreadBody) return null;
+    // these columsn should be filtered in the first place, this here is just an extra check
+    if (is_thread && is_folded && is_thread_body) return null;
 
     const cols = [content_column(), getThreadfoldOrBlank()];
     // we optionally add the avatar column
@@ -719,15 +741,17 @@ export default function Message(props: Props) {
       cols.unshift(avatar_column());
     }
     // … and mirror right-left for sender's view
-    if (!isThreadBody && sender_is_viewer(props.account_id, props.message)) {
+    if (!is_thread_body && sender_is_viewer(props.account_id, props.message)) {
       cols.reverse();
     }
     return cols;
   }
 
+  const cols = getCols();
+  if (cols == null) return <></>;
   return (
     <Row style={getStyle()}>
-      {getCols()}
+      {cols}
       {renderReplyRow()}
     </Row>
   );

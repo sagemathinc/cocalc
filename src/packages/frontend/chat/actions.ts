@@ -180,7 +180,6 @@ export class ChatActions extends Actions<ChatState> {
   public foldThread(reply_to: Date) {
     if (this.syncdb == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
-    console.log("foldThread", reply_to, account_id);
     const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
     const folding = cur?.get("folding") ?? List([]);
     const next = folding.includes(account_id)
@@ -913,15 +912,26 @@ export class ChatActions extends Actions<ChatState> {
   }
 }
 
-export function getReplyToRoot(
+export function getRootMessage(
+  message: ChatMessage,
+  messages: ChatMessages,
+): ChatMessageTyped | undefined {
+  const { reply_to, date } = message;
+  // we can't find the original message, if there is no reply_to
+  if (!reply_to) {
+    // the msssage itself is the root
+    return messages.get(`${new Date(date).valueOf()}`);
+  } else {
+    // All messages in a thread have the same reply_to, which points to the root.
+    return messages.get(`${new Date(reply_to).valueOf()}`);
+  }
+}
+
+function getReplyToRoot(
   message: ChatMessage,
   messages: ChatMessages,
 ): Date | undefined {
-  const { reply_to } = message;
-  // we can't find the original message, if there is no reply_to
-  if (!reply_to) return;
-  // All messages in a thread have the same reply_to, which points to the root.
-  const root = messages.get(`${new Date(reply_to).valueOf()}`);
+  const root = getRootMessage(message, messages);
   const date = root?.get("date");
   // date is a "Date" object, but we're just double checking it is not a string by accident
   return date ? new Date(date) : undefined;

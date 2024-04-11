@@ -28,7 +28,7 @@ import {
   search_match,
   search_split,
 } from "@cocalc/util/misc";
-import { ChatActions, getReplyToRoot } from "./actions";
+import { ChatActions, getRootMessage } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
 import { ChatMessageTyped, ChatMessages, MessageHistory } from "./types";
@@ -122,7 +122,7 @@ export function ChatLog(props: Readonly<Props>) {
     initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
   });
 
-  function isThread(messages, message) {
+  function isThread(messages: ChatMessages, message: ChatMessageTyped) {
     if (message.get("reply_to") != null) {
       return true;
     }
@@ -131,11 +131,9 @@ export function ChatLog(props: Readonly<Props>) {
     );
   }
 
-  function isFolded(messages, message) {
-    const root = getReplyToRoot(message, messages);
-    if (!root) return false;
-    const rootMsg = messages.get(`${root.valueOf()}`);
-    return rootMsg?.get("folding").includes(account_id) ?? false;
+  function isFolded(messages: ChatMessages, message: ChatMessageTyped) {
+    const rootMsg = getRootMessage(message.toJS(), messages);
+    return rootMsg?.get("folding")?.includes(account_id) ?? false;
   }
 
   return (
@@ -171,6 +169,14 @@ export function ChatLog(props: Readonly<Props>) {
             // shouldn't happen.  But we should be robust to such a possibility.
             return <div style={{ height: "1px" }} />;
           }
+          const is_thread = isThread(messages, message);
+          const is_folded = isFolded(messages, message);
+          const is_thread_body = message.get("reply_to") != null;
+
+          if (is_thread && is_folded && is_thread_body) {
+            return <div style={{ height: "1px" }} />;
+          }
+
           return (
             <div style={{ overflow: "hidden" }}>
               <Message
@@ -184,8 +190,9 @@ export function ChatLog(props: Readonly<Props>) {
                 font_size={fontSize}
                 selectedHashtags={selectedHashtags}
                 actions={actions}
-                is_thread={isThread(messages, message)}
-                is_folded={isFolded(messages, message)}
+                is_thread={is_thread}
+                is_folded={is_folded}
+                is_thread_body={is_thread_body}
                 is_prev_sender={isPrevMessageSender(
                   index,
                   sortedDates,
