@@ -281,7 +281,7 @@ importers:
         version: link:../assets
       '@cocalc/cdn':
         specifier: workspace:*
-        version: link:../cdn/build
+        version: link:../cdn
       '@cocalc/comm':
         specifier: workspace:*
         version: link:../comm
@@ -753,7 +753,7 @@ importers:
         version: link:../backend
       '@cocalc/cdn':
         specifier: workspace:*
-        version: link:../cdn/build
+        version: link:../cdn
       '@cocalc/database':
         specifier: workspace:*
         version: link:../database
@@ -1067,7 +1067,7 @@ importers:
         version: link:../backend
       '@cocalc/cdn':
         specifier: workspace:*
-        version: link:../cdn/build
+        version: link:../cdn
       '@cocalc/database':
         specifier: workspace:*
         version: link:../database
@@ -1601,7 +1601,7 @@ importers:
         version: link:../backend
       '@cocalc/cdn':
         specifier: workspace:*
-        version: link:../cdn/build
+        version: link:../cdn
       '@cocalc/frontend':
         specifier: workspace:*
         version: link:../frontend
