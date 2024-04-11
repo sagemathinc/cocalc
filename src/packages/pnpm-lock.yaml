@@ -149,24 +149,6 @@ importers:
         specifier: ^4.1.392
         version: 4.1.392(encoding@0.1.13)
 
-  cdn/build:
-    devDependencies:
-      bootstrap:
-        specifier: '=3.4.1'
-        version: 3.4.1
-      codemirror:
-        specifier: ^5.65.3
-        version: 5.65.16
-      katex:
-        specifier: ^0.16.10
-        version: 0.16.10
-      mathjax:
-        specifier: ^2.7.9
-        version: 2.7.9
-      pdfjs-dist:
-        specifier: ^4.1.392
-        version: 4.1.392(encoding@0.1.13)
-
   comm:
     dependencies:
       '@cocalc/comm':
@@ -7986,6 +7968,7 @@ packages:
 
   /codemirror@5.65.16:
     resolution: {integrity: sha512-br21LjYmSlVL0vFCPWPfhzUCT34FM/pAdK7rRIZwa0rrtrIdotvP4Oh4GUHsu2E3IrQMCfRkL/fN3ytMNxVQvg==}
+    dev: false
 
   /coffee-cache@1.0.2:
     resolution: {integrity: sha512-sIqhtqg5AOfgVWH8uQ0b0i0rkawDD1icZNOgyYNJOlJBm8RrEzstLeOwgjZPcyVeMq0jNryx2TDL5xcPUo/27A==}
