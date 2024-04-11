@@ -2467,16 +2467,18 @@ const randomColorCache = new LRU<string, string>({ max: 100 });
  * - min: minimum value for each channel
  * - max: maxium value for each channel
  * - diff: mimimum difference across channels (increase, to avoid dull gray colors)
+ * - seed: seed for the random number generator
  */
 export function getRandomColor(
   s: string,
-  opts?: { min?: number; max?: number; diff?: number },
+  opts?: { min?: number; max?: number; diff?: number; seed?: number },
 ): string {
   const diff = opts?.diff ?? 0;
   const min = clip(opts?.min ?? 120, 0, 254);
   const max = Math.max(min, clip(opts?.max ?? 230, 1, 255));
+  const seed = opts?.seed ?? 0;
 
-  const key = `${s}-${min}-${max}-${diff}`;
+  const key = `${s}-${min}-${max}-${diff}-${seed}`;
   const cached = randomColorCache.get(key);
   if (cached) {
     return cached;
@@ -2487,7 +2489,9 @@ export function getRandomColor(
   const mod = max - min;
 
   while (true) {
-    const hash = sha1(s + String.fromCharCode("A".charCodeAt(0) + iter))
+    // seed + s + String.fromCharCode("A".charCodeAt(0) + iter)
+    const val = `${seed}-${s}-${String.fromCharCode("A".charCodeAt(0) + iter)}`;
+    const hash = sha1(val)
       .split("")
       .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
     const r = (((hash >> 0) & 0xff) % mod) + min;
@@ -2523,4 +2527,56 @@ export function strictMod(a: number, b: number): number {
 
 export function clip(val: number, min: number, max: number): number {
   return Math.min(Math.max(val, min), max);
+}
+
+/**
+ * Converts an integer to an English word, but only for small numbers and reverts to a digit for larger numbers
+ */
+export function smallIntegerToEnglishWord(val: number): string | number {
+  if (!Number.isInteger(val)) return val;
+  switch (val) {
+    case 0:
+      return "zero";
+    case 1:
+      return "one";
+    case 2:
+      return "two";
+    case 3:
+      return "three";
+    case 4:
+      return "four";
+    case 5:
+      return "five";
+    case 6:
+      return "six";
+    case 7:
+      return "seven";
+    case 8:
+      return "eight";
+    case 9:
+      return "nine";
+    case 10:
+      return "ten";
+    case 11:
+      return "eleven";
+    case 12:
+      return "twelve";
+    case 13:
+      return "thirteen";
+    case 14:
+      return "fourteen";
+    case 15:
+      return "fifteen";
+    case 16:
+      return "sixteen";
+    case 17:
+      return "seventeen";
+    case 18:
+      return "eighteen";
+    case 19:
+      return "nineteen";
+    case 20:
+      return "twenty";
+  }
+  return val;
 }

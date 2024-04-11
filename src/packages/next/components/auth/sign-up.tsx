@@ -12,16 +12,24 @@ import {
 
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
+  CONTACT_TAG,
+  CONTACT_THESE_TAGS,
+} from "@cocalc/util/db-schema/accounts";
+import {
   is_valid_email_address as isValidEmailAddress,
   len,
+  plural,
+  smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Strategy } from "@cocalc/util/types/sso";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import AuthPageContainer from "./fragments/auth-page-container";
+import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
+import Tags from "./tags";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
@@ -33,6 +41,7 @@ interface SignUpProps {
   publicPathId?: string;
   showSignIn?: boolean;
   signInAction?: () => void; // if given, replaces the default sign-in link behavior.
+  requireTags: boolean;
 }
 
 export default function SignUp(props: SignUpProps) {
@@ -58,6 +67,7 @@ function SignUp0({
   publicPathId,
   signInAction,
   showSignIn,
+  requireTags,
 }: SignUpProps) {
   const {
     anonymousSignup,
@@ -66,7 +76,10 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
+    onCoCalcCom,
   } = useCustomize();
+  const [tags, setTags] = useState<Set<string>>(new Set());
+  const [signupReason, setSingupReason] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -80,6 +93,10 @@ function SignUp0({
     registrationToken?: string;
     reCaptcha?: string;
   }>({});
+
+  const minTags = requireTags ? 1 : 0;
+  const showContact = CONTACT_THESE_TAGS.some((t) => tags.has(t));
+  const requestContact = tags.has(CONTACT_TAG) && showContact;
 
   const submittable = useRef<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
@@ -108,14 +125,24 @@ function SignUp0({
     return <Loading />;
   }
 
+  // number of tags except for the one name "CONTACT_TAG"
+  const tagsSize = tags.size - (requestContact ? 1 : 0);
+  const needsTags = !minimal && onCoCalcCom && tagsSize < minTags;
+  const what = "role";
+
   submittable.current = !!(
-    requiredSSO == null &&
-    (!requiresToken2 || registrationToken) &&
-    email &&
-    isValidEmailAddress(email) &&
-    password &&
-    firstName?.trim() &&
-    lastName?.trim()
+    (
+      requiredSSO == null &&
+      (!requiresToken2 || registrationToken) &&
+      email &&
+      isValidEmailAddress(email) &&
+      password &&
+      password.length >= 6 &&
+      firstName?.trim() &&
+      lastName?.trim() &&
+      !needsTags
+    )
+    // && (!showContact || !requestContact || signupReason.trim()) // optional for now
   );
 
   async function signUp() {
@@ -141,6 +168,8 @@ function SignUp0({
         registrationToken,
         reCaptchaToken,
         publicPathId,
+        tags: Array.from(tags),
+        signupReason,
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
@@ -220,7 +249,7 @@ function SignUp0({
   function renderSubtitle() {
     return (
       <>
-        <h4 style={{ color: "#666", marginBottom: "35px" }}>
+        <h4 style={{ color: COLORS.GRAY_M, marginBottom: "35px" }}>
           Start collaborating for free today.
         </h4>
         {accountCreationInstructions && (
@@ -245,8 +274,21 @@ function SignUp0({
         </A>
         .
       </div>
+      {!minimal && onCoCalcCom ? (
+        <Tags
+          setTags={setTags}
+          signupReason={signupReason}
+          setSingupReason={setSingupReason}
+          tags={tags}
+          minTags={minTags}
+          what={what}
+          style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
+          contact={showContact}
+          warning={needsTags}
+        />
+      ) : undefined}
       <form>
-        {issues.reCaptcha && (
+        {issues.reCaptcha ? (
           <Alert
             style={LINE}
             type="error"
@@ -254,8 +296,7 @@ function SignUp0({
             message={issues.reCaptcha}
             description={<>You may have to contact the site administrator.</>}
           />
-        )}
-
+        ) : undefined}
         {issues.registrationToken && (
           <Alert
             style={LINE}
@@ -351,13 +392,27 @@ function SignUp0({
           size="large"
           disabled={!submittable.current || signingUp}
           type="primary"
-          style={{ width: "100%", marginTop: "15px" }}
+          style={{
+            width: "100%",
+            marginTop: "15px",
+            color:
+              !submittable.current || signingUp
+                ? COLORS.ANTD_RED_WARN
+                : undefined,
+          }}
           onClick={signUp}
         >
-          {requiresToken2 && !registrationToken
+          {needsTags && tagsSize < minTags
+            ? `Select at least ${smallIntegerToEnglishWord(minTags)} ${plural(
+                minTags,
+                what,
+              )}`
+            : requiresToken2 && !registrationToken
             ? "Enter the secret registration token"
             : !email
             ? "How will you sign in?"
+            : !isValidEmailAddress(email)
+            ? "Enter a valid email address above"
             : requiredSSO != null
             ? "You must sign up via SSO"
             : !password || password.length < 6
@@ -366,8 +421,6 @@ function SignUp0({
             ? "Enter your first name above"
             : !lastName?.trim()
             ? "Enter your last name above"
-            : !isValidEmailAddress(email)
-            ? "Enter a valid email address above"
             : signingUp
             ? ""
             : "Sign Up!"}
@@ -427,8 +480,9 @@ function EmailOrSSO(props: EmailOrSSOProps) {
         </p>
       </div>
       {renderSSO()}
-      {emailSignup && (
+      {emailSignup ? (
         <p>
+          <p>Email address</p>
           <Input
             style={{ fontSize: "12pt" }}
             placeholder="Email address"
@@ -438,7 +492,7 @@ function EmailOrSSO(props: EmailOrSSOProps) {
             onPressEnter={signUp}
           />
         </p>
-      )}
+      ) : undefined}
     </div>
   );
 }

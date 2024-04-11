@@ -2,6 +2,21 @@
 
 import { unreachable } from "@cocalc/util/misc";
 
+// "Client LLMs" are defined in the user's account settings
+// They directly query an external LLM service.
+export interface ClientLLM {
+  type: "ollama"; // only one type for now
+  model: string; // non-empty string
+  display: string; // short user-visible string
+  endpoint: string; // URL to the LLM service
+}
+
+const CLIENT_PREFIX = "client-";
+
+export function isClientModel(model: string): boolean {
+  return model.startsWith(CLIENT_PREFIX);
+}
+
 const OPENAI_PREFIX = "openai-";
 
 // NOTE: all arrays of model names should order them by the "simples and fastest" to the "complex, slowest, most expensive"
@@ -102,20 +117,19 @@ export const LANGUAGE_MODELS = [
   ...ANTHROPIC_MODELS,
 ] as const;
 
-// This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
-// Make sure to update this when adding new models.
-// This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
-export const USER_SELECTABLE_LANGUAGE_MODELS = [
-  ...MODELS_OPENAI.filter(
+export const USER_SELECTABLE_LLMS_BY_VENDOR: {
+  [vendor in LLMServiceName]: Readonly<CoreLanguageModel[]>;
+} = {
+  openai: MODELS_OPENAI.filter(
     (m) =>
       m !== "gpt-4-32k" && // this one is deliberately not selectable by users!
       m !== "text-embedding-ada-002", // shouldn't be in the list in the first place
   ),
-  ...GOOGLE_MODELS.filter(
+  google: GOOGLE_MODELS.filter(
     (m) => m === "gemini-pro", // for now, that's the only one working robustly
   ),
-  ...MISTRAL_MODELS,
-  ...ANTHROPIC_MODELS.filter((m) => {
+  mistralai: MISTRAL_MODELS,
+  anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
       m === "claude-3-opus" ||
@@ -124,6 +138,17 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
       m === "claude-3-haiku-8k"
     );
   }),
+  ollama: [], // this is empty, because these models are not hardcoded
+} as const;
+
+// This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
+// Make sure to update this when adding new models.
+// This is used in e.g. mentionable-users.tsx, model-switch.tsx and other-settings.tsx
+export const USER_SELECTABLE_LANGUAGE_MODELS = [
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.openai,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.google,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.mistralai,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.anthropic,
 ] as const;
 
 export type OllamaLLM = string;
@@ -143,9 +168,9 @@ export function isLanguageModel(model?: unknown): model is LanguageModel {
 export const LANGUAGE_MODEL_SERVICES = [
   "openai",
   "google",
-  "ollama",
   "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
   "anthropic",
+  "ollama",
 ] as const;
 export type LLMServiceName = (typeof LANGUAGE_MODEL_SERVICES)[number];
 
@@ -611,9 +636,10 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
   // },
   // you can learn details about the google models via
   // curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY"
+  // Pricing, at least Gemini Pro: https://cloud.google.com/vertex-ai/generative-ai/pricing#google_foundational_models
   "gemini-pro": {
-    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
-    completion_tokens: usd1Mtokens(1),
+    prompt_tokens: usd1Mtokens(1_000 * 0.000125),
+    completion_tokens: usd1Mtokens(1_000 * 0.000375),
     max_tokens: 30720,
     free: true,
   },

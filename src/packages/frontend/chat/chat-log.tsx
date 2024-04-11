@@ -7,31 +7,32 @@
 Render all the messages in the chat.
 */
 
-import { VisibleMDLG } from "@cocalc/frontend/components";
+import { Alert } from "antd";
+import { List, Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
-import { List, Map, Set as immutableSet } from "immutable";
+
+import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
+  TypedMap,
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Alert } from "antd";
-import Message from "./message";
+import { VisibleMDLG } from "@cocalc/frontend/components";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import {
   cmp,
   parse_hashtags,
   search_match,
   search_split,
 } from "@cocalc/util/misc";
-import { ChatActions } from "./actions";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
-import { newest_content, getSelectedHashtagsSearch } from "./utils";
+import { ChatActions } from "./actions";
 import Composing from "./composing";
-import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
-
-type MessageMap = Map<string, any>;
+import Message from "./message";
+import { ChatMessageTyped, ChatMessages, MessageHistory } from "./types";
+import { getSelectedHashtagsSearch, newest_content } from "./utils";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -47,7 +48,7 @@ export function ChatLog({
   show_heads,
 }: Props) {
   const actions: ChatActions = useActions(project_id, path);
-  const messages = useRedux(["messages"], project_id, path);
+  const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const fontSize = useRedux(["font_size"], project_id, path);
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
 
@@ -153,7 +154,7 @@ export function ChatLog({
         overscan={10000}
         itemContent={(index) => {
           const date = sortedDates[index];
-          const message: MessageMap | undefined = messages.get(date);
+          const message: ChatMessageTyped | undefined = messages.get(date);
           if (message == null) {
             // shouldn't happen.  But we should be robust to such a possibility.
             return <div style={{ height: "1px" }} />;
@@ -186,8 +187,11 @@ export function ChatLog({
                   !isNextMessageSender(index, sortedDates, messages)
                 }
                 include_avatar_col={show_heads}
-                get_user_name={(account_id) =>
-                  getUserName(user_map, account_id)
+                get_user_name={(account_id: string | undefined) =>
+                  // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
+                  typeof account_id === "string"
+                    ? getUserName(user_map, account_id)
+                    : "Unknown name"
                 }
                 scroll_into_view={() =>
                   virtuosoRef.current?.scrollIntoView({ index })
@@ -218,7 +222,7 @@ export function ChatLog({
 function isNextMessageSender(
   index: number,
   dates: string[],
-  messages: Map<string, MessageMap>,
+  messages: ChatMessages,
 ): boolean {
   if (index + 1 === dates.length) {
     return false;
@@ -235,7 +239,7 @@ function isNextMessageSender(
 function isPrevMessageSender(
   index: number,
   dates: string[],
-  messages: Map<string, MessageMap>,
+  messages: ChatMessages,
 ): boolean {
   if (index === 0) {
     return false;
@@ -251,8 +255,10 @@ function isPrevMessageSender(
 
 // NOTE: I removed search including send name, since that would
 // be slower and of questionable value.
-function searchMatches(message: MessageMap, searchTerms): boolean {
-  const first = message.get("history", List()).first();
+function searchMatches(message: ChatMessageTyped, searchTerms): boolean {
+  const first = message.get("history", List()).first() as
+    | TypedMap<MessageHistory>
+    | undefined;
   if (first == null) return false;
   return search_match(first.get("content", ""), searchTerms);
 }
