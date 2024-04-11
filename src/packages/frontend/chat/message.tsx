@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Col, Popconfirm, Row, Tooltip } from "antd";
+import type { MenuProps } from "antd";
+import { Button, Col, Dropdown, Popconfirm, Row, Tooltip } from "antd";
 import { Map } from "immutable";
-import { CSSProperties } from "react";
+import { CSSProperties, useLayoutEffect } from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
@@ -14,18 +15,31 @@ import {
   useMemo,
   useRef,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import {
+  LLMModelPrice,
+  modelToName,
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import {
+  CoreLanguageModel,
+  USER_SELECTABLE_LLMS_BY_VENDOR,
+  toOllamaModel,
+} from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
+import { OllamaPublic } from "@cocalc/util/types/llm";
+import { useProjectContext } from "../project/context";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { Name } from "./name";
 import { Time } from "./time";
+import { ChatMessageTyped } from "./types";
 import {
   is_editing,
   message_colors,
@@ -34,10 +48,6 @@ import {
 } from "./utils";
 
 const DELETE_BUTTON = false;
-
-// 5 minutes -- how long to show the "regenerate button" for chatgpt.
-// Don't show it forever, since we want to avoid clutter.
-const regenerateCutoff = 1000 * 60 * 5;
 
 const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
 
@@ -84,8 +94,8 @@ interface Props {
   index: number;
   actions?: ChatActions;
 
-  get_user_name: (account_id: string) => string;
-  message: Map<string, any>; // immutable.js message object
+  get_user_name: (account_id?: string) => string;
+  message: ChatMessageTyped;
   account_id: string;
   user_map?: Map<string, any>;
   project_id?: string; // improves relative links if given
@@ -126,7 +136,7 @@ export default function Message(props: Props) {
   );
 
   // date as ms since epoch or 0
-  const date = useMemo(() => {
+  const date: number = useMemo(() => {
     return props.message?.get("date")?.valueOf() ?? 0;
   }, [props.message.get("date")]);
 
@@ -163,14 +173,21 @@ export default function Message(props: Props) {
 
   const isLLMThread = useMemo(
     () => props.actions?.isLanguageModelThread(props.message.get("date")),
-    [props.message],
+    [props.message, props.actions != null],
   );
+
+  useLayoutEffect(() => {
+    if (replying) {
+      props.scroll_into_view();
+    }
+  }, [replying]);
 
   function editing_status(is_editing: boolean) {
     let text;
     const other_editors = props.message
       .get("editing")
       .remove(props.account_id)
+      // @ts-ignore – not sure why this error shows up
       .keySeq();
     if (is_editing) {
       if (other_editors.size === 1) {
@@ -223,6 +240,7 @@ export default function Message(props: Props) {
     ) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
+      const msg_date = props.message.get("history").first()?.get("date");
       return (
         <div
           style={{
@@ -231,9 +249,11 @@ export default function Message(props: Props) {
           }}
         >
           {edit}
-          <TimeAgo
-            date={new Date(props.message.get("history").first()?.get("date"))}
-          />
+          {msg_date != null ? (
+            <TimeAgo date={new Date(msg_date)} />
+          ) : (
+            "unknown time"
+          )}
           {name}
         </div>
       );
@@ -564,7 +584,7 @@ export default function Message(props: Props) {
   function sendReply() {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
-    props.actions.send_reply({ message: props.message, reply });
+    props.actions.send_reply({ message: props.message.toJS(), reply });
     props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
@@ -653,72 +673,62 @@ export default function Message(props: Props) {
     }
   }
 
-  let cols;
-  if (is_thread && is_folded && isThreadBody) {
-    cols = null;
-  } else if (props.include_avatar_col) {
-    cols = [avatar_column(), content_column(), getThreadfoldOrBlank()];
-    // mirror right-left for sender's view
-    if (!isThreadBody && sender_is_viewer(props.account_id, props.message)) {
-      cols = cols.reverse();
+  function renderReplyRow() {
+    if (replying || generating || isThreadBody || !props.allowReply) return;
+
+    return (
+      <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
+        <Tooltip
+          title={
+            isLLMThread
+              ? `Reply to ${modelToName(
+                  isLLMThread,
+                )}, sending the entire thread as context.`
+              : "Reply in this thread."
+          }
+        >
+          <Button
+            type="text"
+            onClick={() => setReplying(true)}
+            style={{ color: COLORS.GRAY_M }}
+          >
+            <Icon name="reply" /> Reply
+            {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
+            {isLLMThread ? (
+              <Avatar
+                account_id={isLLMThread}
+                size={16}
+                style={{ marginLeft: "10px", marginBottom: "2.5px" }}
+              />
+            ) : undefined}
+          </Button>
+        </Tooltip>
+        {isLLMThread ? (
+          <RegenerateLLM actions={props.actions} date={date} />
+        ) : undefined}
+      </div>
+    );
+  }
+
+  function getCols() {
+    if (is_thread && is_folded && isThreadBody) return null;
+
+    const cols = [content_column(), getThreadfoldOrBlank()];
+    // we optionally add the avatar column
+    if (props.include_avatar_col) {
+      cols.unshift(avatar_column());
     }
-  } else {
-    cols = [content_column(), getThreadfoldOrBlank()];
-    // mirror right-left for sender's view
+    // … and mirror right-left for sender's view
     if (!isThreadBody && sender_is_viewer(props.account_id, props.message)) {
-      cols = cols.reverse();
+      cols.reverse();
     }
+    return cols;
   }
 
   return (
     <Row style={getStyle()}>
-      {cols}
-      {!replying && isThreadBody && props.allowReply && (
-        <div
-          style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
-        >
-          {!generating && (
-            <Tooltip
-              title={
-                isLLMThread
-                  ? `Reply to ${modelToName(
-                      isLLMThread,
-                    )}, sending the entire thread as context.`
-                  : "Reply in this thread."
-              }
-            >
-              <Button
-                type="text"
-                onClick={() => setReplying(true)}
-                style={{ color: COLORS.GRAY_M }}
-              >
-                <Icon name="reply" /> Reply
-                {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
-                {isLLMThread && (
-                  <Avatar
-                    account_id={isLLMThread}
-                    size={16}
-                    style={{ marginLeft: "10px", marginBottom: "2.5px" }}
-                  />
-                )}
-              </Button>
-            </Tooltip>
-          )}
-          {!generating &&
-            isLLMThread &&
-            props.actions &&
-            Date.now() - date <= regenerateCutoff && (
-              <Button
-                style={{ color: COLORS.GRAY_M, marginLeft: "15px" }}
-                onClick={() => {
-                  props.actions?.languageModelRegenerate(new Date(date));
-                }}
-              >
-                <Icon name="refresh" /> Regenerate response
-              </Button>
-            )}
-        </div>
-      )}
+      {getCols()}
+      {renderReplyRow()}
     </Row>
   );
 }
@@ -730,4 +740,74 @@ export function message_to_markdown(message): string {
   const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
+}
+
+interface RegenerateLLMProps {
+  actions?: ChatActions;
+  date: number; // ms since epoch
+}
+
+function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
+  const { enabledLLMs } = useProjectContext();
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+  const ollama = useTypedRedux("customize", "ollama");
+
+  if (!actions) return null;
+
+  const entries: MenuProps["items"] = [];
+
+  // iterate over all key,values in USER_SELECTABLE_LLMS_BY_VENDOR
+  for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
+    if (!enabledLLMs[vendor]) continue;
+    const llms: CoreLanguageModel[] = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
+    for (const llm of llms) {
+      if (!selectableLLMs.includes(llm)) continue;
+      entries.push({
+        key: llm,
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={llm} /> {modelToName(llm)}{" "}
+            <LLMModelPrice model={llm} floatRight />
+          </>
+        ),
+        onClick: () => {
+          actions.regenerateLLMResponse(new Date(date), llm);
+        },
+      });
+    }
+  }
+
+  if (ollama) {
+    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+      const { display } = config;
+      const ollamaModel = toOllamaModel(key);
+      entries.push({
+        key: ollamaModel,
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={ollamaModel} /> {display}{" "}
+            <LLMModelPrice model={ollamaModel} floatRight />
+          </>
+        ),
+        onClick: () => {
+          actions.regenerateLLMResponse(new Date(date), ollamaModel);
+        },
+      });
+    }
+  }
+
+  return (
+    <Dropdown.Button
+      menu={{ items: entries, style: { overflow: "auto", maxHeight: "50vh" } }}
+      size="small"
+      style={{ display: "inline" }}
+      icon={<Icon name="angle-down" />}
+      trigger={["click"]}
+      onClick={() => {
+        actions.regenerateLLMResponse(new Date(date));
+      }}
+    >
+      <Icon name="refresh" /> Regenerate
+    </Dropdown.Button>
+  );
 }

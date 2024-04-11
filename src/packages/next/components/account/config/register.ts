@@ -12,7 +12,7 @@ export const components: { [main: string]: { [sub: string]: Function } } = {};
 interface Options {
   path: string;
   title?: string;
-  icon?: IconName;
+  icon?: IconName | "ai";
   desc?: string;
   Component: Function;
   danger?: boolean;
@@ -21,7 +21,7 @@ interface Options {
 
 interface Entry {
   title: string;
-  icon?: IconName;
+  icon?: IconName | "ai";
   desc?: string;
   danger?: boolean;
 }

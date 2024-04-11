@@ -3,19 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Map as immutableMap, fromJS } from "immutable";
-import { Store, TypedMap, redux } from "../app-framework";
+import { List, fromJS, Map as immutableMap } from "immutable";
+
+import { Store, redux } from "@cocalc/frontend/app-framework";
 import type { HashtagState } from "@cocalc/frontend/editors/task-editor/types";
-
-type Mention = TypedMap<{
-  id: string;
-  display: string;
-  type?: string;
-  index: number;
-  plainTextIndex: number;
-}>;
-
-export type MentionList = List<Mention>;
+import { ChatMessages, MentionList } from "./types";
 
 export interface ChatState {
   project_id?: string;
@@ -24,7 +16,7 @@ export interface ChatState {
   input: string; // content of the input box
   message_plain_text: string; // What the user sees in the chat box eg. stripped of internal mention markup
   is_preview?: boolean; // currently displaying preview of the main input chat
-  messages?: Map<string, any>;
+  messages?: ChatMessages;
   drafts?: Map<string, any>;
   offset?: number; // information about where on screen the chat editor is located
   position?: number; // more info about where chat editor is located

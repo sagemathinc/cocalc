@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Checkbox } from "antd";
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-import { Button, Checkbox } from "antd";
+
 import {
-  Button as OldButton,
   ButtonGroup,
   Col,
+  Button as OldButton,
   Row,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
@@ -28,6 +29,8 @@ import {
   Tip,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
@@ -36,8 +39,6 @@ import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
-import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",

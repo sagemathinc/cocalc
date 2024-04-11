@@ -7,8 +7,14 @@
 Render all the messages in the chat.
 */
 
+import { Alert } from "antd";
+import { List, Set as immutableSet } from "immutable";
+import { MutableRefObject, useEffect, useMemo, useRef } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
+  TypedMap,
   useActions,
   useRedux,
   useTypedRedux,
@@ -22,16 +28,11 @@ import {
   search_match,
   search_split,
 } from "@cocalc/util/misc";
-import { Alert } from "antd";
-import { List, Map, Set as immutableSet } from "immutable";
-import { MutableRefObject, useEffect, useMemo, useRef } from "react";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { ChatActions, getReplyToRoot } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
+import { ChatMessageTyped, ChatMessages, MessageHistory } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
-
-type MessageMap = Map<string, any>;
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -43,7 +44,7 @@ interface Props {
 export function ChatLog(props: Readonly<Props>) {
   const { project_id, path, scrollToBottomRef, show_heads } = props;
   const actions: ChatActions = useActions(project_id, path);
-  const messages = useRedux(["messages"], project_id, path);
+  const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const fontSize = useRedux(["font_size"], project_id, path);
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
 
@@ -165,7 +166,7 @@ export function ChatLog(props: Readonly<Props>) {
         overscan={10000}
         itemContent={(index) => {
           const date = sortedDates[index];
-          const message: MessageMap | undefined = messages.get(date);
+          const message: ChatMessageTyped | undefined = messages.get(date);
           if (message == null) {
             // shouldn't happen.  But we should be robust to such a possibility.
             return <div style={{ height: "1px" }} />;
@@ -200,8 +201,11 @@ export function ChatLog(props: Readonly<Props>) {
                   !isNextMessageSender(index, sortedDates, messages)
                 }
                 include_avatar_col={show_heads}
-                get_user_name={(account_id) =>
-                  getUserName(user_map, account_id)
+                get_user_name={(account_id: string | undefined) =>
+                  // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
+                  typeof account_id === "string"
+                    ? getUserName(user_map, account_id)
+                    : "Unknown name"
                 }
                 scroll_into_view={() =>
                   virtuosoRef.current?.scrollIntoView({ index })
@@ -232,7 +236,7 @@ export function ChatLog(props: Readonly<Props>) {
 function isNextMessageSender(
   index: number,
   dates: string[],
-  messages: Map<string, MessageMap>,
+  messages: ChatMessages,
 ): boolean {
   if (index + 1 === dates.length) {
     return false;
@@ -249,7 +253,7 @@ function isNextMessageSender(
 function isPrevMessageSender(
   index: number,
   dates: string[],
-  messages: Map<string, MessageMap>,
+  messages: ChatMessages,
 ): boolean {
   if (index === 0) {
     return false;
@@ -265,8 +269,10 @@ function isPrevMessageSender(
 
 // NOTE: I removed search including send name, since that would
 // be slower and of questionable value.
-function searchMatches(message: MessageMap, searchTerms): boolean {
-  const first = message.get("history", List()).first();
+function searchMatches(message: ChatMessageTyped, searchTerms): boolean {
+  const first = message.get("history", List()).first() as
+    | TypedMap<MessageHistory>
+    | undefined;
   if (first == null) return false;
   return search_match(first.get("content", ""), searchTerms);
 }

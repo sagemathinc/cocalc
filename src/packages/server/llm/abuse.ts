@@ -30,12 +30,15 @@ import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allo
 import {
   LanguageModel,
   LanguageServiceCore,
+  fromOllamaModel,
   isFreeModel,
   isLanguageModel,
+  isOllamaLLM,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
+import { isObject } from "lodash";
 
 // These are tokens over a given period of time – summed by account/analytics_cookie or global.
 const QUOTAS = {
@@ -193,6 +196,17 @@ async function recentUsage({
 async function isUserSelectableLanguageModel(
   model: LanguageModel,
 ): Promise<boolean> {
-  const { selectable_llms } = await getServerSettings();
-  return selectable_llms.includes(model);
+  const { selectable_llms, ollama_configuration, ollama_enabled } =
+    await getServerSettings();
+
+  if (isOllamaLLM(model)) {
+    if (ollama_enabled && isObject(ollama_configuration)) {
+      const om = fromOllamaModel(model);
+      const oc = ollama_configuration[om];
+      return oc?.enabled ?? true;
+    }
+  } else if (selectable_llms.includes(model)) {
+    return true;
+  }
+  return false;
 }
