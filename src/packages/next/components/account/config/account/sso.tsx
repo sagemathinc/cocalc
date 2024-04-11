@@ -6,7 +6,7 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { len } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Strategy } from "@cocalc/util/types/sso";
+import type { Strategy } from "@cocalc/util/types/sso";
 import { Alert, Button, Popconfirm, Space } from "antd";
 import { StrategyAvatar } from "components/auth/sso";
 import { Paragraph } from "components/misc";
