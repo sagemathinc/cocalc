@@ -27,6 +27,7 @@ import {
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
+import { Optional } from "utility-types";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
@@ -340,7 +341,6 @@ export class ChatActions extends Actions<ChatState> {
       history: addToHistory(prevHistory, {
         author_id,
         content,
-        date,
       }),
       date,
       generating,
@@ -776,7 +776,6 @@ export class ChatActions extends Actions<ChatState> {
         history: addToHistory(prevHistory, {
           author_id: sender_id,
           content,
-          date,
         }),
         generating: token != null, // it's generating as token is not null
         reply_to: reply_to?.toISOString(),
@@ -811,7 +810,6 @@ export class ChatActions extends Actions<ChatState> {
         history: addToHistory(prevHistory, {
           author_id: sender_id,
           content,
-          date,
         }),
         generating: false,
         reply_to: reply_to?.toISOString(),
@@ -859,8 +857,11 @@ export class ChatActions extends Actions<ChatState> {
       // there must be at least one history entry, otherwise the message is broken
       if (!mostRecent) continue;
       const content = stripMentions(mostRecent.get("content"));
-      const author_id = mostRecent.get("author_id");
-      const role = isLanguageModelService(author_id) ? "assistant" : "user";
+      // We take the message's sender ID, not the most recent version from the history
+      // Why? e.g. a user could have edited an LLM message, which should still count as an LLM message
+      // otherwise the forth-and-back between AI and human would be broken.
+      const sender_id = message.get("sender_id");
+      const role = isLanguageModelService(sender_id) ? "assistant" : "user";
       history.push({ content, role });
     }
     return history;
@@ -974,11 +975,17 @@ function getLanguageModel(input?: string): false | LanguageModel {
 /**
  * This uniformly defines how the history of a message is composed.
  * The newest entry is in the front of the array.
+ * If the date isn't set (ISO string), we set it to the current time.
  */
 function addToHistory(
   history: MessageHistory[],
-  next: MessageHistory,
+  next: Optional<MessageHistory, "date">,
 ): MessageHistory[] {
+  const {
+    author_id,
+    content,
+    date = webapp_client.server_time().toISOString(),
+  } = next;
   // inserted at the beginning of the history, without modifying the array
-  return [next, ...history];
+  return [{ author_id, content, date }, ...history];
 }
