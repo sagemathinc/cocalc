@@ -7,29 +7,29 @@
 Render all the messages in the chat.
 */
 
-import { VisibleMDLG } from "@cocalc/frontend/components";
-import { MutableRefObject, useEffect, useMemo, useRef } from "react";
-import { List, Map, Set as immutableSet } from "immutable";
+import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Alert } from "antd";
-import Message from "./message";
+import { VisibleMDLG } from "@cocalc/frontend/components";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import {
   cmp,
   parse_hashtags,
   search_match,
   search_split,
 } from "@cocalc/util/misc";
-import { ChatActions } from "./actions";
+import { Alert } from "antd";
+import { List, Map, Set as immutableSet } from "immutable";
+import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
-import { newest_content, getSelectedHashtagsSearch } from "./utils";
+import { ChatActions, getReplyToRoot } from "./actions";
 import Composing from "./composing";
-import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
+import Message from "./message";
+import { getSelectedHashtagsSearch, newest_content } from "./utils";
 
 type MessageMap = Map<string, any>;
 
@@ -40,12 +40,8 @@ interface Props {
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
 }
 
-export function ChatLog({
-  project_id,
-  path,
-  scrollToBottomRef,
-  show_heads,
-}: Props) {
+export function ChatLog(props: Readonly<Props>) {
+  const { project_id, path, scrollToBottomRef, show_heads } = props;
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
   const fontSize = useRedux(["font_size"], project_id, path);
@@ -125,6 +121,22 @@ export function ChatLog({
     initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
   });
 
+  function isThread(messages, message) {
+    if (message.get("reply_to") != null) {
+      return true;
+    }
+    return messages.some(
+      (m) => m.get("reply_to") === message.get("date").toISOString(),
+    );
+  }
+
+  function isFolded(messages, message) {
+    const root = getReplyToRoot(message, messages);
+    if (!root) return false;
+    const rootMsg = messages.get(`${root.valueOf()}`);
+    return rootMsg?.get("folding").includes(account_id) ?? false;
+  }
+
   return (
     <>
       {visibleHashtags.size > 0 && (
@@ -171,6 +183,8 @@ export function ChatLog({
                 font_size={fontSize}
                 selectedHashtags={selectedHashtags}
                 actions={actions}
+                is_thread={isThread(messages, message)}
+                is_folded={isFolded(messages, message)}
                 is_prev_sender={isPrevMessageSender(
                   index,
                   sortedDates,

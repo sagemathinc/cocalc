@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { fromJS, Map as immutableMap } from "immutable";
+import { List, fromJS, Map as immutableMap } from "immutable";
 
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -106,6 +106,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!x.editing) {
       x.editing = {};
     }
+    x.folding ??= [];
     return x;
   }
 
@@ -129,7 +130,7 @@ export class ChatActions extends Actions<ChatState> {
     changes.map((obj) => {
       if (this.syncdb == null) return;
       obj = obj.toJS();
-      if (obj.event == "draft") {
+      if (obj.event === "draft") {
         let drafts = this.store?.get("drafts") ?? (fromJS({}) as any);
         // used to show that another user is editing a message.
         const record = this.syncdb.get_one(obj);
@@ -142,7 +143,7 @@ export class ChatActions extends Actions<ChatState> {
         this.setState({ drafts });
         return;
       }
-      if (obj.event == "chat") {
+      if (obj.event === "chat") {
         let changed: boolean = false;
         let messages = this.store?.get("messages") ?? (fromJS({}) as any);
         obj.date = new Date(obj.date);
@@ -164,6 +165,24 @@ export class ChatActions extends Actions<ChatState> {
         }
       }
     });
+  }
+
+  public foldThread(reply_to: Date) {
+    if (this.syncdb == null) return;
+    const account_id = this.redux.getStore("account").get_account_id();
+    console.log("foldThread", reply_to, account_id);
+    const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
+    const folding = cur?.get("folding") ?? List([]);
+    const next = folding.includes(account_id)
+      ? folding.filter((x) => x !== account_id)
+      : folding.push(account_id);
+
+    this.syncdb.set({
+      folding: next,
+      date: typeof reply_to === "string" ? reply_to : reply_to.toISOString(),
+    });
+
+    this.syncdb.commit();
   }
 
   // The second parameter is used for sending a message by
@@ -657,7 +676,7 @@ export class ChatActions extends Actions<ChatState> {
       this.chatStreams.delete(id);
       if (this.syncdb == null || halted) return;
 
-      if (model === false) {
+      if (!model) {
         throw new Error(
           `bug: model is false but we're in language model error handler`,
         );
@@ -734,7 +753,7 @@ export class ChatActions extends Actions<ChatState> {
   }
 }
 
-function getReplyToRoot(message, messages): Date | undefined {
+export function getReplyToRoot(message, messages): Date | undefined {
   while (message.get("reply_to")) {
     message = messages.get(`${new Date(message.get("reply_to")).valueOf()}`);
   }

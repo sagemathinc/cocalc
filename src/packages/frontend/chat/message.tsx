@@ -9,6 +9,7 @@ import { CSSProperties } from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
+  CSS,
   redux,
   useMemo,
   useRef,
@@ -47,13 +48,37 @@ const BORDER = "2px solid #ccc";
 
 const SHOW_EDIT_BUTTON_MS = 45000;
 
-const REPLY_STYLE = {
-  marginLeft: "75px",
-  marginRight: "15px",
+const TRHEAD_STYLE_SINGLE = {
   borderLeft: BORDER,
   borderRight: BORDER,
+} as const;
+
+const THREAD_STYLE = {
+  ...TRHEAD_STYLE_SINGLE,
+  marginLeft: "15px",
+  marginRight: "15px",
   paddingLeft: "15px",
 } as const;
+
+const THREAD_STYLE_BOTTOM = {
+  ...THREAD_STYLE,
+  borderBottom: BORDER,
+  borderBottomLeftRadius: "10px",
+  borderBottomRightRadius: "10px",
+  marginBottom: "10px",
+} as const;
+
+const THREAD_STYLE_TOP = {
+  ...THREAD_STYLE,
+  borderTop: BORDER,
+  borderTopLeftRadius: "10px",
+  borderTopRightRadius: "10px",
+  marginTop: "10px",
+} as const;
+
+const MARGIN_TOP_VIEWER = "17px";
+
+const AVATAR_MARGIN_LEFTRIGHT = "15px";
 
 interface Props {
   index: number;
@@ -78,9 +103,14 @@ interface Props {
   // if true, include a reply button - this should only be for messages
   // that don't have an existing reply to them already.
   allowReply?: boolean;
+
+  is_thread?: boolean; // if true, there is a thread starting in a reply_to message
+  is_folded?: boolean; // if true, only show the reply_to root message
 }
 
 export default function Message(props: Props) {
+  const { is_thread, is_folded } = props;
+
   const [edited_message, set_edited_message] = useState<string>(
     newest_content(props.message),
   );
@@ -116,6 +146,10 @@ export default function Message(props: Props) {
     return props.get_user_name(
       props.message.get("history")?.first()?.get("author_id"),
     );
+  }, [props.message]);
+
+  const isThreadBody: boolean = useMemo(() => {
+    return !!props.message.get("reply_to");
   }, [props.message]);
 
   const submitMentionsRef = useRef<Function>();
@@ -239,11 +273,11 @@ export default function Message(props: Props) {
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
     }
-    if (!props.message.get("reply_to")) {
+    if (!isThreadBody) {
       if (sender_is_viewer(props.account_id, props.message)) {
-        style.marginLeft = "15px";
+        style.marginLeft = AVATAR_MARGIN_LEFTRIGHT;
       } else {
-        style.marginRight = "15px";
+        style.marginRight = AVATAR_MARGIN_LEFTRIGHT;
       }
     }
 
@@ -276,7 +310,7 @@ export default function Message(props: Props) {
     }
 
     if (!props.is_prev_sender && is_viewers_message) {
-      marginTop = "17px";
+      marginTop = MARGIN_TOP_VIEWER;
     }
 
     if (!props.is_prev_sender && !props.is_next_sender && !show_history) {
@@ -296,7 +330,7 @@ export default function Message(props: Props) {
       borderRadius,
       fontSize: font_size,
       padding: "9px",
-    };
+    } as const;
 
     return (
       <Col key={1} xs={21}>
@@ -308,16 +342,16 @@ export default function Message(props: Props) {
               sender_name={props.get_user_name(props.message.get("sender_id"))}
             />
           ) : undefined}
-          {generating === true && props.actions && (
+          {generating === true && props.actions ? (
             <Button
-              style={{ color: "#666" }}
+              style={{ color: COLORS.GRAY_M }}
               onClick={() => {
                 props.actions?.languageModelStopGenerating(new Date(date));
               }}
             >
               <Icon name="square" /> Stop Generating
             </Button>
-          )}
+          ) : undefined}
         </div>
         <div
           style={message_style}
@@ -406,21 +440,19 @@ export default function Message(props: Props) {
                       </Popconfirm>
                     </Tooltip>
                   )}
-                {!props.message.get("reply_to") &&
-                  props.allowReply &&
-                  !replying && (
-                    <Button
-                      type="text"
-                      disabled={replying}
-                      style={{
-                        color: is_viewers_message ? "white" : "#555",
-                      }}
-                      size="small"
-                      onClick={() => setReplying(true)}
-                    >
-                      <Icon name="reply" /> Reply
-                    </Button>
-                  )}
+                {!isThreadBody && props.allowReply && !replying ? (
+                  <Button
+                    type="text"
+                    disabled={replying}
+                    style={{
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    size="small"
+                    onClick={() => setReplying(true)}
+                  >
+                    <Icon name="reply" /> Reply
+                  </Button>
+                ) : undefined}
               </div>
               {(props.message.get("history").size > 1 ||
                 props.message.get("editing").size > 0) &&
@@ -587,37 +619,53 @@ export default function Message(props: Props) {
     );
   }
 
-  function getStyle() {
-    if (!props.message.get("reply_to")) return undefined;
-    if (props.allowReply) {
-      return {
-        ...REPLY_STYLE,
-        borderBottom: BORDER,
-        borderBottomLeftRadius: "10px",
-        borderBottomRightRadius: "10px",
-        marginBottom: "10px",
-      };
+  function getStyle(): CSS {
+    if (!isThreadBody) {
+      return is_thread ? THREAD_STYLE_TOP : TRHEAD_STYLE_SINGLE;
+    } else if (props.allowReply) {
+      return THREAD_STYLE_BOTTOM;
+    } else {
+      return THREAD_STYLE;
     }
-    return REPLY_STYLE;
+  }
+
+  function getThreadfoldOrBlank() {
+    if (isThreadBody) {
+      return BLANK_COLUMN;
+    } else {
+      const isFolded = props.message.get("folding")?.includes(props.account_id);
+      return (
+        <Button
+          type="text"
+          style={{
+            marginTop: MARGIN_TOP_VIEWER,
+            marginRight: AVATAR_MARGIN_LEFTRIGHT,
+          }}
+          onClick={() => props.actions?.foldThread(props.message.get("date"))}
+          icon={
+            <Icon
+              name={isFolded ? "plus-square" : "minus-square"}
+              style={{ fontSize: "22px" }}
+            />
+          }
+        />
+      );
+    }
   }
 
   let cols;
-  if (props.include_avatar_col) {
-    cols = [avatar_column(), content_column(), BLANK_COLUMN];
+  if (is_thread && is_folded && isThreadBody) {
+    cols = null;
+  } else if (props.include_avatar_col) {
+    cols = [avatar_column(), content_column(), getThreadfoldOrBlank()];
     // mirror right-left for sender's view
-    if (
-      !props.message.get("reply_to") &&
-      sender_is_viewer(props.account_id, props.message)
-    ) {
+    if (!isThreadBody && sender_is_viewer(props.account_id, props.message)) {
       cols = cols.reverse();
     }
   } else {
-    cols = [content_column(), BLANK_COLUMN];
+    cols = [content_column(), getThreadfoldOrBlank()];
     // mirror right-left for sender's view
-    if (
-      !props.message.get("reply_to") &&
-      sender_is_viewer(props.account_id, props.message)
-    ) {
+    if (!isThreadBody && sender_is_viewer(props.account_id, props.message)) {
       cols = cols.reverse();
     }
   }
@@ -625,7 +673,7 @@ export default function Message(props: Props) {
   return (
     <Row style={getStyle()}>
       {cols}
-      {!replying && props.message.get("reply_to") && props.allowReply && (
+      {!replying && isThreadBody && props.allowReply && (
         <div
           style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
         >
