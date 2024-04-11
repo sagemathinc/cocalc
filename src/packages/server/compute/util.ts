@@ -87,6 +87,22 @@ export async function setData({
   );
 }
 
+export async function getData({
+  id,
+}: {
+  id: number;
+}): Promise<Data | undefined> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT data FROM compute_servers WHERE id=$1",
+    [id],
+  );
+  if (rows.length == 0) {
+    throw Error(`no server with id=${id}`);
+  }
+  return rows[0].data;
+}
+
 // merges in configuration
 export async function setConfiguration(id: number, newConfiguration0: object) {
   const newConfiguration = { ...newConfiguration0 }; // avoid mutating arg

@@ -51,14 +51,11 @@ export async function makeConfigurationChange({
   }
   if (
     state == "running" &&
+    newConfiguration.diskSizeGb != null &&
     (currentConfiguration.diskSizeGb ?? DEFAULT_DISK) <
       (newConfiguration.diskSizeGb ?? DEFAULT_DISK)
   ) {
-    await increaseDiskSize({
-      id,
-      diskSizeGb: newConfiguration.diskSizeGb ?? DEFAULT_DISK,
-      state,
-    });
+    await increaseDiskSize({ id, state, configuration: newConfiguration });
     return;
   }
 }

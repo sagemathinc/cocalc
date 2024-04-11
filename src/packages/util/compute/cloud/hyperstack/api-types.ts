@@ -11,6 +11,11 @@ export const DEFAULT_REGION = REGIONS[0];
 export const DEFAULT_FLAVOR = "n1-RTX-A6000x1";
 export const DEFAULT_DISK = 10;
 
+// each time, must increase disk by at least this amount.
+export const MIN_DISK_INCREASE_GB = 25;
+// that's what they told me.
+export const MAX_DISKS = 26;
+
 export interface RegionInfo {
   id: number;
   name: Region;
@@ -322,7 +327,7 @@ export interface VolumeDetails {
   };
   description: string;
   volume_type: string;
-  size: string;
+  size: number;
   status: string;
   bootable: boolean;
   image_id: number;

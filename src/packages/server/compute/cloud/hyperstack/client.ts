@@ -268,6 +268,7 @@ export async function createVirtualMachines(params: {
   };
   labels?: string[];
 }) {
+  // TODO/Worry -- params.user_data could contain an api_key, which shouldn't be logged...
   log.debug("createVirtualMachines", params);
   if (!params.count) {
     params.count = 1;

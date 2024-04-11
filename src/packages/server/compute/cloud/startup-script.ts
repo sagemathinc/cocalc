@@ -19,6 +19,16 @@ export async function startupScriptViaApi({ compute_server_id, api_key }) {
   return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
 }
 
+export async function cloudInitScript({ compute_server_id, api_key }) {
+  return `#cloud-config
+
+runcmd:
+  - |
+    #!/bin/bash
+    ${await startupScriptViaApi({ compute_server_id, api_key })}
+`;
+}
+
 async function getApiServer() {
   let { dns: apiServer } = await getServerSettings();
   if (!apiServer.includes("://")) {

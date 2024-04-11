@@ -12,7 +12,6 @@ import computeCost, {
   BOOT_DISK_SIZE_GB,
 } from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
 import {
-  attachVolume,
   createVolume,
   createEnvironment,
   createVirtualMachines,
@@ -30,6 +29,16 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { delay } from "awaiting";
 export * from "./make-configuration-change";
 import { initDatabaseCache } from "./client-cache";
+import {
+  getServerName,
+  getDiskName,
+  environmentName,
+  keyPairName,
+} from "./names";
+import { attachVolumes, increaseDiskSize } from "./disk";
+import { cloudInitScript } from "@cocalc/server/compute/cloud/startup-script";
+
+const logger = getLogger("server:compute:hyperstack");
 
 initDatabaseCache();
 
@@ -46,9 +55,7 @@ const SECURITY_RULES = [
   { port_range_min: 443, port_range_max: 443 },
 ];
 
-const logger = getLogger("server:compute:hyperstack");
-
-async function setData({ id, data }) {
+export async function setData({ id, data }) {
   if (data.vm != null) {
     data = { ...data, externalIp: data.vm.floating_ip };
   } else if (data.vm === null) {
@@ -61,7 +68,7 @@ async function setData({ id, data }) {
   });
 }
 
-function getData(server: ComputeServer): HyperstackData | null {
+function getHyperstackData(server: ComputeServer): HyperstackData | null {
   const data: Data | undefined = server.data;
   if (data == null) {
     return null;
@@ -72,32 +79,6 @@ function getData(server: ComputeServer): HyperstackData | null {
     );
   }
   return data;
-}
-
-export async function getPrefix() {
-  const { hyperstack_compute_servers_prefix = "cocalc" } =
-    await getServerSettings();
-  return hyperstack_compute_servers_prefix;
-}
-
-export async function getServerName(server: { id: number }) {
-  const prefix = await getPrefix();
-  return `${prefix}-${server.id}`;
-}
-
-export async function getDiskName(server: { id: number }, n: number) {
-  const name = await getServerName(server);
-  return `${name}-${n}`;
-}
-
-export async function environmentName(region_name: Region) {
-  const prefix = await getPrefix();
-  return `${prefix}-${region_name}`;
-}
-
-export async function keyPairName(region_name: Region) {
-  const prefix = await getPrefix();
-  return `${prefix}-${region_name}`;
 }
 
 export async function getPublicSSHKey() {
@@ -152,7 +133,7 @@ export async function start(server: ComputeServer) {
     if (server.configuration?.cloud != "hyperstack") {
       throw Error("must have a hyperstack configuration");
     }
-    const data = getData(server);
+    const data = getHyperstackData(server);
     // If the disk doesn't exist, create it.
     const disks = data?.disks ?? [];
     let environment_name: null | string = null;
@@ -181,7 +162,7 @@ export async function start(server: ComputeServer) {
 
     //
     if (disks.length == 1) {
-      // TODO: **always** need to ensure there are two disks -- the boot disk and the user data disk
+      // TODO: **always** need to ensure there are at least two disks -- the boot disk and the user data disk
       environment_name = await ensureEnvironment(
         server.configuration.region_name,
       );
@@ -197,6 +178,13 @@ export async function start(server: ComputeServer) {
       await setData({
         id: server.id,
         data: { disks },
+      });
+    } else {
+      // might be necessary to enlarge the disk (which means "add a new disk if possible")
+      await increaseDiskSize({
+        id: server.id,
+        configuration: server.configuration,
+        state: "starting",
       });
     }
     if (!data?.vm?.id) {
@@ -227,6 +215,10 @@ export async function start(server: ComputeServer) {
             assign_floating_ip: true,
             flavor_name: server.configuration.flavor_name,
             security_rules: SECURITY_RULES,
+            user_data: await cloudInitScript({
+              compute_server_id: server.id,
+              api_key: server.api_key,
+            }),
           });
           break;
         } catch (err) {
@@ -245,25 +237,7 @@ export async function start(server: ComputeServer) {
       if (disks.length > 1) {
         logger.debug(`start: attach the other ${disks.length} disks`);
         // this is painful since you can't attach disks until the VM is getting going sufficiently.
-        const t0 = Date.now();
-        let d = 3000;
-        while (Date.now() - t0 <= 1000 * 60 * 5) {
-          try {
-            await attachVolume({
-              virtual_machine_id: vm.id,
-              volume_ids: disks.slice(1),
-            });
-            logger.debug("start: successfully attached volumes");
-            break;
-          } catch (err) {
-            logger.debug(
-              "WARNING: waiting for VM to start so we can attach disks",
-              err,
-            );
-          }
-          d = Math.min(7500, d * 1.3);
-          await delay(d);
-        }
+        await attachVolumes({ vm_id: vm.id, volume_ids: disks.slice(1) });
       }
     } else {
       logger.debug("start: using existing VM with id", data.vm.id);
@@ -287,7 +261,7 @@ export async function stop(server: ComputeServer) {
     if (server.configuration?.cloud != "hyperstack") {
       throw Error("must have a hyperstack configuration");
     }
-    const data = getData(server);
+    const data = getHyperstackData(server);
     if (data?.vm?.id) {
       logger.debug("stop: deleting vm... ", data.vm.id);
       await deleteVirtualMachine(data.vm.id);
@@ -310,7 +284,7 @@ export async function reboot(server: ComputeServer) {
   if (server.configuration?.cloud != "hyperstack") {
     throw Error("must have a hyperstack configuration");
   }
-  const data = getData(server);
+  const data = getHyperstackData(server);
   if (data?.vm?.id) {
     logger.debug("reboot", data.vm.id);
     await hardRebootVirtualMachine(data.vm.id);
@@ -329,7 +303,7 @@ export async function deprovision(server: ComputeServer) {
   // Delete the VM = stop
   await stop(server);
   // Then delete all of the disks:
-  const data = getData(server);
+  const data = getHyperstackData(server);
   const disks = data?.disks ?? [];
   for (const id of disks) {
     const t0 = Date.now();
@@ -367,7 +341,7 @@ export async function state(server: ComputeServer): Promise<State> {
   }
   let data;
   try {
-    data = getData(server);
+    data = getHyperstackData(server);
   } catch (err) {
     logger.debug("state: WARNING data is wrong for server -- ", err);
     return "deprovisioned";
