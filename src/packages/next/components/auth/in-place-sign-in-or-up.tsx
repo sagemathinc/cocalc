@@ -28,8 +28,8 @@ interface InPlaceOrSignUpProps {
 }
 
 export default function InPlaceSignInOrUp({
-  title="Sign in or sign up",
-  defaultView="compact",
+  title = "Sign in or sign up",
+  defaultView = "compact",
   why,
   onSuccess,
   style,
@@ -40,18 +40,19 @@ export default function InPlaceSignInOrUp({
   const [show, setShow] = useState<SelectedView>(defaultView);
 
   return (
-    <div style={{...style, ...AUTH_WRAPPER_STYLE }}>
+    <div style={{ ...style, ...AUTH_WRAPPER_STYLE }}>
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>
       <div style={{ fontSize: "13px", marginTop: "8px", padding: "8px" }}>
         <a onClick={() => setShow("sign-in")}>Sign in</a> {" or "}
         <a onClick={() => setShow("sign-up")}>sign up</a>
-        {why ? ` ${why}` : ''}.
+        {why ? ` ${why}` : ""}.
       </div>
       {show === "sign-up" && (
         <SignUpAuth
           minimal
+          requireTags={false}
           has_site_license={has_site_license}
           publicPathId={publicPathId}
           onSuccess={

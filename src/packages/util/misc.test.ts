@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "./misc";
 import seedrandom from "seedrandom";
+import * as misc from "./misc";
 
 describe("academic domain", () => {
   const ia = misc.isAcademic;
@@ -191,6 +191,28 @@ describe("test code for displaying numbers as currency with 2 or sometimes 3 dec
 
   it("always includes at least 2 decimals", () => {
     expect(currency(10)).toBe("$10.00");
+  });
+});
+
+describe("smallIntegerToEnglishWord", () => {
+  it("handles floats", () => {
+    expect(misc.smallIntegerToEnglishWord(1.2)).toBe(1.2);
+  });
+
+  it("handles 0", () => {
+    expect(misc.smallIntegerToEnglishWord(0)).toBe("zero");
+  });
+
+  it("handles 1", () => {
+    expect(misc.smallIntegerToEnglishWord(1)).toBe("one");
+  });
+
+  it("handles 17", () => {
+    expect(misc.smallIntegerToEnglishWord(17)).toBe("seventeen");
+  });
+
+  it("handles negative numbers", () => {
+    expect(misc.smallIntegerToEnglishWord(-1)).toBe(-1);
   });
 });
 
