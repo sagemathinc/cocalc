@@ -38,7 +38,7 @@ NOTES:
 
 import { field_cmp } from "@cocalc/util/misc";
 
-// These are the supportd flavors that we want to allow and include at the time of writing.
+// These are the supported flavors that we want to allow and include at the time of writing.
 // We explicitly exclude the K8s one as of right now (April 2024), but nothing else.
 // When new flavors pop up, we will explicitly update our code to support them after doing
 // full testing.

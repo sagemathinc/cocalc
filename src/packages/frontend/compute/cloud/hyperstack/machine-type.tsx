@@ -15,9 +15,10 @@ import {
 import { Checkbox, Tag, Select, Tooltip } from "antd";
 const { CheckableTag } = Tag;
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
-import { getModelLinks, humanFlavor, toGPU } from "./util";
+import { getModelLinks, toGPU } from "./util";
 import { filterOption } from "@cocalc/frontend/compute/google-cloud-config";
 import { DEFAULT_REGION } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { humanFlavor } from "@cocalc/util/compute/cloud/hyperstack/flavor";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
@@ -110,7 +111,6 @@ function getLabel(x: PurchaseOption, priceData) {
     </div>
   );
 }
-
 
 export default function MachineType({
   disabled,

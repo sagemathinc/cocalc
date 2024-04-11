@@ -810,6 +810,20 @@ async function getStartupParams(id: number): Promise<{
         proxy,
       };
       break;
+    case "hyperstack":
+      if (configuration.cloud != "hyperstack") {
+        throw Error("inconsistent configuration -- must be hyperstack");
+      }
+      x = {
+         ...(await hyperstackCloud.getStartupParams(server)),
+        project_id: server.project_id,
+        arch: "x86_64",
+        image,
+        exclude_from_sync,
+        auth_token,
+        proxy,
+      };
+      break;
     default:
       throw Error(
         `getStartupParams for '${server.cloud}' not currently implemented`,

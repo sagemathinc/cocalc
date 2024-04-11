@@ -44,14 +44,3 @@ export function toGPU(gpu) {
   return gpu;
 }
 
-
-const HUMAN = {
-  s: "n1-cpu-extrasmall",
-  m: "n1-cpu-verysmall",
-  l: "n1-cpu-small",
-  xxl: "n1-cpu-large",
-};
-
-export function humanFlavor(flavor_name: string) {
-  return HUMAN[flavor_name] ?? flavor_name;
-}

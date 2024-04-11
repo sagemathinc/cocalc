@@ -1,6 +1,7 @@
 import NVIDIA from "@cocalc/frontend/compute/nvidia";
 import { capitalize, commas, plural } from "@cocalc/util/misc";
-import { toGPU, humanFlavor } from "./util";
+import { toGPU } from "./util";
+import { humanFlavor } from "@cocalc/util/compute/cloud/hyperstack/flavor";
 import { optionKey } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import { DEFAULT_DISK } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 

@@ -37,6 +37,7 @@ import {
 } from "./names";
 import { attachVolumes, increaseDiskSize } from "./disk";
 import { cloudInitScript } from "@cocalc/server/compute/cloud/startup-script";
+import { hasGPU } from "@cocalc/util/compute/cloud/hyperstack/flavor";
 
 const logger = getLogger("server:compute:hyperstack");
 
@@ -433,4 +434,14 @@ export async function cost(
     default:
       throw Error(`cost computation for state '${state}' not implemented`);
   }
+}
+
+export function getStartupParams(server: ComputeServer) {
+  const { configuration } = server;
+  if (configuration?.cloud != "hyperstack") {
+    throw Error("must have a hyperstack configuration");
+  }
+  return {
+    gpu: hasGPU(configuration.flavor_name),
+  };
 }
