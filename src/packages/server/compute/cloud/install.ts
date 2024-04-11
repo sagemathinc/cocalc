@@ -10,6 +10,7 @@ import {
   PROXY_CONFIG,
   PROXY_AUTH_TOKEN_FILE,
 } from "@cocalc/util/compute/constants";
+import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 
 // for consistency with cocalc.com
 export const UID = 2001;
@@ -63,6 +64,21 @@ service docker start
 `;
 }
 
+// Extra support needed on some platforms to run Docker.
+export function installNvidiaDocker({ gpu }: { gpu?: boolean }) {
+  if (!gpu) {
+    return "";
+  }
+  return `
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list
+
+apt-get update && apt-get install -y nvidia-docker2
+systemctl restart docker
+`;
+}
+
 export function installUser() {
   return `
 # Create the "user" if they do not already exist:
@@ -111,6 +127,23 @@ set -v
 `;
 }
 
+// This is assumed be after Docker is installed, but
+// before any docker image is pulled.
+export function installZpool({ cloud }: { cloud: Cloud }) {
+  if (cloud != "hyperstack") {
+    // Right now we've only implemented anything relevant for a zpool for hyperstack.
+    // This will very likely change later, as there are many very cool ways using
+    // ZFS can make things better.
+    return "";
+  }
+  return `
+
+cd /cocalc/hyperstack
+./zpool-init.sh
+
+`;
+}
+
 export function installMicroK8s({
   image,
   IMAGES,
@@ -126,7 +159,7 @@ export function installMicroK8s({
     return "";
   }
   return `
-setState install install-k8s '' 120 70
+setState install install-k8s '' 120 73
 
 snap install microk8s --classic
 

@@ -1,14 +1,17 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getImages, Images } from "@cocalc/server/compute/images";
 import {
-  installDocker,
   installNode,
   installCoCalc,
+  installZpool,
+  installDocker,
+  installNvidiaDocker,
   installConf,
   installMicroK8s,
   installUser,
   UID,
 } from "./install";
+import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
@@ -38,6 +41,7 @@ async function getApiServer() {
 }
 
 export default async function startupScript({
+  cloud,
   image = "python",
   tag,
   tag_filesystem,
@@ -52,6 +56,7 @@ export default async function startupScript({
   proxy,
   installUser: doInstallUser,
 }: {
+  cloud: Cloud;
   image?: string; // compute image
   tag?: string; // compute docker image tag
   tag_filesystem?: string; // filesystem docker image tag
@@ -112,14 +117,14 @@ ${userSsh()}
 docker
 if [ $? -ne 0 ]; then
    setState install install-docker '' 120 20
-${installDocker()}
+   ${installDocker()}
+   ${installNvidiaDocker({ gpu })}
+   if [ $? -ne 0 ]; then
+      setState install error "problem installing Docker"
+      exit 1
+   fi
 fi
 
-# We use group 999 for docker inside the compute container,
-# so that has to also be the case outside or docker without
-# sudo won't work.
-groupmod -g 999 docker
-chgrp docker /var/run/docker.sock
 
 setState install install-nodejs '' 60 40
 ${installNode()}
@@ -135,7 +140,21 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
-setState install install-user '' 60 60
+setState install install-zpool '' 120 60
+${installZpool({ cloud })}
+if [ $? -ne 0 ]; then
+   setState install error "problem configuring zpool"
+   exit 1
+fi
+
+# We use group 999 for docker inside the compute container,
+# so that has to also be the case outside or docker without
+# sudo won't work.
+groupmod -g 999 docker
+chgrp docker /var/run/docker.sock
+
+
+setState install install-user '' 60 70
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
    setState install error "problem creating user"

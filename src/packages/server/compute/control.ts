@@ -767,6 +767,7 @@ export async function setTestNetworkUsage({
 }
 
 async function getStartupParams(id: number): Promise<{
+  cloud: Cloud;
   project_id: string;
   gpu?: boolean;
   arch: Architecture;
@@ -815,7 +816,7 @@ async function getStartupParams(id: number): Promise<{
         throw Error("inconsistent configuration -- must be hyperstack");
       }
       x = {
-         ...(await hyperstackCloud.getStartupParams(server)),
+        ...(await hyperstackCloud.getStartupParams(server)),
         project_id: server.project_id,
         arch: "x86_64",
         image,
@@ -830,6 +831,7 @@ async function getStartupParams(id: number): Promise<{
       );
   }
   return {
+    cloud: server.cloud,
     tag: configuration.tag,
     tag_cocalc: configuration.tag_cocalc,
     tag_filesystem: configuration.tag_filesystem,
