@@ -35,12 +35,7 @@ import { useRouter } from "next/router";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph } from "components/misc";
-import {
-  fullCost,
-  discountedCost,
-  getColumns,
-  RequireEmailAddress,
-} from "./checkout";
+import { fullCost, getColumns, RequireEmailAddress } from "./checkout";
 import ShowError from "@cocalc/frontend/components/error";
 import { COLORS } from "@cocalc/util/theme";
 import vouchers, {
@@ -684,8 +679,7 @@ export default function CreateVouchers() {
 }
 
 function TotalCost({ items, numVouchers, whenPay }) {
-  const cost =
-    numVouchers * (whenPay == "now" ? discountedCost(items) : fullCost(items));
+  const cost = numVouchers * fullCost(items);
   return (
     <>
       {whenPay == "now" ? "Total Amount" : "Maximum Amount"}:{" "}

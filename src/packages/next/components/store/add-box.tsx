@@ -12,6 +12,7 @@ import { money } from "@cocalc/util/licenses/purchase/utils";
 import { Alert, Button } from "antd";
 import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
+import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 interface Props {
   cost?: CostInputPeriod;
@@ -34,6 +35,7 @@ export function AddBox(props: Props) {
     dedicatedItem = false,
     noAccount,
   } = props;
+  console.log({ cost });
   if (cost?.input.type == "cash-voucher") {
     return null;
   }
@@ -52,7 +54,10 @@ export function AddBox(props: Props) {
     }
     if (dedicatedItem || cost.input.quantity == null) return;
     return (
-      <div>{money(round2up(cost.cost / cost.input.quantity))} per project</div>
+      <div>
+        {money(round2up(periodicCost(cost) / cost.input.quantity))} per
+        project
+      </div>
     );
   }
 
