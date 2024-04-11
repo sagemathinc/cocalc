@@ -12,6 +12,7 @@ import {
   DEFAULT_FONT_SIZE,
   DEFAULT_NEW_FILENAMES,
   NEW_FILENAMES,
+  OTHER_SETTINGS_CUSTOM_LLM,
 } from "./defaults";
 
 Table({
@@ -83,7 +84,7 @@ Table({
     },
     other_settings: {
       type: "map",
-      desc: "Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?",
+      desc: "Miscellaneous overall configuration settings for CoCalc, e.g., confirm close on exit?",
     },
     first_name: {
       type: "string",
@@ -340,6 +341,7 @@ Table({
             hide_project_popovers: false,
             hide_file_popovers: false,
             hide_button_tooltips: false,
+            [OTHER_SETTINGS_CUSTOM_LLM]: "[]",
           },
           name: null,
           first_name: "",

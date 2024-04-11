@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { fromJS, Map as immutableMap } from "immutable";
+import { Seq, fromJS, Map as immutableMap } from "immutable";
 
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -19,15 +19,24 @@ import { SyncDB } from "@cocalc/sync/editor/db";
 import {
   LANGUAGE_MODEL_PREFIXES,
   getLLMServiceStatusCheckMD,
+  isLanguageModelService,
   model2service,
   model2vendor,
+  service2model,
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
+import { Optional } from "utility-types";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
+import {
+  ChatMessage,
+  ChatMessageTyped,
+  ChatMessages,
+  MessageHistory,
+} from "./types";
 import { getSelectedHashtagsSearch } from "./utils";
 
 const MAX_CHATSTREAM = 10;
@@ -68,7 +77,8 @@ export class ChatActions extends Actions<ChatState> {
     delete this.syncdb;
   }
 
-  private process_syncdb_obj(x) {
+  // NOTE: x must be already a plain JS object (.toJS())
+  private process_syncdb_obj(x): ChatMessage | undefined {
     if (x.event !== "chat") {
       // Event used to be used for video chat, etc...; but we have a better approach now, so
       // all events we care about are chat.
@@ -172,7 +182,7 @@ export class ChatActions extends Actions<ChatState> {
   // chatgpt is totally done.
   send_chat({
     input,
-    sender_id,
+    sender_id = this.redux.getStore("account").get_account_id(),
     reply_to,
     tag,
     noNotification,
@@ -196,16 +206,21 @@ export class ChatActions extends Actions<ChatState> {
       // do not send while uploading or there is nothing to send.
       return "";
     }
-    if (sender_id == null) {
-      sender_id = this.redux.getStore("account").get_account_id();
-    }
-    const time_stamp = webapp_client.server_time().toISOString();
-    const message = {
+    const time_stamp: Date = webapp_client.server_time();
+    const time_stamp_str = time_stamp.toISOString();
+    const message: ChatMessage = {
       sender_id,
       event: "chat",
-      history: [{ author_id: sender_id, content: input, date: time_stamp }],
-      date: time_stamp,
+      history: [
+        {
+          author_id: sender_id,
+          content: input,
+          date: time_stamp_str,
+        },
+      ],
+      date: time_stamp_str,
       reply_to: reply_to?.toISOString(),
+      editing: {},
     };
     this.syncdb.set(message);
     if (!reply_to) {
@@ -246,12 +261,16 @@ export class ChatActions extends Actions<ChatState> {
     }
     this.save_to_disk();
     (async () => {
-      await this.processLanguageModel(fromJS(message), reply_to, tag);
+      await this.processLLM({
+        message,
+        reply_to: reply_to ?? time_stamp,
+        tag,
+      });
     })();
-    return time_stamp;
+    return time_stamp_str;
   }
 
-  public set_editing(message, is_editing) {
+  public set_editing(message: ChatMessageTyped, is_editing: boolean) {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
       return;
@@ -276,7 +295,7 @@ export class ChatActions extends Actions<ChatState> {
   // Used to edit sent messages.
   // TODO: this is **Extremely** shockingly inefficient; it assumes
   //       the number of edits is small.
-  public send_edit(message, content) {
+  public send_edit(message: ChatMessageTyped, content: string): void {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
       return;
@@ -286,8 +305,13 @@ export class ChatActions extends Actions<ChatState> {
     const date = webapp_client.server_time().toISOString();
 
     this.syncdb.set({
-      history: [{ author_id, content, date }].concat(
-        message.get("history").toJS(),
+      history: addToHistory(
+        message.get("history").toJS() as unknown as MessageHistory[],
+        {
+          author_id,
+          content,
+          date,
+        },
       ),
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
@@ -296,13 +320,41 @@ export class ChatActions extends Actions<ChatState> {
     this.save_to_disk();
   }
 
+  save_history(
+    message: ChatMessage,
+    content: string,
+    author_id: string,
+    generating: boolean = false,
+  ): {
+    date: string;
+    prevHistory: MessageHistory[];
+  } {
+    const date: string =
+      typeof message.date === "string"
+        ? message.date
+        : message.date?.toISOString();
+    if (this.syncdb == null) {
+      return { date, prevHistory: [] };
+    }
+    const prevHistory: MessageHistory[] = message.history ?? [];
+    this.syncdb.set({
+      history: addToHistory(prevHistory, {
+        author_id,
+        content,
+      }),
+      date,
+      generating,
+    });
+    return { date, prevHistory };
+  }
+
   send_reply({
     message,
     reply,
     from,
     noNotification,
   }: {
-    message: string | immutableMap<string, any>;
+    message: ChatMessage;
     reply: string;
     from?: string;
     noNotification?: boolean;
@@ -313,7 +365,7 @@ export class ChatActions extends Actions<ChatState> {
     // full tree structure, which is powerful but too confusing.
     const reply_to = getReplyToRoot(
       message,
-      this.store?.get("messages") ?? fromJS({}),
+      this.store?.get("messages") ?? (fromJS({}) as ChatMessages),
     );
     const time = reply_to?.valueOf() ?? 0;
     this.delete_draft(-time);
@@ -469,39 +521,65 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
-  help() {
+  public help() {
     open_new_tab("https://doc.cocalc.com/chat.html");
   }
 
-  undo() {
+  public undo() {
     this.syncdb?.undo();
   }
-  redo() {
+
+  public redo() {
     this.syncdb?.redo();
   }
 
-  isLanguageModelThread(date?: Date): false | LanguageModel {
+  /**
+   * This checks a thread of messages to see if it is a language model thread and if so, returns it.
+   */
+  public isLanguageModelThread(date?: Date): false | LanguageModel {
     if (date == null) {
       return false;
     }
-    const messages = this.store?.get("messages");
-    if (!messages) return false;
-    let message = messages.get(`${date.valueOf()}`);
-    let i = 0;
-    while (message != null && i < 1000) {
-      i += 1; // just in case some weird corrupted file has a time loop in it.
-      const input = message.getIn(["history", 0, "content"])?.toLowerCase();
+    const messages = this.getMessagesInThread(date.toISOString());
+    if (messages == null) {
+      return false;
+    }
+
+    // We deliberately start at the last most recent message.
+    // Why? If we use the LLM regenerate dropdown button to change the LLM, we want to keep it.
+    for (const message of messages.reverse()) {
+      const lastHistory = message.get("history")?.first();
+      // this must be an invalid message, because there is no history
+      if (lastHistory == null) continue;
+      const sender_id = lastHistory.get("author_id");
+      if (isLanguageModelService(sender_id)) {
+        return service2model(sender_id);
+      }
+      const input = lastHistory.get("content")?.toLowerCase();
       if (mentionsLanguageModel(input)) {
         return getLanguageModel(input);
       }
-      const reply_to = message.get("reply_to");
-      if (reply_to == null) return false;
-      message = messages.get(`${new Date(reply_to).valueOf()}`);
     }
-    return false; // never reached
+
+    return false;
   }
 
-  private async processLanguageModel(message, reply_to?: Date, tag?: string) {
+  private async processLLM({
+    message,
+    reply_to,
+    tag,
+    llm,
+  }: {
+    message: ChatMessage;
+    reply_to?: Date;
+    tag?: string;
+    llm?: LanguageModel;
+  }) {
+    const store = this.store;
+    if (this.syncdb == null || !store) {
+      console.warn("processLLM called before chat actions initialized");
+      return;
+    }
     if (
       !tag &&
       !reply_to &&
@@ -509,30 +587,39 @@ export class ChatActions extends Actions<ChatState> {
         .getProjectsStore()
         .hasLanguageModelEnabled(this.store?.get("project_id"))
     ) {
-      // No need to check whether chatgpt is enabled at all.
+      // No need to check whether a language model is enabled at all.
       // We only do this check if tag is not set, e.g., directly typing @chatgpt
       // into the input box.  If the tag is set, then the request to use
-      // chatgpt came from some place, e.g., the "Explain" button, so
+      // an LLM came from some place, e.g., the "Explain" button, so
       // we trust that.
       // We also do the check when replying.
       return;
     }
-    if (!isValidUUID(message.getIn(["history", 0, "author_id"]))) {
-      // do NOT respond to a message that chatgpt is sending, because that would
-      // result in an infinite recursion.
-      // Note that openai chatgpt etc., do not use a uuid for the author_id,
-      // but instead use "chatgpt" or "openai-", etc.
+    // if an llm is explicitly set, we only allow that for regenerate and we also check if it is enabled and selecable by the user
+    if (typeof llm === "string") {
+      if (tag !== "regenerate") {
+        console.warn(`chat/llm: llm=${llm} is only allowed for tag=regenerate`);
+        return;
+      }
+    }
+    if (tag !== "regenerate" && !isValidUUID(message.history?.[0]?.author_id)) {
+      // do NOT respond to a message that an LLM is sending,
+      // because that would result in an infinite recursion.
+      // Note: LLMs do not use avalid UUID, but a special string.
+      // For regenerate, we delete the last message, though…
       return;
     }
-    let input = message.getIn(["history", 0, "content"]);
+    let input = message.history?.[0]?.content as string | undefined;
     if (!input) return;
-    const store = this.store;
-    if (!store) return;
 
-    let model: LanguageModel | false;
-    if (!mentionsLanguageModel(input)) {
-      // doesn't mention chatgpt explicitly, but might be a reply
-      // to something that does:
+    let model: LanguageModel | false = false;
+    if (llm != null) {
+      // This is a request to regerenate the last message with a specific model.
+      // The message.tsx/RegenerateLLM component already checked if the LLM is enabled and selectable by the user.
+      // ATTN: we trust that information!
+      model = llm;
+    } else if (!mentionsLanguageModel(input)) {
+      // doesn't mention a language model explicitly, but might be a reply to something that does:
       if (reply_to == null) {
         return;
       }
@@ -542,7 +629,7 @@ export class ChatActions extends Actions<ChatState> {
         return;
       }
     } else {
-      // it mentions chatgpt or palm2 -- which model?
+      // it mentions a language model -- which one?
       model = getLanguageModel(input);
     }
 
@@ -552,7 +639,7 @@ export class ChatActions extends Actions<ChatState> {
 
     // without any mentions, of course:
     input = stripMentions(input);
-    // also important to strip details, since they tend to confuse chatgpt:
+    // also important to strip details, since they tend to confuse an LLM:
     //input = stripDetails(input);
     const sender_id = (function () {
       try {
@@ -561,16 +648,24 @@ export class ChatActions extends Actions<ChatState> {
         return model;
       }
     })();
-    let date: string = this.send_reply({
-      message,
-      reply: ":robot: Thinking...",
-      from: sender_id,
-      noNotification: true,
-    });
+
+    const thinking = ":robot: Thinking...";
+    // prevHistory: in case of regenerate, it's the history *before* we added the "Thinking..." message (which we ignore)
+    const { date, prevHistory = [] } =
+      tag === "regenerate"
+        ? this.save_history(message, thinking, sender_id, true)
+        : {
+            date: this.send_reply({
+              message,
+              reply: thinking,
+              from: sender_id,
+              noNotification: true,
+            }),
+          };
 
     if (this.chatStreams.size > MAX_CHATSTREAM) {
       console.trace(
-        `processChatGPT called when ${MAX_CHATSTREAM} streams active`,
+        `processLanguageModel called when ${MAX_CHATSTREAM} streams active`,
       );
       if (this.syncdb != null) {
         // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
@@ -579,7 +674,7 @@ export class ChatActions extends Actions<ChatState> {
           history: [
             {
               author_id: sender_id,
-              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHATSTREAM} ChatGPT response being written. Please try again once one finishes.</span>\n\n`,
+              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHATSTREAM} language model responses being written. Please try again once one finishes.</span>\n\n`,
               date,
             },
           ],
@@ -598,116 +693,181 @@ export class ChatActions extends Actions<ChatState> {
       tag = "reply";
     }
 
-    // record that we're about to submit message to chatgpt.
+    // record that we're about to submit message to a language model.
     track("chatgpt", {
       project_id,
       path,
       type: "chat",
       is_reply: !!reply_to,
       tag,
+      model,
     });
 
-    // submit question to chatgpt
+    // submit question to the given language model
     const id = uuid();
     this.chatStreams.add(id);
     setTimeout(() => {
       this.chatStreams.delete(id);
     }, 3 * 60 * 1000);
+
+    // construct the LLM history for the given thread
+    const history = reply_to ? this.getLLMHistory(reply_to) : undefined;
+    if (tag === "regenerate") {
+      if (history && history.length >= 2) {
+        history.pop(); // remove the last LLM message, which is the one we're regenerating
+        input = stripMentions(history.pop()?.content ?? ""); // the last user message is the input
+      } else {
+        console.warn(
+          `chat/llm: regenerate called without enough history for thread starting at ${reply_to}`,
+        );
+        return;
+      }
+    }
+
     const chatStream = webapp_client.openai_client.queryStream({
       input,
-      history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
+      history,
       project_id,
       path,
       model,
       tag,
     });
-    this.scrollToBottom();
+
+    // The sender_id might change if we explicitly set the LLM model.
+    if (tag === "regenerate" && llm != null) {
+      if (message.sender_id !== sender_id) {
+        // if that happens, create a new message with the existing history and the new sender_id
+        const cur = this.syncdb.get_one({ event: "chat", date });
+        this.syncdb.delete({ event: "chat", date });
+        this.syncdb.set({
+          date,
+          history: cur?.get("history") ?? [],
+          event: "chat",
+          sender_id,
+        });
+      }
+    }
+
+    // FIXME: these scrollToBottoms are a good idea, but they need an index number – not the date/timestamp
+    // this.scrollToBottom(reply_to?.valueOf());
     let content: string = "";
     let halted = false;
+
     chatStream.on("token", (token) => {
       if (halted || this.syncdb == null) return;
-      const cur = this.syncdb.get_one({ event: "chat", sender_id, date });
+
+      // we check if user clicked on the "stop generating" button
+      const cur = this.syncdb.get_one({ event: "chat", date });
       if (cur?.get("generating") === false) {
         halted = true;
         this.chatStreams.delete(id);
         return;
       }
+
+      // collect more of the output
       if (token != null) {
         content += token;
-        this.syncdb.set({
-          event: "chat",
-          sender_id,
-          date,
-          history: [{ author_id: sender_id, content, date }],
-          generating: true,
-        });
-      } else {
+      }
+
+      const msg: ChatMessage = {
+        event: "chat",
+        sender_id,
+        date: new Date(date),
+        history: addToHistory(prevHistory, {
+          author_id: sender_id,
+          content,
+        }),
+        generating: token != null, // it's generating as token is not null
+        reply_to: reply_to?.toISOString(),
+      };
+      this.syncdb.set(msg);
+
+      // if it was the last output, close this
+      if (token == null) {
         this.chatStreams.delete(id);
-        this.syncdb.set({
-          event: "chat",
-          sender_id,
-          date,
-          history: [{ author_id: sender_id, content, date }],
-          generating: false,
-        });
         this.syncdb.commit();
+        // this.scrollToBottom(reply_to?.valueOf());
       }
     });
+
     chatStream.on("error", (err) => {
       this.chatStreams.delete(id);
       if (this.syncdb == null || halted) return;
 
-      if (model === false) {
+      if (!model) {
         throw new Error(
-          `bug: model is false but we're in language model error handler`,
+          `bug: No model set, but we're in language model error handler`,
         );
       }
 
       const vendor = model2vendor(model);
       const statusCheck = getLLMServiceStatusCheckMD(vendor);
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
-      this.syncdb.set({
-        date,
-        history: [{ author_id: sender_id, content, date }],
+      const msg: ChatMessage = {
         event: "chat",
         sender_id,
-      });
+        date: new Date(date),
+        history: addToHistory(prevHistory, {
+          author_id: sender_id,
+          content,
+        }),
+        generating: false,
+        reply_to: reply_to?.toISOString(),
+      };
+      this.syncdb.set(msg);
       this.syncdb.commit();
+      // this.scrollToBottom(reply_to?.valueOf());
     });
   }
 
-  // the input and output for the thread ending in the
-  // given message, formatted for chatgpt, and heuristically
-  // truncated to not exceed a limit in size.
-  private getChatGPTHistory(reply_to: Date): LanguageModelHistory {
+  /**
+   * @param dateStr - the ISO date of the message to get the thread for
+   * @returns  - the messages in the thread, sorted by date
+   */
+  private getMessagesInThread(
+    dateStr: string,
+  ): Seq.Indexed<ChatMessageTyped> | undefined {
     const messages = this.store?.get("messages");
+    if (messages == null) return;
+    return (
+      messages // @ts-ignore -- immutablejs typings are wrong (?)
+        .filter(
+          (message) =>
+            message.get("reply_to") == dateStr ||
+            message.get("date").toISOString() == dateStr,
+        )
+        // @ts-ignore -- immutablejs typings are wrong (?)
+        .valueSeq()
+        .sort((a, b) => cmp(a.get("date"), b.get("date")))
+    );
+  }
+
+  // the input and output for the thread ending in the
+  // given message, formatted for querying a langauge model, and heuristically
+  // truncated to not exceed a limit in size.
+  private getLLMHistory(reply_to: Date): LanguageModelHistory {
     const history: LanguageModelHistory = [];
-    if (!messages) return history;
     // Next get all of the messages with this reply_to or that are the root of this reply chain:
     const d = reply_to.toISOString();
-    for (const message of messages // @ts-ignore -- immutablejs typings are wrong (?)
-      .filter(
-        (message) =>
-          message.get("reply_to") == d ||
-          message.get("date").toISOString() == d,
-      )
-      .valueSeq()
-      .sort((a, b) => cmp(a.get("date"), b.get("date")))) {
-      const content = stripMentions(
-        message.get("history").last().get("content"),
-      );
-      history.push({
-        content,
-        role: message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")
-          ? "assistant"
-          : "user",
-      });
-    }
+    const threadMessages = this.getMessagesInThread(d);
+    if (!threadMessages) return history;
 
+    for (const message of threadMessages) {
+      const mostRecent = message.get("history")?.first();
+      // there must be at least one history entry, otherwise the message is broken
+      if (!mostRecent) continue;
+      const content = stripMentions(mostRecent.get("content"));
+      // We take the message's sender ID, not the most recent version from the history
+      // Why? e.g. a user could have edited an LLM message, which should still count as an LLM message
+      // otherwise the forth-and-back between AI and human would be broken.
+      const sender_id = message.get("sender_id");
+      const role = isLanguageModelService(sender_id) ? "assistant" : "user";
+      history.push({ content, role });
+    }
     return history;
   }
 
-  languageModelStopGenerating(date: Date) {
+  public languageModelStopGenerating(date: Date) {
     if (this.syncdb == null) return;
     this.syncdb.set({
       event: "chat",
@@ -717,28 +877,34 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.commit();
   }
 
-  languageModelRegenerate(date0: Date) {
+  public regenerateLLMResponse(date0: Date, llm?: LanguageModel) {
     if (this.syncdb == null) return;
     const date = date0.toISOString();
-    const cur = this.syncdb.get_one({ event: "chat", date });
-    if (cur == null) return;
-    const reply_to = cur.get("reply_to");
+    const obj = this.syncdb.get_one({ event: "chat", date });
+    const message = this.process_syncdb_obj(obj?.toJS());
+    if (message == null) return;
+    const reply_to = message.reply_to;
     if (!reply_to) return;
-    const message = this.syncdb.get_one({ event: "chat", date: reply_to });
-    if (!message) return;
-    this.syncdb.delete({
-      event: "chat",
-      date,
+    this.processLLM({
+      message,
+      reply_to: new Date(reply_to),
+      tag: "regenerate",
+      llm,
     });
-    this.processLanguageModel(message, undefined, "regenerate");
   }
 }
 
-function getReplyToRoot(message, messages): Date | undefined {
-  while (message.get("reply_to")) {
-    message = messages.get(`${new Date(message.get("reply_to")).valueOf()}`);
-  }
-  const date = message.get("date");
+function getReplyToRoot(
+  message: ChatMessage,
+  messages: ChatMessages,
+): Date | undefined {
+  const { reply_to } = message;
+  // we can't find the original message, if there is no reply_to
+  if (!reply_to) return;
+  // All messages in a thread have the same reply_to, which points to the root.
+  const root = messages.get(`${new Date(reply_to).valueOf()}`);
+  const date = root?.get("date");
+  // date is a "Date" object, but we're just double checking it is not a string by accident
   return date ? new Date(date) : undefined;
 }
 
@@ -777,6 +943,9 @@ function mentionsLanguageModel(input?: string): boolean {
   );
 }
 
+/**
+ * For the given content of a message, this tries to extract a mentioned language model.
+ */
 function getLanguageModel(input?: string): false | LanguageModel {
   if (!input) return false;
   const x = input.toLowerCase();
@@ -801,4 +970,22 @@ function getLanguageModel(input?: string): false | LanguageModel {
     }
   }
   return false;
+}
+
+/**
+ * This uniformly defines how the history of a message is composed.
+ * The newest entry is in the front of the array.
+ * If the date isn't set (ISO string), we set it to the current time.
+ */
+function addToHistory(
+  history: MessageHistory[],
+  next: Optional<MessageHistory, "date">,
+): MessageHistory[] {
+  const {
+    author_id,
+    content,
+    date = webapp_client.server_time().toISOString(),
+  } = next;
+  // inserted at the beginning of the history, without modifying the array
+  return [{ author_id, content, date }, ...history];
 }

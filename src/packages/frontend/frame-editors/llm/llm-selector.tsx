@@ -3,6 +3,7 @@ import { Select, Tag, Tooltip } from "antd";
 import type { ConfigProviderProps } from "antd/lib/config-provider";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Text } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
   ANTHROPIC_MODELS,
@@ -22,7 +23,6 @@ import {
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { OllamaPublic } from "@cocalc/util/types/llm";
-import { Text } from "../../components";
 
 export { DEFAULT_MODEL };
 export type { LanguageModel };
