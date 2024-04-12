@@ -177,12 +177,13 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  public foldThread(reply_to: Date) {
+  public foldThread(reply_to: Date, msgIndex: number) {
     if (this.syncdb == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
     const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
     const folding = cur?.get("folding") ?? List([]);
-    const next = folding.includes(account_id)
+    const folded = folding.includes(account_id);
+    const next = folded
       ? folding.filter((x) => x !== account_id)
       : folding.push(account_id);
 
@@ -192,6 +193,10 @@ export class ChatActions extends Actions<ChatState> {
     });
 
     this.syncdb.commit();
+
+    if (folded && msgIndex != null) {
+      this.scrollToBottom(msgIndex);
+    }
   }
 
   // The second parameter is used for sending a message by

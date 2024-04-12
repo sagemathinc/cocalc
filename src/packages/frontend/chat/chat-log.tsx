@@ -76,7 +76,7 @@ export function ChatLog(props: Readonly<Props>) {
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
   const sortedDates = useMemo<string[]>(() => {
-    const dates = getSortedDates(messages, search);
+    const dates = getSortedDates(messages, search, account_id);
     if (today) {
       const cutoff = Date.now() - 1000 * 24 * 60 * 60;
       return dates.filter((x) => parseInt(x) >= cutoff);
@@ -122,20 +122,6 @@ export function ChatLog(props: Readonly<Props>) {
     initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
   });
 
-  function isThread(messages: ChatMessages, message: ChatMessageTyped) {
-    if (message.get("reply_to") != null) {
-      return true;
-    }
-    return messages.some(
-      (m) => m.get("reply_to") === message.get("date").toISOString(),
-    );
-  }
-
-  function isFolded(messages: ChatMessages, message: ChatMessageTyped) {
-    const rootMsg = getRootMessage(message.toJS(), messages);
-    return rootMsg?.get("folding")?.includes(account_id) ?? false;
-  }
-
   return (
     <>
       {visibleHashtags.size > 0 && (
@@ -169,13 +155,10 @@ export function ChatLog(props: Readonly<Props>) {
             // shouldn't happen.  But we should be robust to such a possibility.
             return <div style={{ height: "1px" }} />;
           }
-          const is_thread = isThread(messages, message);
-          const is_folded = isFolded(messages, message);
-          const is_thread_body = message.get("reply_to") != null;
 
-          if (is_thread && is_folded && is_thread_body) {
-            return <div style={{ height: "1px" }} />;
-          }
+          const is_thread = isThread(messages, message);
+          const is_folded = isFolded(messages, message, account_id);
+          const is_thread_body = message.get("reply_to") != null;
 
           return (
             <div style={{ overflow: "hidden" }}>
@@ -281,21 +264,53 @@ function searchMatches(message: ChatMessageTyped, searchTerms): boolean {
   return search_match(first.get("content", ""), searchTerms);
 }
 
+function isThread(messages: ChatMessages, message: ChatMessageTyped) {
+  if (message.get("reply_to") != null) {
+    return true;
+  }
+  return messages.some(
+    (m) => m.get("reply_to") === message.get("date").toISOString(),
+  );
+}
+
+function isFolded(
+  messages: ChatMessages,
+  message: ChatMessageTyped,
+  account_id?: string,
+) {
+  if (account_id == null) return false;
+  const rootMsg = getRootMessage(message.toJS(), messages);
+  return rootMsg?.get("folding")?.includes(account_id) ?? false;
+}
+
 // messages is an immutablejs map from
 //   - timestamps (ms since epoch as string)
 // to
 //   - message objects {date: , event:, history, sender_id, reply_to}
 //
 // It was very easy to sort these before reply_to, which complicates things.
-export function getSortedDates(messages, search?: string): string[] {
+export function getSortedDates(
+  messages,
+  search?: string,
+  account_id?: string,
+): string[] {
   let m = messages;
   if (m == null) return [];
   if (search) {
     const searchTerms = search_split(search);
     m = m.filter((message) => searchMatches(message, searchTerms));
   }
+
   const v: [date: number, reply_to: number | undefined][] = [];
   for (const [date, message] of m) {
+    if (message == null) continue;
+
+    const is_thread = isThread(messages, message);
+    const is_folded = isFolded(messages, message, account_id);
+    const is_thread_body = message.get("reply_to") != null;
+    const folded = is_thread && is_folded && is_thread_body;
+    if (folded) continue;
+
     const reply_to = message.get("reply_to");
     v.push([
       parseInt(date),

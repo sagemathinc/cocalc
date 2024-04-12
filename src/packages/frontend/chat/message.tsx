@@ -17,7 +17,14 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import {
+  Gap,
+  Icon,
+  Paragraph,
+  Text,
+  TimeAgo,
+  Tip,
+} from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
@@ -168,8 +175,6 @@ export default function Message(props: Props) {
       props.message.get("history")?.first()?.get("author_id"),
     );
   }, [props.message]);
-
-  // const isFolded = props.message.get("folding")?.includes(props.account_id);
 
   const isFolded: boolean = useMemo(() => {
     return props.message.get("folding")?.includes(props.account_id) ?? false;
@@ -708,8 +713,8 @@ export default function Message(props: Props) {
                 (!props.is_prev_sender && is_viewers_message)
                   ? MARGIN_TOP_VIEWER
                   : "5px",
-              marginRight: "5px",
               marginLeft: "5px",
+              marginRight: "5px",
             }
           : { marginTop: "10px" };
       const iconname = isFolded
@@ -721,7 +726,9 @@ export default function Message(props: Props) {
         <Button
           type="text"
           style={style}
-          onClick={() => props.actions?.foldThread(props.message.get("date"))}
+          onClick={() =>
+            props.actions?.foldThread(props.message.get("date"), props.index)
+          }
           icon={
             <Icon
               name={iconname}
@@ -755,7 +762,7 @@ export default function Message(props: Props) {
   }
 
   function renderReplyRow() {
-    if (replying || generating || !props.allowReply) return;
+    if (replying || generating || !props.allowReply || is_folded) return;
 
     return (
       <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
@@ -791,6 +798,27 @@ export default function Message(props: Props) {
     );
   }
 
+  function renderFoldedRow() {
+    if (!is_folded || !is_thread || is_thread_body) return;
+
+    return (
+      <Col xs={24}>
+        <Paragraph type="secondary" style={{ textAlign: "center" }}>
+          {mode === "standalone" ? "This thread is folded. " : ""}
+          <Button
+            type="text"
+            icon={<Icon name="down-circle-o" />}
+            onClick={() =>
+              props.actions?.foldThread(props.message.get("date"), props.index)
+            }
+          >
+            <Text type="secondary">Unfold</Text>
+          </Button>
+        </Paragraph>
+      </Col>
+    );
+  }
+
   function renderCols(): JSX.Element[] | JSX.Element {
     // these columsn should be filtered in the first place, this here is just an extra check
     if (is_thread && is_folded && is_thread_body) return <></>;
@@ -810,6 +838,7 @@ export default function Message(props: Props) {
   return (
     <Row style={getStyle()}>
       {renderCols()}
+      {renderFoldedRow()}
       {renderReplyRow()}
     </Row>
   );
