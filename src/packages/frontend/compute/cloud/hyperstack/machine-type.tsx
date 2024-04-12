@@ -12,7 +12,7 @@ import {
   PurchaseOption,
   optionKey,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-import { Checkbox, Tag, Select, Tooltip } from "antd";
+import { Alert, Checkbox, Tag, Select, Tooltip } from "antd";
 const { CheckableTag } = Tag;
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { getModelLinks, toGPU } from "./util";
@@ -31,8 +31,18 @@ const TAGS = {
   "RTX-A4000": { search: ["rtx-a4000"], desc: "an RTX-A4000 GPU", group: 0 },
   "1 × GPU": { search: ["quantity:1"], desc: "only one GPU", group: 1 },
   "CPU Only": { search: ["cpu only"], desc: "no GPUs", group: 1 },
-  Canada: { search: ["canada"], desc: "in Canada", group: 2 },
-  Norway: { search: ["norway"], desc: "in Norway", group: 2 },
+  Canada: {
+    search: ["canada"],
+    desc: "in Canada",
+    group: 2,
+    tip: "🇨🇦 Only show servers in Canada.",
+  },
+  Norway: {
+    search: ["norway"],
+    desc: "in Norway",
+    group: 2,
+    tip: "🇳🇴 Only show servers in Norway. (WARNING: creating servers in Norway takes an extra 5 minutes.)",
+  },
 };
 
 function getLabel(x: PurchaseOption, priceData) {
@@ -205,106 +215,129 @@ export default function MachineType({
 
   return (
     <div style={{ color: "#666" }}>
-      <div>
-        {(state == "off" || state == "deprovisioned") && (
-          <div style={{ float: "right", display: "flex", marginLeft: "15px" }}>
-            <Tooltip
-              title={
-                <>
-                  Includes servers that are not currently available
-                  {state != "deprovisioned" ? " or in a different region" : ""}.
-                </>
-              }
+      {(state == "off" || state == "deprovisioned") && (
+        <div style={{ float: "right", display: "flex", marginLeft: "15px" }}>
+          <Tooltip
+            title={
+              <>
+                Includes servers that are not currently available
+                {state != "deprovisioned" ? " or in a different region" : ""}.
+              </>
+            }
+          >
+            <Checkbox
+              style={{ float: "right" }}
+              checked={showUnavailable}
+              onChange={() => setShowUnavailable(!showUnavailable)}
             >
-              <Checkbox
-                style={{ float: "right" }}
-                checked={showUnavailable}
-                onChange={() => setShowUnavailable(!showUnavailable)}
-              >
-                Include Unavailable
-              </Checkbox>
-            </Tooltip>
-            <Tooltip title="Include CPU only machine types.">
-              <Checkbox
-                style={{ float: "right" }}
-                checked={showCpuOnly}
-                onChange={() => setShowCpuOnly(!showCpuOnly)}
-              >
-                Include CPU Only
-              </Checkbox>
-            </Tooltip>
-          </div>
-        )}
-        {state == "running"
-          ? "You can only change the machine type when the compute server is off or deprovisioned."
-          : "The machine type determines the GPU, RAM, and ephemeral disk size."}
-        <div>
-          <div style={{ textAlign: "center", marginTop: "5px" }}>
-            {Object.keys(TAGS)
-              .filter((name) => {
-                if (name == "CPU Only") {
-                  return showCpuOnly;
-                } else return true;
-              })
-              .map((name) => (
-                <Tooltip
-                  key={name}
-                  title={<>Only show servers with {TAGS[name].desc}.</>}
-                >
-                  <CheckableTag
-                    key={name}
-                    style={{ cursor: "pointer" }}
-                    checked={filterTags.has(name)}
-                    onChange={(checked) => {
-                      let v = Array.from(filterTags);
-                      if (checked) {
-                        v.push(name);
-                        v = v.filter(
-                          (x) => x == name || TAGS[x].group != TAGS[name].group,
-                        );
-                      } else {
-                        v = v.filter((x) => x != name);
-                      }
-                      setFilterTags(new Set(v));
-                    }}
-                  >
-                    {name}
-                  </CheckableTag>
-                </Tooltip>
-              ))}
-          </div>
+              Include Unavailable
+            </Checkbox>
+          </Tooltip>
+          <Tooltip title="Include CPU only machine types.">
+            <Checkbox
+              style={{ float: "right" }}
+              checked={showCpuOnly}
+              onChange={() => setShowCpuOnly(!showCpuOnly)}
+            >
+              Include CPU Only
+            </Checkbox>
+          </Tooltip>
         </div>
-        <Select
-          disabled={disabled}
-          style={{ width: "100%", height: "55px", margin: "10px 0" }}
-          value={value0}
-          options={options as any}
-          onChange={(value) => {
-            const [region_name, flavor_name] = value.split("|");
-            setConfig({ region_name, flavor_name });
-          }}
-          showSearch
-          optionFilterProp="children"
-          filterOption={filterOption}
-        />
-
-        {links != null && (
-          <div>
-            <Icon name="external-link" /> Hyperstack NVIDIA GPUs:{" "}
-            {r_join(
-              links.map(({ name, url }) => {
-                return url ? (
-                  <A key={name} href={url}>
-                    {name}
-                  </A>
-                ) : (
-                  <span key={name}>{name}</span>
-                );
-              }),
-            )}
-          </div>
-        )}
+      )}
+      {state == "running"
+        ? "You can only change the machine type when the compute server is off or deprovisioned."
+        : "The machine type determines the GPU, RAM, and ephemeral disk size."}
+      <div>
+        <div style={{ textAlign: "center", marginTop: "5px" }}>
+          {Object.keys(TAGS)
+            .filter((name) => {
+              if (name == "CPU Only") {
+                return showCpuOnly;
+              } else return true;
+            })
+            .map((name) => (
+              <Tooltip
+                key={name}
+                title={
+                  TAGS[name].tip ?? (
+                    <>Only show servers with {TAGS[name].desc}.</>
+                  )
+                }
+              >
+                <CheckableTag
+                  key={name}
+                  style={{ cursor: "pointer" }}
+                  checked={filterTags.has(name)}
+                  onChange={(checked) => {
+                    let v = Array.from(filterTags);
+                    if (checked) {
+                      v.push(name);
+                      v = v.filter(
+                        (x) => x == name || TAGS[x].group != TAGS[name].group,
+                      );
+                    } else {
+                      v = v.filter((x) => x != name);
+                    }
+                    setFilterTags(new Set(v));
+                  }}
+                >
+                  {name}
+                </CheckableTag>
+              </Tooltip>
+            ))}
+        </div>
       </div>
+      <Select
+        disabled={disabled}
+        style={{ width: "100%", height: "55px", margin: "10px 0" }}
+        value={value0}
+        options={options as any}
+        onChange={(value) => {
+          const [region_name, flavor_name] = value.split("|");
+          setConfig({ region_name, flavor_name });
+        }}
+        showSearch
+        optionFilterProp="children"
+        filterOption={filterOption}
+      />
+
+      {links != null && (
+        <div>
+          <Icon name="external-link" /> Hyperstack NVIDIA GPUs:{" "}
+          {r_join(
+            links.map(({ name, url }) => {
+              return url ? (
+                <A key={name} href={url}>
+                  {name}
+                </A>
+              ) : (
+                <span key={name}>{name}</span>
+              );
+            }),
+          )}
+        </div>
+      )}
+      {region_name?.toLowerCase()?.includes("norway") && (
+        <Alert
+          style={{ margin: "10px 0" }}
+          showIcon
+          type="warning"
+          message={
+            <>
+              <b>🇳🇴 WARNING:</b> Creating a new Hyperstack compute server in Norway
+              takes <b>an extra 5 minutes.</b>
+            </>
+          }
+          description={
+            <>
+              Initial creation of servers in Norway takes an extra{" "}
+              <b>5 minutes</b>. Starting and stopping your server after you
+              create it is fast. Create your servers in Canada if possible; it's
+              faster and the GPU selection is better.
+            </>
+          }
+        />
+      )}
     </div>
   );
 }

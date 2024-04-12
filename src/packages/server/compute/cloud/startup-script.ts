@@ -291,6 +291,8 @@ docker rm filesystem >/dev/null 2>&1
 setState filesystem run '' 45 25
 
 export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
+
+mkdir -p /ephemeral
 docker run \
  -d \
  --name=filesystem \
@@ -299,6 +301,7 @@ docker run \
  --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
  --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
  --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+ --mount type=bind,source=/ephemeral,target=/ephemeral,bind-propagation=rshared \
  -v /cocalc:/cocalc \
  ${docker}:${tag}
 
@@ -369,6 +372,7 @@ docker start compute >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   setState compute run '' 20 25
   export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
+  mkdir -p /ephemeral
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --network host \
@@ -377,6 +381,7 @@ if [ $? -ne 0 ]; then
    --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
    --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+   --mount type=bind,source=/ephemeral,target=/ephemeral,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v /cocalc:/cocalc \
    ${docker}:${tag}
