@@ -24,6 +24,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getArchitecture, setTested } from "./images";
 import { getInstanceDataTransferOut } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { delay } from "awaiting";
 
 export * from "./validate-configuration";
 export * from "./make-configuration-change";
@@ -108,6 +109,34 @@ export async function start(server: ComputeServer) {
     await startInstance({ name, zone: configuration.zone, wait: true });
   }
   await setData({ id: server.id, data: { name }, cloud: "google-cloud" });
+  await waitForIp({
+    name,
+    zone: configuration.zone,
+    id: server.id,
+    maxTime: 2 * 60 * 1000,
+  });
+}
+
+async function waitForIp({ name, zone, id, maxTime }) {
+  // finally ensure we have ip address -- should not take long at a
+  let d = 3000;
+  const end = Date.now() + maxTime;
+  while (Date.now() < end) {
+    const instance = await getInstance({ name, zone });
+    const externalIp = instance?.externalIp;
+    logger.debug("waitForIp: waiting for ip address: got", externalIp);
+    await setData({
+      id,
+      data: instance,
+      cloud: "google-cloud",
+    });
+    if (externalIp) {
+      return;
+    }
+    d = Math.min(30000, d * 1.3);
+    await delay(d);
+  }
+  throw Error(`failed to get ip address for id = ${id}`);
 }
 
 export async function reboot(server: ComputeServer) {
