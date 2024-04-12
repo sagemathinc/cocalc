@@ -100,6 +100,7 @@ export const start: (opts: {
       timeout: 60,
       progress: 10,
     });
+    updateDNS(server, "running");
   });
 });
 

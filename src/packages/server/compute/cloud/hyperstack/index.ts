@@ -69,10 +69,10 @@ export async function setData({ id, data }) {
   });
 }
 
-function getHyperstackData(server: ComputeServer): HyperstackData | null {
+function getHyperstackData(server: ComputeServer): HyperstackData {
   const data: Data | undefined = server.data;
   if (data == null) {
-    return null;
+    return { cloud: "hyperstack" };
   }
   if (data.cloud != "hyperstack") {
     throw Error(
@@ -136,7 +136,7 @@ export async function start(server: ComputeServer) {
     }
     const data = getHyperstackData(server);
     // If the disk doesn't exist, create it.
-    const disks = data?.disks ?? [];
+    const disks = data.disks ?? [];
     let environment_name: null | string = null;
     if (disks.length == 0) {
       logger.debug("start: creating boot disk");
@@ -188,7 +188,8 @@ export async function start(server: ComputeServer) {
         state: "starting",
       });
     }
-    if (!data?.vm?.id) {
+    let externalIp = data.externalIp;
+    if (!data.vm?.id) {
       logger.debug("start: no existing VM, so create one");
       // [vm] since returns a LIST of vm's
       if (!environment_name) {
@@ -231,6 +232,8 @@ export async function start(server: ComputeServer) {
           }
         }
       }
+      externalIp = vm?.floating_ip;
+      data.vm = vm;
       await setData({
         id: server.id,
         data: { vm },
@@ -245,9 +248,36 @@ export async function start(server: ComputeServer) {
       // todo: what happens if vm already running or starting?
       await startVirtualMachine(data.vm.id);
     }
+    if (!externalIp && data.vm?.id != null) {
+      await waitForIp(data.vm.id, server.id);
+    }
   } finally {
     starting.delete(server.id);
   }
+}
+
+async function waitForIp(
+  vm_id: number,
+  server_id: number,
+  maxTime = 10 * 60 * 1000,
+) {
+  // finally ensure we have ip address -- should not take long at a
+  let d = 5000;
+  while (d < maxTime) {
+    const vm = await getVirtualMachine(vm_id);
+    const externalIp = vm?.floating_ip;
+    logger.debug("waitForIp: waiting for ip address: got", externalIp);
+    if (externalIp) {
+      await setData({
+        id: server_id,
+        data: { vm },
+      });
+      return;
+    }
+    d = Math.min(30000, d * 1.3);
+    await delay(d);
+  }
+  throw Error(`failed to get ip address for vm with id ${vm_id}`);
 }
 
 const stopping = new Set<number>();
@@ -263,7 +293,7 @@ export async function stop(server: ComputeServer) {
       throw Error("must have a hyperstack configuration");
     }
     const data = getHyperstackData(server);
-    if (data?.vm?.id) {
+    if (data.vm?.id) {
       logger.debug("stop: deleting vm... ", data.vm.id);
       await deleteVirtualMachine(data.vm.id);
       logger.debug("stop: deleted vm... ", data.vm.id);
@@ -286,7 +316,7 @@ export async function reboot(server: ComputeServer) {
     throw Error("must have a hyperstack configuration");
   }
   const data = getHyperstackData(server);
-  if (data?.vm?.id) {
+  if (data.vm?.id) {
     logger.debug("reboot", data.vm.id);
     await hardRebootVirtualMachine(data.vm.id);
   }
@@ -305,7 +335,7 @@ export async function deprovision(server: ComputeServer) {
   await stop(server);
   // Then delete all of the disks:
   const data = getHyperstackData(server);
-  const disks = data?.disks ?? [];
+  const disks = data.disks ?? [];
   for (const id of disks) {
     const t0 = Date.now();
     let d = 5000;
@@ -399,8 +429,28 @@ export async function state(server: ComputeServer): Promise<State> {
   logger.debug("state: got vm", vm);
   await setData({
     id: server.id,
-    data: { vm, externalIp: vm.floating_ip },
+    data: { vm },
   });
+
+  // If any state/status is "ERROR", then we delete the VM,
+  // clear data, and return 'off'.  Randomly sometimes VM's break
+  // and get into an error state -- this is a BUG in Hyperstack
+  // and should never happen, but it does.  At least with this
+  // check it's likely things can recover and the user of cocalc
+  // doesn't get blocked out.
+  if (
+    vm.status?.toLowerCase() == "error" ||
+    (vm.power_state?.toLowerCase() == "error" &&
+      vm.vm_state?.toLowerCase() == "error")
+  ) {
+    await deleteVirtualMachine(data.vm.id);
+    await setData({
+      id: server.id,
+      data: { vm: null, externalIp: null },
+    });
+    return "off";
+  }
+
   if (
     vm.status == "ACTIVE" &&
     vm.power_state == "RUNNING" &&
@@ -408,7 +458,12 @@ export async function state(server: ComputeServer): Promise<State> {
   ) {
     return "running";
   }
-  // [ ] TODO! how to tell between starting and stopping??
+  // TODO: how to tell between starting and stopping?
+  // -- fortunately, stopping
+  // is VERY quick; it's basically just delete.  Also, note that we
+  // have the starting/stopping sets in memory, though that won't help
+  // when there are multiple servers!
+  // TODO: may will instead use the database cache.
   return "starting";
 }
 

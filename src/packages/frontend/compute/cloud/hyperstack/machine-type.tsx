@@ -324,8 +324,8 @@ export default function MachineType({
           type="warning"
           message={
             <>
-              <b>🇳🇴 WARNING:</b> Creating a new Hyperstack compute server in Norway
-              takes <b>an extra 5 minutes.</b>
+              <b>🇳🇴 WARNING:</b> Creating a new Hyperstack compute server in
+              Norway takes <b>an extra 5 minutes.</b>
             </>
           }
           description={
