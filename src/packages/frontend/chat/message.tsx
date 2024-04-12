@@ -313,6 +313,8 @@ export default function Message(props: Props) {
     let style: CSSProperties = {};
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
+    } else {
+      style.marginTop = "5px";
     }
 
     if (!is_thread_body) {
@@ -374,9 +376,9 @@ export default function Message(props: Props) {
       borderRadius,
       fontSize: font_size,
       padding: "9px",
+      ...(mode === "sidechat" ? { marginLeft: "5px", marginRight: "5px" } : {}),
     } as const;
 
-    // we show avatars in standalone mode, but not in sidechat mode
     const mainXS = 20;
 
     return (

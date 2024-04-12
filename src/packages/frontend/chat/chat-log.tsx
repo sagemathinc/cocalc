@@ -28,6 +28,7 @@ import {
   search_match,
   search_split,
 } from "@cocalc/util/misc";
+import { webapp_client } from "../webapp-client";
 import { ChatActions, getRootMessage } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
@@ -75,13 +76,17 @@ export function ChatLog(props: Readonly<Props>) {
   const today = useRedux(["today"], project_id, path);
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
-  const sortedDates = useMemo<string[]>(() => {
-    const dates = getSortedDates(messages, search, account_id);
-    if (today) {
-      const cutoff = Date.now() - 1000 * 24 * 60 * 60;
-      return dates.filter((x) => parseInt(x) >= cutoff);
-    }
-    return dates;
+  const { dates: sortedDates, numFolded } = useMemo<{
+    dates: string[];
+    numFolded: number;
+  }>(() => {
+    const { dates, numFolded } = getSortedDates(
+      messages,
+      search,
+      account_id,
+      today,
+    );
+    return { dates, numFolded };
   }, [messages, search, project_id, path, today]);
 
   const visibleHashtags = useMemo(() => {
@@ -139,7 +144,7 @@ export function ChatLog(props: Readonly<Props>) {
       )}
       {messages != null && (
         <NotShowing
-          num={messages.size - sortedDates.length}
+          num={messages.size - numFolded - sortedDates.length}
           search={search}
           today={today}
         />
@@ -290,15 +295,26 @@ function isFolded(
 //
 // It was very easy to sort these before reply_to, which complicates things.
 export function getSortedDates(
-  messages,
+  messages: ChatMessages,
   search?: string,
   account_id?: string,
-): string[] {
+  today?: boolean,
+): { dates: string[]; numFolded: number } {
+  let numFolded = 0;
   let m = messages;
-  if (m == null) return [];
+  if (m == null) return { dates: [], numFolded: 0 };
+
   if (search) {
     const searchTerms = search_split(search);
     m = m.filter((message) => searchMatches(message, searchTerms));
+  }
+
+  if (today) {
+    const cutoff = webapp_client.server_time().getTime() - 1000 * 24 * 60 * 60;
+    m = m.filter((msg) => {
+      const date = msg.get("date").getTime();
+      return date >= cutoff;
+    });
   }
 
   const v: [date: number, reply_to: number | undefined][] = [];
@@ -309,17 +325,20 @@ export function getSortedDates(
     const is_folded = isFolded(messages, message, account_id);
     const is_thread_body = message.get("reply_to") != null;
     const folded = is_thread && is_folded && is_thread_body;
-    if (folded) continue;
+    if (folded) {
+      numFolded++;
+      continue;
+    }
 
     const reply_to = message.get("reply_to");
     v.push([
-      parseInt(date),
+      typeof date === "string" ? parseInt(date) : date,
       reply_to != null ? new Date(reply_to).valueOf() : undefined,
     ]);
   }
   v.sort(cmpMessages);
-  const w = v.map((z) => `${z[0]}`);
-  return w;
+  const dates = v.map((z) => `${z[0]}`);
+  return { dates, numFolded };
 }
 
 /*
@@ -363,14 +382,16 @@ function NotShowing({ num, search, today }) {
   if (num <= 0) return null;
   return (
     <Alert
-      style={{ margin: "0 5px" }}
+      style={{ margin: "0" }}
       type="warning"
+      closable
+      banner
       key="not_showing"
       message={
         <b>
-          WARNING: Hiding {num} chats{" "}
+          WARNING: Hiding {num} messages
           {search.trim()
-            ? `that do not match search for '${search.trim()}'`
+            ? ` that do not match search for '${search.trim()}'`
             : ""}
           {today
             ? ` ${search.trim() ? "and" : "that"} were not sent today`

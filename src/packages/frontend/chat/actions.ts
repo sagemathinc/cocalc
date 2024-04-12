@@ -481,9 +481,9 @@ export class ChatActions extends Actions<ChatState> {
     const path = this.store.get("path") + ".md";
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
-    const sorted_dates = getSortedDates(messages, this.store.get("search"));
+    const { dates } = getSortedDates(messages, this.store.get("search"));
     const v: string[] = [];
-    for (const date of sorted_dates) {
+    for (const date of dates) {
       const message = messages.get(date);
       if (message == null) continue;
       v.push(message_to_markdown(message));
