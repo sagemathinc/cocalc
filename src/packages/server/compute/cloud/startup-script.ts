@@ -88,6 +88,7 @@ export default async function startupScript({
 
 set -v
 
+export COCALC_CLOUD=${cloud}
 export DEBIAN_FRONTEND=noninteractive
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
