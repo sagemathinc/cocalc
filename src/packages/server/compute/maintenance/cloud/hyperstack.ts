@@ -10,13 +10,13 @@ TODO: The frequency of email alerts and this check is done in code here,
 but would be better configured via admin settings...
 */
 
-import getLogger from "@cocalc/backend/logger";
 import { getCredit } from "@cocalc/server/compute/cloud/hyperstack/client";
 import { globalResourceSync } from "@cocalc/server/compute/cloud/hyperstack/sync";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import sendEmail from "@cocalc/server/email/send-email";
 import { currency } from "@cocalc/util/misc";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
+import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:compute:maintenance:cloud:hyperstack");
 

@@ -18,6 +18,7 @@ export async function getPrefix() {
 
 export async function getServerName(server: { id: number }) {
   const prefix = await getPrefix();
+  // in ./sync.ts we assume the server name is of this form in general:
   return `${prefix}-${server.id}`;
 }
 
