@@ -22,10 +22,11 @@ export async function startupScriptViaApi({ compute_server_id, api_key }) {
   return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
 }
 
+// See https://stackoverflow.com/questions/6475374/how-do-i-make-cloud-init-startup-scripts-run-every-time-my-ec2-instance-boots
 export async function cloudInitScript({ compute_server_id, api_key }) {
   return `#cloud-config
 
-runcmd:
+bootcmd:
   - |
     #!/bin/bash
     ${await startupScriptViaApi({ compute_server_id, api_key })}
@@ -294,6 +295,7 @@ setState filesystem run '' 45 25
 export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
 
 mkdir -p /ephemeral
+chown user:user /ephemeral
 docker run \
  -d \
  --name=filesystem \
@@ -374,6 +376,7 @@ if [ $? -ne 0 ]; then
   setState compute run '' 20 25
   export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
   mkdir -p /ephemeral
+  chown user:user /ephemeral
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --network host \
