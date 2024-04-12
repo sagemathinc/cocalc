@@ -12,6 +12,9 @@ table via a ttl-cache style api:
   keeps stale data in case of remote failure.
 
 In all cases the key can be any json-able object.
+
+You can also specify a string to be prefixed to the (post-json) keys, to provide
+another level of namespacing.
 */
 
 import { getPool } from "@cocalc/database";
@@ -30,24 +33,29 @@ export interface Cache {
 export function createTTLCache({
   cloud,
   ttl,
+  prefix = "",
 }: {
   cloud: string;
   ttl: number; // in milliseconds
+  prefix?: string; // automatically prepend this prefix to all keys (basically another namespace under cloud)
 }): Cache {
   const db = getPool();
+  const keyToString = prefix
+    ? (key) => `${prefix}-${json(key)}`
+    : (key) => json(key);
   return {
     set: async (key, value) => {
       const expire = new Date(Date.now() + ttl);
       await db.query(
         "INSERT INTO compute_servers_cache(cloud,key,value,expire) VALUES($1,$2,$3,$4) ON CONFLICT(cloud,key) DO UPDATE SET value=$3, expire=$4",
-        [cloud, json(key), JSON.stringify(value), expire],
+        [cloud, keyToString(key), JSON.stringify(value), expire],
       );
     },
 
     get: async (key) => {
       const { rows } = await db.query(
         "SELECT value FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND expire > NOW()",
-        [cloud, json(key)],
+        [cloud, keyToString(key)],
       );
       return rows[0]?.value == null ? undefined : JSON.parse(rows[0]?.value);
     },
@@ -55,7 +63,7 @@ export function createTTLCache({
     has: async (key) => {
       const { rows } = await db.query(
         "SELECT COUNT(*) AS count FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND expire > NOW()",
-        [cloud, json(key)],
+        [cloud, keyToString(key)],
       );
       return (rows[0]?.count ?? 0) > 0;
     },
@@ -63,7 +71,7 @@ export function createTTLCache({
     delete: async (key) => {
       await db.query(
         "DELETE FROM compute_servers_cache WHERE cloud=$1 AND key=$2",
-        [cloud, json(key)],
+        [cloud, keyToString(key)],
       );
     },
   };

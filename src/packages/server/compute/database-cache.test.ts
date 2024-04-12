@@ -10,7 +10,7 @@ afterAll(async () => {
   await getPool().end();
 });
 
-describe("create a database backed TTLCache cache and test it", () => {
+describe("test a database backed TTLCache cache", () => {
   let cache;
   const ttl = 300;
   it("creates a ttl cache", () => {
@@ -46,7 +46,37 @@ describe("create a database backed TTLCache cache and test it", () => {
   });
 });
 
-describe("create a DatabaseCachedResource cache and test it", () => {
+describe("test database backed TTLCache cache with prefix", () => {
+  let cache_prefix, cache_noprefix, cache_noprefix2;
+  const prefix = "server";
+  const cloud = `cloud-${Math.random()}`;
+  const ttl = 300;
+  it("creates ttl caches", () => {
+    cache_noprefix = createTTLCache({ ttl, cloud });
+    cache_noprefix2 = createTTLCache({ ttl, cloud });
+    cache_prefix = createTTLCache({
+      ttl,
+      cloud,
+      prefix,
+    });
+  });
+
+  it("saves a value and gets it with both noprefix cache (should be same!)", async () => {
+    await cache_noprefix.set("a", 10);
+    expect(await cache_noprefix.get("a")).toBe(10);
+    expect(await cache_noprefix2.get("a")).toBe(10);
+    expect(await cache_prefix.has("a")).toBe(false);
+  });
+
+  it("it is not there for the prefix cache, but save in prefix cache works and is different namespace", async () => {
+    expect(await cache_prefix.has("a")).toBe(false);
+    await cache_prefix.set("a", 5);
+    expect(await cache_noprefix.get("a")).toBe(10);
+    expect(await cache_prefix.get("a")).toBe(5);
+  });
+});
+
+describe("test a DatabaseCachedResource cache", () => {
   let cache;
   const ttl = 300; // keep short so that unit testing is fast...
   let broken = false;

@@ -38,6 +38,7 @@ import {
 import { attachVolumes, increaseDiskSize } from "./disk";
 import { cloudInitScript } from "@cocalc/server/compute/cloud/startup-script";
 import { hasGPU } from "@cocalc/util/compute/cloud/hyperstack/flavor";
+import { createTTLCache } from "@cocalc/server/compute/database-cache";
 
 const logger = getLogger("server:compute:hyperstack");
 
@@ -121,15 +122,29 @@ export async function ensureEnvironment(region_name: Region): Promise<string> {
   return name;
 }
 
-// these are the servers that are currently starting.
-const starting = new Set<number>();
+// Just in case the server is killed and the finally doesn't happen in
+// start/stop, this timeout ensures we give up the starting/stoping lock
+// after this long.  During starting/stopping we should periodically update the
+// local more quickly than this.
+const CACHE_TIME_M = 1;
+const stateCache = createTTLCache({
+  ttl: CACHE_TIME_M * 60 * 1000,
+  cloud: "hyperstack",
+  prefix: "state",
+});
 
+
+// NOTE: In reading start, you might wonder what happens if the nodejs process
+// is killed while the VM is being created but before the external disks are
+// attached.  This case *is* dealt with when state is called, where things get
+// properly turned off.
 export async function start(server: ComputeServer) {
-  if (starting.has(server.id)) {
+  const s = await stateCache.get(server.id);
+  if (s == "starting" || s == "stopping") {
     return;
   }
   try {
-    starting.add(server.id);
+    await stateCache.set(server.id, "starting");
     logger.debug("start", server);
     if (server.configuration?.cloud != "hyperstack") {
       throw Error("must have a hyperstack configuration");
@@ -159,9 +174,6 @@ export async function start(server: ComputeServer) {
         data: { disks },
       });
     }
-    // [ ] TODO: we need to check that total size of existing disks equals diskSizeGb
-
-    //
     if (disks.length == 1) {
       // TODO: **always** need to ensure there are at least two disks -- the boot disk and the user data disk
       environment_name = await ensureEnvironment(
@@ -205,6 +217,7 @@ export async function start(server: ComputeServer) {
       // norway data center, but much faster for canada-1.
       const volume_name = await getDiskName(server, 0);
       while (Date.now() - t0 <= 1000 * 60 * 30) {
+        await stateCache.set(server.id, "starting");
         try {
           [vm] = await createVirtualMachines({
             name: await getServerName(server),
@@ -249,17 +262,23 @@ export async function start(server: ComputeServer) {
       await startVirtualMachine(data.vm.id);
     }
     if (!externalIp && data.vm?.id != null) {
-      await waitForIp(data.vm.id, server.id);
+      await waitForIp(
+        data.vm.id,
+        server.id,
+        10 * 60 * 1000,
+        async () => await stateCache.set(server.id, "starting"),
+      );
     }
   } finally {
-    starting.delete(server.id);
+    await stateCache.delete(server.id);
   }
 }
 
 async function waitForIp(
   vm_id: number,
   server_id: number,
-  maxTime = 10 * 60 * 1000,
+  maxTime: number,
+  f?: Function,
 ) {
   // finally ensure we have ip address -- should not take long at a
   let d = 3000;
@@ -276,19 +295,19 @@ async function waitForIp(
       return;
     }
     d = Math.min(30000, d * 1.3);
+    await f?.();
     await delay(d);
   }
   throw Error(`failed to get ip address for vm with id ${vm_id}`);
 }
 
-const stopping = new Set<number>();
-
 export async function stop(server: ComputeServer) {
-  if (stopping.has(server.id)) {
+  const s = await stateCache.get(server.id);
+  if (s == "starting" || s == "stopping") {
     return;
   }
   try {
-    stopping.add(server.id);
+    await stateCache.set(server.id, "stopping");
     logger.debug("stop", server);
     if (server.configuration?.cloud != "hyperstack") {
       throw Error("must have a hyperstack configuration");
@@ -298,7 +317,11 @@ export async function stop(server: ComputeServer) {
       logger.debug("stop: deleting vm... ", data.vm.id);
       await deleteVirtualMachine(data.vm.id);
       logger.debug("stop: wait to delete vm... ", data.vm.id);
-      await waitUntilDeleted(data.vm.id);
+      await waitUntilDeleted(
+        data.vm.id,
+        10 * 60 * 1000,
+        async () => await stateCache.set(server.id, "stopping"),
+      );
       logger.debug("stop: deleted vm... ", data.vm.id);
       await setData({
         id: server.id,
@@ -306,11 +329,11 @@ export async function stop(server: ComputeServer) {
       });
     }
   } finally {
-    stopping.delete(server.id);
+    stateCache.delete(server.id);
   }
 }
 
-async function waitUntilDeleted(vm_id: number, maxTime = 10 * 60 * 1000) {
+async function waitUntilDeleted(vm_id: number, maxTime: number, f?: Function) {
   let d = 3000;
   const end = Date.now() + maxTime;
   while (Date.now() < end) {
@@ -328,6 +351,7 @@ async function waitUntilDeleted(vm_id: number, maxTime = 10 * 60 * 1000) {
     if (vm.status == "DELETING") {
       d = Math.min(15000, d * 1.3);
       logger.debug(`waitUntilDeleted: waiting ${d}ms... `, vm_id);
+      await f?.();
       await delay(d);
     } else {
       logger.debug(`waitUntilDeleted: done `, vm_id);
@@ -338,7 +362,8 @@ async function waitUntilDeleted(vm_id: number, maxTime = 10 * 60 * 1000) {
 }
 
 export async function reboot(server: ComputeServer) {
-  if (stopping.has(server.id) || starting.has(server.id)) {
+  const s = await stateCache.get(server.id);
+  if (s == "starting" || s == "stopping") {
     return;
   }
   logger.debug("reboot", server);
@@ -353,7 +378,8 @@ export async function reboot(server: ComputeServer) {
 }
 
 export async function deprovision(server: ComputeServer) {
-  if (stopping.has(server.id) || starting.has(server.id)) {
+  const s = await stateCache.get(server.id);
+  if (s == "starting" || s == "stopping") {
     return;
   }
   logger.debug("deprovision", server);
@@ -394,11 +420,9 @@ export async function state(server: ComputeServer): Promise<State> {
   if (conf?.cloud != "hyperstack") {
     throw Error("must have a hyperstack configuration");
   }
-  if (starting.has(server.id)) {
-    return "starting";
-  }
-  if (stopping.has(server.id)) {
-    return "stopping";
+  const s = await stateCache.get(server.id);
+  if (s != null) {
+    return s;
   }
   let data;
   try {
@@ -468,12 +492,19 @@ export async function state(server: ComputeServer): Promise<State> {
   // and should never happen, but it does.  At least with this
   // check it's likely things can recover and the user of cocalc
   // doesn't get blocked out.
+  // Also if the volume_attachments length is at most 1, then something
+  // must have gone wrong during starting/creating of the VM (i.e.,
+  // the start function above), e.g., maybe the nodejs process got killed
+  // while waiting to attach the disk.  In this hopefully extremely rare
+  // case, we also just turn the VM off. The user can then start it again.
   if (
     vm.status?.toLowerCase() == "error" ||
-    (vm.power_state?.toLowerCase() == "error" &&
-      vm.vm_state?.toLowerCase() == "error")
+    vm.power_state?.toLowerCase() == "error" ||
+    vm.vm_state?.toLowerCase() == "error" ||
+    (vm.volume_attachments?.length ?? 0) <= 1
   ) {
     await deleteVirtualMachine(data.vm.id);
+    await waitUntilDeleted(data.vm.id, 2 * 60 * 1000);
     await setData({
       id: server.id,
       data: { vm: null, externalIp: null },
