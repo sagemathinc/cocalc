@@ -24,7 +24,7 @@ export function queryIsCmp(val): false | string {
 // Additional where object condition imposed by user's get query
 export function userGetQueryFilter(
   user_query: object,
-  client_query: UserOrProjectQuery<any>
+  client_query: UserOrProjectQuery<any>,
 ): { [expr: string]: any } {
   if (client_query.get == null) {
     // no get queries allowed (this is mainly to make typescript happy below.)
@@ -68,6 +68,9 @@ export function userGetQueryFilter(
         // hack to use same where format for now, since $ replacement
         // doesn't work for "foo IS ...".
         where[`${quoteField(field)} ${op} ${isToOperand(v)}`] = true;
+      } else if (op.toLowerCase() === "any") {
+        // in PostgreSQL: field=ANY(column)
+        where[`$ = ANY(${quoteField(field)})`] = v;
       } else if (
         is_object(v) &&
         v["relative_time"] != null &&
