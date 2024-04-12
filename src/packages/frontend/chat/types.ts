@@ -2,6 +2,8 @@ import { List } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 
+export type Mode = "standalone" | "sidechat";
+
 type Mention = TypedMap<{
   id: string;
   display: string;

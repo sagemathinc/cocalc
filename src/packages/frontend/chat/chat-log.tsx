@@ -31,18 +31,18 @@ import {
 import { ChatActions, getRootMessage } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
-import { ChatMessageTyped, ChatMessages, MessageHistory } from "./types";
+import { ChatMessageTyped, ChatMessages, MessageHistory, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
 
 interface Props {
   project_id: string; // used to render links more effectively
   path: string;
-  show_heads: boolean;
+  mode: Mode;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
 }
 
 export function ChatLog(props: Readonly<Props>) {
-  const { project_id, path, scrollToBottomRef, show_heads } = props;
+  const { project_id, path, scrollToBottomRef, mode } = props;
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const fontSize = useRedux(["font_size"], project_id, path);
@@ -203,11 +203,8 @@ export function ChatLog(props: Readonly<Props>) {
                   sortedDates,
                   messages,
                 )}
-                show_avatar={
-                  show_heads &&
-                  !isNextMessageSender(index, sortedDates, messages)
-                }
-                include_avatar_col={show_heads}
+                show_avatar={!isNextMessageSender(index, sortedDates, messages)}
+                mode={mode}
                 get_user_name={(account_id: string | undefined) =>
                   // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
                   typeof account_id === "string"

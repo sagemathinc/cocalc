@@ -30,6 +30,7 @@ import {
   USER_SELECTABLE_LLMS_BY_VENDOR,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
+import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { OllamaPublic } from "@cocalc/util/types/llm";
 import { useProjectContext } from "../project/context";
@@ -39,7 +40,7 @@ import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { Name } from "./name";
 import { Time } from "./time";
-import { ChatMessageTyped } from "./types";
+import { ChatMessageTyped, Mode } from "./types";
 import {
   is_editing,
   message_colors,
@@ -109,7 +110,7 @@ interface Props {
   is_prev_sender?: boolean;
   is_next_sender?: boolean;
   show_avatar?: boolean;
-  include_avatar_col?: boolean;
+  mode: Mode;
   selectedHashtags?: Set<string>;
 
   set_scroll?: Function;
@@ -125,7 +126,11 @@ interface Props {
 }
 
 export default function Message(props: Props) {
-  const { is_thread, is_folded, is_thread_body } = props;
+  const { is_thread, is_folded, is_thread_body, mode } = props;
+
+  const hideTooltip =
+    useTypedRedux("account", "other_settings").get("hide_file_popovers") ??
+    false;
 
   const [edited_message, set_edited_message] = useState<string>(
     newest_content(props.message),
@@ -169,6 +174,9 @@ export default function Message(props: Props) {
   const isFolded: boolean = useMemo(() => {
     return props.message.get("folding")?.includes(props.account_id) ?? false;
   }, [props.message]);
+
+  const reverseRowOrdering =
+    !is_thread_body && sender_is_viewer(props.account_id, props.message);
 
   const submitMentionsRef = useRef<Function>();
 
@@ -340,6 +348,8 @@ export default function Message(props: Props) {
 
     if (!props.is_prev_sender && is_viewers_message) {
       marginTop = MARGIN_TOP_VIEWER;
+    } else {
+      marginTop = "5px";
     }
 
     if (!props.is_prev_sender && !props.is_next_sender && !show_history) {
@@ -361,7 +371,8 @@ export default function Message(props: Props) {
       padding: "9px",
     } as const;
 
-    const mainXS = props.include_avatar_col ? 20 : 22;
+    // we show avatars in standalone mode, but not in sidechat mode
+    const mainXS = 20;
 
     return (
       <Col key={1} xs={mainXS}>
@@ -611,7 +622,7 @@ export default function Message(props: Props) {
       return;
     }
     return (
-      <div style={{ marginLeft: "30px" }}>
+      <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
           autoFocus
           style={{
@@ -650,7 +661,7 @@ export default function Message(props: Props) {
     );
   }
 
-  function getStyle(): CSS {
+  function getStyleBase(): CSS {
     if (!is_thread_body) {
       if (is_thread) {
         if (isFolded) {
@@ -668,27 +679,76 @@ export default function Message(props: Props) {
     }
   }
 
+  function getStyle(): CSS {
+    switch (mode) {
+      case "standalone":
+        return getStyleBase();
+      case "sidechat":
+        return {
+          ...getStyleBase(),
+          marginLeft: "5px",
+          marginRight: "5px",
+          paddingLeft: "0",
+        };
+      default:
+        unreachable(mode);
+        return getStyleBase();
+    }
+  }
+
   function getThreadfoldOrBlank() {
     if (is_thread_body || (!is_thread_body && !is_thread)) {
       return BLANK_COLUMN;
     } else {
-      return (
-        <Col key={"blankcolumn"} xs={2}>
-          <Button
-            type="text"
-            style={{
-              marginTop: MARGIN_TOP_VIEWER,
-              marginRight: AVATAR_MARGIN_LEFTRIGHT,
-              marginLeft: AVATAR_MARGIN_LEFTRIGHT,
-            }}
-            onClick={() => props.actions?.foldThread(props.message.get("date"))}
-            icon={
-              <Icon
-                name={isFolded ? "plus-square" : "minus-square"}
-                style={{ fontSize: "22px" }}
-              />
+      const style: CSS =
+        mode === "standalone"
+          ? {
+              marginTop:
+                props.show_avatar ||
+                (!props.is_prev_sender && is_viewers_message)
+                  ? MARGIN_TOP_VIEWER
+                  : "5px",
+              marginRight: "5px",
+              marginLeft: "5px",
             }
-          />
+          : { marginTop: "10px" };
+      const iconname = isFolded
+        ? reverseRowOrdering
+          ? "right-circle-o"
+          : "left-circle-o"
+        : "down-circle-o";
+      const button = (
+        <Button
+          type="text"
+          style={style}
+          onClick={() => props.actions?.foldThread(props.message.get("date"))}
+          icon={
+            <Icon
+              name={iconname}
+              style={{ fontSize: mode === "standalone" ? "22px" : "16px" }}
+            />
+          }
+        />
+      );
+      return (
+        <Col
+          xs={mode === "standalone" ? 2 : 4}
+          key={"blankcolumn"}
+          style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
+        >
+          {hideTooltip ? (
+            button
+          ) : (
+            <Tooltip
+              title={
+                isFolded
+                  ? "Unfold this thread"
+                  : "Fold this thread to hide replies"
+              }
+            >
+              {button}
+            </Tooltip>
+          )}
         </Col>
       );
     }
@@ -731,27 +791,25 @@ export default function Message(props: Props) {
     );
   }
 
-  function getCols() {
+  function renderCols(): JSX.Element[] | JSX.Element {
     // these columsn should be filtered in the first place, this here is just an extra check
-    if (is_thread && is_folded && is_thread_body) return null;
+    if (is_thread && is_folded && is_thread_body) return <></>;
 
     const cols = [content_column(), getThreadfoldOrBlank()];
-    // we optionally add the avatar column
-    if (props.include_avatar_col) {
+    // in standalone, add the avatar column
+    if (mode === "standalone") {
       cols.unshift(avatar_column());
     }
     // … and mirror right-left for sender's view
-    if (!is_thread_body && sender_is_viewer(props.account_id, props.message)) {
+    if (reverseRowOrdering) {
       cols.reverse();
     }
     return cols;
   }
 
-  const cols = getCols();
-  if (cols == null) return <></>;
   return (
     <Row style={getStyle()}>
-      {cols}
+      {renderCols()}
       {renderReplyRow()}
     </Row>
   );
