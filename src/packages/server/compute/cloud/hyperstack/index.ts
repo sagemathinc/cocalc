@@ -262,8 +262,9 @@ async function waitForIp(
   maxTime = 10 * 60 * 1000,
 ) {
   // finally ensure we have ip address -- should not take long at a
-  let d = 5000;
-  while (d < maxTime) {
+  let d = 3000;
+  const end = Date.now() + maxTime;
+  while (Date.now() < end) {
     const vm = await getVirtualMachine(vm_id);
     const externalIp = vm?.floating_ip;
     logger.debug("waitForIp: waiting for ip address: got", externalIp);
@@ -296,6 +297,8 @@ export async function stop(server: ComputeServer) {
     if (data.vm?.id) {
       logger.debug("stop: deleting vm... ", data.vm.id);
       await deleteVirtualMachine(data.vm.id);
+      logger.debug("stop: wait to delete vm... ", data.vm.id);
+      await waitUntilDeleted(data.vm.id);
       logger.debug("stop: deleted vm... ", data.vm.id);
       await setData({
         id: server.id,
@@ -305,6 +308,33 @@ export async function stop(server: ComputeServer) {
   } finally {
     stopping.delete(server.id);
   }
+}
+
+async function waitUntilDeleted(vm_id: number, maxTime = 10 * 60 * 1000) {
+  let d = 3000;
+  const end = Date.now() + maxTime;
+  while (Date.now() < end) {
+    let vm;
+    logger.debug("waitUntilDeleted: ", vm_id, { now: Date.now(), end });
+    try {
+      vm = await getVirtualMachine(vm_id);
+    } catch (_err) {
+      // get an error if the VM is gone, which is good!
+      // (could also get an error if network or api is down -- however then probably best to
+      // just return as well)
+      logger.debug(`waitUntilDeleted: error so done `, vm_id);
+      return;
+    }
+    if (vm.status == "DELETING") {
+      d = Math.min(15000, d * 1.3);
+      logger.debug(`waitUntilDeleted: waiting ${d}ms... `, vm_id);
+      await delay(d);
+    } else {
+      logger.debug(`waitUntilDeleted: done `, vm_id);
+      return;
+    }
+  }
+  throw Error(`failed to wait for vm id ${vm_id} to get deleted`);
 }
 
 export async function reboot(server: ComputeServer) {
@@ -457,6 +487,14 @@ export async function state(server: ComputeServer): Promise<State> {
     vm.vm_state == "active"
   ) {
     return "running";
+  }
+
+  if (vm.status == "CREATING" || vm.status == "REBOOTING") {
+    return "starting";
+  }
+  if (vm.status == "DELETING") {
+    // we delete the VM to "stop" it.
+    return "stopping";
   }
   // TODO: how to tell between starting and stopping?
   // -- fortunately, stopping

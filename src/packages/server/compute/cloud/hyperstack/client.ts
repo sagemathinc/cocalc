@@ -130,7 +130,11 @@ async function call({
     }
     return data;
   } catch (err) {
-    log.debug("ERROR - ", err);
+    // No need to log this because the error is raised.
+    // Often API errors are intentional as well, e.g., checking
+    // if a VM exists, and logging them with ERROR is improperly
+    // alarming when looking at log.
+    // log.debug("ERROR - ", err);
     if (err?.response?.data?.message) {
       if (Object.keys(err.response.data).length == 1) {
         throw Error(err.response.data.message);
