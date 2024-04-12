@@ -17,19 +17,30 @@ import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 // real startup script via the API.  This is important, e.g., if
 // the user reboots the VM in some way, so they get the latest
 // cocalc startup script (with newest ssh keys, etc.) on startup.
+// This is assumed to be 1 line in various place, e.g., in cloudInitScript below.
 export async function startupScriptViaApi({ compute_server_id, api_key }) {
   const apiServer = await getApiServer();
   return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
 }
 
-// See https://stackoverflow.com/questions/6475374/how-do-i-make-cloud-init-startup-scripts-run-every-time-my-ec2-instance-boots
 export async function cloudInitScript({ compute_server_id, api_key }) {
+  // This is a little tricky because we want it to run *every* time,
+  // not just the first time, and cloud init doesn't have a nice way to
+  // do that.
   return `#cloud-config
 
-bootcmd:
+write_files:
+  - path: /root/cocalc-startup.sh
+    permissions: "0700"
+    content: |
+        #!/bin/bash
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+
+runcmd:
   - |
     #!/bin/bash
-    ${await startupScriptViaApi({ compute_server_id, api_key })}
+    (crontab -l 2>/dev/null; echo "@reboot /root/cocalc-startup.sh") | crontab -
+    /root/cocalc-startup.sh
 `;
 }
 
