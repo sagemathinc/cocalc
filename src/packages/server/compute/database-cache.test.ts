@@ -10,9 +10,13 @@ afterAll(async () => {
   await getPool().end();
 });
 
+// keep short so that unit testing is fast... but long enough
+// that things don't break on github actions.
+const TTL_MS = 300;
+
 describe("test a database backed TTLCache cache", () => {
   let cache;
-  const ttl = 300;
+  const ttl = TTL_MS;
   it("creates a ttl cache", () => {
     cache = createTTLCache({ ttl, cloud: `cloud-${Math.random()}` });
   });
@@ -50,7 +54,7 @@ describe("test database backed TTLCache cache with prefix", () => {
   let cache_prefix, cache_noprefix, cache_noprefix2;
   const prefix = "server";
   const cloud = `cloud-${Math.random()}`;
-  const ttl = 300;
+  const ttl = TTL_MS;
   it("creates ttl caches", () => {
     cache_noprefix = createTTLCache({ ttl, cloud });
     cache_noprefix2 = createTTLCache({ ttl, cloud });
@@ -78,7 +82,7 @@ describe("test database backed TTLCache cache with prefix", () => {
 
 describe("test a DatabaseCachedResource cache", () => {
   let cache;
-  const ttl = 300; // keep short so that unit testing is fast...
+  const ttl = TTL_MS;
   let broken = false;
 
   it("creates a DatabaseCachedResource cache", () => {
@@ -107,9 +111,10 @@ describe("test a DatabaseCachedResource cache", () => {
     expect(n).toBe(second.n);
   });
 
-  it("expires cache and sees that the value we get is different", async () => {
+  it("explicitly expires cache and sees that the value we get is different", async () => {
     const { n } = await cache.get();
     await cache.expire();
+    await delay(100);
     const second = await cache.get();
     expect(n).not.toBe(second.n);
   });
