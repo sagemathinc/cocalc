@@ -1,6 +1,6 @@
 import DiskGeneric from "@cocalc/frontend/compute/cloud/common/disk";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
-import { commas, currency } from "@cocalc/util/misc";
+import { commas, currency, plural } from "@cocalc/util/misc";
 import {
   BOOT_DISK_SIZE_GB,
   computeBootVolumeCost,
@@ -15,10 +15,13 @@ export default function Disk(props) {
   const cost_per_hour_data = computeDiskCost(props);
   const cost_per_hour_boot = computeBootVolumeCost(props);
   const data = props.priceData.options[optionKey(props.configuration)];
+  const numTimes =
+    props.data?.disks == null ? 0 : Math.max(props.data?.disks.length, 2) - 2;
   return (
     <div>
       <DiskGeneric
         {...props}
+        disabled={numTimes >= 24}
         noType
         minSizeGb={getMinDiskSizeGb(props)}
         maxSizeGb={1048576}
@@ -65,6 +68,13 @@ export default function Disk(props) {
         <div>
           <b>Caching:</b> Some of your {data.ephemeral}GB local SSD is used for
           caching to make the data disk much faster.
+        </div>
+      )}
+      {numTimes > 0 && (
+        <div>
+          <b>NOTE:</b> You can only currently enlarge your disk on Hyperstack at
+          most 24 times. You have enlarged this disk {numTimes}{" "}
+          {plural(numTimes, "time")}.
         </div>
       )}
     </div>

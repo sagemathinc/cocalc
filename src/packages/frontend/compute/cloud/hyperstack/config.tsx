@@ -193,6 +193,7 @@ export default function HyperstackConfig({
           disabled={loading}
           setConfig={setConfig}
           configuration={configuration}
+          data={data}
           priceData={priceData}
           state={state}
           IMAGES={IMAGES}
