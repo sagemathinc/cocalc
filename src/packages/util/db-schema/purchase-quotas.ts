@@ -14,6 +14,16 @@ interface Spec {
 
 export type QuotaSpec = Record<Service, Spec>;
 
+const GPT_TURBO: Spec = {
+  display: "OpenAI GPT-4 Turbo 128k",
+  color: "#10a37f",
+};
+
+const GPT_TURBO_8K: Spec = {
+  display: "OpenAI GPT-4 Turbo 8k",
+  color: "#10a37f",
+};
+
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true, color: "green" },
@@ -58,14 +68,10 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "OpenAI GPT-4 32k",
     color: "#10a37f",
   },
-  "openai-gpt-4-turbo-preview": {
-    display: "OpenAI GPT-4 Turbo 128k",
-    color: "#10a37f",
-  },
-  "openai-gpt-4-turbo-preview-8k": {
-    display: "OpenAI GPT-4 Turbo 8k",
-    color: "#10a37f",
-  },
+  "openai-gpt-4-turbo-preview": GPT_TURBO, // the "preview" is over
+  "openai-gpt-4-turbo-preview-8k": GPT_TURBO_8K, // the "preview" is over
+  "openai-gpt-4-turbo": GPT_TURBO,
+  "openai-gpt-4-turbo-8k": GPT_TURBO_8K,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: "#4285f4",
@@ -129,7 +135,7 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: LLM_USERNAMES["mistral-large-latest"],
     color: "#ff7000", // the orange from their website
   },
-};
+} as const;
 
 // For pay-as-you-go project quota upgrades
 export interface ProjectQuota {

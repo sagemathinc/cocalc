@@ -27,8 +27,11 @@ export const MODELS_OPENAI = [
   "gpt-3.5-turbo-16k",
   "gpt-4",
   "gpt-4-32k",
+  // the "preview" variants are disabled, because the preview is over
   "gpt-4-turbo-preview-8k", // like above, but artificially limited to 8k tokens
   "gpt-4-turbo-preview",
+  "gpt-4-turbo-8k", // Released 2024-04-11
+  "gpt-4-turbo",
   "text-embedding-ada-002", // TODO: this is for embeddings, should be moved to a different place
 ] as const;
 
@@ -123,7 +126,9 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   openai: MODELS_OPENAI.filter(
     (m) =>
       m !== "gpt-4-32k" && // this one is deliberately not selectable by users!
-      m !== "text-embedding-ada-002", // shouldn't be in the list in the first place
+      m !== "text-embedding-ada-002" && // shouldn't be in the list in the first place
+      m !== "gpt-4-turbo-preview" && // the "preview" is over
+      m !== "gpt-4-turbo-preview-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) => m === "gemini-pro", // for now, that's the only one working robustly
@@ -447,6 +452,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-3.5-turbo-16k": "GPT-3.5-16k",
   "gpt-4-turbo-preview": "GPT-4 Turbo 128k",
   "gpt-4-turbo-preview-8k": "GPT-4 Turbo 8k",
+  "gpt-4-turbo": "GPT-4 Turbo 128k",
+  "gpt-4-turbo-8k": "GPT-4 Turbo 8k",
   "text-embedding-ada-002": "Text Embedding Ada 002", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
@@ -480,6 +487,9 @@ export const LLM_DESCR: LLM2String = {
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
   "gpt-4-turbo-preview":
     "Like GPT-4 Turob 8k, but with up to 128k token context",
+  "gpt-4-turbo-8k":
+    "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
+  "gpt-4-turbo": "Like GPT-4 Turob 8k, but with up to 128k token context",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "",
   "chat-bison-001": "",
@@ -604,6 +614,18 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     free: false,
   },
   "gpt-4-turbo-preview": {
+    prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
+    completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
+    max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
+    free: false,
+  }, // like above, but we limit the tokens to reduce how much money user has to commit to
+  "gpt-4-turbo-8k": {
+    prompt_tokens: usd1Mtokens(10),
+    completion_tokens: usd1Mtokens(30),
+    max_tokens: 8192, // the actual reply is 8k, and we use this to truncate the input prompt!
+    free: false,
+  },
+  "gpt-4-turbo": {
     prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
     completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
