@@ -121,6 +121,7 @@ import {
   KeyOutlined,
   LaptopOutlined,
   LayoutOutlined,
+  LeftCircleOutlined,
   LeftOutlined,
   LeftSquareFilled,
   LineChartOutlined,
@@ -157,6 +158,7 @@ import {
   ReloadOutlined,
   RetweetOutlined,
   RightCircleFilled,
+  RightCircleOutlined,
   RightOutlined,
   RightSquareFilled,
   RobotOutlined,
@@ -451,9 +453,7 @@ const IconSpec: { [name: string]: any } = {
   "money-check": { IconFont: "money-check" },
   mousepointer: { IconFont: "mousepointer" },
   move: { IconFont: "move" },
-  arrows: {
-    IconFont: "move",
-  } /* fa-arrows is used by the bqplot custom widget */,
+  arrows: { IconFont: "move" }, // fa-arrows is used by the bqplot custom widget
   network: { IconFont: "network" },
   "network-server": { IconFont: "network-server" },
   "network-wired": ClusterOutlined,
@@ -600,6 +600,9 @@ const IconSpec: { [name: string]: any } = {
   wrench: { IconFont: "wrench" },
   youtube: YoutubeOutlined,
   "youtube-filled": YoutubeFilled,
+  "left-circle-o": LeftCircleOutlined,
+  "right-circle-o": RightCircleOutlined,
+  "down-circle-o": DownCircleOutlined,
 };
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us

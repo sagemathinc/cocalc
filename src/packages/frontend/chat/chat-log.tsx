@@ -10,6 +10,7 @@ Render all the messages in the chat.
 import { Alert } from "antd";
 import { List, Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
@@ -27,26 +28,22 @@ import {
   search_match,
   search_split,
 } from "@cocalc/util/misc";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { ChatActions } from "./actions";
+import { webapp_client } from "../webapp-client";
+import { ChatActions, getRootMessage } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
-import { ChatMessageTyped, ChatMessages, MessageHistory } from "./types";
+import { ChatMessageTyped, ChatMessages, MessageHistory, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
 
 interface Props {
   project_id: string; // used to render links more effectively
   path: string;
-  show_heads: boolean;
+  mode: Mode;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
 }
 
-export function ChatLog({
-  project_id,
-  path,
-  scrollToBottomRef,
-  show_heads,
-}: Props) {
+export function ChatLog(props: Readonly<Props>) {
+  const { project_id, path, scrollToBottomRef, mode } = props;
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const fontSize = useRedux(["font_size"], project_id, path);
@@ -79,13 +76,17 @@ export function ChatLog({
   const today = useRedux(["today"], project_id, path);
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
-  const sortedDates = useMemo<string[]>(() => {
-    const dates = getSortedDates(messages, search);
-    if (today) {
-      const cutoff = Date.now() - 1000 * 24 * 60 * 60;
-      return dates.filter((x) => parseInt(x) >= cutoff);
-    }
-    return dates;
+  const { dates: sortedDates, numFolded } = useMemo<{
+    dates: string[];
+    numFolded: number;
+  }>(() => {
+    const { dates, numFolded } = getSortedDates(
+      messages,
+      search,
+      account_id,
+      today,
+    );
+    return { dates, numFolded };
   }, [messages, search, project_id, path, today]);
 
   const visibleHashtags = useMemo(() => {
@@ -143,7 +144,7 @@ export function ChatLog({
       )}
       {messages != null && (
         <NotShowing
-          num={messages.size - sortedDates.length}
+          num={messages.size - numFolded - sortedDates.length}
           search={search}
           today={today}
         />
@@ -159,6 +160,11 @@ export function ChatLog({
             // shouldn't happen.  But we should be robust to such a possibility.
             return <div style={{ height: "1px" }} />;
           }
+
+          const is_thread = isThread(messages, message);
+          const is_folded = isFolded(messages, message, account_id);
+          const is_thread_body = message.get("reply_to") != null;
+
           return (
             <div style={{ overflow: "hidden" }}>
               <Message
@@ -172,6 +178,9 @@ export function ChatLog({
                 font_size={fontSize}
                 selectedHashtags={selectedHashtags}
                 actions={actions}
+                is_thread={is_thread}
+                is_folded={is_folded}
+                is_thread_body={is_thread_body}
                 is_prev_sender={isPrevMessageSender(
                   index,
                   sortedDates,
@@ -182,11 +191,8 @@ export function ChatLog({
                   sortedDates,
                   messages,
                 )}
-                show_avatar={
-                  show_heads &&
-                  !isNextMessageSender(index, sortedDates, messages)
-                }
-                include_avatar_col={show_heads}
+                show_avatar={!isNextMessageSender(index, sortedDates, messages)}
+                mode={mode}
                 get_user_name={(account_id: string | undefined) =>
                   // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
                   typeof account_id === "string"
@@ -263,30 +269,76 @@ function searchMatches(message: ChatMessageTyped, searchTerms): boolean {
   return search_match(first.get("content", ""), searchTerms);
 }
 
+function isThread(messages: ChatMessages, message: ChatMessageTyped) {
+  if (message.get("reply_to") != null) {
+    return true;
+  }
+  return messages.some(
+    (m) => m.get("reply_to") === message.get("date").toISOString(),
+  );
+}
+
+function isFolded(
+  messages: ChatMessages,
+  message: ChatMessageTyped,
+  account_id?: string,
+) {
+  if (account_id == null) return false;
+  const rootMsg = getRootMessage(message.toJS(), messages);
+  return rootMsg?.get("folding")?.includes(account_id) ?? false;
+}
+
 // messages is an immutablejs map from
 //   - timestamps (ms since epoch as string)
 // to
 //   - message objects {date: , event:, history, sender_id, reply_to}
 //
 // It was very easy to sort these before reply_to, which complicates things.
-export function getSortedDates(messages, search?: string): string[] {
+export function getSortedDates(
+  messages: ChatMessages,
+  search?: string,
+  account_id?: string,
+  today?: boolean,
+): { dates: string[]; numFolded: number } {
+  let numFolded = 0;
   let m = messages;
-  if (m == null) return [];
+  if (m == null) return { dates: [], numFolded: 0 };
+
   if (search) {
     const searchTerms = search_split(search);
     m = m.filter((message) => searchMatches(message, searchTerms));
   }
+
+  if (today) {
+    const cutoff = webapp_client.server_time().getTime() - 1000 * 24 * 60 * 60;
+    m = m.filter((msg) => {
+      const date = msg.get("date").getTime();
+      return date >= cutoff;
+    });
+  }
+
   const v: [date: number, reply_to: number | undefined][] = [];
   for (const [date, message] of m) {
+    if (message == null) continue;
+
+    const is_thread = isThread(messages, message);
+    const is_folded = isFolded(messages, message, account_id);
+    const is_thread_body = message.get("reply_to") != null;
+    const folded = is_thread && is_folded && is_thread_body;
+    if (folded) {
+      numFolded++;
+      continue;
+    }
+
     const reply_to = message.get("reply_to");
     v.push([
-      parseInt(date),
+      typeof date === "string" ? parseInt(date) : date,
       reply_to != null ? new Date(reply_to).valueOf() : undefined,
     ]);
   }
   v.sort(cmpMessages);
-  const w = v.map((z) => `${z[0]}`);
-  return w;
+  const dates = v.map((z) => `${z[0]}`);
+  return { dates, numFolded };
 }
 
 /*
@@ -330,14 +382,16 @@ function NotShowing({ num, search, today }) {
   if (num <= 0) return null;
   return (
     <Alert
-      style={{ margin: "0 5px" }}
+      style={{ margin: "0" }}
       type="warning"
+      closable
+      banner
       key="not_showing"
       message={
         <b>
-          WARNING: Hiding {num} chats{" "}
+          WARNING: Hiding {num} messages
           {search.trim()
-            ? `that do not match search for '${search.trim()}'`
+            ? ` that do not match search for '${search.trim()}'`
             : ""}
           {today
             ? ` ${search.trim() ? "and" : "that"} were not sent today`

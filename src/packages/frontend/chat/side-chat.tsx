@@ -127,7 +127,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           project_id={project_id}
           path={path}
           scrollToBottomRef={scrollToBottomRef}
-          show_heads={false}
+          mode={"sidechat"}
         />
       </div>
 

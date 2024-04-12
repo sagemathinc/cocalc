@@ -2,6 +2,8 @@ import { List } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 
+export type Mode = "standalone" | "sidechat";
+
 type Mention = TypedMap<{
   id: string;
   display: string;
@@ -26,6 +28,7 @@ export interface ChatMessage {
   reply_to?: string;
   generating?: boolean;
   editing?: { [author_id: string]: "FUTURE" | null };
+  folding?: string[];
 }
 
 export type ChatMessageTyped = TypedMap<{
@@ -38,6 +41,7 @@ export type ChatMessageTyped = TypedMap<{
   editing: TypedMap<{
     [author_id: string]: "FUTURE" | null;
   }>;
+  folding?: List<string>;
 }>;
 
 export type ChatMessages = TypedMap<{

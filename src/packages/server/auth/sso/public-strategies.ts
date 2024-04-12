@@ -54,9 +54,9 @@ export const GoogleStrategyConf: StrategyConf = {
   auth_opts: { scope: "openid email profile" },
   login_info: {
     id: (profile) => profile.id,
-    first_name: (profile) => profile.name.givenName,
-    last_name: (profile) => profile.name.familyName,
-    emails: (profile) => profile.emails.map((x) => x.value as string),
+    first_name: (profile) => profile.name?.givenName ?? "Anonymous",
+    last_name: (profile) => profile.name?.familyName ?? "User",
+    emails: (profile) => profile.emails?.map((x) => x.value as string) ?? [],
   },
 };
 

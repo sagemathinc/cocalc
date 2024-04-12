@@ -303,9 +303,10 @@ async function evaluateOpenAI({
     throw new Error(`Model "${model}" not an OpenAI model.`);
   }
 
-  // the *-8k variant is artificial – the input is already limited/truncated to 8k
-  if (model === "gpt-4-turbo-preview-8k") {
-    model = "gpt-4-turbo-preview";
+  // the *-8k variants are artificial – the input is already limited/truncated to 8k
+  // convert *-preview and all *-8k to "gpt-4-turbo"
+  if (model.startsWith("gpt-4-turbo")) {
+    model = "gpt-4-turbo";
   }
 
   const messages: OpenAIMessages = [];

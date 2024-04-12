@@ -147,7 +147,7 @@ class Client extends EventEmitter implements WebappClient {
   sync_string: Function;
   sync_db: Function;
 
-  server_time: Function;
+  server_time: Function; // TODO: make this () => Date and deal with the fallout
   ping_test: Function;
   get_username: Function;
   is_signed_in: () => boolean;
