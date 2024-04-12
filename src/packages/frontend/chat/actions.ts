@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Seq, fromJS, Map as immutableMap } from "immutable";
+import { List, Seq, fromJS, Map as immutableMap } from "immutable";
 
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -116,6 +116,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!x.editing) {
       x.editing = {};
     }
+    x.folding ??= [];
     return x;
   }
 
@@ -139,7 +140,7 @@ export class ChatActions extends Actions<ChatState> {
     changes.map((obj) => {
       if (this.syncdb == null) return;
       obj = obj.toJS();
-      if (obj.event == "draft") {
+      if (obj.event === "draft") {
         let drafts = this.store?.get("drafts") ?? (fromJS({}) as any);
         // used to show that another user is editing a message.
         const record = this.syncdb.get_one(obj);
@@ -152,7 +153,7 @@ export class ChatActions extends Actions<ChatState> {
         this.setState({ drafts });
         return;
       }
-      if (obj.event == "chat") {
+      if (obj.event === "chat") {
         let changed: boolean = false;
         let messages = this.store?.get("messages") ?? (fromJS({}) as any);
         obj.date = new Date(obj.date);
@@ -174,6 +175,28 @@ export class ChatActions extends Actions<ChatState> {
         }
       }
     });
+  }
+
+  public foldThread(reply_to: Date, msgIndex: number) {
+    if (this.syncdb == null) return;
+    const account_id = this.redux.getStore("account").get_account_id();
+    const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
+    const folding = cur?.get("folding") ?? List([]);
+    const folded = folding.includes(account_id);
+    const next = folded
+      ? folding.filter((x) => x !== account_id)
+      : folding.push(account_id);
+
+    this.syncdb.set({
+      folding: next,
+      date: typeof reply_to === "string" ? reply_to : reply_to.toISOString(),
+    });
+
+    this.syncdb.commit();
+
+    if (folded && msgIndex != null) {
+      this.scrollToBottom(msgIndex);
+    }
   }
 
   // The second parameter is used for sending a message by
@@ -458,9 +481,9 @@ export class ChatActions extends Actions<ChatState> {
     const path = this.store.get("path") + ".md";
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
-    const sorted_dates = getSortedDates(messages, this.store.get("search"));
+    const { dates } = getSortedDates(messages, this.store.get("search"));
     const v: string[] = [];
-    for (const date of sorted_dates) {
+    for (const date of dates) {
       const message = messages.get(date);
       if (message == null) continue;
       v.push(message_to_markdown(message));
@@ -894,15 +917,26 @@ export class ChatActions extends Actions<ChatState> {
   }
 }
 
+export function getRootMessage(
+  message: ChatMessage,
+  messages: ChatMessages,
+): ChatMessageTyped | undefined {
+  const { reply_to, date } = message;
+  // we can't find the original message, if there is no reply_to
+  if (!reply_to) {
+    // the msssage itself is the root
+    return messages.get(`${new Date(date).valueOf()}`);
+  } else {
+    // All messages in a thread have the same reply_to, which points to the root.
+    return messages.get(`${new Date(reply_to).valueOf()}`);
+  }
+}
+
 function getReplyToRoot(
   message: ChatMessage,
   messages: ChatMessages,
 ): Date | undefined {
-  const { reply_to } = message;
-  // we can't find the original message, if there is no reply_to
-  if (!reply_to) return;
-  // All messages in a thread have the same reply_to, which points to the root.
-  const root = messages.get(`${new Date(reply_to).valueOf()}`);
+  const root = getRootMessage(message, messages);
   const date = root?.get("date");
   // date is a "Date" object, but we're just double checking it is not a string by accident
   return date ? new Date(date) : undefined;

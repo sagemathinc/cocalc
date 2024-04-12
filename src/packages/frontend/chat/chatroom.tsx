@@ -371,7 +371,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             project_id={project_id}
             path={path}
             scrollToBottomRef={scrollToBottomRef}
-            show_heads={true}
+            mode={"standalone"}
           />
           {is_preview && render_preview_message()}
         </div>
