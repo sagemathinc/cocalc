@@ -114,7 +114,11 @@ function getLabel(x: PurchaseOption, priceData) {
         </div>
         <div style={{ flex: 1 }}>
           {(x.ephemeral ?? 0) > 0 && (
-            <>{commas(x.ephemeral)}GB Ephemeral Disk</>
+            <Tooltip
+              title={`The ephemeral disk is mounted at /ephemeral, and is deleted when the compute server is shutdown or rebooted.  Part of this disk is also used for caching.`}
+            >
+              {commas(x.ephemeral)}GB Ephemeral Disk
+            </Tooltip>
           )}
         </div>
       </div>
