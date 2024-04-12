@@ -338,7 +338,7 @@ export const site_settings_conf: SiteSettings = {
     valid: is_valid_email_address,
     clearable: true,
     show: show_theming_vars,
-    tags: ["Theme"],
+    tags: ["Theme", "Email"],
   },
   terms_of_service_url: {
     name: "Terms of Service URL",
@@ -379,7 +379,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     valid: is_valid_email_address,
     show: show_theming_vars,
-    tags: ["Theme"],
+    tags: ["Theme", "Email"],
   },
   organization_url: {
     name: "Organization website",

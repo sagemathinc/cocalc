@@ -243,6 +243,8 @@ export type SiteSettingsExtrasKeys =
   | "hyperstack_api_key"
   | "hyperstack_compute_servers_prefix"
   | "hyperstack_ssh_public_key"
+  | "hyperstack_balance_alert_thresh"
+  | "hyperstack_balance_alert_emails"
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
   | "google_cloud_compute_servers_image_prefix"
@@ -768,6 +770,23 @@ export const EXTRAS: SettingsExtras = {
     show: compute_servers_hyperstack_enabled,
     tags: ["Compute Servers"],
   },
+  hyperstack_balance_alert_thresh: {
+    name: "Compute Servers: Hyperstack - Balance Alert Threshold",
+    desc: "If your credit balance goes below this amount on the Hyperstack site, then you will be emailed (assuming email is configured).",
+    default: "25",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+  hyperstack_balance_alert_emails: {
+    name: "Compute Servers: Hyperstack - Balance Email Addresses",
+    desc: "If your credit balance goes below your configured threshold, then these email addresses will get an alert message.  Separate addresses by commas.",
+    default: "",
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+
   //   lambda_cloud_api_key: {
   //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
   //     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.  WARNING: Lambda Cloud integration is not yet useful for anything.",
