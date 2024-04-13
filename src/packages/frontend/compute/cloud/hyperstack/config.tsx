@@ -328,11 +328,16 @@ function Provisioning({}) {
         </b>
       </div>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Hyperstack servers are dedicated to you and{" "}
-        <b>
-          <i>will NOT automatically stop</i>
-        </b>{" "}
-        even if there is a surge in demand.
+        <p>
+          Hyperstack servers are dedicated to you and{" "}
+          <b>
+            <i>will NOT automatically stop</i>
+          </b>{" "}
+          even if there is a surge in demand.
+        </p>
+        <p>
+          Expect your server to take <b>about 5 minutes</b> to fully start up.
+        </p>
       </div>
     </div>
   );

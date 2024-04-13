@@ -35,7 +35,7 @@ export default function Configuration({
             fontWeight: 250,
             textAlign: "center",
             maxWidth: "600px",
-            margin: "auto 15px",
+            margin: "15px auto",
             borderBottom: "1px solid #aaa",
             marginBottom: "15px",
             paddingBottom: "15px",
