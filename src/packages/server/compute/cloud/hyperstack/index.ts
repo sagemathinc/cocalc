@@ -133,7 +133,6 @@ const stateCache = createTTLCache({
   prefix: "state",
 });
 
-
 // NOTE: In reading start, you might wonder what happens if the nodejs process
 // is killed while the VM is being created but before the external disks are
 // attached.  This case *is* dealt with when state is called, where things get
@@ -216,7 +215,7 @@ export async function start(server: ComputeServer) {
       // trying to create the VM until it exists.  This is VERY SLOW for the
       // norway data center, but much faster for canada-1.
       const volume_name = await getDiskName(server, 0);
-      while (Date.now() - t0 <= 1000 * 60 * 30) {
+      while (Date.now() - t0 <= 1000 * 60 * 8) {
         await stateCache.set(server.id, "starting");
         try {
           [vm] = await createVirtualMachines({
@@ -395,14 +394,23 @@ export async function deprovision(server: ComputeServer) {
   for (const id of disks) {
     const t0 = Date.now();
     let d = 5000;
-    while (Date.now() - t0 <= 1000 * 60 * 15) {
-      // give up after 15 min...?
+    while (Date.now() - t0 <= 1000 * 60 * 3) {
+      // give up after a few min.  Note that garbage
+      // collection will also accomplish this if it fails here.
+      // It justs costs us slightly more and temporarily causes
+      // issues with starting the VM.
       try {
         await deleteVolume(id);
-        logger.debug("deprovision: successfully deleted volume ", id);
+        logger.debug(`deprovision: successfully deleted volume ${id}`);
         break;
       } catch (err) {
-        logger.debug("deprovision: have to keep trying to delete volume", err);
+        if (err.message.includes("not_found")) {
+          logger.debug(`deprovision: volume ${id} already deleted`);
+          break;
+        }
+        logger.debug(
+          `deprovision: will keep trying to delete volume id=${id} -- ${err}`,
+        );
         d = Math.min(15000, d * 1.3);
         await delay(d);
       }
