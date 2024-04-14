@@ -1,4 +1,4 @@
-import { Button, Divider, Flex, Layout, Typography } from "antd";
+import { Alert, Button, Divider, Flex, Layout, Typography } from "antd";
 import { GetServerSidePropsContext } from "next";
 
 import {
@@ -16,11 +16,13 @@ import Head from "components/landing/head";
 import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
 import type { NewsWithFuture } from "components/news/types";
+import { useDateStr } from "components/news/useDateStr";
 
 import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { useDateStr } from "../../components/news/useDateStr";
+import useProfile from "lib/hooks/profile";
+import { NewsItem } from "@cocalc/util/dist/types/news";
 
 interface TitleComponentProps {
   newsItem: NewsWithFuture;
@@ -70,18 +72,47 @@ interface EventsProps {
 }
 
 export default function Events({ customize, upcomingEvents, pastEvents}: EventsProps) {
+  const profile = useProfile({ noCache: true });
+  const isAdmin = profile?.is_admin;
+
+  function eventFooter(eventItem: NewsItem) {
+    return isAdmin && (
+      <Flex justify="center">
+        <A
+          key={`edit-event-${eventItem.id}`}
+          href={`/news/edit/${eventItem.id}`}
+          style={{
+            color: COLORS.ANTD_RED_WARN,
+            fontWeight: "bold"
+          }}
+        >
+          <Icon name="edit" /> Edit
+        </A>
+      </Flex>
+    );
+  }
+
   const upcomingEventsDataSource = upcomingEvents.map((upcomingEvent) => ({
     link: upcomingEvent.url,
     linkText: <>Event Website <Icon name="external-link" /></>,
-    title: <TitleComponent newsItem={upcomingEvent} showHelpTicket />,
-    description: <Markdown value={upcomingEvent.text} />,
+    title: <TitleComponent
+      newsItem={upcomingEvent}
+      showHelpTicket
+    />,
+    description: <>
+      <Markdown value={upcomingEvent.text} />
+      {eventFooter(upcomingEvent)}
+    </>,
   })) as DataSource;
 
   const pastEventsDataSource = pastEvents.map((pastEvent) => ({
     link: pastEvent.url,
     linkText: <>Event Website <Icon name="external-link" /></>,
     title: <TitleComponent newsItem={pastEvent} />,
-    description: <Markdown value={pastEvent.text} />,
+    description: <>
+      <Markdown value={pastEvent.text} />
+      {eventFooter(pastEvent)}
+    </>,
   })) as DataSource;
 
   return (
@@ -111,6 +142,22 @@ export default function Events({ customize, upcomingEvents, pastEvents}: EventsP
               }
               description={
                 <>
+                  {isAdmin && (
+                    <Alert
+                      style={{
+                        marginTop: "12px",
+                        marginBottom: "12px",
+                      }}
+                      banner={true}
+                      type="warning"
+                      message={
+                        <>
+                          Admin only: <A href="/news/edit/new?channel=event">Create Event</A>
+                        </>
+                      }
+                    />
+                  )}
+
                   We are committed to engaging with the scientific community this upcoming year.
                   Here, you can stay updated with where to find us "out in the wild." We have
                   recently participated as exhibitors for CoCalc at popular events such as the

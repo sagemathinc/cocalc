@@ -91,6 +91,17 @@ export default function EditNews(props: Props) {
 
   useEffect(() => {
     form.setFieldsValue(data);
+
+    // If we're creating a new item, set the channel from URL params (if such a param exists).
+    // This is used when creating a new event from the events page.
+    //
+    if (isNew) {
+      const { channel } = router.query;
+      if (typeof channel === "string" && CHANNELS.includes(channel as Channel)) {
+        form.setFieldValue("channel", channel);
+      }
+    }
+
     form.validateFields();
   }, [data]);
 
@@ -99,12 +110,18 @@ export default function EditNews(props: Props) {
     try {
       // send data, but convert date field to epoch seconds
       const next = { ...data, id, date: data.date.unix() };
+      const { channel } = data;
       const ret = await apiPost("/news/edit", next);
       if (ret == null || ret.id == null) {
         throw Error("Problem saving news item – no id returned.");
       }
-      if (isNew) {
-        router.push(`/news/edit/${ret.id}`, undefined, { scroll: false });
+      if (channel === "event") {
+        router.push("/about/events", undefined, { scroll: false });
+      } else {
+        router.push(slugURL({
+          ...data,
+          ...ret,
+        }), undefined, { scroll: false });
       }
       // this signals to the user that the save was successful
       setSaved(ret.id);
@@ -139,10 +156,22 @@ export default function EditNews(props: Props) {
       case "announcement":
         return "Use this rarely, only once or twice a month.";
       case "event":
-        return "Let users know about upcoming company/conference events.";
+        return "Let users know about upcoming company/conference events. These events are ONLY" +
+          " shown in the About page and are filtered from normal news views.";
       default:
         return CHANNELS_DESCRIPTIONS[channel];
     }
+  }
+
+  function updateChannelParam(channel: string) {
+    const { query } = router;
+
+    router.replace({
+      query: {
+        ...query,
+        channel,
+      },
+    }, undefined, { shallow: true, scroll: false });
   }
 
   function edit() {
@@ -187,7 +216,7 @@ export default function EditNews(props: Props) {
             rules={[{ required: true }]}
             extra={explainChannel(data.channel)}
           >
-            <Select>
+            <Select onSelect={(value) => updateChannelParam(value)}>
               {CHANNELS.map((ch) => {
                 return (
                   <Select.Option value={ch} key={ch}>

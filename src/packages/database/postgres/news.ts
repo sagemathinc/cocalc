@@ -18,7 +18,7 @@ export function clearCache(): void {
   C.clear();
 }
 
-// we exclude hidden and future news items and items from the events channel to keep user's news
+// We exclude hidden and future news items and items from the events channel to keep user's news
 // feed clear
 const Q_FEED = `
 SELECT
@@ -106,7 +106,7 @@ SELECT
   date >= NOW() as future,
   extract(epoch from date::timestamptz)::INTEGER as date
 FROM news
-    WHERE channel != '${EVENT_CHANNEL}'
+    WHERE channel <> '${EVENT_CHANNEL}'
 ORDER BY date DESC
 LIMIT $1
 OFFSET $2`;
