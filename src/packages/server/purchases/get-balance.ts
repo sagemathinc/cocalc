@@ -11,8 +11,11 @@ compute the sum of the following, over all rows of the table for a given account
 */
 
 // selects the cost, or if not done, the rate-based cost cost so far, or if not that the usage based cost so far.
+// We convert to ::decimal because cost is of type "real" (4 bytes) and in some cases COALESCE(a,b) with real is NOT
+// equal to either a or b!  Or rather, it is a real that is technically equal to one of those numbers, but not as
+// a double.
 export const COST_OR_METERED_COST =
-  "COALESCE(cost, COALESCE(cost_so_far, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600))";
+  "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)";
 
 export default async function getBalance(
   account_id: string,
