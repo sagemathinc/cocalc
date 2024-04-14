@@ -272,30 +272,17 @@ function startDocker() {
 # sometimes after configuring the zpool, docker is not running, or
 # it never started due to the zpool needing to be configured, so we
 # ensure docker is running.
-docker ps
 
-if [ $? -ne 0 ]; then
-    service docker start
+while true; do
     docker ps
-    if [ $? -ne 0 ]; then
-        sleep 5
+    if [ $? -eq 0 ]; then
+        break
+    else
+        echo "Docker not running; trying to start it again..."
+        sleep 1
         service docker start
-
-        docker ps
-        if [ $? -ne 0 ]; then
-            sleep 7
-            service docker start
-        fi
-
-        docker ps
-        if [ $? -ne 0 ]; then
-            echo "Unable to start Docker"
-            exit 1
-        fi
     fi
-
-fi
-
+done
 `;
 }
 
