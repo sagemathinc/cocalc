@@ -234,7 +234,7 @@ export async function makeDnsChange({
   } else {
     // setting/adding/changing DNS -- definitely need to have an ip address
     if (!ipAddress) {
-      const message = `no external ip address has been allocated to compute server ${id} so we can't point DNS at it`;
+      const message = `No ip address allocated to compute server, so can't update DNS. Click 'Running' to try again.`;
       logger.debug("makeDnsChange", message);
       throw Error(message);
     }
