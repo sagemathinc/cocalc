@@ -15,7 +15,8 @@ compute the sum of the following, over all rows of the table for a given account
 // equal to either a or b!  Or rather, it is a real that is technically equal to one of those numbers, but not as
 // a double.
 export const COST_OR_METERED_COST =
-  "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)";
+   "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)::real";
+
 
 export default async function getBalance(
   account_id: string,
