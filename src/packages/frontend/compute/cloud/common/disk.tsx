@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Alert, Button, InputNumber, Select, Space, Switch } from "antd";
 import { SELECTOR_WIDTH } from "@cocalc/frontend/compute/google-cloud-config";
-import { commas, currency } from "@cocalc/util/misc";
-import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import { commas, currency, round2up } from "@cocalc/util/misc";
+import {
+  markup,
+  hyperdiskCostParams,
+  DEFAULT_HYPERDISK_BALANCED_IOPS,
+  DEFAULT_HYPERDISK_BALANCED_THROUGHPUT,
+} from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 interface Props {
   setConfig;
@@ -276,34 +281,50 @@ export default function Disk(props: Props) {
                     </div>
                   ),
                 },
+                {
+                  value: "hyperdisk-balanced",
+                  label: (
+                    <div>
+                      Hyperdisk
+                      <div style={{ fontFamily: "monospace", float: "right" }}>
+                        <HyperdiskCost
+                          region={configuration.region}
+                          priceData={priceData}
+                        />
+                      </div>
+                    </div>
+                  ),
+                },
               ]}
             ></Select>
-            <div style={{ marginLeft: "15px" }}>
-              <b>Total Cost for {commas(configuration.diskSizeGb)}GB:</b>{" "}
-              {currency(
-                markup({
-                  cost:
-                    configuration.diskSizeGb *
-                    priceData.disks[configuration.diskType]?.prices[
-                      configuration.region
-                    ],
-                  priceData,
-                }),
-              )}
-              /hour or{" "}
-              {currency(
-                markup({
-                  cost:
-                    configuration.diskSizeGb *
-                    priceData.disks[configuration.diskType]?.prices[
-                      configuration.region
-                    ] *
-                    730,
-                  priceData,
-                }),
-              )}
-              /month
-            </div>
+            {configuration.diskType != "hyperdisk-balanced" && (
+              <div style={{ marginLeft: "15px" }}>
+                <b>Total Cost for {commas(configuration.diskSizeGb)}GB:</b>{" "}
+                {currency(
+                  markup({
+                    cost:
+                      configuration.diskSizeGb *
+                      priceData.disks[configuration.diskType]?.prices[
+                        configuration.region
+                      ],
+                    priceData,
+                  }),
+                )}
+                /hour or{" "}
+                {currency(
+                  markup({
+                    cost:
+                      configuration.diskSizeGb *
+                      priceData.disks[configuration.diskType]?.prices[
+                        configuration.region
+                      ] *
+                      730,
+                    priceData,
+                  }),
+                )}
+                /month
+              </div>
+            )}
           </Space>
 
           {newDiskType == "pd-standard" && (
@@ -313,8 +334,88 @@ export default function Disk(props: Props) {
               disks are much faster.
             </div>
           )}
+          {newDiskType == "hyperdisk-balanced" && (
+            <HyperdiskInfo
+              diskSizeGb={configuration.diskSizeGb}
+              priceData={priceData}
+              region={configuration.region}
+              style={{ marginTop: "15px" }}
+            />
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function HyperdiskCost({ region, priceData }) {
+  const { capacity, iops, throughput } = hyperdiskCostParams({
+    region,
+    priceData,
+  });
+  const costProvisioned = markup({
+    cost:
+      iops * DEFAULT_HYPERDISK_BALANCED_IOPS +
+      throughput * DEFAULT_HYPERDISK_BALANCED_THROUGHPUT,
+    priceData,
+  });
+  return (
+    <div>
+      {currency(730 * costProvisioned)} +{" "}
+      {currency(
+        markup({
+          cost: capacity * 730,
+          priceData,
+        }),
+      )}
+      /GB per month
+    </div>
+  );
+}
+
+function HyperdiskInfo({ priceData, style, region, diskSizeGb }) {
+  const { capacity, iops, throughput } = hyperdiskCostParams({
+    region,
+    priceData,
+  });
+  const { requiredMachineTypes, supportedMachineTypes } =
+    priceData.extra["hyperdisk-balanced"];
+  const costProvisioned = markup({
+    cost:
+      iops * DEFAULT_HYPERDISK_BALANCED_IOPS +
+      throughput * DEFAULT_HYPERDISK_BALANCED_THROUGHPUT,
+    priceData,
+  });
+  const costCapacity = markup({ cost: capacity * diskSizeGb, priceData });
+  return (
+    <Alert
+      style={style}
+      showIcon
+      type="info"
+      message={"Balanced Hyperdisks"}
+      description={
+        <>
+          Balanced Hyperdisks provide at least{" "}
+          {commas(DEFAULT_HYPERDISK_BALANCED_THROUGHPUT)}MB/s throughput and{" "}
+          {commas(DEFAULT_HYPERDISK_BALANCED_IOPS)} iops. They can be used with
+          machine types {supportedMachineTypes.join(", ")} and are required for{" "}
+          {requiredMachineTypes.join(", ")}. The monthly cost is a fixed
+          provisioning cost, plus a cost per GB of data:
+          <div style={{ textAlign: "center", marginTop: "10px" }}>
+            {currency(costProvisioned * 730)}... &nbsp;&nbsp;+ &nbsp;&nbsp;
+            {diskSizeGb}GB ×{" "}
+            {currency(
+              markup({
+                cost: capacity * 730,
+                priceData,
+              }),
+            )}
+            .../GB per month&nbsp;&nbsp;~&nbsp;&nbsp;
+            {currency(round2up(730 * (costProvisioned + costCapacity)))} per
+            month
+          </div>
+        </>
+      }
+    />
   );
 }

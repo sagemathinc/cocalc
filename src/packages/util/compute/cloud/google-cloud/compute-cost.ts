@@ -29,6 +29,9 @@ export interface GoogleCloudData {
     "pd-standard": { prices: { [zone: string]: number } };
     "pd-ssd": { prices: { [zone: string]: number } };
     "pd-balanced": { prices: { [zone: string]: number } };
+    "hyperdisk-balanced-capacity": { prices: { [zone: string]: number } };
+    "hyperdisk-balanced-iops": { prices: { [zone: string]: number } };
+    "hyperdisk-balanced-throughput": { prices: { [zone: string]: number } };
   };
   accelerators: { [acceleratorType: string]: PriceData };
   zones: { [zone: string]: ZoneData };
@@ -108,16 +111,67 @@ export function computeInstanceCost({ configuration, priceData }) {
 }
 
 // Compute the total cost of disk for this configuration, including any markup.
-export function computeDiskCost({ configuration, priceData }: Options): number {
-  const diskType = configuration.diskType ?? "pd-standard";
-  const diskCostPerGB = priceData.disks[diskType]?.prices[configuration.region];
-  log("disk cost per GB per hour", { diskCostPerGB });
-  if (diskCostPerGB == null) {
+
+// for now this is the only thing we support
+export const DEFAULT_HYPERDISK_BALANCED_IOPS = 3000;
+export const DEFAULT_HYPERDISK_BALANCED_THROUGHPUT = 150;
+
+export function hyperdiskCostParams({ region, priceData }): {
+  capacity: number;
+  iops: number;
+  throughput: number;
+} {
+  const diskType = "hyperdisk-balanced";
+  const capacity =
+    priceData.disks["hyperdisk-balanced-capacity"]?.prices[region];
+  if (!capacity) {
     throw Error(
-      `unable to determine cost since disk cost in region ${configuration.region} is unknown. Select a different region.`,
+      `Unable to determine ${diskType} capacity pricing in ${region}. Select a different region.`,
     );
   }
-  const cost = diskCostPerGB * (configuration.diskSizeGb ?? 10);
+  const iops = priceData.disks["hyperdisk-balanced-iops"]?.prices[region];
+  if (!iops) {
+    throw Error(
+      `Unable to determine ${diskType} iops pricing in ${region}. Select a different region.`,
+    );
+  }
+  const throughput =
+    priceData.disks["hyperdisk-balanced-throughput"]?.prices[region];
+  if (!throughput) {
+    throw Error(
+      `Unable to determine ${diskType} throughput pricing in ${region}. Select a different region.`,
+    );
+  }
+  return { capacity, iops, throughput };
+}
+
+export function computeDiskCost({ configuration, priceData }: Options): number {
+  const diskType = configuration.diskType ?? "pd-standard";
+  let cost;
+  if (diskType == "hyperdisk-balanced") {
+    // per hour pricing for hyperdisks is NOT "per GB". The pricing is per hour, but the
+    // formula is not as simple as "per GB", so we compute the cost per hour via
+    // the more complicated formula here.
+    const { capacity, iops, throughput } = hyperdiskCostParams({
+      priceData,
+      region: configuration.region,
+    });
+    cost =
+      (configuration.diskSizeGb ?? 10) * capacity +
+      DEFAULT_HYPERDISK_BALANCED_IOPS * iops +
+      DEFAULT_HYPERDISK_BALANCED_THROUGHPUT * throughput;
+  } else {
+    // per hour pricing for the rest of the disks is just "per GB" via the formula here.
+    const diskCostPerGB =
+      priceData.disks[diskType]?.prices[configuration.region];
+    log("disk cost per GB per hour", { diskCostPerGB });
+    if (!diskCostPerGB) {
+      throw Error(
+        `unable to determine cost since disk cost in region ${configuration.region} is unknown. Select a different region.`,
+      );
+    }
+    cost = diskCostPerGB * (configuration.diskSizeGb ?? 10);
+  }
   return markup({ cost, priceData });
 }
 

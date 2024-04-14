@@ -573,7 +573,17 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
   "nvidia-tesla-p100",
 ];
 
-const GOOGLE_CLOUD_DISK_TYPES = ["pd-standard", "pd-balanced", "pd-ssd"];
+const GOOGLE_CLOUD_DISK_TYPES = [
+  "pd-standard",
+  "pd-balanced",
+  "pd-ssd",
+  // NOTE: hyperdisks are complicated and multidimensional, but for cocalc
+  // we just hardcode options for the iops and bandwidth, and allow the
+  // user to adjust the size.  Also, "hyperdisk-balanced" means hyperdisk
+  // with the defaults for iops and bandwidth defined in
+  // src/packages/util/compute/cloud/google-cloud/compute-cost.ts
+  "hyperdisk-balanced",
+];
 
 export interface GoogleCloudConfiguration extends BaseConfiguration {
   cloud: "google-cloud";
