@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
 import { Alert, Button, InputNumber, Select, Space, Switch } from "antd";
 import { SELECTOR_WIDTH } from "@cocalc/frontend/compute/google-cloud-config";
 import { commas, currency, round2up } from "@cocalc/util/misc";
@@ -387,6 +388,13 @@ function HyperdiskInfo({ priceData, style, region, diskSizeGb }) {
     priceData,
   });
   const costCapacity = markup({ cost: capacity * diskSizeGb, priceData });
+  // NOTE: I did benchmarks and you get about 12MB/s even with 32 cpus.
+  // I think th bandwidth is capped by iops/256 = 3000/256 = 11.71875,
+  // even though the google docs say it's the min of that and some other
+  // huge number (i.e., the docs are backwards and wrong).
+  // https://cloud.google.com/compute/docs/disks/hyperdisks#hyperdisks
+  // "Min throughput	The greater of IOPS divided by 256 or 140 MBps"
+  // But it should be "lesser" not "greater"!
   return (
     <Alert
       style={style}
@@ -395,10 +403,12 @@ function HyperdiskInfo({ priceData, style, region, diskSizeGb }) {
       message={"Balanced Hyperdisks"}
       description={
         <>
-          Balanced Hyperdisks provide at least{" "}
-          {commas(DEFAULT_HYPERDISK_BALANCED_THROUGHPUT)}MB/s throughput and{" "}
-          {commas(DEFAULT_HYPERDISK_BALANCED_IOPS)} iops. They can be used with
-          machine types {supportedMachineTypes.join(", ")} and are required for{" "}
+          Balanced hyperdisks provide {commas(DEFAULT_HYPERDISK_BALANCED_IOPS)}{" "}
+          <A href="https://cloud.google.com/compute/docs/disks/hyperdisks#hyperdisks">
+            IOPS
+          </A>{" "}
+          for any size disk. They can be used with machine types{" "}
+          {supportedMachineTypes.join(", ")} and are required for{" "}
           {requiredMachineTypes.join(", ")}. The monthly cost is a fixed
           provisioning cost, plus a cost per GB of data:
           <div style={{ textAlign: "center", marginTop: "10px" }}>

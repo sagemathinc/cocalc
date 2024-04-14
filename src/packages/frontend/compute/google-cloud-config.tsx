@@ -179,11 +179,18 @@ export default function GoogleCloudConfiguration({
       , and a{" "}
       {configuration.diskSizeGb ??
         `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
-      GB
-      {(configuration.diskType ?? "pd-standard") != "pd-standard"
-        ? " SSD "
-        : " HDD "}{" "}
-      disk in {configuration.zone}.
+      GB{" "}
+      {configuration.diskType?.includes("hyper") ? (
+        "hyperdisk"
+      ) : (
+        <>
+          {(configuration.diskType ?? "pd-standard") != "pd-standard"
+            ? " SSD "
+            : " HDD "}{" "}
+          disk
+        </>
+      )}{" "}
+      in {configuration.zone}.
     </div>
   );
 

@@ -595,6 +595,8 @@ export interface GoogleCloudConfiguration extends BaseConfiguration {
   // The boot disk:
   // diskSizeGb is an integer >= 10.  It defaults to 10. It's the size of the boot disk.
   diskSizeGb?: number;
+  hyperdiskBalancedIops?: number;
+  hyperdiskBalancedThroughput?: number;
   diskType?: (typeof GOOGLE_CLOUD_DISK_TYPES)[number];
   acceleratorType?: (typeof GOOGLE_CLOUD_ACCELERATOR_TYPES)[number];
   // the allowed number depends on the accelerator; it defaults to 1.

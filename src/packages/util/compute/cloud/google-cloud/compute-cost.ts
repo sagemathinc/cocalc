@@ -114,7 +114,7 @@ export function computeInstanceCost({ configuration, priceData }) {
 
 // for now this is the only thing we support
 export const DEFAULT_HYPERDISK_BALANCED_IOPS = 3000;
-export const DEFAULT_HYPERDISK_BALANCED_THROUGHPUT = 150;
+export const DEFAULT_HYPERDISK_BALANCED_THROUGHPUT = 140;
 
 export function hyperdiskCostParams({ region, priceData }): {
   capacity: number;
@@ -158,8 +158,11 @@ export function computeDiskCost({ configuration, priceData }: Options): number {
     });
     cost =
       (configuration.diskSizeGb ?? 10) * capacity +
-      DEFAULT_HYPERDISK_BALANCED_IOPS * iops +
-      DEFAULT_HYPERDISK_BALANCED_THROUGHPUT * throughput;
+      (configuration.hyperdiskBalancedIops ?? DEFAULT_HYPERDISK_BALANCED_IOPS) *
+        iops +
+      (configuration.hyperdiskBalancedThroughput ??
+        DEFAULT_HYPERDISK_BALANCED_THROUGHPUT) *
+        throughput;
   } else {
     // per hour pricing for the rest of the disks is just "per GB" via the formula here.
     const diskCostPerGB =
