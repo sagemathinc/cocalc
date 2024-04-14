@@ -260,8 +260,42 @@ fi
 // TODO: we could set the hostname in a more useful way!
 function runCoCalcCompute(opts) {
   return `
+${startDocker()}
 ${filesystem(opts)}
 ${compute(opts)}
+`;
+}
+
+function startDocker() {
+  return `
+
+# sometimes after configuring the zpool, docker is not running, or
+# it never started due to the zpool needing to be configured, so we
+# ensure docker is running.
+docker ps
+
+if [ $? -ne 0 ]; then
+    service docker start
+    docker ps
+    if [ $? -ne 0 ]; then
+        sleep 5
+        service docker start
+
+        docker ps
+        if [ $? -ne 0 ]; then
+            sleep 7
+            service docker start
+        fi
+
+        docker ps
+        if [ $? -ne 0 ]; then
+            echo "Unable to start Docker"
+            exit 1
+        fi
+    fi
+
+fi
+
 `;
 }
 

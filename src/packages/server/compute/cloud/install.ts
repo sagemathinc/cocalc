@@ -140,11 +140,6 @@ export function installZpool({ cloud }: { cloud: Cloud }) {
 
 cd /cocalc/hyperstack
 ./zpool-init.sh
-
-# sometimes after configuring the zpool, docker is not running, or
-# it never started due to the zpool needing to be configured, so we
-# ensure docker is running.
-service docker start
 `;
 }
 
