@@ -1360,6 +1360,8 @@ function ensureConsistentConfiguration(
 
   ensureSufficientDiskSize(newConfiguration, newChanges, IMAGES);
 
+  ensureConsistentDiskType(priceData, newConfiguration, newChanges);
+
   return newChanges;
 }
 
@@ -1385,6 +1387,25 @@ function ensureSufficientDiskSize(configuration, changes, IMAGES) {
   const min = getMinDiskSizeGb({ configuration, IMAGES });
   if ((configuration.diskSizeGb ?? 0) < min) {
     changes.diskSizeGb = min;
+  }
+}
+
+function ensureConsistentDiskType(priceData, configuration, changes) {
+  const { machineType } = configuration;
+  const m = machineType.split("-")[0];
+  if (configuration.diskType == "hyperdisk-balanced") {
+    // make sure machine is supported
+    const { supportedMachineTypes } = priceData.extra["hyperdisk-balanced"];
+    if (!supportedMachineTypes.includes(m)) {
+      // can't use hyperdisk on this machine, so fix.
+      configuration.diskType = changes.diskType = "pd-balanced";
+    }
+  } else {
+    const { requiredMachineTypes } = priceData.extra["hyperdisk-balanced"];
+    if (requiredMachineTypes.includes(m)) {
+      // must use hyperdisk on this machine, so fix.
+      configuration.diskType = changes.diskType = "hyperdisk-balanced";
+    }
   }
 }
 

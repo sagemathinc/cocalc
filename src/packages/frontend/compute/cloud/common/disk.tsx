@@ -50,7 +50,7 @@ export default function Disk(props: Props) {
   useEffect(() => {
     setNewDiskSizeGb(configuration.diskSizeGb ?? minSizeGb);
     setNewDiskType(configuration.diskType ?? "pd-standard");
-  }, [configuration.diskSizeGb]);
+  }, [configuration]);
 
   useEffect(() => {
     if (newDiskSizeGb == null) {
@@ -71,6 +71,11 @@ export default function Disk(props: Props) {
       setNewDiskSizeGb(min);
     }
   }, [configuration.acceleratorType]);
+
+  const { requiredMachineTypes, supportedMachineTypes } = priceData?.extra?.[
+    "hyperdisk-balanced"
+  ] ?? { requiredMachineTypes: [], supportedMachineTypes: [] };
+  const machineType = configuration.machineType?.split("-")[0];
 
   return (
     <div>
@@ -223,6 +228,7 @@ export default function Disk(props: Props) {
               }}
               options={[
                 {
+                  disabled: requiredMachineTypes.includes(machineType),
                   value: "pd-balanced",
                   label: (
                     <div>
@@ -243,6 +249,7 @@ export default function Disk(props: Props) {
                   ),
                 },
                 {
+                  disabled: requiredMachineTypes.includes(machineType),
                   value: "pd-ssd",
                   label: (
                     <div>
@@ -263,6 +270,7 @@ export default function Disk(props: Props) {
                   ),
                 },
                 {
+                  disabled: requiredMachineTypes.includes(machineType),
                   value: "pd-standard",
                   label: (
                     <div>
@@ -283,6 +291,7 @@ export default function Disk(props: Props) {
                   ),
                 },
                 {
+                  disabled: !supportedMachineTypes.includes(machineType),
                   value: "hyperdisk-balanced",
                   label: (
                     <div>
