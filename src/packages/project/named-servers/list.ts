@@ -63,6 +63,7 @@ const JUPYTERLAB_MSGS =
 async function rserver(_ip: string, port: number, basePath: string) {
   // tmp: this is used to write a small config file and then use it
   const tmp = join(process.env.TMP ?? "/tmp", "rserver");
+  await mkdir(tmp, { recursive: true });
   const home = process.env.HOME ?? "/home/user";
   // ATTN: by trial and error I learned this must be in the home dir (not tmp) – otherwise silent crash
   // Also, that dir name has a length limit (unknown), does not work for nested dev-in-project
