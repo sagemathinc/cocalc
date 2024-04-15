@@ -120,11 +120,17 @@ export default function CreateComputeServer({ project_id, onCreate }) {
 
   const footer = [
     <div style={{ textAlign: "center" }} key="footer">
-      <Button key="cancel" size="large" onClick={() => setEditing(false)}>
+      <Button
+        key="cancel"
+        size="large"
+        onClick={() => setEditing(false)}
+        style={{ marginRight: "5px" }}
+      >
         Cancel
       </Button>
       {cloud != "onprem" && (
         <Button
+          style={{ marginRight: "5px" }}
           key="start"
           size="large"
           type="primary"
@@ -133,7 +139,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           }}
           disabled={!!error || !title.trim()}
         >
-          <Icon name="run" /> Start Compute Server
+          <Icon name="run" /> Start Server
           {!!error && "(clear error) "}
           {!title.trim() && "(set title) "}
         </Button>
@@ -146,7 +152,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }}
         disabled={!!error || !title.trim()}
       >
-        <Icon name="run" /> Create Server
+        <Icon name="run" /> Create Server (don't start)
         {!!error && "(clear error) "}
         {!title.trim() && "(set title) "}
       </Button>
@@ -215,8 +221,9 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             <Button
               onClick={() => handleCreate(true)}
               disabled={!!error || !title.trim()}
+              type={'primary'}
             >
-              <Icon name="run" /> Start It
+              <Icon name="run" /> Start Server
             </Button>
           </div>
           <ComputeServer

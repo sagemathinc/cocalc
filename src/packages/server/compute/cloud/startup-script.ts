@@ -1,22 +1,53 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getImages, Images } from "@cocalc/server/compute/images";
 import {
-  installDocker,
   installNode,
   installCoCalc,
+  installZpool,
+  installDocker,
+  installNvidiaDocker,
   installConf,
   installMicroK8s,
   installUser,
   UID,
 } from "./install";
+import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
 // the user reboots the VM in some way, so they get the latest
 // cocalc startup script (with newest ssh keys, etc.) on startup.
+// This is assumed to be 1 line in various place, e.g., in cloudInitScript below.
 export async function startupScriptViaApi({ compute_server_id, api_key }) {
   const apiServer = await getApiServer();
   return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
+}
+
+export async function cloudInitScript({ compute_server_id, api_key }) {
+  // This is a little tricky because we want it to run *every* time,
+  // not just the first time, and cloud init doesn't have a nice way to
+  // do that.
+  return `#cloud-config
+
+write_files:
+  - path: /root/cocalc-startup.sh
+    permissions: "0700"
+    content: |
+        #!/bin/bash
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+
+runcmd:
+  - |
+    #!/bin/bash
+    set -v
+    crontab -l | grep "@reboot /root/cocalc-startup.sh"
+    if [ $? -ne 0 ]; then
+      # first boot ever, and crontab not setup, so we we add /root/cocalc-start.sh to
+      # crontab and run it. Otherwise, it will already be run.
+      (crontab -l 2>/dev/null; echo "@reboot /root/cocalc-startup.sh") | crontab -
+      /root/cocalc-startup.sh
+    fi
+`;
 }
 
 async function getApiServer() {
@@ -28,6 +59,7 @@ async function getApiServer() {
 }
 
 export default async function startupScript({
+  cloud,
   image = "python",
   tag,
   tag_filesystem,
@@ -42,6 +74,7 @@ export default async function startupScript({
   proxy,
   installUser: doInstallUser,
 }: {
+  cloud: Cloud;
   image?: string; // compute image
   tag?: string; // compute docker image tag
   tag_filesystem?: string; // filesystem docker image tag
@@ -73,6 +106,7 @@ export default async function startupScript({
 
 set -v
 
+export COCALC_CLOUD=${cloud}
 export DEBIAN_FRONTEND=noninteractive
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
@@ -102,14 +136,14 @@ ${userSsh()}
 docker
 if [ $? -ne 0 ]; then
    setState install install-docker '' 120 20
-${installDocker()}
+   ${installDocker()}
+   ${installNvidiaDocker({ gpu })}
+   if [ $? -ne 0 ]; then
+      setState install error "problem installing Docker"
+      exit 1
+   fi
 fi
 
-# We use group 999 for docker inside the compute container,
-# so that has to also be the case outside or docker without
-# sudo won't work.
-groupmod -g 999 docker
-chgrp docker /var/run/docker.sock
 
 setState install install-nodejs '' 60 40
 ${installNode()}
@@ -125,7 +159,21 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
-setState install install-user '' 60 60
+setState install install-zpool '' 120 60
+${installZpool({ cloud })}
+if [ $? -ne 0 ]; then
+   setState install error "problem configuring zpool"
+   exit 1
+fi
+
+# We use group 999 for docker inside the compute container,
+# so that has to also be the case outside or docker without
+# sudo won't work.
+groupmod -g 999 docker
+chgrp docker /var/run/docker.sock
+
+
+setState install install-user '' 60 70
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
    setState install error "problem creating user"
@@ -212,8 +260,29 @@ fi
 // TODO: we could set the hostname in a more useful way!
 function runCoCalcCompute(opts) {
   return `
+${startDocker()}
 ${filesystem(opts)}
 ${compute(opts)}
+`;
+}
+
+function startDocker() {
+  return `
+
+# sometimes after configuring the zpool, docker is not running, or
+# it never started due to the zpool needing to be configured, so we
+# ensure docker is running.
+
+while true; do
+    docker ps
+    if [ $? -eq 0 ]; then
+        break
+    else
+        echo "Docker not running; trying to start it again..."
+        sleep 1
+        service docker start
+    fi
+done
 `;
 }
 
@@ -261,13 +330,19 @@ docker rm filesystem >/dev/null 2>&1
 
 setState filesystem run '' 45 25
 
+export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
+
+mkdir -p /ephemeral
+chown user:user /ephemeral
 docker run \
  -d \
  --name=filesystem \
  --privileged \
+ --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
  --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
  --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
  --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+ --mount type=bind,source=/ephemeral,target=/ephemeral,bind-propagation=rshared \
  -v /cocalc:/cocalc \
  ${docker}:${tag}
 
@@ -337,13 +412,18 @@ docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   setState compute run '' 20 25
+  export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
+  mkdir -p /ephemeral
+  chown user:user /ephemeral
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --network host \
    --privileged \
+   --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
    --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
    --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+   --mount type=bind,source=/ephemeral,target=/ephemeral,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v /cocalc:/cocalc \
    ${docker}:${tag}

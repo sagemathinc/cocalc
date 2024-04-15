@@ -1,12 +1,4 @@
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Modal,
-  Popconfirm,
-  Popover,
-  Spin,
-} from "antd";
+import { Alert, Button, Modal, Popconfirm, Popover, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import {
   ACTION_INFO,
@@ -284,15 +276,15 @@ function ActionButton({
             )}
             {!configuration.ephemeral && danger && (
               <div>
-                <Checkbox
-                  onChange={(e) => setUnderstand(e.target.checked)}
-                  checked={understand}
-                >
-                  <b>
-                    {confirmMessage ??
-                      "I understand that this may result in data loss."}
-                  </b>
-                </Checkbox>
+                {/* ATTN: Not using a checkbox here to WORKAROUND A BUG IN CHROME that I see after a day or so! */}
+                <Button onClick={() => setUnderstand(!understand)} type="text">
+                  <Icon
+                    name={understand ? "check-square" : "square"}
+                    style={{ marginRight: "5px" }}
+                  />
+                  {confirmMessage ??
+                    "I understand that this may result in data loss."}
+                </Button>
               </div>
             )}
           </div>

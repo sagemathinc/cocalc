@@ -7,6 +7,8 @@ import type {
   GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
+
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { redux } from "@cocalc/frontend/app-framework";
 
@@ -83,6 +85,26 @@ export const getGoogleCloudPriceData = reuseInFlight(
       throw Error("bug");
     }
     return googleCloudPriceData;
+  },
+);
+
+// Cache for 5 minutes -- cache less since this includes realtime
+// information about GPU availability.
+let hyperstackPriceData: HyperstackPriceData | null = null;
+let hyperstackPriceDataExpire: number = 0;
+export const getHyperstackPriceData = reuseInFlight(
+  async (): Promise<HyperstackPriceData> => {
+    if (
+      hyperstackPriceData == null ||
+      Date.now() >= hyperstackPriceDataExpire
+    ) {
+      hyperstackPriceData = await api("compute/get-hyperstack-pricing-data");
+      hyperstackPriceDataExpire = Date.now() + 1000 * 60 * 5; // 5 minute cache
+    }
+    if (hyperstackPriceData == null) {
+      throw Error("bug");
+    }
+    return hyperstackPriceData;
   },
 );
 
@@ -172,7 +194,7 @@ async function getImagesFor({
       endpoint,
       // admin reload forces fetch data from github and/or google cloud - normal users just have their cache ignored above
       reload && redux.getStore("account").get("is_admin")
-        ? { ttl: 0 }
+        ? { noCache: true }
         : undefined,
     );
     cacheSet(cloud, images);

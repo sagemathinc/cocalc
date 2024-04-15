@@ -22,6 +22,10 @@ import managePurchases, {
 } from "./manage-purchases";
 import { getPurchase } from "./util";
 
+// we put a small delay in some cases due to using a database query pool.
+// This might need to be adjusted for CI infrastructure.
+const DELAY = 100;
+
 beforeAll(async () => {
   await initEphemeralDatabase();
 }, 15000);
@@ -269,7 +273,7 @@ describe("confirm managing of purchases works", () => {
       [server_id],
     );
     await managePurchases();
-    await delay(10);
+    await delay(DELAY);
     const server = await getServer({ account_id, id: server_id });
     expect(server.state).toEqual(
       expect.stringContaining("off") || expect.stringContaining("stopping"),
@@ -312,7 +316,7 @@ describe("confirm managing of purchases works", () => {
     // stop server rather than making a purchase.
     // This is basically a double check on the frontend and rest of the system.
     await managePurchases();
-    await delay(10);
+    await delay(DELAY);
     server = await getServer({ account_id, id: server_id });
     expect(
       server.state == "off" ||
@@ -329,10 +333,10 @@ describe("confirm managing of purchases works", () => {
       "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
       [server_id],
     );
-    await delay(10);
+    await delay(DELAY);
     await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 100));
     await managePurchases();
-    await delay(10);
+    await delay(DELAY);
     const server = await getServer({ account_id, id: server_id });
     expect(server.state == "deprovisioned").toBe(true);
     expect(server.error).toContain(

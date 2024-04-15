@@ -7,8 +7,7 @@ import { throttle } from "lodash";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import { original_path } from "@cocalc/util/misc";
-import { MentionList } from "./store";
-import { Message } from "./types";
+import { ChatMessageTyped, MentionList } from "./types";
 
 export const INPUT_HEIGHT = "125px";
 
@@ -71,20 +70,21 @@ export function compute_cursor_offset_position(
   return index_offset + usuable_cursor_index;
 }
 
-export function newest_content(message: Message): string {
-  return message.get("history")?.first()?.get("content") ?? "";
+export function newest_content(message: ChatMessageTyped): string {
+  const history = message.get("history");
+  return history?.first()?.get("content") ?? "";
 }
 
 export function sender_is_viewer(
   account_id: string,
-  message: Message,
+  message: ChatMessageTyped,
 ): boolean {
   return account_id == message.get("sender_id");
 }
 
 export function message_colors(
   account_id: string,
-  message: Message,
+  message: ChatMessageTyped,
 ): {
   background: string;
   color: string;
@@ -107,7 +107,10 @@ export function message_colors(
   }
 }
 
-export function is_editing(message: Message, account_id: string): boolean {
+export function is_editing(
+  message: ChatMessageTyped,
+  account_id: string,
+): boolean {
   return message.get("editing")?.has(account_id);
 }
 

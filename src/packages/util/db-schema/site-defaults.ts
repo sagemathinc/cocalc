@@ -92,7 +92,8 @@ export type SiteSettingsKeys =
   | "compute_servers_google-cloud_enabled"
   | "compute_servers_onprem_enabled"
   | "compute_servers_dns_enabled"
-  | "compute_servers_dns";
+  | "compute_servers_dns"
+  | "compute_servers_hyperstack_enabled";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -337,7 +338,7 @@ export const site_settings_conf: SiteSettings = {
     valid: is_valid_email_address,
     clearable: true,
     show: show_theming_vars,
-    tags: ["Theme"],
+    tags: ["Theme", "Email"],
   },
   terms_of_service_url: {
     name: "Terms of Service URL",
@@ -378,7 +379,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     valid: is_valid_email_address,
     show: show_theming_vars,
-    tags: ["Theme"],
+    tags: ["Theme", "Email"],
   },
   organization_url: {
     name: "Organization website",
@@ -746,6 +747,14 @@ export const site_settings_conf: SiteSettings = {
   compute_servers_onprem_enabled: {
     name: "Enable Compute Servers - On Prem",
     desc: "Whether or not to include on prem compute servers.  Right now, these are VM's that must be manually managed by a user and involve copy/paste, but someday they will be much more automated.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Compute Servers"],
+  },
+  compute_servers_hyperstack_enabled: {
+    name: "Enable Compute Servers - Hyperstack Cloud",
+    desc: "Whether or not to include [Hyperstack cloud](https://www.hyperstack.cloud/) compute servers.  You must also configure an API key below.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

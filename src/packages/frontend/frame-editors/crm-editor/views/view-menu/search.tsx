@@ -1,12 +1,12 @@
-import { useMemo } from "react";
 import { FilterOutlined } from "@ant-design/icons";
-import { Button, Input, InputNumber, Popover, Select, Space } from "antd";
-import type { ColumnsType } from "../../fields";
-import { getFieldSpec } from "../../fields";
 import { Icon } from "@cocalc/frontend/components";
-import { Operator, AtomicSearch } from "../../syncdb/use-search";
 import { OPERATORS } from "@cocalc/util/db-schema";
 import { capitalize } from "@cocalc/util/misc";
+import { Button, Input, InputNumber, Popover, Select, Space } from "antd";
+import { useMemo } from "react";
+import type { ColumnsType } from "../../fields";
+import { getFieldSpec } from "../../fields";
+import { AtomicSearch, Operator } from "../../syncdb/use-search";
 import TimeValue from "./time-value";
 
 function enumerate(x: object[]): any[] {
@@ -90,7 +90,7 @@ function SearchBy({
 }: SearchByProps) {
   const fieldSpec = useMemo(
     () => (field ? getFieldSpec(dbtable, field) : {}),
-    [dbtable, field]
+    [dbtable, field],
   );
 
   return (
@@ -151,11 +151,14 @@ function SearchBy({
 
 function SelectOperator({ fieldSpec, operator, onChange }) {
   const options = useMemo(() => {
-    if (fieldSpec.type == "boolean") {
+    if (fieldSpec.type === "boolean") {
       return [
         { value: "IS" as Operator, label: "IS" },
         { value: "IS NOT" as Operator, label: "IS NOT" },
       ];
+    }
+    if (fieldSpec.type === "array") {
+      return [{ value: "ANY" as Operator, label: "ANY" }];
     }
     return OPERATORS.filter((op) => op != "==").map((op: Operator) => {
       return { value: op, label: op };

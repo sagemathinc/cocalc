@@ -23,6 +23,7 @@ import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
 import * as lambdaCloud from "./cloud/lambda-cloud";
 import * as googleCloud from "./cloud/google-cloud";
+import * as hyperstackCloud from "./cloud/hyperstack";
 import type {
   Architecture,
   Cloud,
@@ -99,6 +100,7 @@ export const start: (opts: {
       timeout: 60,
       progress: 10,
     });
+    updateDNS(server, "running");
   });
 });
 
@@ -112,10 +114,14 @@ async function doStart(server: ComputeServer) {
       return await fluidStack.start(server);
     case "google-cloud":
       return await googleCloud.start(server);
+    case "hyperstack":
+      return await hyperstackCloud.start(server);
     case "lambda-cloud":
       return await lambdaCloud.start(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'start'`,
+      );
   }
 }
 
@@ -165,10 +171,12 @@ async function doStop(server: ComputeServer) {
       return await fluidStack.stop(server);
     case "google-cloud":
       return await googleCloud.stop(server);
+    case "hyperstack":
+      return await hyperstackCloud.stop(server);
     case "lambda-cloud":
       return await lambdaCloud.stop(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(`cloud '${server.cloud}' not currently supported for 'stop'`);
   }
 }
 
@@ -203,11 +211,15 @@ async function doDeprovision(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.deprovision(server);
+    case "hyperstack":
+      return await hyperstackCloud.deprovision(server);
     case "test":
       // just a no-op
       return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'deprovision'`,
+      );
   }
 }
 
@@ -260,6 +272,7 @@ export const state: (opts: {
       await setConfiguration(id, { autoRestartDisabled: false });
     }
     //lastCalled[id] = { time: now, state };
+    updateDNS(server, state);
     return state;
   },
 );
@@ -276,6 +289,44 @@ async function getCloudServerState(server: ComputeServer): Promise<State> {
   }
 }
 
+// this won't throw an exception
+async function updateDNS(server: ComputeServer, state: State) {
+  if (
+    server.configuration?.dns &&
+    (state == "running" || state == "deprovisioned")
+  ) {
+    // We only mess with DNS when the instance is running (in which case we make sure it is properly set),
+    // or the instance is deprovisioned, in which case we delete the DNS.
+    // In all other cases, we just leave it alone.  It turns out if you delete the DNS record
+    // whenever the machine stops, it can often take a very long time after you create the
+    // record for clients to become aware of it again, which is very annoying.
+    // TODO: we may want to change dns records for off machines to point to some special
+    // status page (?).
+    try {
+      if (await hasDNS()) {
+        await makeDnsChange({
+          id: server.id,
+          cloud: server.cloud,
+          name: state == "running" ? server.configuration.dns : "",
+        });
+      } else {
+        if (server.configuration.dns) {
+          logger.debug(
+            `WARNING -- not setting dns subdomain ${server.configuration.dns} because cloudflare api token and compute server dns not fully configured.  Please configure it.`,
+          );
+          await setError(
+            server.id,
+            `WARNING -- unable to set DNS since it is not fully configured by the site admins`,
+          );
+        }
+      }
+    } catch (err) {
+      logger.debug("WARNING -- issue setting dns: ", err);
+      await setError(server.id, `WARNING -- issue setting dns: ${err}`);
+    }
+  }
+}
+
 async function doState(server: ComputeServer): Promise<State> {
   switch (server.cloud) {
     case "test":
@@ -288,11 +339,15 @@ async function doState(server: ComputeServer): Promise<State> {
       return await googleCloud.state(server);
     case "lambda-cloud":
       return await lambdaCloud.state(server);
+    case "hyperstack":
+      return await hyperstackCloud.state(server);
     case "onprem":
       // for onprem all state is self-reported.
       return server.state ?? "unknown";
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'state'`,
+      );
   }
 }
 
@@ -408,11 +463,13 @@ export async function computeCost({
       return await fluidStack.cost(server, state);
     case "google-cloud":
       return await googleCloud.cost(server, state);
+    case "hyperstack":
+      return await hyperstackCloud.cost(server, state);
     case "lambda-cloud":
       return await lambdaCloud.cost(server, state);
     default:
       throw Error(
-        `cost for cloud '${server.cloud}' and state '${state}' not currently supported`,
+        `cost for cloud '${server.cloud}' and state '${state}' not currently supported for 'cost'`,
       );
   }
 }
@@ -436,7 +493,9 @@ async function doSuspend(server: ComputeServer) {
     case "google-cloud":
       return await googleCloud.suspend(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'suspend'`,
+      );
   }
 }
 
@@ -459,7 +518,9 @@ async function doResume(server: ComputeServer) {
     case "google-cloud":
       return await googleCloud.resume(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'resume'`,
+      );
   }
 }
 
@@ -480,8 +541,12 @@ async function doReboot(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.reboot(server);
+    case "hyperstack":
+      return await hyperstackCloud.reboot(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'reboot'`,
+      );
   }
 }
 
@@ -630,6 +695,15 @@ export async function makeConfigurationChange({
         // @ts-ignore
         newConfiguration,
       });
+    case "hyperstack":
+      return await hyperstackCloud.makeConfigurationChange({
+        id,
+        state,
+        // @ts-ignore
+        currentConfiguration,
+        // @ts-ignore
+        newConfiguration,
+      });
     default:
       throw Error(
         `makeConfigurationChange not implemented for cloud '${cloud}' and changed=${JSON.stringify(
@@ -694,6 +768,7 @@ export async function setTestNetworkUsage({
 }
 
 async function getStartupParams(id: number): Promise<{
+  cloud: Cloud;
   project_id: string;
   gpu?: boolean;
   arch: Architecture;
@@ -737,12 +812,27 @@ async function getStartupParams(id: number): Promise<{
         proxy,
       };
       break;
+    case "hyperstack":
+      if (configuration.cloud != "hyperstack") {
+        throw Error("inconsistent configuration -- must be hyperstack");
+      }
+      x = {
+        ...(await hyperstackCloud.getStartupParams(server)),
+        project_id: server.project_id,
+        arch: "x86_64",
+        image,
+        exclude_from_sync,
+        auth_token,
+        proxy,
+      };
+      break;
     default:
       throw Error(
         `getStartupParams for '${server.cloud}' not currently implemented`,
       );
   }
   return {
+    cloud: server.cloud,
     tag: configuration.tag,
     tag_cocalc: configuration.tag_cocalc,
     tag_filesystem: configuration.tag_filesystem,
@@ -814,7 +904,9 @@ export async function setImageTested(opts: {
       await googleCloud.setImageTested(server, opts.tested);
       return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for setting image tested`,
+      );
   }
 }
 

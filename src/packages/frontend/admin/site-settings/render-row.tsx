@@ -43,6 +43,7 @@ export function RenderRow({
   saveSingleSetting,
 }: RenderRowProps) {
   if (data == null) return null;
+
   // if tags are used, we're strictly filtering by them
   if (filterTag) {
     if (!conf.tags) return null;

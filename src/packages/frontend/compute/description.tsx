@@ -43,7 +43,7 @@ export default function Description({
               hosted on <Cloud height={15} cloud={cloud} />
             </>
           )}
-          .
+          .{" "}
         </>
       )}
       <Configuration configuration={configuration} />

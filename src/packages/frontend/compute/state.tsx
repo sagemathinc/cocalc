@@ -81,12 +81,17 @@ export default function State({
             <div style={{ textAlign: "center", margin: "15px 0" }}>
               {refresh}
             </div>
-            {editable && purchase_id && <div>Current Purchase Id: {purchase_id} </div>}
+            {editable && purchase_id && (
+              <div>Current Purchase Id: {purchase_id} </div>
+            )}
           </div>
         );
       }}
     >
-      <span style={{ cursor: "pointer", ...style }} onClick={handleRefresh}>
+      <div
+        style={{ cursor: "pointer", display: "inline-block", ...style }}
+        onClick={handleRefresh}
+      >
         <span style={{ color }}>
           <Icon name={icon} /> {label}
         </span>
@@ -95,14 +100,16 @@ export default function State({
             <div style={{ display: "inline-block", width: "10px" }} />
             <Spin />
             {state_changed && (
-              <ProgressBarTimer
-                startTime={state_changed}
-                style={{ marginLeft: "10px" }}
-              />
+              <div>
+                <ProgressBarTimer
+                  startTime={state_changed}
+                  style={{ marginLeft: "10px" }}
+                />
+              </div>
             )}
           </>
         )}
-      </span>
+      </div>
     </Popover>
   );
 }

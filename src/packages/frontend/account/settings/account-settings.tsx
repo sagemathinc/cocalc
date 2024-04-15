@@ -174,11 +174,8 @@ export class AccountSettings extends Component<Props, State> {
       return;
     }
     try {
-      const x = await webapp_client.account_client.unlink_passport(
-        strategy,
-        id
-      );
-      console.log("ret:", x);
+      await webapp_client.account_client.unlink_passport(strategy, id);
+      // console.log("ret:", x);
     } catch (err) {
       ugly_error(err);
     }
@@ -241,7 +238,7 @@ export class AccountSettings extends Component<Props, State> {
 
   private render_strategy(
     strategy: ImmutablePassportStrategy,
-    account_passports: string[]
+    account_passports: string[],
   ): Rendered {
     if (strategy.get("name") !== "email") {
       const is_configured = account_passports.includes(strategy.get("name"));
@@ -259,7 +256,7 @@ export class AccountSettings extends Component<Props, State> {
                 : {
                     add_strategy_link: strategy.get("name"),
                     remove_strategy_button: undefined,
-                  }
+                  },
             )
           }
           key={strategy.get("name")}
@@ -310,7 +307,7 @@ export class AccountSettings extends Component<Props, State> {
 
   private get_account_passport_names(): string[] {
     return keys(this.props.passports?.toJS() ?? {}).map((x) =>
-      x.slice(0, x.indexOf("-"))
+      x.slice(0, x.indexOf("-")),
     );
   }
 
@@ -388,7 +385,7 @@ export class AccountSettings extends Component<Props, State> {
           bsStyle="info"
         >
           Other SSO
-        </Button>
+        </Button>,
       );
     }
     return (

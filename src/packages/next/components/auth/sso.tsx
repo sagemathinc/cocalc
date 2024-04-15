@@ -246,7 +246,7 @@ export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
 // hence this should be good enough to catch @email.foo.edu for foo.edu domains
 export function useRequiredSSO(
   strategies: Strategy[] | undefined,
-  email: string | undefined
+  email: string | undefined,
 ): Strategy | undefined {
   return useMemo(() => {
     return checkRequiredSSO({ email, strategies });

@@ -3,28 +3,51 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Col, Popconfirm, Row, Tooltip } from "antd";
+import type { MenuProps } from "antd";
+import { Button, Col, Dropdown, Popconfirm, Row, Tooltip } from "antd";
 import { Map } from "immutable";
-import { CSSProperties } from "react";
+import { CSSProperties, useLayoutEffect } from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
+  CSS,
   redux,
   useMemo,
   useRef,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import {
+  Gap,
+  Icon,
+  Paragraph,
+  Text,
+  TimeAgo,
+  Tip,
+} from "@cocalc/frontend/components";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import {
+  LLMModelPrice,
+  modelToName,
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import {
+  CoreLanguageModel,
+  USER_SELECTABLE_LLMS_BY_VENDOR,
+  toOllamaModel,
+} from "@cocalc/util/db-schema/llm-utils";
+import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { OllamaPublic } from "@cocalc/util/types/llm";
+import { useProjectContext } from "../project/context";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { Name } from "./name";
 import { Time } from "./time";
+import { ChatMessageTyped, Mode } from "./types";
 import {
   is_editing,
   message_colors,
@@ -34,11 +57,7 @@ import {
 
 const DELETE_BUTTON = false;
 
-// 5 minutes -- how long to show the "regenerate button" for chatgpt.
-// Don't show it forever, since we want to avoid clutter.
-const regenerateCutoff = 1000 * 60 * 5;
-
-const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
+const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
 
 const MARKDOWN_STYLE = undefined;
 // const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
@@ -47,20 +66,49 @@ const BORDER = "2px solid #ccc";
 
 const SHOW_EDIT_BUTTON_MS = 45000;
 
-const REPLY_STYLE = {
-  marginLeft: "75px",
+const TRHEAD_STYLE_SINGLE: CSS = {
+  marginLeft: "15px",
   marginRight: "15px",
-  borderLeft: BORDER,
-  borderRight: BORDER,
   paddingLeft: "15px",
 } as const;
+
+const THREAD_STYLE: CSS = {
+  ...TRHEAD_STYLE_SINGLE,
+  borderLeft: BORDER,
+  borderRight: BORDER,
+} as const;
+
+const THREAD_STYLE_BOTTOM: CSS = {
+  ...THREAD_STYLE,
+  borderBottomLeftRadius: "10px",
+  borderBottomRightRadius: "10px",
+  borderBottom: BORDER,
+  marginBottom: "10px",
+} as const;
+
+const THREAD_STYLE_TOP: CSS = {
+  ...THREAD_STYLE,
+  borderTop: BORDER,
+  borderTopLeftRadius: "10px",
+  borderTopRightRadius: "10px",
+  marginTop: "10px",
+} as const;
+
+const THREAD_STYLE_FOLDED: CSS = {
+  ...THREAD_STYLE_TOP,
+  ...THREAD_STYLE_BOTTOM,
+} as const;
+
+const MARGIN_TOP_VIEWER = "17px";
+
+const AVATAR_MARGIN_LEFTRIGHT = "15px";
 
 interface Props {
   index: number;
   actions?: ChatActions;
 
-  get_user_name: (account_id: string) => string;
-  message: Map<string, any>; // immutable.js message object
+  get_user_name: (account_id?: string) => string;
+  message: ChatMessageTyped;
   account_id: string;
   user_map?: Map<string, any>;
   project_id?: string; // improves relative links if given
@@ -69,7 +117,7 @@ interface Props {
   is_prev_sender?: boolean;
   is_next_sender?: boolean;
   show_avatar?: boolean;
-  include_avatar_col?: boolean;
+  mode: Mode;
   selectedHashtags?: Set<string>;
 
   set_scroll?: Function;
@@ -78,9 +126,19 @@ interface Props {
   // if true, include a reply button - this should only be for messages
   // that don't have an existing reply to them already.
   allowReply?: boolean;
+
+  is_thread?: boolean; // if true, there is a thread starting in a reply_to message
+  is_folded?: boolean; // if true, only show the reply_to root message
+  is_thread_body: boolean;
 }
 
 export default function Message(props: Props) {
+  const { is_thread, is_folded, is_thread_body, mode } = props;
+
+  const hideTooltip =
+    useTypedRedux("account", "other_settings").get("hide_file_popovers") ??
+    false;
+
   const [edited_message, set_edited_message] = useState<string>(
     newest_content(props.message),
   );
@@ -96,7 +154,7 @@ export default function Message(props: Props) {
   );
 
   // date as ms since epoch or 0
-  const date = useMemo(() => {
+  const date: number = useMemo(() => {
     return props.message?.get("date")?.valueOf() ?? 0;
   }, [props.message.get("date")]);
 
@@ -118,6 +176,13 @@ export default function Message(props: Props) {
     );
   }, [props.message]);
 
+  const isFolded: boolean = useMemo(() => {
+    return props.message.get("folding")?.includes(props.account_id) ?? false;
+  }, [props.message]);
+
+  const reverseRowOrdering =
+    !is_thread_body && sender_is_viewer(props.account_id, props.message);
+
   const submitMentionsRef = useRef<Function>();
 
   const [replying, setReplying] = useState<boolean>(false);
@@ -129,14 +194,21 @@ export default function Message(props: Props) {
 
   const isLLMThread = useMemo(
     () => props.actions?.isLanguageModelThread(props.message.get("date")),
-    [props.message],
+    [props.message, props.actions != null],
   );
+
+  useLayoutEffect(() => {
+    if (replying) {
+      props.scroll_into_view();
+    }
+  }, [replying]);
 
   function editing_status(is_editing: boolean) {
     let text;
     const other_editors = props.message
       .get("editing")
       .remove(props.account_id)
+      // @ts-ignore – not sure why this error shows up
       .keySeq();
     if (is_editing) {
       if (other_editors.size === 1) {
@@ -189,6 +261,7 @@ export default function Message(props: Props) {
     ) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
+      const msg_date = props.message.get("history").first()?.get("date");
       return (
         <div
           style={{
@@ -197,9 +270,11 @@ export default function Message(props: Props) {
           }}
         >
           {edit}
-          <TimeAgo
-            date={new Date(props.message.get("history").first()?.get("date"))}
-          />
+          {msg_date != null ? (
+            <TimeAgo date={new Date(msg_date)} />
+          ) : (
+            "unknown time"
+          )}
           {name}
         </div>
       );
@@ -238,12 +313,15 @@ export default function Message(props: Props) {
     let style: CSSProperties = {};
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
+    } else {
+      style.marginTop = "5px";
     }
-    if (!props.message.get("reply_to")) {
+
+    if (!is_thread_body) {
       if (sender_is_viewer(props.account_id, props.message)) {
-        style.marginLeft = "15px";
+        style.marginLeft = AVATAR_MARGIN_LEFTRIGHT;
       } else {
-        style.marginRight = "15px";
+        style.marginRight = AVATAR_MARGIN_LEFTRIGHT;
       }
     }
 
@@ -276,7 +354,9 @@ export default function Message(props: Props) {
     }
 
     if (!props.is_prev_sender && is_viewers_message) {
-      marginTop = "17px";
+      marginTop = MARGIN_TOP_VIEWER;
+    } else {
+      marginTop = "5px";
     }
 
     if (!props.is_prev_sender && !props.is_next_sender && !show_history) {
@@ -296,10 +376,13 @@ export default function Message(props: Props) {
       borderRadius,
       fontSize: font_size,
       padding: "9px",
-    };
+      ...(mode === "sidechat" ? { marginLeft: "5px", marginRight: "5px" } : {}),
+    } as const;
+
+    const mainXS = 20;
 
     return (
-      <Col key={1} xs={21}>
+      <Col key={1} xs={mainXS}>
         <div style={{ display: "flex" }}>
           {!props.is_prev_sender &&
           !is_viewers_message &&
@@ -308,16 +391,16 @@ export default function Message(props: Props) {
               sender_name={props.get_user_name(props.message.get("sender_id"))}
             />
           ) : undefined}
-          {generating === true && props.actions && (
+          {generating === true && props.actions ? (
             <Button
-              style={{ color: "#666" }}
+              style={{ color: COLORS.GRAY_M }}
               onClick={() => {
                 props.actions?.languageModelStopGenerating(new Date(date));
               }}
             >
               <Icon name="square" /> Stop Generating
             </Button>
-          )}
+          ) : undefined}
         </div>
         <div
           style={message_style}
@@ -377,50 +460,48 @@ export default function Message(props: Props) {
                   </Tooltip>
                 )}
                 {DELETE_BUTTON &&
-                  newest_content(props.message).trim().length > 0 && (
-                    <Tooltip
-                      title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                      placement="left"
-                    >
-                      <Popconfirm
-                        title="Delete this message"
-                        description="Are you sure you want to delete this message?"
-                        onConfirm={() => {
-                          props.actions?.set_editing(props.message, true);
-                          setTimeout(
-                            () => props.actions?.send_edit(props.message, ""),
-                            1,
-                          );
-                        }}
-                      >
-                        <Button
-                          disabled={replying}
-                          style={{
-                            color: is_viewers_message ? "white" : "#555",
-                          }}
-                          type="text"
-                          size="small"
-                        >
-                          <Icon name="trash" /> Delete
-                        </Button>
-                      </Popconfirm>
-                    </Tooltip>
-                  )}
-                {!props.message.get("reply_to") &&
-                  props.allowReply &&
-                  !replying && (
-                    <Button
-                      type="text"
-                      disabled={replying}
-                      style={{
-                        color: is_viewers_message ? "white" : "#555",
+                newest_content(props.message).trim().length > 0 ? (
+                  <Tooltip
+                    title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+                    placement="left"
+                  >
+                    <Popconfirm
+                      title="Delete this message"
+                      description="Are you sure you want to delete this message?"
+                      onConfirm={() => {
+                        props.actions?.set_editing(props.message, true);
+                        setTimeout(
+                          () => props.actions?.send_edit(props.message, ""),
+                          1,
+                        );
                       }}
-                      size="small"
-                      onClick={() => setReplying(true)}
                     >
-                      <Icon name="reply" /> Reply
-                    </Button>
-                  )}
+                      <Button
+                        disabled={replying}
+                        style={{
+                          color: is_viewers_message ? "white" : "#555",
+                        }}
+                        type="text"
+                        size="small"
+                      >
+                        <Icon name="trash" /> Delete
+                      </Button>
+                    </Popconfirm>
+                  </Tooltip>
+                ) : undefined}
+                {/* {!is_thread_body && props.allowReply && !replying ? (
+                  <Button
+                    type="text"
+                    disabled={replying}
+                    style={{
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    size="small"
+                    onClick={() => setReplying(true)}
+                  >
+                    <Icon name="reply" /> Reply
+                  </Button>
+                ) : undefined} */}
               </div>
               {(props.message.get("history").size > 1 ||
                 props.message.get("editing").size > 0) &&
@@ -459,7 +540,7 @@ export default function Message(props: Props) {
             <HistoryFooter />
           </div>
         )}
-        {replying && renderComposeReply()}
+        {replying ? renderComposeReply() : undefined}
       </Col>
     );
   }
@@ -532,7 +613,7 @@ export default function Message(props: Props) {
   function sendReply() {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
-    props.actions.send_reply({ message: props.message, reply });
+    props.actions.send_reply({ message: props.message.toJS(), reply });
     props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
@@ -548,7 +629,7 @@ export default function Message(props: Props) {
       return;
     }
     return (
-      <div style={{ marginLeft: "30px" }}>
+      <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
           autoFocus
           style={{
@@ -587,90 +668,180 @@ export default function Message(props: Props) {
     );
   }
 
-  function getStyle() {
-    if (!props.message.get("reply_to")) return undefined;
-    if (props.allowReply) {
-      return {
-        ...REPLY_STYLE,
-        borderBottom: BORDER,
-        borderBottomLeftRadius: "10px",
-        borderBottomRightRadius: "10px",
-        marginBottom: "10px",
-      };
+  function getStyleBase(): CSS {
+    if (!is_thread_body) {
+      if (is_thread) {
+        if (isFolded) {
+          return THREAD_STYLE_FOLDED;
+        } else {
+          return THREAD_STYLE_TOP;
+        }
+      } else {
+        return TRHEAD_STYLE_SINGLE;
+      }
+    } else if (props.allowReply) {
+      return THREAD_STYLE_BOTTOM;
+    } else {
+      return THREAD_STYLE;
     }
-    return REPLY_STYLE;
   }
 
-  let cols;
-  if (props.include_avatar_col) {
-    cols = [avatar_column(), content_column(), BLANK_COLUMN];
-    // mirror right-left for sender's view
-    if (
-      !props.message.get("reply_to") &&
-      sender_is_viewer(props.account_id, props.message)
-    ) {
-      cols = cols.reverse();
+  function getStyle(): CSS {
+    switch (mode) {
+      case "standalone":
+        return getStyleBase();
+      case "sidechat":
+        return {
+          ...getStyleBase(),
+          marginLeft: "5px",
+          marginRight: "5px",
+          paddingLeft: "0",
+        };
+      default:
+        unreachable(mode);
+        return getStyleBase();
     }
-  } else {
-    cols = [content_column(), BLANK_COLUMN];
-    // mirror right-left for sender's view
-    if (
-      !props.message.get("reply_to") &&
-      sender_is_viewer(props.account_id, props.message)
-    ) {
-      cols = cols.reverse();
+  }
+
+  function getThreadfoldOrBlank() {
+    if (is_thread_body || (!is_thread_body && !is_thread)) {
+      return BLANK_COLUMN;
+    } else {
+      const style: CSS =
+        mode === "standalone"
+          ? {
+              marginTop:
+                props.show_avatar ||
+                (!props.is_prev_sender && is_viewers_message)
+                  ? MARGIN_TOP_VIEWER
+                  : "5px",
+              marginLeft: "5px",
+              marginRight: "5px",
+            }
+          : { marginTop: "10px" };
+      const iconname = isFolded
+        ? reverseRowOrdering
+          ? "right-circle-o"
+          : "left-circle-o"
+        : "down-circle-o";
+      const button = (
+        <Button
+          type="text"
+          style={style}
+          onClick={() =>
+            props.actions?.foldThread(props.message.get("date"), props.index)
+          }
+          icon={
+            <Icon
+              name={iconname}
+              style={{ fontSize: mode === "standalone" ? "22px" : "16px" }}
+            />
+          }
+        />
+      );
+      return (
+        <Col
+          xs={mode === "standalone" ? 2 : 4}
+          key={"blankcolumn"}
+          style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
+        >
+          {hideTooltip ? (
+            button
+          ) : (
+            <Tooltip
+              title={
+                isFolded
+                  ? "Unfold this thread"
+                  : "Fold this thread to hide replies"
+              }
+            >
+              {button}
+            </Tooltip>
+          )}
+        </Col>
+      );
     }
+  }
+
+  function renderReplyRow() {
+    if (replying || generating || !props.allowReply || is_folded) return;
+
+    return (
+      <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
+        <Tooltip
+          title={
+            isLLMThread
+              ? `Reply to ${modelToName(
+                  isLLMThread,
+                )}, sending the entire thread as context.`
+              : "Reply in this thread."
+          }
+        >
+          <Button
+            type="text"
+            onClick={() => setReplying(true)}
+            style={{ color: COLORS.GRAY_M }}
+          >
+            <Icon name="reply" /> Reply
+            {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
+            {isLLMThread ? (
+              <Avatar
+                account_id={isLLMThread}
+                size={16}
+                style={{ marginLeft: "10px", marginBottom: "2.5px" }}
+              />
+            ) : undefined}
+          </Button>
+        </Tooltip>
+        {isLLMThread ? (
+          <RegenerateLLM actions={props.actions} date={date} />
+        ) : undefined}
+      </div>
+    );
+  }
+
+  function renderFoldedRow() {
+    if (!is_folded || !is_thread || is_thread_body) return;
+
+    return (
+      <Col xs={24}>
+        <Paragraph type="secondary" style={{ textAlign: "center" }}>
+          {mode === "standalone" ? "This thread is folded. " : ""}
+          <Button
+            type="text"
+            icon={<Icon name="down-circle-o" />}
+            onClick={() =>
+              props.actions?.foldThread(props.message.get("date"), props.index)
+            }
+          >
+            <Text type="secondary">Unfold</Text>
+          </Button>
+        </Paragraph>
+      </Col>
+    );
+  }
+
+  function renderCols(): JSX.Element[] | JSX.Element {
+    // these columsn should be filtered in the first place, this here is just an extra check
+    if (is_thread && is_folded && is_thread_body) return <></>;
+
+    const cols = [content_column(), getThreadfoldOrBlank()];
+    // in standalone, add the avatar column
+    if (mode === "standalone") {
+      cols.unshift(avatar_column());
+    }
+    // … and mirror right-left for sender's view
+    if (reverseRowOrdering) {
+      cols.reverse();
+    }
+    return cols;
   }
 
   return (
     <Row style={getStyle()}>
-      {cols}
-      {!replying && props.message.get("reply_to") && props.allowReply && (
-        <div
-          style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
-        >
-          {!generating && (
-            <Tooltip
-              title={
-                isLLMThread
-                  ? `Reply to ${modelToName(
-                      isLLMThread,
-                    )}, sending the entire thread as context.`
-                  : "Reply in this thread."
-              }
-            >
-              <Button
-                type="text"
-                onClick={() => setReplying(true)}
-                style={{ color: COLORS.GRAY_M }}
-              >
-                <Icon name="reply" /> Reply
-                {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
-                {isLLMThread && (
-                  <Avatar
-                    account_id={isLLMThread}
-                    size={16}
-                    style={{ marginLeft: "10px", marginBottom: "2.5px" }}
-                  />
-                )}
-              </Button>
-            </Tooltip>
-          )}
-          {!generating &&
-            isLLMThread &&
-            props.actions &&
-            Date.now() - date <= regenerateCutoff && (
-              <Button
-                style={{ color: COLORS.GRAY_M, marginLeft: "15px" }}
-                onClick={() => {
-                  props.actions?.languageModelRegenerate(new Date(date));
-                }}
-              >
-                <Icon name="refresh" /> Regenerate response
-              </Button>
-            )}
-        </div>
-      )}
+      {renderCols()}
+      {renderFoldedRow()}
+      {renderReplyRow()}
     </Row>
   );
 }
@@ -682,4 +853,74 @@ export function message_to_markdown(message): string {
   const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
+}
+
+interface RegenerateLLMProps {
+  actions?: ChatActions;
+  date: number; // ms since epoch
+}
+
+function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
+  const { enabledLLMs } = useProjectContext();
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+  const ollama = useTypedRedux("customize", "ollama");
+
+  if (!actions) return null;
+
+  const entries: MenuProps["items"] = [];
+
+  // iterate over all key,values in USER_SELECTABLE_LLMS_BY_VENDOR
+  for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
+    if (!enabledLLMs[vendor]) continue;
+    const llms: CoreLanguageModel[] = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
+    for (const llm of llms) {
+      if (!selectableLLMs.includes(llm)) continue;
+      entries.push({
+        key: llm,
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={llm} /> {modelToName(llm)}{" "}
+            <LLMModelPrice model={llm} floatRight />
+          </>
+        ),
+        onClick: () => {
+          actions.regenerateLLMResponse(new Date(date), llm);
+        },
+      });
+    }
+  }
+
+  if (ollama) {
+    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+      const { display } = config;
+      const ollamaModel = toOllamaModel(key);
+      entries.push({
+        key: ollamaModel,
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={ollamaModel} /> {display}{" "}
+            <LLMModelPrice model={ollamaModel} floatRight />
+          </>
+        ),
+        onClick: () => {
+          actions.regenerateLLMResponse(new Date(date), ollamaModel);
+        },
+      });
+    }
+  }
+
+  return (
+    <Dropdown.Button
+      menu={{ items: entries, style: { overflow: "auto", maxHeight: "50vh" } }}
+      size="small"
+      style={{ display: "inline" }}
+      icon={<Icon name="angle-down" />}
+      trigger={["click"]}
+      onClick={() => {
+        actions.regenerateLLMResponse(new Date(date));
+      }}
+    >
+      <Icon name="refresh" /> Regenerate
+    </Dropdown.Button>
+  );
 }

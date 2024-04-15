@@ -41,7 +41,9 @@ export default function Cloud({
   const label = (
     <span>
       {x?.image ? (
-        <img src={x.image} height={height ?? 18} />
+        <Tooltip title={x.label}>
+          <img src={x.image} height={height ?? 18} alt={x.label} />
+        </Tooltip>
       ) : (
         x?.label ?? "No Cloud Configured"
       )}

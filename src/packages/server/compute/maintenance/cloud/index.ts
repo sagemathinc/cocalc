@@ -7,10 +7,14 @@ this to periodically update aspects of the compute servers.
 
 import stateSync from "./state-sync";
 import getLogger from "@cocalc/backend/logger";
+import { hyperstackMaintenance } from "./hyperstack";
 
 const logger = getLogger("server:compute:maintenance:cloud");
 
 const MANAGE_CLOUD_SYNC_INTERVAL_MS = 30 * 1000; // every 30 seconds
+
+// every 15 minutes do hyperstack maintenance, depending on what is configured
+const HYPERSTACK_SYNC_INTERVAL_MS = 60 * 1000 * 15;
 
 let initialized = false;
 async function startMaintenance() {
@@ -21,6 +25,8 @@ async function startMaintenance() {
   initialized = true;
   // DO NOT AWAIT THIS!!!
   setInterval(stateSyncMaintenance, MANAGE_CLOUD_SYNC_INTERVAL_MS);
+
+  setInterval(hyperstackMaintenance, HYPERSTACK_SYNC_INTERVAL_MS);
 }
 
 let running = false;

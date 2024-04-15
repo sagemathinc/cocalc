@@ -14,12 +14,12 @@ subscription, a refund, etc.
 */
 export default async function updatePendingPurchases(
   account_id: string,
-  client?: PoolClient
+  client?: PoolClient,
 ) {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     "SELECT id, cost FROM purchases WHERE account_id=$1 AND pending IS TRUE AND cost > 0",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     logger.debug("nothing to do for", account_id);
@@ -37,13 +37,31 @@ export default async function updatePendingPurchases(
   });
   await pool.query(
     "UPDATE purchases SET pending = false WHERE id = ANY($1::integer[])",
-    [purchase_ids]
+    [purchase_ids],
   );
+}
+
+export async function updateAllPendingPurchases() {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT distinct(account_id) FROM purchases WHERE pending",
+  );
+  for (const { account_id } of rows) {
+    try {
+      await updatePendingPurchases(account_id);
+    } catch (err) {
+      logger.debug(
+        "updateAllPendingPurchases -- error updating ",
+        account_id,
+        `${err}`,
+      );
+    }
+  }
 }
 
 function purchasesToMarkNotPending(
   purchases: { id: number; cost: number }[],
-  balance: number
+  balance: number,
 ): number[] {
   // only considered pending purchases that cost <= balance:
   purchases = purchases.filter((x) => x.cost <= balance);

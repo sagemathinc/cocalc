@@ -270,7 +270,7 @@ export default function ComputeServer({
     >
       <Card.Meta
         avatar={
-          <div style={{ width: "64px" }}>
+          <div style={{ width: "64px", height: 0 }}>
             <Icon
               name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
@@ -350,6 +350,15 @@ export default function ComputeServer({
               >
                 <DisplayImage configuration={configuration} />
               </div>
+              <div
+                style={{
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  flex: 1,
+                }}
+              >
+                <Cloud cloud={cloud} state={state} editable={false} id={id} />
+              </div>
             </div>
           )
         }
@@ -379,13 +388,13 @@ export default function ComputeServer({
                 configuration={configuration}
               />
             )}
+            <ShowError
+              error={error}
+              setError={setError}
+              style={{ margin: "15px 0", width: "100%" }}
+            />
           </div>
         }
-      />
-      <ShowError
-        error={error}
-        setError={setError}
-        style={{ margin: "15px 0" }}
       />
       <ComputeServerEdit
         id={id}
@@ -442,7 +451,6 @@ function ComputeServerEdit({
         }
         footer={
           <>
-            <Divider />
             <div style={{ display: "flex" }}>
               {buttons}
               <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
@@ -488,7 +496,7 @@ function BackendError({ error, id, project_id }) {
     <div style={{ marginTop: "10px", display: "flex", fontWeight: "normal" }}>
       <ShowError
         error={error}
-        style={{ fontSize: "10pt" }}
+        style={{ margin: "15px 0", width: "100%" }}
         setError={async () => {
           try {
             await webapp_client.async_query({

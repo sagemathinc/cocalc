@@ -38,7 +38,7 @@ export async function getClient() {
   return cf;
 }
 
-export async function hasDNS() : Promise<boolean> {
+export async function hasDNS(): Promise<boolean> {
   const { token, dns } = await getConfig();
   return !!token && !!dns;
 }
@@ -207,13 +207,13 @@ export async function makeDnsChange({
   logger.debug("makeDnsChange", { id, name, previousName });
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT data->>'cloudflareId' as cloudflare_id, data->>'externalIp' as ip_address FROM compute_servers WHERE id=$1",
+    "SELECT data->>'cloudflareId' as cloudflare_id, data->>'externalIp' as external_ip FROM compute_servers WHERE id=$1",
     [id],
   );
   if (rows.length == 0) {
     throw Error(`no compute server with id ${id}`);
   }
-  const ipAddress = rows[0].ip_address;
+  const ipAddress = rows[0].external_ip;
   let cloudflareId = rows[0].cloudflare_id;
   if (!cloudflareId && previousName) {
     cloudflareId = await get({ name: previousName });
@@ -234,35 +234,41 @@ export async function makeDnsChange({
   } else {
     // setting/adding/changing DNS -- definitely need to have an ip address
     if (!ipAddress) {
-      logger.debug("makeDnsChange", "error due to no ip address!");
-      throw Error(
-        `no external ip address has been allocated to compute server ${id} so we can't point DNS at it`,
-      );
+      const message = `No ip address allocated to compute server, so can't update DNS. Click 'Running' to try again.`;
+      logger.debug("makeDnsChange", message);
+      throw Error(message);
     }
-    if (!cloudflareId) {
+    if (cloudflareId) {
       try {
-        logger.debug("makeDnsChange", "create dns record", { name, ipAddress });
-        cloudflareId = await add({ name, ipAddress });
-      } catch (err) {
-        logger.debug("makeDnsChange", "creating failed with error", err);
-        // try again
-        cloudflareId = await get({ name });
-        logger.debug(
-          "makeDnsChange",
-          "browsed and found ",
-          { cloudflareId },
-          ", so try again",
-        );
+        logger.debug("makeDnsChange", "edit existing dns record");
         await edit({ id: cloudflareId, name, ipAddress });
+        return;
+      } catch (err) {
+        logger.debug(
+          "makeDnsChange -- failed to change using existing record.  Will try to create record.",
+          err,
+        );
       }
+    }
+    try {
+      logger.debug("makeDnsChange", "create dns record", { name, ipAddress });
+      cloudflareId = await add({ name, ipAddress });
+    } catch (err) {
+      logger.debug("makeDnsChange", "creating failed with error", err);
+      // try again
+      cloudflareId = await get({ name });
       logger.debug(
         "makeDnsChange",
-        "save cloudflare id to database so we can edit it later",
+        "browsed and found ",
+        { cloudflareId },
+        ", so try again",
       );
-      await setData({ id, cloud, data: { cloudflareId } });
-    } else {
-      logger.debug("makeDnsChange", "edit existing dns record");
       await edit({ id: cloudflareId, name, ipAddress });
     }
+    logger.debug(
+      "makeDnsChange",
+      "save cloudflare id to database so we can edit it later",
+    );
+    await setData({ id, cloud, data: { cloudflareId } });
   }
 }

@@ -94,6 +94,7 @@ export type SoftwareEnvironments = TypedMap<{
 }>;
 
 export interface CustomizeState {
+  time: number; // this will always get set once customize has loaded.
   is_commercial: boolean;
   openai_enabled: boolean;
   google_vertexai_enabled: boolean;
@@ -291,6 +292,9 @@ function process_customize(obj) {
     obj[k] =
       obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
   }
+  // always set time, so other code can know for sure that customize was loaded.
+  // it also might be helpful to know when
+  obj["time"] = Date.now();
   set_customize(obj);
 }
 

@@ -7,6 +7,15 @@ import { Table } from "./types";
 import { ID } from "./crm";
 import { NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
+import type {
+  Region as HyperstackRegion,
+  VirtualMachine as HyperstackVirtualMachine,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import {
+  DEFAULT_REGION as DEFAULT_HYPERSTACK_REGION,
+  DEFAULT_FLAVOR as DEFAULT_HYPERSTACK_FLAVOR,
+  DEFAULT_DISK as DEFAULT_HYPERSTACK_DISK,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 // These are just fallbacks in case something is wrong with the image configuration.
 export const STANDARD_DISK_SIZE = 20;
@@ -43,6 +52,10 @@ export interface Image {
   // Root filesystem image must be at least this big in GB.
   minDiskSizeGb?: number;
   // Description in MARKDOWN to show user of this image.  Can include links.
+  // Rough estimate of compressed size of Docker image; useful
+  // to get a sense of how long it will take to download image
+  // on clouds without pregenerated images.
+  dockerSizeGb?: number;
   description?: string;
   // Upstream URL for this image, e.g., https://julialang.org/ for the Julia image.
   url: string;
@@ -151,7 +164,8 @@ export const ACTION_INFO: {
     description:
       "Deprovisioning DELETES THE VIRTUAL MACHINE BOOT DISK, but keeps the compute server parameters.   There are no costs associated with a deprovisioned compute server, and you can move it to a different region or zone.  Any files in the home directory of your project are not affected.",
     confirm: true,
-    confirmMessage: "I understand that my compute server disk will be deleted.",
+    confirmMessage:
+      "I understand that my compute server disks will be deleted.",
     danger: true,
     target: "deprovisioned",
   },
@@ -166,7 +180,7 @@ export const ACTION_INFO: {
       "I understand that this can lead to filesystem corruption and is slightly dangerous.",
     danger: true,
     target: "running",
-    clouds: ["google-cloud"],
+    clouds: ["google-cloud", "hyperstack"],
   },
   suspend: {
     label: "Suspend",
@@ -275,6 +289,7 @@ export type Cloud =
   | "any"
   | "onprem"
   | "core-weave"
+  | "hyperstack"
   | "lambda-cloud"
   | "google-cloud"
   | "aws"
@@ -294,7 +309,8 @@ export function getMinDiskSizeGb({
       return minDiskSizeGb;
     }
   }
-  // TODO: will have to do something based on actual image size, maybe, unless I come up with a clever trick involving
+  // TODO: will have to do something based on actual image size,
+  // maybe, unless I come up with a clever trick involving
   // one PD mounted on many machines (?).
   if (configuration?.acceleratorType) {
     return CUDA_DISK_SIZE;
@@ -397,6 +413,19 @@ const CLOUDS: {
       excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
     },
   },
+  hyperstack: {
+    name: "hyperstack",
+    label: "Hyperstack GPU Cloud",
+    image: "https://console.hyperstack.cloud/hyperstack-wordmark.svg",
+    defaultConfiguration: {
+      cloud: "hyperstack",
+      image: "anaconda-gpu",
+      region_name: DEFAULT_HYPERSTACK_REGION,
+      flavor_name: DEFAULT_HYPERSTACK_FLAVOR,
+      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
+      diskSizeGb: DEFAULT_HYPERSTACK_DISK,
+    },
+  },
   onprem: {
     name: "onprem",
     label: "On Prem",
@@ -466,6 +495,24 @@ interface LambdaConfiguration extends BaseConfiguration {
   region_name: string;
 }
 
+export interface HyperstackConfiguration extends BaseConfiguration {
+  cloud: "hyperstack";
+  flavor_name: string;
+  region_name: HyperstackRegion;
+  // diskSizeGb is an integer >= 1.  It defaults to 10.
+  // It's the size of the /data partition.  It's implemented
+  // using 1 or more hyperstack (=ceph) volumes, which are combined
+  // together as a ZFS pool.  If the compute server is
+  // named "foo", the volumes are named "foo-1", "foo-2",
+  // "foo-3", etc.
+  // There is also always a separate 50GB root volume, which
+  // is named "foo-0", and whose size is not configurable.
+  // NOTE: users install packages "systemwide" inside of
+  // a docker container and we configure docker to store
+  // its data in the zpool, so that's in here too.
+  diskSizeGb?: number;
+}
+
 const COREWEAVE_CPU_TYPES = [
   "amd-epyc-rome",
   "amd-epyc-milan",
@@ -526,7 +573,17 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
   "nvidia-tesla-p100",
 ];
 
-const GOOGLE_CLOUD_DISK_TYPES = ["pd-standard", "pd-balanced", "pd-ssd"];
+const GOOGLE_CLOUD_DISK_TYPES = [
+  "pd-standard",
+  "pd-balanced",
+  "pd-ssd",
+  // NOTE: hyperdisks are complicated and multidimensional, but for cocalc
+  // we just hardcode options for the iops and bandwidth, and allow the
+  // user to adjust the size.  Also, "hyperdisk-balanced" means hyperdisk
+  // with the defaults for iops and bandwidth defined in
+  // src/packages/util/compute/cloud/google-cloud/compute-cost.ts
+  "hyperdisk-balanced",
+];
 
 export interface GoogleCloudConfiguration extends BaseConfiguration {
   cloud: "google-cloud";
@@ -538,6 +595,8 @@ export interface GoogleCloudConfiguration extends BaseConfiguration {
   // The boot disk:
   // diskSizeGb is an integer >= 10.  It defaults to 10. It's the size of the boot disk.
   diskSizeGb?: number;
+  hyperdiskBalancedIops?: number;
+  hyperdiskBalancedThroughput?: number;
   diskType?: (typeof GOOGLE_CLOUD_DISK_TYPES)[number];
   acceleratorType?: (typeof GOOGLE_CLOUD_ACCELERATOR_TYPES)[number];
   // the allowed number depends on the accelerator; it defaults to 1.
@@ -571,32 +630,46 @@ export interface OnPremCloudConfiguration extends BaseConfiguration {
 
 export type Configuration =
   | LambdaConfiguration
+  | HyperstackConfiguration
   | CoreWeaveConfiguration
   | FluidStackConfiguration
   | GoogleCloudConfiguration
   | OnPremCloudConfiguration;
 
 interface BaseData {
-  cloudflareId: string;
+  cloudflareId?: string;
+  externalIp?: string;
+  internalIp?: string;
 }
 
 export interface LambdaCloudData extends BaseData {
-  type: "lambda-cloud";
+  cloud: "lambda-cloud";
   instance_id: string;
 }
 
+export interface HyperstackData extends BaseData {
+  cloud: "hyperstack";
+  // name we are using for the vm
+  name?: string;
+  // hyperstack description of this vm.
+  vm?: HyperstackVirtualMachine;
+  // id's of persistent storage, with first id the boot disk.
+  // disks are named {name}-0, {name}-1, {name}-2, etc.,
+  // with {name}-0 being the boot disk.
+  disks?: number[];
+  creationTimestamp?: Date;
+}
+
 export interface GoogleCloudData extends BaseData {
-  type: "google-cloud";
+  cloud: "google-cloud";
   name?: string;
   state?: State;
-  externalIp?: string;
-  internalIp?: string;
   cpuPlatform?: string;
   creationTimestamp?: Date;
   lastStartTimestamp?: Date;
 }
 
-export type Data = GoogleCloudData | LambdaCloudData;
+export type Data = GoogleCloudData | LambdaCloudData | HyperstackData;
 
 export interface ComponentState {
   state: string;
@@ -670,6 +743,8 @@ Table({
         },
       },
       set: {
+        // ATTN: It's assumed that users can't set the data field.  Doing so would be very bad and could allow
+        // them to maybe abuse the system and not pay for something.
         fields: {
           project_id: "project_write",
           id: true,
@@ -831,5 +906,32 @@ Table({
         },
       },
     },
+  },
+});
+
+Table({
+  name: "compute_servers_cache",
+  fields: {
+    cloud: {
+      type: "string",
+      desc: "The cloud that we're caching information about",
+    },
+    key: {
+      type: "string",
+      desc: "The key for whatever we're caching.",
+    },
+    value: {
+      type: "string",
+      desc: "The cached data.",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "When this action should be expired.",
+    },
+  },
+  rules: {
+    durability: "soft", // it's just a cache
+    desc: "Cache data about what's going on in various clouds that are used to implement compute servers.",
+    primary_key: ["cloud", "key"],
   },
 });

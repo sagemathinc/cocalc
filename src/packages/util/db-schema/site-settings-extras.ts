@@ -87,6 +87,8 @@ const compute_servers_google_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_google-cloud_enabled"]);
 // const compute_servers_lambda_enabled = (conf: SiteSettings) =>
 //   to_bool(conf["compute_servers_lambda-cloud_enabled"]);
+const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
+  to_bool(conf["compute_servers_hyperstack_enabled"]);
 
 const neural_search_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);
@@ -238,6 +240,11 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
   //  | "lambda_cloud_api_key"
+  | "hyperstack_api_key"
+  | "hyperstack_compute_servers_prefix"
+  | "hyperstack_ssh_public_key"
+  | "hyperstack_balance_alert_thresh"
+  | "hyperstack_balance_alert_emails"
   | "google_cloud_service_account_json"
   | "google_cloud_compute_servers_prefix"
   | "google_cloud_compute_servers_image_prefix"
@@ -739,6 +746,47 @@ export const EXTRAS: SettingsExtras = {
     valid: onlyNonnegFloat,
     tags: ["Compute Servers"],
   },
+  hyperstack_api_key: {
+    name: "Compute Servers: Hyperstack - API Key",
+    desc: "Your [Hyperstack API Key](https://console.hyperstack.cloud/api-keys).  This supports managing compute servers on the [Hyperstack Cloud](https://www.hyperstack.cloud/).  REQUIRED or Hyperstack will not work.",
+    default: "",
+    password: true,
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+  hyperstack_compute_servers_prefix: {
+    name: "Compute Servers: Hyperstack - Resource Prefix",
+    desc: "Prepend this string to all Hyperstack resources that are created, e.g., VM names, disks, etc.  If the prefix is 'cocalc', then the compute server with id 17 will be called 'cocalc-17'.  REQUIRED or Hyperstack will not work.",
+    default: "cocalc",
+    to_val: to_trimmed_str,
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+  hyperstack_ssh_public_key: {
+    name: "Compute Servers: Hyperstack - Public SSH Key",
+    desc: "A public SSH key that grants access to all Hyperstack VM's for admin and debugging purposes.  REQUIRED or Hyperstack will not work.",
+    default: "",
+    password: true,
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+  hyperstack_balance_alert_thresh: {
+    name: "Compute Servers: Hyperstack - Balance Alert Threshold",
+    desc: "If your credit balance goes below this amount on the Hyperstack site, then you will be emailed (assuming email is configured).",
+    default: "25",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+  hyperstack_balance_alert_emails: {
+    name: "Compute Servers: Hyperstack - Balance Email Addresses",
+    desc: "If your credit balance goes below your configured threshold, then these email addresses will get an alert message.  Separate addresses by commas.",
+    default: "",
+    show: compute_servers_hyperstack_enabled,
+    tags: ["Compute Servers"],
+  },
+
   //   lambda_cloud_api_key: {
   //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
   //     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.  WARNING: Lambda Cloud integration is not yet useful for anything.",
