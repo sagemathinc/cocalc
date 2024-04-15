@@ -69,8 +69,14 @@ export function userGetQueryFilter(
         // doesn't work for "foo IS ...".
         where[`${quoteField(field)} ${op} ${isToOperand(v)}`] = true;
       } else if (op.toLowerCase() === "any") {
-        // in PostgreSQL: field=ANY(column)
+        // PostgreSQL array contains $v: field=ANY(column)
         where[`$ = ANY(${quoteField(field)})`] = v;
+      } else if (op.toLowerCase() === "minlen") {
+        // PostgreSQL array: minumum array length along first dimension
+        where[`array_length(${quoteField(field)}, 1) >= $`] = v;
+      } else if (op.toLowerCase() === "maxlen") {
+        // PostgreSQL array: minumum array length along first dimension
+        where[`array_length(${quoteField(field)}, 1) <= $`] = v;
       } else if (
         is_object(v) &&
         v["relative_time"] != null &&

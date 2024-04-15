@@ -25,7 +25,9 @@ export const OPERATORS = [
   "LIKE",
   "NOT ILIKE",
   "NOT LIKE",
-  "ANY",
+  "ANY", // only array
+  "MINLEN", // only array
+  "MAXLEN", // only array
 ] as const;
 export type Operator = (typeof OPERATORS)[number];
 
@@ -105,6 +107,22 @@ export function opToFunction(op: Operator): (a, b) => boolean {
           return false;
         }
         return b.includes(a);
+      };
+    case "MINLEN":
+      // array b has at least a entries
+      return (a, b) => {
+        if (!Array.isArray(b)) {
+          return false;
+        }
+        return b.length >= a;
+      };
+    case "MAXLEN":
+      // array b has at least a entries
+      return (a, b) => {
+        if (!Array.isArray(b)) {
+          return false;
+        }
+        return b.length <= a;
       };
     default:
       unreachable(op);
