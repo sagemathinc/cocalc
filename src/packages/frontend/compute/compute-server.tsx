@@ -19,6 +19,7 @@ import DetailedState from "./detailed-state";
 import { DisplayImage } from "./select-image";
 import State from "./state";
 import Title from "./title";
+import Launcher from "./launcher";
 import { Docs } from "./compute-servers";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
@@ -254,6 +255,7 @@ export default function ComputeServer({
       <BackendError error={backendError} id={id} project_id={project_id} />
     </div>
   );
+  //const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? [];
 
   return (
     <Card
@@ -298,6 +300,15 @@ export default function ComputeServer({
               <div style={{ marginLeft: "-15px" }}>
                 <CurrentCost state={state} cost_per_hour={cost_per_hour} />
               </div>
+            )}
+            {state == "running" && !!data?.externalIp && (
+              <Launcher
+                style={{ marginLeft: "-24px" }}
+                configuration={configuration}
+                data={data}
+                compute_server_id={id}
+                project_id={project_id}
+              />
             )}
           </div>
         }
