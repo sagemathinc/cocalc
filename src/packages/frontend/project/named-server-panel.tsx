@@ -72,7 +72,7 @@ code completion, snippets, code refactoring, and embedded Git.`,
   },
   rserver: {
     longName: "RStudio",
-    description: `RStudio by Posit Software, PBC is an integrated development environment (IDE) for R. It is provided without any modifications.`,
+    description: `RStudio by Posit Software, PBC is an integrated development environment (IDE) for R. It is provided without any modifications.  DISCLAIMER: RSTUDIO/POSIT PBC IS IN NO WAY ASSOCIATED WITH COCALC.`,
     usesBasePath: false,
     icon: "r",
   },
