@@ -16,7 +16,7 @@ on:
     inputs:
       debug_enabled:
         type: boolean
-        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
         required: false
         default: false
 
@@ -36,7 +36,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         with:
           detached: true
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install python3 requests
         run: sudo apt-get install python3-requests
       - name: Check doc links
@@ -73,9 +73,11 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         with:
           detached: true
-      - uses: actions/checkout@v3
+
+      - uses: actions/checkout@v4
+
       - name: Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
@@ -85,6 +87,7 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - run: cd src && npm install -g pnpm
+      # 2024-04: pnpm 9.0.0 broke, incompatible lock files. We keep version 8 for a little while, until 9 has stabilized.
+      - run: cd src && npm install -g 'pnpm@8'
       - run: cd src && pnpm run make
       - run: cd src && pnpm run test
