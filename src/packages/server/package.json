@@ -31,7 +31,6 @@
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "TZ=UTC jest --forceExit --runInBand",
-    "testllm": "TZ=UTC jest --forceExit --runInBand --detectOpenHandles --testMatch '**/?(*.)+(testllm).ts'",
     "prepublishOnly": "test"
   },
   "author": "SageMath, Inc.",

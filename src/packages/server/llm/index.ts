@@ -234,7 +234,7 @@ interface EvalVertexAIProps {
   maxTokens?: number; // only gemini-pro
 }
 
-export async function evaluateGoogleGenAI({
+async function evaluateGoogleGenAI({
   client,
   system,
   history,
