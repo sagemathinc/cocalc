@@ -2,7 +2,7 @@
 The HTTPS proxy server.
 */
 
-import { Alert, Button, Card, Input, Spin, Switch } from "antd";
+import { Alert, Button, Input, Spin, Switch } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import AuthToken from "./auth-token";
@@ -316,7 +316,6 @@ function getApps({
 
 export function getRoute({ app, configuration, IMAGES }) {
   const proxy = getProxy({ configuration, IMAGES });
-  console.log({ app, proxy });
   for (const route of proxy) {
     if (route.path == app.path) {
       return route;
@@ -446,21 +445,29 @@ export function LauncherButton({
         </div>
       )}
       {url && (
-        <Card
-          title={<A href={url}>{url}</A>}
+        <div
           style={{
-            margin: "5px 0",
-            maxWidth: "80%",
+            color: "#666",
+            maxWidth: "500px",
+            border: "1px solid #ccc",
+            padding: "15px",
+            borderRadius: "5px",
+            margin: "10px 0",
           }}
         >
-          It could take a few minutes for the server to start, so revisit the
-          above URL if necessary. You can share this URL with other people.
+          It could take a few minutes for the server to start, so revisit this
+          URL if necessary.
+          <div style={{ textAlign: "center" }}>
+            <A href={url}>{url}</A>
+          </div>
+          You can also share this URL with other people, who will be able to
+          access the server, even if they do not have a CoCalc account.
           {!noHide && (
             <Button size="small" type="link" onClick={() => setUrl("")}>
               (hide)
             </Button>
           )}
-        </Card>
+        </div>
       )}
     </div>
   );
@@ -494,6 +501,5 @@ async function isHttpServerResponding({
     command,
     err_on_exit: false,
   });
-  console.log(stdout);
   return stdout.trim() == "0";
 }

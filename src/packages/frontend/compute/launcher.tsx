@@ -19,17 +19,31 @@ export default function Launcher({
 }) {
   const [appName, setAppName] = useState<string>("");
   const [IMAGES] = useImages();
-  if (IMAGES == null || data == null || configuration == null) {
+  const image = configuration?.image;
+  if (
+    IMAGES == null ||
+    image == null ||
+    data == null ||
+    configuration == null
+  ) {
     return null;
   }
+  const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? {};
+  console.log(apps);
 
   return (
     <div style={style}>
       <Modal
-        title={appName}
+        title={
+          <>
+            <Icon name={apps[appName]?.icon ?? "global"} />
+            {apps[appName]?.label ?? appName}
+          </>
+        }
         open={!!appName}
         onOk={() => setAppName("")}
         onCancel={() => setAppName("")}
+        destroyOnClose
       >
         {(appName == "vscode" || appName == "jupyterlab") && (
           <AppLauncher
@@ -56,22 +70,26 @@ export default function Launcher({
       >
         <Icon name="folder-open" /> Explorer
       </Button>*/}
-      <Button
-        onClick={() => setAppName("vscode")}
-        type="text"
-        size="small"
-        style={{ color: "#666" }}
-      >
-        <Icon name="vscode" /> VS Code
-      </Button>
-      <Button
-        onClick={() => setAppName("jupyterlab")}
-        type="text"
-        size="small"
-        style={{ color: "#666" }}
-      >
-        <Icon name="jupyter" /> Jupyter
-      </Button>
+      {apps["vscode"] != null && (
+        <Button
+          onClick={() => setAppName("vscode")}
+          type="text"
+          size="small"
+          style={{ color: "#666" }}
+        >
+          <Icon name={apps["vscode"].icon} /> VS Code
+        </Button>
+      )}
+      {apps["jupyterlab"] != null && (
+        <Button
+          onClick={() => setAppName("jupyterlab")}
+          type="text"
+          size="small"
+          style={{ color: "#666" }}
+        >
+          <Icon name={apps["jupyterlab"].icon} /> Jupyter
+        </Button>
+      )}
     </div>
   );
 }
