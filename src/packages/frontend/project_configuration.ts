@@ -128,6 +128,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       jupyter_lab: kernelspec && !!jupyter.lab,
       jupyter_notebook: kernelspec && !!jupyter.notebook,
       jupyter: kernelspec,
+      rserver: !!capabilities.rserver,
       sage: !!capabilities.sage,
       latex: !!capabilities.latex,
       rmd: !!capabilities.rmd,

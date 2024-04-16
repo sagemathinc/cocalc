@@ -20,10 +20,10 @@ import {
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import track from "@cocalc/frontend/user-tracking";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
-import track from "@cocalc/frontend/user-tracking";
 import { useAvailableFeatures } from "./use-available-features";
 
 interface Server {
@@ -70,6 +70,12 @@ code completion, snippets, code refactoring, and embedded Git.`,
     usesBasePath: false,
     icon: "julia",
   },
+  rserver: {
+    longName: "RStudio Server",
+    description: `RStudio Server is an integrated development environment (IDE) for R.`,
+    usesBasePath: false,
+    icon: "r",
+  },
 } as const;
 
 interface Props {
@@ -77,13 +83,13 @@ interface Props {
   name: NamedServerName;
 }
 
-function getServerInfo(name: string) {
+function getServerInfo(name: NamedServerName): Server {
   return (
     SPEC[name] ?? {
       icon: "server",
       longName: `${capitalize(name)} Server`,
       description: `The ${capitalize(
-        name
+        name,
       )} server runs from your project. It does not yet
           support multiple users or TimeTravel, but fully supports most other
           features and extensions of ${name}.`,
@@ -102,28 +108,34 @@ export const NamedServerPanel: React.FC<Props> = ({
 
   let body;
   if (
-    name == "jupyterlab" &&
+    name === "jupyterlab" &&
     student_project_functionality.disableJupyterLabServer
   ) {
     body =
       "Disabled. Please contact your instructor if you need to use Jupyter Lab";
   } else if (
-    name == "jupyter" &&
+    name === "jupyter" &&
     student_project_functionality.disableJupyterClassicServer
   ) {
     body =
       "Disabled. Please contact your instructor if you need to use Jupyter Classic.";
   } else if (
-    name == "code" &&
+    name === "code" &&
     student_project_functionality.disableVSCodeServer
   ) {
     body =
       "Disabled. Please contact your instructor if you need to use VS Code.";
   } else if (
-    name == "pluto" &&
+    name === "pluto" &&
     student_project_functionality.disablePlutoServer
   ) {
     body = "Disabled. Please contact your instructor if you need to use Pluto.";
+  } else if (
+    name === "rserver" &&
+    student_project_functionality.disableRServer
+  ) {
+    body =
+      "Disabled. Please contact your instructor if you need to use RStudio.";
   } else {
     body = (
       <>
@@ -165,7 +177,7 @@ export function serverURL(project_id: string, name: NamedServerName): string {
       appBasePath,
       project_id,
       SPEC[name]?.usesBasePath ? "port" : "server",
-      name
+      name,
     ) + "/"
   );
 }
@@ -182,25 +194,30 @@ export function ServerLink({
   const available = useAvailableFeatures(project_id);
   const { icon, longName } = getServerInfo(name);
   if (
-    name == "jupyterlab" &&
+    name === "jupyterlab" &&
     (!available.jupyter_lab ||
       student_project_functionality.disableJupyterLabServer)
   ) {
     return null;
   } else if (
-    name == "jupyter" &&
+    name === "jupyter" &&
     (!available.jupyter_notebook ||
       student_project_functionality.disableJupyterClassicServer)
   ) {
     return null;
   } else if (
-    name == "code" &&
+    name === "code" &&
     (!available.vscode || student_project_functionality.disableVSCodeServer)
   ) {
     return null;
   } else if (
-    name == "pluto" &&
+    name === "pluto" &&
     (!available.julia || student_project_functionality.disablePlutoServer)
+  ) {
+    return null;
+  } else if (
+    name === "rserver" &&
+    (!available.rserver || student_project_functionality.disableRServer)
   ) {
     return null;
   } else {
