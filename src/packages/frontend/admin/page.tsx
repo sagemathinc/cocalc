@@ -13,6 +13,8 @@ import SiteSettings from "./site-settings";
 import { UsageStatistics } from "./stats/page";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { TestLLMAdmin } from "./llm";
 
 const headerStyle = { fontSize: "12pt" } as const;
 
@@ -82,6 +84,16 @@ export function AdminPage() {
         </div>
       ),
       children: <UsageStatistics />,
+    },
+    {
+      key: "llm-testing",
+      label: (
+        <div style={headerStyle}>
+          <AIAvatar size={16} style={{ marginRight: "8px", top: "-5px" }} />{" "}
+          Test LLM Integration
+        </div>
+      ),
+      children: <TestLLMAdmin />,
     },
   ];
 
