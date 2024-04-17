@@ -13,6 +13,7 @@ import { LogModal } from "./compute-server-log";
 import { EditModal } from "./compute-server";
 import { SerialLogModal } from "./serial-port-output";
 import { AppLauncherModal } from "./launcher";
+import { TitleColorModal } from "./title-color";
 
 function getItems({
   id,
@@ -310,6 +311,12 @@ export default function Menu({
                 project_id={project_id}
                 close={close}
               />,
+            );
+            break;
+
+          case "title-color":
+            setModal(
+              <TitleColorModal id={id} project_id={project_id} close={close} />,
             );
             break;
 
