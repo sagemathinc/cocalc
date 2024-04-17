@@ -87,7 +87,6 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      # 2024-04: pnpm 9.0.0 broke, incompatible lock files. We keep version 8 for a little while, until 9 has stabilized.
-      - run: cd src && npm install -g 'pnpm@8'
+      - run: cd src && npm install -g pnpm
       - run: cd src && pnpm run make
       - run: cd src && pnpm run test
