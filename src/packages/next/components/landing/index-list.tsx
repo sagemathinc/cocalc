@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Avatar, Layout, List } from "antd";
+import { Avatar, Flex, Layout, List } from "antd";
 import { ReactNode, isValidElement, useMemo } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -16,6 +16,7 @@ import useCustomize from "lib/use-customize";
 
 export interface Item {
   link: string;
+  linkText?: ReactNode;
   title: ReactNode;
   logo: IconName | StaticImageData;
   logoBackground?: string; // #color
@@ -40,7 +41,7 @@ interface Props {
 export default function IndexList({ title, description, dataSource }: Props) {
   const customize = useCustomize();
   const { shareServer, landingPages } = customize;
-  const filtedDataSource = useMemo(() => {
+  const filteredDataSource = useMemo(() => {
     return dataSource.filter((item) => {
       if (item.shareServer && !shareServer) return false;
       if (item.landingPages && !landingPages) return false;
@@ -73,7 +74,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
           {title}
         </Title>
         <Paragraph style={{ fontSize: "13pt" }}>{description}</Paragraph>
-        <DataList dataSource={filtedDataSource} />
+        <DataList dataSource={filteredDataSource} />
       </Paragraph>
     </Layout.Content>
   );
@@ -125,9 +126,24 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
             )
           }
           title={
-            <A href={item.link} style={{ fontSize: "16pt" }}>
-              {item.title}
-            </A>
+            item.link ? (
+              item.linkText ? (
+                <Flex vertical>
+                  <div style={{ fontSize: "16pt" }}>
+                    {item.title}
+                  </div>
+                  <A href={item.link}>
+                    {item.linkText}
+                  </A>
+                </Flex>
+              ) : (
+                <A
+                  href={item.link}
+                  style={{ fontSize: "16pt" }}>
+                  {item.title}
+                </A>
+              )
+            ) : item.title
           }
           description={
             <Paragraph style={{ color: COLORS.GRAY, fontSize: "12pt" }}>

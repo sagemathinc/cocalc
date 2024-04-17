@@ -10,9 +10,10 @@ import { NewsItem } from "@cocalc/util/types/news";
 
 export function useDateStr(
   news?: Omit<NewsItem, "text">,
-  minutes = false
+  minutes = false,
+  format="YYYY-MM-DD"
 ): string {
-  const f = minutes ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD";
+  const f = minutes ? "YYYY-MM-DD HH:mm" : format;
   return useMemo(() => {
     if (news == null) return "";
     if (typeof news.date === "number") {

@@ -54,6 +54,7 @@ const INNER_STYLE: CSS = {
 
 const about = {
   index: {},
+  events: { label: "Events" },
   team: { label: "Team" },
 } as const;
 
@@ -126,10 +127,6 @@ const support = {
   chatgpt: { label: "ChatGPT", hide: (customize) => !customize.openaiEnabled },
 } as const;
 
-const news = {
-  index: {},
-};
-
 const PAGES = {
   about,
   features,
@@ -142,7 +139,7 @@ const PAGES = {
   "sign-in": {},
   try: {},
   support,
-  news,
+  news: {},
   store: {},
 } as const;
 
