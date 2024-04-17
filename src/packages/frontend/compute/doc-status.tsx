@@ -26,7 +26,7 @@ import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { DisplayImage } from "./select-image";
-import Launcher from "./launcher";
+import Menu from "./menu";
 
 interface Props {
   project_id: string;
@@ -88,6 +88,11 @@ export function ComputeServerDocStatus({
             : undefined,
       }}
     >
+      <Menu
+        fontSize={"13pt"}
+        size="small"
+        style={{ marginTop: "1px", height: "10px" }}
+      />
       <Tooltip
         mouseEnterDelay={0.9}
         title={
@@ -124,13 +129,6 @@ export function ComputeServerDocStatus({
           />
         </div>
       </Tooltip>
-      <Launcher
-        compute_server_id={id}
-        project_id={project_id}
-        configuration={{ image: "python" }}
-        data={{}}
-        style={{ display: "flex" }}
-      />
       {progress == 100 && !noSync && (
         <SyncButton
           type="text"

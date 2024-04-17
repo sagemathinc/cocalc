@@ -21,6 +21,7 @@ import State from "./state";
 import Title from "./title";
 import Launcher from "./launcher";
 import { Docs } from "./compute-servers";
+import Menu from "./menu";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -369,6 +370,9 @@ export default function ComputeServer({
                 }}
               >
                 <Cloud cloud={cloud} state={state} editable={false} id={id} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <Menu style={{ float: "right" }} />
               </div>
             </div>
           )
