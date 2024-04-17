@@ -157,7 +157,7 @@ export async function getRecentHeadlines(
 // Query upcoming events from a particular channel
 const Q_UPCOMING_NEWS_CHANNEL_ITEMS = `
 SELECT
-  id, channel, title, text, url,
+  id, channel, title, text, url, tags,
   extract(epoch from date::timestamp)::integer as date
 FROM news
 WHERE date >= NOW()
@@ -173,7 +173,7 @@ export async function getUpcomingNewsChannelItems(channel: Channel): Promise<New
 // Query past events from a particular channel
 const Q_PAST_NEWS_CHANNEL_ITEMS = `
 SELECT
-  id, channel, title, text, url,
+  id, channel, title, text, url, tags,
   extract(epoch from date::timestamp)::integer as date
 FROM news
 WHERE date <= NOW()
