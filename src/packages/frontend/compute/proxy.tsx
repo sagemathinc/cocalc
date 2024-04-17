@@ -17,6 +17,7 @@ import { getQuery } from "./description";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { delay } from "awaiting";
 import { TimeAgo } from "@cocalc/frontend/components";
+import { EditModal } from "./compute-server";
 
 export default function Proxy({
   id,
@@ -359,6 +360,7 @@ export function LauncherButton({
   const [log, setLog] = useState<string>("");
   const cancelRef = useRef<boolean>(false);
   const [start, setStart] = useState<Date | null>(null);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
   const dnsIssue =
     !(configuration?.dns && compute_servers_dns) && app.requiresDns;
   useEffect(() => {
@@ -457,6 +459,34 @@ export function LauncherButton({
         >
           It could take a few minutes for the server to start, so revisit this
           URL if necessary.
+          {dnsIssue && (
+            <Alert
+              style={{ margin: "10px" }}
+              type="warning"
+              showIcon
+              message={
+                <>
+                  <b>WARNING:</b> {app.label} probably won't work without a DNS
+                  subdomain configured.
+                  <Button
+                    style={{ marginLeft: "15px" }}
+                    onClick={() => {
+                      setShowSettings(true);
+                    }}
+                  >
+                    <Icon name="settings" /> Settings
+                  </Button>
+                  {showSettings && (
+                    <EditModal
+                      id={compute_server_id}
+                      project_id={project_id}
+                      close={() => setShowSettings(false)}
+                    />
+                  )}
+                </>
+              }
+            />
+          )}
           <div style={{ textAlign: "center" }}>
             <A href={url}>{url}</A>
           </div>

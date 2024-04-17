@@ -3,6 +3,7 @@ Compute server hamburger menu.
 */
 
 import { Button, Dropdown, Spin, Tooltip } from "antd";
+import type { MenuProps } from "antd";
 import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
 import getTitle from "./get-title";
@@ -24,6 +25,19 @@ function getServer({ id, project_id }) {
     ?.toJS();
 }
 
+function getApps(image) {
+  const IMAGES = redux.getStore("customize").get("compute_servers_images");
+  if (IMAGES == null || typeof IMAGES == "string") {
+    // string when error
+    return {};
+  }
+  return (
+    IMAGES.getIn([image, "apps"])?.toJS() ??
+    IMAGES.getIn(["defaults", "apps"])?.toJS() ??
+    {}
+  );
+}
+
 function getItems({
   id,
   project_id,
@@ -36,7 +50,7 @@ function getItems({
   account_id: string;
   title?: string;
   color?: string;
-}): any[] {
+}): MenuProps["items"] {
   if (!id) {
     return [];
   }
@@ -54,6 +68,7 @@ function getItems({
       },
     ];
   }
+  const apps = getApps(server.configuration?.image ?? "defaults");
   const is_owner = account_id == server.account_id;
 
   // will be used for start/stop/etc.
@@ -62,7 +77,6 @@ function getItems({
   return [
     {
       key: "title-color",
-      value: "title-color",
       icon: <Icon name="server" />,
       disabled: !is_owner,
       label: (
@@ -97,14 +111,12 @@ function getItems({
     //     },
     //     {
     //       key: "new-jupyter",
-    //       value: "new-jupyter",
     //       label: "New Jupyter Notebook",
     //       icon: <Icon name="jupyter" />,
     //       disabled: server.state != "running",
     //     },
     //     {
     //       key: "new-terminal",
-    //       value: "new-terminal",
     //       label: "New Linux Terminal",
     //       icon: <Icon name="terminal" />,
     //       disabled: server.state != "running",
@@ -114,15 +126,15 @@ function getItems({
     },
     {
       key: "top-jupyterlab",
-      value: "jupyterlab",
       label: "JupyterLab",
       icon: <Icon name="jupyter" />,
+      disabled: apps["jupyterlab"] == null || server.state != "running",
     },
     {
       key: "top-vscode",
-      value: "vscode",
       label: "VS Code",
       icon: <Icon name="vscode" />,
+      disabled: apps["vscode"] == null || server.state != "running",
     },
     {
       type: "divider",
@@ -134,39 +146,33 @@ function getItems({
     //       children: [
     //         {
     //           key: "start",
-    //           value: "start",
     //           icon: <Icon name="play" />,
     //           label: "Start",
     //         },
     //         {
     //           key: "suspend",
-    //           value: "suspend",
     //           icon: <Icon name="pause" />,
     //           label: "Suspend",
     //         },
     //         {
     //           key: "stop",
-    //           value: "stop",
     //           icon: <Icon name="stop" />,
     //           label: "Stop",
     //         },
     //         {
     //           key: "reboot",
-    //           value: "reboot",
     //           icon: <Icon name="redo" />,
     //           label: "Hard Reboot",
     //           danger: true,
     //         },
     //         {
     //           key: "deprovision",
-    //           value: "deprovision",
     //           icon: <Icon name="trash" />,
     //           label: "Deprovision",
     //           danger: true,
     //         },
     //         {
     //           key: "delete",
-    //           value: "delete",
     //           icon: <Icon name="trash" />,
     //           label: "Delete",
     //           danger: true,
@@ -186,25 +192,24 @@ function getItems({
           children: [
             {
               key: "jupyterlab",
-              value: "jupyterlab",
               label: "JupyterLab",
               icon: <Icon name="jupyter" />,
+              disabled: apps["jupyterlab"] == null,
             },
             {
               key: "vscode",
-              value: "vscode",
               label: "VS Code",
               icon: <Icon name="vscode" />,
+              disabled: apps["vscode"] == null,
             },
             {
               key: "xpra",
-              value: "xpra",
               label: "X11 Desktop",
               icon: <Icon name="desktop" />,
+              disabled: apps["xpra"] == null,
             },
             //         {
             //           key: "pluto",
-            // value: "pluto",
             //           label: "Pluto (Julia)",
             //           icon: <Icon name="julia" />,
             //         },
@@ -266,13 +271,11 @@ function getItems({
       children: [
         {
           key: "control-log",
-          value: "control-log",
           icon: <Icon name="history" />,
           label: "Control and Configuration Log",
         },
         {
           key: "serial-console-log",
-          value: "serial-console-log",
           disabled: server.state != "running" || server.cloud != "google-cloud",
           icon: <Icon name="laptop" />,
           label: "Serial Console Log",
@@ -426,7 +429,7 @@ export default function Menu({
       items: getItems({ ...title, id, project_id, account_id }),
       onClick: async (obj) => {
         setOpen(false);
-        const cmd = obj.value ?? obj.key;
+        let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {
           case "control-log":
             setModal(<LogModal id={id} close={close} />);
