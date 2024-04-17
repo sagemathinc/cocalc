@@ -60,13 +60,16 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
   "gemini-pro",
-  "gemini-1.0-ultra-latest", // only works with langchain, not their GenAI JS lib
-  "gemini-1.5-pro-latest", // neither works with langchain (yet) nor GenAI JS
+  "gemini-1.0-ultra", // hangs
+  "gemini-1.5-pro", // hangs with langchain, maybe works with GenAI
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
   return GOOGLE_MODELS.includes(model as any);
 }
+export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
+  "gemini-1.5-pro": "gemini-1.5-pro-latest",
+} as const;
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
 export const ANTHROPIC_MODELS = [
@@ -131,7 +134,9 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m !== "gpt-4-turbo-preview-8k",
   ),
   google: GOOGLE_MODELS.filter(
-    (m) => m === "gemini-pro", // for now, that's the only one working robustly
+    (m) =>
+      // not all work right now
+      m === "gemini-pro" || m === "gemini-1.5-pro",
   ),
   mistralai: MISTRAL_MODELS,
   anthropic: ANTHROPIC_MODELS.filter((m) => {
@@ -458,8 +463,8 @@ export const LLM_USERNAMES: LLM2String = {
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini 1.0 Pro",
-  "gemini-1.0-ultra-latest": "Gemini 1.0 Ultra",
-  "gemini-1.5-pro-latest": "Gemini 1.5 Pro",
+  "gemini-1.0-ultra": "Gemini 1.0 Ultra",
+  "gemini-1.5-pro": "Gemini 1.5 Pro",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -495,9 +500,9 @@ export const LLM_DESCR: LLM2String = {
   "chat-bison-001": "",
   "gemini-pro":
     "Google's Gemini 1.0 Pro Generative AI model (30k token context)",
-  "gemini-1.0-ultra-latest":
+  "gemini-1.0-ultra":
     "Google's Gemini 1.0 Ultra Generative AI model (30k token context)",
-  "gemini-1.5-pro-latest":
+  "gemini-1.5-pro":
     "Google's Gemini 1.5 Pro Generative AI model (100k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
@@ -665,15 +670,15 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     max_tokens: 30720,
     free: true,
   },
-  "gemini-1.0-ultra-latest": {
+  "gemini-1.0-ultra": {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
     free: true,
   },
-  "gemini-1.5-pro-latest": {
-    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
-    completion_tokens: usd1Mtokens(1),
+  "gemini-1.5-pro": {
+    prompt_tokens: usd1Mtokens(7), // TODO: price not yet known!
+    completion_tokens: usd1Mtokens(21),
     max_tokens: 1048576,
     free: true,
   },

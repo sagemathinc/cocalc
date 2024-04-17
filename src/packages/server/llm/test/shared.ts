@@ -1,8 +1,15 @@
+// This configures the test files in that directory
+//
+// By default, no tests are running.
+// To enable them, first set the environment variable COCALC_TEST_LLM to "true".
+// You also have to store the API key in the appropriate env var – see below.
+
 import { db } from "@cocalc/database";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { LLMServiceName } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 
+const RUN_TESTS = process.env.COCALC_TEST_LLM === "true";
 const OPENAI_KEY = process.env.COCALC_TEST_OPENAI_KEY;
 const GOOGLE_GENAI_KEY = process.env.COCALC_TEST_GOOGLE_GENAI_KEY;
 const MISTRAL_AI_KEY = process.env.COCALC_TEST_MISTRAL_AI_KEY;
@@ -15,16 +22,23 @@ const MODEL_CONFIG_KEY = [
   ["anthropic_enabled", "anthropic_api_key", ANTHROPIC_KEY],
 ] as const;
 
-function have_llm(service: LLMServiceName) {
+// must be a string and at least 1 char
+function isSet(m: unknown) {
+  if (typeof m !== "string") return false;
+  return m.length >= 1;
+}
+
+export function have_llm(service: LLMServiceName) {
+  if (!RUN_TESTS) return false;
   switch (service) {
     case "openai":
-      return !!OPENAI_KEY;
+      return isSet(OPENAI_KEY);
     case "google":
-      return !!GOOGLE_GENAI_KEY;
+      return isSet(GOOGLE_GENAI_KEY);
     case "mistralai":
-      return !!MISTRAL_AI_KEY;
+      return isSet(MISTRAL_AI_KEY);
     case "anthropic":
-      return !!ANTHROPIC_KEY;
+      return isSet(ANTHROPIC_KEY);
     case "ollama":
       return false;
     default:
