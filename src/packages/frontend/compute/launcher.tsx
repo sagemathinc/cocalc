@@ -29,8 +29,6 @@ export default function Launcher({
     return null;
   }
   const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? {};
-  console.log(apps);
-
   return (
     <div style={style}>
       <Modal

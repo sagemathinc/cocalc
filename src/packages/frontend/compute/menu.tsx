@@ -6,10 +6,12 @@ import type { MenuProps } from "antd";
 import { Button, Dropdown, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useEffect, useState } from "react";
-import { LogModal } from "./compute-server-log";
-import { EditModal } from "./compute-server";
 import getTitle from "./get-title";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+
+import { LogModal } from "./compute-server-log";
+import { EditModal } from "./compute-server";
+import { SerialLogModal } from "./serial-port-output";
 
 function getItems(x): MenuProps["items"] {
   if (x == null) {
@@ -234,8 +236,7 @@ export default function Menu({
   fontSize?;
   size?;
 }) {
-  const [openLogModal, setOpenLogModal] = useState<boolean>(false);
-  const [openEditModal, setOpenEditModal] = useState<boolean>(false);
+  const [modal, setModal] = useState<any>(null);
   const [title, setTitle] = useState<{ title: string; color: string } | null>(
     null,
   );
@@ -246,15 +247,20 @@ export default function Menu({
   }, []);
 
   const items = getItems(title);
+  const close = () => setModal(null);
 
   const onClick = (obj) => {
     switch (obj.key) {
       case "control-log":
-        setOpenLogModal(true);
+        setModal(<LogModal id={id} close={close} />);
         break;
 
       case "edit":
-        setOpenEditModal(true);
+        setModal(<EditModal id={id} project_id={project_id} close={close} />);
+        break;
+
+      case "serial-console-log":
+        setModal(<SerialLogModal id={id} title={title?.title ?? ""} close={close} />);
         break;
 
       default:
@@ -275,17 +281,7 @@ export default function Menu({
           </Button>
         </Tooltip>
       </Dropdown>
-
-      {openLogModal && (
-        <LogModal id={id} close={() => setOpenLogModal(false)} />
-      )}
-      {openEditModal && (
-        <EditModal
-          id={id}
-          project_id={project_id}
-          close={() => setOpenEditModal(false)}
-        />
-      )}
+      {modal}
     </div>
   );
 }
