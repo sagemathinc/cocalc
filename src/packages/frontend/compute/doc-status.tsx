@@ -88,13 +88,29 @@ export function ComputeServerDocStatus({
             : undefined,
       }}
     >
-      <Menu
-        fontSize={"13pt"}
-        size="small"
-        style={{ marginTop: "1px", height: "10px" }}
-        id={id}
-        project_id={project_id}
-      />
+      {progress == 100 && !noSync && (
+        <SyncButton
+          type="text"
+          disabled={excludeFromSync}
+          style={{
+            marginLeft: "-3px",
+            float: "right",
+            width: "90px",
+          }}
+          size="small"
+          compute_server_id={id}
+          project_id={project_id}
+          time={syncState?.get("time")}
+          syncing={
+            requestedServer?.get("state") == "running" &&
+            !syncState?.get("extra") &&
+            (syncState?.get("progress") ?? 100) <
+              80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
+          }
+        >
+          Sync
+        </SyncButton>
+      )}
       <Tooltip
         mouseEnterDelay={0.9}
         title={
@@ -131,28 +147,13 @@ export function ComputeServerDocStatus({
           />
         </div>
       </Tooltip>
-      {progress == 100 && !noSync && (
-        <SyncButton
-          type="text"
-          disabled={excludeFromSync}
-          style={{
-            marginLeft: "-3px",
-            float: "right",
-          }}
-          size="small"
-          compute_server_id={id}
-          project_id={project_id}
-          time={syncState?.get("time")}
-          syncing={
-            requestedServer?.get("state") == "running" &&
-            !syncState?.get("extra") &&
-            (syncState?.get("progress") ?? 100) <
-              80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
-          }
-        >
-          Sync Files
-        </SyncButton>
-      )}
+      <Menu
+        fontSize={"13pt"}
+        size="small"
+        style={{ marginTop: "1px", height: "10px" }}
+        id={id}
+        project_id={project_id}
+      />
     </div>
   );
 
