@@ -493,14 +493,19 @@ export default function ComputeServer({
   );
 }
 
-export function EditModal({ project_id, id, close }) {
-  const account_id = useTypedRedux("account", "account_id");
+export function useServer({ id, project_id }) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const server = useMemo(() => {
     return computeServers?.get(`${id}`)?.toJS();
-  }, [id, computeServers]);
+  }, [id, project_id, computeServers]);
 
-  if (computeServers == null || account_id == null || server == null) {
+  return server;
+}
+
+export function EditModal({ project_id, id, close }) {
+  const account_id = useTypedRedux("account", "account_id");
+  const server = useServer({ id, project_id });
+  if (account_id == null || server == null) {
     return null;
   }
   return (

@@ -2,13 +2,14 @@
 Launcher buttons shown for a running compute server.
 */
 
-import { Button, Modal } from "antd";
+import { Button, Modal, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { useState } from "react";
 import { LauncherButton, getRoute } from "./proxy";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
+import { useServer } from "./compute-server";
 
 export default function Launcher({
   style,
@@ -31,35 +32,14 @@ export default function Launcher({
   const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? {};
   return (
     <div style={style}>
-      <Modal
-        title={
-          <>
-            <Icon name={apps[appName]?.icon ?? "global"} />
-            {apps[appName]?.label ?? appName}
-          </>
-        }
-        open={!!appName}
-        onOk={() => setAppName("")}
-        onCancel={() => setAppName("")}
-        destroyOnClose
-      >
-        {(appName == "vscode" || appName == "jupyterlab") && (
-          <AppLauncher
-            name={appName}
-            configuration={configuration}
-            data={data}
-            compute_server_id={compute_server_id}
-            project_id={project_id}
-            IMAGES={IMAGES}
-          />
-        )}
-        {appName == "explorer" && (
-          <ExplorerLauncher
-            compute_server_id={compute_server_id}
-            project_id={project_id}
-          />
-        )}
-      </Modal>
+      {!!appName && (
+        <AppLauncherModal
+          id={compute_server_id}
+          name={appName}
+          project_id={project_id}
+          close={() => setAppName("")}
+        />
+      )}
       {/*<Button
         onClick={() => setAppName("explorer")}
         type="text"
@@ -132,10 +112,57 @@ function AppLauncher({
   );
 }
 
-function ExplorerLauncher({ compute_server_id, project_id }) {
+// function ExplorerLauncher({ compute_server_id, project_id }) {
+//   return (
+//     <div>
+//       {compute_server_id} {project_id}
+//     </div>
+//   );
+// }
+
+export function AppLauncherModal({
+  name,
+  id,
+  project_id,
+  close,
+}: {
+  name: string;
+  id: number;
+  project_id: string;
+  close: () => void;
+}) {
+  const server = useServer({ id, project_id });
+  const [IMAGES] = useImages();
+  if (server == null || IMAGES == null) {
+    return <Spin />;
+  }
+  const image = server.configuration?.image ?? "defaults";
+  const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? {};
+
   return (
-    <div>
-      {compute_server_id} {project_id}
-    </div>
+    <Modal
+      title={
+        <>
+          <Icon
+            name={apps[name]?.icon ?? "global"}
+            style={{ marginRight: "5px" }}
+          />
+          {apps[name]?.label ?? name}
+        </>
+      }
+      open
+      onOk={close}
+      onCancel={close}
+      destroyOnClose
+    >
+      <AppLauncher
+        name={name}
+        configuration={server.configuration}
+        data={server.data}
+        compute_server_id={server.id}
+        project_id={project_id}
+        IMAGES={IMAGES}
+      />
+    </Modal>
   );
 }

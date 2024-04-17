@@ -12,6 +12,7 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { LogModal } from "./compute-server-log";
 import { EditModal } from "./compute-server";
 import { SerialLogModal } from "./serial-port-output";
+import { AppLauncherModal } from "./launcher";
 
 function getItems(x): MenuProps["items"] {
   if (x == null) {
@@ -38,64 +39,64 @@ function getItems(x): MenuProps["items"] {
     {
       type: "divider",
     },
-    {
-      key: "control",
-      icon: <Icon name="wrench" />,
-      label: "Control",
-      children: [
-        {
-          key: "start",
-          icon: <Icon name="play" />,
-          label: "Start",
-        },
-        {
-          key: "suspend",
-          icon: <Icon name="pause" />,
-          label: "Suspend",
-        },
-        {
-          key: "stop",
-          icon: <Icon name="stop" />,
-          label: "Stop",
-        },
-        {
-          key: "reboot",
-          icon: <Icon name="redo" />,
-          label: "Hard Reboot",
-          danger: true,
-        },
-        {
-          key: "deprovision",
-          icon: <Icon name="trash" />,
-          label: "Deprovision",
-          danger: true,
-        },
-        {
-          key: "delete",
-          icon: <Icon name="trash" />,
-          label: "Delete",
-          danger: true,
-        },
-      ],
-    },
+    //     {
+    //       key: "control",
+    //       icon: <Icon name="wrench" />,
+    //       label: "Control",
+    //       children: [
+    //         {
+    //           key: "start",
+    //           icon: <Icon name="play" />,
+    //           label: "Start",
+    //         },
+    //         {
+    //           key: "suspend",
+    //           icon: <Icon name="pause" />,
+    //           label: "Suspend",
+    //         },
+    //         {
+    //           key: "stop",
+    //           icon: <Icon name="stop" />,
+    //           label: "Stop",
+    //         },
+    //         {
+    //           key: "reboot",
+    //           icon: <Icon name="redo" />,
+    //           label: "Hard Reboot",
+    //           danger: true,
+    //         },
+    //         {
+    //           key: "deprovision",
+    //           icon: <Icon name="trash" />,
+    //           label: "Deprovision",
+    //           danger: true,
+    //         },
+    //         {
+    //           key: "delete",
+    //           icon: <Icon name="trash" />,
+    //           label: "Delete",
+    //           danger: true,
+    //         },
+    //       ],
+    //     },
     {
       key: "launch",
       label: "Applications",
       icon: <Icon name="global" />,
       children: [
-        {
-          key: "jupyter",
-          label: "Jupyter Notebook",
-          icon: <Icon name="jupyter" />,
-        },
-        {
-          key: "terminal",
-          label: "Linux Terminal",
-          icon: <Icon name="terminal" />,
-        },
-        {
-          type: "divider",
-        },
+        //         {
+        //           key: "jupyter",
+        //           label: "Jupyter Notebook",
+        //           icon: <Icon name="jupyter" />,
+        //         },
+        //         {
+        //           key: "terminal",
+        //           label: "Linux Terminal",
+        //           icon: <Icon name="terminal" />,
+        //         },
+        //         {
+        //           type: "divider",
+        //         },
         {
           key: "vscode",
           label: "VS Code",
@@ -107,62 +108,62 @@ function getItems(x): MenuProps["items"] {
           icon: <Icon name="jupyter" />,
         },
         {
-          key: "x11",
+          key: "xpra",
           label: "X11 Desktop",
           icon: <Icon name="desktop" />,
         },
-        {
-          key: "pluto",
-          label: "Pluto (Julia)",
-          icon: <Icon name="julia" />,
-        },
-        {
-          key: "rstudio",
-          label: "R Studio",
-          icon: <Icon name="r" />,
-        },
+        //         {
+        //           key: "pluto",
+        //           label: "Pluto (Julia)",
+        //           icon: <Icon name="julia" />,
+        //         },
+        //         {
+        //           key: "rstudio",
+        //           label: "R Studio",
+        //           icon: <Icon name="r" />,
+        //         },
       ],
     },
-    {
-      key: "files",
-      label: "Files",
-      icon: <Icon name="files" />,
-      children: [
-        {
-          key: "explorer",
-          label: "Explorer",
-          icon: <Icon name="folder-open" />,
-        },
-        {
-          type: "divider",
-        },
-        {
-          key: "sync",
-          icon: <Icon name="sync" />,
-          label: "Sync Files",
-        },
-        {
-          key: "disk",
-          icon: <Icon name="disk-drive" />,
-          label: "Disk Space",
-        },
-        {
-          type: "divider",
-        },
-        { key: "file1", label: "foo.ipynb", icon: <Icon name="jupyter" /> },
-        { key: "file2", label: "tmp/a.term", icon: <Icon name="terminal" /> },
-        {
-          key: "file3",
-          label: "compoute-server-38/foo-bar.ipynb",
-          icon: <Icon name="jupyter" />,
-        },
-        {
-          key: "file4",
-          label: "compoute-server-38/example.ipynb",
-          icon: <Icon name="jupyter" />,
-        },
-      ],
-    },
+    //     {
+    //       key: "files",
+    //       label: "Files",
+    //       icon: <Icon name="files" />,
+    //       children: [
+    //         {
+    //           key: "explorer",
+    //           label: "Explorer",
+    //           icon: <Icon name="folder-open" />,
+    //         },
+    //         {
+    //           type: "divider",
+    //         },
+    //         {
+    //           key: "sync",
+    //           icon: <Icon name="sync" />,
+    //           label: "Sync Files",
+    //         },
+    //         {
+    //           key: "disk",
+    //           icon: <Icon name="disk-drive" />,
+    //           label: "Disk Space",
+    //         },
+    //         {
+    //           type: "divider",
+    //         },
+    //         { key: "file1", label: "foo.ipynb", icon: <Icon name="jupyter" /> },
+    //         { key: "file2", label: "tmp/a.term", icon: <Icon name="terminal" /> },
+    //         {
+    //           key: "file3",
+    //           label: "compoute-server-38/foo-bar.ipynb",
+    //           icon: <Icon name="jupyter" />,
+    //         },
+    //         {
+    //           key: "file4",
+    //           label: "compoute-server-38/example.ipynb",
+    //           icon: <Icon name="jupyter" />,
+    //         },
+    //       ],
+    //     },
     {
       key: "options",
       label: "Options",
@@ -260,7 +261,22 @@ export default function Menu({
         break;
 
       case "serial-console-log":
-        setModal(<SerialLogModal id={id} title={title?.title ?? ""} close={close} />);
+        setModal(
+          <SerialLogModal id={id} title={title?.title ?? ""} close={close} />,
+        );
+        break;
+
+      case "vscode":
+      case "jupyterlab":
+      case "xpra":
+        setModal(
+          <AppLauncherModal
+            name={obj.key}
+            id={id}
+            project_id={project_id}
+            close={close}
+          />,
+        );
         break;
 
       default:
