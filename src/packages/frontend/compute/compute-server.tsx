@@ -24,7 +24,12 @@ import { Docs } from "./compute-servers";
 import Menu from "./menu";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
-interface Props extends Omit<ComputeServerUserInfo, "id"> {
+interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
+  id?: number;
+}
+
+interface Props {
+  server: Server1;
   id?: number;
   style?: CSSProperties;
   editable: boolean;
@@ -35,25 +40,10 @@ interface Props extends Omit<ComputeServerUserInfo, "id"> {
   onColorChange?;
   onCloudChange?;
   onConfigurationChange?;
-  setIsValid?: (valid) => void;
 }
 
 export default function ComputeServer({
-  id,
-  title,
-  color = randomColor(),
-  state,
-  state_changed,
-  detailed_state,
-  cloud,
-  cost_per_hour,
-  purchase_id,
-  configuration,
-  data,
-  deleted,
-  error: backendError,
-  project_id,
-  account_id,
+  server,
   style,
   editable,
   setShowDeleted,
@@ -64,6 +54,24 @@ export default function ComputeServer({
   onCloudChange,
   onConfigurationChange,
 }: Props) {
+  const {
+    id,
+    title,
+    color = randomColor(),
+    state,
+    state_changed,
+    detailed_state,
+    cloud,
+    cost_per_hour,
+    purchase_id,
+    configuration,
+    data,
+    deleted,
+    error: backendError,
+    project_id,
+    account_id,
+  } = server;
+
   const [error, setError] = useState<string>("");
   const [edit, setEdit] = useState<boolean>(id == null);
 

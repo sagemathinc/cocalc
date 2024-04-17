@@ -229,7 +229,7 @@ export function ComputeServerDocStatus({
         {server != null && (
           <ComputeServer
             editable={account_id == server.account_id}
-            {...server}
+            server={server}
           />
         )}
       </div>
