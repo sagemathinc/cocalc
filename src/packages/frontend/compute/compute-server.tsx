@@ -1,8 +1,7 @@
-import { Button, Card, Divider, Modal, Popconfirm } from "antd";
-import { CSSProperties, useState } from "react";
+import { Button, Card, Divider, Modal, Popconfirm, Spin } from "antd";
+import { CSSProperties, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import { COLORS } from "@cocalc/util/theme";
@@ -28,31 +27,31 @@ interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
 }
 
-interface Props {
-  server: Server1;
-  id?: number;
-  style?: CSSProperties;
-  editable: boolean;
+interface Controls {
   setShowDeleted?: (showDeleted: boolean) => void;
   setSearch?: (search: string) => void;
-  projectLink?: boolean;
   onTitleChange?;
   onColorChange?;
   onCloudChange?;
   onConfigurationChange?;
 }
 
+interface Props {
+  server: Server1;
+  editable?: boolean;
+  style?: CSSProperties;
+  controls?: Controls;
+  modalOnly?: boolean;
+  close?: () => void;
+}
+
 export default function ComputeServer({
   server,
   style,
   editable,
-  setShowDeleted,
-  setSearch,
-  projectLink,
-  onTitleChange,
-  onColorChange,
-  onCloudChange,
-  onConfigurationChange,
+  controls,
+  modalOnly,
+  close,
 }: Props) {
   const {
     id,
@@ -72,8 +71,27 @@ export default function ComputeServer({
     account_id,
   } = server;
 
+  const {
+    setShowDeleted,
+    setSearch,
+    onTitleChange,
+    onColorChange,
+    onCloudChange,
+    onConfigurationChange,
+  } = controls ?? {};
+
   const [error, setError] = useState<string>("");
-  const [edit, setEdit] = useState<boolean>(id == null);
+  const [edit, setEdit0] = useState<boolean>(id == null || !!modalOnly);
+  const setEdit = (edit) => {
+    setEdit0(edit);
+    if (!edit && close != null) {
+      close();
+    }
+  };
+
+  if (id == null && modalOnly) {
+    return <Spin />;
+  }
 
   let actions: JSX.Element[] | undefined = undefined;
   if (id != null) {
@@ -196,13 +214,6 @@ export default function ComputeServer({
         data={data}
         onChange={onConfigurationChange}
       />
-
-      {projectLink && (
-        <div>
-          <Divider orientation="left">Project</Divider>
-          <ProjectTitle project_id={project_id} />
-        </div>
-      )}
     </div>
   );
 
@@ -265,7 +276,64 @@ export default function ComputeServer({
       <BackendError error={backendError} id={id} project_id={project_id} />
     </div>
   );
-  //const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? [];
+
+  const body =
+    id == null ? (
+      table
+    ) : (
+      <Modal
+        open={edit}
+        destroyOnClose
+        width={"900px"}
+        onCancel={() => setEdit(false)}
+        title={
+          <>
+            {buttons}
+            <Divider />
+            <Icon name="edit" style={{ marginRight: "15px" }} />{" "}
+            {editable ? "Edit" : ""} Compute Server With Id={id}
+          </>
+        }
+        footer={
+          <>
+            <div style={{ display: "flex" }}>
+              {buttons}
+              <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
+            </div>
+          </>
+        }
+      >
+        <div
+          style={{ fontSize: "12pt", color: COLORS.GRAY_M, display: "flex" }}
+        >
+          <Description
+            account_id={account_id}
+            cloud={cloud}
+            data={data}
+            configuration={configuration}
+            state={state}
+          />
+          <div style={{ flex: 1 }} />
+          <State
+            style={{ marginRight: "5px" }}
+            state={state}
+            data={data}
+            state_changed={state_changed}
+            editable={editable}
+            id={id}
+            account_id={account_id}
+            configuration={configuration}
+            cost_per_hour={cost_per_hour}
+            purchase_id={purchase_id}
+          />
+        </div>
+        {table}
+      </Modal>
+    );
+
+  if (modalOnly) {
+    return body;
+  }
 
   return (
     <Card
@@ -420,115 +488,27 @@ export default function ComputeServer({
           </div>
         }
       />
-      <ComputeServerEdit
-        id={id}
-        account_id={account_id}
-        buttons={buttons}
-        cloud={cloud}
-        configuration={configuration}
-        cost_per_hour={cost_per_hour}
-        data={data}
-        edit={edit}
-        editable={editable}
-        purchase_id={purchase_id}
-        setEdit={setEdit}
-        state_changed={state_changed}
-        state={state}
-        table={table}
-      />
+      {body}
     </Card>
   );
-}
-
-function ComputeServerEdit({
-  account_id,
-  buttons,
-  cloud,
-  configuration,
-  cost_per_hour,
-  data,
-  edit,
-  editable,
-  id,
-  purchase_id,
-  setEdit,
-  state_changed,
-  state,
-  table,
-}) {
-  if (id == null) {
-    return table;
-  } else {
-    return (
-      <Modal
-        open={edit}
-        destroyOnClose
-        width={"900px"}
-        onCancel={() => setEdit(false)}
-        title={
-          <>
-            {buttons}
-            <Divider />
-            <Icon name="edit" style={{ marginRight: "15px" }} />{" "}
-            {editable ? "Edit" : ""} Compute Server With Id={id}
-          </>
-        }
-        footer={
-          <>
-            <div style={{ display: "flex" }}>
-              {buttons}
-              <Docs key="docs" style={{ flex: 1, marginTop: "5px" }} />
-            </div>
-          </>
-        }
-      >
-        <div
-          style={{ fontSize: "12pt", color: COLORS.GRAY_M, display: "flex" }}
-        >
-          <Description
-            account_id={account_id}
-            cloud={cloud}
-            data={data}
-            configuration={configuration}
-            state={state}
-          />
-          <div style={{ flex: 1 }} />
-          <State
-            style={{ marginRight: "5px" }}
-            state={state}
-            data={data}
-            state_changed={state_changed}
-            editable={editable}
-            id={id}
-            account_id={account_id}
-            configuration={configuration}
-            cost_per_hour={cost_per_hour}
-            purchase_id={purchase_id}
-          />
-        </div>
-        {table}
-      </Modal>
-    );
-  }
 }
 
 export function EditModal({ project_id, id, close }) {
   const account_id = useTypedRedux("account", "account_id");
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
+  const server = useMemo(() => {
+    return computeServers?.get(`${id}`)?.toJS();
+  }, [id, computeServers]);
 
-  if (computeServers == null || account_id == null) {
+  if (computeServers == null || account_id == null || server == null) {
     return null;
   }
-  console.log("EditModal", computeServers.get(`${id}`)?.toJS());
   return (
-    <ComputeServerEdit
-      id={id}
-      account_id={account_id}
-      buttons={undefined}
-      edit={true}
-      editable={true}
-      {...computeServers.get(`${id}`)?.toJS()}
-      setEdit={close}
+    <ComputeServer
+      modalOnly
+      editable={account_id == server.account_id}
+      server={server}
+      close={close}
     />
   );
 }

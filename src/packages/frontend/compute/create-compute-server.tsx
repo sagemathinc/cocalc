@@ -236,10 +236,12 @@ export default function CreateComputeServer({ project_id, onCreate }) {
               configuration,
             }}
             editable={!creating}
-            onColorChange={setColor}
-            onTitleChange={setTitle}
-            onCloudChange={setCloud}
-            onConfigurationChange={setConfiguration}
+            controls={{
+              onColorChange: setColor,
+              onTitleChange: setTitle,
+              onCloudChange: setCloud,
+              onConfigurationChange: setConfiguration,
+            }}
           />
         </div>
       </Modal>

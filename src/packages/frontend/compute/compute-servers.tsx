@@ -228,8 +228,7 @@ function ComputeServerTable({
           style={{ marginBottom: "15px" }}
           key={`${id}`}
           editable={account_id == server.account_id}
-          setShowDeleted={setShowDeleted}
-          setSearch={setSearch}
+          controls={{ setShowDeleted, setSearch }}
         />
       </div>
     );
