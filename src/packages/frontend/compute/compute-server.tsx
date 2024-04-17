@@ -121,11 +121,11 @@ export default function ComputeServer({
         >
           {editable ? (
             <>
-              <Icon name="gears" /> {!edit ? "Edit..." : "Editing..."}
+              <Icon name="settings" /> Settings
             </>
           ) : (
             <>
-              <Icon name="eye" /> Details...
+              <Icon name="eye" /> Settings
             </>
           )}
         </Button>,

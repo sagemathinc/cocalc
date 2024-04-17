@@ -14,6 +14,15 @@ import { EditModal } from "./compute-server";
 import { SerialLogModal } from "./serial-port-output";
 import { AppLauncherModal } from "./launcher";
 import { TitleColorModal } from "./title-color";
+import { setServerConfiguration } from "@cocalc/frontend/compute/api";
+import ShowError from "@cocalc/frontend/components/error";
+
+function getServer({ id, project_id }) {
+  return redux
+    .getProjectStore(project_id)
+    .getIn(["compute_servers", `${id}`])
+    ?.toJS();
+}
 
 function getItems({
   id,
@@ -28,10 +37,7 @@ function getItems({
   title?: string;
   color?: string;
 }): MenuProps["items"] {
-  const computeServers = redux
-    .getProjectStore(project_id)
-    .get("compute_servers");
-  const server = computeServers?.get(`${id}`)?.toJS();
+  const server = getServer({ id, project_id });
   if (server == null) {
     return [];
   }
@@ -57,6 +63,21 @@ function getItems({
           {title}
         </div>
       ),
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "new-jupyter",
+      label: "New Jupyter Notebook",
+      icon: <Icon name="jupyter" />,
+      disabled: server.state != "running",
+    },
+    {
+      key: "new-terminal",
+      label: "New Linux Terminal",
+      icon: <Icon name="terminal" />,
+      disabled: server.state != "running",
     },
     {
       type: "divider",
@@ -105,45 +126,40 @@ function getItems({
       key: "launch",
       label: "Applications",
       icon: <Icon name="global" />,
+      disabled: server.state != "running",
       children: [
-        //         {
-        //           key: "jupyter",
-        //           label: "Jupyter Notebook",
-        //           icon: <Icon name="jupyter" />,
-        //         },
-        //         {
-        //           key: "terminal",
-        //           label: "Linux Terminal",
-        //           icon: <Icon name="terminal" />,
-        //         },
-        //         {
-        //           type: "divider",
-        //         },
         {
-          key: "vscode",
-          label: "VS Code",
-          icon: <Icon name="vscode" />,
+          key: "run-app-on",
+          type: "group",
+          label: "Run On Compute Server",
+          children: [
+            {
+              key: "vscode",
+              label: "VS Code",
+              icon: <Icon name="vscode" />,
+            },
+            {
+              key: "jupyterlab",
+              label: "JupyterLab",
+              icon: <Icon name="jupyter" />,
+            },
+            {
+              key: "xpra",
+              label: "X11 Desktop",
+              icon: <Icon name="desktop" />,
+            },
+            //         {
+            //           key: "pluto",
+            //           label: "Pluto (Julia)",
+            //           icon: <Icon name="julia" />,
+            //         },
+            //         {
+            //           key: "rstudio",
+            //           label: "R Studio",
+            //           icon: <Icon name="r" />,
+            //         },
+          ],
         },
-        {
-          key: "jupyterlab",
-          label: "JupyterLab",
-          icon: <Icon name="jupyter" />,
-        },
-        {
-          key: "xpra",
-          label: "X11 Desktop",
-          icon: <Icon name="desktop" />,
-        },
-        //         {
-        //           key: "pluto",
-        //           label: "Pluto (Julia)",
-        //           icon: <Icon name="julia" />,
-        //         },
-        //         {
-        //           key: "rstudio",
-        //           label: "R Studio",
-        //           icon: <Icon name="r" />,
-        //         },
       ],
     },
     //     {
@@ -208,32 +224,76 @@ function getItems({
       key: "options",
       label: "Options",
       disabled: !is_owner,
-      icon: <Icon name="settings" />,
+      icon: <Icon name="gears" />,
       children: [
         {
-          key: "dns",
-          label: "Configure DNS...",
-          icon: <Icon name="network" />,
-        },
-        {
-          key: "ephemeral",
-          label: "Ephemeral",
-          icon: <Icon name="square" />,
-        },
-        {
-          key: "restart",
-          label: "Automatically Restart",
-          icon: <Icon name="check-square" />,
-        },
-        {
-          key: "collab",
-          label: "Collaborator Control",
-          icon: <Icon name="square" />,
-        },
-        {
-          key: "nested",
-          label: "Nested Virtualization",
-          icon: <Icon name="square" />,
+          key: "run-app-on",
+          type: "group",
+          label: "Configure Server",
+          children: [
+            //             {
+            //               key: "dns",
+            //               label: "DNS...",
+            //               icon: <Icon name="network" />,
+            //             },
+            {
+              key: "ephemeral",
+              label: "Ephemeral",
+              icon: (
+                <Icon
+                  style={{ fontSize: "12pt" }}
+                  name={
+                    server.configuration?.ephemeral ? "check-square" : "square"
+                  }
+                />
+              ),
+            },
+            {
+              key: "autoRestart",
+              label: "Automatically Restart",
+              icon: (
+                <Icon
+                  style={{ fontSize: "12pt" }}
+                  name={
+                    server.configuration?.autoRestart
+                      ? "check-square"
+                      : "square"
+                  }
+                />
+              ),
+            },
+            {
+              key: "allowCollaboratorControl",
+              label: "Collaborator Control",
+              icon: (
+                <Icon
+                  style={{ fontSize: "12pt" }}
+                  name={
+                    server.configuration?.allowCollaboratorControl
+                      ? "check-square"
+                      : "square"
+                  }
+                />
+              ),
+            },
+            {
+              key: "enableNestedVirtualization",
+              label: "Nested Virtualization",
+              disabled:
+                server.cloud != "google-cloud" ||
+                server.state != "deprovisioned",
+              icon: (
+                <Icon
+                  style={{ fontSize: "12pt" }}
+                  name={
+                    server.configuration?.enableNestedVirtualization
+                      ? "check-square"
+                      : "square"
+                  }
+                />
+              ),
+            },
+          ],
         },
       ],
     },
@@ -241,9 +301,26 @@ function getItems({
       type: "divider",
     },
     {
-      key: "edit",
-      icon: <Icon name="gears" />,
-      label: is_owner ? "Edit..." : "Details...",
+      key: "help",
+      icon: <Icon name="question-circle" />,
+      label: "Help",
+      children: [
+        {
+          key: "documentation",
+          icon: <Icon name="question-circle" />,
+          label: "Compute Server Docs",
+        },
+        {
+          key: "support",
+          icon: <Icon name="medkit" />,
+          label: "Support Ticket",
+        },
+      ],
+    },
+    {
+      key: "settings",
+      icon: <Icon name="settings" />,
+      label: is_owner ? "Settings" : "Details...",
     },
   ];
 }
@@ -261,6 +338,7 @@ export default function Menu({
   fontSize?;
   size?;
 }) {
+  const [error, setError] = useState<string>("");
   const [open, setOpen] = useState<boolean>(false);
   const account_id = useTypedRedux("account", "account_id");
   const [modal, setModal] = useState<any>(null);
@@ -279,13 +357,14 @@ export default function Menu({
 
     return {
       items: getItems({ ...title, id, project_id, account_id }),
-      onClick: (obj) => {
+      onClick: async (obj) => {
+        setOpen(false);
         switch (obj.key) {
           case "control-log":
             setModal(<LogModal id={id} close={close} />);
             break;
 
-          case "edit":
+          case "settings":
             setModal(
               <EditModal id={id} project_id={project_id} close={close} />,
             );
@@ -320,8 +399,27 @@ export default function Menu({
             );
             break;
 
+          case "ephemeral":
+          case "allowCollaboratorControl":
+          case "autoRestart":
+          case "enableNestedVirtualization":
+            const server = getServer({ id, project_id });
+            if (server != null) {
+              try {
+                await setServerConfiguration({
+                  id,
+                  configuration: {
+                    [obj.key]: !server.configuration?.[obj.key],
+                  },
+                });
+              } catch (err) {
+                setError(`${err}`);
+              }
+            }
+            break;
+
           default:
-            console.log(`not implemented -- '${obj.key}'`);
+            setError(`not implemented -- '${obj.key}'`);
         }
       },
     };
@@ -345,6 +443,19 @@ export default function Menu({
         </Tooltip>
       </Dropdown>
       {modal}
+      <ShowError
+        error={error}
+        setError={setError}
+        style={{
+          fontWeight: "normal",
+          whiteSpace: "normal",
+          position: "absolute",
+          right: 0,
+          maxWidth: "500px",
+          zIndex: 1000,
+          boxShadow: "2px 2px 2px 2px #bbb",
+        }}
+      />
     </div>
   );
 }

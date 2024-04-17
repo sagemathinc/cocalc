@@ -680,7 +680,8 @@ export async function makeConfigurationChange({
     // same comment as for authToken
     changed.delete("proxy");
   }
-  if (changed.size == 0) {
+  const keys = Object.keys(changed);
+  if (keys.length == 0) {
     // nothing else to change
     return;
   }
@@ -706,8 +707,8 @@ export async function makeConfigurationChange({
       });
     default:
       throw Error(
-        `makeConfigurationChange not implemented for cloud '${cloud}' and changed=${JSON.stringify(
-          changed,
+        `makeConfigurationChange not implemented for cloud '${cloud}' changing value of ${keys.join(
+          ", ",
         )}`,
       );
   }
