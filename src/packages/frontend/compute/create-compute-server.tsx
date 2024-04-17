@@ -221,23 +221,27 @@ export default function CreateComputeServer({ project_id, onCreate }) {
             <Button
               onClick={() => handleCreate(true)}
               disabled={!!error || !title.trim()}
-              type={'primary'}
+              type={"primary"}
             >
               <Icon name="run" /> Start Server
             </Button>
           </div>
           <ComputeServer
-            project_id={project_id}
-            account_id={account_id}
-            title={title}
-            color={color}
-            cloud={cloud}
-            configuration={configuration}
+            server={{
+              project_id,
+              account_id,
+              title,
+              color,
+              cloud,
+              configuration,
+            }}
             editable={!creating}
-            onColorChange={setColor}
-            onTitleChange={setTitle}
-            onCloudChange={setCloud}
-            onConfigurationChange={setConfiguration}
+            controls={{
+              onColorChange: setColor,
+              onTitleChange: setTitle,
+              onCloudChange: setCloud,
+              onConfigurationChange: setConfiguration,
+            }}
           />
         </div>
       </Modal>

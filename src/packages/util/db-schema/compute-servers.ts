@@ -86,6 +86,16 @@ export interface Image {
   //        if nothing given, runs proxy server with no default config (so does nothing)
   //        if given, is array of proxy config.
   proxy?: false | ProxyRoute[];
+  apps?: {
+    [name: string]: {
+      icon: string;
+      label: string;
+      url: string;
+      path: string;
+      launch: string;
+      requiresDns?: boolean;
+    };
+  };
 }
 
 export type Images = { [name: string]: Image };

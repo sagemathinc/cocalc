@@ -26,12 +26,14 @@ import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { DisplayImage } from "./select-image";
+import Menu from "./menu";
 
 interface Props {
   project_id: string;
   id: number;
   requestedId: number;
   noSync?: boolean;
+  standalone?: boolean;
 }
 
 export function ComputeServerDocStatus({
@@ -39,6 +41,7 @@ export function ComputeServerDocStatus({
   id,
   requestedId,
   noSync,
+  standalone,
 }: Props) {
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
@@ -82,54 +85,22 @@ export function ComputeServerDocStatus({
       style={{
         display: "flex",
         borderBottom:
-          requestedServer != null && !showDetails
+          !standalone && requestedServer != null && !showDetails
             ? "1px solid #ccc"
             : undefined,
+        ...(standalone
+          ? { border: "1px solid #ddd", borderRadius: "5px" }
+          : undefined),
       }}
     >
-      <Tooltip
-        mouseEnterDelay={0.9}
-        title={
-          <>
-            {progress == 100 ? "Running on " : "Moving to "}{" "}
-            <Inline id={requestedId} computeServer={requestedServer} />.
-          </>
-        }
-      >
-        <div
-          onClick={() => {
-            setShowDetails(showDetails === true ? false : true);
-          }}
-          style={{
-            height: "23px",
-            cursor: "pointer",
-            padding: "2px 5px",
-            background: requestedServer?.get("color") ?? "#fff",
-            color: avatar_fontcolor(requestedServer?.get("color") ?? "#fff"),
-            width: "100%",
-            overflow: "hidden",
-            textAlign: "center",
-          }}
-        >
-          {progress < 100 ? `${progress}% - ` : ""}
-          {requestedServer?.get("title") ?? "Loading..."} (Id: {requestedId})
-          <DisplayImage
-            style={{
-              marginLeft: "10px",
-              borderLeft: "1px solid black",
-              paddingLeft: "10px",
-            }}
-            configuration={requestedServer?.get("configuration")?.toJS()}
-          />
-        </div>
-      </Tooltip>
       {progress == 100 && !noSync && (
         <SyncButton
+          type="text"
           disabled={excludeFromSync}
           style={{
-            marginTop: "-1px",
             marginLeft: "-3px",
             float: "right",
+            width: "90px",
           }}
           size="small"
           compute_server_id={id}
@@ -142,9 +113,67 @@ export function ComputeServerDocStatus({
               80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
           }
         >
-          Sync Files
+          Sync
         </SyncButton>
       )}
+      <Tooltip
+        mouseEnterDelay={0.9}
+        title={
+          <>
+            {progress == 100 ? "Running on " : "Opening on "}{" "}
+            <Inline id={requestedId} computeServer={requestedServer} />.
+          </>
+        }
+      >
+        <div
+          onClick={() => {
+            setShowDetails(showDetails === true ? false : true);
+          }}
+          style={{
+            height: "24px",
+            cursor: "pointer",
+            padding: "2px 5px",
+            background: requestedServer?.get("color") ?? "#fff",
+            color: avatar_fontcolor(requestedServer?.get("color") ?? "#fff"),
+            width: "100%",
+            overflow: "hidden",
+            textAlign: "center",
+          }}
+        >
+          {progress < 100 ? `${progress}% - ` : ""}
+          <div style={{ display: "inline-block" }}>
+            <div style={{ display: "flex" }}>
+              <div
+                style={{
+                  maxWidth: "30ex",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  marginRight: "5px",
+                }}
+              >
+                {requestedServer?.get("title") ?? "Loading..."}
+              </div>
+              (Id: {requestedId})
+            </div>
+          </div>
+          <DisplayImage
+            style={{
+              marginLeft: "10px",
+              borderLeft: "1px solid black",
+              paddingLeft: "10px",
+            }}
+            configuration={requestedServer?.get("configuration")?.toJS()}
+          />
+        </div>
+      </Tooltip>
+      <Menu
+        fontSize={"13pt"}
+        size="small"
+        style={{ marginTop: "1px", height: "10px" }}
+        id={requestedId}
+        project_id={project_id}
+      />
     </div>
   );
 
@@ -220,7 +249,7 @@ export function ComputeServerDocStatus({
         {server != null && (
           <ComputeServer
             editable={account_id == server.account_id}
-            {...server}
+            server={server}
           />
         )}
       </div>

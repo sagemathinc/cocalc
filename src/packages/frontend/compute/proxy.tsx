@@ -17,6 +17,7 @@ import { getQuery } from "./description";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { delay } from "awaiting";
 import { TimeAgo } from "@cocalc/frontend/components";
+import { EditModal } from "./compute-server";
 
 export default function Proxy({
   id,
@@ -282,7 +283,7 @@ function getApps({
     return [];
   }
   const proxy = getProxy({ configuration, IMAGES });
-  const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? [];
+  const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? {};
 
   const buttons: JSX.Element[] = [];
   for (const name in apps) {
@@ -314,10 +315,20 @@ function getApps({
   return buttons;
 }
 
+export function getRoute({ app, configuration, IMAGES }) {
+  const proxy = getProxy({ configuration, IMAGES });
+  for (const route of proxy) {
+    if (route.path == app.path) {
+      return route;
+    }
+  }
+  throw Error(`no route found for app '${app.name}'`);
+}
+
 const START_DELAY_MS = 1500;
 const MAX_DELAY_MS = 7500;
 
-function LauncherButton({
+export function LauncherButton({
   name,
   app,
   compute_server_id,
@@ -328,73 +339,90 @@ function LauncherButton({
   setError,
   disabled,
   route,
+  noHide,
+  autoLaunch,
+}: {
+  name: string;
+  app;
+  compute_server_id: number;
+  project_id: string;
+  configuration;
+  data;
+  compute_servers_dns?: string;
+  setError;
+  disabled?;
+  route;
+  noHide?: boolean;
+  autoLaunch?: boolean;
 }) {
   const [url, setUrl] = useState<string>("");
   const [launching, setLaunching] = useState<boolean>(false);
   const [log, setLog] = useState<string>("");
   const cancelRef = useRef<boolean>(false);
   const [start, setStart] = useState<Date | null>(null);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
   const dnsIssue =
     !(configuration?.dns && compute_servers_dns) && app.requiresDns;
+  useEffect(() => {
+    if (autoLaunch) {
+      launch();
+    }
+  }, []);
+  const launch = async () => {
+    try {
+      setLaunching(true);
+      cancelRef.current = false;
+      const url = getUrl({
+        app,
+        configuration,
+        data,
+        compute_servers_dns,
+      });
+      setUrl(url);
+      let attempt = 0;
+      setStart(new Date());
+      const isRunning = async () => {
+        attempt += 1;
+        setLog(`Checking if ${route.target} is alive (attempt: ${attempt})...`);
+        return await isHttpServerResponding({
+          project_id,
+          compute_server_id,
+          target: route.target,
+        });
+      };
+      if (!(await isRunning())) {
+        setLog("Launching...");
+        await webapp_client.exec({
+          filesystem: false,
+          compute_server_id,
+          project_id,
+          command: app.launch,
+          err_on_exit: true,
+        });
+      }
+      let d = START_DELAY_MS;
+      while (!cancelRef.current && d < 60 * 1000 * 5) {
+        if (await isRunning()) {
+          setLog("Running!");
+          break;
+        }
+        d = Math.min(MAX_DELAY_MS, d * 1.2);
+        await delay(d);
+      }
+      if (!cancelRef.current) {
+        setLog("Opening tab");
+        open_new_tab(url);
+      }
+    } catch (err) {
+      setError(`${app.label}: ${err}`);
+    } finally {
+      setLaunching(false);
+      setLog("");
+    }
+  };
   return (
     <div key={name} style={{ display: "inline-block", marginRight: "5px" }}>
-      <Button
-        disabled={disabled || dnsIssue || launching}
-        onClick={async () => {
-          try {
-            setLaunching(true);
-            cancelRef.current = false;
-            const url = getUrl({
-              app,
-              configuration,
-              data,
-              compute_servers_dns,
-            });
-            setUrl(url);
-            let attempt = 0;
-            setStart(new Date());
-            const isRunning = async () => {
-              attempt += 1;
-              setLog(
-                `Checking if ${route.target} is alive (attempt: ${attempt})...`,
-              );
-              return await isHttpServerResponding({
-                project_id,
-                compute_server_id,
-                target: route.target,
-              });
-            };
-            if (!(await isRunning())) {
-              setLog("Launching...");
-              await webapp_client.exec({
-                filesystem: false,
-                compute_server_id,
-                project_id,
-                command: app.launch,
-                err_on_exit: true,
-              });
-            }
-            let d = START_DELAY_MS;
-            while (!cancelRef.current && d < 60 * 1000 * 5) {
-              if (await isRunning()) {
-                setLog("Running!");
-                break;
-              }
-              d = Math.min(MAX_DELAY_MS, d * 1.2);
-              await delay(d);
-            }
-            if (!cancelRef.current) {
-              setLog("Opening tab");
-              open_new_tab(url);
-            }
-          } catch (err) {
-            setError(`${app.label}: ${err}`);
-          } finally {
-            setLaunching(false);
-            setLog("");
-          }
-        }}
-      >
+      <Button disabled={disabled || dnsIssue || launching} onClick={launch}>
         {app.icon ? <Icon name={app.icon} /> : undefined}
         {app.label}{" "}
         {dnsIssue && <span style={{ marginLeft: "5px" }}>(requires DNS)</span>}
@@ -423,19 +451,52 @@ function LauncherButton({
           style={{
             color: "#666",
             maxWidth: "500px",
-            border: "1px solid #aaa",
-            padding: "5px",
+            border: "1px solid #ccc",
+            padding: "15px",
             borderRadius: "5px",
-            margin: "5px 0",
+            margin: "10px 0",
           }}
         >
-          <A href={url}>{url}</A>
-          <br />
-          It could take a few minutes for the server to start, so revisit the
-          above URL if necessary. You can share this URL with other people.
-          <Button size="small" type="link" onClick={() => setUrl("")}>
-            (hide)
-          </Button>
+          It could take a few minutes for the server to start, so revisit this
+          URL if necessary.
+          {dnsIssue && (
+            <Alert
+              style={{ margin: "10px" }}
+              type="warning"
+              showIcon
+              message={
+                <>
+                  <b>WARNING:</b> {app.label} probably won't work without a DNS
+                  subdomain configured.
+                  <Button
+                    style={{ marginLeft: "15px" }}
+                    onClick={() => {
+                      setShowSettings(true);
+                    }}
+                  >
+                    <Icon name="settings" /> Settings
+                  </Button>
+                  {showSettings && (
+                    <EditModal
+                      id={compute_server_id}
+                      project_id={project_id}
+                      close={() => setShowSettings(false)}
+                    />
+                  )}
+                </>
+              }
+            />
+          )}
+          <div style={{ textAlign: "center" }}>
+            <A href={url}>{url}</A>
+          </div>
+          You can also share this URL with other people, who will be able to
+          access the server, even if they do not have a CoCalc account.
+          {!noHide && (
+            <Button size="small" type="link" onClick={() => setUrl("")}>
+              (hide)
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -470,6 +531,5 @@ async function isHttpServerResponding({
     command,
     err_on_exit: false,
   });
-  console.log(stdout);
   return stdout.trim() == "0";
 }

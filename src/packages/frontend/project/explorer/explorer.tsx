@@ -588,6 +588,7 @@ const Explorer0 = rclass(
                 }}
               >
                 <ComputeServerDocStatus
+                  standalone
                   id={this.props.compute_server_id}
                   requestedId={this.props.compute_server_id}
                   project_id={this.props.project_id}
