@@ -4,19 +4,22 @@
  */
 
 import {
+  Channel,
   NewsItem,
   NewsPrevNext,
   RecentHeadline,
 } from "@cocalc/util/types/news";
 import { LRUQueryCache } from "./util";
 
+const EVENT_CHANNEL: Channel = 'event';
 const C = new LRUQueryCache({ ttl_s: 10 * 60 });
 
 export function clearCache(): void {
   C.clear();
 }
 
-// we exclude hidden and future news items
+// We exclude hidden and future news items and items from the events channel to keep user's news
+// feed clear
 const Q_FEED = `
 SELECT
   id, channel, title, text, url,
@@ -24,6 +27,7 @@ SELECT
 FROM news
 WHERE news.date <= NOW()
   AND hide IS NOT TRUE
+  AND channel != '${EVENT_CHANNEL}'
 ORDER BY date DESC
 LIMIT 100`;
 
@@ -63,6 +67,7 @@ WHERE date >= (SELECT date FROM news WHERE id = $1)
   AND id != $1
   AND hide IS NOT TRUE
   AND date < NOW()
+  AND channel != '${EVENT_CHANNEL}'
 ORDER BY date ASC, id ASC
 LIMIT 1`;
 
@@ -73,6 +78,7 @@ WHERE date <= (SELECT date FROM news WHERE id = $1)
   AND id != $1
   AND hide IS NOT TRUE
   AND date < NOW()
+  AND channel != '${EVENT_CHANNEL}'
 ORDER BY date DESC, id DESC
 LIMIT 1`;
 
@@ -100,6 +106,7 @@ SELECT
   date >= NOW() as future,
   extract(epoch from date::timestamptz)::INTEGER as date
 FROM news
+    WHERE channel <> '${EVENT_CHANNEL}'
 ORDER BY date DESC
 LIMIT $1
 OFFSET $2`;
@@ -111,7 +118,7 @@ export async function getIndex(
   return await C.query(Q_INDEX, [limit, offset]);
 }
 
-// get the most recent news item
+// get the most recent news item (excluding events)
 const Q_MOST_RECENT = `
 SELECT
   id, channel, title, tags,
@@ -119,6 +126,7 @@ SELECT
 FROM news
 WHERE date <= NOW()
   AND hide IS NOT TRUE
+  AND channel != '${EVENT_CHANNEL}'
 ORDER BY date DESC
 LIMIT 1`;
 
@@ -132,6 +140,7 @@ SELECT
   extract(epoch from date::timestamptz)::INTEGER as date
 FROM news
 WHERE date <= NOW()
+  AND channel != '${EVENT_CHANNEL}'
   AND hide IS NOT TRUE
 ORDER BY date DESC
 LIMIT $1`;
@@ -143,4 +152,36 @@ export async function getRecentHeadlines(
   const headlines = await C.query(Q_RECENT, [n]);
   if (headlines.length === 0) return null;
   return headlines;
+}
+
+// Query upcoming events from a particular channel
+const Q_UPCOMING_NEWS_CHANNEL_ITEMS = `
+SELECT
+  id, channel, title, text, url,
+  extract(epoch from date::timestamp)::integer as date
+FROM news
+WHERE date >= NOW()
+  AND channel = $1
+  AND hide IS NOT TRUE
+ORDER BY date
+LIMIT 100`;
+
+export async function getUpcomingNewsChannelItems(channel: Channel): Promise<NewsItem[]> {
+  return await C.query(Q_UPCOMING_NEWS_CHANNEL_ITEMS, [channel]);
+}
+
+// Query past events from a particular channel
+const Q_PAST_NEWS_CHANNEL_ITEMS = `
+SELECT
+  id, channel, title, text, url,
+  extract(epoch from date::timestamp)::integer as date
+FROM news
+WHERE date <= NOW()
+  AND channel = $1
+  AND hide IS NOT TRUE
+ORDER BY date DESC
+LIMIT 100`;
+
+export async function getPastNewsChannelItems(channel: Channel): Promise<NewsItem[]> {
+  return await C.query(Q_PAST_NEWS_CHANNEL_ITEMS, [channel]);
 }
