@@ -22,6 +22,7 @@ import Title from "./title";
 import Launcher from "./launcher";
 import { Docs } from "./compute-servers";
 import Menu from "./menu";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -280,11 +281,7 @@ export default function ComputeServer({
             />
             {id != null && <div style={{ color: "#888" }}>Id: {id}</div>}
             {id != null && (
-              <ComputeServerLog
-                id={id}
-                style={{ marginLeft: "-15px" }}
-                title={title}
-              />
+              <ComputeServerLog id={id} style={{ marginLeft: "-15px" }} />
             )}
             {id != null &&
               configuration.cloud == "google-cloud" &&
@@ -372,7 +369,11 @@ export default function ComputeServer({
                 <Cloud cloud={cloud} state={state} editable={false} id={id} />
               </div>
               <div style={{ flex: 1 }}>
-                <Menu style={{ float: "right" }} />
+                <Menu
+                  style={{ float: "right" }}
+                  id={id}
+                  project_id={project_id}
+                />
               </div>
             </div>
           )
@@ -501,6 +502,27 @@ function ComputeServerEdit({
       </Modal>
     );
   }
+}
+
+export function EditModal({ project_id, id, close }) {
+  const account_id = useTypedRedux("account", "account_id");
+  const computeServers = useTypedRedux({ project_id }, "compute_servers");
+
+  if (computeServers == null || account_id == null) {
+    return null;
+  }
+  console.log("EditModal", computeServers.get(`${id}`)?.toJS());
+  return (
+    <ComputeServerEdit
+      id={id}
+      account_id={account_id}
+      buttons={undefined}
+      edit={true}
+      editable={true}
+      {...computeServers.get(`${id}`)?.toJS()}
+      setEdit={close}
+    />
+  );
 }
 
 function BackendError({ error, id, project_id }) {

@@ -92,6 +92,8 @@ export function ComputeServerDocStatus({
         fontSize={"13pt"}
         size="small"
         style={{ marginTop: "1px", height: "10px" }}
+        id={id}
+        project_id={project_id}
       />
       <Tooltip
         mouseEnterDelay={0.9}

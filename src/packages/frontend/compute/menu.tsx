@@ -5,6 +5,9 @@ Compute server hamburger menu.
 import type { MenuProps } from "antd";
 import { Button, Dropdown } from "antd";
 import { Icon } from "@cocalc/frontend/components";
+import { useState } from "react";
+import { LogModal } from "./compute-server-log";
+import { EditModal } from "./compute-server";
 
 const items: MenuProps["items"] = [
   {
@@ -174,12 +177,12 @@ const items: MenuProps["items"] = [
     icon: <Icon name="history" />,
     children: [
       {
-        key: "log",
+        key: "control-log",
         icon: <Icon name="history" />,
         label: "Control and Configuration Log",
       },
       {
-        key: "serial",
+        key: "serial-console-log",
         icon: <Icon name="laptop" />,
         label: "Serial Console Log",
       },
@@ -196,17 +199,39 @@ const items: MenuProps["items"] = [
 ];
 
 export default function Menu({
+  id,
+  project_id,
   style,
   fontSize,
   size,
 }: {
+  id: number;
+  project_id: string;
   style?;
   fontSize?;
   size?;
 }) {
+  const [openLogModal, setOpenLogModal] = useState<boolean>(false);
+  const [openEditModal, setOpenEditModal] = useState<boolean>(false);
+
+  const onClick = (obj) => {
+    switch (obj.key) {
+      case "control-log":
+        setOpenLogModal(true);
+        break;
+
+      case "edit":
+        setOpenEditModal(true);
+        break;
+
+      default:
+        console.log(`not implemented -- '${obj.key}'`);
+    }
+  };
+
   return (
     <div style={style}>
-      <Dropdown menu={{ items }} trigger={["click"]}>
+      <Dropdown menu={{ items, onClick }} trigger={["click"]}>
         <Button type="text" size={size}>
           <Icon
             name="ellipsis"
@@ -215,6 +240,17 @@ export default function Menu({
           />
         </Button>
       </Dropdown>
+
+      {openLogModal && (
+        <LogModal id={id} close={() => setOpenLogModal(false)} />
+      )}
+      {openEditModal && (
+        <EditModal
+          id={id}
+          project_id={project_id}
+          close={() => setOpenEditModal(false)}
+        />
+      )}
     </div>
   );
 }
