@@ -2,9 +2,8 @@
 Compute server hamburger menu.
 */
 
-import type { MenuProps } from "antd";
-import { Button, Dropdown, Tooltip } from "antd";
-import { Icon } from "@cocalc/frontend/components";
+import { Button, Dropdown, Spin, Tooltip } from "antd";
+import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
 import getTitle from "./get-title";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
@@ -16,6 +15,7 @@ import { AppLauncherModal } from "./launcher";
 import { TitleColorModal } from "./title-color";
 import { setServerConfiguration } from "@cocalc/frontend/compute/api";
 import ShowError from "@cocalc/frontend/components/error";
+import openSupportTab from "@cocalc/frontend/support/open";
 
 function getServer({ id, project_id }) {
   return redux
@@ -36,10 +36,23 @@ function getItems({
   account_id: string;
   title?: string;
   color?: string;
-}): MenuProps["items"] {
+}): any[] {
+  if (!id) {
+    return [];
+  }
   const server = getServer({ id, project_id });
   if (server == null) {
-    return [];
+    return [
+      {
+        key: "loading",
+        label: (
+          <>
+            Loading... (Id: {id}) <Spin />
+          </>
+        ),
+        disabled: true,
+      },
+    ];
   }
   const is_owner = account_id == server.account_id;
 
@@ -49,35 +62,67 @@ function getItems({
   return [
     {
       key: "title-color",
+      value: "title-color",
       icon: <Icon name="server" />,
       disabled: !is_owner,
       label: (
         <div
           style={{
+            fontWeight: "bold",
+            fontSize: "11pt",
+            display: "flex",
             color: avatar_fontcolor(color),
             background: color,
             padding: "0 5px",
             borderRadius: "3px",
           }}
         >
-          {title}
+          <div
+            style={{
+              maxWidth: "20ex",
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              marginRight: "5px",
+            }}
+          >
+            {title}
+          </div>
+          (Id: {id})
         </div>
       ),
     },
+    //     {
+    //       type: "divider",
+    //     },
+    //     {
+    //       key: "new-jupyter",
+    //       value: "new-jupyter",
+    //       label: "New Jupyter Notebook",
+    //       icon: <Icon name="jupyter" />,
+    //       disabled: server.state != "running",
+    //     },
+    //     {
+    //       key: "new-terminal",
+    //       value: "new-terminal",
+    //       label: "New Linux Terminal",
+    //       icon: <Icon name="terminal" />,
+    //       disabled: server.state != "running",
+    //     },
     {
       type: "divider",
     },
     {
-      key: "new-jupyter",
-      label: "New Jupyter Notebook",
+      key: "top-jupyterlab",
+      value: "jupyterlab",
+      label: "JupyterLab",
       icon: <Icon name="jupyter" />,
-      disabled: server.state != "running",
     },
     {
-      key: "new-terminal",
-      label: "New Linux Terminal",
-      icon: <Icon name="terminal" />,
-      disabled: server.state != "running",
+      key: "top-vscode",
+      value: "vscode",
+      label: "VS Code",
+      icon: <Icon name="vscode" />,
     },
     {
       type: "divider",
@@ -89,33 +134,39 @@ function getItems({
     //       children: [
     //         {
     //           key: "start",
+    //           value: "start",
     //           icon: <Icon name="play" />,
     //           label: "Start",
     //         },
     //         {
     //           key: "suspend",
+    //           value: "suspend",
     //           icon: <Icon name="pause" />,
     //           label: "Suspend",
     //         },
     //         {
     //           key: "stop",
+    //           value: "stop",
     //           icon: <Icon name="stop" />,
     //           label: "Stop",
     //         },
     //         {
     //           key: "reboot",
+    //           value: "reboot",
     //           icon: <Icon name="redo" />,
     //           label: "Hard Reboot",
     //           danger: true,
     //         },
     //         {
     //           key: "deprovision",
+    //           value: "deprovision",
     //           icon: <Icon name="trash" />,
     //           label: "Deprovision",
     //           danger: true,
     //         },
     //         {
     //           key: "delete",
+    //           value: "delete",
     //           icon: <Icon name="trash" />,
     //           label: "Delete",
     //           danger: true,
@@ -134,27 +185,32 @@ function getItems({
           label: "Run On Compute Server",
           children: [
             {
-              key: "vscode",
-              label: "VS Code",
-              icon: <Icon name="vscode" />,
-            },
-            {
               key: "jupyterlab",
+              value: "jupyterlab",
               label: "JupyterLab",
               icon: <Icon name="jupyter" />,
             },
             {
+              key: "vscode",
+              value: "vscode",
+              label: "VS Code",
+              icon: <Icon name="vscode" />,
+            },
+            {
               key: "xpra",
+              value: "xpra",
               label: "X11 Desktop",
               icon: <Icon name="desktop" />,
             },
             //         {
             //           key: "pluto",
+            // value: "pluto",
             //           label: "Pluto (Julia)",
             //           icon: <Icon name="julia" />,
             //         },
             //         {
             //           key: "rstudio",
+            // value:"rstudio",
             //           label: "R Studio",
             //           icon: <Icon name="r" />,
             //         },
@@ -210,11 +266,14 @@ function getItems({
       children: [
         {
           key: "control-log",
+          value: "control-log",
           icon: <Icon name="history" />,
           label: "Control and Configuration Log",
         },
         {
           key: "serial-console-log",
+          value: "serial-console-log",
+          disabled: server.state != "running" || server.cloud != "google-cloud",
           icon: <Icon name="laptop" />,
           label: "Serial Console Log",
         },
@@ -249,20 +308,6 @@ function getItems({
               ),
             },
             {
-              key: "autoRestart",
-              label: "Automatically Restart",
-              icon: (
-                <Icon
-                  style={{ fontSize: "12pt" }}
-                  name={
-                    server.configuration?.autoRestart
-                      ? "check-square"
-                      : "square"
-                  }
-                />
-              ),
-            },
-            {
               key: "allowCollaboratorControl",
               label: "Collaborator Control",
               icon: (
@@ -270,6 +315,24 @@ function getItems({
                   style={{ fontSize: "12pt" }}
                   name={
                     server.configuration?.allowCollaboratorControl
+                      ? "check-square"
+                      : "square"
+                  }
+                />
+              ),
+            },
+            {
+              type: "divider",
+            },
+            {
+              key: "autoRestart",
+              label: "Automatically Restart",
+              disabled: server.cloud != "google-cloud",
+              icon: (
+                <Icon
+                  style={{ fontSize: "12pt" }}
+                  name={
+                    server.configuration?.autoRestart
                       ? "check-square"
                       : "square"
                   }
@@ -308,12 +371,16 @@ function getItems({
         {
           key: "documentation",
           icon: <Icon name="question-circle" />,
-          label: "Compute Server Docs",
+          label: (
+            <A href="https://doc.cocalc.com/compute_server.html">
+              Documentation
+            </A>
+          ),
         },
         {
           key: "support",
           icon: <Icon name="medkit" />,
-          label: "Support Ticket",
+          label: "Support",
         },
       ],
     },
@@ -359,7 +426,8 @@ export default function Menu({
       items: getItems({ ...title, id, project_id, account_id }),
       onClick: async (obj) => {
         setOpen(false);
-        switch (obj.key) {
+        const cmd = obj.value ?? obj.key;
+        switch (cmd) {
           case "control-log":
             setModal(<LogModal id={id} close={close} />);
             break;
@@ -385,7 +453,7 @@ export default function Menu({
           case "xpra":
             setModal(
               <AppLauncherModal
-                name={obj.key}
+                name={cmd}
                 id={id}
                 project_id={project_id}
                 close={close}
@@ -409,7 +477,7 @@ export default function Menu({
                 await setServerConfiguration({
                   id,
                   configuration: {
-                    [obj.key]: !server.configuration?.[obj.key],
+                    [cmd]: !server.configuration?.[cmd],
                   },
                 });
               } catch (err) {
@@ -418,12 +486,24 @@ export default function Menu({
             }
             break;
 
+          case "documentation":
+            // click opens new tab anyways
+            break;
+
+          case "support":
+            openSupportTab({
+              type: "question",
+              subject: `Compute Server (Id: ${id})`,
+              body: `I am using a compute server, and have a question...`,
+            });
+            break;
+
           default:
-            setError(`not implemented -- '${obj.key}'`);
+            setError(`not implemented -- '${cmd}'`);
         }
       },
     };
-  }, [open, title]);
+  }, [id, project_id, open, title]);
 
   return (
     <div style={style}>

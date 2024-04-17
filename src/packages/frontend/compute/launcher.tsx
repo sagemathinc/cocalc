@@ -48,16 +48,7 @@ export default function Launcher({
       >
         <Icon name="folder-open" /> Explorer
       </Button>*/}
-      {apps["vscode"] != null && (
-        <Button
-          onClick={() => setAppName("vscode")}
-          type="text"
-          size="small"
-          style={{ color: "#666" }}
-        >
-          <Icon name={apps["vscode"].icon} /> VS Code
-        </Button>
-      )}
+
       {apps["jupyterlab"] != null && (
         <Button
           onClick={() => setAppName("jupyterlab")}
@@ -66,6 +57,16 @@ export default function Launcher({
           style={{ color: "#666" }}
         >
           <Icon name={apps["jupyterlab"].icon} /> Jupyter
+        </Button>
+      )}
+      {apps["vscode"] != null && (
+        <Button
+          onClick={() => setAppName("vscode")}
+          type="text"
+          size="small"
+          style={{ color: "#666" }}
+        >
+          <Icon name={apps["vscode"].icon} /> VS Code
         </Button>
       )}
     </div>

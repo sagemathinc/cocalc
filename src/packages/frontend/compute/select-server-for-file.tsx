@@ -216,7 +216,8 @@ export function modalParams({ current, target, path }) {
   );
   const sourceDesc = (
     <span key="source-desc">
-      on <InlineComputeServer noColor key="source-name" id={current} titleOnly />
+      on{" "}
+      <InlineComputeServer noColor key="source-name" id={current} titleOnly />
     </span>
   );
 
@@ -226,11 +227,37 @@ export function modalParams({ current, target, path }) {
         {what} {targetDesc}
       </>
     ),
-    cancelText: <>Stay {sourceDesc}</>,
+    cancelText: (
+      <div style={{display:'flex'}}>
+        <div
+          style={{
+            maxWidth: "40ex",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginRight: "5px",
+          }}
+        >
+          Stay {sourceDesc}
+        </div>
+        (Id: {current})
+      </div>
+    ),
     okText: (
-      <>
-        {what} {targetDesc}
-      </>
+      <div style={{display:'flex'}}>
+        <div
+          style={{
+            maxWidth: "40ex",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginRight: "5px",
+          }}
+        >
+          {what} {targetDesc}
+        </div>
+        (Id: {target})
+      </div>
     ),
     description: (
       <>

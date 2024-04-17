@@ -10,6 +10,7 @@ import getTitle from "./get-title";
 import { Spin, Tooltip } from "antd";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { PROJECT_COLOR } from "./select-server";
+import { trunc_middle } from "@cocalc/util/misc";
 
 interface Props {
   id: number;
@@ -86,7 +87,11 @@ export default function ComputeServer({
     if (server == null) {
       return s;
     }
-    return <Tooltip title={<>Compute Server '{server.title}'</>}>{s}</Tooltip>;
+    return (
+      <Tooltip title={<>Compute Server '{trunc_middle(server.title, 40)}'</>}>
+        {s}
+      </Tooltip>
+    );
   }
 
   if (server == null) {
@@ -97,10 +102,10 @@ export default function ComputeServer({
     );
   }
   const label = titleOnly ? (
-    server.title
+    trunc_middle(server.title, 30)
   ) : (
     <>
-      Compute Server '{server.title}' (Id: {id})
+      Compute Server '{trunc_middle(server.title, 30)}' (Id: {id})
     </>
   );
   if (noColor) {

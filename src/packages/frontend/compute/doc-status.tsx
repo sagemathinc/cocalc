@@ -33,6 +33,7 @@ interface Props {
   id: number;
   requestedId: number;
   noSync?: boolean;
+  standalone?: boolean;
 }
 
 export function ComputeServerDocStatus({
@@ -40,6 +41,7 @@ export function ComputeServerDocStatus({
   id,
   requestedId,
   noSync,
+  standalone,
 }: Props) {
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
@@ -83,9 +85,12 @@ export function ComputeServerDocStatus({
       style={{
         display: "flex",
         borderBottom:
-          requestedServer != null && !showDetails
+          !standalone && requestedServer != null && !showDetails
             ? "1px solid #ccc"
             : undefined,
+        ...(standalone
+          ? { border: "1px solid #ddd", borderRadius: "5px" }
+          : undefined),
       }}
     >
       {progress == 100 && !noSync && (
@@ -115,7 +120,7 @@ export function ComputeServerDocStatus({
         mouseEnterDelay={0.9}
         title={
           <>
-            {progress == 100 ? "Running on " : "Moving to "}{" "}
+            {progress == 100 ? "Running on " : "Opening on "}{" "}
             <Inline id={requestedId} computeServer={requestedServer} />.
           </>
         }
@@ -136,7 +141,22 @@ export function ComputeServerDocStatus({
           }}
         >
           {progress < 100 ? `${progress}% - ` : ""}
-          {requestedServer?.get("title") ?? "Loading..."} (Id: {requestedId})
+          <div style={{ display: "inline-block" }}>
+            <div style={{ display: "flex" }}>
+              <div
+                style={{
+                  maxWidth: "30ex",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  marginRight: "5px",
+                }}
+              >
+                {requestedServer?.get("title") ?? "Loading..."}
+              </div>
+              (Id: {requestedId})
+            </div>
+          </div>
           <DisplayImage
             style={{
               marginLeft: "10px",
@@ -151,7 +171,7 @@ export function ComputeServerDocStatus({
         fontSize={"13pt"}
         size="small"
         style={{ marginTop: "1px", height: "10px" }}
-        id={id}
+        id={requestedId}
         project_id={project_id}
       />
     </div>
