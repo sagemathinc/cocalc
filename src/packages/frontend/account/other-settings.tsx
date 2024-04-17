@@ -19,7 +19,7 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
-import ModelSwitch from "@cocalc/frontend/frame-editors/llm/model-switch";
+import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -30,6 +30,7 @@ import {
   VBAR_OPTIONS,
   getValidVBAROption,
 } from "../project/page/vbar";
+import { CustomLLM } from "./custom-llm";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
@@ -366,18 +367,34 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     );
   }
 
+  function render_disable_all_llm(): Rendered {
+    return (
+      <Checkbox
+        checked={!!props.other_settings.get("openai_disabled")}
+        onChange={(e) => {
+          on_change("openai_disabled", e.target.checked);
+          redux.getStore("projects").clearOpenAICache();
+        }}
+      >
+        <strong>Disable all AI integrations</strong>, e.g., code generation or
+        explanation buttons in Jupyter, @chatgpt mentions, etc.
+      </Checkbox>
+    );
+  }
+
   function render_language_model(): Rendered {
     return (
-      <LabeledRow
-        label={
-          <>
-            <AIAvatar size={22} /> Default Language Model
-          </>
-        }
-      >
-        <ModelSwitch model={model} setModel={setModel} />
+      <LabeledRow label={<>Default Language Model</>}>
+        <LLMSelector model={model} setModel={setModel} />
       </LabeledRow>
     );
+  }
+
+  function render_custom_llm(): Rendered {
+    // This is disabled for now, will be enabled in a future PR
+    return;
+    // @ts-ignore
+    return <CustomLLM on_change={on_change} />;
   }
 
   if (props.other_settings == null) {
@@ -385,6 +402,20 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
   }
   return (
     <>
+      {redux.getStore("customize").get("openai_enabled") ? (
+        <Panel
+          header={
+            <>
+              <AIAvatar size={22} /> AI Settings
+            </>
+          }
+        >
+          {render_disable_all_llm()}
+          {render_language_model()}
+          {render_custom_llm()}
+        </Panel>
+      ) : undefined}
+
       <Panel
         header={
           <>
@@ -412,19 +443,6 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         {render_hide_file_popovers()}
         {render_hide_button_tooltips()}
         {render_no_free_warnings()}
-        {redux.getStore("customize").get("openai_enabled") && (
-          <Checkbox
-            checked={!!props.other_settings.get("openai_disabled")}
-            onChange={(e) => {
-              on_change("openai_disabled", e.target.checked);
-              redux.getStore("projects").clearOpenAICache();
-            }}
-          >
-            <strong>Disable all AI integrations</strong>, e.g., code generation
-            or explanation buttons in Jupyter, @chatgpt mentions, etc.
-          </Checkbox>
-        )}
-        {render_language_model()}
         <Checkbox
           checked={!!props.other_settings.get("disable_markdown_codebar")}
           onChange={(e) => {

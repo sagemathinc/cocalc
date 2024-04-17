@@ -54,7 +54,7 @@ import getPool from "@cocalc/database/pool";
 import { state } from "@cocalc/server/compute/control";
 import { mapParallelLimit } from "@cocalc/util/async-utils";
 
-const logger = getLogger("server:compute:maintenance:purchases:state-sync");
+const logger = getLogger("server:compute:maintenance:cloud:state-sync");
 
 const lastChecked: { [id: number]: number } = {};
 

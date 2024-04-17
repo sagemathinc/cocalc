@@ -16,13 +16,14 @@ import {
 } from "@cocalc/util/db-schema/llm";
 import {
   LanguageModel,
+  LanguageServiceCore,
   getSystemPrompt,
   isFreeModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
-import type { History } from "./types"; // do not import until needed -- it is HUGE!
+import type { History } from "./types";
 
 interface EmbeddingsQuery {
   scope: string | string[];
@@ -101,9 +102,11 @@ export class LLMClient {
       }
     }
 
-    if (!isFreeModel(model)) {
+    const is_cocalc_com = redux.getStore("customize").get("is_cocalc_com");
+
+    if (!isFreeModel(model, is_cocalc_com)) {
       // Ollama and others are treated as "free"
-      const service = model2service(model);
+      const service = model2service(model) as LanguageServiceCore;
       // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
       const { allowed, reason } =
         await this.client.purchases_client.isPurchaseAllowed(service);
@@ -122,12 +125,14 @@ export class LLMClient {
       }
     }
 
+    // do not import until needed -- it is HUGE!
     const {
       numTokensUpperBound,
       truncateHistory,
       truncateMessage,
       getMaxTokens,
     } = await import("@cocalc/frontend/misc/llm");
+
     // We always leave some room for output:
     const maxTokens = getMaxTokens(model) - 1000;
     input = truncateMessage(input, maxTokens);

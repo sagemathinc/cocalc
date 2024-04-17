@@ -170,7 +170,7 @@ export default function Home(props: Props) {
               style={{ marginTop: "30px", maxWidth: "100%" }}
               width="672"
               height="378"
-              src="https://www.youtube.com/embed/ygVWdH4RKIQ"
+              src="https://www.youtube.com/embed/oDdfmkQ0Hvw"
               title="YouTube video player"
               frameBorder={0}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

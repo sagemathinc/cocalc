@@ -11,7 +11,7 @@ await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({fil
 
 images = require('./dist/compute/images'); a = require('./dist/compute/cloud/google-cloud/create-image');
 
-(await images.getImages(0))['jupyterhub']
+(await images.getImages({noCache:true}))['jupyterhub']
 await a.createImages({image:"jupyterhub"});
 
 await a.createImages({image:"python", arch:'x86_64'})
@@ -137,9 +137,9 @@ export async function createImages({
   IMAGES,
   force,
 }: Options = {}): Promise<string[]> {
-  // we use getImages(0) to force updating the images before doing a build,
+  // we use getImages({noCache:true}) to force updating the images before doing a build,
   // since this is when it matters (and this is rare).
-  IMAGES = IMAGES ?? (await getImages(0));
+  IMAGES = IMAGES ?? (await getImages({ noCache: true }));
   if (image == null) {
     // create all types
     return await createAllImages({
@@ -231,7 +231,7 @@ export async function createImages({
       });
       // force updating the list of google cloud images (in database), since we just
       // changed them.  This of course only impacts the server we are running this on!
-      await getAllImages(0);
+      await getAllImages({ noCache: true });
       if (!noDelete) {
         await logToFile(name, "createImage: delete the instance");
         await deleteInstance({ zone, name });

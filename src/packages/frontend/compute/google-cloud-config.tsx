@@ -10,26 +10,23 @@ import {
   Button,
   Checkbox,
   Divider,
-  Input,
-  InputNumber,
   Radio,
   Select,
-  Space,
   Spin,
   Switch,
   Table,
   Tooltip,
   Typography,
 } from "antd";
-import { cmp, plural } from "@cocalc/util/misc";
+import { currency, cmp, plural } from "@cocalc/util/misc";
 import computeCost, {
   GoogleCloudData,
   EXTERNAL_IP_COST,
   DATA_TRANSFER_OUT_COST_PER_GiB,
-  computeDiskCost,
   markup,
   computeAcceleratorCost,
   computeInstanceCost,
+  computeDiskCost,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import {
   getGoogleCloudPriceData,
@@ -37,21 +34,21 @@ import {
   setServerConfiguration,
 } from "./api";
 import { useEffect, useState } from "react";
-import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
-import { currency } from "@cocalc/util/misc";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
 import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
-import ExcludeFromSync from "./exclude-from-sync";
 import Ephemeral from "./ephemeral";
 import AutoRestart from "./auto-restart";
 import AllowCollaboratorControl from "./allow-collaborator-control";
 import NestedVirtualization from "./nested-virtualization";
 import ShowError from "@cocalc/frontend/components/error";
 import Proxy from "./proxy";
+import CostOverview from "./cost-overview";
+import Disk from "@cocalc/frontend/compute/cloud/common/disk";
+import DNS from "@cocalc/frontend/compute/cloud/common/dns";
+import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -158,38 +155,48 @@ export default function GoogleCloudConfiguration({
     return <Spin />;
   }
 
+  const gpu = configuration.acceleratorType
+    ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
+        configuration.acceleratorType,
+      )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
+    : "";
+
+  const summary = (
+    <div>
+      {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
+      with {gpu}
+      {priceData ? (
+        <span>
+          <RamAndCpu
+            machineType={configuration.machineType}
+            priceData={priceData}
+            inline
+          />
+        </span>
+      ) : (
+        ""
+      )}
+      , and a{" "}
+      {configuration.diskSizeGb ??
+        `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
+      GB{" "}
+      {configuration.diskType?.includes("hyper") ? (
+        "hyperdisk"
+      ) : (
+        <>
+          {(configuration.diskType ?? "pd-standard") != "pd-standard"
+            ? " SSD "
+            : " HDD "}{" "}
+          disk
+        </>
+      )}{" "}
+      in {configuration.zone}.
+    </div>
+  );
+
   if (!editable || !project_id) {
-    const gpu = configuration.acceleratorType
-      ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
-          configuration.acceleratorType,
-        )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
-      : "";
-    // short summary
-    return (
-      <div>
-        {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
-        with {gpu}
-        {priceData ? (
-          <span>
-            <RamAndCpu
-              machineType={configuration.machineType}
-              priceData={priceData}
-              inline
-            />
-          </span>
-        ) : (
-          ""
-        )}
-        , and a{" "}
-        {configuration.diskSizeGb ??
-          `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
-        GB
-        {(configuration.diskType ?? "pd-standard") != "pd-standard"
-          ? " SSD "
-          : " HDD "}{" "}
-        disk in {configuration.zone}.
-      </div>
-    );
+    // short summary only
+    return summary;
   }
 
   if (priceData == null) {
@@ -296,7 +303,9 @@ export default function GoogleCloudConfiguration({
     },
     {
       key: "image",
-      label: <ImageLinks image={configuration.image} />,
+      label: (
+        <ImageLinks image={configuration.image} style={{ height: "90px" }} />
+      ),
       value: (
         <Image
           state={state}
@@ -388,10 +397,26 @@ export default function GoogleCloudConfiguration({
         />
       ),
     },
-
+    {
+      key: "exclude",
+      value: (
+        <ExcludeFromSync
+          id={id}
+          disabled={loading}
+          setConfig={setConfig}
+          configuration={configuration}
+          state={state}
+          style={{ marginTop: "10px", color: "#666" }}
+        />
+      ),
+    },
     {
       key: "network",
-      label: <></>,
+      label: (
+        <A href="https://cloud.google.com/compute/docs/network-bandwidth">
+          <Icon name="external-link" /> Network
+        </A>
+      ),
       value: (
         <Network
           setConfig={setConfig}
@@ -500,40 +525,44 @@ export default function GoogleCloudConfiguration({
         </div>
       )}
       {errDisplay}
-      {cost ? (
-        <div style={{ textAlign: "center" }}>
-          <MoneyStatistic
-            value={cost}
-            title={<b>Total Cost Per Hour While Running</b>}
-            costPerMonth={730 * cost}
-          />
-          <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
-            You pay the above rate while the computer server VM is running. The
-            rate is <b>much cheaper</b> when the server is suspended or off, and
-            there is no cost when it is deprovisioned. Network data transfer out
-            charges are not included in the above cost, and depend on exactly
-            how much data leaves the server. All incoming networking is free.
-          </div>
-        </div>
-      ) : null}
+      {cost != null && (
+        <CostOverview
+          cost={cost}
+          description={
+            <>
+              You pay <b>{currency(cost)}/hour</b> while the computer server is
+              running. The rate is{" "}
+              <b>
+                {currency(
+                  computeCost({ configuration, priceData, state: "off" }),
+                )}
+                /hour
+              </b>{" "}
+              when the server is off, and there is no cost when it is
+              deprovisioned. Network data transfer out charges are not included
+              in the above cost, and depend on how much data leaves the server
+              (see the Network section below). Incoming networking is free.
+            </>
+          }
+        />
+      )}
+      <Divider />
+      <div style={{ textAlign: "center", margin: "10px 80px" }}>{summary}</div>
+      <Divider />
       <Table
+        showHeader={false}
         style={{ marginTop: "5px" }}
         columns={columns}
         dataSource={dataSource}
         pagination={false}
       />
-      {loading && (
-        <div style={{ float: "right" }}>
-          <Spin delay={1000} />
-        </div>
-      )}
       {errDisplay}
     </div>
   );
 }
 
 // Filter `option.label` match the user type `input`
-const filterOption = (
+export const filterOption = (
   input: string,
   option: { label: string; value: string; search: string },
 ) => (option?.search ?? "").toLowerCase().includes(input.toLowerCase());
@@ -1082,256 +1111,13 @@ function RamAndCpu({
 }
 
 function BootDisk(props) {
-  const {
-    setConfig,
-    configuration,
-    disabled,
-    priceData,
-    state = "deprovisioned",
-    IMAGES,
-  } = props;
-  const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
-    configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
-  );
-  const [newDiskType, setNewDiskType] = useState<string | null>(
-    configuration.diskType ?? "pd-standard",
-  );
-  useEffect(() => {
-    setNewDiskSizeGb(
-      configuration.diskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
-    );
-    setNewDiskType(configuration.diskType ?? "pd-standard");
-  }, [configuration.diskSizeGb]);
-
-  useEffect(() => {
-    if (newDiskSizeGb == null) {
-      return;
-    }
-    const min = getMinDiskSizeGb({ configuration, IMAGES });
-    if (newDiskSizeGb < min) {
-      setNewDiskSizeGb(min);
-    }
-  }, [configuration.image]);
-
-  useEffect(() => {
-    const min = getMinDiskSizeGb({ configuration, IMAGES });
-    if ((newDiskSizeGb ?? 0) < min) {
-      setConfig({
-        diskSizeGb: min,
-      });
-      setNewDiskSizeGb(min);
-    }
-  }, [configuration.acceleratorType]);
-
   return (
-    <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>
-          <Icon name="disk-drive" /> Disk
-        </b>
-      </div>
-      <Space direction="vertical">
-        <InputNumber
-          style={{ width: SELECTOR_WIDTH }}
-          disabled={disabled}
-          min={
-            state == "deprovisioned"
-              ? getMinDiskSizeGb({ configuration, IMAGES })
-              : configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)
-          }
-          max={65536}
-          value={newDiskSizeGb}
-          addonAfter="GB"
-          onChange={(diskSizeGb) => {
-            setNewDiskSizeGb(diskSizeGb);
-          }}
-          onBlur={() => {
-            if (state == "deprovisioned") {
-              // only set on blur or every keystroke rerenders and cause loss of focus.
-              setConfig({
-                diskSizeGb:
-                  newDiskSizeGb ?? getMinDiskSizeGb({ configuration, IMAGES }),
-              });
-            }
-          }}
-        />
-        {state != "deprovisioned" &&
-          !disabled &&
-          newDiskSizeGb != null &&
-          configuration.diskSizeGb != null && (
-            <Button
-              type="primary"
-              disabled={configuration.diskSizeGb == newDiskSizeGb}
-              onClick={() => {
-                setConfig({
-                  diskSizeGb: newDiskSizeGb,
-                });
-              }}
-            >
-              Enlarge by {newDiskSizeGb - configuration.diskSizeGb}GB{" "}
-              (additional cost --{" "}
-              {currency(
-                computeDiskCost({
-                  configuration: {
-                    ...configuration,
-                    diskSizeGb: newDiskSizeGb - configuration.diskSizeGb,
-                  },
-                  priceData,
-                }) * 730,
-              )}
-              /month)
-            </Button>
-          )}
-      </Space>
-      <div style={{ color: "#666", margin: "10px 0" }}>
-        Set the size between{" "}
-        {state == "deprovisioned" ? (
-          <Button
-            size="small"
-            onClick={() => {
-              setConfig({
-                diskSizeGb: getMinDiskSizeGb({ configuration, IMAGES }),
-              });
-            }}
-          >
-            {getMinDiskSizeGb({ configuration, IMAGES })} GB
-          </Button>
-        ) : (
-          <>{getMinDiskSizeGb({ configuration, IMAGES })} GB</>
-        )}{" "}
-        and 65,536 GB.
-        {state != "deprovisioned" && (
-          <>
-            {" "}
-            <b>
-              You can increase the disk size at any time, even while the VM is
-              running.{" "}
-            </b>
-            You cannot decrease the disk size after you increase it, without
-            first deprovisioning the server.
-          </>
-        )}
-      </div>
-      <div>
-        <Space>
-          <Select
-            style={{ width: SELECTOR_WIDTH }}
-            disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-            value={newDiskType}
-            onChange={(diskType) => {
-              setNewDiskType(diskType);
-              setConfig({ diskType: diskType ?? "pd-standard" });
-            }}
-            options={[
-              {
-                value: "pd-balanced",
-                label: (
-                  <div>
-                    Balanced (SSD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-balanced"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                value: "pd-ssd",
-                label: (
-                  <div>
-                    Performance (SSD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-ssd"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                value: "pd-standard",
-                label: (
-                  <div>
-                    Standard (HDD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-standard"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
-                    </div>
-                  </div>
-                ),
-              },
-            ]}
-          ></Select>
-          <div style={{ marginLeft: "15px" }}>
-            <b>Total Cost for {configuration.diskSizeGb}GB:</b>{" "}
-            {currency(
-              markup({
-                cost:
-                  configuration.diskSizeGb *
-                  priceData.disks[configuration.diskType]?.prices[
-                    configuration.region
-                  ],
-                priceData,
-              }),
-            )}
-            /hour or{" "}
-            {currency(
-              markup({
-                cost:
-                  configuration.diskSizeGb *
-                  priceData.disks[configuration.diskType]?.prices[
-                    configuration.region
-                  ] *
-                  730,
-                priceData,
-              }),
-            )}
-            /month
-          </div>
-        </Space>
-        <div style={{ color: "#666", margin: "10px 0" }}>
-          You are charged as long as the server is provisioned, but if you run
-          out of credit and don't pay, then the disk is deleted. You can
-          instantly increase the disk size at any time <b>without</b> needing to
-          restart the server.
-        </div>
-        {newDiskType == "pd-standard" && (
-          <div style={{ marginTop: "10px", color: "#666" }}>
-            <b>WARNING:</b> Small standard disks are slow. Expect an extra
-            10s-30s of startup time and slower application start. Balanced disks
-            are much faster.
-          </div>
-        )}
-        <Divider />
-        <ExcludeFromSync
-          {...props}
-          style={{ marginTop: "10px", color: "#666" }}
-        />
-      </div>
-    </div>
+    <Disk
+      {...props}
+      minSizeGb={getMinDiskSizeGb(props)}
+      maxSizeGb={65536}
+      computeDiskCost={computeDiskCost}
+    />
   );
 }
 
@@ -1351,7 +1137,7 @@ function Image(props) {
           including commercial software.
         </div>
       )}
-      <SelectImage style={{ width: "500px" }} {...props} />
+      <SelectImage {...props} />
       {state != "deprovisioned" && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.
@@ -1392,9 +1178,9 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
     <div style={{ color: "#666", marginBottom: "5px" }}>
       <b>
         <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" />
-        <Icon name="cube" /> NVIDIA GPUs:{" "}
+        <Icon name="cube" /> NVIDIA GPU:{" "}
         <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>, and{" "}
+        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
         <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
           T4
         </A>
@@ -1505,7 +1291,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
             <b>
               {priceData.accelerators[acceleratorType].memory *
                 acceleratorCount}
-              GB RAM
+              GB GPU RAM
             </b>
             .{" "}
             {acceleratorCount > 1 && (
@@ -1574,6 +1360,8 @@ function ensureConsistentConfiguration(
 
   ensureSufficientDiskSize(newConfiguration, newChanges, IMAGES);
 
+  ensureConsistentDiskType(priceData, newConfiguration, newChanges);
+
   return newChanges;
 }
 
@@ -1599,6 +1387,25 @@ function ensureSufficientDiskSize(configuration, changes, IMAGES) {
   const min = getMinDiskSizeGb({ configuration, IMAGES });
   if ((configuration.diskSizeGb ?? 0) < min) {
     changes.diskSizeGb = min;
+  }
+}
+
+function ensureConsistentDiskType(priceData, configuration, changes) {
+  const { machineType } = configuration;
+  const m = machineType.split("-")[0];
+  if (configuration.diskType == "hyperdisk-balanced") {
+    // make sure machine is supported
+    const { supportedMachineTypes } = priceData.extra["hyperdisk-balanced"];
+    if (!supportedMachineTypes.includes(m)) {
+      // can't use hyperdisk on this machine, so fix.
+      configuration.diskType = changes.diskType = "pd-balanced";
+    }
+  } else {
+    const { requiredMachineTypes } = priceData.extra["hyperdisk-balanced"];
+    if (requiredMachineTypes.includes(m)) {
+      // must use hyperdisk on this machine, so fix.
+      configuration.diskType = changes.diskType = "hyperdisk-balanced";
+    }
   }
 }
 
@@ -1873,7 +1680,7 @@ function Network({ setConfig, configuration, loading, priceData }) {
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>
-          <Icon name="network-server" /> Network
+          <Icon name="network" /> Network
         </b>
         <br />
         All compute servers on Google cloud have full network access with
@@ -1923,125 +1730,6 @@ function Network({ setConfig, configuration, loading, priceData }) {
           configuration={configuration}
           loading={loading}
         />
-      )}
-    </div>
-  );
-}
-
-function DNS({ setConfig, configuration, loading }) {
-  const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
-  const [showDns, setShowDns] = useState<boolean>(
-    !!configuration.externalIp && !!configuration.dns,
-  );
-  const [dnsError, setDnsError] = useState<string>("");
-  const [dns, setDns] = useState<string | undefined>(configuration.dns);
-  useEffect(() => {
-    if (!dns) return;
-    try {
-      checkValidDomain(dns);
-      setDnsError("");
-    } catch (err) {
-      setDnsError(`${err}`);
-    }
-  }, [dns]);
-
-  if (!compute_servers_dns) {
-    return null;
-  }
-
-  return (
-    <div>
-      <Checkbox
-        disabled={loading}
-        checked={showDns}
-        onChange={() => {
-          setShowDns(!showDns);
-          if (showDns) {
-            // disable on backend.
-            console.log("disable on backend");
-            setConfig({ dns: "" });
-          }
-        }}
-      >
-        DNS: Custom Subdomain with SSL ({currency(DNS_COST_PER_HOUR)}/hour when
-        running or stopped)
-      </Checkbox>
-      {showDns && (
-        <A
-          style={{ float: "right" }}
-          href={`https://${configuration.dns}.${compute_servers_dns}`}
-        >
-          <Icon name="external-link" /> https://{dns ?? "*"}.
-          {compute_servers_dns}
-        </A>
-      )}
-      {showDns && (
-        <div style={{ marginTop: "5px" }}>
-          <Input
-            disabled={loading}
-            style={{ margin: "15px 0" }}
-            maxLength={63}
-            showCount
-            allowClear
-            value={dns}
-            onChange={(e) => {
-              const dns = e.target.value.trim();
-              setDns(dns);
-              if (!dns) {
-                setConfig({ dns: "" });
-              }
-            }}
-          />
-
-          <Button
-            disabled={configuration.dns == dns || dnsError || loading}
-            onClick={() => {
-              const s = (dns ?? "").toLowerCase();
-              setConfig({ dns: s });
-              setDns(s);
-            }}
-          >
-            {!dns || configuration.dns != dns
-              ? "Enable Custom Domain"
-              : "Custom Domain Enabled"}
-          </Button>
-          <div style={{ color: "#666", margin: "5px 0" }}>
-            <Typography.Paragraph
-              style={{ color: "#666" }}
-              ellipsis={{
-                expandable: true,
-                rows: 2,
-                symbol: "more",
-              }}
-            >
-              A custom DNS A record with{" "}
-              <A href="https://developers.cloudflare.com/dns/manage-dns-records/reference/proxied-dns-records/">
-                https and http proxying will be created at CloudFlare
-              </A>{" "}
-              as long as your VM is not deprovisioned. Whenever your VM starts
-              running it is allocated an external ip address, and CoCalc updates
-              the DNS entry to point at that ip address. A web server with
-              self-signed certificate will appear to have a proper certificate
-              to website visitors. You can enable or disable custom DNS at any
-              time.
-            </Typography.Paragraph>
-          </div>
-          {dnsError && dns && (
-            <div
-              style={{
-                background: "red",
-                color: "white",
-                padding: "5px",
-                margin: "10px 0",
-              }}
-            >
-              <div>{dnsError}</div>
-              Please enter a valid subdomain name. Subdomains can consist of
-              letters (a-z, A-Z), numbers (0-9), and hyphens (-). They cannot
-              start or end with a hyphen.
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
@@ -2116,7 +1804,9 @@ function Admin({ id, configuration, loading }) {
             {calling && <Spin style={{ marginLeft: "15px" }} />}
           </Button>
         </Tooltip>
-        <pre>configuration={JSON.stringify(configuration, undefined, 2)}</pre>
+        <pre>
+          id={id}, configuration={JSON.stringify(configuration, undefined, 2)}
+        </pre>
       </div>
     </div>
   );

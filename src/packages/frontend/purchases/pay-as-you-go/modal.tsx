@@ -113,12 +113,14 @@ export default function PayAsYouGoModal({}) {
           </div>
         )}
       <div style={{ marginBottom: "15px" }} />
-      <QuotaConfig
-        saveRef={saveRef}
-        service={storeState.service as Service}
-        updateAllowed={updateAllowed}
-        cost={storeState.allowed ? 0 : storeState.cost}
-      />
+      {(!storeState.allowed || storeState.cost_per_hour != null) && (
+        <QuotaConfig
+          saveRef={saveRef}
+          service={storeState.service as Service}
+          updateAllowed={updateAllowed}
+          cost={storeState.allowed ? undefined : storeState.cost}
+        />
+      )}
     </Modal>
   );
 }

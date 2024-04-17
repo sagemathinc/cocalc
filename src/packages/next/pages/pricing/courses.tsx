@@ -86,7 +86,7 @@ const training: Item = (() => {
     shared_cores: conf.cpu,
     dedicated_cores: 0,
     academic: false,
-    online: profPrice.discounted_cost,
+    online: profPrice.cost,
     conf,
   };
 })();
@@ -135,7 +135,7 @@ const courseSmall: Item = (() => {
     shared_cores: conf.cpu,
     academic: true,
     retail: price.cost,
-    online: price.discounted_cost,
+    online: price.cost,
     conf,
   };
 })();
@@ -185,7 +185,7 @@ const courseLarge: Item = (() => {
     shared_cores: conf.cpu,
     academic: true,
     retail: price.cost,
-    online: price.discounted_cost,
+    online: price.cost,
     conf,
   };
 })();

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { TypedMap } from "../../app-framework";
+import { TypedMap } from "@cocalc/frontend/app-framework";
 
 export type AvailableFeatures = TypedMap<{
   sage: boolean;

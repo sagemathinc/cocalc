@@ -55,7 +55,7 @@ export default function StudentPay({ actions, settings }) {
   const [when, setWhen] = useState<dayjs.Dayjs>(getWhenFromSettings);
   const cost = useMemo(() => {
     try {
-      return compute_cost(info).discounted_cost;
+      return compute_cost(info).cost;
     } catch (_) {
       return null;
     }
@@ -118,6 +118,7 @@ export default function StudentPay({ actions, settings }) {
               info,
               cost,
             });
+            actions.configuration.configure_all_projects();
           }
         }}
       >
@@ -314,7 +315,7 @@ function RequireStudentPayDesc({ cost, when, minPayment }) {
             {minPayment != null && cost < minPayment
               ? `NOTE: Students will have
                to pay ${currency(
-                 minPayment
+                 minPayment,
                )} since that is the minimum transaction; they can use excess credit for other purchases.`
               : ""}
           </>

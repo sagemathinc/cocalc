@@ -10,13 +10,12 @@ import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageMod
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { RawPrompt } from "@cocalc/frontend/jupyter/llm/raw-prompt";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
-import ModelSwitch, { modelToMention, modelToName } from "./model-switch";
+import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
 import shortenError from "./shorten-error";
 
 interface Props {
@@ -63,11 +62,11 @@ export default function HelpMeFix({
   return (
     <div>
       <PopconfirmKeyboard
-        icon={<LanguageModelVendorAvatar model={model} size={20} />}
+        icon={<AIAvatar size={20} />}
         title={
           <>
             Get Help from{" "}
-            <ModelSwitch
+            <LLMSelector
               model={model}
               setModel={setModel}
               project_id={project_id}
@@ -84,14 +83,8 @@ export default function HelpMeFix({
             }}
           >
             The following will be sent to {modelToName(model)}:
-            <StaticMarkdown
-              style={{
-                border: "1px solid lightgrey",
-                borderRadius: "5px",
-                margin: "5px 0",
-                padding: "5px",
-              }}
-              value={createMessage({
+            <RawPrompt
+              input={createMessage({
                 error: get(error),
                 task,
                 input: get(input),
@@ -100,6 +93,7 @@ export default function HelpMeFix({
                 prioritizeLastInput,
                 model,
                 open: true,
+                full: false,
               })}
             />
           </div>
@@ -156,6 +150,20 @@ export default function HelpMeFix({
   );
 }
 
+interface GetHelpOpts {
+  project_id: string;
+  path: string;
+  tag?: string;
+  error: string;
+  input?: string;
+  task?: string;
+  language?: string;
+  extraFileInfo?: string;
+  redux;
+  prioritizeLastInput?: boolean;
+  model: string;
+}
+
 const CUTOFF = 3000;
 
 export async function getHelp({
@@ -170,7 +178,7 @@ export async function getHelp({
   redux,
   prioritizeLastInput,
   model,
-}) {
+}: GetHelpOpts) {
   const message = createMessage({
     error,
     language,
@@ -200,13 +208,17 @@ function createMessage({
   extraFileInfo,
   prioritizeLastInput,
   open,
+  full = true,
 }): string {
-  let message = `${modelToMention(model)} help me fix my code.\n\n<details${
-    open ? " open" : ""
-  }><summary>Context</summary>\n\n`;
+  const message: string[] = [];
+  message.push(
+    `${full ? modelToMention(model) + " " : ""}Help me fix my code.`,
+  );
+  if (full)
+    message.push(`<details${open ? " open" : ""}><summary>Context</summary>`);
 
   if (task) {
-    message += `\nI ${task}.\n`;
+    message.push(`I ${task}.`);
   }
 
   if (error.length > 3000) {
@@ -219,28 +231,30 @@ function createMessage({
     }
   }
 
-  message += `\nI received the following error:\n\n`;
-  message += `\`\`\`${language}\n${error}\n\`\`\`\n\n`;
+  message.push(`I received the following error:`);
+  message.push(`\`\`\`${language}\n${error}\n\`\`\``);
 
   // We put the input last, since it could be huge and get truncated.
   // It's much more important to show the error, obviously.
   if (input) {
     if (input.length < CUTOFF) {
-      message += `\nMy ${extraFileInfo ?? ""} contains:\n\n`;
+      message.push(`My ${extraFileInfo ?? ""} contains:`);
     } else {
       if (prioritizeLastInput) {
         input = trunc_left(input, CUTOFF);
       } else {
         input = trunc(input, CUTOFF);
       }
-      message += `\nMy ${
-        extraFileInfo ?? ""
-      } code starts as follows, but is too long to fully include here:\n\n`;
+      message.push(
+        `My ${
+          extraFileInfo ?? ""
+        } code starts as follows, but is too long to fully include here:`,
+      );
     }
-    message += `\`\`\`${language}\n${input}\n\`\`\`\n\n`;
+    message.push(`\`\`\`${language}\n${input}\n\`\`\``);
   }
 
-  message += "\n\n</details>\n\n";
+  if (full) message.push("</details>");
 
-  return message;
+  return message.join("\n\n");
 }

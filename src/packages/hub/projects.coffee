@@ -88,7 +88,7 @@ class Project
 
     # async function
     named_server_port: (name) =>
-        @dbg("named_server_port(name=${name})")
+        @dbg("named_server_port(name=#{name})")
         resp = await callback2(@call, {mesg : message.named_server_port(name:name), timeout : 30})
         @dbg("named_server_port #{resp.port}")
         return resp.port

@@ -9,15 +9,15 @@ import { Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import ModelSwitch, {
+import LLMSelector, {
   modelToName,
-} from "@cocalc/frontend/frame-editors/llm/model-switch";
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   LanguageModel,
-  getVendorStatusCheckMD,
+  getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { plural } from "@cocalc/util/misc";
@@ -25,6 +25,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { Position } from "./types";
 import { insertCell } from "./util";
+import { RawPrompt } from "../llm/raw-prompt";
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -104,7 +105,7 @@ export function AIGenerateCodeCell({
       title={() => (
         <div style={{ fontSize: "18px" }}>
           <AIAvatar size={22} /> Generate code cell using{" "}
-          <ModelSwitch
+          <LLMSelector
             project_id={project_id}
             model={model}
             setModel={setModel}
@@ -157,22 +158,7 @@ export function AIGenerateCodeCell({
             <Paragraph>
               The following prompt will be sent to {modelToName(model)}:
             </Paragraph>
-            <Paragraph
-              style={{
-                border: "1px solid lightgrey",
-                borderRadius: "5px",
-                margin: "5px 0",
-                padding: "10px",
-                overflowY: "auto",
-                maxHeight: "150px",
-                fontSize: "85%",
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-                color: COLORS.GRAY_M,
-              }}
-            >
-              {input}
-            </Paragraph>
+            <RawPrompt input={input} />
             <Paragraph style={{ textAlign: "center", marginTop: "30px" }}>
               <Space size="large">
                 <Button onClick={() => setShowAICellGen(null)}>Cancel</Button>
@@ -353,7 +339,7 @@ async function queryLanguageModel({
       // console.log("ERROR", err);
       fa.set_cell_input(
         firstCellId,
-        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getVendorStatusCheckMD(
+        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\n${getLLMServiceStatusCheckMD(
           model2vendor(model),
         )}.`,
       );

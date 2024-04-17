@@ -1,5 +1,5 @@
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { modelToName } from "@cocalc/frontend/frame-editors/llm/model-switch";
+import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import {
   LanguageModel,
   fromOllamaModel,

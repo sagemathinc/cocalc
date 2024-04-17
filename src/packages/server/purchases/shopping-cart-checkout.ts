@@ -138,8 +138,8 @@ export const shoppingCartCheckout = async ({
   let availableBalance = ignoreBalance ? 0 : params.balance - params.minBalance;
 
   const sortedCartItems = params.cart.sort((a, b) => {
-    const itemA = Math.max(a.cost?.discounted_cost ?? 0, 0);
-    const itemB = Math.max(b.cost?.discounted_cost ?? 0, 0);
+    const itemA = Math.max(a.cost?.cost ?? 0, 0);
+    const itemB = Math.max(b.cost?.cost ?? 0, 0);
 
     if (itemA < itemB) {
       return -1;
@@ -153,7 +153,7 @@ export const shoppingCartCheckout = async ({
     (item) => {
       const itemCharge = Math.max(
         round2up(
-          item.cost?.cost_sub_first_period ?? item.cost?.discounted_cost ?? 0,
+          item.cost?.cost_sub_first_period ?? item.cost?.cost ?? 0,
         ),
         0,
       );
@@ -285,16 +285,12 @@ export const getCheckoutCart = async (
       cartItem.description.period != "range"
     ) {
       // it's a subscription
-      // cost is assumed to be set by getInitialCostForSubscription
-      const x = await getInitialCostForSubscription({
-        ...cartItem,
-        cost: itemCost,
-      });
-      const firstPeriodCost = x.cost.discounted_cost;
+      const x = await getInitialCostForSubscription(cartItem);
+      const firstPeriodCost = x.cost.cost;
       itemCost.cost_sub_first_period = firstPeriodCost;
       total += round2up(firstPeriodCost);
     } else {
-      total += round2up(itemCost.discounted_cost);
+      total += round2up(itemCost.cost);
     }
 
     chargeableCart.push({

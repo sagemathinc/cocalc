@@ -3,14 +3,19 @@ import { Select, Tag, Tooltip } from "antd";
 import type { ConfigProviderProps } from "antd/lib/config-provider";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Text } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
+  ANTHROPIC_MODELS,
   DEFAULT_MODEL,
+  GOOGLE_MODELS,
+  LLMServiceName,
   LLM_DESCR,
+  LLM_PROVIDER,
   LLM_USERNAMES,
   LanguageModel,
   MISTRAL_MODELS,
-  USER_SELECTABLE_LANGUAGE_MODELS,
+  MODELS_OPENAI,
   fromOllamaModel,
   isFreeModel,
   isOllamaLLM,
@@ -32,11 +37,7 @@ interface Props {
   project_id?: string;
 }
 
-// The tooltips below are adopted from chat.openai.com
-
-const GOOGLE_GEMINI: LanguageModel = "gemini-pro";
-
-export default function ModelSwitch({
+export default function LLMSelector({
   style,
   model,
   setModel,
@@ -61,32 +62,27 @@ export default function ModelSwitch({
     undefined,
     "mistralai",
   );
+  const showAnthropic = projectsStore.hasLanguageModelEnabled(
+    project_id,
+    undefined,
+    "anthropic",
+  );
   const showOllama = projectsStore.hasLanguageModelEnabled(
     project_id,
     undefined,
     "ollama",
   );
   const ollama = useTypedRedux("customize", "ollama");
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
-  function getPrice(btnModel): JSX.Element {
-    return isFreeModel(btnModel) ? (
-      <Tag color="success">free</Tag>
-    ) : (
-      <Tag color="error">paid</Tag>
-    );
-  }
-
-  function makeLLMOption(
-    ret: NonNullable<SelectProps["options"]>,
-    btnModel: LanguageModel,
-    title: string,
-  ) {
-    if (!USER_SELECTABLE_LANGUAGE_MODELS.includes(btnModel as any)) return;
+  function makeLLMOption(btnModel: LanguageModel, title: string) {
+    if (!selectableLLMs.includes(btnModel as any)) return;
     if (typeof btnModel !== "string") return;
 
     const model = (
       <>
-        <strong>{modelToName(btnModel)}</strong> {getPrice(btnModel)}
+        <strong>{modelToName(btnModel)}</strong>{" "}
+        <LLMModelPrice model={btnModel} />
       </>
     );
     const tooltip = (
@@ -99,63 +95,87 @@ export default function ModelSwitch({
         <LanguageModelVendorAvatar model={btnModel} /> {tooltip}
       </>
     );
-    ret.push({
+    return {
       value: btnModel,
       display,
       label: <Tooltip title={tooltip}>{display}</Tooltip>,
-    });
+    };
   }
 
-  function appendOpenAI(ret: NonNullable<SelectProps["options"]>) {
-    if (!showOpenAI) return null;
-
-    makeLLMOption(ret, "gpt-3.5-turbo", LLM_DESCR["gpt-3.5-turbo"]);
-    makeLLMOption(ret, "gpt-3.5-turbo-16k", LLM_DESCR["gpt-3.5-turbo-16k"]);
-    makeLLMOption(ret, "gpt-4", LLM_DESCR["gpt-4"]);
-    makeLLMOption(
-      ret,
-      "gpt-4-turbo-preview-8k",
-      LLM_DESCR["gpt-4-turbo-preview-8k"],
-    );
-    makeLLMOption(ret, "gpt-4-turbo-preview", LLM_DESCR["gpt-4-turbo-preview"]);
-  }
-
-  function appendGoogle(ret: NonNullable<SelectProps["options"]>) {
-    if (!showGoogle) return null;
-
-    return <>{makeLLMOption(ret, GOOGLE_GEMINI, LLM_DESCR[GOOGLE_GEMINI])}</>;
-  }
-
-  function appendMistral(ret: NonNullable<SelectProps["options"]>) {
-    if (!showMistral) return null;
-
-    return (
+  function makeLLMGroup(
+    ret: NonNullable<SelectProps["options"]>,
+    service: LLMServiceName,
+    options,
+  ) {
+    // there could be "undefined" in the list of options
+    options = options?.filter((o) => !!o) as SelectProps["options"];
+    if (options?.length === 0) return;
+    const info = LLM_PROVIDER[service];
+    const label = (
       <>
-        {makeLLMOption(ret, MISTRAL_MODELS[0], LLM_DESCR[MISTRAL_MODELS[0]])}
-        {makeLLMOption(ret, MISTRAL_MODELS[1], LLM_DESCR[MISTRAL_MODELS[1]])}
-        {makeLLMOption(ret, MISTRAL_MODELS[2], LLM_DESCR[MISTRAL_MODELS[2]])}
+        <Text strong>{info.name}</Text> – {info.short}
       </>
     );
+    const title = info.desc;
+    ret.push({ label, title, options });
   }
 
-  function appendOllama(ret: NonNullable<SelectProps["options"]>) {
-    if (!showOllama || !ollama) return null;
+  function appendOpenAI(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showOpenAI) return;
+    makeLLMGroup(
+      ret,
+      "openai",
+      MODELS_OPENAI.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
+  }
 
+  function appendGoogle(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showGoogle) return;
+    makeLLMGroup(
+      ret,
+      "google",
+      GOOGLE_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
+  }
+
+  function appendMistral(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showMistral) return;
+    makeLLMGroup(
+      ret,
+      "mistralai",
+      MISTRAL_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
+  }
+
+  function appendAnthropic(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showAnthropic) return;
+    makeLLMGroup(
+      ret,
+      "anthropic",
+      ANTHROPIC_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
+  }
+
+  function appendOllama(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showOllama || !ollama) return;
+
+    const options: NonNullable<SelectProps["options"]> = [];
     for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
       const { display, desc } = config;
       const ollamaModel = toOllamaModel(key);
       const text = (
         <>
-          <strong>{display}</strong> {getPrice(ollamaModel)} –{" "}
+          <strong>{display}</strong> <LLMModelPrice model={ollamaModel} /> –{" "}
           {desc ?? "Ollama"}
         </>
       );
-      ret.push({
+      options.push({
         value: ollamaModel,
         display: (
           <>
             <LanguageModelVendorAvatar model={ollamaModel} />{" "}
-            <strong>{modelToName(ollamaModel)}</strong> {getPrice(ollamaModel)}
+            <strong>{modelToName(ollamaModel)}</strong>{" "}
+            <LLMModelPrice model={ollamaModel} />
           </>
         ),
         label: (
@@ -165,6 +185,7 @@ export default function ModelSwitch({
         ),
       });
     }
+    makeLLMGroup(ret, "ollama", options);
   }
 
   function getOptions(): SelectProps["options"] {
@@ -172,11 +193,12 @@ export default function ModelSwitch({
     appendOpenAI(ret);
     appendGoogle(ret);
     appendMistral(ret);
+    appendAnthropic(ret);
     appendOllama(ret);
     return ret;
   }
 
-  // all models selectable here must be in util/db-schema/openai::USER_SELECTABLE_LANGUAGE_MODELS + the custom ones from the ollama configuration
+  // all models selectable here must be in selectableLLMs(default: USER_SELECTABLE_LANGUAGE_MODELS) + the custom ones from the ollama configuration
   return (
     <Select
       dropdownStyle={style}
@@ -204,4 +226,32 @@ export function modelToMention(model: LanguageModel): string {
   return `<span class="user-mention" account-id=${model2service(
     model,
   )} >@${modelToName(model)}</span>`;
+}
+
+export function LLMModelPrice({
+  model,
+  floatRight = false,
+}: {
+  model: string;
+  floatRight?: boolean;
+}) {
+  const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
+
+  // on non-cocalc.com pages, all models are free, hence we do not need to show the price
+  if (!is_cocalc_com) return null;
+
+  const props: { style?: CSS } = {};
+  if (floatRight) {
+    props.style = { float: "right", marginLeft: "20px" };
+  }
+
+  return isFreeModel(model, is_cocalc_com) ? (
+    <Tag color="success" {...props}>
+      free
+    </Tag>
+  ) : (
+    <Tag color="error" {...props}>
+      paid
+    </Tag>
+  );
 }

@@ -405,7 +405,7 @@ async function updateSubscriptionCost(
     ...modifiedInfo,
     start: null,
     end: null,
-  }).discounted_cost;
+  }).cost;
   logger.debug(
     "updateSubscriptionCost",
     license_id,
@@ -537,7 +537,6 @@ takes as input a PurchaseInfo object and outputs this sort of object:
 {
   cost_per_unit: 19.547278681226473,
   cost: 39.094557362452946,
-  discounted_cost: 39.094557362452946,
   cost_per_project_per_month: 19.232,
   cost_sub_month: 17.3088,
   cost_sub_year: 196.16639999999998

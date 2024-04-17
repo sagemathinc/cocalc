@@ -43,6 +43,7 @@ import type {
   GoogleCloudImages,
   Images,
 } from "@cocalc/util/db-schema/compute-servers";
+import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
@@ -93,10 +94,12 @@ export type SoftwareEnvironments = TypedMap<{
 }>;
 
 export interface CustomizeState {
+  time: number; // this will always get set once customize has loaded.
   is_commercial: boolean;
   openai_enabled: boolean;
   google_vertexai_enabled: boolean;
   mistral_enabled: boolean;
+  anthropic_enabled: boolean;
   ollama_enabled: boolean;
   neural_search_enabled: boolean;
   datastore: boolean;
@@ -155,6 +158,7 @@ export interface CustomizeState {
   compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
 
   ollama?: TypedMap<{ [key: string]: TypedMap<OllamaPublic> }>;
+  selectable_llms: List<string>;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -174,12 +178,13 @@ export class CustomizeStore extends Store<CustomizeState> {
     return this.getIn(["software", "default"]) ?? DEFAULT_COMPUTE_IMAGE;
   }
 
-  getEnabledLLMs() {
+  getEnabledLLMs(): LLMServicesAvailable {
     return {
-      haveOpenAI: this.get("openai_enabled"),
-      haveGoogle: this.get("google_vertexai_enabled"),
-      haveOllama: this.get("ollama_enabled"),
-      haveMistral: this.get("mistral_enabled"),
+      openai: this.get("openai_enabled"),
+      google: this.get("google_vertexai_enabled"),
+      ollama: this.get("ollama_enabled"),
+      mistralai: this.get("mistral_enabled"),
+      anthropic: this.get("anthropic_enabled"),
     };
   }
 }
@@ -287,6 +292,9 @@ function process_customize(obj) {
     obj[k] =
       obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
   }
+  // always set time, so other code can know for sure that customize was loaded.
+  // it also might be helpful to know when
+  obj["time"] = Date.now();
   set_customize(obj);
 }
 

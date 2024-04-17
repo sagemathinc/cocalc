@@ -547,7 +547,6 @@ Table({
   },
 });
 
-
 export interface ProjectStatus {
   "project.pid"?: number; // pid of project server process
   "hub-server.port"?: number; // port of tcp server that is listening for conn from hub
@@ -620,6 +619,7 @@ export interface StudentProjectFunctionality {
   disableJupyterClassicServer?: boolean;
   disableJupyterClassicMode?: boolean;
   disableJupyterLabServer?: boolean;
+  disableRServer?: boolean;
   disableVSCodeServer?: boolean;
   disablePlutoServer?: boolean;
   disableTerminals?: boolean;

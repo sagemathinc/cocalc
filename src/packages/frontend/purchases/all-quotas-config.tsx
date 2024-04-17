@@ -5,17 +5,20 @@ This shows an overview of configured quotas for all services,
 and lets you adjust any of them.
 */
 
-import { Icon } from "@cocalc/frontend/components/icon";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
-import { currency } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { Alert, Button, InputNumber, Progress, Spin, Table, Tag } from "antd";
 import { cloneDeep, isEqual } from "lodash";
 import { useEffect, useRef, useState } from "react";
+
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
+import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { currency } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import Cost from "./pay-as-you-go/cost";
-import ServiceTag from "./service";
 import Refresh from "./refresh";
+import ServiceTag from "./service";
 
 export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
 
@@ -36,23 +39,34 @@ export default function AllQuotasConfig() {
   );
   const lastFetchedQuotasRef = useRef<ServiceQuota[] | null>(null);
   const [changed, setChanged] = useState<boolean>(false);
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   const getQuotas = async () => {
-    let x, y;
+    let quotas, charges;
     try {
-      x = await webapp_client.purchases_client.getQuotas();
-      y = await webapp_client.purchases_client.getChargesByService();
+      [quotas, charges] = await Promise.all([
+        webapp_client.purchases_client.getQuotas(),
+        webapp_client.purchases_client.getChargesByService(),
+      ]);
     } catch (err) {
       setError(`${err}`);
       return;
     }
-    const { services } = x;
+    const { services } = quotas;
     const v: ServiceQuota[] = [];
     for (const service in QUOTA_SPEC) {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
+      const llmModel = service2model_core(service);
+      if (llmModel != null) {
+        // We do not show those models, which can't be selected by users OR are free in the first place
+        const cost = LLM_COST[llmModel];
+        if (!selectableLLMs.includes(llmModel) || cost?.free === true) {
+          continue;
+        }
+      }
       v.push({
-        current: y[service] ?? 0,
+        current: charges[service] ?? 0,
         service: service as Service,
         quota: services[service] ?? 0,
       });
@@ -186,8 +200,8 @@ export default function AllQuotasConfig() {
       </div>
 
       <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
-        These are your personal monthly spending caps to prevent overspending.
-        You can change them to whatever you want at any time.
+        <b>Your Budget</b>: these are your monthly spending limits to prevent
+        overspending. You can change them at any time.
       </div>
 
       <div style={{ marginBottom: "15px" }}>

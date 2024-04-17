@@ -1,13 +1,14 @@
 // Websocket support
 
-import LRU from "lru-cache";
 import { createProxyServer } from "http-proxy";
-import { versionCheckFails } from "./version";
-import { getTarget } from "./target";
-import getLogger from "../logger";
-import { stripBasePath } from "./util";
-import stripRememberMeCookie from "./strip-remember-me-cookie";
+import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
+
+import getLogger from "@cocalc/hub/logger";
+import stripRememberMeCookie from "./strip-remember-me-cookie";
+import { getTarget } from "./target";
+import { stripBasePath } from "./util";
+import { versionCheckFails } from "./version";
 
 const logger = getLogger("proxy:handle-upgrade");
 

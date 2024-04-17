@@ -16,7 +16,7 @@ import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { LanguageService } from "./llm-utils";
+import { LanguageServiceCore } from "./llm-utils";
 import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 
@@ -41,10 +41,10 @@ export type ComputeService =
   | "voucher"
   | "edit-license";
 
-export type Service = LanguageService | ComputeService;
+export type Service = LanguageServiceCore | ComputeService;
 
 export interface LLMDescription {
-  type: LanguageService;
+  type: LanguageServiceCore;
   prompt_tokens: number;
   completion_tokens: number;
   amount?: number; // appears in purchses/close.ts

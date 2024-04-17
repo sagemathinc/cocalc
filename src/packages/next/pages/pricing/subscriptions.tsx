@@ -92,8 +92,8 @@ const hobby: Item = (() => {
     disk: conf.disk,
     academic: true,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.discounted_cost,
-    yearly: priceY.discounted_cost,
+    monthly: priceM.cost,
+    yearly: priceY.cost,
     conf,
   };
 })();
@@ -138,8 +138,8 @@ const academic: Item = (() => {
     dedicated_cores: 0,
     academic: true,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.discounted_cost,
-    yearly: priceY.discounted_cost,
+    monthly: priceM.cost,
+    yearly: priceY.cost,
     conf,
   };
 })();
@@ -183,8 +183,8 @@ const business: Item = (() => {
     disk: conf.disk,
     academic: false,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.discounted_cost,
-    yearly: priceY.discounted_cost,
+    monthly: priceM.cost,
+    yearly: priceY.cost,
     conf,
   };
 })();

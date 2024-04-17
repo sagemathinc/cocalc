@@ -302,7 +302,6 @@ function ComputeServerTable({
         items={ids}
         Item={({ id }) => renderItem(id)}
         onDragStop={(oldIndex, newIndex) => {
-          console.log({ oldIndex, newIndex });
           let position;
           if (newIndex == ids.length - 1) {
             const last = computeServers.get(ids[ids.length - 1]);

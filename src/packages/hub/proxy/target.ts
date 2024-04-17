@@ -6,12 +6,13 @@ Throws an error if anything goes wrong, e.g., user doesn't have access
 to this target or the target project isn't running.
 */
 
-import { ProjectControlFunction } from "@cocalc/server/projects/control";
-import { NamedServerName } from "@cocalc/util/types/servers";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
-import getLogger from "../logger";
-import { database } from "../servers/database";
+
+import getLogger from "@cocalc/hub/logger";
+import { database } from "@cocalc/hub/servers/database";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { NamedServerName } from "@cocalc/util/types/servers";
 import hasAccess from "./check-for-access-to-project";
 import { parseReq } from "./parse";
 
@@ -89,11 +90,12 @@ export async function getTarget({
   let host = state.ip;
   dbg("host", host);
   if (
-    port_desc == "jupyter" || // Jupyter Classic
-    port_desc == "jupyterlab" || // JupyterLab
-    port_desc == "code" // VSCode = "code-server"
+    port_desc === "jupyter" || // Jupyter Classic
+    port_desc === "jupyterlab" || // JupyterLab
+    port_desc === "code" || // VSCode = "code-server"
+    port_desc === "rserver" // RStudio Server
   ) {
-    if (host == null || state.state != "running") {
+    if (host == null || state.state !== "running") {
       // We just start the project.
       // This is used specifically by Juno, but also makes it
       // easier to continually use Jupyter/Lab without having
@@ -112,19 +114,22 @@ export async function getTarget({
   }
 
   // https://github.com/sagemathinc/cocalc/issues/7009#issuecomment-1781950765
-  if (
-    (port_desc == "jupyter" || // Jupyter Classic
-      port_desc == "jupyterlab" || // JupyterLab
-      port_desc == "code") && // VSCode = "code-server"
-    host == "localhost"
-  ) {
-    host = "127.0.0.1";
+  if (host === "localhost") {
+    if (
+      port_desc === "jupyter" || // Jupyter Classic
+      port_desc === "jupyterlab" || // JupyterLab
+      port_desc === "code" || // VSCode = "code-server"
+      port_desc === "rstudio" // RStudio Server
+    ) {
+      host = "127.0.0.1";
+    }
   }
 
   if (host == null) {
     throw Error("host is undefined -- project not running");
   }
-  if (state.state != "running") {
+
+  if (state.state !== "running") {
     throw Error("project is not running");
   }
 

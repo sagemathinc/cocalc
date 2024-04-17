@@ -3,6 +3,10 @@ import getClient, { waitUntilOperationComplete } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { supportsStandardNetworkTier } from "./util";
 import { getSourceImage } from "./images";
+import {
+  DEFAULT_HYPERDISK_BALANCED_IOPS,
+  DEFAULT_HYPERDISK_BALANCED_THROUGHPUT,
+} from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 const logger = getLogger("server:compute:google-cloud:create-instance");
 
@@ -207,6 +211,7 @@ async function getDisks(
         }/diskTypes/${configuration.diskType ?? "pd-standard"}`,
         labels: {},
         sourceImage,
+        ...getHyperdiskParams(configuration),
       },
       mode: "READ_WRITE",
       type: "PERSISTENT",
@@ -214,6 +219,21 @@ async function getDisks(
   ];
 
   return { disks, diskSizeGb };
+}
+
+function getHyperdiskParams(configuration: GoogleCloudConfiguration) {
+  if (!configuration.diskType?.includes("hyperdisk")) {
+    return undefined;
+  }
+  return {
+    provisionedIops: `${
+      configuration.hyperdiskBalancedIops ?? DEFAULT_HYPERDISK_BALANCED_IOPS
+    }`,
+    provisionedThroughput: `${
+      configuration.hyperdiskBalancedThroughput ??
+      DEFAULT_HYPERDISK_BALANCED_THROUGHPUT
+    }`,
+  };
 }
 
 export function getSchedulingModel(configuration: GoogleCloudConfiguration) {

@@ -3,15 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Cost } from "./types";
-
-export function percent_discount({
-  cost,
-  discounted_cost,
-}: Pick<Cost, "cost" | "discounted_cost">): number {
-  return Math.round(100 * (1 - discounted_cost / cost));
-}
-
 export function money(n: number, hideCurrency: boolean = false): string {
   let s = new Intl.NumberFormat(undefined, {
     style: "currency",

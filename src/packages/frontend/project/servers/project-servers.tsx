@@ -5,8 +5,14 @@
 
 import { Col, Divider, Modal, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
+
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
+import {
+  ComputeServerDocs,
+  ComputeServers,
+  computeServersEnabled,
+} from "@cocalc/frontend/compute";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { NamedServerPanel } from "../named-server-panel";
@@ -14,11 +20,6 @@ import { NewFileButton } from "../new/new-file-button";
 import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
-import {
-  computeServersEnabled,
-  ComputeServers,
-  ComputeServerDocs,
-} from "@cocalc/frontend/compute";
 
 // Antd's 24 grid system
 const md = 6;
@@ -48,13 +49,14 @@ export function ProjectServers(props: Props) {
     !available.jupyter_notebook &&
     !available.jupyter_lab &&
     !available.vscode &&
-    !available.julia;
+    !available.julia &&
+    !available.rserver;
 
   function renderNamedServers(): JSX.Element {
     return (
       <>
         <Row gutter={gutter} style={newRowStyle}>
-          {available.jupyter_notebook && (
+          {available.jupyter_notebook ? (
             <Col sm={sm} md={md}>
               <NewFileButton
                 name={"Jupyter Classic..."}
@@ -63,8 +65,8 @@ export function ProjectServers(props: Props) {
                 on_click={() => toggleShowNamedServer("jupyter")}
               />
             </Col>
-          )}
-          {available.jupyter_lab && (
+          ) : null}
+          {available.jupyter_lab ? (
             <Col sm={sm} md={md}>
               <NewFileButton
                 name={"JupyterLab..."}
@@ -73,8 +75,8 @@ export function ProjectServers(props: Props) {
                 on_click={() => toggleShowNamedServer("jupyterlab")}
               />
             </Col>
-          )}
-          {available.vscode && (
+          ) : null}
+          {available.vscode ? (
             <Col sm={sm} md={md}>
               <NewFileButton
                 name={"VS Code..."}
@@ -83,8 +85,8 @@ export function ProjectServers(props: Props) {
                 on_click={() => toggleShowNamedServer("code")}
               />
             </Col>
-          )}
-          {available.julia && (
+          ) : null}
+          {available.julia ? (
             <Col sm={sm} md={md}>
               <NewFileButton
                 name={"Pluto..."}
@@ -93,7 +95,17 @@ export function ProjectServers(props: Props) {
                 on_click={() => toggleShowNamedServer("pluto")}
               />
             </Col>
-          )}
+          ) : null}
+          {available.rserver ? (
+            <Col sm={sm} md={md}>
+              <NewFileButton
+                name={"RStudio..."}
+                icon={"r"}
+                active={showNamedServer === "rserver"}
+                on_click={() => toggleShowNamedServer("rserver")}
+              />
+            </Col>
+          ) : null}
           {noServers && (
             <Col sm={sm} md={md}>
               <NewFileButton

@@ -29,6 +29,7 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import getSupportURL from "@cocalc/frontend/support/url";
 import {
+  ANTHROPIC_PREFIX,
   LLM_USERNAMES,
   MISTRAL_PREFIX,
   service2model,
@@ -284,6 +285,12 @@ export function PurchasesTable({
       const cost = getCost(row);
       // Compute incremental balance
       purchases.push({ ...row, balance: b });
+
+      if (row.pending) {
+        // pending transactions are not include in the total
+        // or the balance
+        continue;
+      }
       b += cost;
 
       // Compute total cost
@@ -375,10 +382,10 @@ export function PurchasesTable({
         }}
       >
         {showTotal && total != null && (
-          <span>Total of Displayed Costs: ${(-total).toFixed(2)}</span>
+          <span>Total of Displayed Costs: {currency(-total)}</span>
         )}
         {showBalance && balance != null && (
-          <span>Current Balance: ${round2down(balance)}</span>
+          <span>Current Balance: {currency(round2down(balance))}</span>
         )}
       </div>
     </div>
@@ -602,7 +609,9 @@ function Description({ description, period_end, service }) {
   if (
     service === "openai-gpt-4" ||
     service === "openai-gpt-4-turbo-preview" ||
-    service === "openai-gpt-4-turbo-preview-8k"
+    service === "openai-gpt-4-turbo-preview-8k" ||
+    service === "openai-gpt-4-turbo" ||
+    service === "openai-gpt-4-turbo-8k"
   ) {
     const extra = service.includes("turbo")
       ? service.includes("128k")
@@ -623,6 +632,7 @@ function Description({ description, period_end, service }) {
       </Tooltip>
     );
   }
+
   if (service.startsWith(MISTRAL_PREFIX)) {
     return (
       <Tooltip
@@ -638,6 +648,23 @@ function Description({ description, period_end, service }) {
       </Tooltip>
     );
   }
+
+  if (service.startsWith(ANTHROPIC_PREFIX)) {
+    return (
+      <Tooltip
+        title={() => (
+          <div>
+            Prompt tokens: {description.prompt_tokens}
+            <br />
+            Completion tokens: {description.completion_tokens}
+          </div>
+        )}
+      >
+        {LLM_USERNAMES[service2model(service)] ?? service}
+      </Tooltip>
+    );
+  }
+
   //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
   if (service === "license") {
     const { license_id } = description;
@@ -901,7 +928,14 @@ function Amount({ record }) {
     const amount = -cost;
     return (
       <Tooltip title={` (USD): $${round4(amount)}`}>
-        <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>
+        <span
+          style={{
+            ...getAmountStyle(amount),
+            ...(record.pending ? { color: "#999" } : undefined),
+          }}
+        >
+          {currency(amount, 2)}
+        </span>
       </Tooltip>
     );
   }
@@ -912,7 +946,16 @@ function Pending({ record }) {
   if (!record.pending) return null;
   return (
     <div>
-      <Tooltip title="The transaction does not yet count against your spending limits.">
+      <Tooltip
+        title={
+          <>
+            The transaction has not yet completed and is{" "}
+            <b>thus not included in your running balance</b>. Ensure you have
+            automatic payments configured or add credit to your account to pay
+            this.
+          </>
+        }
+      >
         <Tag style={{ marginRight: 0 }} color="red">
           Pending
         </Tag>
@@ -925,7 +968,9 @@ function Balance({ balance }) {
   if (balance != null) {
     return (
       <Tooltip title={` (USD): $${round4(balance)}`}>
-        <span style={getAmountStyle(balance)}>{currency(balance, 2)}</span>
+        <span style={getAmountStyle(balance)}>
+          {currency(round2down(balance), 2)}
+        </span>
       </Tooltip>
     );
   }

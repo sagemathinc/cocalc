@@ -229,7 +229,7 @@ describe("create a subscription license and edit it and confirm the subscription
     // the monthly cost doesn't change *exactly* as the cost to edit, due
     // to the date range, particular month, etc.  Other tests that do
     // test exact cost changes exist below!
-    expect(subs2[0].cost).toBeCloseTo(cost2?.discounted_cost ?? 0, -1);
+    expect(subs2[0].cost).toBeCloseTo(cost2?.cost ?? 0, -1);
   });
 });
 

@@ -177,6 +177,13 @@ async function get_julia(): Promise<boolean> {
   return await have("julia");
 }
 
+// rserver is the name of the executable to start the RStudio Server.
+// In a default Linux installation, it is not in the PATH – therefore add a symlink pointing to it.
+// At the time of writing this, it was here: /usr/lib/rstudio-server/bin/rserver
+async function get_rserver(): Promise<boolean> {
+  return await have("rserver");
+}
+
 // check if we can read that json file.
 // if it exists, show the corresponding button in "Files".
 async function get_library(): Promise<boolean> {
@@ -262,6 +269,7 @@ async function capabilities(): Promise<MainCapabilities> {
     vscode,
     julia,
     homeDirectory,
+    rserver,
   ] = await Promise.all([
     get_formatting(),
     get_latex(hashsums),
@@ -277,9 +285,11 @@ async function capabilities(): Promise<MainCapabilities> {
     get_vscode(),
     get_julia(),
     get_homeDirectory(),
+    get_rserver(),
   ]);
   const caps: MainCapabilities = {
     jupyter,
+    rserver,
     formatting,
     hashsums,
     latex,

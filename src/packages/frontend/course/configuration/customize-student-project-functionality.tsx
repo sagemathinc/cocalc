@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Card, Checkbox } from "antd";
+import { isEqual } from "lodash";
+
 import {
   React,
   redux,
@@ -13,8 +16,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
-import { Button, Card, Checkbox } from "antd";
-import { isEqual } from "lodash";
 export type { StudentProjectFunctionality };
 
 interface Option {
@@ -67,6 +68,12 @@ const OPTIONS: Option[] = [
     title: "Pluto Julia notebook server",
     description:
       "Disable the user interface for running a pluto server in student projects.  Pluto lets you run Julia notebooks from a project.",
+  },
+  {
+    name: "disableRServer",
+    title: "RStudio Server",
+    description:
+      "Disable the user interface for running an RStudio server in student projects.  RStudio is an IDE for R.",
   },
   {
     name: "disableTerminals",

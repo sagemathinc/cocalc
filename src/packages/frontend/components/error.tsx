@@ -14,13 +14,16 @@ export default function ShowError({
   style,
 }: Props) {
   if (!error) return null;
+  const err = `${error}`.replace(/^Error:/, "").trim();
   return (
     <Alert
       style={style}
       showIcon
       message={message}
       type="error"
-      description={`${error}`}
+      description={
+        <div style={{ maxHeight: "150px", overflow: "auto" }}>{err}</div>
+      }
       onClose={() => setError?.("")}
       closable={setError != null}
     />

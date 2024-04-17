@@ -42,7 +42,7 @@ export default function Proxy({
               checked={help}
               onChange={(val) => setHelp(val)}
             />
-            <Icon name="global" /> Applications
+            <Icon name="global" /> Web Applications: VS Code, JupyterLab, etc.
           </b>
         </div>
         {help && (
@@ -60,6 +60,12 @@ export default function Proxy({
                 <br />
                 <b>NOTE:</b> It can take a few minutes for an app to start
                 running the first time you launch it.
+                <br />
+                <br />
+                <b>WARNING:</b> You will see a security warning if you don't
+                configure a domain name. In some cases, e.g., JupyterLab via
+                Chrome, you <i>must</i> configure a domain name (due to a bug in
+                Chrome).
               </div>
             }
           />
