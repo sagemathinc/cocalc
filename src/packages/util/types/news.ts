@@ -38,27 +38,26 @@ export const CHANNELS = [
   "feature",
   "announcement",
   "platform",
-  "about",
+  "event",
 ] as const;
 
 export type Channel = (typeof CHANNELS)[number];
 
 export const CHANNELS_DESCRIPTIONS: { [name in Channel]: string } = {
   announcement: "Major announcements, important upcoming changes",
-  platform:
-    "Technical aspects of the service itself, e.g. software environments",
+  event: "Conferences and other events",
   feature: "New features, changes, and improvements",
-  about: "In one's own behalf",
+  platform: "Technical aspects of the service itself, e.g. software environments",
 } as const;
 
 // TODO move IconName from @cocalc/frontend/components/icon.tsx out of frontend
 export const CHANNELS_ICONS: {
   [key in Channel]: string /* IconName */;
 } = {
-  feature: "file-alt",
   announcement: "bullhorn",
+  event: "calendar",
+  feature: "file-alt",
   platform: "wrench",
-  about: "team-outlined",
 } as const;
 
 export function isNewsChannel(channel: string): channel is Channel {
