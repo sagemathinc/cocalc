@@ -276,7 +276,10 @@ function getItems({
         },
         {
           key: "serial-console-log",
-          disabled: server.state != "running" || server.cloud != "google-cloud",
+          disabled:
+            server.cloud != "google-cloud" ||
+            server.state == "off" ||
+            server.state == "deprovisioned",
           icon: <Icon name="laptop" />,
           label: "Serial Console Log",
         },

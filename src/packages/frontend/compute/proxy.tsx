@@ -457,8 +457,8 @@ export function LauncherButton({
             margin: "10px 0",
           }}
         >
-          It could take a few minutes for the server to start, so revisit this
-          URL if necessary.
+          It could take a minute for {app.label} to start, so revisit this URL
+          if necessary.
           {dnsIssue && (
             <Alert
               style={{ margin: "10px" }}
