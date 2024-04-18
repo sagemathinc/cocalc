@@ -97,7 +97,10 @@ export default function EditNews(props: Props) {
     //
     if (isNew) {
       const { channel } = router.query;
-      if (typeof channel === "string" && CHANNELS.includes(channel as Channel)) {
+      if (
+        typeof channel === "string" &&
+        CHANNELS.includes(channel as Channel)
+      ) {
         form.setFieldValue("channel", channel);
       }
     }
@@ -118,10 +121,14 @@ export default function EditNews(props: Props) {
       if (channel === "event") {
         router.push("/about/events", undefined, { scroll: false });
       } else {
-        router.push(slugURL({
-          ...data,
-          ...ret,
-        }), undefined, { scroll: false });
+        router.push(
+          slugURL({
+            ...data,
+            ...ret,
+          }),
+          undefined,
+          { scroll: false },
+        );
       }
       // this signals to the user that the save was successful
       setSaved(ret.id);
@@ -155,9 +162,13 @@ export default function EditNews(props: Props) {
         return "Updates, modified features, general news, etc. The default category for all news.";
       case "announcement":
         return "Use this rarely, only once or twice a month.";
+      case "about":
+        return "This is the meta-level category.";
       case "event":
-        return "Let users know about upcoming company/conference events. These events are ONLY" +
-          " shown in the About page and are filtered from normal news views.";
+        return (
+          "Let users know about upcoming company/conference events. These events are ONLY" +
+          " shown in the About page and are filtered from normal news views."
+        );
       default:
         return CHANNELS_DESCRIPTIONS[channel];
     }
@@ -166,12 +177,16 @@ export default function EditNews(props: Props) {
   function updateChannelParam(channel: string) {
     const { query } = router;
 
-    router.replace({
-      query: {
-        ...query,
-        channel,
+    router.replace(
+      {
+        query: {
+          ...query,
+          channel,
+        },
       },
-    }, undefined, { shallow: true, scroll: false });
+      undefined,
+      { shallow: true, scroll: false },
+    );
   }
 
   function edit() {
