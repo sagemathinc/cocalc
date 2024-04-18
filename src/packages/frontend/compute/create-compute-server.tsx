@@ -96,7 +96,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         setEditing(false);
         resetConfig();
         setCreating(false);
-        if (start) {
+        if (start && cloud != "onprem") {
           (async () => {
             try {
               await confirmStartComputeServer({
@@ -152,7 +152,8 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }}
         disabled={!!error || !title.trim()}
       >
-        <Icon name="run" /> Create Server (don't start)
+        <Icon name="run" /> Create Server
+        {cloud != "onprem" ? " (don't start)" : ""}
         {!!error && "(clear error) "}
         {!title.trim() && "(set title) "}
       </Button>
@@ -210,22 +211,44 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       >
         <div style={{ marginTop: "15px" }}>
           <ShowError error={error} setError={setError} />
-          <div
-            style={{
-              marginBottom: "5px",
-              color: "#666",
-              textAlign: "center",
-            }}
-          >
-            Customize your compute server below, then{" "}
-            <Button
-              onClick={() => handleCreate(true)}
-              disabled={!!error || !title.trim()}
-              type={"primary"}
+          {cloud != "onprem" && (
+            <div
+              style={{
+                marginLeft: "15px",
+                marginBottom: "5px",
+                color: "#666",
+                textAlign: "center",
+              }}
             >
-              <Icon name="run" /> Start Server
-            </Button>
-          </div>
+              Customize your compute server below, then{" "}
+              <Button
+                onClick={() => handleCreate(true)}
+                disabled={!!error || !title.trim()}
+                type={"primary"}
+              >
+                <Icon name="run" /> Start Server
+              </Button>
+            </div>
+          )}
+          {cloud == "onprem" && (
+            <div
+              style={{
+                marginLeft: "15px",
+                marginBottom: "5px",
+                color: "#666",
+                textAlign: "center",
+              }}
+            >
+              Customize your compute server below, then
+              <Button
+                onClick={() => handleCreate(false)}
+                disabled={!!error || !title.trim()}
+                type={"primary"}
+              >
+                <Icon name="run" /> Create Server
+              </Button>
+            </div>
+          )}
           <ComputeServer
             server={{
               project_id,
