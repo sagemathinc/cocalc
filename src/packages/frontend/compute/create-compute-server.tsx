@@ -214,7 +214,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           {cloud != "onprem" && (
             <div
               style={{
-                marginLeft: "15px",
                 marginBottom: "5px",
                 color: "#666",
                 textAlign: "center",
@@ -233,13 +232,12 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           {cloud == "onprem" && (
             <div
               style={{
-                marginLeft: "15px",
                 marginBottom: "5px",
                 color: "#666",
                 textAlign: "center",
               }}
             >
-              Customize your compute server below, then
+              Customize your compute server below, then{" "}
               <Button
                 onClick={() => handleCreate(false)}
                 disabled={!!error || !title.trim()}
