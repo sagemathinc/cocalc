@@ -15,13 +15,23 @@ import AllAboutCoCalcImage from "public/about/all-about-cocalc.png";
 
 const dataSource = [
   {
+    link: "/about/events",
+    title: "Events",
+    logo: "global",
+    description: (
+      <>
+        We regularly exhibit at academic conferences to engage with the academic
+        community. <A href="/about/events">See where we'll be next!</A>
+      </>
+    ),
+  },
+  {
     link: "/about/team",
     title: "The Team",
     logo: "team-outlined",
     description: (
       <>
-        Meet the{" "}
-        <A href="/about/team">CoCalc team</A>.
+        Meet the <A href="/about/team">CoCalc team</A>.
       </>
     ),
   },

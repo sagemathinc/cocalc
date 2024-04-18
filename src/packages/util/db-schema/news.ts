@@ -53,6 +53,7 @@ Table({
         pg_where: [
           "date >= NOW() - INTERVAL '3 months'",
           "date <= NOW() + INTERVAL '1 minute'",
+          "channel != 'event'",
           "hide IS NOT true",
         ],
         pg_changefeed: "news",

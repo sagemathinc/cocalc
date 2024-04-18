@@ -13,6 +13,7 @@ import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
 import Proxy from "./proxy";
 import { useImages } from "./images-hook";
+import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
@@ -144,6 +145,16 @@ export default function OnPremCloudConfiguration({
         state={state}
         IMAGES={IMAGES}
       />
+      {data?.externalIp && (
+        <>
+          <Divider />
+          <DNS
+            setConfig={setConfig}
+            configuration={configuration}
+            loading={loading}
+          />
+        </>
+      )}
       {loading && <Spin style={{ marginLeft: "15px" }} />}
     </div>
   );

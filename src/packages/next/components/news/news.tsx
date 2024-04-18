@@ -9,7 +9,12 @@ import { Fragment } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { capitalize, getRandomColor, plural } from "@cocalc/util/misc";
+import {
+  capitalize,
+  getRandomColor,
+  plural,
+  unreachable,
+} from "@cocalc/util/misc";
 import { slugURL } from "@cocalc/util/news";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -129,9 +134,9 @@ export function News(props: Props) {
         <A
           key="tweet"
           href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-            title
+            title,
           )}&url=${encodeURIComponent(
-            `https://${dns}${permalink}`
+            `https://${dns}${permalink}`,
           )}&via=cocalc_com`}
           style={{ color: COLORS.ANTD_LINK_BLUE, ...bottomLinkStyle }}
         >
@@ -141,7 +146,7 @@ export function News(props: Props) {
         <A
           key="facebook"
           href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-            `https://${dns}${permalink}`
+            `https://${dns}${permalink}`,
           )}`}
           style={{ ...bottomLinkStyle }}
         >
@@ -151,7 +156,7 @@ export function News(props: Props) {
         <A
           key="linkedin"
           href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-              `https://${dns}${permalink}`
+            `https://${dns}${permalink}`,
           )}`}
           style={{ ...bottomLinkStyle }}
         >
@@ -206,7 +211,7 @@ export function News(props: Props) {
   }
 
   function renderTags() {
-    return <NewsTags tags={tags} onTagClick={onTagClick} />;
+    return <TagList mode="news" tags={tags} onTagClick={onTagClick} />;
   }
 
   function extra() {
@@ -293,11 +298,7 @@ export function News(props: Props) {
         {renderHidden()}
         <Markdown value={text} style={{ ...style, minHeight: "20vh" }} />
 
-        <Flex
-          align="baseline"
-          justify="space-between"
-          wrap="wrap"
-        >
+        <Flex align="baseline" justify="space-between" wrap="wrap">
           {url && (
             <Paragraph style={{ textAlign: "center" }}>
               {readMoreLink(false, true)}
@@ -336,14 +337,21 @@ export function News(props: Props) {
   }
 }
 
-interface NewsTagsProps {
+interface TagListProps {
   tags?: string[];
   onTagClick?: (tag: string) => void;
   style?: CSS;
   styleTag?: CSS;
+  mode: "news" | "event";
 }
 
-export function NewsTags({ tags, onTagClick, style, styleTag }: NewsTagsProps) {
+export function TagList({
+  tags,
+  onTagClick,
+  style,
+  styleTag,
+  mode,
+}: TagListProps) {
   if (tags == null || !Array.isArray(tags) || tags.length === 0) return null;
 
   const router = useRouter();
@@ -352,14 +360,32 @@ export function NewsTags({ tags, onTagClick, style, styleTag }: NewsTagsProps) {
     router.push(`/news?tag=${tag}`);
   }
 
+  function onClick(tag) {
+    switch (mode) {
+      case "news":
+        (onTagClick ?? onTagClickStandalone)(tag);
+      case "event":
+        return;
+      default:
+        unreachable(mode);
+    }
+  }
+
+  function getStyle(): CSS {
+    return {
+      ...(mode === "news" ? { cursor: "pointer" } : {}),
+      ...styleTag,
+    };
+  }
+
   return (
     <Space size={[0, 4]} wrap={false} style={style}>
       {tags.sort().map((tag) => (
         <Tag
           color={getRandomColor(tag)}
           key={tag}
-          style={{ cursor: "pointer", ...styleTag }}
-          onClick={() => (onTagClick ?? onTagClickStandalone)(tag)}
+          style={getStyle()}
+          onClick={() => onClick(tag)}
         >
           {tag}
         </Tag>

@@ -163,7 +163,7 @@ const dataSource: DataSource = [
   },
 ] as DataSource;
 
-export default function Help({ customize }) {
+export default function Team({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Meet the CoCalc Team"/>

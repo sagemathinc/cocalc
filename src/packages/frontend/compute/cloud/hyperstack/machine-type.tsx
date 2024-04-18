@@ -58,7 +58,21 @@ function getLabel(x: PurchaseOption, priceData) {
           overflow: "hidden",
         }}
       >
-        <div style={{ flex: 1 }}> {humanFlavor(x.flavor_name)}</div>
+        <div
+          style={{
+            flex: 1,
+            fontWeight: "bold",
+            fontSize: "11pt",
+          }}
+        >
+          {cpuOnly ? (
+            `CPU Only`
+          ) : (
+            <>
+              {x.gpu_count} × {gpu.replace("-PCIe", "").replace("-", " - ")}
+            </>
+          )}
+        </div>
         <div style={{ flex: 1 }}>
           {currency(markup({ cost: x.cost_per_hour, priceData }))}
           /hour
@@ -82,19 +96,9 @@ function getLabel(x: PurchaseOption, priceData) {
           overflow: "hidden",
         }}
       >
-        <div
-          style={{
-            flex: 1,
-          }}
-        >
-          {cpuOnly ? (
-            `CPU Only`
-          ) : (
-            <>
-              {x.gpu_count} × {gpu.replace("-PCIe", "")}
-            </>
-          )}
-        </div>{" "}
+        <div style={{ flex: 1, color: "#888" }}>
+          {humanFlavor(x.flavor_name)}
+        </div>
         <div style={{ flex: 1 }}>
           {gpuSpec != null && gpuSpec.cuda_cores > 0 && (
             <>

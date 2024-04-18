@@ -25,6 +25,7 @@ import Ephemeral from "@cocalc/frontend/compute/ephemeral";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
+import AllowCollaboratorControl from "@cocalc/frontend/compute/allow-collaborator-control";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -245,6 +246,17 @@ export default function HyperstackConfig({
       label: <></>,
       value: (
         <Ephemeral
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
+      key: "allow-collaborator-control",
+      label: <></>,
+      value: (
+        <AllowCollaboratorControl
           setConfig={setConfig}
           configuration={configuration}
           loading={loading}

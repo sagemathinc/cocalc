@@ -205,7 +205,7 @@ function ComputeServerTable({
   });
 
   const renderItem = (id) => {
-    const data = computeServers.get(id).toJS();
+    const server = computeServers.get(id).toJS();
 
     return (
       <div style={{ display: "flex" }}>
@@ -224,17 +224,11 @@ function ComputeServerTable({
           </div>
         )}
         <ComputeServer
-          id={id}
+          server={server}
           style={{ marginBottom: "15px" }}
           key={`${id}`}
-          controllable={
-            account_id == data.account_id ||
-            data.configuration?.allowCollaboratorControl
-          }
-          editable={account_id == data.account_id}
-          {...data}
-          setShowDeleted={setShowDeleted}
-          setSearch={setSearch}
+          editable={account_id == server.account_id}
+          controls={{ setShowDeleted, setSearch }}
         />
       </div>
     );

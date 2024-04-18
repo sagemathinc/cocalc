@@ -39,6 +39,27 @@ export default function SerialPortOutput({
   color?: string;
 }) {
   const [show, setShow] = useState<boolean>(false);
+
+  return (
+    <>
+      <Tooltip title={"Show output of the serial port (boot messages, etc.)"}>
+        <Button
+          size={"small"}
+          type="text"
+          style={{ color: "#666", ...style }}
+          onClick={() => setShow(!show)}
+        >
+          <Icon name="laptop" /> Serial
+        </Button>
+        {show && (
+          <SerialLogModal id={id} title={title} close={() => setShow(false)} />
+        )}
+      </Tooltip>
+    </>
+  );
+}
+
+export function SerialLogModal({ id, title, close }) {
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -111,115 +132,93 @@ export default function SerialPortOutput({
     }
   };
 
+  useEffect(() => {
+    update();
+  }, []);
+
   return (
-    <>
-      <Tooltip title={"Show output of the serial port (boot messages, etc.)"}>
+    <Modal
+      width={`${WIDTH + 20}ex`}
+      title={
+        <>
+          <Icon name="laptop" style={{ marginRight: "15px" }} /> Serial Port
+          Output - "{title}"
+        </>
+      }
+      open
+      onCancel={close}
+      footer={[
+        <Checkbox
+          checked={autoRefresh}
+          onChange={() => {
+            if (autoRefresh) {
+              clearTimeout();
+            } else {
+              timeoutMsRef.current = MIN_INTERVAL_MS;
+              updateRefresh();
+            }
+            setAutoRefresh(!autoRefresh);
+          }}
+          key="auto-refresh"
+          style={{ float: "left" }}
+        >
+          Auto Refresh
+        </Checkbox>,
+        <Button key="cancel" onClick={close}>
+          Cancel
+        </Button>,
         <Button
-          size={"small"}
-          type="text"
-          style={{ color: "#666", ...style }}
-          onClick={async () => {
-            setShow(!show);
-            if (!show) {
-              // showing serial port output, so update it.
+          key="refresh"
+          onClick={() => {
+            if (autoRefresh) {
+              clearTimeout();
+              timeoutMsRef.current = MIN_INTERVAL_MS;
+              updateRefresh();
+            } else {
               update();
             }
           }}
+          disabled={loading}
         >
-          <Icon name="laptop" /> Serial
-        </Button>
-      </Tooltip>
-      <Modal
-        width={`${WIDTH + 20}ex`}
-        title={
-          <>
-            <Icon name="laptop" style={{ marginRight: "15px" }} /> Serial Port
-            Output - "{title}"
-          </>
-        }
-        open={show}
-        onCancel={() => {
-          setShow(false);
-        }}
-        footer={[
-          <Checkbox
-            checked={autoRefresh}
-            onChange={() => {
-              if (autoRefresh) {
-                clearTimeout();
-              } else {
-                timeoutMsRef.current = MIN_INTERVAL_MS;
-                updateRefresh();
-              }
-              setAutoRefresh(!autoRefresh);
-            }}
-            key="auto-refresh"
-            style={{ float: "left" }}
-          >
-            Auto Refresh
-          </Checkbox>,
-          <Button key="cancel" onClick={() => setShow(false)}>
-            Cancel
-          </Button>,
-          <Button
-            key="refresh"
-            onClick={() => {
-              if (autoRefresh) {
-                clearTimeout();
-                timeoutMsRef.current = MIN_INTERVAL_MS;
-                updateRefresh();
-              } else {
-                update();
-              }
-            }}
-            disabled={loading}
-          >
-            <Icon name="refresh" /> Refresh
-            {loading && <Spin style={{ marginLeft: "15px" }} />}
-          </Button>,
-          <Button
-            key="top"
-            onClick={() => {
-              termRef.current?.scrollToTop();
-            }}
-          >
-            <Icon name="arrow-up" /> Top
-          </Button>,
-          <Button
-            key="bottom"
-            onClick={() => {
-              termRef.current?.scrollToBottom();
-            }}
-          >
-            <Icon name="arrow-down" /> Bottom
-          </Button>,
-          <Button
-            key="ok"
-            type="primary"
-            onClick={() => {
-              setShow(false);
-            }}
-          >
-            OK
-          </Button>,
-        ]}
-      >
-        {error && <ShowError error={error} setError={setError} />}
-        <div
-          style={{
-            overflow: "auto",
-            maxHeight: "70vh",
+          <Icon name="refresh" /> Refresh
+          {loading && <Spin style={{ marginLeft: "15px" }} />}
+        </Button>,
+        <Button
+          key="top"
+          onClick={() => {
+            termRef.current?.scrollToTop();
           }}
         >
-          <pre
-            ref={eltRef}
-            style={{
-              width: `${WIDTH + 20}ex`,
-              padding: 0,
-            }}
-          ></pre>
-        </div>
-      </Modal>
-    </>
+          <Icon name="arrow-up" /> Top
+        </Button>,
+        <Button
+          key="bottom"
+          onClick={() => {
+            termRef.current?.scrollToBottom();
+          }}
+        >
+          <Icon name="arrow-down" /> Bottom
+        </Button>,
+        <Button key="ok" type="primary" onClick={close}>
+          OK
+        </Button>,
+      ]}
+    >
+      {error && <ShowError error={error} setError={setError} />}
+      <div
+        style={{
+          overflow: "auto",
+          maxHeight: "70vh",
+        }}
+      >
+        <pre
+          ref={eltRef}
+          style={{
+            width: `${WIDTH + 20}ex`,
+            padding: 0,
+          }}
+        ></pre>
+      </div>
+    </Modal>
   );
 }

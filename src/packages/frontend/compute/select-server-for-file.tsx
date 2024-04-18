@@ -12,7 +12,7 @@ import SelectServer, { PROJECT_COLOR } from "./select-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
-import ComputeServer from "@cocalc/frontend/compute/inline";
+import InlineComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   project_id: string;
@@ -211,12 +211,13 @@ export function modalParams({ current, target, path }) {
   }
   const targetDesc = (
     <span key="target-desc">
-      on <ComputeServer noColor key="target-name" id={target} titleOnly />
+      on <InlineComputeServer noColor key="target-name" id={target} titleOnly />
     </span>
   );
   const sourceDesc = (
     <span key="source-desc">
-      on <ComputeServer noColor key="source-name" id={current} titleOnly />
+      on{" "}
+      <InlineComputeServer noColor key="source-name" id={current} titleOnly />
     </span>
   );
 
@@ -226,11 +227,37 @@ export function modalParams({ current, target, path }) {
         {what} {targetDesc}
       </>
     ),
-    cancelText: <>Stay {sourceDesc}</>,
+    cancelText: (
+      <div style={{display:'flex'}}>
+        <div
+          style={{
+            maxWidth: "40ex",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginRight: "5px",
+          }}
+        >
+          Stay {sourceDesc}
+        </div>
+        (Id: {current})
+      </div>
+    ),
     okText: (
-      <>
-        {what} {targetDesc}
-      </>
+      <div style={{display:'flex'}}>
+        <div
+          style={{
+            maxWidth: "40ex",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginRight: "5px",
+          }}
+        >
+          {what} {targetDesc}
+        </div>
+        (Id: {target})
+      </div>
     ),
     description: (
       <>
