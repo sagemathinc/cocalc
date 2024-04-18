@@ -83,7 +83,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
 function DataList({ dataSource }: { dataSource: Item[] }) {
   function renderItem(item): ReactNode {
     const icon = (
-      <div style={{ marginTop: "2.5px" }}>
+      <div>
         {isValidElement(item.logo) ? (
           item.logo
         ) : typeof item.logo === "string" ? (
@@ -93,7 +93,8 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
         )}
       </div>
     );
-    const extra = item.image && (
+
+    const extra = item.image ? (
       <div
         className="cc-hidden-mobile"
         style={{ width: item.imageWidth ?? "275px" }}
@@ -105,16 +106,16 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
           />
         </A>
       </div>
-    );
+    ) : undefined;
+
     return (
-      <List.Item key={item.link} extra={extra}>
+      <List.Item key={item.link} extra={extra} style={{ marginTop: "16px" }}>
         <List.Item.Meta
           avatar={
-            item.logo && (
+            item.logo ? (
               <A href={item.link} alt={item.title + " logo "}>
                 <Avatar
                   style={{
-                    marginTop: "20px",
                     backgroundColor: item.logoBackground,
                   }}
                   alt={item.title + " logo "}
@@ -123,27 +124,23 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                   icon={icon}
                 />
               </A>
-            )
+            ) : undefined
           }
           title={
             item.link ? (
               item.linkText ? (
                 <Flex vertical>
-                  <div style={{ fontSize: "16pt" }}>
-                    {item.title}
-                  </div>
-                  <A href={item.link}>
-                    {item.linkText}
-                  </A>
+                  <div style={{ fontSize: "16pt" }}>{item.title}</div>
+                  <A href={item.link}>{item.linkText}</A>
                 </Flex>
               ) : (
-                <A
-                  href={item.link}
-                  style={{ fontSize: "16pt" }}>
+                <A href={item.link} style={{ fontSize: "16pt" }}>
                   {item.title}
                 </A>
               )
-            ) : item.title
+            ) : (
+              item.title
+            )
           }
           description={
             <Paragraph style={{ color: COLORS.GRAY, fontSize: "12pt" }}>
