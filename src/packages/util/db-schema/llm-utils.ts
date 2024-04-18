@@ -166,6 +166,12 @@ export type OllamaLLM = string;
 // use the one without Ollama to get stronger typing. Ollama could be any string starting with the OLLAMA_PREFIX.
 export type CoreLanguageModel = (typeof LANGUAGE_MODELS)[number];
 export type LanguageModel = CoreLanguageModel | OllamaLLM;
+export function isCoreLanguageModel(
+  model: unknown,
+): model is CoreLanguageModel {
+  if (typeof model !== "string") return false;
+  return LANGUAGE_MODELS.includes(model as any);
+}
 
 // we check if the given object is any known language model
 export function isLanguageModel(model?: unknown): model is LanguageModel {
