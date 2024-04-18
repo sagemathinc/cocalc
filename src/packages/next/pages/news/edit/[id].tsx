@@ -19,6 +19,7 @@ import {
   Space,
 } from "antd";
 import dayjs from "dayjs";
+import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
@@ -45,7 +46,6 @@ import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import { extractID } from "lib/news";
 import withCustomize from "lib/with-customize";
-import { GetServerSidePropsContext } from "next";
 
 interface Props {
   customize: CustomizeType;
