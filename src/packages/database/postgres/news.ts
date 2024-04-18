@@ -5,13 +5,13 @@
 
 import {
   Channel,
+  EVENT_CHANNEL,
   NewsItem,
   NewsPrevNext,
   RecentHeadline,
 } from "@cocalc/util/types/news";
 import { LRUQueryCache } from "./util";
 
-const EVENT_CHANNEL: Channel = 'event';
 const C = new LRUQueryCache({ ttl_s: 10 * 60 });
 
 export function clearCache(): void {
@@ -166,7 +166,9 @@ WHERE date >= NOW()
 ORDER BY date
 LIMIT 100`;
 
-export async function getUpcomingNewsChannelItems(channel: Channel): Promise<NewsItem[]> {
+export async function getUpcomingNewsChannelItems(
+  channel: Channel,
+): Promise<NewsItem[]> {
   return await C.query(Q_UPCOMING_NEWS_CHANNEL_ITEMS, [channel]);
 }
 
@@ -182,6 +184,8 @@ WHERE date <= NOW()
 ORDER BY date DESC
 LIMIT 100`;
 
-export async function getPastNewsChannelItems(channel: Channel): Promise<NewsItem[]> {
+export async function getPastNewsChannelItems(
+  channel: Channel,
+): Promise<NewsItem[]> {
   return await C.query(Q_PAST_NEWS_CHANNEL_ITEMS, [channel]);
 }

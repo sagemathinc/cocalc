@@ -169,7 +169,7 @@ export default function Disk(props: Props) {
               Enlarge by{" "}
               {newDiskSizeGb - (configuration.diskSizeGb ?? minSizeGb)}
               GB (additional cost{" "}
-              {rate ? <>&nbsp;at {rate}&nbsp;</> : undefined} is{" "}
+              {rate ? <>&nbsp;at {rate}&nbsp;</> : undefined} &nbsp;is&nbsp;
               {currency(
                 computeDiskCost({
                   configuration: {

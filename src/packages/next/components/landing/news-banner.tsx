@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { useEffect, useRef, useState } from "react";
+import { useAsyncEffect } from "use-async-effect";
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { slugURL } from "@cocalc/util/news";
 import { COLORS } from "@cocalc/util/theme";
@@ -12,8 +15,6 @@ import A from "components/misc/A";
 import { TagList } from "components/news/news";
 import { useDateStr } from "components/news/useDateStr";
 import { MAX_WIDTH } from "lib/config";
-import { useEffect, useRef, useState } from "react";
-import { useAsyncEffect } from "use-async-effect";
 
 const PADDING = "15px";
 const FONT_SIZE = "16px";

@@ -34,11 +34,14 @@ export interface NewsItemWebapp {
   tags?: string[];
 }
 
+export const EVENT_CHANNEL = "event";
+
 export const CHANNELS = [
   "feature",
   "announcement",
   "platform",
-  "event",
+  "about",
+  EVENT_CHANNEL,
 ] as const;
 
 export type Channel = (typeof CHANNELS)[number];
@@ -47,7 +50,9 @@ export const CHANNELS_DESCRIPTIONS: { [name in Channel]: string } = {
   announcement: "Major announcements, important upcoming changes",
   event: "Conferences and other events",
   feature: "New features, changes, and improvements",
-  platform: "Technical aspects of the service itself, e.g. software environments",
+  about: "In one's own behalf",
+  platform:
+    "Technical aspects of the service itself, e.g. software environments",
 } as const;
 
 // TODO move IconName from @cocalc/frontend/components/icon.tsx out of frontend
@@ -57,6 +62,7 @@ export const CHANNELS_ICONS: {
   announcement: "bullhorn",
   event: "calendar",
   feature: "file-alt",
+  about: "team-outlined",
   platform: "wrench",
 } as const;
 

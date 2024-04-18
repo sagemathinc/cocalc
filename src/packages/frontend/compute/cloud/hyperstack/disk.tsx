@@ -14,6 +14,7 @@ export default function Disk(props) {
   }
   const cost_per_hour_data = computeDiskCost(props);
   const cost_per_hour_boot = computeBootVolumeCost(props);
+  // this data can be null -- I saw this when a bunch of machine types ("flavors") disappeared...
   const data = props.priceData.options[optionKey(props.configuration)];
   const numTimes =
     props.data?.disks == null ? 0 : Math.max(props.data?.disks.length, 2) - 2;
@@ -35,7 +36,7 @@ export default function Disk(props) {
               this disk later, we instead add a new volume to this ZFS pool (up
               to a total of 26).
             </p>
-            {(data.ephemeral ?? 0) > 0 && (
+            {(data?.ephemeral ?? 0) > 0 && (
               <p>
                 Moreover, some of your {data.ephemeral}GB local SSD will be used
                 for ZFS caching to make the persistent disk much faster. This
@@ -64,9 +65,9 @@ export default function Disk(props) {
         {currency(cost_per_hour_boot * 730)}
         /month.
       </div>
-      {(data.ephemeral ?? 0) > 0 && (
+      {(data?.ephemeral ?? 0) > 0 && (
         <div>
-          <b>Caching:</b> Some of your {data.ephemeral}GB local SSD is used for
+          <b>Caching:</b> Some of your {data?.ephemeral}GB local SSD is used for
           caching to make the data disk much faster.
         </div>
       )}
