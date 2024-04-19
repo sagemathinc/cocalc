@@ -134,10 +134,6 @@ export default function HyperstackConfig({
   ];
 
   const dataSource = [
-    {
-      key: "provisioning",
-      value: <Provisioning />,
-    },
     //     {
     //       key: "gpu",
 
@@ -175,6 +171,10 @@ export default function HyperstackConfig({
         </>
       ),
     },
+    //     {
+    //       key: "provisioning",
+    //       value: <Provisioning />,
+    //     },
     {
       key: "image",
       value: (
@@ -331,29 +331,29 @@ export default function HyperstackConfig({
   );
 }
 
-function Provisioning({}) {
-  return (
-    <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>
-          <Icon name="sliders" /> Provisioning: Standard
-        </b>
-      </div>
-      <div style={{ color: "#666", marginTop: "5px" }}>
-        <p>
-          Hyperstack servers are dedicated to you and{" "}
-          <b>
-            <i>will NOT automatically stop</i>
-          </b>{" "}
-          even if there is a surge in demand.
-        </p>
-        <p>
-          Expect your server to take <b>about 5 minutes</b> to fully start up.
-        </p>
-      </div>
-    </div>
-  );
-}
+// function Provisioning({}) {
+//   return (
+//     <div>
+//       <div style={{ color: "#666", marginBottom: "5px" }}>
+//         <b>
+//           <Icon name="sliders" /> Provisioning: Standard
+//         </b>
+//       </div>
+//       <div style={{ color: "#666", marginTop: "5px" }}>
+//         <p>
+//           Hyperstack servers are dedicated to you and{" "}
+//           <b>
+//             <i>will NOT automatically stop</i>
+//           </b>{" "}
+//           even if there is a surge in demand.
+//         </p>
+//         <p>
+//           Expect your server to take <b>about 5 minutes</b> to fully start up.
+//         </p>
+//       </div>
+//     </div>
+//   );
+// }
 
 function Admin({ id, configuration }) {
   const isAdmin = useTypedRedux("account", "is_admin");
