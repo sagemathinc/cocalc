@@ -17,6 +17,7 @@ import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { CSS, ReactDOM } from "@cocalc/frontend/app-framework";
 import { MenuItems } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { strictMod } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 export interface Item {
@@ -81,6 +82,7 @@ export function Complete(props: Props) {
   const llm_ref = useRef<boolean>(llm);
   const selected_user_ref = useRef<number>(selectedUser);
   const selected_llm_ref = useRef<number>(selectedLLM);
+  const selected_key_ref = useRef<string>();
 
   useEffect(() => {
     selected_user_ref.current = selectedUser;
@@ -94,15 +96,24 @@ export function Complete(props: Props) {
     llm_ref.current = llm || onlyLLMs;
   }, [llm, onlyLLMs]);
 
-  const selected_key_ref = useRef<string>();
+  useEffect(() => {
+    // if we show the LLM submenu and we scroll to it using the keyboard, we pop it open
+    // Hint: these can be equal, if there is one more virtual entry in selectedUser!
+    if (selectedUser === items_user.length) {
+      setLLM(true);
+    }
+  }, [selectedUser]);
 
   const select = useCallback(
     (e?) => {
       const key = e?.key ?? selected_key_ref.current;
-      if (typeof key === "string") {
-        // best to just cancel.
+      if (typeof key === "string" && key !== "sub_llm") {
         onSelect(key);
+      }
+      if (key === "sub_llm") {
+        setLLM(!llm);
       } else {
+        // best to just cancel.
         onCancel();
       }
     },
@@ -152,21 +163,31 @@ export function Complete(props: Props) {
 
   useEffect(() => {
     document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("click", onCancel);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("click", onCancel);
     };
   }, [onKeyDown, onCancel]);
 
   if (items.length === 0) return null;
 
-  selected_key_ref.current =
-    llm || onlyLLMs
-      ? items_llm[selectedLLM % (items_llm.length ? items_llm.length : 1)]
-          ?.value
-      : items_user[selectedUser % (items_user.length ? items_user.length : 1)]
-          ?.value;
+  selected_key_ref.current = (() => {
+    if (llm || onlyLLMs) {
+      const len: number = items_llm.length ?? 1;
+      const i = strictMod(selectedLLM, len);
+      return items_llm[i]?.value;
+    } else {
+      let len: number = items_user.length ?? 1;
+      if (!onlyLLMs && haveLLMs) {
+        len += 1;
+      }
+      const i = strictMod(selectedUser, len);
+      if (i < len - 1) {
+        return items_user[i]?.value;
+      } else {
+        return "sub_llm";
+      }
+    }
+  })();
 
   const style: CSS = { fontSize: "115%" } as const;
 
@@ -204,7 +225,11 @@ export function Complete(props: Props) {
   // NOTE: the AI LLM submenu is either opened by hovering (clicking closes immediately) or by right-arrow key
   const menu: MenuProps = {
     selectedKeys: [selected_key_ref.current],
-    onClick: select,
+    onClick: (e) => {
+      if (e.key !== "sub_llm") {
+        select(e);
+      }
+    },
     items: menuItems,
     openKeys: llm ? ["sub_llm"] : [],
     onOpenChange: (openKeys) => {
@@ -212,7 +237,7 @@ export function Complete(props: Props) {
       setLLM(openKeys.includes("sub_llm"));
     },
     mode: "vertical",
-    subMenuCloseDelay: 1.5,
+    subMenuCloseDelay: 3,
     style: {
       border: `1px solid ${COLORS.GRAY_L}`,
       maxHeight: "45vh", // so can always position menu above/below current line not obscuring it.
