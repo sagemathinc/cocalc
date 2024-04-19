@@ -41,7 +41,7 @@ const TAGS = {
     search: ["norway"],
     desc: "in Norway",
     group: 2,
-    tip: "🇳🇴 Only show servers in Norway. (WARNING: creating servers in Norway takes an extra 5 minutes.)",
+    tip: "🇳🇴 Only show servers in Norway.",
   },
 };
 
