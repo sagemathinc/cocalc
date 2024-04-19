@@ -716,8 +716,8 @@ export async function makeConfigurationChange({
       });
     default:
       throw Error(
-        `makeConfigurationChange not implemented for cloud '${cloud}' changing value of ${keys.join(
-          ", ",
+        `makeConfigurationChange not implemented for cloud '${cloud}' changing value of ${JSON.stringify(
+          changed,
         )}`,
       );
   }
