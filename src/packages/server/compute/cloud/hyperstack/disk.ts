@@ -22,7 +22,10 @@ import {
 } from "./client";
 import { getServerName, getDiskName } from "./names";
 import { getData } from "@cocalc/server/compute/util";
-import { MAX_DISKS } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import {
+  MAX_DISKS,
+  DEFAULT_DISK,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { ensureEnvironment, setData } from "./index";
 import getLogger from "@cocalc/backend/logger";
 import { delay } from "awaiting";
@@ -40,9 +43,9 @@ export async function increaseDiskSize({
 }) {
   logger.debug("increaseDiskSize ", id, state, configuration.diskSizeGb);
   const { region_name } = configuration;
-  let { diskSizeGb } = configuration;
+  let { diskSizeGb = DEFAULT_DISK } = configuration;
   if (diskSizeGb == null) {
-    throw Error("diskSizegb must be defined");
+    throw Error("diskSizeGb must be defined");
   }
   // We look at what is currently allocated.  If it doesn't add up to diskSizeGb, we
   // create another volume to get to that size and attach it to the instance if it is
@@ -99,10 +102,12 @@ export async function attachVolumes({
   vm_id, // id in hyperstack of the vm, i.e., data.vm.id
   volume_ids,
   maxTime = 1000 * 60 * 10, // 10 minutes
+  f,
 }: {
   vm_id: number;
   volume_ids: number[];
   maxTime?: number;
+  f?: () => Promise<void>;
 }) {
   if (!vm_id) {
     throw Error(`invalid vm id ${vm_id}`);
@@ -121,8 +126,13 @@ export async function attachVolumes({
       logger.debug("successfully attached volumes to ", vm_id, volume_ids);
       break;
     } catch (err) {
+      if (`${err}`.includes("not_found")) {
+        // the VM doesn't exist at all, so no way to attach disk ever
+        throw err;
+      }
       // be a lot smarter regarding content of the error, status of the VM, webhooks, etc.
-      logger.debug("WARNING: waiting so we can attach disks", err);
+      logger.debug(`WARNING: waiting so we can attach disks: ${err}`);
+      await f?.();
     }
     d = Math.min(10000, d * 1.3);
     await delay(d);
