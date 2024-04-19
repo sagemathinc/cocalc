@@ -1374,8 +1374,8 @@ importers:
         specifier: ^0.0.11
         version: 0.0.11
       '@langchain/mistralai':
-        specifier: ^0.0.18
-        version: 0.0.18
+        specifier: ^0.0.19
+        version: 0.0.19
       '@langchain/openai':
         specifier: ^0.0.28
         version: 0.0.28(encoding@0.1.13)
@@ -4048,15 +4048,15 @@ packages:
       '@langchain/core': 0.1.58
     dev: false
 
-  /@langchain/mistralai@0.0.18:
-    resolution: {integrity: sha512-9xjQQEF90A5tYPQCvNjj9vaJMJ+oP7/cvr0UTx0p/uKvbyS+3WyMFbVRmJgHUw5ERm2j8HYfES8ZyUiJTfFJUw==}
+  /@langchain/mistralai@0.0.19:
+    resolution: {integrity: sha512-Uin/jve1NCZLAFa9dpOKzE3Y2+uSnMJQX5ria9vO3lnTGRlvBwcMhyGDoTYdI+gnQgHH4ceBoIBzJDlVG+WVWw==}
     engines: {node: '>=18'}
     dependencies:
       '@langchain/core': 0.1.58
       '@mistralai/mistralai': link:node_modules/@cocalc/mistralai
       uuid: 9.0.1
       zod: 3.22.4
-      zod-to-json-schema: 3.22.4(zod@3.22.4)
+      zod-to-json-schema: 3.22.5(zod@3.22.4)
     dev: false
 
   /@langchain/openai@0.0.28(encoding@0.1.13):
