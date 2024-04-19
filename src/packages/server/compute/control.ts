@@ -654,6 +654,16 @@ export async function makeConfigurationChange({
   }
 
   const changed = changedKeys(currentConfiguration, newConfiguration);
+  logger.debug("makeConfigurationChange", {
+    id,
+    cloud,
+    state,
+    currentConfiguration,
+    newConfiguration,
+    changes,
+    changed,
+    keys: Object.keys(changed),
+  });
   if (changed.has("dns")) {
     if (state == "running" || !newConfiguration.dns) {
       // if running or removing dns, better update it.
@@ -680,8 +690,7 @@ export async function makeConfigurationChange({
     // same comment as for authToken
     changed.delete("proxy");
   }
-  const keys = Object.keys(changed);
-  if (keys.length == 0) {
+  if (changed.size == 0) {
     // nothing else to change
     return;
   }
