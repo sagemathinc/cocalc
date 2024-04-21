@@ -49,6 +49,7 @@ import CostOverview from "./cost-overview";
 import Disk from "@cocalc/frontend/compute/cloud/common/disk";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
+import { search_match, search_split } from "@cocalc/util/misc";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -565,7 +566,10 @@ export default function GoogleCloudConfiguration({
 export const filterOption = (
   input: string,
   option: { label: string; value: string; search: string },
-) => (option?.search ?? "").toLowerCase().includes(input.toLowerCase());
+) => {
+  const terms = search_split(input.toLowerCase());
+  return search_match((option?.search ?? "").toLowerCase(), terms);
+};
 
 function Region({ priceData, setConfig, configuration, disabled }) {
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);

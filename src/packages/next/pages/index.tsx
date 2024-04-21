@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Layout } from "antd";
+import { useState } from "react";
+import { Carousel, Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
@@ -21,6 +22,7 @@ import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import { Icon } from "@cocalc/frontend/components/icon";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
@@ -161,29 +163,6 @@ export default function Home(props: Props) {
     return <Logo type="full" style={{ width: "50%" }} />;
   }
 
-  function imageAlternative() {
-    if (onCoCalcCom) {
-      return (
-        <div style={{ margin: "0 auto", textAlign: "center" }}>
-          <Paragraph>
-            <iframe
-              style={{ marginTop: "30px", maxWidth: "100%" }}
-              width="672"
-              height="378"
-              src="https://www.youtube.com/embed/oDdfmkQ0Hvw"
-              title="YouTube video player"
-              frameBorder={0}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </Paragraph>
-        </div>
-      );
-    } else {
-      return indexInfo;
-    }
-  }
-
   function renderNews() {
     if (recentHeadlines == null) return;
     return (
@@ -210,7 +189,7 @@ export default function Home(props: Props) {
             description={contentDescription()}
             image={splashImage ? splashImage : screenshot}
             alt={"Screenshot showing CoCalc in action!"}
-            imageAlternative={imageAlternative()}
+            imageAlternative={onCoCalcCom ? <Videos /> : indexInfo}
           />
           <Hero />
           {renderCoCalcComFeatures()}
@@ -235,5 +214,82 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   return await withCustomize(
     { context, props: { recentHeadlines, headlineIndex, isAuthenticated } },
     { name: true },
+  );
+}
+
+const YOUTUBE_IDS = [
+  { id: "oDdfmkQ0Hvw", title: "CoCalc Overview" },
+  { id: "UfmjYxalyh0", title: "Using AI in CoCalc" },
+  { id: "LLtLFtD8qfo", title: "Using JupyterLab in CoCalc" },
+  { id: "OMN1af0LUcA", title: "Using OpenWebUI and Ollama On CoCalc" },
+  { id: "Owq90O0vLJo", title: "R Studio on CoCalc" },
+  { id: "JG6jm6yv_KE", title: "PyTorch with a GPU on CoCalc" },
+  {
+    id: "Uwn3ngzXD0Y",
+    title: "JAX Quickstart on CoCalc using a GPU (or on CPU)",
+  },
+  { id: "NkNx6tx3nu0", title: "Running On-Prem Compute Servers on CoCalc" },
+];
+
+function Videos() {
+  const [current, setCurrent] = useState<number>(0);
+  let n = -1;
+  return (
+    <div style={{ margin: "0 auto", textAlign: "center" }}>
+      <Paragraph>
+        <Carousel afterChange={setCurrent}>
+          {YOUTUBE_IDS.map(({ id, title }) => {
+            n += 1;
+            return (
+              <VideoItem id={id} number={n} current={current} title={title} />
+            );
+          })}
+        </Carousel>
+      </Paragraph>
+    </div>
+  );
+}
+
+function VideoItem({
+  id,
+  title,
+  number,
+  current,
+}: {
+  id: string;
+  title: string;
+  number: number;
+  current: number;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          background: "black",
+          paddingBottom: "30px",
+          paddingTop: "5px",
+        }}
+      >
+        <A style={{ color: "white" }} href={`https://youtu.be/${id}`}>
+          <Icon name="youtube" /> {title}
+        </A>
+        <iframe
+          style={{ marginTop: "30px", maxWidth: "100%" }}
+          width="672"
+          height="378"
+          src={`https://www.youtube.com/embed/${current == number ? id : ""}`}
+          title="YouTube video player"
+          frameBorder={0}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+        <A
+          style={{ color: "white", float: "right", marginRight: "10px" }}
+          href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ"
+        >
+          <Icon name="external-link" /> more...
+        </A>
+      </div>
+    </div>
   );
 }

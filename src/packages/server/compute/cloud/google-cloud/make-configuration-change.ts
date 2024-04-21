@@ -9,6 +9,11 @@ import {
   setAccelerator,
 } from "./client";
 import { getServerName } from "./index";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger(
+  "server:compute:google-cloud:make-configuration-change",
+);
 
 export const SUPPORTED_CHANGES = [
   "ephemeral",
@@ -45,6 +50,12 @@ export async function makeConfigurationChange({
   currentConfiguration: GoogleCloudConfiguration;
   newConfiguration: GoogleCloudConfiguration;
 }) {
+  logger.debug("makeConfigurationChange", {
+    id,
+    state,
+    currentConfiguration,
+    newConfiguration,
+  });
   if (state == "deprovisioned") {
     // nothing to do since everything happens only when we start
     return;

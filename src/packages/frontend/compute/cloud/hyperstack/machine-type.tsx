@@ -69,24 +69,37 @@ function getLabel(x: PurchaseOption, priceData) {
             `CPU Only`
           ) : (
             <>
-              {x.gpu_count} × {gpu.replace("-PCIe", "").replace("-", " - ")}
+              {x.gpu_count} × {gpu.replace("-PCIe", "").replace("-", " - ")} GPU
+            </>
+          )}
+        </div>
+        <div
+          style={{
+            flex: 1,
+          }}
+        >
+          <div
+            style={{
+              fontSize: "13pt",
+              position: "absolute",
+              top: "12px",
+            }}
+          >
+            {currency(markup({ cost: x.cost_per_hour, priceData }))}
+            /hour
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          {gpuSpec != null && (
+            <>
+              {gpuSpec?.memory != null && (
+                <>{x.gpu_count * gpuSpec.memory}GB GPU RAM</>
+              )}
             </>
           )}
         </div>
         <div style={{ flex: 1 }}>
-          {currency(markup({ cost: x.cost_per_hour, priceData }))}
-          /hour
-        </div>
-        <div style={{ flex: 1 }}>
           {x.cpu} {plural(x.cpu, "vCPU")}, {commas(x.ram)}GB RAM
-        </div>
-        <div style={{ flex: 1 }}>
-          {!cpuOnly && (
-            <>
-              {x.available ?? 0} {plural(x.available ?? 0, "GPU")} in
-            </>
-          )}{" "}
-          {capitalize(x.region_name.toLowerCase().split("-")[0])} 🍃
         </div>
       </div>
       <div
@@ -96,23 +109,18 @@ function getLabel(x: PurchaseOption, priceData) {
           overflow: "hidden",
         }}
       >
+        <div style={{ flex: 1 }}>
+          {!cpuOnly && <>{x.available ?? 0} available in</>}{" "}
+          {capitalize(x.region_name.toLowerCase().split("-")[0])} 🍃
+        </div>
         <div style={{ flex: 1, color: "#888" }}>
-          {humanFlavor(x.flavor_name)}
+          {/* humanFlavor(x.flavor_name) */}
         </div>
         <div style={{ flex: 1 }}>
           {gpuSpec != null && gpuSpec.cuda_cores > 0 && (
             <>
               {commas(x.gpu_count * gpuSpec.cuda_cores)}
               {" CUDA cores"}
-            </>
-          )}
-        </div>
-        <div style={{ flex: 1 }}>
-          {gpuSpec != null && (
-            <>
-              {gpuSpec?.memory != null && (
-                <>{x.gpu_count * gpuSpec.memory}GB GPU RAM</>
-              )}
             </>
           )}
         </div>
@@ -137,6 +145,7 @@ export default function MachineType({
   priceData,
   state,
 }) {
+  const [selectOpen, setSelectOpen] = useState<boolean>(false);
   const [showUnavailable, setShowUnavailable] = useState<boolean>(false);
   const [showCpuOnly, setShowCpuOnly] = useState<boolean>(
     humanFlavor(configuration.flavor_name).includes("cpu"),
@@ -287,6 +296,7 @@ export default function MachineType({
                       v = v.filter((x) => x != name);
                     }
                     setFilterTags(new Set(v));
+                    setSelectOpen(true);
                   }}
                 >
                   {name}
@@ -307,6 +317,8 @@ export default function MachineType({
         showSearch
         optionFilterProp="children"
         filterOption={filterOption}
+        onDropdownVisibleChange={setSelectOpen}
+        open={selectOpen}
       />
 
       {links != null && (
