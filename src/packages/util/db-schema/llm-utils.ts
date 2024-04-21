@@ -45,7 +45,7 @@ export function isOpenAIModel(model: unknown): model is OpenAIModel {
 export const MISTRAL_MODELS = [
   // yes, all 3 of them have an extra mistral-prefix, on top of the vendor prefix
   "mistral-small-latest",
-  "mistral-medium-latest",
+  "mistral-medium-latest", // Deprecated!
   "mistral-large-latest",
 ] as const;
 
@@ -138,7 +138,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       // not all work right now
       m === "gemini-pro" || m === "gemini-1.5-pro",
   ),
-  mistralai: MISTRAL_MODELS,
+  mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
