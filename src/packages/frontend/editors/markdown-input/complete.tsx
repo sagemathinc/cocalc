@@ -6,7 +6,7 @@
 /*
 I started with a copy of jupyter/complete.tsx, and will rewrite it
 to be much more generically usable here, then hopefully use this
-for jupyter, code editors, (etc.'s) complete.  E.g., I already
+for Jupyter, code editors, (etc.'s) complete.  E.g., I already
 rewrote this to use the Antd dropdown, which is more dynamic.
 */
 
@@ -57,13 +57,13 @@ export function Complete(props: Props) {
   const items_llm = items.filter(
     (item) =>
       (item.is_llm ?? false) &&
-      // if search elimites all users, we show all LLMs
+      // if search eliminates all users, we show all LLMs
       (items_user.length === 0 || !item.show_llm_main_menu),
   );
 
   const haveLLMs = items_llm.length > 0;
-  // note: if onlyLLMs is true, we treat LLMs as if they're users and do not show a submenu
-  // this causes the submenu to "collapse" if there are no users left to show
+  // note: if onlyLLMs is true, we treat LLMs as if they're users and do not show a sub-menu
+  // this causes the sub-menu to "collapse" if there are no users left to show
   const onlyLLMs = haveLLMs && items_user.length === 0;
 
   // If we render a sub-menu, add LLMs that should should show up in the main menu
@@ -97,7 +97,7 @@ export function Complete(props: Props) {
   }, [llm, onlyLLMs]);
 
   useEffect(() => {
-    // if we show the LLM submenu and we scroll to it using the keyboard, we pop it open
+    // if we show the LLM sub-menu and we scroll to it using the keyboard, we pop it open
     // Hint: these can be equal, if there is one more virtual entry in selectedUser!
     if (selectedUser === items_user.length) {
       setLLM(true);
@@ -136,25 +136,25 @@ export function Complete(props: Props) {
         case 38: // up arrow key
           (isLLM ? setSelectedLLM : setSelectedUser)(n - 1);
           // @ts-ignore
-          $(".ant-menu-item-selected").scrollintoview();
+          $(".ant-dropdown-menu-item-selected").scrollintoview();
           break;
 
         case 40: // down arrow
           (isLLM ? setSelectedLLM : setSelectedUser)(n + 1);
           // @ts-ignore
-          $(".ant-menu-item-selected").scrollintoview();
+          $(".ant-dropdown-menu-item-selected").scrollintoview();
           break;
 
         case 39: // right arrow key
           if (haveLLMs) setLLM(true);
           // @ts-ignore
-          $(".ant-menu-item-selected").scrollintoview();
+          $(".ant-dropdown-menu-item-selected").scrollintoview();
           break;
 
         case 37: // left arrow key
           setLLM(false);
           // @ts-ignore
-          $(".ant-menu-item-selected").scrollintoview();
+          $(".ant-dropdown-menu-item-selected").scrollintoview();
           break;
       }
     },
@@ -162,9 +162,15 @@ export function Complete(props: Props) {
   );
 
   useEffect(() => {
+    // for clicks, we only listen on the root of the app – otherwise clicks on
+    // e.g. the menu items and the sub-menu always trigger a close action
+    // (that popup menu is outside the root in the DOM)
+    const root = document.getElementById("cocalc-webapp-container");
     document.addEventListener("keydown", onKeyDown);
+    root?.addEventListener("click", onCancel);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      root?.removeEventListener("click", onCancel);
     };
   }, [onKeyDown, onCancel]);
 
@@ -222,7 +228,7 @@ export function Complete(props: Props) {
     });
   }
 
-  // NOTE: the AI LLM submenu is either opened by hovering (clicking closes immediately) or by right-arrow key
+  // NOTE: the AI LLM sub-menu is either opened by hovering (clicking closes immediately) or by right-arrow key
   const menu: MenuProps = {
     selectedKeys: [selected_key_ref.current],
     onClick: (e) => {
@@ -233,7 +239,7 @@ export function Complete(props: Props) {
     items: menuItems,
     openKeys: llm ? ["sub_llm"] : [],
     onOpenChange: (openKeys) => {
-      // this, and the right-left-arrow keys control opening the llm submenu
+      // this, and the right-left-arrow keys control opening the LLM sub-menu
       setLLM(openKeys.includes("sub_llm"));
     },
     mode: "vertical",
@@ -250,6 +256,7 @@ export function Complete(props: Props) {
       <Dropdown
         menu={menu}
         open
+        trigger={["click", "hover"]}
         placement="top" // always on top, and paddingBottom makes the entire line visible
         overlayStyle={{ paddingBottom: "1em" }}
       >
