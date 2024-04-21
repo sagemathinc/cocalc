@@ -1,24 +1,13 @@
-import { Alert, Button, Col, Input, Row, Select, Space, Switch } from "antd";
-import { throttle } from "lodash";
+import { Button, Col, Input, Row, Select, Space, Switch } from "antd";
 
 import {
   CSS,
   redux,
-  useAsyncEffect,
-  useEffect,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  Loading,
-  Paragraph,
-  Text,
-  Title,
-} from "@cocalc/frontend/components";
+import { Paragraph, Title } from "@cocalc/frontend/components";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
-import { Markdown } from "@cocalc/frontend/markdown";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   CoreLanguageModel,
   LLMServiceName,
@@ -27,15 +16,10 @@ import {
   isCoreLanguageModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { getRandomColor } from "@cocalc/util/misc";
-
-const PROMPTS: Readonly<{ prompt: string; expected: string }[]> = [
-  { prompt: "What's 9 + 91? Reply only the number!", expected: "100" },
-  {
-    prompt: "Show me the LaTeX Formula for 'a/(b+c). Reply only the formula!",
-    expected: "frac",
-  },
-] as const;
+import { getRandomColor, trunc_middle } from "@cocalc/util/misc";
+import { TestLLM } from "./test-component";
+import { PROMPTS } from "./tests";
+import { Value } from "./value";
 
 export function TestLLMAdmin() {
   const customize = redux.getStore("customize");
@@ -101,8 +85,11 @@ export function TestLLMAdmin() {
                 defaultValue={0}
                 popupMatchSelectWidth={false}
               >
-                <Select.Option value={0}>Calulate</Select.Option>
-                <Select.Option value={1}>Formula</Select.Option>
+                {PROMPTS.map((p, i) => (
+                  <Select.Option key={i} value={i}>
+                    {trunc_middle(p.prompt, 25)}
+                  </Select.Option>
+                ))}
               </Select>
             }
           />
@@ -163,119 +150,5 @@ export function TestLLMAdmin() {
       <Title level={5}>Ollama configuration</Title>
       <Value val={ollama} />
     </div>
-  );
-}
-
-function Value({ val }: { val: any }) {
-  switch (typeof val) {
-    case "boolean":
-      return val ? <Icon unicode={0x2705} /> : <Icon unicode={0x274c} />;
-    case "number":
-      return <>`${val}`</>;
-    default:
-      return <Text code>{JSON.stringify(val)}</Text>;
-  }
-}
-
-interface TestLLMProps {
-  model: CoreLanguageModel | string;
-  test: number | null;
-  queryState: [boolean | undefined, (val: boolean) => void];
-}
-
-function TestLLM({ model, test, queryState }: TestLLMProps) {
-  const [querying, setQuerying] = queryState;
-  const [output, setOutput] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [passed, setPassed] = useState<boolean | undefined>();
-
-  const { prompt, expected } =
-    typeof test === "number" ? PROMPTS[test] : { prompt: "", expected: "" };
-  const expectedRegex = new RegExp(expected, "g");
-
-  const check = throttle(
-    () => {
-      if (passed != null && output.trim() === "") {
-        setPassed(undefined);
-      } else if (expectedRegex.test(output) && !passed) {
-        setPassed(true);
-      }
-    },
-    250,
-    {
-      leading: false,
-      trailing: true,
-    },
-  );
-
-  useEffect(() => {
-    if (prompt.trim() === "") {
-      setOutput("");
-      setError("");
-      setPassed(undefined);
-    }
-  }, [prompt, test]);
-
-  useEffect(() => {
-    check();
-  }, [output]);
-
-  useAsyncEffect(async () => {
-    if (!querying || prompt.trim() === "") {
-      querying && setQuerying(false);
-      setError("");
-      return;
-    }
-
-    try {
-      setPassed(undefined);
-      const llmStream = await webapp_client.openai_client.queryStream({
-        input: prompt,
-        project_id: null,
-        tag: "admin-llm-test",
-        model,
-        system: "",
-        maxTokens: 20,
-      });
-
-      let reply = "";
-      llmStream.on("token", (token) => {
-        if (token) {
-          reply += token;
-          setOutput(reply);
-        }
-      });
-
-      llmStream.on("error", (err) => {
-        setPassed(false);
-        setError(err?.toString());
-        setQuerying(false);
-      });
-    } catch (err) {
-      setError(err?.toString());
-    } finally {
-      setQuerying(false);
-    }
-  }, [querying]);
-
-  function renderPassed() {
-    if (typeof passed === "boolean") {
-      return <Value val={passed} />;
-    } else {
-      return <Icon unicode={0x2753} />;
-    }
-  }
-
-  if (querying) {
-    return <Loading />;
-  }
-
-  return (
-    <>
-      <Space direction="horizontal" align="start">
-        {renderPassed()} <Markdown value={output} />
-      </Space>
-      {error ? <Alert banner type="error" message={error} /> : undefined}
-    </>
   );
 }
