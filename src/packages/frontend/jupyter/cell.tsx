@@ -339,18 +339,20 @@ export const Cell: React.FC<Props> = React.memo((props) => {
 
   // Note that the cell id is used for scroll functionality, so *is* important.
   return (
-    <div
-      style={style}
-      onMouseUp={props.is_current ? undefined : click_on_cell}
-      onDoubleClick={double_click}
-      id={id}
-      cocalc-test={"jupyter-cell"}
-    >
+    <>
       {props.isFirst ? render_insert_cell("above") : undefined}
-      {render_metadata_state()}
-      {render_cell_input(props.cell)}
-      {render_cell_output(props.cell)}
+      <div
+        style={style}
+        onMouseUp={props.is_current ? undefined : click_on_cell}
+        onDoubleClick={double_click}
+        id={id}
+        cocalc-test={"jupyter-cell"}
+      >
+        {render_metadata_state()}
+        {render_cell_input(props.cell)}
+        {render_cell_output(props.cell)}
+      </div>
       {render_insert_cell("below")}
-    </div>
+    </>
   );
 }, areEqual);
