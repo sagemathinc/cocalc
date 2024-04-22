@@ -99,7 +99,7 @@ const dataSource: DataSource = [
   },
   {
     landingPages: true,
-    link: "https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HalSnyder",
+    link: "/about/team/andrey-novoseltsev",
     title: <TitleComponent
       name="Andrey Novoseltsev"
       jobTitle="COO at SageMath, Inc."
@@ -114,10 +114,9 @@ const dataSource: DataSource = [
         oversees day-to-day operations at SageMath, Inc.
 
         Learn more about Andrey's passion for CoCalc as an educational tool{" "}
-        <A href="https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HalSnyder">here</A>,
-        or reach out to Andrey at{" "}
-        <A href="mailto:andrey@cocalc.com">andrey@cocalc.com</A> for custom
-        quotes and special care for your purchasing orders and invoices.
+        <A href="/about/team/andrey-novoseltsev">here</A>, or reach out to
+        Andrey at <A href="mailto:andrey@cocalc.com">andrey@cocalc.com</A> for
+        custom quotes and special care for your purchasing orders and invoices.
 
         <TeamSocialMediaComponent links={{
           facebook: "https://www.facebook.com/andrey.novoseltsev.351",
@@ -130,9 +129,11 @@ const dataSource: DataSource = [
   },
   {
     landingPages: true,
-    link: "https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#BlaecBejarano",
-    title: <TitleComponent name="Blaec Bejarano"
-                           jobTitle="CSO at SageMath, Inc."/>,
+    link: "/about/team/blaec-bejarano",
+    title: <TitleComponent
+      name="Blaec Bejarano"
+      jobTitle="CSO at SageMath, Inc."
+    />,
     image: BlaecBejaranoImage,
     description: (
       <>
@@ -143,9 +144,8 @@ const dataSource: DataSource = [
         differential equations to model physical phenomena.
 
         Learn more about Blaec's ardor for mountaineering and geophysics{" "}
-        <A href="https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#BlaecBejarano">here</A>,
-        or reach out to Blaec at{" "}
-        <A href="mailto:blaec@cocalc.com">blaec@cocalc.com</A> to talk about
+        <A href="/about/team/blaec-bejarano">here</A>, or reach out to Blaec
+        at <A href="mailto:blaec@cocalc.com">blaec@cocalc.com</A> to talk about
         computational applied mathematics, software development/integration
         opportunities, or possible partnerships with SageMath.
 
