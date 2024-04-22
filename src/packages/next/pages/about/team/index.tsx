@@ -1,8 +1,8 @@
-import { Flex, Layout, Typography } from "antd";
+import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 
+import { TitleComponent } from "components/about/title-component";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -21,24 +21,6 @@ import HaraldSchillyImage from "public/about/harald-schilly.jpg";
 import AndreyNovoseltsevImage from "public/about/andrey-novoseltsev.jpeg";
 import BlaecBejaranoImage from "public/about/blaec-bejarano.png";
 
-const TitleComponent = ({ name, jobTitle }) => (
-  <Flex
-    justify="space-between"
-    align="baseline"
-    wrap="wrap"
-    style={{
-      marginBottom: "24px"
-    }}>
-    <Typography.Title
-      style={{
-        margin: 0,
-      }}
-      level={3}
-    >{name}</Typography.Title>
-    <div style={{ color: COLORS.GRAY }}>{jobTitle}</div>
-  </Flex>
-);
-
 const TeamSocialMediaComponent = ({ links }: Pick<SocialMediaIconListProps, 'links'>) => (
   <SocialMediaIconList
     style={{
@@ -52,19 +34,23 @@ const TeamSocialMediaComponent = ({ links }: Pick<SocialMediaIconListProps, 'lin
 const dataSource: DataSource = [
   {
     landingPages: true,
-    link: "https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#WilliamStein",
-    title: <TitleComponent name="William Stein" jobTitle="CEO and Founder of SageMath, Inc."/>,
+    link: "/about/team/william-stein",
+    title: <TitleComponent
+      name="William Stein"
+      jobTitle="CEO and Founder of SageMath, Inc."
+    />,
     image: WilliamSteinImage,
     description: (
       <>
-        Get to know the math prodigy behind CoCalc and SageMath, Inc.: William Stein. A Berkeley
-        graduate and an ardent mathematician with over 15 years of experience in teaching and
-        research, William’s passion for number theory and computational science has led him down a
-        remarkable path.
+        Get to know the math prodigy behind CoCalc and SageMath, Inc.: William
+        Stein. A Berkeley graduate and an ardent mathematician with over 15
+        years of experience in teaching and research, William’s passion for
+        number theory and computational science has led him down a remarkable
+        path.
 
         Learn more about William's remarkable career{" "}
-        <A href="https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#WilliamStein">here</A>,
-        or reach out to say hello at <A href="mailto:wstein@sagemath.com">wstein@sagemath.com</A>.
+        <A href="/about/team/william-stein">here</A>, or reach out to say hello
+        at <A href="mailto:wstein@sagemath.com">wstein@sagemath.com</A>.
 
         <TeamSocialMediaComponent links={{
           facebook: "https://www.facebook.com/william.stein.37",
@@ -79,21 +65,26 @@ const dataSource: DataSource = [
   },
   {
     landingPages: true,
-    link: "https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HaraldSchilly",
-    title: <TitleComponent name="Harald Schilly" jobTitle="CTO at SageMath, Inc."/>,
+    link: "/about/team/harald-schilly",
+    title: <TitleComponent
+      name="Harald Schilly"
+      jobTitle="CTO at SageMath, Inc."
+    />,
     image: HaraldSchillyImage,
     description: (
       <>
-        Harald’s life-long dedication to coding, profound knowledge, and dynamic personality have
-        been invaluable in shaping CoCalc’s operations and success. Initially a key contributor
-        to the SageMath open-source mathematics software while studying Optimization, Harald now
-        exercises his talent for adopting new technologies and algorithms by consistently pushing
-        CoCalc's capabilities into new and exciting territory.
+        Harald’s life-long dedication to coding, profound knowledge, and dynamic
+        personality have been invaluable in shaping CoCalc’s operations and
+        success. Initially a key contributor to the SageMath open-source
+        mathematics software while studying Optimization, Harald now exercises
+        his talent for adopting new technologies and algorithms by consistently
+        pushing CoCalc's capabilities into new and exciting territory.
 
         Learn more about Harald's enthusiam for software{" "}
-        <A href="https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HaraldSchilly">here</A>,
-        or reach out to Harald at <A href="mailto:hsy@sagemath.com">hsy@sagemath.com</A> for more
-        information about his projects or for advice on the perfect marinara sauce.
+        <A href="/about/team/harald-schilly">here</A>, or reach out to Harald
+        at <A href="mailto:hsy@sagemath.com">hsy@sagemath.com</A> for more
+        information about his projects or for advice on the perfect marinara
+        sauce.
 
         <TeamSocialMediaComponent links={{
           facebook: "https://www.facebook.com/harald.schilly",
@@ -108,19 +99,23 @@ const dataSource: DataSource = [
   },
   {
     landingPages: true,
-    link: "https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HalSnyder",
-    title: <TitleComponent name="Andrey Novoseltsev" jobTitle="COO at SageMath, Inc."/>,
+    link: "/about/team/andrey-novoseltsev",
+    title: <TitleComponent
+      name="Andrey Novoseltsev"
+      jobTitle="COO at SageMath, Inc."
+    />,
     image: AndreyNovoseltsevImage,
     description: (
       <>
-        Andrey went through graduate school as a student and then an instructor in Russia, USA, and
-        Canada. With an interest in software development starting with early childhood experience on
-        Soviet ES EVM, he used SageMath extensively both in his Ph.D. research and teaching and now
+        Andrey went through graduate school as a student and then an instructor
+        in Russia, USA, and Canada. With an interest in software development
+        starting with early childhood experience on Soviet ES EVM, he used
+        SageMath extensively both in his Ph.D. research and teaching and now
         oversees day-to-day operations at SageMath, Inc.
 
         Learn more about Andrey's passion for CoCalc as an educational tool{" "}
-        <A href="https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HalSnyder">here</A>,
-        or reach out to Andrey at <A href="mailto:andrey@cocalc.com">andrey@cocalc.com</A> for
+        <A href="/about/team/andrey-novoseltsev">here</A>, or reach out to
+        Andrey at <A href="mailto:andrey@cocalc.com">andrey@cocalc.com</A> for
         custom quotes and special care for your purchasing orders and invoices.
 
         <TeamSocialMediaComponent links={{
@@ -134,21 +129,25 @@ const dataSource: DataSource = [
   },
   {
     landingPages: true,
-    link: "https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#BlaecBejarano",
-    title: <TitleComponent name="Blaec Bejarano" jobTitle="CSO at SageMath, Inc."/>,
+    link: "/about/team/blaec-bejarano",
+    title: <TitleComponent
+      name="Blaec Bejarano"
+      jobTitle="CSO at SageMath, Inc."
+    />,
     image: BlaecBejaranoImage,
     description: (
       <>
-        As a 2021 graduate from Oregon State University with an M.S. in Mathematics, Blaec uniquely
-        combines advanced mathematical modeling skills with a thriving energy for mountain climbing
-        and music. His academic expertise focuses on applying numerical analysis and partial
+        As a 2021 graduate from Oregon State University with an M.S. in
+        Mathematics, Blaec uniquely combines advanced mathematical modeling
+        skills with a thriving energy for mountain climbing and music. His
+        academic expertise focuses on applying numerical analysis and partial
         differential equations to model physical phenomena.
 
         Learn more about Blaec's ardor for mountaineering and geophysics{" "}
-        <A href="https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#BlaecBejarano">here</A>,
-        or reach out to Blaec at <A href="mailto:blaec@cocalc.com">blaec@cocalc.com</A> to talk
-        about computational applied mathematics, software development/integration opportunities, or
-        possible partnerships with SageMath.
+        <A href="/about/team/blaec-bejarano">here</A>, or reach out to Blaec
+        at <A href="mailto:blaec@cocalc.com">blaec@cocalc.com</A> to talk about
+        computational applied mathematics, software development/integration
+        opportunities, or possible partnerships with SageMath.
 
         <TeamSocialMediaComponent links={{
           facebook: "https://www.facebook.com/blaec.bejarano/",
@@ -191,17 +190,20 @@ export default function Team({ customize }) {
               }
               description={
                 <>
-                  SageMath, Inc. (the company behind CoCalc) comprises a small yet diverse group
-                  of people worldwide who are unified behind the common goal of progressing
-                  open-source mathematical software and cloud-based technology for the scientific
+                  SageMath, Inc. (the company behind CoCalc) comprises a small
+                  yet diverse group of people worldwide who are unified behind
+                  the common goal of progressing open-source mathematical
+                  software and cloud-based technology for the scientific
                   community.
 
-                  Each team member brings unique perspectives and specializations that continue to
-                  push the development of products like CoCalc and its features toward the frontier
-                  of educational use and research.
+                  Each team member brings unique perspectives and
+                  specializations that continue to push the development of
+                  products like CoCalc and its features toward the frontier of
+                  educational use and research.
 
-                  As you'll see, all of our executive team members at SageMath, Inc. are trained
-                  mathematicians, each with their own strengths.
+                  As you'll see, all of our executive team members at SageMath,
+                  Inc. are trained mathematicians, each with their own
+                  strengths.
                 </>
               }
               dataSource={dataSource}
